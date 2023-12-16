@@ -59,7 +59,6 @@ let rec value_to_expr (v : V.t) : G.expr =
                  | Closure (env, e) -> E.eval_program_with_env env e
                  (* impossible too? *)
                  | Val v -> v
-                 | Lv lv -> Lazy.force lv
                  | Unevaluated _ -> raise Impossible))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
@@ -77,7 +76,6 @@ let rec value_to_expr (v : V.t) : G.expr =
                      | Closure (env, e) -> E.eval_program_with_env env e
                      (* impossible? *)
                      | Val v -> v
-                     | Lv lv -> Lazy.force lv
                      | Unevaluated _ -> raise Impossible
                    in
                    let e = value_to_expr v in

@@ -13,7 +13,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
 open Core_jsonnet
 module A = AST_jsonnet
@@ -25,14 +24,13 @@ module H = Eval_jsonnet_common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Core_jsonnet to Value_jsonnet Jsonnet evaluator using
- * an environment-style evaluation and closures instead
- * of lambda substitutions like in the spec.
+(* Core_jsonnet to Value_jsonnet Jsonnet evaluator using an environment-style
+ * evaluation and closures instead of lambda substitutions like in the spec.
  *
  * See https://jsonnet.org/ref/spec.html#semantics
  *
- * See Eval_jsonnet_subst for the substitution-based evaluator
- * which is more correct (but far slower).
+ * See Eval_jsonnet_subst for the substitution-based evaluator, which is more
+ * correct (but far slower).
  *)
 
 (*****************************************************************************)
@@ -40,16 +38,18 @@ module H = Eval_jsonnet_common
 (*****************************************************************************)
 
 (* Start of big mutually recursive functions *)
-let rec lookup (env : V.env) tk local_id =
-  let id = string_of_local_id local_id in
+let rec lookup (env : V.env) tk (id : V.local_id) =
   let entry =
-    try Map_.find local_id env.locals with
+    try Map_.find id env.locals with
     | Not_found ->
         Logs.debug (fun m ->
-            m "lookup fail for %s in env = %s" id (show_env env));
-        error tk (spf "could not find '%s' in the environment" id)
+            m "lookup fail for %s in env = %s" (V.show_local_id id)
+              (show_env env));
+        error tk
+          (spf "could not find '%s' in the environment" (V.show_local_id id))
   in
-  Logs.debug (fun m -> m "found '%s', value = %s" id (show_lazy_value entry));
+  Logs.debug (fun m ->
+      m "found '%s', value = %s" (V.show_local_id id) (show_lazy_value entry));
   to_value entry
 
 and to_value (v : V.lazy_value) : V.t =
@@ -57,9 +57,7 @@ and to_value (v : V.lazy_value) : V.t =
   | Closure (env, e) -> eval_expr env e
   (* We use Val for self/super to actually store the ref to the V.Object *)
   | Val v -> v
-  | Lv _
-  | Unevaluated _ ->
-      raise Impossible
+  | Unevaluated _ -> raise Impossible
 
 and to_lazy_value env x : V.lazy_value = V.Closure (env, x)
 
@@ -70,12 +68,13 @@ and to_lazy_value env x : V.lazy_value = V.Closure (env, x)
 and eval_expr (env : V.env) (e : expr) : V.t =
   match e with
   | L lit -> H.eval_literal env lit
-  (* lazy evaluation of Array elements and Lambdas *)
+  (* lazy evaluation of Array elements *)
   | Array (l, xs, r) ->
       let elts =
         xs |> List_.map (fun x -> to_lazy_value env x) |> Array.of_list
       in
       Array (l, elts, r)
+  (* TODO? should we close the lambda with env.locals? *)
   | Lambda f -> Lambda f
   | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (V.LId s)
@@ -84,23 +83,23 @@ and eval_expr (env : V.env) (e : expr) : V.t =
    * RUNTIME ERROR: attempt to use super when there is no super class.
    *)
   | IdSpecial (Super, tk) -> lookup env tk V.LSuper
+  | Local (_tlocal, binds, _tsemi, e) ->
+      let locals =
+        binds
+        |> List.fold_left
+             (fun acc (B (id, _teq, e_i)) ->
+               Map_.add (V.LId (fst id)) (to_lazy_value env e_i) acc)
+             env.locals
+      in
+      eval_expr { env with locals } e
+  (* this covers also obj access *)
+  | ArrayAccess (v1, v2) -> eval_array_access env v1 v2
   | Call
       ( (ArrayAccess
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
          as e0),
         (l, args, r) ) ->
       H.eval_std_method env e0 meth (l, args, r)
-  | Local (_tlocal, binds, _tsemi, e) ->
-      let locals =
-        binds
-        |> List.fold_left
-             (fun acc (B (id, _teq, e_i)) ->
-               let binding = to_lazy_value env e_i in
-               Map_.add (V.LId (fst id)) binding acc)
-             env.locals
-      in
-      eval_expr { env with locals } e
-  | ArrayAccess (v1, v2) -> eval_array_access env v1 v2
   | Call (e0, args) -> H.eval_call env e0 args
   | UnaryOp ((op, tk), e) -> H.eval_unary_op env (op, tk) e
   | BinaryOp (el, (op, tk), er) -> H.eval_binary_op env el (op, tk) er
@@ -115,10 +114,12 @@ and eval_expr (env : V.env) (e : expr) : V.t =
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
+(* this also covers obj access as those are desugared in array access *)
 and eval_array_access env v1 v2 =
   let e = eval_expr env v1 in
   let l, index, _r = (eval_bracket eval_expr) env v2 in
   match (e, index) with
+  (* actual array access *)
   | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
       if Float.is_integer f then
         let i = int_of_float f in
@@ -132,6 +133,7 @@ and eval_array_access env v1 v2 =
         | _else_ ->
             error tkf (spf "Out of bound for array index: %s" (sv index))
       else error tkf (spf "Not an integer: %s" (sv index))
+  (* string access *)
   | Primitive (Str (s, tk)), Primitive (Double (f, tkf)) ->
       let i = int_of_float f in
       if i >= 0 && i < String.length s then
@@ -141,21 +143,16 @@ and eval_array_access env v1 v2 =
       else
         error tkf
           (spf "string bounds error: %d not within [0, %d)" i (String.length s))
-  (* Field access! A tricky operation. *)
+  (* obj field access! A tricky operation. *)
   | ( (V.Object (_l, (_assertsTODO, fields), _r) as obj),
       Primitive (Str (fld, tk)) ) -> (
-      match
-        fields
-        |> List.find_opt (fun (field : V.value_field) ->
-               fst field.fld_name = fld)
-      with
+      let (fld_opt : V.value_field option) =
+        List.find_opt (fun fld2 -> fst fld2.V.fld_name = fld) fields
+      in
+      match fld_opt with
       | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
       | Some fld -> (
           match fld.fld_value with
-          | V.Lv _
-          | V.Unevaluated _ ->
-              raise Impossible
-          | V.Val v -> v
           | V.Closure (env_closure, e) ->
               (* Late-bound self.
                * We need to do the self assignment on field access rather
@@ -187,34 +184,19 @@ and eval_array_access env v1 v2 =
                   env_closure.locals |> Map_.add V.LSelf (V.Val obj)
                 else env_closure.locals
               in
-              eval_expr { env with locals } e))
+              eval_expr { env with locals } e
+          | V.Val v -> v
+          | V.Unevaluated _ -> raise Impossible))
   | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index))
 
-(* In theory, we should just recursively evaluate f(ei), but
- * ei is actually not an expression but a lazy_value coming from
- * a array, so we can't just call eval_call(). The code below is
- * a specialization of eval_call and eval_expr for Local.
- *)
-and eval_std_filter_element (env : V.env) (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.t * V.env =
-  match f with
-  | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
-      (* similar to eval_expr for Local *)
-      let locals = Map_.add (V.LId (fst id)) ei env.locals in
-      (* similar to eval_call *)
-      (*TODO: Is the environment correct? *)
-      (eval_expr { env with depth = env.depth + 1; locals } f_body, env)
-  | _else_ -> error tk "filter function takes 1 parameter"
-
 and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
-  let l, (lassert, lflds), _r = objl in
+  let l, (lassert, lflds), _ = objl in
   let _, (rassert, rflds), r = objr in
   let hobjr =
     rflds
     |> List_.map (fun { V.fld_name = s, _; _ } -> s)
     |> Hashtbl_.hashset_of_list
   in
-  (* TODO: this currently just merges the f *)
   let asserts = lassert @ rassert in
   let lflds' =
     lflds
@@ -237,15 +219,14 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
             * (see also eval_fail/basic_super2.jsonnet)
             *)
            match fld_value with
-           | Lv _
-           | Unevaluated _
-           | Val _ ->
-               raise Impossible
            | Closure (env, e) ->
                let locals =
                  env.locals |> Map_.add V.LSuper (V.Val (V.Object objl))
                in
-               { fld with fld_value = Closure ({ env with locals }, e) })
+               { fld with fld_value = Closure ({ env with locals }, e) }
+           | Unevaluated _
+           | Val _ ->
+               raise Impossible)
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
@@ -279,23 +260,26 @@ and eval_obj_inside env (l, x, r) : V.t =
       in
       let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
       V.Object (l, (asserts_with_env, fields), r)
+  (* big TODO *)
   | ObjectComp _x -> error l "TODO: ObjectComp"
-(*
-      let v = eval_obj_comprehension env x in
 
-and eval_obj_comprehension env v =
-  (fun env (_fldname, _tk, v3, v4) ->
-    let v3 = eval_expr env v3 in
-    let v4 = eval_for_comp env v4 in
-    ...)
-    env v
-
-and eval_for_comp env v =
-  (fun env (_tk1, _id, _tk2, v4) ->
-    let v4 = eval_expr env v4 in
-    ...)
-    env v
-*)
+(* This is called from Eval_jsonnet_common.eval_std_method for "std.filter".
+ * In theory, we should just recursively evaluate f(ei), but
+ * ei is actually not an expression but a lazy_value coming from
+ * an array, so we can't just call eval_call(). The code below is
+ * a specialization of eval_call and eval_expr for Local.
+ * TODO? why we need a special implem? could be moved to Eval_jsonnet_common?
+ *)
+and eval_std_filter_element (env : V.env) (tk : tok) (f : function_definition)
+    (ei : V.lazy_value) : V.t * V.env =
+  match f with
+  | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
+      (* similar to eval_expr for Local *)
+      let locals = Map_.add (V.LId (fst id)) ei env.locals in
+      (* similar to eval_call *)
+      (*TODO: Is the environment correct? *)
+      (eval_expr { env with depth = env.depth + 1; locals } f_body, env)
+  | _else_ -> error tk "filter function takes 1 parameter"
 
 (*****************************************************************************)
 (* Manfestation *)
@@ -319,7 +303,7 @@ and manifest_value (v : V.t) : JSON.t =
   | Lambda { f_tok = tk; _ } -> error tk (spf "Lambda value: %s" (sv v))
   | Array (_, arr, _) ->
       J.Array
-        (arr |> Array.to_list
+        (Array.to_list arr
         |> List_.map (fun (entry : V.lazy_value) ->
                manifest_value (to_value entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) as obj ->
@@ -333,10 +317,6 @@ and manifest_value (v : V.t) : JSON.t =
                | A.ForcedVisible ->
                    let v =
                      match fld_value with
-                     | Lv _
-                     | Unevaluated _ ->
-                         raise Impossible
-                     | Val v -> v
                      | Closure (env, e) ->
                          (* similar to what we do in eval_expr on field access *)
                          let locals =
@@ -345,6 +325,8 @@ and manifest_value (v : V.t) : JSON.t =
                            else env.locals
                          in
                          eval_expr { env with locals } e
+                     | Val v -> v
+                     | Unevaluated _ -> raise Impossible
                    in
                    let j = manifest_value v in
                    Some (fst fld_name, j))
@@ -355,7 +337,7 @@ and manifest_value (v : V.t) : JSON.t =
 (* Entry points *)
 (*****************************************************************************)
 
-(*Same as eval_expr but with profiling *)
+(* Same as eval_expr but with profiling *)
 let eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
   eval_expr env e
 [@@profiling]

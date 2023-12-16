@@ -13,6 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module Core = Core_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -22,26 +23,24 @@
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
  *)
 
-module Core = Core_jsonnet
-
 (*****************************************************************************)
 (* Values *)
 (*****************************************************************************)
 type t =
   | Primitive of primitive
+  | Array of lazy_value array Core.bracket
   | Object of object_ Core.bracket
   | Lambda of Core.function_definition
-  | Array of lazy_value array Core.bracket
 
-(* mostly like AST_jsonnet.literal but with evaluated Double instead of
+(* Similar to AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
- * Is float good enough? That's what we use in JSON.t so should be good.
- * TODO? string good enough for unicode? codepoints?
  *)
 and primitive =
   | Null of Core.tok
   | Bool of bool Core.wrap
+  (* float should be good enough; that's what we use in JSON.t *)
   | Double of float Core.wrap
+  (* TODO? string good enough for unicode? codepoints? *)
   | Str of string Core.wrap
 
 and object_ = asserts list * value_field list
@@ -60,44 +59,37 @@ and asserts = Core.obj_assert * env
 (* Lazy values *)
 (*****************************************************************************)
 
-(* A lazy value was represented before simply as a closure.
- * This was also represented as an explicit "lazy" rather than keeping around
- * an environment. However, this does not work with the object
- * merge + operator, since we need to be able to access the environment in
- * which fields of the object are evaluated in. We can't just build
- * a closure, that implicitely has an environment. We need to make
- * explicit the closure.
+(* Jsonnet is a lazy language, so lazy values have a special importance.
+ * A lazy value was represented originally simply as "t Lazy.t". However, this
+ * does not work with the object merge '+' operator, because we need to
+ * access the environment in which fields of the object are evaluated in. We
+ * can't just build a closure (a Lazy.t), that implicitely has an environment;
+ * we need to make explicit the environment (see Closure below).
+ * In fact, this is also needed to implement the "late-bound" 'self'.
  * The environment is also neccesary to keep around and for values, since
  * there could be nested objects/arrays which also have lazy semantics
  * themselves, and thus again need to be able to modify a specifc environment
  *)
 and lazy_value =
-  (* for strict *)
+  (* when we know the value, which is useful to bind Self/Super *)
   | Val of t
-  (* for strict actually but just to handle Self, or could be for envir too *)
-  | Lv of t Lazy.t
-  (* for subst *)
-  | Unevaluated of Core.expr
-  (* for envir *)
+  (* for the environment-style evaluator *)
   | Closure of env * Core.expr
+  (* for the lambda calculus substitution model *)
+  | Unevaluated of Core.expr
 
 (*****************************************************************************)
 (* Env *)
 (*****************************************************************************)
 and env = {
   (* There are currently two implementations of evaluation, one in
-   * Eval_jsonnet, the other in Eval_jsonnet_subst. The former
+   * Eval_jsonnet_envir, the other in Eval_jsonnet_subst. The former
    * uses an environment, while the later uses lambda calculus
    * substitutions. Currently, the substitution version passes more
    * tests but is inneficient. We currently keep both implementations to
    * possibly mix the two, to get the efficiency benifit of environments
    * while keeping the simpler super/self implementation given
-   * by substitution model. In the substitution model, we always
-   * just pass an empty environment into the value right now.
-   * it is probably simpler and more efficient to use a classic
-   * environment where the locals are defined. Jsonnet uses lazy
-   * evaluation so we model this by allowing unevaluated expressions in
-   * environment below.
+   * by substitution model.
    *)
   locals : (local_id, lazy_value) Map_.t;
   (* for call tracing *)
@@ -132,6 +124,7 @@ let empty_env =
   {
     locals = Map_.empty;
     depth = 0;
+    (* fake implem; Each Eval_jsonnet_xxx.ml need to define those methods *)
     eval_expr = (fun _ _ -> failwith "TODO: eval_expr not implemented");
     eval_std_filter_element =
       (fun _ _ -> failwith "TODO: eval_std_filter_element not implemented");
