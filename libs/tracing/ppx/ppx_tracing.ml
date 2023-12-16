@@ -24,8 +24,25 @@ let name_of_func_pat (pat : Parsetree.pattern) =
   | Ppat_var { txt; _ } -> txt
   | _ -> "<no func name>"
 
-let is_tracing_attribute (attr : Parsetree.attribute) =
-  attr.attr_name.txt = "trace"
+let tracing_attr (attr : Parsetree.attribute) =
+  if attr.attr_name.txt = "trace" then
+    let payload =
+      match attr.attr_payload with
+      | PStr
+          [
+            {
+              pstr_desc =
+                Pstr_eval
+                  ( { pexp_desc = Pexp_constant (Pconst_string (str, _, _)); _ },
+                    _ );
+              _;
+            };
+          ] ->
+          Some str
+      | _ -> None
+    in
+    Some payload
+  else None
 
 (* borrowed from module_ml.ml *)
 let module_name_of_loc loc =
@@ -51,11 +68,17 @@ let make_label loc l =
 (* Turn `let f args = body` into
    `let f args = Trace_core.with_span ~__FILE__ ~__LINE__ "<action_name>" @@
                  fun _sp -> body`*)
-let map_expr_add_tracing pat e =
+let map_expr_add_tracing attr_payload pat e =
   match e.pexp_desc with
   | Pexp_fun (arg_label, exp_opt, pattern, e) ->
       let loc = e.pexp_loc in
-      let name = module_name_of_loc loc ^ "." ^ name_of_func_pat pat in
+      let action_name =
+        match attr_payload with
+        | Some s -> s
+        | None ->
+            (* Just use the function name *)
+            module_name_of_loc loc ^ "." ^ name_of_func_pat pat
+      in
       let body_with_tracing =
         Exp.apply
           (Exp.ident { txt = Lident "@@"; loc })
@@ -67,7 +90,8 @@ let map_expr_add_tracing pat e =
                 [
                   make_label loc "__FILE__";
                   make_label loc "__LINE__";
-                  (Nolabel, Exp.constant (Pconst_string (name, loc, None)));
+                  ( Nolabel,
+                    Exp.constant (Pconst_string (action_name, loc, None)) );
                 ] );
             ( Nolabel,
               Exp.fun_ Nolabel None
@@ -98,9 +122,9 @@ let impl (xs : structure) : structure =
       method! value_binding vb =
         let vb = super#value_binding vb in
         let { pvb_expr; pvb_attributes; pvb_pat; _ } = vb in
-        match List.find_opt is_tracing_attribute pvb_attributes with
-        | Some _ ->
-            let e' = map_expr_add_tracing pvb_pat pvb_expr in
+        match List.find_map tracing_attr pvb_attributes with
+        | Some attr_payload ->
+            let e' = map_expr_add_tracing attr_payload pvb_pat pvb_expr in
             { vb with pvb_expr = e' }
         | None -> vb
     end

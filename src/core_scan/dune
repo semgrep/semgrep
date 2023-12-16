@@ -20,5 +20,6 @@
  (preprocess (pps
       ppx_deriving.show
       ppx_profiling
+      ppx_tracing
    ))
 )
