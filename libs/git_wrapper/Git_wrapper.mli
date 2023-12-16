@@ -68,10 +68,10 @@ type status = {
 [@@deriving show]
 
 (* git status *)
-val status : cwd:Fpath.t -> commit:string -> status
+val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
 (* precondition: cwd must be a directory *)
-val is_git_repo : Fpath.t -> bool
+val is_git_repo : ?cwd:Fpath.t -> unit -> bool
 (** Returns true if passed directory a git repo*)
 
 (* Find the root of the repository containing 'cwd', if any.
@@ -83,37 +83,38 @@ val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
 val get_superproject_root : ?cwd:Fpath.t -> unit -> Fpath.t option
 
 (* precondition: cwd must be a directory *)
-val dirty_lines_of_file : ?git_ref:string -> Fpath.t -> (int * int) array option
+val dirty_lines_of_file :
+  ?cwd:Fpath.t -> ?git_ref:string -> Fpath.t -> (int * int) array option
 (** [dirty_lines_of_file path] will return an optional array of line ranges that indicate what
   * lines have been changed. An optional [git_ref] can be passed that will be used
   * to diff against. The default [git_ref] is ["HEAD"]
   *)
 
 (* precondition: cwd must be a directory *)
-val is_tracked_by_git : Fpath.t -> bool
+val is_tracked_by_git : ?cwd:Fpath.t -> Fpath.t -> bool
 (** [is_tracked_by_git path] Returns true if the file is tracked by git *)
 
 (* precondition: cwd must be a directory *)
-val dirty_files : Fpath.t -> Fpath.t list
+val dirty_files : ?cwd:Fpath.t -> unit -> Fpath.t list
 (** Returns a list of files that are dirty in a git repo *)
 
-val init : Fpath.t -> unit
+val init : ?cwd:Fpath.t -> unit -> unit
 (** Initialize a git repo in the given directory *)
 
-val add : Fpath.t -> Fpath.t list -> unit
+val add : ?cwd:Fpath.t -> Fpath.t list -> unit
 (** Add the given files to the git repo *)
 
-val commit : Fpath.t -> string -> unit
+val commit : ?cwd:Fpath.t -> string -> unit
 (** Commit the given files to the git repo with the given message *)
 
-val get_project_url : unit -> string option
+val get_project_url : ?cwd:Fpath.t -> unit -> string option
 (** [get_project_url ()] tries to get the URL of the project from
     [git ls-remote] or from the [.git/config] file. It returns [None] if it
     found nothing relevant.
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val get_git_logs : ?since:float option -> unit -> string list
+val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
 (** [get_git_logs()] will run 'git log' in the current directory
     and returns for each log a JSON string that fits the schema
     defined in semgrep_output_v1.atd contribution type.

@@ -103,8 +103,9 @@ let test_scan_config_registry_with_invalid_token caps : Alcotest_ext.test =
 
 let tests caps =
   Alcotest_ext.pack_tests_pro "Osemgrep (e2e)"
-    [
-      test_scan_config_registry_no_token caps;
-      test_scan_config_registry_with_invalid_token
-        (caps :> < Cap.stdout ; Cap.network >);
-    ]
+    ([
+       test_scan_config_registry_no_token caps;
+       test_scan_config_registry_with_invalid_token
+         (caps :> < Cap.stdout ; Cap.network >);
+     ]
+    @ Test_target_selection.tests)

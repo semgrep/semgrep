@@ -60,9 +60,9 @@ let create capabilities =
   }
 
 let dirty_files_of_folder folder =
-  let git_repo = Git_wrapper.is_git_repo folder in
+  let git_repo = Git_wrapper.is_git_repo ~cwd:folder () in
   if git_repo then
-    let dirty_files = Git_wrapper.dirty_files folder in
+    let dirty_files = Git_wrapper.dirty_files ~cwd:folder () in
     Some (List_.map (fun x -> folder // x) dirty_files)
   else None
 
