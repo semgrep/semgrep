@@ -156,7 +156,7 @@ and eval_array_access env v1 v2 =
           | V.Unevaluated _ ->
               raise Impossible
           | V.Val v -> v
-          | V.Closure (_env_closure_TODO_maybe, e) ->
+          | V.Closure (env_closure, e) ->
               (* Late-bound self.
                * We need to do the self assignment on field access rather
                * than on object creation, because when objects are merged,
@@ -180,9 +180,12 @@ and eval_array_access env v1 v2 =
                *      42
                *)
               let locals =
+                (* bugfix: here we want to use env_closure.locals not
+                 * env.locals!!
+                 *)
                 if !Conf_ojsonnet.implement_self then
-                  env.locals |> Map_.add V.LSelf (V.Val obj)
-                else env.locals
+                  env_closure.locals |> Map_.add V.LSelf (V.Val obj)
+                else env_closure.locals
               in
               eval_expr { env with locals } e))
   | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index))
