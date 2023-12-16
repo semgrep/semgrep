@@ -233,7 +233,7 @@ let concat_map_with_expls f xs =
            Stack_.push expls all_expls;
            ys)
   in
-  (res, List.flatten !all_expls)
+  (res, List.flatten (List.rev !all_expls))
 
 let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : (R.formula * 'a) list) :
