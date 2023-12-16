@@ -849,7 +849,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
       in
       let cnt =
-        all_flags |> List_.map (fun b -> if b then 1 else 0) |> Common2.sum_int
+        all_flags |> List.fold_left (fun acc b -> if b then acc + 1 else acc) 0
       in
       if cnt >= 2 then
         (* TOPORT: list the possibilities *)
@@ -908,9 +908,22 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
           else None
         in
+        let code_config =
+          if pro || pro_lang || pro_intrafile then Some () else None
+        in
+        (* Currently we don't run SCA in osemgrep *)
+        let supply_chain_config = None in
         match (extra_languages, analysis, secrets_config) with
         | false, Intraprocedural, None -> OSS
-        | _ -> PRO { extra_languages; analysis; secrets_config }
+        | _ ->
+            PRO
+              {
+                extra_languages;
+                analysis;
+                code_config;
+                secrets_config;
+                supply_chain_config;
+              }
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with

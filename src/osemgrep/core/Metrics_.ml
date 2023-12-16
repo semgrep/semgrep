@@ -264,26 +264,41 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 let add_engine_type (engine_type : Engine_type.t) =
   let metrics_from_engine_type et : Semgrep_metrics_t.engine_config =
     match (et : Engine_type.t) with
-    | OSS -> `OSS
-    | PRO { analysis; extra_languages; secrets_config } ->
-        `PRO
-          {
-            analysis_type =
-              (match analysis with
-              | Intraprocedural -> `Intraprocedural
-              | Interprocedural -> `Interprocedural
-              | Interfile -> `Interfile);
-            secrets_config =
-              Option.map
-                (fun (conf : Engine_type.secrets_config) :
-                     Semgrep_metrics_t.secrets_config ->
-                  {
-                    permitted_origins =
-                      (if conf.allow_all_origins then "all" else "pro_rules");
-                  })
-                secrets_config;
-            pro_langs = extra_languages;
-          }
+    | OSS ->
+        {
+          analysis_type = `Intraprocedural;
+          pro_langs = false;
+          code_config = None;
+          secrets_config = None;
+          supply_chain_config = None;
+        }
+    | PRO
+        {
+          analysis;
+          extra_languages;
+          secrets_config;
+          code_config;
+          supply_chain_config;
+        } ->
+        {
+          analysis_type =
+            (match analysis with
+            | Intraprocedural -> `Intraprocedural
+            | Interprocedural -> `Interprocedural
+            | Interfile -> `Interfile);
+          code_config;
+          secrets_config =
+            Option.map
+              (fun (conf : Engine_type.secrets_config) :
+                   Semgrep_metrics_t.secrets_config ->
+                {
+                  permitted_origins =
+                    (if conf.allow_all_origins then `Any else `Semgrep);
+                })
+              secrets_config;
+          supply_chain_config;
+          pro_langs = extra_languages;
+        }
   in
   (* TODO: remove this field? *)
   g.payload.value.engineRequested <-
