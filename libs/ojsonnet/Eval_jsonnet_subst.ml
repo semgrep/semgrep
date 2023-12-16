@@ -14,10 +14,10 @@
  *)
 open Common
 open Core_jsonnet
+open Eval_jsonnet_common
 module A = AST_jsonnet
 module J = JSON
 module V = Value_jsonnet
-open Eval_jsonnet_common
 module H = Eval_jsonnet_common
 
 (*****************************************************************************)
@@ -82,7 +82,6 @@ let vobj_to_obj l asserts fields r =
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
            | Val _
-           | Lv _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
            | Unevaluated e ->
@@ -321,9 +320,7 @@ let rec to_value env (v : V.lazy_value) : V.t =
   match v with
   | Val v -> v
   | Unevaluated e -> eval_expr env e
-  | Lv _
-  | Closure _ ->
-      raise Impossible
+  | Closure _ -> raise Impossible
 
 (* Note that we pass an environment here, but we just use its depth field
  * for debugging purpose. We do not use its locals field; we use substitution
@@ -426,9 +423,7 @@ and eval_array_access env v1 v2 =
       | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
       | Some fld -> (
           match fld.fld_value with
-          | V.Lv _
-          | V.Closure _ ->
-              raise Impossible
+          | V.Closure _ -> raise Impossible
           | V.Val v -> v
           | V.Unevaluated e ->
               (* Late-bound self.
@@ -473,7 +468,6 @@ and eval_std_filter_element env (tk : tok) (f : function_definition)
         (*TODO: Is the environment correct? *)
         (match ei with
         | Val _
-        | Lv _
         | Closure _ ->
             error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
         | Unevaluated e -> eval_call env (Lambda f) (_l, [ Arg e ], _r)),
@@ -551,7 +545,6 @@ and eval_plus_object env _tk objl objr =
     |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
            | Val _
-           | Lv _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
@@ -588,7 +581,6 @@ and eval_plus_object env _tk objl objr =
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
            | Val _
-           | Lv _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
@@ -657,9 +649,7 @@ and manifest_value (v : V.t) : JSON.t =
                    let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =
                      match fld_value with
-                     | Lv _
-                     | Closure _ ->
-                         raise Impossible
+                     | Closure _ -> raise Impossible
                      | Val v -> v
                      | Unevaluated e ->
                          let new_e =

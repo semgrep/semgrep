@@ -3,9 +3,9 @@
  * manifestation and that we could pass to osemgrep to evaluate the rules.
  *)
 
-(* may raise Eval_jsonnet_common.Error *)
-val eval_program_with_env :
-  Value_jsonnet.env -> Core_jsonnet.program -> Value_jsonnet.t
-
+(* entry point; may raise Eval_jsonnet_common.Error *)
 val eval_program : Core_jsonnet.program -> Value_jsonnet.t
 val manifest_value : Value_jsonnet.t -> JSON.t
+
+val eval_program_with_env :
+  Value_jsonnet.env -> Core_jsonnet.program -> Value_jsonnet.t
