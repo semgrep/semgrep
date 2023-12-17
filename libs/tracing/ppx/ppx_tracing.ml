@@ -16,6 +16,23 @@ open Ppxlib
 open Ast_helper
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* A ppx rewriter to automatically transform
+ *  let foo frm = body [@@trace]
+ * into
+ *  let foo frm = Tracing.with_span ~__FILE__ ~__LINE__ "X.foo" @@
+                 fun _sp -> body
+ *
+ * This is mostly copied from `ppx_profiling`. The main differences:
+ *   - The ppx is called "trace" rather than "tracing" to be in line with other
+ *     ppxes (show, compare)
+ *   - The implementation uses Ast_traverse.map, so instead of redefining foo
+ *     underneath to use tracing, it rewrites foo. Using Ast_traverse.maps means
+ *     the annotation works for nested functions
+ *)
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 

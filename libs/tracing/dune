@@ -1,5 +1,3 @@
-; used to be in pfff in commons/Common.ml
-
 (library
  (public_name tracing)
  (wrapped false)
