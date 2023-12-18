@@ -63,7 +63,13 @@ let with_buffer_to_string f =
   let buf = Buffer.create 100 in
   let (ppf : Format.formatter) = Format.formatter_of_buffer buf in
   f ppf;
+  Format.pp_print_flush ppf ();
   Buffer.contents buf
+
+let () =
+  Alcotest_ext.test "Fmt_.with_buffer_to_string" (fun () ->
+      assert (
+        with_buffer_to_string (fun fmt -> Format.fprintf fmt "foo") = "foo"))
 
 let pp_table (h1, heading) ppf entries =
   let lines = layout_table (h1, heading) entries in
