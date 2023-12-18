@@ -185,11 +185,11 @@ and eval_array_access env v1 v2 =
                  * env.locals!!
                  *)
                 if !Conf_ojsonnet.implement_self then
-                  env_closure.locals |> Map_.add V.LSelf (V.Val obj)
+                  env_closure.locals |> Map_.add V.LSelf V.{ lv = Val obj }
                 else env_closure.locals
               in
               let finalv = eval_expr { env with locals } e in
-              fld.fld_value.lv <- finalv;
+              fld.fld_value.lv <- Val finalv;
               finalv
           | V.Val v -> v
           | V.Unevaluated _ -> raise Impossible))
@@ -224,12 +224,15 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
             * self.x is evaluated to 1 not 2
             * (see also eval_fail/basic_super2.jsonnet)
             *)
-           match fld_value with
+           match fld_value.lv with
            | Closure (env, e) ->
                let locals =
-                 env.locals |> Map_.add V.LSuper (V.Val (V.Object objl))
+                 env.locals |> Map_.add V.LSuper V.{ lv = Val (Object objl) }
                in
-               { fld with fld_value = Closure ({ env with locals }, e) }
+               {
+                 fld with
+                 fld_value = V.{ lv = Closure ({ env with locals }, e) };
+               }
            | Unevaluated _
            | Val _ ->
                raise Impossible)
@@ -322,15 +325,17 @@ and manifest_value (v : V.t) : JSON.t =
                | A.Visible
                | A.ForcedVisible ->
                    let v =
-                     match fld_value with
+                     match fld_value.lv with
                      | Closure (env, e) ->
-                         (* similar to what we do in eval_expr on field access *)
+                         (* similar to what we do in eval_expr on fld access *)
                          let locals =
                            if !Conf_ojsonnet.implement_self then
-                             env.locals |> Map_.add V.LSelf (V.Val obj)
+                             env.locals |> Map_.add V.LSelf V.{ lv = Val obj }
                            else env.locals
                          in
-                         eval_expr { env with locals } e
+                         let finalv = eval_expr { env with locals } e in
+                         fld_value.lv <- Val finalv;
+                         finalv
                      | Val v -> v
                      | Unevaluated _ -> raise Impossible
                    in

@@ -323,6 +323,35 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
         (spf
            "Improper number of arguments to std.objectHasEx: expected 3, got %d"
            (List.length args))
+  (* math builtin/1 *)
+  | ("floor" as op), [ Arg e ] -> (
+      match env.eval_expr env e with
+      | V.Primitive (V.Double (f, tk)) ->
+          let float_op =
+            match op with
+            | "floor" -> floor
+            | _else_ -> raise Impossible
+          in
+          V.Primitive (V.Double (float_op f, tk))
+      | v1 ->
+          error tk
+            (spf "Builtin function %s expected (number) but got (%s)" op (sv v1))
+      )
+  (* math builtin/2 *)
+  | ("modulo" as op), [ Arg e1; Arg e2 ] -> (
+      match (env.eval_expr env e1, env.eval_expr env e2) with
+      | V.Primitive (V.Double (f1, tk1)), V.Primitive (V.Double (f2, _tk2)) ->
+          let float_op =
+            match op with
+            | "modulo" -> mod_float
+            | _else_ -> raise Impossible
+          in
+          V.Primitive (V.Double (float_op f1 f2, tk1))
+      | v1, v2 ->
+          error tk
+            (spf
+               "Builtin function %s expected (number, number) but got (%s, %s)"
+               op (sv v1) (sv v2)))
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call env e0 (l, args, r)
 

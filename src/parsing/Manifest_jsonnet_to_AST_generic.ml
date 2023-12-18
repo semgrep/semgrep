@@ -78,7 +78,7 @@ let rec value_to_expr (v : V.t) : G.expr =
                      match fld_value.lv with
                      | Closure (env, e) ->
                          let finalv = E.eval_program_with_env env e in
-                         fld_value.lv <- finalv;
+                         fld_value.lv <- Val finalv;
                          finalv
                      | Val v -> v
                      (* impossible? *)

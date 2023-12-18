@@ -425,7 +425,7 @@ and eval_array_access env v1 v2 =
       with
       | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
       | Some fld -> (
-          match fld.fld_value with
+          match fld.fld_value.lv with
           | V.Closure _ -> raise Impossible
           | V.Val v -> v
           | V.Unevaluated e ->
@@ -469,7 +469,7 @@ and eval_std_filter_element env (tk : tok) (f : function_definition)
       ( (* similar to eval_expr for Local *)
         (* similar to eval_call *)
         (*TODO: Is the environment correct? *)
-        (match ei with
+        (match ei.lv with
         | Val _
         | Closure _ ->
             error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
@@ -546,7 +546,7 @@ and eval_plus_object env _tk objl objr =
   let new_rh_fields =
     lflds
     |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.lv with
            | Val _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
@@ -582,7 +582,7 @@ and eval_plus_object env _tk objl objr =
   let new_ers =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.lv with
            | Val _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
@@ -651,7 +651,7 @@ and manifest_value (v : V.t) : JSON.t =
                    in
                    let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =
-                     match fld_value with
+                     match fld_value.lv with
                      | Closure _ -> raise Impossible
                      | Val v -> v
                      | Unevaluated e ->
