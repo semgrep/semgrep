@@ -4,10 +4,9 @@
  (wrapped false)
  (libraries
     parmap
-    trace
-    trace-tef
 
     commons
+    tracing
 
     semgrep_core
     semgrep_parsing

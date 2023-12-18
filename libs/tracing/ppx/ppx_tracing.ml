@@ -102,8 +102,7 @@ let map_expr_add_tracing attr_payload pat e =
           [
             ( Nolabel,
               Exp.apply
-                (Exp.ident
-                   { txt = Ldot (Lident "Trace_core", "with_span"); loc })
+                (Exp.ident { txt = Ldot (Lident "Tracing", "with_span"); loc })
                 [
                   make_label loc "__FILE__";
                   make_label loc "__LINE__";
