@@ -97,8 +97,9 @@ core:
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core-bc
-core-bc: minimal-build-bc
-	ln -s semgrep-core.bc bin/osemgrep.bc
+core-bc:
+	$(MAKE) minimal-build-bc
+
 
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
@@ -118,6 +119,7 @@ minimal-build:
 .PHONY: minimal-build-bc
 minimal-build-bc:
 	dune build _build/install/default/bin/semgrep-core.bc
+	dune build _build/install/default/bin/osemgrep.bc
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.

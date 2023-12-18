@@ -29,5 +29,6 @@
  (files
   (Main.exe as semgrep-core)
   (Main.bc as semgrep-core.bc)
+  (Main.bc as osemgrep.bc)
  )
 )
