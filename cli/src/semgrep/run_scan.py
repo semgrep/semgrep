@@ -438,7 +438,7 @@ def run_scan(
             )
             if run_secrets and not disable_secrets_validation
             else None,
-            SupplyChainConfig(),
+            SupplyChainConfig() if with_supply_chain else None,
         )
         metrics.add_is_diff_scan(baseline_commit is not None)
         if engine_type.is_pro:
