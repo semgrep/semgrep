@@ -32,11 +32,14 @@
  *  $ ./bin/osemgrep --experimental -e 'let $V: $T = ref $X' -l ocaml src/ libs/
  *)
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
-
-type pro_hook_ref = Pro_hook_ref : 'a option ref -> pro_hook_ref
+type pro_hook_ref =
+  | Pro_hook_ref : 'a option ref -> pro_hook_ref
+      (** 'pro_hook_ref' is a GADT, this allows us to do an "existential" quantification
+       * over `'a`. That is, you can take any hook with type '... option ref' and wrap it
+       * as a 'pro_hook_ref'. Of course, when you pattern match on one of this, you cannot
+       * make any assumptions on what that `'a` is, but it is enough to reset the hooks.
+       * So we can enumerate Pro hooks in 'pro_hooks_refs' and then write both
+       * 'reset_pro_hooks' and 'save_pro_hooks_and_reset' based on that list. *)
 
 let pro_hooks_refs =
   [
@@ -50,9 +53,19 @@ let pro_hooks_refs =
     (* TODO: more Pro hooks ? *)
   ]
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+(* Prefer 'save_pro_hooks_and_reset'. *)
 let reset_pro_hooks () =
   pro_hooks_refs |> List.iter (fun (Pro_hook_ref pro_hook) -> pro_hook := None)
 
+(* Saves current Pro hooks, and temporarily resets them for running a function.
+ * When the function has completed, it restores the saved Pro hooks. This confines
+ * the reach of the "reset", making it easier to reason about, and causing fewer
+ * surprises, thus it is preferred over 'reset_pro_hooks' which has the opposite
+ * properties. *)
 let save_pro_hooks_and_reset f0 =
   let f =
     pro_hooks_refs
