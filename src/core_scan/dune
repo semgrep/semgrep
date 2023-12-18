@@ -6,6 +6,7 @@
     parmap
 
     commons
+    tracing
 
     semgrep_core
     semgrep_parsing
@@ -18,5 +19,6 @@
  (preprocess (pps
       ppx_deriving.show
       ppx_profiling
+      ppx_tracing
    ))
 )
