@@ -48,8 +48,9 @@ let rec lookup (env : V.env) tk (id : V.local_id) =
         error tk
           (spf "could not find '%s' in the environment" (V.show_local_id id))
   in
-  Logs.debug (fun m ->
-      m "found '%s', value = %s" (V.show_local_id id) (show_lazy_value entry));
+  if debug then
+    Logs.debug (fun m ->
+        m "found '%s', value = %s" (V.show_local_id id) (show_lazy_value entry));
   to_value entry
 
 and to_value (v : V.lazy_value) : V.t =

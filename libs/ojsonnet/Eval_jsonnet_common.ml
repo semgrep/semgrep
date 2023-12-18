@@ -23,6 +23,7 @@ module V = Value_jsonnet
 (* Code common to Eval_jsonnet_envir.ml and Eval_jsonnet_subst.ml *)
 
 let debug = false
+let extra_debug = false
 
 (*****************************************************************************)
 (* Types and constants *)
@@ -68,10 +69,10 @@ let sv v =
 
 (* note that this can be really slow when you use Std_jsonnet.ml *)
 let show_env (env : V.env) : string =
-  if debug then V.show_env env else "<turn debug on>"
+  if extra_debug then V.show_env env else "<turn debug on>"
 
 let show_lazy_value (lv : V.lazy_value) : string =
-  if debug then V.show_lazy_value lv else "<turn debug on>"
+  if extra_debug then V.show_lazy_value lv else "<turn debug on>"
 
 let string_of_local_id = function
   | V.LSelf -> "self"
@@ -79,10 +80,11 @@ let string_of_local_id = function
   | V.LId s -> s
 
 let log_call (env : V.env) str tk =
-  Logs.debug (fun m ->
-      m "calling %s> %s at %s"
-        (Common2.repeat "-" env.depth |> String.concat "")
-        str (Tok.stringpos_of_tok tk))
+  if debug then
+    Logs.debug (fun m ->
+        m "calling %s> %s at %s"
+          (Common2.repeat "-" env.depth |> String.concat "")
+          str (Tok.stringpos_of_tok tk))
 
 (*****************************************************************************)
 (* Call *)
