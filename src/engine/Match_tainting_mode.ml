@@ -193,18 +193,9 @@ let mk_specialized_formula_cache (rules : R.taint_rule list) =
   let count_tbl = Formula_tbl.create 128 in
   let flat_formulas =
     rules
-    |> List.concat_map (fun rule ->
+    |> List.concat_map (fun (rule : R.taint_mode R.rule_info) ->
            let (`Taint (spec : R.taint_spec)) = rule.R.mode in
-           List_.map (fun source -> source.R.source_formula) (snd spec.sources)
-           @ List_.map
-               (fun sanitizer -> sanitizer.R.sanitizer_formula)
-               (match spec.sanitizers with
-               | None -> []
-               | Some (_, sanitizers) -> sanitizers)
-           @ List_.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
-           @ List_.map
-               (fun propagator -> propagator.R.propagator_formula)
-               spec.propagators)
+           R.formula_of_mode (`Taint spec))
   in
   flat_formulas
   |> List.iter (fun formula ->
@@ -865,8 +856,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
     let* name = AST_to_IL.name_of_entity ent in
     Some (IL.str_of_name name)
   in
-  let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
-  let flow = CFG_build.cfg_of_stmts xs in
+  let CFG_build.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef lang ~ctx fdef in
   let in_env = mk_fun_input_env lang options taint_config ?glob_env fdef in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config

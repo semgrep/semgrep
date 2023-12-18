@@ -235,6 +235,8 @@ and taint_sink = {
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
        *)
+  sink_at_exit : bool;
+      (* Whether this sink only applies to instructions at exit positions. *)
   sink_is_func_with_focus : bool;
       (* True if the 'sink_formula' has the following shape:
        *

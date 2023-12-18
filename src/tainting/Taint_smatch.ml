@@ -27,6 +27,7 @@ type 'spec t = {
 }
 
 let is_exact x = x.overlap > 0.99
+let sink_of_match x = { Taint.pm = x.spec_pm; rule_sink = x.spec }
 
 type any = Any : 'a t -> any
 

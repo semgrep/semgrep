@@ -392,9 +392,18 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
   let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
     let sink_requires = take_opt dict env parse_taint_requires "requires" in
+    let sink_at_exit =
+      take_opt dict env parse_bool "at-exit" |> Option.value ~default:false
+    in
     let sink_formula = f env dict in
     let sink_is_func_with_focus = Rule.is_sink_func_with_focus sink_formula in
-    { R.sink_id; sink_formula; sink_requires; sink_is_func_with_focus }
+    {
+      R.sink_id;
+      sink_formula;
+      sink_requires;
+      sink_at_exit;
+      sink_is_func_with_focus;
+    }
   in
   if is_old then
     let dict = yaml_to_dict env key value in
@@ -408,7 +417,13 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
         let sink_is_func_with_focus =
           Rule.is_sink_func_with_focus sink_formula
         in
-        { sink_id; sink_formula; sink_requires = None; sink_is_func_with_focus }
+        {
+          sink_id;
+          sink_formula;
+          sink_requires = None;
+          sink_at_exit = false;
+          sink_is_func_with_focus;
+        }
     | Right dict ->
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 

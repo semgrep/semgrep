@@ -85,11 +85,20 @@ val hook_function_taint_signature :
   (AST_generic.parameters (* params of function *) * Taint.signature) option)
   option
   ref
-(** DEEP *)
+(** Pro inter-file (aka deep) *)
 
 val hook_find_attribute_in_class :
   (AST_generic.name -> string -> AST_generic.name option) option ref
-(** DEEP *)
+(** Pro inter-file (aka deep) *)
+
+val hook_check_tainted_at_exit_sinks :
+  (config ->
+  Taint_lval_env.t ->
+  IL.node ->
+  (Taint.taints * Taint.sink list) option)
+  option
+  ref
+(** Pro: support for `at-exit: true` sinks *)
 
 val fixpoint :
   ?in_env:Taint_lval_env.t ->
