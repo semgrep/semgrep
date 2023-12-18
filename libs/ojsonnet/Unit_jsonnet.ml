@@ -87,8 +87,8 @@ let tests () : Alcotest_ext.test list =
   Alcotest_ext.pack_suites "ojsonnet"
     [
       mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests "pass/only_subst/" [ Conf.EvalSubst ];
-      mk_tests "pass/only_envir/" [ Conf.EvalEnvir ];
+      mk_tests "only_subst/" [ Conf.EvalSubst ];
+      mk_tests "only_envir/" [ Conf.EvalEnvir ];
       mk_tests "tutorial/pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
       mk_tests "tutorial/only_subst/" [ Conf.EvalSubst ];
       mk_tests "tutorial/only_envir/" [ Conf.EvalEnvir ];
