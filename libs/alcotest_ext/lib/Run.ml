@@ -508,7 +508,11 @@ let list_status ?filter_by_substring ?(output_style = Full) tests =
 
 (* Important: for unknown reasons, the "test" subcommand of alcotest
    force an exit after Alcotest.run, regardless of the 'and_exit' argument
-   that we pass. *)
+   that we pass.
+
+   '-e': synonym for '--show-errors' causing the output of all failing
+         tests to be shown (rather than just one if I remember correctly).
+*)
 let alcotest_argv = [| ""; "-e" |]
 
 let run_tests_with_alcotest tests =
