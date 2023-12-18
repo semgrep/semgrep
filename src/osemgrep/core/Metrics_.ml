@@ -321,10 +321,19 @@ let add_max_memory_bytes (profiling_data : Core_profiling.t option) =
 
 let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
     =
+  (* Rules with 0 findings don't carry a lot of information
+   * compared to rules that actually have findings. Rules with 0
+   * findings also increase the size of the metrics quite
+   * significantly, e.g., when the number of rules grows up to
+   * magnitudes of 10k. So we filter them out in the metrics.
+   *)
   let ruleHashesWithFindings_value =
     filtered_matches
-    |> List_.map (fun (rule, rule_matches) ->
-           (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches))
+    |> List_.map_filter (fun (rule, rule_matches) ->
+           if rule_matches > 0 then
+             Some
+               (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches)
+           else None)
   in
   g.payload.value.ruleHashesWithFindings <- Some ruleHashesWithFindings_value
 
