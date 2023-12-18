@@ -232,9 +232,8 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
                  fld with
                  fld_value = V.{ lv = Closure ({ env with locals }, e) };
                }
-           | Unevaluated _
-           | Val _ ->
-               raise Impossible)
+           | Val _v -> fld
+           | Unevaluated _ -> raise Impossible)
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
