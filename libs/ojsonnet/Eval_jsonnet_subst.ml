@@ -80,10 +80,10 @@ let vobj_to_obj l asserts fields r =
   let new_fields =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.lv with
            | Val _
            | Closure _ ->
-               error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
+               error (Tok.unsafe_fake_tok "") "shouldn't be a value"
            | Unevaluated e ->
                {
                  fld_name = vfld_name_to_fld_name fld_name;
@@ -105,7 +105,7 @@ let rec parameter_list_contains parameters id =
       if id = name then true else parameter_list_contains t id
   | [] -> false
 
-let to_lazy_value _env e : V.lazy_value = Unevaluated e
+let to_lazy_value _env e : V.lazy_value = { lv = Unevaluated e }
 
 (*****************************************************************************)
 (* Subst *)
@@ -317,9 +317,12 @@ let rec substitute_kw kw sub expr =
 (*****************************************************************************)
 
 let rec to_value env (v : V.lazy_value) : V.t =
-  match v with
+  match v.lv with
   | Val v -> v
-  | Unevaluated e -> eval_expr env e
+  | Unevaluated e ->
+      let finalv = eval_expr env e in
+      v.lv <- Val finalv;
+      finalv
   | Closure _ -> raise Impossible
 
 (* Note that we pass an environment here, but we just use its depth field

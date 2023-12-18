@@ -55,8 +55,11 @@ let rec value_to_expr (v : V.t) : G.expr =
         arr |> Array.to_list
         |> List_.map (fun (entry : V.lazy_value) ->
                value_to_expr
-                 (match entry with
-                 | Closure (env, e) -> E.eval_program_with_env env e
+                 (match entry.lv with
+                 | Closure (env, e) ->
+                     let finalv = E.eval_program_with_env env e in
+                     entry.lv <- Val finalv;
+                     finalv
                  (* impossible too? *)
                  | Val v -> v
                  | Unevaluated _ -> raise Impossible))
@@ -72,10 +75,13 @@ let rec value_to_expr (v : V.t) : G.expr =
                | A.Visible
                | A.ForcedVisible ->
                    let v =
-                     match fld_value with
-                     | Closure (env, e) -> E.eval_program_with_env env e
-                     (* impossible? *)
+                     match fld_value.lv with
+                     | Closure (env, e) ->
+                         let finalv = E.eval_program_with_env env e in
+                         fld_value.lv <- finalv;
+                         finalv
                      | Val v -> v
+                     (* impossible? *)
                      | Unevaluated _ -> raise Impossible
                    in
                    let e = value_to_expr v in

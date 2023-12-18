@@ -54,13 +54,16 @@ let rec lookup (env : V.env) tk (id : V.local_id) =
   to_value entry
 
 and to_value (v : V.lazy_value) : V.t =
-  match v with
-  | Closure (env, e) -> eval_expr env e
+  match v.lv with
+  | Closure (env, e) ->
+      let finalv = eval_expr env e in
+      v.lv <- Val finalv;
+      finalv
   (* We use Val for self/super to actually store the ref to the V.Object *)
   | Val v -> v
   | Unevaluated _ -> raise Impossible
 
-and to_lazy_value env x : V.lazy_value = V.Closure (env, x)
+and to_lazy_value env x : V.lazy_value = { lv = V.Closure (env, x) }
 
 (*****************************************************************************)
 (* eval_expr *)
@@ -153,7 +156,7 @@ and eval_array_access env v1 v2 =
       match fld_opt with
       | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
       | Some fld -> (
-          match fld.fld_value with
+          match fld.fld_value.lv with
           | V.Closure (env_closure, e) ->
               (* Late-bound self.
                * We need to do the self assignment on field access rather
@@ -185,7 +188,9 @@ and eval_array_access env v1 v2 =
                   env_closure.locals |> Map_.add V.LSelf (V.Val obj)
                 else env_closure.locals
               in
-              eval_expr { env with locals } e
+              let finalv = eval_expr { env with locals } e in
+              fld.fld_value.lv <- finalv;
+              finalv
           | V.Val v -> v
           | V.Unevaluated _ -> raise Impossible))
   | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index))
