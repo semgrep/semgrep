@@ -91,7 +91,9 @@ let log_call (env : V.env) str tk =
 (*****************************************************************************)
 let eval_call (env : V.env) (e0 : expr) (largs, args, _rargs) =
   match env.eval_expr_for_call env e0 with
-  | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
+  | Lambda
+      ({ f_tok = _; f_params = lparams, params, rparams; f_body = eb }, locals)
+    ->
       let fstr =
         match e0 with
         | Id (s, _) -> s
@@ -125,8 +127,10 @@ let eval_call (env : V.env) (e0 : expr) (largs, args, _rargs) =
                in
                B (id, teq, ei''))
       in
+      let start = env.locals in
+      let locals = Map_.fold (fun k v acc -> Map_.add k v acc) locals start in
       env.eval_expr
-        { env with depth = env.depth + 1 }
+        { env with depth = env.depth + 1; locals }
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
@@ -248,7 +252,7 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
   | "makeArray", [ Arg e; Arg e' ] -> (
       log_call env ("std." ^ method_str) l;
       match (env.eval_expr env e, env.eval_expr env e') with
-      | Primitive (Double (n, tk)), Lambda fdef ->
+      | V.Primitive (V.Double (n, tk)), V.Lambda (fdef, locals) ->
           if Float.is_integer n then
             let n = Float.to_int n in
             let e i =
@@ -256,7 +260,11 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array (fk, Array.init n (fun i -> env.to_lazy_value env (e i)), fk)
+            Array
+              ( fk,
+                Array.init n (fun i ->
+                    env.to_lazy_value { env with locals } (e i)),
+                fk )
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -266,7 +274,7 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
            (List.length args))
   | "filter", [ Arg e; Arg e' ] -> (
       match (env.eval_expr env e, env.eval_expr env e') with
-      | Lambda f, Array (l, eis, r) ->
+      | Lambda (f, locals), Array (l, eis, r) ->
           (* note that we do things lazily even here, so we still
            * return an Array with the same lazy value elements in it,
            * but just filtered
@@ -275,7 +283,9 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
             (* TODO? use Array.to_seqi instead? *)
             eis |> Array.to_list |> List_.index_list
             |> List.filter_map (fun (ei, ji) ->
-                   match env.eval_std_filter_element env tk f ei with
+                   match
+                     env.eval_std_filter_element { env with locals } tk f ei
+                   with
                    | Primitive (Bool (false, _)), _ -> None
                    | Primitive (Bool (true, _)), _ -> Some ji
                    | v ->
