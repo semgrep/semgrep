@@ -77,9 +77,8 @@ and eval_expr (env : V.env) (e : expr) : V.t =
       let elts =
         xs |> List_.map (fun x -> to_lazy_value env x) |> Array.of_list
       in
-      Array (l, elts, r)
-  (* TODO? should we close the lambda with env.locals? *)
-  | Lambda f -> Lambda f
+      V.Array (l, elts, r)
+  | Lambda f -> V.Lambda (f, env.locals)
   | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (V.LId s)
   | IdSpecial (Self, tk) -> lookup env tk V.LSelf
@@ -233,9 +232,8 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
                  fld with
                  fld_value = V.{ lv = Closure ({ env with locals }, e) };
                }
-           | Unevaluated _
-           | Val _ ->
-               raise Impossible)
+           | Val _v -> fld
+           | Unevaluated _ -> raise Impossible)
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
@@ -309,7 +307,8 @@ and manifest_value (v : V.t) : JSON.t =
       | Bool (b, _tk) -> J.Bool b
       | Double (f, _tk) -> J.Float f
       | Str (s, _tk) -> J.String s)
-  | Lambda { f_tok = tk; _ } -> error tk (spf "Lambda value: %s" (sv v))
+  | Lambda ({ f_tok = tk; _ }, _locals) ->
+      error tk (spf "Lambda value: %s" (sv v))
   | Array (_, arr, _) ->
       J.Array
         (Array.to_list arr

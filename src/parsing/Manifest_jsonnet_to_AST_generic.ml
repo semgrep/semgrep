@@ -49,7 +49,7 @@ let rec value_to_expr (v : V.t) : G.expr =
         | Str (s, tk) -> G.String (fb (s, tk))
       in
       G.L literal |> G.e
-  | Lambda { f_tok = tk; _ } -> error tk "Lambda value"
+  | Lambda ({ f_tok = tk; _ }, _locals) -> error tk "Lambda value"
   | Array (l, arr, r) ->
       let xs =
         arr |> Array.to_list

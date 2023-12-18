@@ -30,7 +30,8 @@ type t =
   | Primitive of primitive
   | Array of lazy_value array Core.bracket
   | Object of object_ Core.bracket
-  | Lambda of Core.function_definition
+  (* TODO: rename to Closure *)
+  | Lambda of Core.function_definition * locals
 
 (* Similar to AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
@@ -75,7 +76,9 @@ and lazy_value = { mutable lv : lazy_value_kind }
 and lazy_value_kind =
   (* when we know the value, which is useful to bind Self/Super *)
   | Val of t
-  (* for the environment-style evaluator *)
+  (* for the environment-style evaluator
+   * TODO: rename to LazyVal and use locals instead of env
+   *)
   | Closure of env * Core.expr
   (* for the lambda calculus substitution model *)
   | Unevaluated of Core.expr
@@ -93,7 +96,7 @@ and env = {
    * while keeping the simpler super/self implementation given
    * by substitution model.
    *)
-  locals : (local_id, lazy_value) Map_.t;
+  locals : locals;
   (* for call tracing *)
   depth : int;
   (* methods to help factorize code between the Eval_jsonnet_xxx.ml *)
@@ -112,7 +115,10 @@ and env = {
   tostring : t -> string;
 }
 
+(* TODO? split? move self/super in separate field outside locals? *)
 and local_id = LSelf | LSuper | LId of string
+
+and locals = (local_id, lazy_value) Map_.t
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
