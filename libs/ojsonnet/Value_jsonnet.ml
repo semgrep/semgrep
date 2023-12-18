@@ -70,7 +70,9 @@ and asserts = Core.obj_assert * env
  * there could be nested objects/arrays which also have lazy semantics
  * themselves, and thus again need to be able to modify a specifc environment
  *)
-and lazy_value =
+and lazy_value = { mutable lv : lazy_value_kind }
+
+and lazy_value_kind =
   (* when we know the value, which is useful to bind Self/Super *)
   | Val of t
   (* for the environment-style evaluator *)

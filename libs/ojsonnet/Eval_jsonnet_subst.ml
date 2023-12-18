@@ -80,10 +80,10 @@ let vobj_to_obj l asserts fields r =
   let new_fields =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.lv with
            | Val _
            | Closure _ ->
-               error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
+               error (Tok.unsafe_fake_tok "") "shouldn't be a value"
            | Unevaluated e ->
                {
                  fld_name = vfld_name_to_fld_name fld_name;
@@ -105,7 +105,7 @@ let rec parameter_list_contains parameters id =
       if id = name then true else parameter_list_contains t id
   | [] -> false
 
-let to_lazy_value _env e : V.lazy_value = Unevaluated e
+let to_lazy_value _env e : V.lazy_value = { lv = Unevaluated e }
 
 (*****************************************************************************)
 (* Subst *)
@@ -317,9 +317,12 @@ let rec substitute_kw kw sub expr =
 (*****************************************************************************)
 
 let rec to_value env (v : V.lazy_value) : V.t =
-  match v with
+  match v.lv with
   | Val v -> v
-  | Unevaluated e -> eval_expr env e
+  | Unevaluated e ->
+      let finalv = eval_expr env e in
+      v.lv <- Val finalv;
+      finalv
   | Closure _ -> raise Impossible
 
 (* Note that we pass an environment here, but we just use its depth field
@@ -422,7 +425,7 @@ and eval_array_access env v1 v2 =
       with
       | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
       | Some fld -> (
-          match fld.fld_value with
+          match fld.fld_value.lv with
           | V.Closure _ -> raise Impossible
           | V.Val v -> v
           | V.Unevaluated e ->
@@ -466,7 +469,7 @@ and eval_std_filter_element env (tk : tok) (f : function_definition)
       ( (* similar to eval_expr for Local *)
         (* similar to eval_call *)
         (*TODO: Is the environment correct? *)
-        (match ei with
+        (match ei.lv with
         | Val _
         | Closure _ ->
             error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
@@ -543,7 +546,7 @@ and eval_plus_object env _tk objl objr =
   let new_rh_fields =
     lflds
     |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.lv with
            | Val _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
@@ -579,7 +582,7 @@ and eval_plus_object env _tk objl objr =
   let new_ers =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.lv with
            | Val _
            | Closure _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
@@ -648,7 +651,7 @@ and manifest_value (v : V.t) : JSON.t =
                    in
                    let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =
-                     match fld_value with
+                     match fld_value.lv with
                      | Closure _ -> raise Impossible
                      | Val v -> v
                      | Unevaluated e ->
