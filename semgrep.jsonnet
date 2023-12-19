@@ -80,7 +80,7 @@ local semgrep_rules = [
     severity: 'ERROR',
     message: |||
       `Hashtbl.find_all` is not stack-safe in OCaml < 5. Use `Hashtbl_.push`
-      instead of `Hashtbl_add` and `Hashtbl_.get_stack` instead of
+      instead of `Hashtbl.add` and `Hashtbl_.get_stack` instead of
       `Hashtbl.find_all`.
     |||,
   },

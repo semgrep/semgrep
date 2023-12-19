@@ -447,7 +447,6 @@ let remove_empty_nodes g xs =
 
 let basename_to_readable_disambiguator xs ~root =
   let xs = xs |> List.map (Filename_.readable ~root) in
-  (* use the Hashtbl_.get_stack property of this hash *)
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun file -> Hashtbl.add h (Filename.basename file) file);
   fun file -> Hashtbl_.get_stack h file

@@ -44,14 +44,12 @@ let sort_by_key_lowfirst xs =
 
 (* Partition elements by key. Preserve the original order of the values. *)
 let group_by get_key xs =
-  (* use Hashtbl_.get_stack property *)
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun x -> Hashtbl_.push h (get_key x) x);
   Hashtbl.fold (fun k stack acc -> (k, List.rev !stack) :: acc) h []
 
 (* TODO: unused => remove? *)
 let group_by_multi get_keys xs =
-  (* use Hashtbl_.get_stack property *)
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun x ->

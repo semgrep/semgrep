@@ -7,11 +7,19 @@ type 'a hashset = ('a, bool) Hashtbl.t
 val hashset_of_list : 'a list -> 'a hashset
 val hashset_to_list : 'a hashset -> 'a list
 
-(* Safe replacement for Hashtbl_.get_stack for OCaml < 5
+(* Safe replacement for Hashtbl.find_all for OCaml < 5
 
-   In Ocaml < 5, Hashtbl_.get_stack is not stack-safe and causes Semgrep
+   In Ocaml < 5, Hashtbl.find_all is not stack-safe and causes Semgrep
    crashes on some input. The alternative below should be used instead
    at least until we don't support OCaml 4.
+
+   A hash table is an array of buckets. A bucket is a special list that holds
+   the (key, value) pairs that share the same hashed key modulo the length
+   of the array. The 'find_all' function filters this special list, giving
+   the list of values whose key is equal to the requested key. The issue
+   for us is that we can't reimplement 'find_all' without access to the
+   concrete type of the buckets. To work around this, we combine all the
+   values associated with a key into one mutable list (list ref).
 
    Compared to add/find_all, push/get_stack will keep only one
    copy of each key in the table. It reduces the number of calls to
@@ -21,7 +29,8 @@ val hashset_to_list : 'a hashset -> 'a list
 
    push: add a value to the stack associated with a key.
    get_stack: get the stack associated with a key. Values are returned as
-              a list, most recently-added first.
+              a list, most recently-added first. Returns an empty list
+              if the key is unbound.
 
    Feel free to add a 'pop' function if needed.
 
