@@ -31,6 +31,30 @@
     }
   },
   "performance": {
+    "fileStats": [
+      {
+        "matchTime": 0.0,
+        "numTimesScanned": 0,
+        "parseTime": 0.0,
+        "runTime": 0.0,
+        "size": 782
+      },
+      {
+        "matchTime": 0.0,
+        "numTimesScanned": 0,
+        "parseTime": 0.0,
+        "runTime": 0.0,
+        "size": 710
+      },
+      {
+        "matchTime": 0.0,
+        "numTimesScanned": 0,
+        "parseTime": 0.0,
+        "runTime": 0.0,
+        "size": 300
+      }
+    ],
+    "maxMemoryBytes": 42336256,
     "numRules": 2,
     "numTargets": 3,
     "profilingTimes": {
@@ -39,6 +63,13 @@
       "ignores_time": 0.0,
       "total_time": 0.0
     },
+    "ruleStats": [
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "7d0af7d79e44c9bafdba5c83bacbb44c5b663c3c3efe1eec1676df5158303eb4"
+      }
+    ],
     "totalBytesScanned": 1792
   },
   "sent_at": "2017-03-03T00:00:00+09:00",
@@ -49,6 +80,7 @@
       "cli-flag/config",
       "cli-flag/metrics",
       "cli-flag/targets",
+      "cli-flag/time_flag",
       "config/local",
       "language/csharp",
       "language/java",
