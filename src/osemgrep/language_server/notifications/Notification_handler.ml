@@ -78,11 +78,18 @@ let on_notification notification (server : RPC_server.t) =
           let removed = Conv.workspace_folders_to_paths removed in
           Session.update_workspace_folders server.session ~added ~removed
         in
+        Session.cache_workspace_targets server.session;
         let server = { server with session } in
         Scan_helpers.scan_workspace server;
         server
+    (* If files are renamed or created, update our targets *)
+    | CN.DidRenameFiles _
+    | CN.DidCreateFiles _ ->
+        Session.cache_workspace_targets server.session;
+        server
     | CN.DidDeleteFiles { files; _ } ->
         (* This is lame, for whatever reason they chose to type uri as string here, not Uri.t *)
+        Session.cache_workspace_targets server.session;
         let files =
           List_.map
             (fun { FileDelete.uri } ->

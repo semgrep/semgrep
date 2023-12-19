@@ -34,7 +34,9 @@ let mock_session () =
   session
 
 let set_session_targets (session : Session.t) folders =
-  { session with workspace_folders = folders }
+  let session = { session with workspace_folders = folders } in
+  Session.cache_workspace_targets session;
+  session
 
 let mock_run_results (files : string list) : Core_runner.result =
   let pattern_string = "print(...)" in

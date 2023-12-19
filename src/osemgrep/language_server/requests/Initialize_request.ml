@@ -112,6 +112,7 @@ let initialize_server server
       state = State.Running;
     }
   in
+  Session.cache_workspace_targets server.session;
   Logs.debug (fun m ->
       m "Initialized server with session:\n%s" (Session.show server.session));
   server

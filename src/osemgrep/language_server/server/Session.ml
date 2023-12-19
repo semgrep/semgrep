@@ -24,6 +24,7 @@ type t = {
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
+  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
   cached_scans : (Fpath.t, OutJ.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
@@ -49,6 +50,7 @@ let create capabilities =
   {
     capabilities;
     workspace_folders = [];
+    cached_workspace_targets = Hashtbl.create 10;
     cached_scans = Hashtbl.create 10;
     cached_session;
     skipped_local_fingerprints = [];
@@ -76,6 +78,15 @@ let decode_rules data =
       Logs.info (fun m -> m "Got %d errors from CI" (List.length res.errors));
       res)
 
+let get_targets session root =
+  let targets_conf =
+    User_settings.find_targets_conf_of_t session.user_settings
+  in
+  Find_targets.get_target_fpaths
+    { targets_conf with project_root = Some root }
+    [ root ]
+  |> fst
+
 (*****************************************************************************)
 (* State getters *)
 (*****************************************************************************)
@@ -87,11 +98,16 @@ let auth_token () =
       let settings = Semgrep_settings.load () in
       settings.api_token
 
+let cache_workspace_targets session =
+  let folders = session.workspace_folders in
+  let targets = List_.map (fun f -> (f, get_targets session f)) folders in
+  List.iter
+    (fun (folder, targets) ->
+      Hashtbl.replace session.cached_workspace_targets folder targets)
+    targets
+
 (* This is dynamic so if the targets file is updated we don't have to restart
- * (and reparse rules...).
- * Once osemgrep is ready, we can just use its target manager directly here
  *)
-(* TODO: Cache targets *)
 let targets session =
   let dirty_files =
     List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
@@ -111,13 +127,8 @@ let targets session =
     List.exists (fun f -> member_workspace_folder t f) session.workspace_folders
   in
   let workspace_targets f =
-    let targets_conf =
-      User_settings.find_targets_conf_of_t session.user_settings
-    in
-    Find_targets.get_target_fpaths
-      { targets_conf with project_root = Some f }
-      [ f ]
-    |> fst
+    Hashtbl.find_opt session.cached_workspace_targets f
+    |> Option.value ~default:[]
   in
   let targets =
     session.workspace_folders |> List.concat_map workspace_targets

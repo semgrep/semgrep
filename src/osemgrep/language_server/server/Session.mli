@@ -19,6 +19,7 @@ type session_cache = {
 type t = {
   capabilities : ServerCapabilities.t;
   workspace_folders : Fpath.t list;
+  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t;
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
@@ -43,6 +44,11 @@ val cache_session : t -> unit Lwt.t
 (** [cache_session t] caches the rules and skipped fingerprints for the session. Fetches rules from any configured source
     as in [t.user_settings], and CI if an api token is available. This is an asynchronous operation,
     and so the rules are stored in a [session_cache] *)
+
+val cache_workspace_targets : t -> unit
+(** [cache_workspace_targets t] caches the targets for the session. This is a list of files in
+    workspace folders, with includes and excludes in [t.user_settings], and git
+    status taken into account if [t.user_settings.only_git_dirty] is set *)
 
 val targets : t -> Fpath.t list
 (** [targets t] returns the list of targets for the session. This is a list of files in
