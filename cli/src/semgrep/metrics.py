@@ -258,8 +258,13 @@ class Metrics:
 
     @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:
+        # Rules with 0 findings don't carry a lot of information
+        # compared to rules that actually have findings. Rules with 0
+        # findings also increase the size of the metrics quite
+        # significantly, e.g., when the number of rules grows up to
+        # magnitudes of 10k. So we filter them out in the metrics.
         self.payload.value.ruleHashesWithFindings = [
-            (r.full_hash, len(f)) for r, f in findings.kept.items()
+            (r.full_hash, len(f)) for r, f in findings.kept.items() if len(f) > 0
         ]
         self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
