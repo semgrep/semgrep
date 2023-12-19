@@ -478,7 +478,7 @@ let eval_binary_op (env : V.env) (el : expr) (op, tk) (er : expr) =
         | Lt, Inf -> true
         | Lt, (Eq | Sup) -> false
         | LtE, (Inf | Eq) -> true
-        | LtE, Sup -> true
+        | LtE, Sup -> false
         | Gt, (Inf | Eq) -> false
         | Gt, Sup -> true
         | GtE, Inf -> false
