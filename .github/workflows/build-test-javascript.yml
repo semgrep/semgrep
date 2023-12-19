@@ -15,6 +15,9 @@ name: build-test-javascript
         description: Whether or not to upload JS artifacts to S3
 jobs:
   build:
+    container: returntocorp/ocaml:alpine-2023-11-07
+    env:
+      HOME: /root
     runs-on: ubuntu-latest-16-core
     steps:
     - name: Make checkout speedy
@@ -41,9 +44,6 @@ jobs:
         retention-days: 1
         path: "\n            _build/default/js/**/*.bc.js\n          "
         name: semgrep-js-ocaml-build-${{ github.sha }}
-    container: returntocorp/ocaml:alpine-2023-11-07
-    env:
-      HOME: /root
   test:
     needs:
     - build
@@ -58,18 +58,18 @@ jobs:
       with:
         path: .
         key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
-    - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-      name: Make checkout speedy
+    - name: Make checkout speedy
       run: git config --global fetch.parallel 50
+      if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
     - name: Configure git safedir properly
       run: git config --global --add safe.directory $(pwd)
-    - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
       with:
         submodules: true
-    - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-      name: Set up tree-sitter
+      if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+    - name: Set up tree-sitter
       run: (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+      if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
     - uses: actions/download-artifact@v3
       with:
         name: semgrep-js-ocaml-build-${{ github.sha }}
