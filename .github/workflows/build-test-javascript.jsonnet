@@ -67,8 +67,8 @@ local build_job =
       {
         name: 'Test logic',
         run: |||
-          echo "github.ref = ${{ github.ref }}"
-          echo "startsWith(github.ref, 'refs/heads/release-') ? ${{ startsWith(github.ref, 'refs/heads/release-') && 'yes' || 'no' }}
+          echo "github.head_ref = ${{ github.head_ref }}"
+          echo "startsWith(github.head_ref, 'refs/heads/release-') ? ${{ startsWith(github.head_ref, 'refs/heads/release-') && 'yes' || 'no' }}
         |||
       },
       gha.speedy_checkout_step,
