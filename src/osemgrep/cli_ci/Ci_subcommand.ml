@@ -130,7 +130,9 @@ let deployment_config_opt caps (api_token : Auth.token option)
   match (api_token, empty_config) with
   | None, true ->
       Logs.app (fun m ->
-          m "run `semgrep login` before using `semgrep ci` or use `semgrep scan` and set `--config`");
+          m
+            "run `semgrep login` before using `semgrep ci` or use `semgrep \
+             scan` and set `--config`");
       Error.exit Exit_code.invalid_api_key
   | Some _, false ->
       Logs.app (fun m ->
