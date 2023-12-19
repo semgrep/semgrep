@@ -7,7 +7,7 @@ name: check-semgrep-pro
     branches:
     - develop
 jobs:
-  check-compile-test-semgrep-pro:
+  job:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

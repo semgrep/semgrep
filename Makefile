@@ -444,7 +444,7 @@ gitclean:
 
 # Prepare a release branch.
 # This is mainly called by .github/workflows/start-release.yml
-# It's safe to run it multiple times.
+# It is safe to run it multiple times.
 .PHONY: release
 release:
 	./scripts/release/bump

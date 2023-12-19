@@ -9,7 +9,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The job
 // ----------------------------------------------------------------------------
 
-local check_compile_test_semgrep_pro_job = {
+local job = {
   'runs-on': 'ubuntu-latest',
   // Switching to Ubuntu here because Alpine does not provide easily 'gh'
   // which is needed to checkout semgrep-pro from semgrep GHA.
@@ -126,6 +126,6 @@ local check_compile_test_semgrep_pro_job = {
     },
   },
   jobs: {
-    'check-compile-test-semgrep-pro': check_compile_test_semgrep_pro_job,
+    job: job,
   },
 }
