@@ -58,18 +58,17 @@ let test_standard_flow () =
   test_subcommand "status";
   test_subcommand "approve"
 
-(* Function composition *)
-let ( @@@ ) f g x = f (g x)
-
 let tests =
   [
     t ~output_kind:Merged_stdout_stderr
       ~mask_output:
-        (T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `"
-           ~before:"'" ()
-        @@@ T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|}
-        @@@ T.mask_line ~after:"Called from " ()
-        @@@ T.mask_line ~after:"Re-raised at " ())
+        [
+          T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `"
+            ~before:"'" ();
+          T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|};
+          T.mask_line ~after:"Called from " ();
+          T.mask_line ~after:"Re-raised at " ();
+        ]
       "standard flow" test_standard_flow;
   ]
 

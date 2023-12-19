@@ -103,7 +103,7 @@ type 'a t = private {
   speed_level : Alcotest.speed_level;
   (* An optional function to rewrite any output data so as to mask the
      variable parts. *)
-  mask_output : (string -> string) option;
+  mask_output : (string -> string) list;
   output_kind : output_kind;
   (* The 'skipped' property causes a test to be skipped by Alcotest but still
      shown as "[SKIP]" rather than being omitted. *)
@@ -143,7 +143,7 @@ type lwt_test = unit Lwt.t t
 val create :
   ?category:string list ->
   ?expected_outcome:expected_outcome ->
-  ?mask_output:(string -> string) ->
+  ?mask_output:(string -> string) list ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
@@ -162,7 +162,7 @@ val update :
   ?category:string list ->
   ?expected_outcome:expected_outcome ->
   ?func:(unit -> 'a) ->
-  ?mask_output:(string -> string) option ->
+  ?mask_output:(string -> string) list ->
   ?name:string ->
   ?output_kind:output_kind ->
   ?skipped:bool ->

@@ -23,7 +23,7 @@ let tests =
       (fun () -> failwith "this exception is expected");
     t "skipped" ~skipped:true (fun () -> failwith "this shouldn't happen");
     t "chdir" ~tolerate_chdir:true (fun () -> Sys.chdir "/");
-    t ~output_kind:Stdout ~mask_output:String.lowercase_ascii "masked"
+    t ~output_kind:Stdout ~mask_output:[ String.lowercase_ascii ] "masked"
       (fun () -> print_endline "HELLO");
   ]
 

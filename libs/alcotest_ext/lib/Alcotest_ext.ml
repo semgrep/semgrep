@@ -72,7 +72,7 @@ type 'a t = 'a T.test = {
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   speed_level : Alcotest.speed_level;
-  mask_output : (string -> string) option;
+  mask_output : (string -> string) list;
   output_kind : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
@@ -106,9 +106,9 @@ let update_id (test : _ t) =
   let id = String.sub md5_hex 0 12 in
   { test with id; internal_full_name }
 
-let create ?(category = []) ?(expected_outcome = Should_succeed) ?mask_output
-    ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)
-    ?(tags = []) ?(tolerate_chdir = false) name func =
+let create ?(category = []) ?(expected_outcome = Should_succeed)
+    ?(mask_output = []) ?(output_kind = Ignore_output) ?(skipped = false)
+    ?(speed_level = `Quick) ?(tags = []) ?(tolerate_chdir = false) name func =
   {
     id = "";
     internal_full_name = "";

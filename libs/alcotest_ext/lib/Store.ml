@@ -287,13 +287,18 @@ let with_redirect_to_file from filename func () =
       Fun.protect ~finally:(fun () -> flush from) func)
     ()
 
+(* Apply functions to the data as a pipeline, from left to right. *)
+let compose_functions_left_to_right funcs x =
+  List.fold_left (fun x f -> f x) x funcs
+
 (* Iff the test is configured to rewrite its output so as to mask the
    unpredicable parts, we rewrite the standard output file and we make a
    backup of the original. *)
 let mask_output (test : unit T.test) =
   match test.mask_output with
-  | None -> ()
-  | Some rewrite_string ->
+  | [] -> ()
+  | mask_functions ->
+      let rewrite_string = compose_functions_left_to_right mask_functions in
       get_output_paths test
       |> List.iter (fun std_path ->
              let backup_path = std_path ^ orig_suffix in

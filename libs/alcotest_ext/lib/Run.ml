@@ -336,7 +336,7 @@ let is_important_status ((test : _ T.test), _status, (sum : T.status_summary)) =
      | Not_OK ->
          true)
 
-let diff_output (test : _ T.test)
+let show_output_paths ~with_diff (test : _ T.test)
     (output_file_pairs : Store.output_file_pair list) =
   output_file_pairs
   |> List.iter
@@ -346,18 +346,19 @@ let diff_output (test : _ T.test)
        ->
          flush stdout;
          flush stderr;
-         match
-           (* nosemgrep: forbid-exec *)
-           Sys.command
-             (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
-                path_to_output)
-         with
-         | 0 -> ()
-         | _nonzero ->
-             printf "  Captured %s differs from expectation for test %s %s\n"
-               short_name test.id test.internal_full_name;
-             printf "  Path to expected output: %s\n" path_to_expected_output;
-             printf "  Path to latest output: %s\n" path_to_output);
+         (if with_diff then
+            match
+              (* nosemgrep: forbid-exec *)
+              Sys.command
+                (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
+                   path_to_output)
+            with
+            | 0 -> ()
+            | _nonzero ->
+                printf "  Captured %s differs from expectation for test %s %s\n"
+                  short_name test.id test.internal_full_name);
+         printf "  Path to expected %s: %s\n" short_name path_to_expected_output;
+         printf "  Path to latest %s: %s\n" short_name path_to_output);
   print_newline ()
 
 let print_status ?(output_style = Full)
@@ -396,9 +397,9 @@ let print_status ?(output_style = Full)
             | Error msg ->
                 printf "Missing file(s) containing the test output: %s\n" msg
             | Ok result ->
-                if result.captured_output <> expected_output then
-                  let output_file_pairs = Store.get_output_file_pairs test in
-                  diff_output test output_file_pairs))
+                let with_diff = result.captured_output <> expected_output in
+                let output_file_pairs = Store.get_output_file_pairs test in
+                show_output_paths ~with_diff test output_file_pairs))
 
 let print_statuses ~only_important ~output_style tests_with_status =
   let tests_with_status =
