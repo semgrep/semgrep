@@ -810,16 +810,18 @@ let handle_taint_propagators env thing taints =
         let lval_env =
           if prop.spec.prop.propagator_by_side_effect then
             match thing with
-            (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be propagated
-               * by side-effect. A pattern-propagator may use this to e.g. propagate taint
-               * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
-               * if `x` was previously tainted. *)
+            (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be
+             *  propagated by side-effect. A pattern-propagator may use this to
+             * e.g. propagate taint from `x` to `y` in `f(x,y)`, so that
+             * subsequent uses of `y` are tainted if `x` was previously tainted. *)
             | `Lval lval ->
                 if Option.is_some opt_propagated then
                   lval_env |> Lval_env.add lval taints_from_prop
                 else
-                  (* If we could not find the taint to be propagated, it  *)
-                  Lval_env.pending_propagation lval_env prop.TM.spec.var lval
+                  (* If we did not find any taint to be propagated, it could
+                   * be because we have not encountered the 'from' yet, so we
+                   * add the 'lval' to a "pending" queue. *)
+                  lval_env |> Lval_env.pending_propagation prop.TM.spec.var lval
             | `Exp _
             | `Ins _ ->
                 lval_env

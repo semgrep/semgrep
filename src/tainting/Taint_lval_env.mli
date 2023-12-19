@@ -66,7 +66,7 @@ val dumb_find : env -> IL.lval -> [> `Clean | `None | `Tainted of Taint.taints ]
     is a "bit" more complex, see Dataflow_tainting.check_tainted_lval. *)
 
 val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option * env
-val pending_propagation : env -> Dataflow_var_env.var -> IL.lval -> env
+val pending_propagation : Dataflow_var_env.var -> IL.lval -> env -> env
 
 val clean : env -> IL.lval -> env
 (** Remove taint from an lvalue.

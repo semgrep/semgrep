@@ -271,6 +271,9 @@ let add lval taints
             })
 
 let propagate_to prop_var taints env =
+  (* THINK: Should we record empty propagations anyways so that we can always
+   *   match 'from' and 'to' ? We may be keeping around "pending" propagations
+   *   that will never take place. *)
   if Taints.is_empty taints then env
   else
     let env =
@@ -310,7 +313,7 @@ let propagate_from prop_var env =
   in
   (opt_taints, env)
 
-let pending_propagation env prop_var lval =
+let pending_propagation prop_var lval env =
   {
     env with
     pending_propagation_dests =
