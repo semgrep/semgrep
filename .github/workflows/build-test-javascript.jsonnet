@@ -64,6 +64,13 @@ local build_job =
   {
     'runs-on': 'ubuntu-latest-16-core',
     steps: [
+      {
+        name: 'Test logic',
+        run: |||
+          echo "github.ref = ${{ github.ref }}"
+          echo "startsWith(github.ref, 'refs/heads/release-') ? ${{ startsWith(github.ref, 'refs/heads/release-') && 'yes' || 'no' }}
+        |||
+      },
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
       gha.git_safedir,

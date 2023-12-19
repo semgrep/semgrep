@@ -20,6 +20,10 @@ jobs:
       HOME: /root
     runs-on: ubuntu-latest-16-core
     steps:
+    - name: Test logic
+      run: "\n          echo \"github.ref = ${{ github.ref }}\"\n          echo \"startsWith(github.ref,
+        'refs/heads/release-') ? ${{ startsWith(github.ref, 'refs/heads/release-')
+        && 'yes' || 'no' }}\n        "
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
