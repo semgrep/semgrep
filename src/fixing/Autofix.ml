@@ -29,6 +29,54 @@ let ( let/ ) = Result.bind
 let capture_group_regex = "\\\\([0-9]+)"
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* When we produce a fix, we take some content and paste it into the
+   place where the fix needs to go.
+
+   For instance, if we want to do a fix of
+   foo();
+   bar();
+
+   and we want to do it on all calls to qux() in the following function:
+   int main() {
+     qux();
+   }
+
+   we would just insert "foo();\nbar();" in the place where "qux();" goes.
+   However, this produces the following code:
+   int main() {
+     foo();
+   bar();
+   }
+   which is not indented correctly!
+
+   This is because not every newline is made the same. In the original YAML
+   of the fix, the newline before `bar` had no indentation because indeed,
+   neither did `foo`.
+
+   But, when replacing text which may appear in an arbitrary file, we might
+   want to ensure that all the fix lines are aligned with respect to each
+   other.
+
+   This code just goes and does that.
+*)
+let align_text_at_column ~start_column text =
+  let replacement_lines =
+    match String.split_on_char '\n' text with
+    | [] -> []
+    | first :: rest ->
+        let padding = String.make start_column ' ' in
+        first :: List_.map (fun s -> padding ^ s) rest
+  in
+  String.concat "\n" replacement_lines
+
+let%test _ = align_text_at_column ~start_column:0 "foo\nbar" =*= "foo\nbar"
+let%test _ = align_text_at_column ~start_column:1 "foo\nbar" =*= "foo\n bar"
+let%test _ = align_text_at_column ~start_column:1 " foo\nbar" =*= " foo\n bar"
+
+(*****************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
  * fix based a rule's fix pattern and the match's metavariable bindings. *)
 (*****************************************************************************)
@@ -181,6 +229,9 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
         Autofix_printer.print_ast ~lang ~metavars ~target_contents
           ~fix_pattern_ast ~fix_pattern fixed_pattern_ast
       in
+      let text =
+        align_text_at_column ~start_column:(fst pm.range_loc).pos.column text
+      in
 
       let edit =
         { Textedit.path = !!(pm.file); start; end_; replacement_text = text }
@@ -208,10 +259,12 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
 
 let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
     =
+  let start_column = (fst pm.range_loc).pos.column in
   (* TODO: Use m.env instead *)
   let replacement_text =
     Metavar_replacement.interpolate_metavars fix
       (Metavar_replacement.of_bindings pm.env)
+    |> align_text_at_column ~start_column
   in
   let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit
@@ -252,6 +305,11 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
           (fun content _i ->
             Pcre_.replace_first ~rex ~template:replaced_replacement content)
           content count
+    (* TODO: We could align text here, but the problem is that we need the
+       start column of the area being replaced.
+       The area being replaced in a regex fix is not necessarily that of the
+       entire match. So we would need to compute that.
+    *)
   in
   let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit

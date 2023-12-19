@@ -521,8 +521,11 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                    | Ok fix_regex_file -> (
                        match UFile.cat fix_regex_file with
                        | [ l1; l2 ] -> FixRegex (l1, None, l2)
-                       | [ l1; l2; l3 ] ->
-                           FixRegex (l1, Some (int_of_string l2), l3)
+                       | l1 :: l2 :: l3 :: rest ->
+                           FixRegex
+                             ( l1,
+                               Some (int_of_string l2),
+                               String.concat "\n" (l3 :: rest) )
                        | _ ->
                            failwith
                              (Common.spf
