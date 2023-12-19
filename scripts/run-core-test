@@ -26,6 +26,7 @@ NC='\033[0m' # No Color
 dune runtest -f --no-buffer libs/commons
 dune runtest -f --no-buffer libs/lib_parsing
 dune runtest -f --no-buffer src/engine
+dune runtest -f --no-buffer src/fixing
 
 # osemgrep expect tests
 # TODO: migrate to alcotest_ext
