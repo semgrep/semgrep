@@ -226,7 +226,7 @@ def ci(
     token = state.app_session.token
     if not token and not config:
         # Not logged in and no explicit config
-        logger.info("run `semgrep login` before using `semgrep ci` or set `--config`")
+        logger.info("run `semgrep login` before using `semgrep ci` or use `semgrep scan` and set `--config`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
