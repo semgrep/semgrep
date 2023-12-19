@@ -249,6 +249,10 @@ class Metrics:
                     bytesScanned=mock_int(_rule_bytes_scanned[rule.id2]),
                 )
                 for rule in rules
+                # We consider only rules with match times and bytes scanned
+                # greater than 0 to avoid making the metrics too bloated.
+                if _rule_match_times[rule.id2] > 0.0
+                and _rule_bytes_scanned[rule.id2] > 0
             ]
 
     @suppress_errors

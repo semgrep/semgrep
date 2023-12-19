@@ -301,17 +301,13 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   in
   g.payload.environment.rulesHash <- Some (Digestif.SHA256.get rulesHash_value);
   g.payload.performance.numRules <- Some (List.length rules);
-  let ruleStats_value =
-    List_.mapi
-      (fun idx _rule ->
-        {
-          Semgrep_metrics_t.ruleHash = List.nth hashes idx;
-          bytesScanned = 0;
-          matchTime = None;
-        })
-      rules
-  in
-  g.payload.performance.ruleStats <- Some ruleStats_value
+  (* TODO: Properly populate g.payload.performance.ruleStats.
+   * Currently, when we have thousands of rules, they will bloat the
+   * metrics payload. Right now in metrics.py, we are only populating
+   * these stats when both matching time and bytes scanned are greater
+   * than 0.
+   *)
+  g.payload.performance.ruleStats <- None
 
 let add_max_memory_bytes (profiling_data : Core_profiling.t option) =
   Option.iter
