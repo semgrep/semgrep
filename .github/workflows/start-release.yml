@@ -14,9 +14,9 @@ name: start-release
       dry-run:
         required: true
         type: boolean
-        description: "\n\t    Check the box for a dry-run - A dry-run will not push
-          any external state\n            (branches, tags, images, or PyPI packages).\n
-          \          "
+        description: "\n            Check the box for a dry-run - A dry-run will not
+          push any external state\n            (branches, tags, images, or PyPI packages).\n
+          \         "
         default: false
 jobs:
   get-version:
@@ -34,24 +34,23 @@ jobs:
         PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
     - name: Get token for semgrep-ci GitHub App
       id: token
-      run: 'TOKEN="$(curl -X POST \\\n-H "Authorization: Bearer ${{ steps.jwt.outputs.jwt
-        }}" \\\n-H "Accept: application/vnd.github.v3+json" \\\n"https://api.github.com/app/installations/${{
-        secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \\\njq -r .token)"\necho
-        "::add-mask::$TOKEN"\necho "token=$TOKEN" >> $GITHUB_OUTPUT\n'
-    - name: Check out code
-      uses: actions/checkout@v3
-      id: checkout
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
         ref: ${{ github.event.repository.default_branch }}
         token: ${{ steps.token.outputs.token }}
     - name: Pull Tags
-      id: pull-tags
       run: git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'
     - name: Get latest version
       id: latest-version
-      run: LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2-
-        )\necho "latest-version=${LATEST_TAG}" >> $GITHUB_OUTPUT\n
+      run: "\n        LATEST_TAG=$(git tag --list \"v*.*.*\" | sort -V | tail -n 1
+        | cut -c 2- )\n        echo \"latest-version=${LATEST_TAG}\" >> $GITHUB_OUTPUT\n
+        \     "
     - name: Bump release version
       id: next-version
       uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
@@ -88,24 +87,22 @@ jobs:
         PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
     - name: Get token for semgrep-ci GitHub App
       id: token
-      run: 'TOKEN="$(curl -X POST \\\n-H "Authorization: Bearer ${{ steps.jwt.outputs.jwt
-        }}" \\\n-H "Accept: application/vnd.github.v3+json" \\\n"https://api.github.com/app/installations/${{
-        secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \\\njq -r .token)"\necho
-        "::add-mask::$TOKEN"\necho "token=$TOKEN" >> $GITHUB_OUTPUT\n'
-    - name: Check out code
-      uses: actions/checkout@v3
-      id: checkout
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
         ref: ${{ github.event.repository.default_branch }}
         token: ${{ steps.token.outputs.token }}
     - name: Create release branch
       id: release-branch
-      run: RELEASE_BRANCH="release-${{ needs.get-version.outputs.version }}"\ngit
-        checkout -b ${RELEASE_BRANCH}\necho "release-branch=${RELEASE_BRANCH}" >>
-        $GITHUB_OUTPUT\n
+      run: "\n        RELEASE_BRANCH=\"release-${{ needs.get-version.outputs.version
+        }}\"\n        git checkout -b ${RELEASE_BRANCH}\n        echo \"release-branch=${RELEASE_BRANCH}\"
+        >> $GITHUB_OUTPUT\n      "
     - name: Run `make release`
-      id: make-release
       env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
       run: make release
@@ -114,35 +111,34 @@ jobs:
       with:
         python-version: "3.10"
         cache: pipenv
-        cache-dependency-path: scripts/release/Pipfile.lock\n
+        cache-dependency-path: scripts/release/Pipfile.lock
     - name: Create GitHub Release Body
       if: ${{ ! inputs.dry-run }}
       working-directory: scripts/release
-      id: changelog_output
-      run: pip3 install pipenv==2022.6.7\npipenv install --dev\npipenv run towncrier
-        build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt\n
+      run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
+        \       pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version
+        }} > release_body.txt\n      "
     - name: Upload Changelog Body Artifact
       if: ${{ ! inputs.dry-run }}
-      id: upload-changelog-artifact
       uses: actions/upload-artifact@v3
       with:
         name: release_body_${{ needs.get-version.outputs.version }}
         path: scripts/release/release_body.txt
     - name: Update Changelog
       working-directory: scripts/release
-      run: pip3 install pipenv==2022.6.7\npipenv install --dev\npipenv run towncrier
-        build --yes --version ${{ needs.get-version.outputs.version }}\n# use || true
-        since modifications mean exit code != 0\npipenv run pre-commit run --files
-        ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true\n
+      run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
+        \       pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version
+        }}\n        pipenv run pre-commit run --files ../../CHANGELOG.md --config
+        ../../.pre-commit-config.yaml || true\n      "
     - name: Push release branch
       if: ${{ ! inputs.dry-run }}
-      id: push-release-branch
       env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
-      run: 'git config user.name ${{ github.actor }}\ngit config user.email ${{ github.actor
-        }}@users.noreply.github.com\ngit add --all\ngit commit -m "chore: Bump version
-        to ${SEMGREP_RELEASE_NEXT_VERSION}"\ngit push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
-        }}\n'
+      run: "\n        git config user.name ${{ github.actor }}\n        git config
+        user.email ${{ github.actor }}@users.noreply.github.com\n        git add --all\n
+        \       git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
+        \       git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
+        }}\n      "
     - name: Create PR
       if: ${{ ! inputs.dry-run }}
       id: open-pr
@@ -151,16 +147,17 @@ jobs:
         TARGET: ${{ github.event.repository.default_branch }}
         TITLE: Release Version ${{ needs.get-version.outputs.version }}
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
-      run: '# check if the branch already has a pull request open\n\nif gh pr list
-        --head ${SOURCE} | grep -vq \"no pull requests\"; then\n    # pull request
-        already open\n    echo \"pull request from SOURCE ${SOURCE} to TARGET ${TARGET}
-        is already open\";\n    echo \"cancelling release\"\n    exit 1\nfi\n\n# open
-        new pull request with the body of from the local template.\nPR_URL=$(gh pr
-        create --title \"${TITLE}\" --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md
-        \\\n  --base \"${TARGET}\" --head \"${SOURCE}\")\n\necho $PR_URL\n\n#GH actions
-        doesn''t provide an easy way to determine this, so we capture the number and
-        go from there.\nPR_NUMBER=$(echo $PR_URL | sed ''s|.*pull/\\(.*\\)|\\1|'')\n\necho
-        \"pr-number=$PR_NUMBER\" >> $GITHUB_OUTPUT\n'
+      run: "\n        # check if the branch already has a pull request open\n\n        if
+        gh pr list --head ${SOURCE} | grep -vq \"no pull requests\"; then\n            #
+        pull request already open\n            echo \"pull request from SOURCE ${SOURCE}
+        to TARGET ${TARGET} is already open\";\n            echo \"cancelling release\"\n
+        \           exit 1\n        fi\n\n        # open new pull request with the
+        body of from the local template.\n        PR_URL=$(gh pr create --title \"${TITLE}\"
+        --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md \\\n          --base
+        \"${TARGET}\" --head \"${SOURCE}\")\n\n        echo $PR_URL\n\n        # GHA
+        doesn't provide an easy way to determine this, so we\n        # capture the
+        number and go from there.\n        PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\\(.*\\)|\\1|')\n\n
+        \       echo \"pr-number=$PR_NUMBER\" >> $GITHUB_OUTPUT\n      "
   wait-for-pr-checks:
     if: ${{ ! inputs.dry-run }}
     name: Wait for PR Checks
@@ -173,36 +170,33 @@ jobs:
       num-checks: ${{ steps.num-checks.outputs.num-checks }}
     steps:
     - name: Wait for checks to register
-      id: register-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n\n# Immediately
-        after creation, the PR doesn't have any checks attached yet, wait until this
-        is not the case\n# If you immediately start waiting for checks, then it just
-        fails saying there's no checks.\nwhile [ ${LEN_CHECKS} = \"0\" ]; do\n  echo
-        \"No checks available yet\"\n  sleep 1\n  LEN_CHECKS=$(gh pr -R returntocorp/semgrep
+      run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n\n        #
+        Immediately after creation, the PR doesn't have any checks attached\n        #
+        yet, wait until this is not the case. If you immediately start waiting\n        #
+        for checks, then it just fails saying there's no checks.\n          while
+        [ ${LEN_CHECKS} = \"0\" ]; do\n            echo \"No checks available yet\"\n
+        \           sleep 1\n            LEN_CHECKS=$(gh pr -R returntocorp/semgrep
         view \"${{ needs.release-setup.outputs.pr-number }}\" --json statusCheckRollup
-        --jq '.statusCheckRollup | length');\ndone\necho \"checks are valid\"\n\necho
-        ${LEN_CHECKS}\n\ngh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup\n
+        --jq '.statusCheckRollup | length');\n          done\n          echo \"checks
+        are valid\"\n\n          echo ${LEN_CHECKS}\n\n          gh pr -R returntocorp/semgrep
+        view \"${{ needs.release-setup.outputs.pr-number }}\" --json statusCheckRollup\n
+        \     "
     - name: Wait for checks to complete
       id: wait-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: '# Wait for PR checks to finish\ngh pr -R returntocorp/semgrep checks "${{
-        needs.release-setup.outputs.pr-number }}" --interval 90 --watch\n'
+      run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number
+        }}" --interval 90 --watch
     - name: Get Current Num Checks
       id: num-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: '# Once all checks are complete on the PR, find the number of checks so
-        that we can wait for the new checks to register.\n# We can''t do this above
-        because sometimes all checks aren''t yet ready by the time the first one is,
-        so we end up in a case where\n# we aren''t getting waiting for all checks.\nLEN_CHECKS=$(gh
-        pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup --jq ''.statusCheckRollup | length'');\necho
-        \"num-checks=${LEN_CHECKS}\" >> $GITHUB_OUTPUT\n'
+      run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n        echo
+        \"num-checks=${LEN_CHECKS}\" >> $GITHUB_OUTPUT\n      "
   create-tag:
     if: ${{ ! inputs.dry-run }}
     name: Create Release Tag
@@ -222,29 +216,28 @@ jobs:
         PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
     - name: Get token for semgrep-ci GitHub App
       id: token
-      run: 'TOKEN="$(curl -X POST \\\n-H "Authorization: Bearer ${{ steps.jwt.outputs.jwt
-        }}" \\\n-H "Accept: application/vnd.github.v3+json" \\\n"https://api.github.com/app/installations/${{
-        secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \\\njq -r .token)"\necho
-        "::add-mask::$TOKEN"\necho "token=$TOKEN" >> $GITHUB_OUTPUT\n'
-    - name: Check out code
-      uses: actions/checkout@v3
-      id: checkout
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - uses: actions/checkout@v3
       with:
         submodules: true
         ref: ${{ needs.release-setup.outputs.release-branch }}
         token: ${{ steps.token.outputs.token }}
     - name: Create semgrep release version tag
-      id: create-semgrep-tag
-      run: git config user.name ${{ github.actor }}\ngit config user.email ${{ github.actor
-        }}@users.noreply.github.com\ngit tag -a -m "Release ${{ needs.get-version.outputs.version
-        }}" "v${{ needs.get-version.outputs.version }}"\ngit push origin "v${{ needs.get-version.outputs.version
-        }}"\n
+      run: "\n        git config user.name ${{ github.actor }}\n        git config
+        user.email ${{ github.actor }}@users.noreply.github.com\n        git tag -a
+        -m \"Release ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
+        }}\"\n        git push origin \"v${{ needs.get-version.outputs.version }}\"\n
+        \     "
     - name: Create semgrep-interfaces release version tag
-      id: create-interfaces-tag
-      run: cd cli/src/semgrep/semgrep_interfaces\ngit config user.name ${{ github.actor
-        }}\ngit config user.email ${{ github.actor }}@users.noreply.github.com\ngit
-        tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version
-        }}"\ngit push origin "v${{ needs.get-version.outputs.version }}"\n
+      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        git config user.name
+        ${{ github.actor }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
+        \       git tag -a -m \"Release ${{ needs.get-version.outputs.version }}\"
+        \"v${{ needs.get-version.outputs.version }}\"\n        git push origin \"v${{
+        needs.get-version.outputs.version }}\"\n      "
   create-draft-release:
     if: ${{ ! inputs.dry-run }}
     name: Create Draft Release
@@ -256,13 +249,11 @@ jobs:
     - wait-for-pr-checks
     steps:
     - name: Download Release Body Artifact
-      id: download_body
       uses: actions/download-artifact@v3
       with:
         name: release_body_${{ needs.get-version.outputs.version }}
         path: scripts/release
     - name: Create Draft Release Semgrep
-      id: create_release_semgrep
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ needs.get-version.outputs.version }}
@@ -280,12 +271,12 @@ jobs:
         PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
     - name: Get token for semgrep-ci GitHub App
       id: token
-      run: 'TOKEN="$(curl -X POST \\\n-H "Authorization: Bearer ${{ steps.jwt.outputs.jwt
-        }}" \\\n-H "Accept: application/vnd.github.v3+json" \\\n"https://api.github.com/app/installations/${{
-        secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \\\njq -r .token)"\necho
-        "::add-mask::$TOKEN"\necho "token=$TOKEN" >> $GITHUB_OUTPUT\n'
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
     - name: Create Draft Release Semgrep Interfaces
-      id: create_release_semgrep_interfaces
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ needs.get-version.outputs.version }}
@@ -308,21 +299,22 @@ jobs:
       id: register-release-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n\n# We
-        need to wait for the new checks to register when the release tag is pushed\nwhile
-        [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks }} ]; do\n  echo
-        \"No checks available yet\"\n  sleep 1\n  LEN_CHECKS=$(gh pr -R returntocorp/semgrep
-        view \"${{ needs.release-setup.outputs.pr-number }}\" --json statusCheckRollup
-        --jq '.statusCheckRollup | length');\ndone\necho \"checks are valid\"\n\necho
-        ${LEN_CHECKS}\n\ngh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup\n
+      run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n\n        #
+        We need to wait for the new checks to register when the release tag is pushed\n
+        \       while [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks
+        }} ]; do\n          echo \"No checks available yet\"\n          sleep 1\n
+        \         LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n        done\n
+        \       echo \"checks are valid\"\n\n        echo ${LEN_CHECKS}\n\n        gh
+        pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
+        }}\" --json statusCheckRollup\n      "
     - name: Wait for release checks
       id: wait-release-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: '# Wait for PR checks to finish\ngh pr -R returntocorp/semgrep checks "${{
-        needs.release-setup.outputs.pr-number }}" --interval 90 --watch\n'
+      run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number
+        }}" --interval 90 --watch
   validate-release-trigger:
     if: ${{ ! inputs.dry-run }}
     needs:
@@ -384,12 +376,15 @@ jobs:
     steps:
     - run: echo "${{needs.get-version.outputs.version}}"
     - name: Notify Success
-      run: '# POST a webhook to Zapier to allow for public notifications to our users
-        via Twitter\ncurl \"${{ secrets.ZAPIER_WEBHOOK_URL }}\" \\\n  -d ''{\"version\":\"${{needs.get-version.outputs.version}}\",\"changelog_url\":\"https://github.com/returntocorp/semgrep/releases/tag/v${{needs.get-version.outputs.version}}\"}''\n\ncurl
-        --request POST \\\n--url  ${{ secrets.NOTIFICATIONS_URL }} \\\n--header ''content-type:
-        application/json'' \\\n--data ''{\n  \"version\": \"${{needs.get-version.outputs.version}}\",\n  \"message\":
+      run: "\n        # POST a webhook to Zapier to allow for public notifications
+        to our users via Twitter\n        curl \"${{ secrets.ZAPIER_WEBHOOK_URL }}\"
+        \\\n          -d '{\"version\":\"${{needs.get-version.outputs.version}}\",\"changelog_url\":\"https://github.com/returntocorp/semgrep/releases/tag/v${{needs.get-version.outputs.version}}\"}'\n\n
+        \       curl --request POST \\\n        --url  ${{ secrets.NOTIFICATIONS_URL
+        }} \\\n        --header 'content-type: application/json' \\\n        --data
+        '{\n          \"version\": \"${{needs.get-version.outputs.version}}\",\n          \"message\":
         \"Release Validation has succeeded! Please review the PRs in semgrep-app,
-        semgrep-rpc, and semgrep-action that were generated by this workflow.\"\n}''\n'
+        semgrep-rpc, and semgrep-action that were generated by this workflow.\"\n
+        \       }'\n      "
   notify-failure:
     if: ${{ failure() && ! inputs.dry-run }}
     needs:
@@ -403,7 +398,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Notify Failure
-      run: 'curl --request POST \\\n--url  ${{ secrets.NOTIFICATIONS_URL }} \\\n--header
-        ''content-type: application/json'' \\\n--data ''{\n  \"version\": \"${{needs.get-version.outputs.version}}\",\n  \"message\":
+      run: "\n        curl --request POST \\\n        --url  ${{ secrets.NOTIFICATIONS_URL
+        }} \\\n        --header 'content-type: application/json' \\\n        --data
+        '{\n          \"version\": \"${{needs.get-version.outputs.version}}\",\n          \"message\":
         \"Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        for more details!\"\n}''\n'
+        for more details!\"\n        }'\n      "
