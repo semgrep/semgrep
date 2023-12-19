@@ -9,7 +9,7 @@ type class_hierarchy = Graph_code.node Graphe.graph
 val class_hierarchy : Graph_code.t -> class_hierarchy
 
 (* Return the toplevel methods for each method name in the graph.
- * The returned hashtbl uses the Hashtbl.find_all property.
+ * The returned hashtbl uses the Hashtbl_.get_stack property.
  *)
 val toplevel_methods :
   Graph_code.t ->

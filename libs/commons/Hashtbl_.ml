@@ -54,7 +54,10 @@ let hkeys h =
 let push (tbl : ('k, 'v list ref) Hashtbl.t) (key : 'k) (value : 'v) =
   let stack =
     try Hashtbl.find tbl key with
-    | Not_found -> ref []
+    | Not_found ->
+        let stack = ref [] in
+        Hashtbl.add tbl key stack;
+        stack
   in
   stack := value :: !stack
 

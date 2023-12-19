@@ -166,17 +166,20 @@ and rule_id = {
 (* API *)
 (*****************************************************************************)
 
-let uniq pms =
+(* Deduplicate matches *)
+let uniq (pms : t list) : t list =
   let eq = AST_generic_equals.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
   pms
-  |> List.iter (fun pm ->
-         let r = pm.range_loc in
-         let ys = Hashtbl.find_all tbl r in
-         match List.find_opt (fun y -> eq pm y) ys with
-         | Some _ -> ()
-         | None -> Hashtbl.add tbl r pm);
-  tbl |> Hashtbl.to_seq_values |> List.of_seq
+  |> List.iter (fun match_ ->
+         let loc = match_.range_loc in
+         let matches_at_loc = Hashtbl_.get_stack tbl loc in
+         match
+           List.find_opt (fun match2 -> eq match_ match2) matches_at_loc
+         with
+         | Some _equal_match_at_loc -> ()
+         | None -> Hashtbl_.push tbl loc match_);
+  Hashtbl.fold (fun _loc stack acc -> List.rev_append !stack acc) tbl []
 [@@profiling]
 
 let range pm =

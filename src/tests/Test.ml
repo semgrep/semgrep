@@ -35,6 +35,7 @@ let any_gen_of_string str =
 let tests (caps : Cap.all_caps) =
   List.flatten
     [
+      Commons_tests.tests;
       Unit_list_files.tests;
       Glob.Unit_glob.tests;
       Unit_semgrepignore.tests;
@@ -44,11 +45,8 @@ let tests (caps : Cap.all_caps) =
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
       Unit_memory_limit.tests;
-      Unit_Pcre_.tests;
       Unit_tok.tests;
-      Unit_regexp_engine.tests;
       Unit_Rpath.tests;
-      Unit_immutable_buffer.tests;
       Unit_ugly_print_AST.tests;
       Unit_autofix_printer.tests;
       Unit_synthesizer.tests;

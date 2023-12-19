@@ -7,9 +7,9 @@ type 'a hashset = ('a, bool) Hashtbl.t
 val hashset_of_list : 'a list -> 'a hashset
 val hashset_to_list : 'a hashset -> 'a list
 
-(* Safe replacement for Hashtbl.find_all for OCaml < 5
+(* Safe replacement for Hashtbl_.get_stack for OCaml < 5
 
-   In Ocaml < 5, Hashtbl.find_all is not stack-safe and causes Semgrep
+   In Ocaml < 5, Hashtbl_.get_stack is not stack-safe and causes Semgrep
    crashes on some input. The alternative below should be used instead
    at least until we don't support OCaml 4.
 
@@ -24,6 +24,14 @@ val hashset_to_list : 'a hashset -> 'a list
               a list, most recently-added first.
 
    Feel free to add a 'pop' function if needed.
+
+   Usage:
+
+     let tbl = Hashtbl.create 100 in
+     Hashtbl_.push tbl 42 "a";
+     Hashtbl_.push tbl 17 "b";
+     Hashtbl_.push tbl 42 "c";
+     Hashtbl_.get_stack tbl 42 |> List.rev
 *)
 val push : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v -> unit
 val get_stack : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v list

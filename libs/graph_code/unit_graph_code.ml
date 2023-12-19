@@ -235,7 +235,7 @@ let tests ~graph_of_string =
 
               let dag = Graph_code_class_analysis.class_hierarchy g in
               let hmethods = Graph_code_class_analysis.toplevel_methods g dag in
-              let xs = Hashtbl.find_all hmethods "foo" in
+              let xs = Hashtbl_.get_stack hmethods "foo" in
               Alcotest.(check (list string))
                 "it should find the toplevel methods" [ "C.foo"; "A.foo" ]
                 (xs |> List.map fst);
