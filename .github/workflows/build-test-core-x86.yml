@@ -5,6 +5,10 @@ name: build-test-core-x86
   workflow_call:
 jobs:
   job:
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine-2023-11-07
+    env:
+      HOME: /root
     steps:
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
@@ -24,7 +28,3 @@ jobs:
         name: ocaml-build-artifacts-release
     - name: Test semgrep-core
       run: opam exec -- make core-test
-    runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-11-07
-    env:
-      HOME: /root

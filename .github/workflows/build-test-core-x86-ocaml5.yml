@@ -8,6 +8,10 @@ name: build-test-core-x86-ocaml5
     - develop
 jobs:
   job:
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine5.1-2023-11-07
+    env:
+      HOME: /root
     steps:
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
@@ -25,7 +29,3 @@ jobs:
       with:
         path: ocaml-build-artifacts.tgz
         name: ocaml-build-artifacts-ocaml5-release
-    runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine5.1-2023-11-07
-    env:
-      HOME: /root

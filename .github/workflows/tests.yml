@@ -6,12 +6,16 @@ name: tests
     paths-ignore:
     - '**.md'
   push:
-    paths-ignore:
-    - '**.md'
     branches:
     - develop
+    paths-ignore:
+    - '**.md'
 jobs:
   test-semgrep-core:
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine-2023-11-07
+    env:
+      HOME: /root
     steps:
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
@@ -33,11 +37,11 @@ jobs:
       run: ./scripts/report_test_metrics.sh
     - name: Publish match performance
       run: opam exec -- make report-perf-matching
+  test-osemgrep:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
-  test-osemgrep:
     steps:
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
@@ -58,10 +62,6 @@ jobs:
       working-directory: cli
       run: "\n          git config --global --add safe.directory \"$(pwd)\"\n          make
         osempass\n        "
-    runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-11-07
-    env:
-      HOME: /root
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-22.04
@@ -291,31 +291,31 @@ jobs:
       repository-name: returntocorp/semgrep
       dry-run: false
   build-test-docker-performance-tests:
+    needs:
+    - build-test-docker
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
     with:
-      docker-flavor: "\n      latest=auto\n      suffix=-performance-tests,onlatest=true\n
-        \   "
-      artifact-name: image-test-performance-tests
-      target: performance-tests
       docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       repository-name: returntocorp/semgrep
       file: Dockerfile
       enable-tests: false
-    needs:
-    - build-test-docker
-    uses: ./.github/workflows/build-test-docker.yaml
-    secrets: inherit
-  push-docker-performance-tests:
-    needs:
-    - build-test-docker-performance-tests
-    with:
+      docker-flavor: "\n      latest=auto\n      suffix=-performance-tests,onlatest=true\n
+        \   "
       artifact-name: image-test-performance-tests
-      repository-name: returntocorp/semgrep
-      dry-run: false
+      target: performance-tests
+  push-docker-performance-tests:
     uses: ./.github/workflows/push-docker.yaml
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
       !(github.event.pull_request.head.repo.full_name != github.repository))
     secrets: inherit
+    needs:
+    - build-test-docker-performance-tests
+    with:
+      repository-name: returntocorp/semgrep
+      dry-run: false
+      artifact-name: image-test-performance-tests
   test-semgrep-pro:
     needs:
     - build-test-docker
