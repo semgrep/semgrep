@@ -139,8 +139,9 @@ Try running the command yourself to debug the issue.|}
       Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
       raise (Error "Error when we run a git command")
 
-let files_from_git_ls ~cwd =
+let untracked_files_from_git_ls ?(untracked = false) cwd =
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files") in
+  let cmd = if untracked then Bos.Cmd.(cmd % "--others") else cmd in
   let files_r = Bos.OS.Cmd.run_out cmd in
   let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
   let files =
@@ -149,6 +150,8 @@ let files_from_git_ls ~cwd =
     | _ -> raise (Error "Could not get files from git ls-files")
   in
   files |> File.Path.of_strings
+
+let files_from_git_ls ~cwd = untracked_files_from_git_ls cwd
 
 let get_git_root_path () =
   let cmd = Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel") in

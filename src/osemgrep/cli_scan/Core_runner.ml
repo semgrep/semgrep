@@ -107,6 +107,7 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
          let targets =
            all_targets
            |> List.filter (Filter_target.filter_target_for_xlang xlang)
+           |> List.sort Fpath.compare
          in
          if Common.null targets then None
          else Some ({ xlang; targets; rules } : Lang_job.t))

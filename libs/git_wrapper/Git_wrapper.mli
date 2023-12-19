@@ -21,6 +21,7 @@ val git_check_output : Bos.Cmd.t -> string
    This returns a list of paths relative to cwd.
 *)
 val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
+val untracked_files_from_git_ls : ?untracked:bool -> Fpath.t -> Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string

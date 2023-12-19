@@ -125,26 +125,41 @@ let get_reason_for_exclusion (sel_events : Gitignore.selection_event list) :
 let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
     (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
   (* Imperative style! walk and collect *)
+  ignore conf;
   let (res : Fpath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
 
   (* mostly a copy-paste of List_files.list_regular_files() *)
-  let rec aux (dir : fppath) =
+  let aux (dir : fppath) =
     Logs.debug (fun m ->
         m "listing dir %s (ppath = %s)" !!(dir.fpath)
           (Ppath.to_string dir.ppath));
-    (* TODO? should we sort them first? *)
-    let entries = List_files.read_dir_entries dir.fpath in
+    let entries = Git_wrapper.files_from_git_ls ~cwd:dir.fpath in
+    let untracked_entries =
+      Git_wrapper.untracked_files_from_git_ls ~untracked:true dir.fpath
+    in
+    let entries =
+      entries @ untracked_entries
+      |> List.map Fpath.to_string
+      |> List.sort_uniq String.compare
+    in
     entries
     |> List.iter (fun name ->
+           let fpath_name = Fpath.v name in
            let fpath =
              (* if scan_root was "." we want to display paths as "foo/bar"
               * and not "./foo/bar"
               *)
              if Fpath.equal dir.fpath (Fpath.v ".") then Fpath.v name
-             else Fpath.add_seg dir.fpath name
+             else Fpath.append dir.fpath fpath_name
            in
-           let ppath = Ppath.add_seg dir.ppath name in
+           let segments = Fpath.segs fpath_name in
+           let dir_segments = Ppath.segments dir.ppath in
+           let segments = List.append dir_segments segments in
+           let ppath = Ppath.from_segments segments |> Result.get_ok in
+           Logs.debug (fun m ->
+               m "considering path %s (ppath = %s)" !!fpath
+                 (Ppath.to_string ppath));
            (* skip hidden files (this includes big directories like .git/)
             * TODO? maybe add a setting in conf?
             * TODO? add a skip reason for those?
@@ -161,6 +176,9 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
              Common.push skip skipped
            else
              let status, selection_events = Semgrepignore.select ign ppath in
+             Logs.debug (fun m ->
+                 m "considering path %s (ppath = %s)" !!fpath
+                   (Ppath.to_string ppath));
              match status with
              | Ignored ->
                  Logs.debug (fun m ->
@@ -179,32 +197,12 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                    }
                  in
                  Common.push skip skipped
-             | Not_ignored -> (
-                 (* TODO: check read permission? *)
-                 match Unix.lstat !!fpath with
-                 (* skipping symlinks *)
-                 | { Unix.st_kind = S_LNK; _ } -> ()
-                 | { Unix.st_kind = S_REG; _ } -> Common.push fpath res
-                 | { Unix.st_kind = S_DIR; _ } ->
-                     (* skipping submodules.
-                      * TODO? should we add a skip_reason for it? pysemgrep
-                      * though was using `git ls-files` which implicitely does
-                      * not even consider submodule files, so those files/dirs
-                      * were not mentioned in the skip list
-                      *)
-                     if
-                       conf.respect_git_ignore
-                       && Git_project.is_git_submodule_root fpath
-                     then ignore ()
-                       (* TODO? if a dir, then add trailing / to ppath
-                        * and try Git_filter.select() again!
-                        * (it would detected though anyway in the children of
-                        * the dir at least, but better to skip the dir ASAP
-                        *)
-                     else aux { fpath; ppath }
-                 | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> ()
-                 (* ignore for now errors. TODO? return a skip? *)
-                 | exception Unix.Unix_error (_err, _fun, _info) -> ()))
+             | Not_ignored -> Common.push fpath res)
+    (*TODO
+          if
+            conf.respect_git_ignore
+            && Git_project.is_git_submodule_root fpath
+          then ignore ()*)
   in
   aux scan_root;
   (* TODO? List.rev? anyway we gonna sort those files later no? or for
