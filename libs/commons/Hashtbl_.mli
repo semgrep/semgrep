@@ -25,5 +25,5 @@ val hashset_to_list : 'a hashset -> 'a list
 
    Feel free to add a 'pop' function if needed.
 *)
-val push : ('k, 'v list ref) Hashtbl.t
+val push : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v -> unit
 val get_stack : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v list
