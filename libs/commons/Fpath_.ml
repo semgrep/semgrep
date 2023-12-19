@@ -38,7 +38,3 @@ end
 
 let readable ~root path = Filename_.readable ~root:!!root !!path |> Fpath.v
 
-(* Make the fpath "forget" whether the last element is a directory or not. *)
-let to_string_no_trailing_slash x =
-  let dir, file = Fpath.split_base x in
-  Fpath.(append dir file) |> Fpath.to_string
