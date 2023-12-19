@@ -355,6 +355,6 @@ jobs:
     uses: ./.github/workflows/build-test-javascript.yml
     secrets: inherit
     with:
-      upload-artifacts: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref,
-        'refs/heads/release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name,
+      upload-artifacts: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.head_ref,
+        'release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name,
         'publish-js')) }}
