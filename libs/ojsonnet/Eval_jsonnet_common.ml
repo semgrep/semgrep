@@ -112,13 +112,21 @@ let debug_call (env : V.env) (e0 : expr) (l, args, _r) : unit =
           fstr
           (args
           |> List_.map (fun arg ->
-                 match arg with
-                 | Arg e ->
-                     let v = env.eval_expr env e in
-                     short_string_of_value v
-                 | NamedArg (id, _tk, e) ->
-                     let v = env.eval_expr env e in
-                     spf "%s=%s" (fst id) (short_string_of_value v))
+                 try
+                   match arg with
+                   | Arg e ->
+                       let v = env.eval_expr env e in
+                       short_string_of_value v
+                   | NamedArg (id, _tk, e) ->
+                       let v = env.eval_expr env e in
+                       spf "%s=%s" (fst id) (short_string_of_value v)
+                   (* in theory arguments are evaluated lazily, see
+                    * pass/short_circuit_func.jsonnet, so turning debug
+                    * on which forces the evaluation of all arguments can
+                    * trigger more Error
+                    *)
+                 with
+                 | Error _ -> "<error>")
           |> String.concat ", ")
           (Tok.stringpos_of_tok l))
 
