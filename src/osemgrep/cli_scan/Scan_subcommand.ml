@@ -438,7 +438,7 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
     (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
     =
-    Metrics_.add_engine_type conf.engine_type;
+  Metrics_.add_engine_type conf.engine_type;
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
