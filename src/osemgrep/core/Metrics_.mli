@@ -95,7 +95,7 @@ val add_rules_hashes_and_rules_profiling :
 
 val add_rules_hashes_and_findings_count : (Rule.t * int) list -> unit
 val add_targets_stats : Fpath.t Set_.t -> Core_profiling.t option -> unit
-val add_engine_kind : Semgrep_output_v1_t.engine_kind -> unit
+val add_engine_type : Engine_type.t -> unit
 val add_exit_code : Exit_code.t -> unit
 
 (* ex: "language/python" *)

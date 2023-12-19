@@ -163,6 +163,7 @@ let default_payload =
         numIgnored = None;
         ruleHashesWithFindings = None;
         engineRequested = "OSS";
+        engineConfig = None;
         interfileLanguagesUsed = Some [];
       };
     parse_rate = [];
@@ -260,9 +261,52 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 (*****************************************************************************)
 (* add_xxx wrappers *)
 (*****************************************************************************)
-let add_engine_kind (kind : OutJ.engine_kind) =
-  (* TODO: use a better type in semgrep_metrics.atd for this field *)
-  g.payload.value.engineRequested <- OutJ.show_engine_kind kind
+let add_engine_type (engine_type : Engine_type.t) =
+  let metrics_from_engine_type et : Semgrep_metrics_t.engine_config =
+    match (et : Engine_type.t) with
+    | OSS ->
+        {
+          analysis_type = `Intraprocedural;
+          pro_langs = false;
+          code_config = None;
+          secrets_config = None;
+          supply_chain_config = None;
+        }
+    | PRO
+        {
+          analysis;
+          extra_languages;
+          secrets_config;
+          code_config;
+          supply_chain_config;
+        } ->
+        {
+          analysis_type =
+            (match analysis with
+            | Intraprocedural -> `Intraprocedural
+            | Interprocedural -> `Interprocedural
+            | Interfile -> `Interfile);
+          code_config;
+          secrets_config =
+            Option.map
+              (fun (conf : Engine_type.secrets_config) :
+                   Semgrep_metrics_t.secrets_config ->
+                {
+                  permitted_origins =
+                    (if conf.allow_all_origins then `Any else `Semgrep);
+                })
+              secrets_config;
+          supply_chain_config;
+          pro_langs = extra_languages;
+        }
+  in
+  (* TODO: remove this field? *)
+  g.payload.value.engineRequested <-
+    OutJ.show_engine_kind
+      (match engine_type with
+      | OSS -> `OSS
+      | PRO _ -> `PRO);
+  g.payload.value.engineConfig <- Some (metrics_from_engine_type engine_type)
 
 (* TODO? should pass Uri.t directly *)
 let add_project_url_hash (project_url : string) =
