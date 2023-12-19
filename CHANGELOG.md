@@ -6,6 +6,86 @@
 
 <!-- insertion point -->
 
+## [1.54.0](https://github.com/returntocorp/semgrep/releases/tag/v1.54.0) - 2023-12-19
+
+
+### Added
+
+
+- Pro only: taint-mode: In a function/method call, it is now possible to arbitrarily
+  propagate taint between arguments and the callee. For example in C, one can
+  propagate taint from the second argument of `strcat` to the first, that is,
+  `strcat($TO, $FROM)`. Another example, in C++ one can propagate taint from the
+  left operand of `>>` to the right one, that is, `$FROM >> $TO`. (pa-3131)
+- Semgrep IDE integrations will now cache workspace targets, so a full traversal of a workspace is no longer needed on every scan (pdx-148)
+
+
+### Changed
+
+
+- OCaml: switch to using the tree-sitter based parser instead of
+  the menhir parser, which has a more complete AST, especially
+  for objects and classes. (ocaml)
+
+
+### Fixed
+
+
+- solidity: support ellipsis in for loops header in the init part. (gh-9431)
+- taint-mode: Fixed recently added `by-side-effect: only` option for taint sources,
+  so that it does not incorrectly taint expressions that are not l-values, e.g.
+  given this taint source:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: delete $VAR;
+        - focus-metavariable: $VAR
+  ```
+
+  The `get(*from)` expression should not become tainted since it's not an l-value:
+
+  ```cpp
+  delete get(*from);
+  ``` (pa-2980)
+- In C++, the string literal now has a type of `char *`. It won't match with the
+  `string` type. For instance,
+
+  ```yaml
+  - metavariable-type:
+      metavariable: $EXPR
+      type: string
+  ```
+
+  will only match
+
+  ```cpp
+  string f;
+  // MATCH
+  int x = f.length();
+  ```
+
+  but not
+
+  ```cpp
+  const char *s;
+  // OK
+  s = "foo";
+  ``` (pa-3236)
+- taint-mode: Semgrep will now treat lambdas' parameters as fresh, so a taint rule
+  that finds double-delete's should not be triggered on the code below:
+
+  ```cpp
+  for (ListNode *node : list) {
+  	list.erase(node, [](ListNode *p) {
+  		delete p;
+  	});
+  }
+  ``` (pa-3298)
+- Fixed bug where empty tables in pyproject.toml files would fail to parse (sc-1196)
+
+
 ## [1.53.0](https://github.com/returntocorp/semgrep/releases/tag/v1.53.0) - 2023-12-12
 
 
