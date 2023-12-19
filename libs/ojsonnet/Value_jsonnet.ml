@@ -99,6 +99,7 @@ and env = {
   locals : locals;
   (* for call tracing *)
   depth : int;
+  in_debug_call : bool;
   (* methods to help factorize code between the Eval_jsonnet_xxx.ml *)
   eval_expr : env -> Core_jsonnet.expr -> t;
   eval_expr_for_call : env -> Core_jsonnet.expr -> t;
@@ -132,6 +133,7 @@ let empty_env =
   {
     locals = Map_.empty;
     depth = 0;
+    in_debug_call = false;
     (* fake implem; Each Eval_jsonnet_xxx.ml need to define those methods *)
     eval_expr = (fun _ _ -> failwith "TODO: eval_expr not implemented");
     eval_std_filter_element =
