@@ -79,31 +79,66 @@ let string_of_local_id = function
   | V.LSuper -> "super"
   | V.LId s -> s
 
-let log_call (env : V.env) str tk =
-  if debug then
+let str_of_caller (e0 : expr) : string =
+  match e0 with
+  | Id (s, _) -> s
+  | ArrayAccess
+      (Id (obj, _), (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _))
+    ->
+      spf "%s.%s" obj meth
+  | _else_ -> "<unknown>"
+
+let short_string_of_value (v : V.t) : string =
+  match v with
+  | V.Primitive x -> (
+      match x with
+      | Null _ -> "null"
+      | Bool (b, _) -> spf "%b" b
+      | Double (f, _) ->
+          if Float.is_integer f then spf "%d" (int_of_float f)
+          else spf "%0.2f" f
+      | Str (s, _) -> spf "\"%s\"" s)
+  | V.Lambda _ -> "<lambda>"
+  | V.Array _ -> "<array>"
+  | V.Object _ -> "<object>"
+
+let debug_call (env : V.env) (e0 : expr) (l, args, _r) : unit =
+  if not env.in_debug_call then
     Logs.debug (fun m ->
-        m "calling %s> %s at %s"
+        let env = { env with in_debug_call = true } in
+        let fstr = str_of_caller e0 in
+        m "%s> %s(%s) at %s"
           (Common2.repeat "-" env.depth |> String.concat "")
-          str (Tok.stringpos_of_tok tk))
+          fstr
+          (args
+          |> List_.map (fun arg ->
+                 match arg with
+                 | Arg e ->
+                     let v = env.eval_expr env e in
+                     short_string_of_value v
+                 | NamedArg (id, _tk, e) ->
+                     let v = env.eval_expr env e in
+                     spf "%s=%s" (fst id) (short_string_of_value v))
+          |> String.concat ", ")
+          (Tok.stringpos_of_tok l))
+
+let debug_ret (env : V.env) (e0 : expr) (_l, _args, _r) (retv : V.t) : unit =
+  if not env.in_debug_call then
+    Logs.debug (fun m ->
+        let fstr = str_of_caller e0 in
+        m "%s< %s(...) = %s"
+          (Common2.repeat "-" env.depth |> String.concat "")
+          fstr
+          (short_string_of_value retv))
 
 (*****************************************************************************)
 (* Call *)
 (*****************************************************************************)
-let eval_call (env : V.env) (e0 : expr) (largs, args, _rargs) =
+let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
   match env.eval_expr_for_call env e0 with
   | Lambda
       ({ f_tok = _; f_params = lparams, params, rparams; f_body = eb }, locals)
     ->
-      let fstr =
-        match e0 with
-        | Id (s, _) -> s
-        | ArrayAccess
-            ( Id (obj, _),
-              (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _) ) ->
-            spf "%s.%s" obj meth
-        | _else_ -> "<unknown>"
-      in
-      log_call env fstr largs;
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
@@ -133,6 +168,12 @@ let eval_call (env : V.env) (e0 : expr) (largs, args, _rargs) =
         { env with depth = env.depth + 1; locals }
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
+
+let eval_call (env : V.env) (e0 : expr) (l, args, r) : V.t =
+  debug_call env e0 (l, args, r);
+  let v = eval_call_ env e0 (l, args, r) in
+  debug_ret env e0 (l, args, r) v;
+  v
 
 (*****************************************************************************)
 (* Builtins *)
@@ -174,7 +215,7 @@ let std_primivite_equals (v : V.t) (v' : V.t) : bool =
  * return a cmp.
  *)
 let eval_std_cmp (env : V.env) tk (el : expr) (er : expr) : cmp =
-  let rec eval_std_cmp_value_ (v_el : V.t) (v_er : V.t) : cmp =
+  let rec eval_std_cmp_value_aux (v_el : V.t) (v_er : V.t) : cmp =
     match (v_el, v_er) with
     | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
@@ -184,7 +225,7 @@ let eval_std_cmp (env : V.env) tk (el : expr) (er : expr) : cmp =
 
         let b0 = env.to_value env bx.(0) in
 
-        match eval_std_cmp_value_ a0 b0 with
+        match eval_std_cmp_value_aux a0 b0 with
         | (Inf | Sup) as r -> r
         | Eq ->
             let a_sub =
@@ -193,7 +234,7 @@ let eval_std_cmp (env : V.env) tk (el : expr) (er : expr) : cmp =
             let b_sub =
               V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
             in
-            eval_std_cmp_value_ a_sub b_sub)
+            eval_std_cmp_value_aux a_sub b_sub)
     | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
         Float.compare fl fr |> int_to_cmp
     | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
@@ -205,12 +246,11 @@ let eval_std_cmp (env : V.env) tk (el : expr) (er : expr) : cmp =
     | _else_ ->
         error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
   in
-  eval_std_cmp_value_ (env.eval_expr env el) (env.eval_expr env er)
+  eval_std_cmp_value_aux (env.eval_expr env el) (env.eval_expr env er)
 
-let eval_std_method env e0 (method_str, tk) (l, args, r) =
+let eval_std_method_ (env : V.env) (e0 : expr) (method_str, tk) (l, args, r) =
   match (method_str, args) with
   | "type", [ Arg e ] ->
-      log_call env ("std." ^ method_str) l;
       let v = env.eval_expr env e in
       let s = std_type v in
       V.Primitive (V.Str (s, l))
@@ -223,7 +263,6 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
         (spf "Improper #arguments to std.type: expected 1, got %d"
            (List.length args))
   | "primitiveEquals", [ Arg e; Arg e' ] ->
-      log_call env ("std." ^ method_str) l;
       let v = env.eval_expr env e in
       let v' = env.eval_expr env e' in
       let b = std_primivite_equals v v' in
@@ -233,7 +272,6 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
         (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
            (List.length args))
   | "length", [ Arg e ] -> (
-      log_call env ("std." ^ method_str) l;
       match env.eval_expr env e with
       | V.Primitive (V.Str (s, tk)) ->
           let i = String.length s in
@@ -250,7 +288,6 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
             (spf "length operates on strings, objects, and arrays, got %s"
                (sv v)))
   | "makeArray", [ Arg e; Arg e' ] -> (
-      log_call env ("std." ^ method_str) l;
       match (env.eval_expr env e, env.eval_expr env e') with
       | V.Primitive (V.Double (n, tk)), V.Lambda (fdef, locals) ->
           if Float.is_integer n then
@@ -362,8 +399,17 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
             (spf
                "Builtin function %s expected (number, number) but got (%s, %s)"
                op (sv v1) (sv v2)))
-  (* default to regular call, handled by std.jsonnet code hopefully *)
-  | _else_ -> eval_call env e0 (l, args, r)
+  (* Default to regular call, handled by std.jsonnet code hopefully.
+   * Note that we call eval_call_() here, not eval_call(), to avoid double
+   * trace.
+   *)
+  | _else_ -> eval_call_ env e0 (l, args, r)
+
+let eval_std_method (env : V.env) (e0 : expr) (method_str, tk) (l, args, r) =
+  debug_call env e0 (l, args, r);
+  let v = eval_std_method_ env e0 (method_str, tk) (l, args, r) in
+  debug_ret env e0 (l, args, r) v;
+  v
 
 let eval_unary_op (env : V.env) (op : unary_op wrap) (e : expr) : V.t =
   let op, tk = op in

@@ -42,15 +42,9 @@ let rec lookup (env : V.env) tk (id : V.local_id) =
   let entry =
     try Map_.find id env.locals with
     | Not_found ->
-        Logs.debug (fun m ->
-            m "lookup fail for %s in env = %s" (V.show_local_id id)
-              (show_env env));
         error tk
           (spf "could not find '%s' in the environment" (V.show_local_id id))
   in
-  if debug then
-    Logs.debug (fun m ->
-        m "found '%s', value = %s" (V.show_local_id id) (show_lazy_value entry));
   to_value entry
 
 and to_value (v : V.lazy_value) : V.t =
