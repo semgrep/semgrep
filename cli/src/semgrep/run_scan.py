@@ -61,6 +61,12 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_metrics import Any_ as AnySecretsOrigin
+from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SecretsOrigin
+from semgrep.semgrep_interfaces.semgrep_metrics import Semgrep as SemgrepSecretsOrigin
+from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -422,7 +428,18 @@ def run_scan(
         metrics.add_project_url(project_url)
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
-        metrics.add_engine_type(engine_type)
+        metrics.add_engine_config(
+            engine_type,
+            CodeConfig(),
+            SecretsConfig(
+                SecretsOrigin(AnySecretsOrigin())
+                if allow_untrusted_validators
+                else SecretsOrigin(SemgrepSecretsOrigin())
+            )
+            if run_secrets and not disable_secrets_validation
+            else None,
+            SupplyChainConfig() if with_supply_chain else None,
+        )
         metrics.add_is_diff_scan(baseline_commit is not None)
         if engine_type.is_pro:
             metrics.add_diff_depth(diff_depth)

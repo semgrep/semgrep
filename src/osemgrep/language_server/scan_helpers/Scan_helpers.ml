@@ -69,9 +69,12 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
                 Engine_type.(
                   PRO
                     {
+                      (* TODO: this probably needs better product detection. *)
                       extra_languages = true;
                       analysis = Interprocedural;
                       secrets_config = None;
+                      code_config = Some ();
+                      supply_chain_config = None;
                     })
           | _ ->
               (* TODO: improve this error message depending on what the
