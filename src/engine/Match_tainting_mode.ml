@@ -754,7 +754,7 @@ let add_to_env lang options taint_config env id ii opt_expr =
   let taints =
     Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
   in
-  Lval_env.add env (IL_helpers.lval_of_var var) taints
+  env |> Lval_env.add (IL_helpers.lval_of_var var) taints
 
 let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
     =

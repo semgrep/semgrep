@@ -799,8 +799,11 @@ let handle_taint_propagators env thing taints =
      * incoming taints by looking for the propagator ids in the environment. *)
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
+        let opt_propagated, lval_env =
+          Lval_env.propagate_from prop.TM.spec.var lval_env
+        in
         let taints_from_prop =
-          match Lval_env.propagate_from prop.TM.spec.var lval_env with
+          match opt_propagated with
           | None -> Taints.empty
           | Some taints -> taints
         in
@@ -811,7 +814,12 @@ let handle_taint_propagators env thing taints =
                * by side-effect. A pattern-propagator may use this to e.g. propagate taint
                * from `x` to `y` in `f(x,y)`, so that subsequent uses of `y` are tainted
                * if `x` was previously tainted. *)
-            | `Lval lval -> Lval_env.add lval_env lval taints_from_prop
+            | `Lval lval ->
+                if Option.is_some opt_propagated then
+                  lval_env |> Lval_env.add lval taints_from_prop
+                else
+                  (* If we could not find the taint to be propagated, it  *)
+                  Lval_env.pending_propagation lval_env prop.TM.spec.var lval
             | `Exp _
             | `Ins _ ->
                 lval_env
@@ -850,7 +858,7 @@ let find_lval_taint_sources env incoming_taints lval =
   let taints_to_add_to_env =
     by_side_effect_only_taints |> Taints.union by_side_effect_yes_taints
   in
-  let lval_env = Lval_env.add lval_env lval taints_to_add_to_env in
+  let lval_env = lval_env |> Lval_env.add lval taints_to_add_to_env in
   let taints_to_return =
     Taints.union by_side_effect_no_taints by_side_effect_yes_taints
   in
@@ -938,7 +946,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
       | [ _ ] when String.starts_with ~prefix:"set" method_str ->
           if not (Taints.is_empty all_args_taints) then
             ( Taints.empty,
-              Lval_env.add env.lval_env (mk_prop_lval ()) all_args_taints )
+              env.lval_env |> Lval_env.add (mk_prop_lval ()) all_args_taints )
           else (Taints.empty, env.lval_env)
       | __else__ -> (Taints.empty, env.lval_env))
   | __else__ -> (Taints.empty, env.lval_env)
@@ -1178,21 +1186,24 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, lval_env)
   | None ->
-      let taints_exp, lval_env = check_subexpr exp in
-      let taints_sources, lval_env =
+      let taints, lval_env =
         match exp.e with
         | Fetch lval -> check_tainted_lval env lval
         | __else__ ->
-            orig_is_best_source env exp.eorig
-            |> taints_of_matches { env with lval_env } ~incoming:taints_exp
+            let taints_exp, lval_env = check_subexpr exp in
+            let taints_sources, lval_env =
+              orig_is_best_source env exp.eorig
+              |> taints_of_matches { env with lval_env } ~incoming:taints_exp
+            in
+            let taints = Taints.union taints_exp taints_sources in
+            let taints_propagated, lval_env =
+              handle_taint_propagators { env with lval_env } (`Exp exp) taints
+            in
+            let taints = Taints.union taints taints_propagated in
+            (taints, lval_env)
       in
-      let taints = Taints.union taints_exp taints_sources in
-      let taints_propagated, var_env =
-        handle_taint_propagators { env with lval_env } (`Exp exp) taints
-      in
-      let taints = Taints.union taints taints_propagated in
       check_orig_if_sink env exp.eorig taints;
-      (taints, var_env)
+      (taints, lval_env)
 
 (* Check the actual arguments of a function call. This also handles left-to-right
  * taint propagation by chaining the 'lval_env's returned when checking the arguments.
@@ -1488,7 +1499,7 @@ let check_function_signature env fun_exp args args_taints =
                match fsig with
                | `Return taints -> (Taints.union taints taints_acc, lval_env)
                | `UpdateEnv (lval, taints) ->
-                   (taints_acc, Lval_env.add lval_env lval taints))
+                   (taints_acc, lval_env |> Lval_env.add lval taints))
              (Taints.empty, env.lval_env))
   | None, _
   | Some _, _ ->
@@ -1724,7 +1735,7 @@ let transfer :
               if has_taints then
                 (* Instruction returns tainted data, add taints to lval.
                  * See [Taint_lval_env] for details. *)
-                Lval_env.add lval_env' lval taints
+                lval_env' |> Lval_env.add lval taints
               else
                 (* The RHS returns no taint, but taint could propagate by
                  * side-effect too. So, we check whether the taint assigned

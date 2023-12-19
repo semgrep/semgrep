@@ -1,0 +1,5 @@
+Pro only: taint-mode: In a function/method call, it is now possible to arbitrarily
+propagate taint between arguments and the callee. For example in C, one can
+propagate taint from the second argument of `strcat` to the first, that is,
+`strcat($TO, $FROM)`. Another example, in C++ one can propagate taint from the
+left operand of `>>` to the right one, that is, `$FROM >> $TO`.

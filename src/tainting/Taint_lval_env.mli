@@ -19,11 +19,32 @@
 
 type t
 type env = t
+type taints_to_propagate = Taint.taints Dataflow_var_env.VarMap.t
+type pending_propagation_dests = IL.lval Dataflow_var_env.VarMap.t
+
+type prop_fn =
+  taints_to_propagate:taints_to_propagate ->
+  pending_propagation_dests:pending_propagation_dests ->
+  env
+
+type add_fn = IL.lval -> Taint.taints -> env -> env
+
+val hook_propagate_to :
+  (Dataflow_var_env.var ->
+  Taint.taints ->
+  taints_to_propagate:taints_to_propagate ->
+  pending_propagation_dests:pending_propagation_dests ->
+  prop:prop_fn ->
+  add:add_fn ->
+  t)
+  option
+  ref
+(** Pro hook, this is a bit complicated to avoid exposing `t`s internals. *)
 
 val empty : env
 val empty_inout : env Dataflow_core.inout
 
-val add : env -> IL.lval -> Taint.taints -> env
+val add : add_fn
 (** Add taints to an l-value.
 
     Adding taints to x.a_1. ... .a_N will NOT taint the prefixes
@@ -44,7 +65,8 @@ val dumb_find : env -> IL.lval -> [> `Clean | `None | `Tainted of Taint.taints ]
     'x.a.b' would return `None. The way we determine whether an l-value is tainted
     is a "bit" more complex, see Dataflow_tainting.check_tainted_lval. *)
 
-val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option
+val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option * env
+val pending_propagation : env -> Dataflow_var_env.var -> IL.lval -> env
 
 val clean : env -> IL.lval -> env
 (** Remove taint from an lvalue.
