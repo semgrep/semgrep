@@ -1,0 +1,1 @@
+Revise error message when running `semgrep ci` without being logged in to clarify that `--config` is used with `semgrep scan`.
