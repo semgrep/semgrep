@@ -21,9 +21,8 @@ OBJS = \
   build-test-javascript.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
-  check-semgrep-pro.yml \
-  test-pro-rules.yml \
-  start-release.yml
+  check-semgrep-pro.yml test-pro-rules.yml \
+  start-release.yml release.yml
 
 all: $(OJSONNET) $(OBJS)
 
