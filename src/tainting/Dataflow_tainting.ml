@@ -222,7 +222,7 @@ let lval_is_source env lval =
 let lval_is_best_sanitizer env lval =
   any_is_best_sanitizer env (any_of_lval lval)
 
-let lval_is_best_sink env lval = any_is_best_sink env (any_of_lval lval)
+let lval_is_sink env lval = env.config.is_sink (any_of_lval lval)
 
 let taints_of_matches env ~incoming sources =
   let control_sources, data_sources =
@@ -876,7 +876,7 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
     check_type_and_drop_taints_if_bool_or_number env taints type_of_lval lval
   in
   let sinks =
-    lval_is_best_sink env lval
+    lval_is_sink env lval
     |> List.filter (TM.is_best_match env.top_matches)
     |> List_.map TM.sink_of_match
   in
@@ -1066,7 +1066,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       in
       let new_taints = taints_incoming |> Taints.union taints_propagated in
       let sinks =
-        lval_is_best_sink env lval
+        lval_is_sink env lval
         (* For sub-lvals we require sinks to be exact matches. Why? Let's say
            * we have `sink(x.a)` and `x' is tainted but `x.a` is clean...
            * with the normal subset semantics for sinks we would consider `x'
