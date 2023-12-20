@@ -1303,7 +1303,7 @@ and class_body_decl env (x : CST.class_body_declaration) =
       | `Cons_decl x -> [ Method (constructor_declaration env x) ]
       | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ])
   | `Semg_ellips tok -> [ DeclEllipsis (token env tok) ]
-  | `Semg_named_ellips tok -> [ DeclNamedEllipsis (str env tok) ]
+  | `Semg_named_ellips tok -> [ DeclMetavarEllipsis (str env tok) ]
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let _v1 = token env v1 (* ";" *) in

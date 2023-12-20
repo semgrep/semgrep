@@ -165,7 +165,7 @@ let visitor_info_of_tok f = function
   | RECORD ii -> RECORD (f ii)
   | EOF ii -> EOF (f ii)
   (* sgrep-ext: *)
-  | NAMED_ELLIPSIS (id, ii) -> NAMED_ELLIPSIS (id, f ii)
+  | METAVAR_ELLIPSIS (id, ii) -> METAVAR_ELLIPSIS (id, f ii)
 
 let info_of_tok tok =
   let res = ref None in

@@ -368,7 +368,7 @@ rule token = parse
     }
   (* sgrep-ext: *)
   | '$' "..." ['A'-'Z''_']['A'-'Z''_''0'-'9']*
-     { Flag.sgrep_guard (NAMED_ELLIPSIS (tok lexbuf, tokinfo lexbuf)) }
+     { Flag.sgrep_guard (METAVAR_ELLIPSIS (tok lexbuf, tokinfo lexbuf)) }
 
   (* ----------------------------------------------------------------------- *)
   (* Symbols *)

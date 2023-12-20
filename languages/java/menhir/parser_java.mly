@@ -270,7 +270,7 @@ let mk_stmt_or_stmts = function
 (* semgrep-ext: *)
 (*-----------------------------------------*)
 
-%token <(string * Tok.t)> NAMED_ELLIPSIS
+%token <(string * Tok.t)> METAVAR_ELLIPSIS
 
 (*************************************************************************)
 (* Priorities *)
@@ -542,7 +542,7 @@ primary_no_new_array:
  | array_access                       { $1 }
  (* sgrep-ext: *)
  | typed_metavar       { $1 }
- | NAMED_ELLIPSIS { NameId ($1) }
+ | METAVAR_ELLIPSIS { NameId ($1) }
  (* just can use some reserved identifiers as field now? *)
  | name "." THIS       { Dot (name $1, $2, ("this", $3)) }
  (* javaext: ? *)
@@ -1313,7 +1313,7 @@ formal_parameter:
  | IDENTIFIER
    { Flag_parsing.sgrep_guard
        (ParamClassic { name = $1; mods = []; type_ = None }) }
- | NAMED_ELLIPSIS
+ | METAVAR_ELLIPSIS
    { Flag_parsing.sgrep_guard
        (ParamClassic { name = $1; mods = []; type_ = None }) }
 
