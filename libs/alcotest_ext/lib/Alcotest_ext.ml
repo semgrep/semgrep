@@ -18,11 +18,18 @@ type expected_outcome = T.expected_outcome =
 type outcome = T.outcome = Succeeded | Failed
 
 type captured_output = T.captured_output =
-  | Ignored
-  | Captured_stdout of string
-  | Captured_stderr of string
+  | Ignored of string
+  | Captured_stdout of string * string
+  | Captured_stderr of string * string
   | Captured_stdout_stderr of string * string
   | Captured_merged of string
+
+type expected_output = T.expected_output =
+  | Ignored
+  | Expected_stdout of string
+  | Expected_stderr of string
+  | Expected_stdout_stderr of string * string (* stdout, stderr *)
+  | Expected_merged of string (* combined output *)
 
 type result = T.result = {
   outcome : outcome;
@@ -31,7 +38,7 @@ type result = T.result = {
 
 type expectation = T.expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (captured_output, string) Result.t;
+  expected_output : (expected_output, string) Result.t;
 }
 
 type status = T.status = {

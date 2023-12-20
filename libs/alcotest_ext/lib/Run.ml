@@ -18,7 +18,7 @@ type status_stats = {
   needs_approval : int ref;
 }
 
-type success = OK | OK_where_no_missing_data | Not_OK
+type success = OK | OK_but_new | Not_OK
 
 (*
    Check that no two tests have the same full name or the same ID.
@@ -59,15 +59,15 @@ let success_of_status_summary (sum : T.status_summary) =
   match sum.status_class with
   | PASS
   | XFAIL ->
-      if sum.has_expected_output then OK else OK_where_no_missing_data
+      if sum.has_expected_output then OK else OK_but_new
   | FAIL -> Not_OK
   | XPASS -> Not_OK
-  | MISS -> OK_where_no_missing_data
+  | MISS -> OK_but_new
 
 let style_of_status_summary (sum : T.status_summary) : Color.style =
   match success_of_status_summary sum with
   | OK -> Green
-  | OK_where_no_missing_data -> Yellow
+  | OK_but_new -> Yellow
   | Not_OK -> Red
 
 let brackets s = sprintf "[%s]" s
@@ -77,9 +77,7 @@ let format_status_summary (sum : T.status_summary) =
   let style = style_of_status_summary sum in
   let displayed_string = sum |> string_of_status_summary |> brackets in
   let padding = max 0 (7 - String.length displayed_string) in
-  sprintf "%s%s"
-    (Color.format Color style displayed_string)
-    (String.make padding ' ')
+  sprintf "%s%s" (Color.format style displayed_string) (String.make padding ' ')
 
 let stats_of_tests tests tests_with_status =
   let stats =
@@ -233,6 +231,34 @@ let to_alcotest_generic
          (suite_name, (test.name, test.speed_level, func)))
   |> group_by_key
 
+let print_exn (test : _ T.test) exn trace =
+  match test.expected_outcome with
+  | Should_succeed ->
+      prerr_string
+        (Color.format Red
+           (sprintf "FAIL: The test raised an exception: %s\n%s"
+              (Printexc.to_string exn)
+              (Printexc.raw_backtrace_to_string trace)))
+  | Should_fail _reason ->
+      prerr_string
+        (Color.format Green
+           (sprintf "XFAIL: As expected, the test raised an exception: %s\n%s"
+              (Printexc.to_string exn)
+              (Printexc.raw_backtrace_to_string trace)))
+
+let with_print_exn (test : _ T.test) func () =
+  try func () with
+  | exn ->
+      let trace = Printexc.get_raw_backtrace () in
+      print_exn test exn trace;
+      Printexc.raise_with_backtrace exn trace
+
+let with_print_exn_lwt (test : _ T.test) func () =
+  Lwt.catch func (fun exn ->
+      let trace = Printexc.get_raw_backtrace () in
+      print_exn test exn trace;
+      Printexc.raise_with_backtrace exn trace)
+
 let with_flip_xfail_outcome (test : _ T.test) func =
   match test.expected_outcome with
   | Should_succeed -> func
@@ -240,10 +266,10 @@ let with_flip_xfail_outcome (test : _ T.test) func =
       fun () ->
         try
           func ();
-          failwith "This test failed to raise an exception."
+          Alcotest.fail "XPASS: This test should have raised an exception."
         with
         | exn ->
-            eprintf "As expected, an exception was raised: %s\n"
+            eprintf "XFAIL: As expected, an exception was raised: %s\n"
               (Printexc.to_string exn))
 
 let with_flip_xfail_outcome_lwt (test : _ T.test) func =
@@ -254,9 +280,9 @@ let with_flip_xfail_outcome_lwt (test : _ T.test) func =
         Lwt.catch
           (fun () ->
             Lwt.bind (func ()) (fun () ->
-                failwith "This test failed to raise an exception"))
+                Alcotest.fail "XPASS: This test failed to raise an exception"))
           (fun exn ->
-            eprintf "As expected, an exception was raised: %s\n"
+            eprintf "XFAIL: As expected, an exception was raised: %s\n"
               (Printexc.to_string exn);
             Lwt.return ())
 
@@ -265,7 +291,7 @@ let conditional_wrap condition wrapper func =
 
 let to_alcotest_internal ~with_storage ~flip_xfail_outcome tests =
   let wrap_test_function test func =
-    func
+    func |> with_print_exn test
     |> conditional_wrap flip_xfail_outcome (with_flip_xfail_outcome test)
     |> protect_globals test
     |> conditional_wrap with_storage (Store.with_result_capture test)
@@ -274,7 +300,7 @@ let to_alcotest_internal ~with_storage ~flip_xfail_outcome tests =
 
 let to_alcotest_lwt_internal ~with_storage ~flip_xfail_outcome tests =
   let wrap_test_function test func =
-    func
+    func |> with_print_exn_lwt test
     |> conditional_wrap flip_xfail_outcome (with_flip_xfail_outcome_lwt test)
     |> protect_globals_lwt test
     |> conditional_wrap with_storage (Store.with_result_capture_lwt test)
@@ -319,8 +345,8 @@ let print_errors (xs : (_, string) Result.t list) : int =
   | xs ->
       let n_errors = List.length xs in
       let error_str =
-        if n_errors >= 2 then Color.format Color Red "Errors:\n"
-        else Color.format Color Red "Error: "
+        if n_errors >= 2 then Color.format Red "Errors:\n"
+        else Color.format Red "Error: "
       in
       let msg = String.concat "\n" error_messages in
       eprintf "%s%s\n%!" error_str msg;
@@ -332,12 +358,26 @@ let is_important_status ((test : _ T.test), _status, (sum : T.status_summary)) =
      ||
      match success_of_status_summary sum with
      | OK -> false
-     | OK_where_no_missing_data
+     | OK_but_new
      | Not_OK ->
          true)
 
-let show_output_paths ~with_diff (test : _ T.test)
+let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
+    path_to_output =
+  match
+    (* nosemgrep: forbid-exec *)
+    Sys.command
+      (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
+         path_to_output)
+  with
+  | 0 -> ()
+  | _nonzero ->
+      printf "  Captured %s differs from expectation for test %s %s\n"
+        output_kind test.id test.internal_full_name
+
+let show_output (test : _ T.test) (sum : T.status_summary)
     (output_file_pairs : Store.output_file_pair list) =
+  let success = success_of_status_summary sum in
   output_file_pairs
   |> List.iter
        (fun
@@ -346,19 +386,23 @@ let show_output_paths ~with_diff (test : _ T.test)
        ->
          flush stdout;
          flush stderr;
-         (if with_diff then
-            match
-              (* nosemgrep: forbid-exec *)
-              Sys.command
-                (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
-                   path_to_output)
-            with
-            | 0 -> ()
-            | _nonzero ->
-                printf "  Captured %s differs from expectation for test %s %s\n"
-                  short_name test.id test.internal_full_name);
-         printf "  Path to expected %s: %s\n" short_name path_to_expected_output;
-         printf "  Path to latest %s: %s\n" short_name path_to_output)
+         match path_to_expected_output with
+         | None -> printf "  Path to unchecked output: %s\n" path_to_output
+         | Some path_to_expected_output ->
+             (match success with
+             | OK
+             | OK_but_new ->
+                 ()
+             | Not_OK ->
+                 (* TODO: only show diff if this particular file differs *)
+                 show_diff test short_name path_to_expected_output
+                   path_to_output);
+             if success <> OK_but_new then
+               printf "  Path to expected %s: %s\n" short_name
+                 path_to_expected_output;
+             printf "  Path to latest %s: %s\n" short_name path_to_output)
+
+let print_error text = printf "  %s\n" (Color.format Red text)
 
 let print_status ?(output_style = Full)
     ((test : _ T.test), (status : T.status), sum) =
@@ -370,11 +414,11 @@ let print_status ?(output_style = Full)
   | Short -> ()
   | Full ->
       if (* Details about expectations *)
-         test.skipped then printf "  always skipped\n"
+         test.skipped then printf "  Always skipped\n"
       else (
         (match status.expectation.expected_outcome with
         | Should_succeed -> ()
-        | Should_fail reason -> printf "  expected to fail: %S\n" reason);
+        | Should_fail reason -> printf "  Expected to fail: %s\n" reason);
         (match test.output_kind with
         | Ignore_output -> ()
         | _ ->
@@ -386,19 +430,20 @@ let print_status ?(output_style = Full)
               | Merged_stdout_stderr -> "merged stdout and stderr"
               | Separate_stdout_stderr -> "separate stdout and stderr"
             in
-            printf "  checked output: %s\n" text);
+            printf "  Checked output: %s\n" text);
         (* Details about results *)
         match status.expectation.expected_output with
         | Error msg ->
-            printf "Missing file(s) containing the expected output: %s\n" msg
-        | Ok expected_output -> (
+            print_error
+              (sprintf "Missing file(s) containing the expected output: %s" msg)
+        | Ok _expected_output -> (
             match status.result with
             | Error msg ->
-                printf "Missing file(s) containing the test output: %s\n" msg
-            | Ok result ->
-                let with_diff = result.captured_output <> expected_output in
+                print_error
+                  (sprintf "Missing file(s) containing the test output: %s" msg)
+            | Ok _result ->
                 let output_file_pairs = Store.get_output_file_pairs test in
-                show_output_paths ~with_diff test output_file_pairs))
+                show_output test sum output_file_pairs))
 
 let print_statuses ~only_important ~output_style tests_with_status =
   let tests_with_status =
@@ -412,7 +457,7 @@ let is_overall_success statuses =
   |> List.for_all (fun (_test, _status, sum) ->
          match sum |> success_of_status_summary with
          | OK
-         | OK_where_no_missing_data ->
+         | OK_but_new ->
              true
          | Not_OK -> false)
 
@@ -444,11 +489,11 @@ Other states:
 |}
 
 let print_short_status tests_with_status =
-  print_endline (Color.format Color Bold "Short status");
+  print_endline (Color.format Bold "Short status");
   print_statuses ~only_important:true ~output_style:Short tests_with_status
 
 let print_long_status tests_with_status =
-  print_endline (Color.format Color Bold "Long status");
+  print_endline (Color.format Bold "Long status");
   print_statuses ~only_important:false ~output_style:Full tests_with_status
 
 let plural num = if num >= 2 then "s" else ""
@@ -470,8 +515,8 @@ let print_status_summary tests tests_with_status =
     !(stats.fail) !(stats.xpass) !(stats.miss) (plural !(stats.miss))
     !(stats.needs_approval)
     (plural !(stats.needs_approval))
-    (if overall_success then Color.format Color Green "success"
-     else Color.format Color Red "failure");
+    (if overall_success then Color.format Green "success"
+     else Color.format Red "failure");
   if overall_success then 0 else 1
 
 let print_full_status tests tests_with_status =
@@ -561,7 +606,7 @@ let before_run ?filter_by_substring ?(lazy_ = false) tests =
   (* It would probably be less confusing to report the 4-way outcome here
      (pass/fail/xfail/xpass) but we can't as long as we rely on Alcotest
      for running and printing test results. *)
-  print_endline (Color.format Color Bold "Test run");
+  print_endline (Color.format Bold "Test run");
   print_endline
     "In this section, tests are reported as either OK or FAIL without looking\n\
      at the expected outcome or expected output.";

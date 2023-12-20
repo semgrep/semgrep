@@ -17,21 +17,24 @@
    When running a test suite, it's considered a success if all the tests
    complete with status PASS or XFAIL.
 *)
-(* public *)
 type outcome = Succeeded | Failed
 
-(* public *)
 type captured_output =
-  | Ignored
-  | Captured_stdout of string
-  | Captured_stderr of string
-  | Captured_stdout_stderr of string * string
-  | Captured_merged of string
+  | Ignored of string (* unchecked combined output *)
+  | Captured_stdout of string * string (* stdout, unchecked output *)
+  | Captured_stderr of string * string (* stderr, unchecked output *)
+  | Captured_stdout_stderr of string * string (* stdout, stderr *)
+  | Captured_merged of string (* combined output *)
 
-(* public *)
+type expected_output =
+  | Ignored
+  | Expected_stdout of string
+  | Expected_stderr of string
+  | Expected_stdout_stderr of string * string (* stdout, stderr *)
+  | Expected_merged of string (* combined output *)
+
 type result = { outcome : outcome; captured_output : captured_output }
 
-(* public *)
 type expected_outcome =
   | Should_succeed
   | Should_fail of string (* explains why we expect this test to fail *)
@@ -43,7 +46,7 @@ type expected_outcome =
 *)
 type expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (captured_output, string) Result.t;
+  expected_output : (expected_output, string) Result.t;
 }
 
 (*
@@ -108,3 +111,16 @@ type 'a test_with_status = 'a test * status * status_summary
 (* "path > to > name" *)
 let recompute_internal_full_name (test : _ test) =
   String.concat " > " (test.category @ [ test.name ])
+
+(*
+   Compare the captured output that is checked and ignore the unchecked output.
+*)
+let equal_checked_output (a : expected_output) (b : captured_output) =
+  match (a, b) with
+  | Ignored, Ignored _ -> true
+  | Expected_stdout out, Captured_stdout (out2, _) -> String.equal out out2
+  | Expected_stderr err, Captured_stderr (err2, _) -> String.equal err err2
+  | Expected_merged data, Captured_merged data2 -> String.equal data data2
+  | Expected_stdout_stderr (out, err), Captured_stdout_stderr (out2, err2) ->
+      String.equal out out2 && String.equal err err2
+  | _ -> false

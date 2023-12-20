@@ -8,6 +8,8 @@ let t = Alcotest_ext.create
 let tests =
   [
     t "simple" (fun () -> ());
+    t "unchecked stdout" (fun () -> print_endline "hello");
+    t "unchecked stderr" (fun () -> prerr_string "hello\n");
     t "capture stdout" ~output_kind:Stdout (fun () -> print_string "hello\n");
     t "capture stderr" ~output_kind:Stderr (fun () -> prerr_string "error\n");
     t "capture stdxxx" ~output_kind:Merged_stdout_stderr (fun () ->

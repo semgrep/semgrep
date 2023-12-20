@@ -26,17 +26,24 @@ type expected_outcome =
 type outcome = Succeeded | Failed
 
 type captured_output =
+  | Ignored of string (* unchecked combined output *)
+  | Captured_stdout of string * string (* stdout, unchecked output *)
+  | Captured_stderr of string * string (* stderr, unchecked output *)
+  | Captured_stdout_stderr of string * string (* stdout, stderr *)
+  | Captured_merged of string (* combined output *)
+
+type expected_output =
   | Ignored
-  | Captured_stdout of string
-  | Captured_stderr of string
-  | Captured_stdout_stderr of string * string
-  | Captured_merged of string
+  | Expected_stdout of string
+  | Expected_stderr of string
+  | Expected_stdout_stderr of string * string (* stdout, stderr *)
+  | Expected_merged of string (* combined output *)
 
 type result = { outcome : outcome; captured_output : captured_output }
 
 type expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (captured_output, string) Result.t;
+  expected_output : (expected_output, string) Result.t;
 }
 
 type status = { expectation : expectation; result : (result, string) Result.t }

@@ -8,6 +8,10 @@ module T = Alcotest_ext
 
 let t = T.create
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (*
    Invoke an arbitrary shell command.
 *)
@@ -17,6 +21,18 @@ let shell_command command =
   match Sys.command command with
   | 0 -> ()
   | n -> failwith (sprintf "Command '%s' failed with exit code %i" command n)
+
+let section text =
+  printf
+    {|#####################################################################
+# %s
+#####################################################################
+%!|}
+    text
+
+(*****************************************************************************)
+(* Exercise the regular test suite *)
+(*****************************************************************************)
 
 (*
    Invoke the pre-build test program.
@@ -30,14 +46,6 @@ let clear_status () =
 
 let clear_snapshots () =
   shell_command "rm -rf tests/snapshots/alcotest_ext_dummy_tests"
-
-let section text =
-  printf
-    {|#####################################################################
-# %s
-#####################################################################
-%!|}
-    text
 
 let test_standard_flow () =
   section "Clean start";
@@ -58,6 +66,21 @@ let test_standard_flow () =
   test_subcommand "status";
   test_subcommand "approve"
 
+(*****************************************************************************)
+(* Exercise the failing test suite *)
+(*****************************************************************************)
+
+let failing_test_subcommand shell_command_string =
+  let command = "./failing-test " ^ shell_command_string in
+  shell_command command
+
+let test_failing_flow_run () = failing_test_subcommand "run"
+let test_failing_flow_status () = failing_test_subcommand "status"
+
+(*****************************************************************************)
+(* Meta test suite *)
+(*****************************************************************************)
+
 let tests =
   [
     t ~output_kind:Merged_stdout_stderr
@@ -70,6 +93,14 @@ let tests =
           T.mask_line ~after:"Re-raised at " ();
         ]
       "standard flow" test_standard_flow;
+    t "failing flow run"
+      ~expected_outcome:
+        (Should_fail "the invoked test suite is designed to fail")
+      test_failing_flow_run;
+    t "failing flow status"
+      ~expected_outcome:
+        (Should_fail "the invoked test suite is designed to fail")
+      test_failing_flow_status;
   ]
 
 let () =

@@ -22,9 +22,13 @@ val init_settings :
 *)
 val init_workspace : unit -> unit
 
+(*
+   For one kind of captured output, this is the corresponding pair of files.
+   Unchecked output doesn't have a file for expected output.
+*)
 type output_file_pair = {
   short_name : string;
-  path_to_expected_output : string;
+  path_to_expected_output : string option;
   path_to_output : string;
 }
 

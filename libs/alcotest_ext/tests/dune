@@ -7,7 +7,17 @@
  )
 )
 
-; The test suite that exercises the dummy test suite in various ways
+; Another dummy test suite. This one fails, allowing us to check the
+; quality of error reporting.
+(executable
+ (name failing_test)
+ (modules Failing_test)
+ (libraries
+    alcotest_ext
+ )
+)
+
+; The test suite that exercises the dummy test suites in various ways
 ; and checks that it outputs what it's supposed to.
 (executable
  (name meta_test)
