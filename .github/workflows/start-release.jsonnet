@@ -18,7 +18,6 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // tags in the semgrep repo and the workflow input choice (feature vs bug) and
 // using christian-draeger/increment-semantic-version to compute it.
 local get_version_job = {
-  name: 'Get Next version',
   'runs-on': 'ubuntu-20.04',
   outputs: {
     version: '${{ steps.next-version.outputs.next-version }}',
@@ -81,7 +80,6 @@ local check_semgrep_pro_job = {
 
 // make the Release PR
 local release_setup_job = {
-  name: 'Setup Release',
   needs: [
     'get-version',
     'check-semgrep-pro',
@@ -112,7 +110,6 @@ local release_setup_job = {
       |||,
     },
     {
-      name: 'Run `make release`',
       env: {
         SEMGREP_RELEASE_NEXT_VERSION: '${{ needs.get-version.outputs.version }}',
       },
@@ -120,7 +117,6 @@ local release_setup_job = {
     },
     // for towncrier
     {
-      name: 'Setup Python',
       uses: 'actions/setup-python@v4',
       with: {
         'python-version': '3.10',
@@ -210,7 +206,6 @@ local release_setup_job = {
 
 local wait_for_pr_checks_job = {
   'if': '${{ ! inputs.dry-run }}',
-  name: 'Wait for PR Checks',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -274,7 +269,6 @@ local wait_for_pr_checks_job = {
 
 local create_tag_job = {
   'if': '${{ ! inputs.dry-run }}',
-  name: 'Create Release Tag',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -317,7 +311,6 @@ local create_tag_job = {
 
 local create_draft_release_job = {
   'if': '${{ ! inputs.dry-run }}',
-  name: 'Create Draft Release',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -366,7 +359,6 @@ local create_draft_release_job = {
 
 local wait_for_release_checks_job = {
   'if': '${{ ! inputs.dry-run }}',
-  name: 'Wait for Release Checks',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'release-setup',
@@ -415,7 +407,6 @@ local validate_release_trigger_job = {
     'wait-for-release-checks',
     'release-setup',
   ],
-  name: 'Trigger Release Validation',
   uses: './.github/workflows/validate-release.yml',
   secrets: 'inherit',
   with: {
@@ -430,7 +421,6 @@ local bump_semgrep_app_job = {
     'validate-release-trigger',
     'release-setup',
   ],
-  name: 'Bump Semgrep App Semgrep Version',
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
@@ -446,7 +436,6 @@ local bump_semgrep_action_job = {
     'validate-release-trigger',
     'release-setup',
   ],
-  name: 'Bump Semgrep Action Semgrep Version',
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
@@ -462,7 +451,6 @@ local bump_semgrep_rpc_job = {
     'validate-release-trigger',
     'release-setup',
   ],
-  name: 'Bump Semgrep RPC Semgrep Version',
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
@@ -485,7 +473,6 @@ local notify_success_job = {
     'bump-semgrep-rpc',
     'bump-semgrep-app',
   ],
-  name: 'Notify of Success',
   'runs-on': 'ubuntu-20.04',
   steps: [
     {
@@ -520,7 +507,6 @@ local notify_failure_job = {
     'bump-semgrep-rpc',
     'bump-semgrep-app',
   ],
-  name: 'Notify of Failure',
   'runs-on': 'ubuntu-20.04',
   steps: [
     {
