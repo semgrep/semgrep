@@ -1,0 +1,7 @@
+Java: You can now use metavariable ellipses properly in
+function arguments, as statements, and as expressions.
+
+For instance, you may write the pattern
+```
+public $F($...ARGS) { ... }
+```
