@@ -10,7 +10,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The job
 // ----------------------------------------------------------------------------
 
-local test_pro_rules_job = {
+local job = {
   'runs-on': 'ubuntu-latest',
   // Switching to Ubuntu here because Alpine does not provide easily 'gh'
   // which is needed to checkout semgrep-pro from semgrep GHA.
@@ -138,6 +138,6 @@ local test_pro_rules_job = {
     },
   },
   jobs: {
-    'test-pro-rules': test_pro_rules_job,
+    job: job,
   },
 }

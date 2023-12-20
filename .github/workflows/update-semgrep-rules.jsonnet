@@ -141,6 +141,6 @@ local job = {
   },
   //TODO: how to handle failures if the cron fails? Who gets the error notification?
   jobs: {
-    'job': job,
+    job: job,
   },
 }
