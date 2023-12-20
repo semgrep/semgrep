@@ -4,16 +4,16 @@ name: release
   workflow_dispatch:
     inputs:
       dry-run:
-        description: "\n             Run the release in dry-run mode, e.g., without
-          changing external\n             state (like pushing to PyPI/Docker)\n           "
+        description: "\n        Run the release in dry-run mode, e.g., without changing
+          external\n        state (like pushing to PyPI/Docker)\n      "
         required: true
         type: boolean
         default: false
   workflow_call:
     inputs:
       dry-run:
-        description: "\n             Run the release in dry-run mode, e.g., without
-          changing external\n             state (like pushing to PyPI/Docker)\n           "
+        description: "\n        Run the release in dry-run mode, e.g., without changing
+          external\n        state (like pushing to PyPI/Docker)\n      "
         required: true
         type: boolean
         default: false
@@ -24,17 +24,17 @@ name: release
     - v*
 jobs:
   inputs:
-    name: Evaluate Inputs
     runs-on: ubuntu-22.04
     outputs:
       dry-run: ${{steps.dry-run.outputs.dry-run}}
     steps:
     - name: Evaluate Dry Run
       id: dry-run
-      run: if [[ "${{ inputs.dry-run }}" == "true" ]] || [[ "${{ github.ref_name }}"
-        == *test* ]]; then\n  echo "dry-run=true" >> $GITHUB_OUTPUT\n  echo "Setting
-        dry-run to TRUE"\nelse\n  echo "dry-run=false" >> $GITHUB_OUTPUT\n  echo "Setting
-        dry-run to FALSE"\nfi\n
+      run: "\n        if [[ \"${{ inputs.dry-run }}\" == \"true\" ]] || [[ \"${{ github.ref_name
+        }}\" == *test* ]]; then\n          echo \"dry-run=true\" >> $GITHUB_OUTPUT\n
+        \         echo \"Setting dry-run to TRUE\"\n        else\n          echo \"dry-run=false\"
+        >> $GITHUB_OUTPUT\n          echo \"Setting dry-run to FALSE\"\n        fi\n
+        \     "
   park-pypi-packages:
     name: Park PyPI package names
     runs-on: ubuntu-latest
@@ -79,11 +79,11 @@ jobs:
     needs:
     - inputs
     with:
-      docker-flavor: '# don''t add a \"latest\" tag (we''ll promote \"canary\" to
-        \"latest\" after testing)\nlatest=false\n'
-      docker-tags: '# tag image with "canary"\ntype=raw,value=canary\n# tag image
-        with full version (ex. "1.2.3")\ntype=semver,pattern={{version}}\n# tag image
-        with major.minor (ex. "1.2")\ntype=semver,pattern={{major}}.{{minor}}\n'
+      docker-flavor: latest=false
+      docker-tags: "\n      # tag image with \"canary\"\n      type=raw,value=canary\n
+        \     # tag image with full version (ex. \"1.2.3\")\n      type=semver,pattern={{version}}\n
+        \     # tag image with major.minor (ex. \"1.2\")\n      type=semver,pattern={{major}}.{{minor}}\n
+        \   "
       repository-name: returntocorp/semgrep
       artifact-name: image-release
       file: Dockerfile
@@ -96,12 +96,13 @@ jobs:
     - inputs
     - build-test-docker
     with:
-      docker-flavor: '# suffix all tags with \"-nonroot\"\nsuffix=-nonroot\n# don''t
-        add a \"latest-nonroot\" tag (we''ll promote \"canary-nonroot\" to \"latest-nonroot\"
-        after testing)\nlatest=false\n'
-      docker-tags: '# tag image with "canary-nonroot"\ntype=raw,value=canary\n# tag
-        image with full version (ex. "1.2.3-nonroot")\ntype=semver,pattern={{version}}\n#
-        tag image with major.minor version (ex. "1.2-nonroot")\ntype=semver,pattern={{major}}.{{minor}}\n'
+      docker-flavor: "\n      # suffix all tags with \"-nonroot\"\n      suffix=-nonroot\n
+        \     # don't add a \"latest-nonroot\" tag (we'll promote \"canary-nonroot\"
+        to \"latest-nonroot\" after testing)\n      latest=false\n    "
+      docker-tags: "\n      # tag image with \"canary-nonroot\"\n      type=raw,value=canary\n
+        \     # tag image with full version (ex. \"1.2.3-nonroot\")\n      type=semver,pattern={{version}}\n
+        \     # tag image with major.minor version (ex. \"1.2-nonroot\")\n      type=semver,pattern={{major}}.{{minor}}\n
+        \   "
       repository-name: returntocorp/semgrep
       artifact-name: image-release-nonroot
       file: Dockerfile
@@ -218,9 +219,10 @@ jobs:
       id: wait-draft-release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{
-        steps.get-version.outputs.VERSION }}"; do\n  echo "release not yet ready,
-        sleeping for 5 seconds"\n  sleep 5\ndone\n
+      run: "\n        while ! gh release --repo returntocorp/semgrep list -L 5 | grep
+        -q \"${{ steps.get-version.outputs.VERSION }}\"; do\n          echo \"release
+        not yet ready, sleeping for 5 seconds\"\n          sleep 5\n        done\n
+        \     "
     - name: Publish Release
       id: publish_release
       env:
@@ -248,12 +250,12 @@ jobs:
         PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
     - name: Get token for semgrep-ci GitHub App
       id: token
-      run: 'TOKEN="$(curl -X POST \\\n-H "Authorization: Bearer ${{ steps.jwt.outputs.jwt
-        }}" \\\n-H "Accept: application/vnd.github.v3+json" \\\n"https://api.github.com/app/installations/${{
-        secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \\\njq -r .token)"\necho
-        "::add-mask::$TOKEN"\necho "token=$TOKEN" >> $GITHUB_OUTPUT\n'
-    - name: Checkout
-      uses: actions/checkout@v3
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - uses: actions/checkout@v3
       with:
         submodules: true
         token: ${{ steps.token.outputs.token }}
@@ -289,57 +291,59 @@ jobs:
     steps:
     - name: Get the version
       id: get-version
-      run: TAG=${GITHUB_REF/refs\\/tags\\//}\nif [ "${{ needs.inputs.outputs.dry-run
-        }}" = "true" ]; then\n  TAG=v99.99.99\nfi\necho "Using TAG=${TAG}"\necho "TAG=${TAG}"
-        >> $GITHUB_OUTPUT\necho "Using VERSION=${TAG#v}"\necho "VERSION=${TAG#v}"
-        >> $GITHUB_OUTPUT\n
+      run: "\n        TAG=${GITHUB_REF/refs\\/tags\\//}\n        if [ \"${{ needs.inputs.outputs.dry-run
+        }}\" = \"true\" ]; then\n          TAG=v99.99.99\n        fi\n        echo
+        \"Using TAG=${TAG}\"\n        echo \"TAG=${TAG}\" >> $GITHUB_OUTPUT\n        echo
+        \"Using VERSION=${TAG#v}\"\n        echo \"VERSION=${TAG#v}\" >> $GITHUB_OUTPUT\n
+        \     "
     - uses: actions/setup-python@v4
       id: python-setup
       with:
         python-version: "3.10"
-    - name: Brew update
-      run: brew update
+    - run: brew update
     - name: Dry Run Brew PR
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       if: ${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run
         == 'true' }}
-      run: brew bump-formula-pr --force --no-audit --no-browse --write-only \\\n  --message="semgrep
-        99.99.99" \\\n  --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages
-        semgrep\n
+      run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
+        \\\n          --message=\"semgrep 99.99.99\" \\\n          --tag=\"v99.99.99\"
+        --revision=\"${GITHUB_SHA}\" semgrep --python-exclude-packages semgrep\n      "
     - name: Open Brew PR
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-      run: brew bump-formula-pr --force --no-audit --no-browse --write-only \\\n  --message="semgrep
-        ${{ steps.get-version.outputs.VERSION }}" \\\n  --tag="${{ steps.get-version.outputs.TAG
-        }}" semgrep\n
+      run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
+        \\\n          --message=\"semgrep ${{ steps.get-version.outputs.VERSION }}\"
+        \\\n          --tag=\"${{ steps.get-version.outputs.TAG }}\" semgrep\n      "
     - name: Prepare Branch
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/semgrep-release/homebrew-core.git
-      run: cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"\ngit status\ngit
-        diff\ngit config user.name ${{ github.actor }}\ngit config user.email ${{
-        github.actor }}@users.noreply.github.com\ngh auth setup-git\ngit remote add
-        r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"\ngit checkout -b bump-semgrep-${{
-        steps.get-version.outputs.VERSION }}\ngit add Formula/s/semgrep.rb\ngit commit
-        -m "semgrep ${{ steps.get-version.outputs.VERSION }}"\n
+      run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
+        \       git status\n        git diff\n        git config user.name ${{ github.actor
+        }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
+        \       gh auth setup-git\n        git remote add r2c \"${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}\"\n
+        \       git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION
+        }}\n        git add Formula/s/semgrep.rb\n        git commit -m \"semgrep
+        ${{ steps.get-version.outputs.VERSION }}\"\n      "
     - name: Push Branch to Fork
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
-      run: cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"\ngit push
-        --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION
-        }}"\n
+      run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
+        \       git push --set-upstream r2c --force \"bump-semgrep-${{ steps.get-version.outputs.VERSION
+        }}\"\n      "
     - name: Push to Fork
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         R2C_HOMEBREW_CORE_OWNER: semgrep-release
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
-      run: gh pr create --repo homebrew/homebrew-core \\\n  --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{
-        steps.get-version.outputs.VERSION }}" \\\n  --title="semgrep ${{ steps.get-version.outputs.VERSION
-        }}" \\\n  --body "Bump semgrep to version ${{ steps.get-version.outputs.VERSION
-        }}"\n
+      run: "\n        gh pr create --repo homebrew/homebrew-core \\\n          --base
+        master --head \"${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION
+        }}\" \\\n          --title=\"semgrep ${{ steps.get-version.outputs.VERSION
+        }}\" \\\n          --body \"Bump semgrep to version ${{ steps.get-version.outputs.VERSION
+        }}\"\n      "

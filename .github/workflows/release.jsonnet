@@ -2,10 +2,13 @@
 // (or start-release.jsonnet) push to a vXXX branch. Those tasks are to
 //  - push a new canary docker image
 //  - create release artifacts with the Linux and MacOS semgrep packages
-//  - update PyPy
-//  - update homebrew
+//  - prepare and upload to PyPy a new semgrep package
+//  - make a PR for homebrew's formula to update to the latest semgrep
 
 // TODO: remove the \n
+// TODO: use semgrep.github_bot.token instead of ref to step each time
+// TODO: factorize more, use reference and local instead of duplicating strings
+// TODO: remove some useless name:
 
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -65,8 +68,16 @@ local build_test_docker_job = {
     'inputs',
   ],
   with: {
-    'docker-flavor': "# don't add a \"latest\" tag (we'll promote \"canary\" to \"latest\" after testing)\nlatest=false\n",
-    'docker-tags': '# tag image with "canary"\ntype=raw,value=canary\n# tag image with full version (ex. "1.2.3")\ntype=semver,pattern={{version}}\n# tag image with major.minor (ex. "1.2")\ntype=semver,pattern={{major}}.{{minor}}\n',
+    // don't add a "latest" tag (we'll promote "canary" to "latest" after testing)
+    'docker-flavor': 'latest=false',
+    'docker-tags': |||
+      # tag image with "canary"
+      type=raw,value=canary
+      # tag image with full version (ex. "1.2.3")
+      type=semver,pattern={{version}}
+      # tag image with major.minor (ex. "1.2")
+      type=semver,pattern={{major}}.{{minor}}
+    |||,
     'repository-name': 'returntocorp/semgrep',
     'artifact-name': 'image-release',
     file: 'Dockerfile',
@@ -80,11 +91,26 @@ local build_test_docker_nonroot_job = {
   secrets: 'inherit',
   needs: [
     'inputs',
+    // We want to run build-test-docker-nonroot *after*
+    // build-test-docker so that it reuses the warmed-up
+    // docker cache.
     'build-test-docker',
   ],
   with: {
-    'docker-flavor': "# suffix all tags with \"-nonroot\"\nsuffix=-nonroot\n# don't add a \"latest-nonroot\" tag (we'll promote \"canary-nonroot\" to \"latest-nonroot\" after testing)\nlatest=false\n",
-    'docker-tags': '# tag image with "canary-nonroot"\ntype=raw,value=canary\n# tag image with full version (ex. "1.2.3-nonroot")\ntype=semver,pattern={{version}}\n# tag image with major.minor version (ex. "1.2-nonroot")\ntype=semver,pattern={{major}}.{{minor}}\n',
+    'docker-flavor': |||
+      # suffix all tags with "-nonroot"
+      suffix=-nonroot
+      # don't add a "latest-nonroot" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
+      latest=false
+    |||,
+    'docker-tags': |||
+      # tag image with "canary-nonroot"
+      type=raw,value=canary
+      # tag image with full version (ex. "1.2.3-nonroot")
+      type=semver,pattern={{version}}
+      # tag image with major.minor version (ex. "1.2-nonroot")
+      type=semver,pattern={{major}}.{{minor}}
+    |||,
     'repository-name': 'returntocorp/semgrep',
     'artifact-name': 'image-release-nonroot',
     file: 'Dockerfile',
@@ -155,6 +181,9 @@ local park_pypi_packages_job = {
       name: 'Install dependencies',
       run: 'pipenv install --dev',
     },
+    // There are no semgrep-core here, just the Python code.
+    // The wheels are separately added to the pypi package
+    // in the upload-wheels job below.
     {
       name: 'Build parked packages',
       run: 'pipenv run python setup.py park',
@@ -231,14 +260,17 @@ local upload_wheels_job = {
     },
     {
       name: 'Unzip aarch64 Wheel',
+      // Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
       run: 'unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"',
     },
     {
       name: 'Unzip OSX x86 Wheel',
+      // Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
       run: 'unzip ./osx-x86-wheel/dist.zip "*.whl"',
     },
     {
       name: 'Unzip OSX ARM64 Wheel',
+      // Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
       run: 'unzip ./osx-arm64-wheel/dist.zip "*.whl"',
     },
     {
@@ -272,13 +304,19 @@ local create_release_job = {
       id: 'get-version',
       run: 'echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT',
     },
+    // wait for the draft release since these may not be ready after the refactor of the start-release.
     {
       name: 'Wait for Draft Release if not Ready',
       id: 'wait-draft-release',
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
-      run: 'while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do\n  echo "release not yet ready, sleeping for 5 seconds"\n  sleep 5\ndone\n',
+      run: |||
+        while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
+          echo "release not yet ready, sleeping for 5 seconds"
+          sleep 5
+        done
+      |||,
     },
     {
       name: 'Publish Release',
@@ -340,6 +378,8 @@ local create_release_interfaces_job = {
 
 local sleep_before_homebrew_job = {
   name: 'Sleep 10 min before releasing to homebrew',
+  // Need to wait for pypi to propagate since pipgrip relies on it being published on pypi
+  // TODO? comment still valid? do we still use pipgrip?
   needs: [
     'inputs',
     'upload-wheels',
@@ -356,6 +396,7 @@ local sleep_before_homebrew_job = {
 
 local homebrew_core_pr_job = {
   name: 'Update on Homebrew-Core',
+  // Needs to run after pypi released so brew can update pypi dependency hashes
   needs: [
     'inputs',
     'sleep-before-homebrew',
@@ -365,7 +406,16 @@ local homebrew_core_pr_job = {
     {
       name: 'Get the version',
       id: 'get-version',
-      run: 'TAG=${GITHUB_REF/refs\\/tags\\//}\nif [ "${{ needs.inputs.outputs.dry-run }}" = "true" ]; then\n  TAG=v99.99.99\nfi\necho "Using TAG=${TAG}"\necho "TAG=${TAG}" >> $GITHUB_OUTPUT\necho "Using VERSION=${TAG#v}"\necho "VERSION=${TAG#v}" >> $GITHUB_OUTPUT\n',
+      run: |||
+        TAG=${GITHUB_REF/refs\/tags\//}
+        if [ "${{ needs.inputs.outputs.dry-run }}" = "true" ]; then
+          TAG=v99.99.99
+        fi
+        echo "Using TAG=${TAG}"
+        echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+        echo "Using VERSION=${TAG#v}"
+        echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
+      |||,
     },
     {
       uses: 'actions/setup-python@v4',
@@ -375,16 +425,23 @@ local homebrew_core_pr_job = {
       },
     },
     {
-      name: 'Brew update',
       run: 'brew update',
     },
     {
       name: 'Dry Run Brew PR',
+      // This step does some brew oddities (setting a fake version, and
+      // setting a revision) to allow the brew PR prep to succeed.
+      // The `brew bump-formula-pr` does checks to ensure your PR is legit,
+      // but we want to do a phony PR (or at least prep it) for Dry Run only
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
       'if': "${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run == 'true' }}",
-      run: 'brew bump-formula-pr --force --no-audit --no-browse --write-only \\\n  --message="semgrep 99.99.99" \\\n  --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep\n',
+      run: |||
+        brew bump-formula-pr --force --no-audit --no-browse --write-only \
+          --message="semgrep 99.99.99" \
+          --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
+      |||,
     },
     {
       name: 'Open Brew PR',
@@ -392,7 +449,11 @@ local homebrew_core_pr_job = {
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
-      run: 'brew bump-formula-pr --force --no-audit --no-browse --write-only \\\n  --message="semgrep ${{ steps.get-version.outputs.VERSION }}" \\\n  --tag="${{ steps.get-version.outputs.TAG }}" semgrep\n',
+      run: |||
+        brew bump-formula-pr --force --no-audit --no-browse --write-only \
+          --message="semgrep ${{ steps.get-version.outputs.VERSION }}" \
+          --tag="${{ steps.get-version.outputs.TAG }}" semgrep
+      |||,
     },
     {
       name: 'Prepare Branch',
@@ -400,7 +461,18 @@ local homebrew_core_pr_job = {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
         R2C_HOMEBREW_CORE_FORK_HTTPS_URL: 'https://github.com/semgrep-release/homebrew-core.git',
       },
-      run: 'cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"\ngit status\ngit diff\ngit config user.name ${{ github.actor }}\ngit config user.email ${{ github.actor }}@users.noreply.github.com\ngh auth setup-git\ngit remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"\ngit checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}\ngit add Formula/s/semgrep.rb\ngit commit -m "semgrep ${{ steps.get-version.outputs.VERSION }}"\n',
+      run: |||
+        cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+        git status
+        git diff
+        git config user.name ${{ github.actor }}
+        git config user.email ${{ github.actor }}@users.noreply.github.com
+        gh auth setup-git
+        git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
+        git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}
+        git add Formula/s/semgrep.rb
+        git commit -m "semgrep ${{ steps.get-version.outputs.VERSION }}"
+      |||,
     },
     {
       name: 'Push Branch to Fork',
@@ -408,7 +480,11 @@ local homebrew_core_pr_job = {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
       'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
-      run: 'cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"\ngit push --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION }}"\n',
+      run: |||
+        cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+        git push --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION }}"
+      |||,
+
     },
     {
       name: 'Push to Fork',
@@ -417,7 +493,12 @@ local homebrew_core_pr_job = {
         R2C_HOMEBREW_CORE_OWNER: 'semgrep-release',
       },
       'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
-      run: 'gh pr create --repo homebrew/homebrew-core \\\n  --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION }}" \\\n  --title="semgrep ${{ steps.get-version.outputs.VERSION }}" \\\n  --body "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"\n',
+      run: |||
+        gh pr create --repo homebrew/homebrew-core \
+          --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION }}" \
+          --title="semgrep ${{ steps.get-version.outputs.VERSION }}" \
+          --body "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"
+      |||,
     },
   ],
 };
@@ -439,7 +520,7 @@ local homebrew_core_pr_job = {
         '**-test-release',
       ],
       tags: [
-	// Push events to matching v*, i.e. v1.0, v20.15.10
+        // Push events to matching v*, i.e. v1.0, v20.15.10
         'v*',
       ],
     },
