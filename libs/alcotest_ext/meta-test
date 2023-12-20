@@ -1,8 +1,1 @@
-#! /usr/bin/env bash
-#
-# The main test suite that exercise the dummy test suite in various ways.
-#
-set -eu
-
-test_exe="../../_build/default/libs/alcotest_ext/tests/meta_test.exe"
-"$test_exe" "$@"
+../../_build/default/libs/alcotest_ext/tests/meta_test.exe

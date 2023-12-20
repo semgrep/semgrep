@@ -1,12 +1,1 @@
-#! /usr/bin/env bash
-#
-# Run the semgrep-core test program from the correct folder.
-# This is meant for manual use, when we want to select which tests to run.
-#
-# Example of use:
-#  ./test Maturity
-#  ./test Scala | grep OK
-#  ./test "full rule"
-#  ./test "full rule" | grep "full rule"
-
-./_build/default/src/tests/test.exe "$@"
+_build/default/src/tests/test.exe
