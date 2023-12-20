@@ -6,6 +6,12 @@
 
 <!-- insertion point -->
 
+## [1.54.1](https://github.com/returntocorp/semgrep/releases/tag/v1.54.1) - 2023-12-20
+
+
+No significant changes.
+
+
 ## [1.54.0](https://github.com/returntocorp/semgrep/releases/tag/v1.54.0) - 2023-12-19
 
 
