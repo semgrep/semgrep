@@ -438,6 +438,7 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
     (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
     =
+  Metrics_.add_engine_type conf.engine_type;
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
@@ -550,9 +551,6 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
       in
       { res with core = { res.core with results = filtered_matches } }
     in
-
-    res.Core_runner.core.engine_requested
-    |> Option.iter Metrics_.add_engine_kind;
 
     (* step 4: adjust the skipped_targets *)
     let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in

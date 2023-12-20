@@ -32,17 +32,25 @@ from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
+from semgrep.semgrep_interfaces.semgrep_metrics import AnalysisType
+from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Datetime
+from semgrep.semgrep_interfaces.semgrep_metrics import EngineConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Environment
 from semgrep.semgrep_interfaces.semgrep_metrics import Errors
 from semgrep.semgrep_interfaces.semgrep_metrics import Extension
 from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
+from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
+from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
+from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Misc
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
+from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
@@ -157,12 +165,39 @@ class Metrics:
 
         self.metrics_state = metrics_state or MetricsState.AUTO
 
+    # TODO(cooper): It would really be best if EngineType included all of the
+    # information here, but I am a bit concerned about changing it, since it is
+    # currently an enum. Ideally it would be more like osemgrep's Engine_type.t,
+    # but that seems difficult to render here, and would seem to require
+    # threading much more information through that type. Since we only really
+    # care about the additional information being bundeled for metrics, we'll
+    # just take some additional parameters here. Currently this is just for
+    # secrets, but the same would apply for (supply chain)-related information.
     @suppress_errors
-    def add_engine_type(self, engineType: "EngineType") -> None:
+    def add_engine_config(
+        self,
+        engineType: "EngineType",
+        code: CodeConfig,
+        secrets: SecretsConfig,
+        supply_chain: SupplyChainConfig,
+    ) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
         self.payload.value.engineRequested = engineType.name
+        analysis_type = {
+            EngineType.OSS: AnalysisType(Intraprocedural()),
+            EngineType.PRO_LANG: AnalysisType(Intraprocedural()),
+            EngineType.PRO_INTRAFILE: AnalysisType(Interprocedural()),
+            EngineType.PRO_INTERFILE: AnalysisType(Interfile()),
+        }.get(engineType, AnalysisType(Intraprocedural()))
+        self.payload.value.engineConfig = EngineConfig(
+            analysis_type=analysis_type,
+            code_config=code,
+            secrets_config=secrets,
+            supply_chain_config=supply_chain,
+            pro_langs=True,
+        )
 
     @suppress_errors
     def add_interfile_languages_used(self, used_langs: List[str]) -> None:
