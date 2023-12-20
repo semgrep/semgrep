@@ -20,7 +20,6 @@ name: start-release
         default: false
 jobs:
   get-version:
-    name: Get Next version
     runs-on: ubuntu-20.04
     outputs:
       version: ${{ steps.next-version.outputs.next-version }}
@@ -69,7 +68,6 @@ jobs:
       semgrep-version: ${{ needs.get-version.outputs.version }}
       dry-run: ${{ inputs.dry-run }}
   release-setup:
-    name: Setup Release
     needs:
     - get-version
     - check-semgrep-pro
@@ -102,12 +100,10 @@ jobs:
       run: "\n        RELEASE_BRANCH=\"release-${{ needs.get-version.outputs.version
         }}\"\n        git checkout -b ${RELEASE_BRANCH}\n        echo \"release-branch=${RELEASE_BRANCH}\"
         >> $GITHUB_OUTPUT\n      "
-    - name: Run `make release`
-      env:
+    - env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
       run: make release
-    - name: Setup Python
-      uses: actions/setup-python@v4
+    - uses: actions/setup-python@v4
       with:
         python-version: "3.10"
         cache: pipenv
@@ -160,7 +156,6 @@ jobs:
         \       echo \"pr-number=$PR_NUMBER\" >> $GITHUB_OUTPUT\n      "
   wait-for-pr-checks:
     if: ${{ ! inputs.dry-run }}
-    name: Wait for PR Checks
     runs-on: ubuntu-20.04
     needs:
     - get-version
@@ -199,7 +194,6 @@ jobs:
         \"num-checks=${LEN_CHECKS}\" >> $GITHUB_OUTPUT\n      "
   create-tag:
     if: ${{ ! inputs.dry-run }}
-    name: Create Release Tag
     runs-on: ubuntu-20.04
     needs:
     - get-version
@@ -240,7 +234,6 @@ jobs:
         needs.get-version.outputs.version }}\"\n      "
   create-draft-release:
     if: ${{ ! inputs.dry-run }}
-    name: Create Draft Release
     runs-on: ubuntu-20.04
     needs:
     - get-version
@@ -288,7 +281,6 @@ jobs:
         repository: returntocorp/semgrep-interfaces
   wait-for-release-checks:
     if: ${{ ! inputs.dry-run }}
-    name: Wait for Release Checks
     runs-on: ubuntu-20.04
     needs:
     - release-setup
@@ -321,7 +313,6 @@ jobs:
     - get-version
     - wait-for-release-checks
     - release-setup
-    name: Trigger Release Validation
     uses: ./.github/workflows/validate-release.yml
     secrets: inherit
     with:
@@ -332,7 +323,6 @@ jobs:
     - get-version
     - validate-release-trigger
     - release-setup
-    name: Bump Semgrep App Semgrep Version
     uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
@@ -344,7 +334,6 @@ jobs:
     - get-version
     - validate-release-trigger
     - release-setup
-    name: Bump Semgrep Action Semgrep Version
     uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
@@ -356,7 +345,6 @@ jobs:
     - get-version
     - validate-release-trigger
     - release-setup
-    name: Bump Semgrep RPC Semgrep Version
     uses: ./.github/workflows/call-bump-pr-workflow.yml
     secrets: inherit
     with:
@@ -371,7 +359,6 @@ jobs:
     - bump-semgrep-action
     - bump-semgrep-rpc
     - bump-semgrep-app
-    name: Notify of Success
     runs-on: ubuntu-20.04
     steps:
     - run: echo "${{needs.get-version.outputs.version}}"
@@ -394,7 +381,6 @@ jobs:
     - bump-semgrep-action
     - bump-semgrep-rpc
     - bump-semgrep-app
-    name: Notify of Failure
     runs-on: ubuntu-20.04
     steps:
     - name: Notify Failure

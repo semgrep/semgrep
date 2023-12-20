@@ -14,3 +14,4 @@ nightly.yml
 check-semgrep-pro.yml
 test-pro-rules.yml
 start-release.yml
+release.yml
