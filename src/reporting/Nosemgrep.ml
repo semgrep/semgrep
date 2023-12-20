@@ -66,17 +66,29 @@ let nosem_previous_line_re =
    array IDs (["ids"]) collected during this recognition.
 *)
 let recognise_and_collect ~rex (line_num, line) =
-  Pcre_.exec_all ~rex line
-  |> Result.map
-       (Array.map (fun subst ->
-            match Pcre_.get_named_substring_and_ofs rex "ids" subst with
-            | Ok (Some (s, (begin_ofs, _end_ofs))) ->
-                Some (line_num, s, begin_ofs)
-            | Ok None
-            | Error _ ->
-                (* TODO: log something? *)
-                None))
-  |> Result.to_option
+  (* THINK: It is unclear to me why the following call should ever return more
+     than one match The above regex seems like it's recognizing a single instance
+     of "nosemgrep: <ids>", which shouldn't occur more than once in a single line?
+  *)
+  match Pcre_.exec_all ~rex line with
+  | Error _ -> None
+  | Ok arr ->
+      Array.to_list arr
+      |> List.concat_map (fun subst ->
+             match Pcre_.get_named_substring_and_ofs rex "ids" subst with
+             | Ok (Some (s, (begin_ofs, _end_ofs))) ->
+                 (* TODO: This will associate each ID with the range of the entire ID list.
+                    Fix later.
+                 *)
+                 String.split_on_char ',' s
+                 |> List_.map (fun id ->
+                        (line_num, Common2.strip ' ' id, begin_ofs))
+                 |> List_.map Option.some
+             | Ok None
+             | Error _ ->
+                 (* TODO: log something? *)
+                 [ None ])
+      |> Option.some
 
 (*
    Try to recognize a possible [nosem] tag into the given [match].
@@ -105,25 +117,33 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
     | [] (* XXX(dinosaure): is it possible? *) -> (None, None)
   in
 
-  let no_ids = Array.for_all Option.is_none in
+  let no_ids = List.for_all Option.is_none in
 
   let ids_line =
     match line with
     | None -> None
     | Some line -> recognise_and_collect ~rex:nosem_inline_re line
   in
+  UCommon.(
+    pr2
+      (Common.spf "ids line %s"
+         ([%show: (int * string * int) option list option] ids_line)));
   let ids_previous_line =
     match previous_line with
     | None -> None
     | Some previous_line ->
         recognise_and_collect ~rex:nosem_previous_line_re previous_line
   in
+  UCommon.(
+    pr2
+      (Common.spf "ids line %s"
+         ([%show: (int * string * int) option list option] ids_previous_line)));
 
   match
-    ( Option.value ~default:[||] ids_line,
-      Option.value ~default:[||] ids_previous_line )
+    ( Option.value ~default:[] ids_line,
+      Option.value ~default:[] ids_previous_line )
   with
-  | [||], [||] ->
+  | [], [] ->
       (* no lines or no [nosemgrep] occurrences found, keep the [rule_match]. *)
       (false, [])
   | ids_line, ids_previous_line when no_ids ids_line && no_ids ids_previous_line
@@ -131,9 +151,9 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
       (* [nosemgrep] occurrences found but no [ids]. *)
       (true, [])
   | ids_line, ids_previous_line ->
-      let ids = Array.append ids_line ids_previous_line in
+      let ids = ids_line @ ids_previous_line in
       let ids =
-        Array.to_list ids |> List_.map_filter Fun.id
+        ids |> List_.map_filter Fun.id
         |> List_.map (fun (line_num, s, col) ->
                (* [String.split_on_char] can **not** return an empty list. *)
                ( line_num,
