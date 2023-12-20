@@ -8,7 +8,6 @@ name: release
           external\n        state (like pushing to PyPI/Docker)\n      "
         required: true
         type: boolean
-        default: false
   workflow_call:
     inputs:
       dry-run:
@@ -16,7 +15,6 @@ name: release
           external\n        state (like pushing to PyPI/Docker)\n      "
         required: true
         type: boolean
-        default: false
   push:
     branches:
     - '**-test-release'

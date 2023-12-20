@@ -26,8 +26,6 @@ local release_input = {
       |||,
       required: true,
       type: 'boolean',
-      //TODO? when in workflow_call there was no default set
-      default: false,
     },
   },
 };
