@@ -408,7 +408,8 @@ let print_status ?(output_style = Full)
     ((test : _ T.test), (status : T.status), sum) =
   printf "%s %s%s %s\n"
     (format_status_summary sum)
-    test.id (format_tags test) test.internal_full_name;
+    test.id (format_tags test)
+    (Color.format Cyan test.internal_full_name);
 
   match output_style with
   | Short -> ()
