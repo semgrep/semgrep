@@ -1,0 +1,2 @@
+The rule option `commutative_compop` has been renamed to `symmetric_eq`. It is
+deprecated and will be removed after the 1.60.0 release.
