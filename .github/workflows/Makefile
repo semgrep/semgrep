@@ -23,7 +23,7 @@ OBJS = \
   test-e2e-semgrep-ci.yml nightly.yml \
   check-semgrep-pro.yml \
   test-pro-rules.yml \
-  start-release.yml
+  start-release.yml release.yml
 
 all: $(OJSONNET) $(OBJS)
 
