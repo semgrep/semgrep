@@ -1,36 +1,35 @@
-{
-  name: 'release',
-  on: {
-    workflow_dispatch: {
+// This workflow performs additional tasks on a PR when someone
+// (or start-release.jsonnet) push to a vXXX branch. Those tasks are to
+//  - push a new canary docker image
+//  - create release artifacts with the Linux and MacOS semgrep packages
+//  - update PyPy
+//  - update homebrew
+
+// TODO: remove the \n
+
+// ----------------------------------------------------------------------------
+// Input
+// ----------------------------------------------------------------------------
+
+// to be used by the workflow
+local release_input = {
       inputs: {
         'dry-run': {
-          description: 'Run the release in dry-run mode, e.g., without changing external state (like pushing to PyPI/Docker)',
+          description: |||
+             Run the release in dry-run mode, e.g., without changing external
+             state (like pushing to PyPI/Docker)
+           |||,
           required: true,
           type: 'boolean',
+	  //TODO? when in workflow_call there was no default set
           default: false,
         },
-      },
-    },
-    workflow_call: {
-      inputs: {
-        'dry-run': {
-          description: 'Run the release in dry-run mode, e.g., without changing external state (like pushing to PyPI/Docker)',
-          required: true,
-          type: 'boolean',
-        },
-      },
-    },
-    push: {
-      branches: [
-        '**-test-release',
-      ],
-      tags: [
-        'v*',
-      ],
-    },
-  },
-  jobs: {
-    inputs: {
+      }};
+
+// ----------------------------------------------------------------------------
+// The jobs
+// ----------------------------------------------------------------------------
+local inputs_job = {
       name: 'Evaluate Inputs',
       'runs-on': 'ubuntu-22.04',
       outputs: {
@@ -43,8 +42,80 @@
           run: 'if [[ "${{ inputs.dry-run }}" == "true" ]] || [[ "${{ github.ref_name }}" == *test* ]]; then\n  echo "dry-run=true" >> $GITHUB_OUTPUT\n  echo "Setting dry-run to TRUE"\nelse\n  echo "dry-run=false" >> $GITHUB_OUTPUT\n  echo "Setting dry-run to FALSE"\nfi\n',
         },
       ],
-    },
-    'park-pypi-packages': {
+};
+
+// ----------------------------------------------------------------------------
+// Docker jobs
+// ----------------------------------------------------------------------------
+
+local build_test_docker_job = {
+      uses: './.github/workflows/build-test-docker.yaml',
+      secrets: 'inherit',
+      needs: [
+        'inputs',
+      ],
+      with: {
+        'docker-flavor': "# don't add a \"latest\" tag (we'll promote \"canary\" to \"latest\" after testing)\nlatest=false\n",
+        'docker-tags': '# tag image with "canary"\ntype=raw,value=canary\n# tag image with full version (ex. "1.2.3")\ntype=semver,pattern={{version}}\n# tag image with major.minor (ex. "1.2")\ntype=semver,pattern={{major}}.{{minor}}\n',
+        'repository-name': 'returntocorp/semgrep',
+        'artifact-name': 'image-release',
+        file: 'Dockerfile',
+        target: 'semgrep-cli',
+        'enable-tests': true,
+      },
+};
+
+local build_test_docker_nonroot_job = {
+      uses: './.github/workflows/build-test-docker.yaml',
+      secrets: 'inherit',
+      needs: [
+        'inputs',
+        'build-test-docker',
+      ],
+      with: {
+        'docker-flavor': "# suffix all tags with \"-nonroot\"\nsuffix=-nonroot\n# don't add a \"latest-nonroot\" tag (we'll promote \"canary-nonroot\" to \"latest-nonroot\" after testing)\nlatest=false\n",
+        'docker-tags': '# tag image with "canary-nonroot"\ntype=raw,value=canary\n# tag image with full version (ex. "1.2.3-nonroot")\ntype=semver,pattern={{version}}\n# tag image with major.minor version (ex. "1.2-nonroot")\ntype=semver,pattern={{major}}.{{minor}}\n',
+        'repository-name': 'returntocorp/semgrep',
+        'artifact-name': 'image-release-nonroot',
+        file: 'Dockerfile',
+        target: 'nonroot',
+        'enable-tests': false,
+      },
+};
+
+local push_docker_job = {
+      needs: [
+        'wait-for-build-test',
+        'inputs',
+      ],
+      uses: './.github/workflows/push-docker.yaml',
+      secrets: 'inherit',
+      with: {
+        'artifact-name': 'image-release',
+        'repository-name': 'returntocorp/semgrep',
+        'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
+      },
+};
+
+local push_docker_nonroot_job = {
+      needs: [
+        'wait-for-build-test',
+        'inputs',
+      ],
+      uses: './.github/workflows/push-docker.yaml',
+      secrets: 'inherit',
+      with: {
+        'artifact-name': 'image-release-nonroot',
+        'repository-name': 'returntocorp/semgrep',
+        'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
+      },
+};
+
+// ----------------------------------------------------------------------------
+// Pypy jobs
+// ----------------------------------------------------------------------------
+
+local park_pypi_packages_job = {
       name: 'Park PyPI package names',
       'runs-on': 'ubuntu-latest',
       needs: [
@@ -102,111 +173,9 @@
           },
         },
       ],
-    },
-    'build-test-docker': {
-      uses: './.github/workflows/build-test-docker.yaml',
-      secrets: 'inherit',
-      needs: [
-        'inputs',
-      ],
-      with: {
-        'docker-flavor': "# don't add a \"latest\" tag (we'll promote \"canary\" to \"latest\" after testing)\nlatest=false\n",
-        'docker-tags': '# tag image with "canary"\ntype=raw,value=canary\n# tag image with full version (ex. "1.2.3")\ntype=semver,pattern={{version}}\n# tag image with major.minor (ex. "1.2")\ntype=semver,pattern={{major}}.{{minor}}\n',
-        'repository-name': 'returntocorp/semgrep',
-        'artifact-name': 'image-release',
-        file: 'Dockerfile',
-        target: 'semgrep-cli',
-        'enable-tests': true,
-      },
-    },
-    'build-test-docker-nonroot': {
-      uses: './.github/workflows/build-test-docker.yaml',
-      secrets: 'inherit',
-      needs: [
-        'inputs',
-        'build-test-docker',
-      ],
-      with: {
-        'docker-flavor': "# suffix all tags with \"-nonroot\"\nsuffix=-nonroot\n# don't add a \"latest-nonroot\" tag (we'll promote \"canary-nonroot\" to \"latest-nonroot\" after testing)\nlatest=false\n",
-        'docker-tags': '# tag image with "canary-nonroot"\ntype=raw,value=canary\n# tag image with full version (ex. "1.2.3-nonroot")\ntype=semver,pattern={{version}}\n# tag image with major.minor version (ex. "1.2-nonroot")\ntype=semver,pattern={{major}}.{{minor}}\n',
-        'repository-name': 'returntocorp/semgrep',
-        'artifact-name': 'image-release-nonroot',
-        file: 'Dockerfile',
-        target: 'nonroot',
-        'enable-tests': false,
-      },
-    },
-    'build-test-osx-x86': {
-      uses: './.github/workflows/build-test-osx-x86.yml',
-      secrets: 'inherit',
-    },
-    'build-test-osx-arm64': {
-      uses: './.github/workflows/build-test-osx-arm64.yml',
-      secrets: 'inherit',
-    },
-    'build-test-core-x86': {
-      uses: './.github/workflows/build-test-core-x86.yml',
-      secrets: 'inherit',
-    },
-    'build-test-manylinux-x86': {
-      needs: [
-        'build-test-core-x86',
-      ],
-      uses: './.github/workflows/build-test-manylinux-x86.yml',
-      secrets: 'inherit',
-    },
-    'build-test-manylinux-aarch64': {
-      needs: [
-        'build-test-docker',
-      ],
-      uses: './.github/workflows/build-test-manylinux-aarch64.yml',
-      secrets: 'inherit',
-    },
-    'wait-for-build-test': {
-      name: 'Wait for Build/Test All Platforms',
-      'runs-on': 'ubuntu-22.04',
-      needs: [
-        'build-test-docker',
-        'build-test-docker-nonroot',
-        'build-test-manylinux-x86',
-        'build-test-manylinux-aarch64',
-        'build-test-osx-x86',
-        'build-test-osx-arm64',
-      ],
-      steps: [
-        {
-          name: 'Continue',
-          run: 'echo "All Platforms have been built and tested - proceeding!"',
-        },
-      ],
-    },
-    'push-docker': {
-      needs: [
-        'wait-for-build-test',
-        'inputs',
-      ],
-      uses: './.github/workflows/push-docker.yaml',
-      secrets: 'inherit',
-      with: {
-        'artifact-name': 'image-release',
-        'repository-name': 'returntocorp/semgrep',
-        'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
-      },
-    },
-    'push-docker-nonroot': {
-      needs: [
-        'wait-for-build-test',
-        'inputs',
-      ],
-      uses: './.github/workflows/push-docker.yaml',
-      secrets: 'inherit',
-      with: {
-        'artifact-name': 'image-release-nonroot',
-        'repository-name': 'returntocorp/semgrep',
-        'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
-      },
-    },
-    'upload-wheels': {
+};
+
+local upload_wheels_job = {
       name: 'Upload Wheels to PyPI',
       'runs-on': 'ubuntu-latest',
       needs: [
@@ -248,7 +217,7 @@
         },
         {
           name: 'Unzip x86_64 Wheel',
-          run: 'unzip ./manylinux-x86-wheel/dist.zip\n',
+          run: 'unzip ./manylinux-x86-wheel/dist.zip',
         },
         {
           name: 'Unzip aarch64 Wheel',
@@ -273,8 +242,13 @@
           },
         },
       ],
-    },
-    'create-release': {
+};
+
+// ----------------------------------------------------------------------------
+// Github jobs
+// ----------------------------------------------------------------------------
+
+local create_release_job = {
       name: 'Create the Github Release',
       'runs-on': 'ubuntu-latest',
       needs: [
@@ -302,11 +276,12 @@
           env: {
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
           },
-          run: 'gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false\n',
+          run: 'gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false',
         },
       ],
-    },
-    'create-release-interfaces': {
+};
+
+local create_release_interfaces_job = {
       name: 'Create the Github Release on Semgrep Interfaces',
       'runs-on': 'ubuntu-latest',
       'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
@@ -349,7 +324,7 @@
           env: {
             GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
           },
-          run: 'gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\n',
+          run: 'gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml',
         },
         {
           name: 'Publish Release Semgrep Interfaces',
@@ -357,11 +332,17 @@
           env: {
             GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
           },
-          run: 'gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false\n',
+          run: 'gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false',
         },
       ],
-    },
-    'sleep-before-homebrew': {
+};
+
+// ----------------------------------------------------------------------------
+// Homebrew jobs
+// ----------------------------------------------------------------------------
+// see also nightly.jsonnet
+
+local sleep_before_homebrew_job = {
       name: 'Sleep 10 min before releasing to homebrew',
       needs: [
         'inputs',
@@ -375,8 +356,9 @@
           run: 'sleep 10m',
         },
       ],
-    },
-    'homebrew-core-pr': {
+};
+
+local homebrew_core_pr_job = {
       name: 'Update on Homebrew-Core',
       needs: [
         'inputs',
@@ -442,6 +424,85 @@
           run: 'gh pr create --repo homebrew/homebrew-core \\\n  --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION }}" \\\n  --title="semgrep ${{ steps.get-version.outputs.VERSION }}" \\\n  --body "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"\n',
         },
       ],
+};
+
+// ----------------------------------------------------------------------------
+// The Workflow
+// ----------------------------------------------------------------------------
+
+{
+  name: 'release',
+  on: {
+    // this workflow can be triggered manually, via a call (see nightly.sonnet)
+    // or when something (human or start-release.jsonnet) push to a vxxx branch.
+    workflow_dispatch: release_input,
+    workflow_call: release_input,
+    push: {
+      branches: [
+        '**-test-release',
+      ],
+      tags: [
+        'v*',
+      ],
     },
+  },
+  jobs: {
+    inputs: inputs_job,
+    'park-pypi-packages': park_pypi_packages_job,
+    'build-test-docker': build_test_docker_job,
+    'build-test-docker-nonroot': build_test_docker_nonroot_job,
+    // similar to tests.jsonnet
+    'build-test-core-x86': {
+      uses: './.github/workflows/build-test-core-x86.yml',
+      secrets: 'inherit',
+    },
+    'build-test-osx-x86': {
+      uses: './.github/workflows/build-test-osx-x86.yml',
+      secrets: 'inherit',
+    },
+    'build-test-osx-arm64': {
+      uses: './.github/workflows/build-test-osx-arm64.yml',
+      secrets: 'inherit',
+    },
+    'build-test-manylinux-x86': {
+      needs: [
+        'build-test-core-x86',
+      ],
+      uses: './.github/workflows/build-test-manylinux-x86.yml',
+      secrets: 'inherit',
+    },
+    'build-test-manylinux-aarch64': {
+      needs: [
+        'build-test-docker',
+      ],
+      uses: './.github/workflows/build-test-manylinux-aarch64.yml',
+      secrets: 'inherit',
+    },
+    // no build-test-javascript though here because ??? TODO?
+    'wait-for-build-test': {
+      name: 'Wait for Build/Test All Platforms',
+      'runs-on': 'ubuntu-22.04',
+      needs: [
+        'build-test-docker',
+        'build-test-docker-nonroot',
+        'build-test-manylinux-x86',
+        'build-test-manylinux-aarch64',
+        'build-test-osx-x86',
+        'build-test-osx-arm64',
+      ],
+      steps: [
+        {
+          name: 'Continue',
+          run: 'echo "All Platforms have been built and tested - proceeding!"',
+        },
+      ],
+    },
+    'push-docker': push_docker_job,
+    'push-docker-nonroot': push_docker_nonroot_job,
+    'upload-wheels': upload_wheels_job,
+    'create-release': create_release_job,
+    'create-release-interfaces': create_release_interfaces_job,
+    'sleep-before-homebrew': sleep_before_homebrew_job,
+    'homebrew-core-pr': homebrew_core_pr_job,
   },
 }

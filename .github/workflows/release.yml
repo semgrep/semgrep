@@ -4,18 +4,19 @@ name: release
   workflow_dispatch:
     inputs:
       dry-run:
-        description: Run the release in dry-run mode, e.g., without changing external
-          state (like pushing to PyPI/Docker)
+        description: "\n             Run the release in dry-run mode, e.g., without
+          changing external\n             state (like pushing to PyPI/Docker)\n           "
         required: true
         type: boolean
         default: false
   workflow_call:
     inputs:
       dry-run:
-        description: Run the release in dry-run mode, e.g., without changing external
-          state (like pushing to PyPI/Docker)
+        description: "\n             Run the release in dry-run mode, e.g., without
+          changing external\n             state (like pushing to PyPI/Docker)\n           "
         required: true
         type: boolean
+        default: false
   push:
     branches:
     - '**-test-release'
@@ -106,14 +107,14 @@ jobs:
       file: Dockerfile
       target: nonroot
       enable-tests: false
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yml
+    secrets: inherit
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yml
     secrets: inherit
   build-test-osx-arm64:
     uses: ./.github/workflows/build-test-osx-arm64.yml
-    secrets: inherit
-  build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit
   build-test-manylinux-x86:
     needs:
@@ -186,7 +187,7 @@ jobs:
         name: osx-arm64-wheel
         path: osx-arm64-wheel
     - name: Unzip x86_64 Wheel
-      run: unzip ./manylinux-x86-wheel/dist.zip\n
+      run: unzip ./manylinux-x86-wheel/dist.zip
     - name: Unzip aarch64 Wheel
       run: unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
     - name: Unzip OSX x86 Wheel
@@ -225,7 +226,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION
-        }} --draft=false\n
+        }} --draft=false
   create-release-interfaces:
     name: Create the Github Release on Semgrep Interfaces
     runs-on: ubuntu-latest
@@ -261,13 +262,13 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       run: gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION
-        }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml\n
+        }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
     - name: Publish Release Semgrep Interfaces
       id: publish_release_semgrep_interfaces
       env:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       run: gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION
-        }} --draft=false\n
+        }} --draft=false
   sleep-before-homebrew:
     name: Sleep 10 min before releasing to homebrew
     needs:
