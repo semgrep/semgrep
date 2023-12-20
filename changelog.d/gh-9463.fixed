@@ -1,0 +1,2 @@
+Nosemgrep: Fixed a bug where Semgrep would err upon reading a `nosemgrep`
+comment with multiple rule IDs.
