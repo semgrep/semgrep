@@ -1,1 +1,0 @@
-Semgrep IDE integrations will now cache workspace targets, so a full traversal of a workspace is no longer needed on every scan

@@ -1,1 +1,0 @@
-Fixed bug where empty tables in pyproject.toml files would fail to parse
