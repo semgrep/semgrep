@@ -16,7 +16,7 @@
 //
 // TODO: where is stored/configured/built this semgrep-ci github App?
 // TODO: where is configured this docker://public.ecr.aws/... image below?
-// How is it built?
+// TODO: How is it built?
 // TODO: if a token is rotated, do we need to update this docker link?
 
 local github_bot = {

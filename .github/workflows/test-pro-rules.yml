@@ -7,7 +7,7 @@ name: test-pro-rules
     branches:
     - develop
 jobs:
-  test-pro-rules:
+  job:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
