@@ -1,0 +1,11 @@
+rules:
+  - id: test-eq-is-not-symmetric
+    languages:
+      - php
+    message: Working!
+    options:
+      symmetric_eq: false
+    pattern-either:
+      - pattern: bar1($stuff) == bar2($stuff)
+      - pattern: bar1($stuff) != bar2($stuff)
+    severity: WARNING

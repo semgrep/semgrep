@@ -1797,7 +1797,7 @@ and m_call_op aop toka aargs bop tokb bargs tin =
         tin.config.commutative_boolop
     | G.Eq
     | G.NotEq ->
-        tin.config.commutative_compop
+        tin.config.symmetric_eq
     | __else__ -> false
   in
   let m_op_default aargs bargs =

@@ -1,0 +1,3 @@
+Rule option `commutative_compop` has been renamed to `symmetric_eq`. The previous
+name was confusing because equality is a relation (not an operation) and it can be
+symmetric or not, but commutativity simply does not apply to it.
