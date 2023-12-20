@@ -273,6 +273,11 @@ class Metrics:
         self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
 
+        _findings_by_product: Dict[str, int] = defaultdict(int)
+        for r, f in findings.kept.items():
+            _findings_by_product[r.product.kind] += len(f)
+        self.payload.value.numFindingsByProduct = [*_findings_by_product.items()]
+
     @suppress_errors
     def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
         if profile:
