@@ -26,6 +26,7 @@
 # a backslash, e.g. "\:foo".
 
 /tests
+# Test data
 /cli/tests/e2e/targets/
 /cli/tests/e2e/snapshots/
 /cli/tests/performance/targets/

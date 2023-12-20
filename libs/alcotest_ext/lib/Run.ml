@@ -358,8 +358,7 @@ let show_output_paths ~with_diff (test : _ T.test)
                 printf "  Captured %s differs from expectation for test %s %s\n"
                   short_name test.id test.internal_full_name);
          printf "  Path to expected %s: %s\n" short_name path_to_expected_output;
-         printf "  Path to latest %s: %s\n" short_name path_to_output);
-  print_newline ()
+         printf "  Path to latest %s: %s\n" short_name path_to_output)
 
 let print_status ?(output_style = Full)
     ((test : _ T.test), (status : T.status), sum) =

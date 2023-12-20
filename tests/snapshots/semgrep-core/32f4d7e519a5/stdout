@@ -1,0 +1,12 @@
+/tmp<MASKED>
+├── a
+└── .gitignore
+
+0 directories, 2 files
+Initialized empty Git repository in<MASKED>
+[main (root-commit) <MASKED>] Add all the files
+ 1 file changed, 1 insertion(+)
+ create mode 100644 .gitignore
+Input files:
+.gitignore
+a
