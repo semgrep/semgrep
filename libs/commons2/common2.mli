@@ -1186,7 +1186,7 @@ val intintmap_string_of_t : 'a -> 'b -> string
 (*****************************************************************************)
 
 (* Note that Hashtbl keep old binding to a key so if want a hash
- * of a list, then can use the Hashtbl as is. Use Hashtbl.find_all then
+ * of a list, then can use the Hashtbl as is. Use Hashtbl_.get_stack then
  * to get the list of bindings
  *
  * Note that Hashtbl module use different convention :( the object is

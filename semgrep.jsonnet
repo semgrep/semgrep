@@ -73,6 +73,17 @@ local semgrep_rules = [
       in one of the networking/ modules and hide it behind a typed interface.
     |||,
   },
+  {
+    id: 'no-hashtbl-find-all',
+    match: 'Hashtbl.find_all',
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    message: |||
+      `Hashtbl.find_all` is not stack-safe in OCaml < 5. Use `Hashtbl_.push`
+      instead of `Hashtbl.add` and `Hashtbl_.get_stack` instead of
+      `Hashtbl.find_all`.
+    |||,
+  },
 ];
 
 // ----------------------------------------------------------------------------

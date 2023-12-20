@@ -46,3 +46,21 @@ let hkeys h =
   let hkey = Hashtbl.create 101 in
   h |> Hashtbl.iter (fun k _v -> Hashtbl.replace hkey k true);
   hashset_to_list hkey
+
+(*****************************************************************************)
+(* Grouping values by key without find_all *)
+(*****************************************************************************)
+
+let push (tbl : ('k, 'v list ref) Hashtbl.t) (key : 'k) (value : 'v) =
+  let stack =
+    try Hashtbl.find tbl key with
+    | Not_found ->
+        let stack = ref [] in
+        Hashtbl.add tbl key stack;
+        stack
+  in
+  stack := value :: !stack
+
+let get_stack tbl key =
+  try !(Hashtbl.find tbl key) with
+  | Not_found -> []

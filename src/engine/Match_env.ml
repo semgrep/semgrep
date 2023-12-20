@@ -30,9 +30,7 @@ module PM = Pattern_match
  * the matching results corresponding to this id.
  *)
 type pattern_id = Xpattern.pattern_id
-
-(* !This hash table uses the Hashtbl.find_all property! *)
-type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
+type id_to_match_results = (pattern_id, Pattern_match.t list ref) Hashtbl.t
 
 (* alt: prefilter_cache option *)
 type prefilter_config =

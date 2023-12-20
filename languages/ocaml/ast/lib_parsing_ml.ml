@@ -53,10 +53,10 @@ let find_cmt_files_of_dir_or_files (xs : Fpath.t list) : Fpath.t list =
        xs
        |> List.iter (fun file ->
               let d, b, e = Filename_.dbe_of_filename !!file in
-              Hashtbl.add hfiles (d, b) e);
+              Hashtbl_.push hfiles (d, b) e);
        Common2.hkeys hfiles
        |> List.map (fun (d, b) ->
-              let xs = Hashtbl.find_all hfiles (d, b) in
+              let xs = Hashtbl_.get_stack hfiles (d, b) in
               match xs with
               | [ "cmt"; "cmti" ]
               | [ "cmti"; "cmt" ]

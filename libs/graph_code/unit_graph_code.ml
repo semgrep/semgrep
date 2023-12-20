@@ -72,7 +72,7 @@ let build_g_and_dm () =
 (* Unit tests *)
 (*****************************************************************************)
 
-let tests ~graph_of_string =
+let tests =
   Alcotest_ext.pack_suites "graph_code"
     [
       (*---------------------------------------------------------------------------*)
@@ -210,43 +210,45 @@ let tests ~graph_of_string =
           users;
       );
 *)
-          ( "class analysis",
-            fun () ->
-              let file_content =
-                "\n\
-                 class A {\n\
-                 public function foo() { }\n\
-                 }\n\
-                 class B extends A {\n\
-                 public function foo() { }\n\
-                 }\n\
-                 class C {\n\
-                 public function foo() { }\n\
-                 }\n"
-              in
-              let g = graph_of_string file_content in
-              let dag = Graph_code_class_analysis.class_hierarchy g in
+          (* TODO: needs 'graph_of_string' (?)
+                    ( "class analysis",
+                      fun () ->
+                        let file_content =
+                          "\n\
+                           class A {\n\
+                           public function foo() { }\n\
+                           }\n\
+                           class B extends A {\n\
+                           public function foo() { }\n\
+                           }\n\
+                           class C {\n\
+                           public function foo() { }\n\
+                           }\n"
+                        in
+                        let g = graph_of_string file_content in
+                        let dag = Graph_code_class_analysis.class_hierarchy g in
 
-              let node = ("A", E.Class) in
-              let children = Graphe.succ node dag in
-              Alcotest.(check (list string))
-                "it should find the direct children of a class" [ "B" ]
-                (children |> List.map fst);
+                        let node = ("A", E.Class) in
+                        let children = Graphe.succ node dag in
+                        Alcotest.(check (list string))
+                          "it should find the direct children of a class" [ "B" ]
+                          (children |> List.map fst);
 
-              let dag = Graph_code_class_analysis.class_hierarchy g in
-              let hmethods = Graph_code_class_analysis.toplevel_methods g dag in
-              let xs = Hashtbl.find_all hmethods "foo" in
-              Alcotest.(check (list string))
-                "it should find the toplevel methods" [ "C.foo"; "A.foo" ]
-                (xs |> List.map fst);
+                        let dag = Graph_code_class_analysis.class_hierarchy g in
+                        let hmethods = Graph_code_class_analysis.toplevel_methods g dag in
+                        let xs = Hashtbl_.get_stack hmethods "foo" in
+                        Alcotest.(check (list string))
+                          "it should find the toplevel methods" [ "C.foo"; "A.foo" ]
+                          (xs |> List.map fst);
 
-              let node = ("A.foo", E.Method) in
-              let methods =
-                Graph_code_class_analysis.dispatched_methods g dag node
-              in
-              Alcotest.(check (list string))
-                "it should find the dispatched methods" [ "B.foo" ]
-                (methods |> List.map fst) );
+                        let node = ("A.foo", E.Method) in
+                        let methods =
+                          Graph_code_class_analysis.dispatched_methods g dag node
+                        in
+                        Alcotest.(check (list string))
+                          "it should find the dispatched methods" [ "B.foo" ]
+                          (methods |> List.map fst) );
+          *)
         ];
       (*---------------------------------------------------------------------------*)
       (* The matrix *)

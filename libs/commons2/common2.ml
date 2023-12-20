@@ -3979,9 +3979,9 @@ let hunion h1 h2 = h2 |> Hashtbl.iter (fun k v -> Hashtbl.add h1 k v)
 
 let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
-  xs |> List.iter (fun (k, v) -> Hashtbl.add h k v);
+  xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);
   let keys = hkeys h in
-  keys |> List.map (fun k -> (k, Hashtbl.find_all h k))
+  keys |> List.map (fun k -> (k, Hashtbl_.get_stack h k))
 
 let _test_group_assoc () =
   let xs = List_.enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in

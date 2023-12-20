@@ -42,38 +42,19 @@ let sort_by_key_lowfirst xs =
 (* Group *)
 (*****************************************************************************)
 
-(* Partition elements by key. Preserve the original order. *)
-let group_by f xs =
-  (* use Hashtbl.find_all property *)
+(* Partition elements by key. Preserve the original order of the values. *)
+let group_by get_key xs =
   let h = Hashtbl.create 101 in
+  xs |> List.iter (fun x -> Hashtbl_.push h (get_key x) x);
+  Hashtbl.fold (fun k stack acc -> (k, List.rev !stack) :: acc) h []
 
-  (* could use Set *)
-  let hkeys = Hashtbl.create 101 in
-
+(* TODO: unused => remove? *)
+let group_by_multi get_keys xs =
+  let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun x ->
-         let k = f x in
-         Hashtbl.replace hkeys k true;
-         Hashtbl.add h k x);
-  Hashtbl.fold
-    (fun k _ acc -> (k, Hashtbl.find_all h k |> List.rev) :: acc)
-    hkeys []
-
-let group_by_multi fkeys xs =
-  (* use Hashtbl.find_all property *)
-  let h = Hashtbl.create 101 in
-
-  (* could use Set *)
-  let hkeys = Hashtbl.create 101 in
-
-  xs
-  |> List.iter (fun x ->
-         let ks = fkeys x in
-         ks
-         |> List.iter (fun k ->
-                Hashtbl.replace hkeys k true;
-                Hashtbl.add h k x));
-  Hashtbl.fold (fun k _ acc -> (k, Hashtbl.find_all h k) :: acc) hkeys []
+         get_keys x |> List.iter (fun key -> Hashtbl_.push h key x));
+  Hashtbl.fold (fun k stack acc -> (k, List.rev !stack) :: acc) h []
 
 (* you should really use group_assoc_bykey_eff *)
 let rec group_by_mapped_key fkey l =
@@ -92,6 +73,6 @@ let rec group_by_mapped_key fkey l =
 
 let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
-  xs |> List.iter (fun (k, v) -> Hashtbl.add h k v);
+  xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);
   let keys = Hashtbl_.hkeys h in
-  keys |> List_.map (fun k -> (k, Hashtbl.find_all h k))
+  keys |> List_.map (fun k -> (k, Hashtbl_.get_stack h k))
