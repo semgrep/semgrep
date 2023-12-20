@@ -325,7 +325,7 @@ let mk_eff_use_pred g =
   g
   |> iter_nodes (fun n1 ->
          let uses = succ n1 Use g in
-         uses |> List.iter (fun n2 -> Hashtbl.add h n2 n1));
+         uses |> List.iter (fun n2 -> Hashtbl_.push h n2 n1));
   fun n -> Hashtbl_.get_stack h n
 
 let parent n g =
@@ -448,7 +448,7 @@ let remove_empty_nodes g xs =
 let basename_to_readable_disambiguator xs ~root =
   let xs = xs |> List.map (Filename_.readable ~root) in
   let h = Hashtbl.create 101 in
-  xs |> List.iter (fun file -> Hashtbl.add h (Filename.basename file) file);
+  xs |> List.iter (fun file -> Hashtbl_.push h (Filename.basename file) file);
   fun file -> Hashtbl_.get_stack h file
 
 (*****************************************************************************)
@@ -528,7 +528,7 @@ let save_whitelist xs file g =
  *)
 let adjust_graph g xs whitelist =
   let mapping = Hashtbl.create 101 in
-  g |> iter_nodes (fun (s, kind) -> Hashtbl.add mapping s (s, kind));
+  g |> iter_nodes (fun (s, kind) -> Hashtbl_.push mapping s (s, kind));
   xs
   |> List.iter (fun (s1, s2) ->
          let nodes = Hashtbl_.get_stack mapping s1 in

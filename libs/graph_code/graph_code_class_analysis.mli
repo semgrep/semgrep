@@ -12,7 +12,7 @@ val class_hierarchy : Graph_code.t -> class_hierarchy
 val toplevel_methods :
   Graph_code.t ->
   class_hierarchy ->
-  (string, Graph_code.node (*list*)) Hashtbl.t
+  (string, Graph_code.node list ref) Hashtbl.t
 
 (* Return the possible dispatched methods. *)
 val dispatched_methods :

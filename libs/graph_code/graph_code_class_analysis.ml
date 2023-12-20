@@ -158,7 +158,7 @@ let toplevel_methods g dag =
               * must be public methods.
               *)
              priv =*= E.Public
-           then Hashtbl.add htoplevels s n2
+           then Hashtbl_.push htoplevels s n2
            else ());
     let children_classes = Graphe.succ n dag in
     (* todo? what if public overriding a private? *)
