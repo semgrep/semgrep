@@ -65,7 +65,7 @@ jobs:
     with:
       bucket-name: deep-semgrep-artifacts
       manifest-key: versions-manifest.json
-      semgrep-version: ${{ needs.get-version.outputs.version }}
+      semgrep-version: ${{needs.get-version.outputs.version}}
       dry-run: ${{ inputs.dry-run }}
   release-setup:
     needs:
@@ -101,7 +101,7 @@ jobs:
         }}\"\n        git checkout -b ${RELEASE_BRANCH}\n        echo \"release-branch=${RELEASE_BRANCH}\"
         >> $GITHUB_OUTPUT\n      "
     - env:
-        SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
+        SEMGREP_RELEASE_NEXT_VERSION: ${{needs.get-version.outputs.version}}
       run: make release
     - uses: actions/setup-python@v4
       with:
@@ -129,7 +129,7 @@ jobs:
     - name: Push release branch
       if: ${{ ! inputs.dry-run }}
       env:
-        SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
+        SEMGREP_RELEASE_NEXT_VERSION: ${{needs.get-version.outputs.version}}
       run: "\n        git config user.name ${{ github.actor }}\n        git config
         user.email ${{ github.actor }}@users.noreply.github.com\n        git add --all\n
         \       git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n

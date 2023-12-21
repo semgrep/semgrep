@@ -11,6 +11,10 @@
 
 local semgrep = import 'libs/semgrep.libsonnet';
 
+// this is computed by the get_version_job (e.g., "1.55.0")
+// and can be referenced from other jobs
+local version = '${{needs.get-version.outputs.version}}';
+
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
@@ -23,6 +27,7 @@ local get_version_job = {
     version: '${{ steps.next-version.outputs.next-version }}',
   },
   steps: [
+    //TODO: why we need a special token? Can't we just do the default checkout?
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
@@ -73,7 +78,7 @@ local check_semgrep_pro_job = {
   with: {
     'bucket-name': 'deep-semgrep-artifacts',
     'manifest-key': 'versions-manifest.json',
-    'semgrep-version': '${{ needs.get-version.outputs.version }}',
+    'semgrep-version': version,
     'dry-run': '${{ inputs.dry-run }}',
   },
 };
@@ -111,7 +116,7 @@ local release_setup_job = {
     },
     {
       env: {
-        SEMGREP_RELEASE_NEXT_VERSION: '${{ needs.get-version.outputs.version }}',
+        SEMGREP_RELEASE_NEXT_VERSION: version,
       },
       run: 'make release',
     },
@@ -158,7 +163,7 @@ local release_setup_job = {
       name: 'Push release branch',
       'if': '${{ ! inputs.dry-run }}',
       env: {
-        SEMGREP_RELEASE_NEXT_VERSION: '${{ needs.get-version.outputs.version }}',
+        SEMGREP_RELEASE_NEXT_VERSION: version,
       },
       run: |||
         git config user.name ${{ github.actor }}
@@ -410,7 +415,7 @@ local validate_release_trigger_job = {
   uses: './.github/workflows/validate-release.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
   },
 };
 
@@ -424,7 +429,7 @@ local bump_semgrep_app_job = {
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
     repository: 'semgrep/semgrep-app',
   },
 };
@@ -439,7 +444,7 @@ local bump_semgrep_action_job = {
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
     repository: 'semgrep/semgrep-action',
   },
 };
@@ -454,7 +459,7 @@ local bump_semgrep_rpc_job = {
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
     repository: 'semgrep/semgrep-rpc',
   },
 };
