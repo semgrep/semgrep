@@ -33,6 +33,7 @@ from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_metrics import AnalysisType
+from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Datetime
 from semgrep.semgrep_interfaces.semgrep_metrics import EngineConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Environment
@@ -49,6 +50,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
@@ -175,9 +177,9 @@ class Metrics:
     def add_engine_config(
         self,
         engineType: "EngineType",
-        code: bool,
-        secrets: SecretsConfig,
-        supply_chain: bool,
+        code: Optional[CodeConfig],
+        secrets: Optional[SecretsConfig],
+        supply_chain: Optional[SupplyChainConfig],
     ) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
