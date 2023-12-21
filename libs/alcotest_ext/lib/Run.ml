@@ -319,7 +319,7 @@ let contains_regexp pat =
   let rex = Re.Pcre.regexp pat in
   fun str -> Re.execp rex str
 
-let filter ?filter_by_substring tests =
+let filter ~filter_by_substring tests =
   let tests =
     match filter_by_substring with
     | None -> tests
@@ -375,7 +375,7 @@ let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
       printf "  Captured %s differs from expectation for test %s %s\n"
         output_kind test.id test.internal_full_name
 
-let show_output (test : _ T.test) (sum : T.status_summary)
+let show_output_details (test : _ T.test) (sum : T.status_summary)
     (output_file_pairs : Store.output_file_pair list) =
   let success = success_of_status_summary sum in
   output_file_pairs
@@ -404,7 +404,7 @@ let show_output (test : _ T.test) (sum : T.status_summary)
 
 let print_error text = printf "  %s\n" (Color.format Red text)
 
-let print_status ((test : _ T.test), (status : T.status), sum) =
+let print_status ~show_output ((test : _ T.test), (status : T.status), sum) =
   printf "%s %s%s %s\n"
     (format_status_summary sum)
     test.id (format_tags test)
@@ -448,12 +448,14 @@ let print_status ((test : _ T.test), (status : T.status), sum) =
                  (String.concat ", " paths))
         | Ok _result ->
             let output_file_pairs = Store.get_output_file_pairs test in
-            show_output test sum output_file_pairs));
+            show_output_details test sum output_file_pairs));
     match success_of_status_summary sum with
-    | OK -> ()
-    | OK_but_new ->
+    | OK when not show_output -> ()
+    | OK_but_new when not show_output ->
         (* TODO: show the checked output to be approved? *)
         ()
+    | OK
+    | OK_but_new
     | Not_OK -> (
         match Store.get_unchecked_output test with
         | Some ""
@@ -464,8 +466,8 @@ let print_status ((test : _ T.test), (status : T.status), sum) =
             if not (String.ends_with ~suffix:"\n" data) then print_char '\n';
             flush stdout))
 
-let print_statuses tests_with_status =
-  tests_with_status |> List.iter print_status
+let print_statuses ~show_output tests_with_status =
+  tests_with_status |> List.iter (print_status ~show_output)
 
 let is_overall_success statuses =
   statuses
@@ -502,20 +504,20 @@ Other states:
   subcommand once you're satisfied with the output.
 |}
 
-let print_short_status tests_with_status =
+let print_short_status ~show_output tests_with_status =
   let tests_with_status = List.filter is_important_status tests_with_status in
   match tests_with_status with
   | [] -> ()
   | _ ->
       print_endline (Color.format Bold "Tests that need attention");
-      print_statuses tests_with_status
+      print_statuses ~show_output tests_with_status
 
-let print_long_status tests_with_status =
+let print_long_status ~show_output tests_with_status =
   match tests_with_status with
   | [] -> ()
   | _ ->
       print_endline (Color.format Bold "All tests");
-      print_statuses tests_with_status
+      print_statuses ~show_output tests_with_status
 
 let plural num = if num >= 2 then "s" else ""
 
@@ -540,16 +542,16 @@ let print_status_summary tests tests_with_status =
      else Color.format Red "failure");
   if overall_success then 0 else 1
 
-let print_full_status tests tests_with_status =
+let print_full_status ~show_output tests tests_with_status =
   print_status_introduction ();
   print_newline ();
-  print_long_status tests_with_status;
+  print_long_status ~show_output tests_with_status;
   print_newline ();
-  print_short_status tests_with_status;
+  print_short_status ~show_output tests_with_status;
   print_status_summary tests tests_with_status
 
-let print_short_status tests tests_with_status =
-  print_short_status tests_with_status;
+let print_short_status ~show_output tests tests_with_status =
+  print_short_status ~show_output tests_with_status;
   print_status_summary tests tests_with_status
 
 let get_tests_with_status tests =
@@ -561,14 +563,14 @@ let get_tests_with_status tests =
 (*
    Entry point for the status subcommand
 *)
-let list_status ?filter_by_substring ?(output_style = Full) tests =
+let list_status ~filter_by_substring ~output_style ~show_output tests =
   check_id_uniqueness tests;
-  let selected_tests = filter ?filter_by_substring tests in
+  let selected_tests = filter ~filter_by_substring tests in
   let tests_with_status = get_tests_with_status selected_tests in
   let exit_code =
     match output_style with
-    | Full -> print_full_status tests tests_with_status
-    | Short -> print_short_status tests tests_with_status
+    | Full -> print_full_status ~show_output tests tests_with_status
+    | Short -> print_short_status ~show_output tests tests_with_status
   in
   (exit_code, tests_with_status)
 
@@ -610,7 +612,7 @@ let run_tests_with_alcotest_lwt tests =
       Lwt.return ())
 
 (* Run this before a run or Lwt run. Returns the filtered tests. *)
-let before_run ?filter_by_substring ?(lazy_ = false) tests =
+let before_run ~filter_by_substring ~lazy_ tests =
   Store.init_workspace ();
   check_id_uniqueness tests;
   let tests =
@@ -623,7 +625,7 @@ let before_run ?filter_by_substring ?(lazy_ = false) tests =
         |> Helpers.list_map (fun (test, _, _) -> test)
   in
   print_status_introduction ();
-  let selected_tests = tests |> filter ?filter_by_substring in
+  let selected_tests = tests |> filter ~filter_by_substring in
   (* It would probably be less confusing to report the 4-way outcome here
      (pass/fail/xfail/xpass) but we can't as long as we rely on Alcotest
      for running and printing test results. *)
@@ -634,23 +636,23 @@ let before_run ?filter_by_substring ?(lazy_ = false) tests =
   selected_tests
 
 (* Run this after a run or Lwt run. *)
-let after_run tests selected_tests =
+let after_run ~show_output tests selected_tests =
   let tests_with_status = get_tests_with_status selected_tests in
-  let exit_code = print_full_status tests tests_with_status in
+  let exit_code = print_full_status ~show_output tests tests_with_status in
   (exit_code, tests_with_status)
 
 (*
    Entry point for the 'run' subcommand
 *)
-let run_tests ?filter_by_substring ?lazy_ tests =
-  let selected_tests = before_run ?filter_by_substring ?lazy_ tests in
+let run_tests ~filter_by_substring ~lazy_ ~show_output tests =
+  let selected_tests = before_run ~filter_by_substring ~lazy_ tests in
   run_tests_with_alcotest selected_tests;
-  after_run tests selected_tests
+  after_run tests ~show_output selected_tests
 
-let run_tests_lwt ?filter_by_substring ?lazy_ tests =
-  let selected_tests = before_run ?filter_by_substring ?lazy_ tests in
+let run_tests_lwt ~filter_by_substring ~lazy_ ~show_output tests =
+  let selected_tests = before_run ~filter_by_substring ~lazy_ tests in
   Lwt.bind (run_tests_with_alcotest_lwt selected_tests) (fun () ->
-      after_run tests selected_tests |> Lwt.return)
+      after_run tests ~show_output selected_tests |> Lwt.return)
 
 (*
    Entry point for the 'approve' subcommand
@@ -659,6 +661,6 @@ let approve_output ?filter_by_substring tests =
   Store.init_workspace ();
   check_id_uniqueness tests;
   tests
-  |> filter ?filter_by_substring
+  |> filter ~filter_by_substring
   |> Helpers.list_map Store.approve_new_output
   |> print_errors

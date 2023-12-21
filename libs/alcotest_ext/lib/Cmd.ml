@@ -12,6 +12,8 @@ open Cmdliner
 type conf = {
   (* All subcommands *)
   filter_by_substring : string option;
+  (* Run and Status *)
+  show_output : bool;
   (* Status *)
   status_output_style : Run.status_output_style;
   (* Run *)
@@ -19,7 +21,12 @@ type conf = {
 }
 
 let default_conf =
-  { filter_by_substring = None; status_output_style = Full; lazy_ = false }
+  {
+    filter_by_substring = None;
+    show_output = false;
+    status_output_style = Full;
+    lazy_ = false;
+  }
 
 (*
    Subcommands:
@@ -50,14 +57,15 @@ let run_with_conf
   match cmd_conf with
   | Run_tests conf ->
       let exit_code, tests_with_status =
-        Run.run_tests ?filter_by_substring:conf.filter_by_substring
-          ~lazy_:conf.lazy_ tests
+        Run.run_tests ~filter_by_substring:conf.filter_by_substring
+          ~lazy_:conf.lazy_ ~show_output:conf.show_output tests
       in
       handle_subcommand_result exit_code (Run_result tests_with_status)
   | Status conf ->
       let exit_code, tests_with_status =
-        Run.list_status ?filter_by_substring:conf.filter_by_substring
-          ~output_style:conf.status_output_style tests
+        Run.list_status ~filter_by_substring:conf.filter_by_substring
+          ~output_style:conf.status_output_style ~show_output:conf.show_output
+          tests
       in
       handle_subcommand_result exit_code (Status_result tests_with_status)
   | Approve conf ->
@@ -82,6 +90,26 @@ let filter_by_substring_term : string option Term.t =
   in
   Arg.value (Arg.opt (Arg.some Arg.string) None info)
 
+let show_output_term : bool Term.t =
+  let info =
+    Arg.info [ "w"; "show-output" ]
+      ~doc:
+        "Show the output of all tests rather than only showing the output of \
+         the failed tests. This excludes the output (stdout, stderr, or both) \
+         that may be captured explicitly to be compared against expectations."
+  in
+  Arg.value (Arg.flag info)
+
+let verbose_term : bool Term.t =
+  let info =
+    Arg.info [ "v"; "verbose" ]
+      ~doc:
+        "Print more details than by default. Currently, this is equivalent to \
+         '--show-output' but it may be extended in the future to bundle up \
+         more options."
+  in
+  Arg.value (Arg.flag info)
+
 (****************************************************************************)
 (* Subcommand: run (replaces alcotest's 'test') *)
 (****************************************************************************)
@@ -96,11 +124,14 @@ let lazy_term : bool Term.t =
 let run_doc = "run the tests"
 
 let subcmd_run_term test_spec : unit Term.t =
-  let combine filter_by_substring lazy_ =
-    Run_tests { default_conf with filter_by_substring; lazy_ }
+  let combine filter_by_substring lazy_ show_output verbose =
+    let show_output = show_output || verbose in
+    Run_tests { default_conf with filter_by_substring; lazy_; show_output }
     |> run_with_conf test_spec
   in
-  Term.(const combine $ filter_by_substring_term $ lazy_term)
+  Term.(
+    const combine $ filter_by_substring_term $ lazy_term $ show_output_term
+    $ verbose_term)
 
 let subcmd_run test_spec =
   let info = Cmd.info "run" ~doc:run_doc in
@@ -120,14 +151,23 @@ let short_term : bool Term.t =
 let status_doc = "show test status"
 
 let subcmd_status_term tests : unit Term.t =
-  let combine filter_by_substring short =
+  let combine filter_by_substring short show_output verbose =
     let status_output_style : Run.status_output_style =
       if short then Short else Full
     in
-    Status { default_conf with filter_by_substring; status_output_style }
+    let show_output = show_output || verbose in
+    Status
+      {
+        default_conf with
+        filter_by_substring;
+        show_output;
+        status_output_style;
+      }
     |> run_with_conf tests
   in
-  Term.(const combine $ filter_by_substring_term $ short_term)
+  Term.(
+    const combine $ filter_by_substring_term $ short_term $ show_output_term
+    $ verbose_term)
 
 let subcmd_status tests =
   let info = Cmd.info "status" ~doc:status_doc in

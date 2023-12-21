@@ -138,7 +138,7 @@ This run has ID `<MASKED RUN ID>'.
           Re-raised at <MASKED>
           Called from <MASKED>
           Called from <MASKED>
-
+          
 Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+005D xfail.000.output'.
  ──────────────────────────────────────────────────────────────────────────────
 
@@ -497,7 +497,7 @@ This run has ID `<MASKED RUN ID>'.
           Re-raised at <MASKED>
           Called from <MASKED>
           Called from <MASKED>
-
+          
 Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+005D xfail.000.output'.
  ──────────────────────────────────────────────────────────────────────────────
 
