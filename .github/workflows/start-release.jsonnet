@@ -269,7 +269,7 @@ local wait_for_pr_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
 
         # Immediately after creation, the PR doesn't have any checks attached
         # yet, wait until this is not the case. If you immediately start waiting
@@ -277,14 +277,14 @@ local wait_for_pr_checks_job = {
           while [ ${LEN_CHECKS} = "0" ]; do
             echo "No checks available yet"
             sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
 
           echo ${LEN_CHECKS}
 
-          gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
-      |||,
+          gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+      ||| % [pr_number, pr_number, pr_number],
     },
     {
       name: 'Wait for checks to complete',
@@ -293,7 +293,7 @@ local wait_for_pr_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       // Wait for PR checks to finish
-      run: 'gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch',
+      run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
     },
     {
       name: 'Get Current Num Checks',
@@ -307,9 +307,9 @@ local wait_for_pr_checks_job = {
       // first one is, so we end up in a case where we aren't getting waiting
       // for all checks.
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
         echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
-      |||,
+      ||| % pr_number,
     },
   ],
 } + unless_dry_run;
@@ -417,20 +417,20 @@ local wait_for_release_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
 
         # We need to wait for the new checks to register when the release tag is pushed
         while [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks }} ]; do
           echo "No checks available yet"
           sleep 1
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
         done
         echo "checks are valid"
 
         echo ${LEN_CHECKS}
 
-        gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
-      |||,
+        gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+      ||| % [ pr_number, pr_number, pr_number],
     },
     {
       name: 'Wait for release checks',
@@ -439,7 +439,7 @@ local wait_for_release_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       // # Wait for PR checks to finish
-      run: 'gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch',
+      run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
     },
   ],
 } + unless_dry_run;
