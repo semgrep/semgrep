@@ -13,7 +13,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 // this is computed by the get_version_job (e.g., "1.55.0")
 // and can be referenced from other jobs
-local version = '${{needs.get-version.outputs.version}}';
+local version = '${{ needs.get-version.outputs.version }}';
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -109,10 +109,10 @@ local release_setup_job = {
       name: 'Create release branch',
       id: 'release-branch',
       run: |||
-        RELEASE_BRANCH="release-${{ needs.get-version.outputs.version }}"
+        RELEASE_BRANCH="release-%s"
         git checkout -b ${RELEASE_BRANCH}
         echo "release-branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
-      |||,
+      ||| % version,
     },
     {
       env: {
