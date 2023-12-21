@@ -162,7 +162,7 @@ let fetch_rules session =
     if session.user_settings.ci then fetch_ci_rules_and_origins ()
     else Lwt.return_none
   in
-  let home = Unix.getenv "HOME" |> Fpath.v in
+  let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
     session.user_settings.configuration |> List_.map Fpath.v
     |> List_.map Fpath.normalize
