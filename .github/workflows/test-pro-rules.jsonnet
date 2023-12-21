@@ -1,8 +1,7 @@
 // This workflow checks whether the curent Semgrep PR can break Pro rules
 // (i.e. rules in semgrep-rules-proprietary)
-
 // coupling: check-semgrep-pro.jsonnet
-
+local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -128,15 +127,7 @@ local job = {
 
 {
   name: 'test-pro-rules',
-  on: {
-    workflow_dispatch: null,
-    pull_request: null,
-    push: {
-      branches: [
-        'develop',
-      ],
-    },
-  },
+  on: gha.on_classic,
   jobs: {
     job: job,
   },
