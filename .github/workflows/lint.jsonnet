@@ -161,16 +161,7 @@ local action_lint_job = {
 
 {
   name: 'lint',
-  on: {
-    // can be run manually from the github Actions dashboard
-    workflow_dispatch: null,
-    pull_request: null,
-    push: {
-      branches: [
-        'develop',
-      ],
-    },
-  },
+  on: gha.on_classic,
   jobs: {
     'pre-commit': pre_commit_job,
     'pre-commit-manual': pre_commit_manual_job,
