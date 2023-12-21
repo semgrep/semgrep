@@ -365,10 +365,12 @@ let is_important_status ((test : _ T.test), _status, (sum : T.status_summary)) =
 let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
     path_to_output =
   match
+    (* Warning: the implementation of 'diff' (which is it?) available on
+       BusyBox doesn't support '--color' option which is very sad.
+       TODO: find a way to show color diffs. *)
     (* nosemgrep: forbid-exec *)
     Sys.command
-      (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
-         path_to_output)
+      (sprintf "diff -u '%s' '%s'" path_to_expected_output path_to_output)
   with
   | 0 -> ()
   | _nonzero ->
