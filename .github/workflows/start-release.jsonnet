@@ -525,6 +525,9 @@ local notify_success_job = {
     },
     {
       name: 'Notify Success',
+      // TODO: seems to not work anymore; the last release announced
+      // on twitter on the "semgrep release notifications" account are
+      // for 1.38.3
       run: |||
         # POST a webhook to Zapier to allow for public notifications to our users via Twitter
         curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
