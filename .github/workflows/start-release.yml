@@ -14,9 +14,9 @@ name: start-release
       dry-run:
         required: true
         type: boolean
-        description: "\n            Check the box for a dry-run - A dry-run will not
-          push any external state\n            (branches, tags, images, or PyPI packages).\n
-          \         "
+        description: "\n        Check the box for a dry-run - A dry-run will not push
+          any external state\n        (branches, tags, images, or PyPI packages).\n
+          \     "
         default: false
 jobs:
   get-version:
@@ -109,17 +109,17 @@ jobs:
         cache: pipenv
         cache-dependency-path: scripts/release/Pipfile.lock
     - name: Create GitHub Release Body
-      if: ${{ ! inputs.dry-run }}
       working-directory: scripts/release
       run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
         \       pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version
         }} > release_body.txt\n      "
-    - name: Upload Changelog Body Artifact
       if: ${{ ! inputs.dry-run }}
+    - name: Upload Changelog Body Artifact
       uses: actions/upload-artifact@v3
       with:
         name: release_body_${{ needs.get-version.outputs.version }}
         path: scripts/release/release_body.txt
+      if: ${{ ! inputs.dry-run }}
     - name: Update Changelog
       working-directory: scripts/release
       run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
@@ -127,7 +127,6 @@ jobs:
         }}\n        pipenv run pre-commit run --files ../../CHANGELOG.md --config
         ../../.pre-commit-config.yaml || true\n      "
     - name: Push release branch
-      if: ${{ ! inputs.dry-run }}
       env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
       run: "\n        git config user.name ${{ github.actor }}\n        git config
@@ -135,8 +134,8 @@ jobs:
         \       git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
         \       git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
         }}\n      "
-    - name: Create PR
       if: ${{ ! inputs.dry-run }}
+    - name: Create PR
       id: open-pr
       env:
         SOURCE: ${{ steps.release-branch.outputs.release-branch }}
@@ -154,8 +153,8 @@ jobs:
         doesn't provide an easy way to determine this, so we\n        # capture the
         number and go from there.\n        PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\\(.*\\)|\\1|')\n\n
         \       echo \"pr-number=$PR_NUMBER\" >> $GITHUB_OUTPUT\n      "
+      if: ${{ ! inputs.dry-run }}
   wait-for-pr-checks:
-    if: ${{ ! inputs.dry-run }}
     runs-on: ubuntu-20.04
     needs:
     - get-version
@@ -192,8 +191,8 @@ jobs:
       run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
         }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n        echo
         \"num-checks=${LEN_CHECKS}\" >> $GITHUB_OUTPUT\n      "
-  create-tag:
     if: ${{ ! inputs.dry-run }}
+  create-tag:
     runs-on: ubuntu-20.04
     needs:
     - get-version
@@ -232,8 +231,8 @@ jobs:
         \       git tag -a -m \"Release ${{ needs.get-version.outputs.version }}\"
         \"v${{ needs.get-version.outputs.version }}\"\n        git push origin \"v${{
         needs.get-version.outputs.version }}\"\n      "
-  create-draft-release:
     if: ${{ ! inputs.dry-run }}
+  create-draft-release:
     runs-on: ubuntu-20.04
     needs:
     - get-version
@@ -279,8 +278,8 @@ jobs:
         prerelease: false
         draft: true
         repository: returntocorp/semgrep-interfaces
-  wait-for-release-checks:
     if: ${{ ! inputs.dry-run }}
+  wait-for-release-checks:
     runs-on: ubuntu-20.04
     needs:
     - release-setup
@@ -307,8 +306,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number
         }}" --interval 90 --watch
-  validate-release-trigger:
     if: ${{ ! inputs.dry-run }}
+  validate-release-trigger:
     needs:
     - get-version
     - wait-for-release-checks
@@ -317,8 +316,8 @@ jobs:
     secrets: inherit
     with:
       version: ${{ needs.get-version.outputs.version }}
-  bump-semgrep-app:
     if: ${{ ! inputs.dry-run }}
+  bump-semgrep-app:
     needs:
     - get-version
     - validate-release-trigger
@@ -328,8 +327,8 @@ jobs:
     with:
       version: ${{ needs.get-version.outputs.version }}
       repository: semgrep/semgrep-app
-  bump-semgrep-action:
     if: ${{ ! inputs.dry-run }}
+  bump-semgrep-action:
     needs:
     - get-version
     - validate-release-trigger
@@ -339,8 +338,8 @@ jobs:
     with:
       version: ${{ needs.get-version.outputs.version }}
       repository: semgrep/semgrep-action
-  bump-semgrep-rpc:
     if: ${{ ! inputs.dry-run }}
+  bump-semgrep-rpc:
     needs:
     - get-version
     - validate-release-trigger
@@ -350,6 +349,7 @@ jobs:
     with:
       version: ${{ needs.get-version.outputs.version }}
       repository: semgrep/semgrep-rpc
+    if: ${{ ! inputs.dry-run }}
   notify-success:
     if: ${{ success() && ! inputs.dry-run }}
     needs:

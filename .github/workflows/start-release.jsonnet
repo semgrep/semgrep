@@ -16,6 +16,44 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local version = '${{ needs.get-version.outputs.version }}';
 
 // ----------------------------------------------------------------------------
+// Input
+// ----------------------------------------------------------------------------
+// to be used by the workflow
+local input = {
+  inputs: {
+    bumpVersionFragment: {
+      description: 'Version fragment to bump',
+      required: true,
+      // These options are passed directly into
+      // christian-draeger/increment-semantic-version in the `next-vesion`
+      // step to decide which of X.Y.Z to increment
+      type: 'choice',
+      options: [
+        // Many folks are concerned about a mis-click and releasing 2.0 which
+        // is why we commented the 'major' option below
+        // 'major', // x.0.0
+        'feature',  // 1.x.0
+        'bug',  // 1.1.x
+      ],
+      default: 'feature',
+    },
+    'dry-run': {
+      required: true,
+      type: 'boolean',
+      description: |||
+        Check the box for a dry-run - A dry-run will not push any external state
+        (branches, tags, images, or PyPI packages).
+      |||,
+      default: false,
+    },
+  },
+};
+
+local unless_dry_run = {
+  'if': '${{ ! inputs.dry-run }}',
+};
+
+// ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 // This job just infers the next release version (e.g., 1.53.1) based on past
@@ -95,6 +133,8 @@ local release_setup_job = {
     'release-branch': '${{ steps.release-branch.outputs.release-branch }}',
   },
   steps: [
+    // TODO: again why we need this token? we release from
+    // the repo of the workflow, can't we just checkout?
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
@@ -131,23 +171,21 @@ local release_setup_job = {
     },
     {
       name: 'Create GitHub Release Body',
-      'if': '${{ ! inputs.dry-run }}',
       'working-directory': 'scripts/release',
       run: |||
         pip3 install pipenv==2022.6.7
         pipenv install --dev
         pipenv run towncrier build --draft --version %s > release_body.txt
       ||| % version,
-    },
+    } + unless_dry_run,
     {
       name: 'Upload Changelog Body Artifact',
-      'if': '${{ ! inputs.dry-run }}',
       uses: 'actions/upload-artifact@v3',
       with: {
         name: 'release_body_%s' % version,
         path: 'scripts/release/release_body.txt',
       },
-    },
+    } + unless_dry_run,
     {
       name: 'Update Changelog',
       'working-directory': 'scripts/release',
@@ -161,7 +199,6 @@ local release_setup_job = {
     },
     {
       name: 'Push release branch',
-      'if': '${{ ! inputs.dry-run }}',
       env: {
         SEMGREP_RELEASE_NEXT_VERSION: version,
       },
@@ -172,10 +209,9 @@ local release_setup_job = {
         git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
         git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
       |||,
-    },
+    } + unless_dry_run,
     {
       name: 'Create PR',
-      'if': '${{ ! inputs.dry-run }}',
       id: 'open-pr',
       env: {
         SOURCE: '${{ steps.release-branch.outputs.release-branch }}',
@@ -205,12 +241,11 @@ local release_setup_job = {
 
         echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
       |||,
-    },
+    } + unless_dry_run,
   ],
 };
 
 local wait_for_pr_checks_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -270,10 +305,9 @@ local wait_for_pr_checks_job = {
       |||,
     },
   ],
-};
+} + unless_dry_run;
 
 local create_tag_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -312,10 +346,9 @@ local create_tag_job = {
       ||| % [version, version, version],
     },
   ],
-};
+} + unless_dry_run;
 
 local create_draft_release_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -360,10 +393,9 @@ local create_draft_release_job = {
       },
     },
   ],
-};
+} + unless_dry_run;
 
 local wait_for_release_checks_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'release-setup',
@@ -403,10 +435,9 @@ local wait_for_release_checks_job = {
       run: 'gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch',
     },
   ],
-};
+} + unless_dry_run;
 
 local validate_release_trigger_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'wait-for-release-checks',
@@ -417,10 +448,9 @@ local validate_release_trigger_job = {
   with: {
     version: version,
   },
-};
+} + unless_dry_run;
 
 local bump_semgrep_app_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'validate-release-trigger',
@@ -432,10 +462,9 @@ local bump_semgrep_app_job = {
     version: version,
     repository: 'semgrep/semgrep-app',
   },
-};
+} + unless_dry_run;
 
 local bump_semgrep_action_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'validate-release-trigger',
@@ -447,10 +476,9 @@ local bump_semgrep_action_job = {
     version: version,
     repository: 'semgrep/semgrep-action',
   },
-};
+} + unless_dry_run;
 
 local bump_semgrep_rpc_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'validate-release-trigger',
@@ -462,7 +490,7 @@ local bump_semgrep_rpc_job = {
     version: version,
     repository: 'semgrep/semgrep-rpc',
   },
-};
+} + unless_dry_run;
 
 // ----------------------------------------------------------------------------
 // Success/failure notifications
@@ -536,35 +564,7 @@ local notify_failure_job = {
 {
   name: 'start-release',
   on: {
-    workflow_dispatch: {
-      inputs: {
-        bumpVersionFragment: {
-          description: 'Version fragment to bump',
-          required: true,
-          // These options are passed directly into
-          // christian-draeger/increment-semantic-version in the `next-vesion`
-          // step to decide which of X.Y.Z to increment
-          type: 'choice',
-          options: [
-            // Many folks are concerned about a mis-click and releasing 2.0 which
-            // is why we commented the 'major' option below
-            // 'major', // x.0.0
-            'feature',  // 1.x.0
-            'bug',  // 1.1.x
-          ],
-          default: 'feature',
-        },
-        'dry-run': {
-          required: true,
-          type: 'boolean',
-          description: |||
-            Check the box for a dry-run - A dry-run will not push any external state
-            (branches, tags, images, or PyPI packages).
-          |||,
-          default: false,
-        },
-      },
-    },
+    workflow_dispatch: input,
   },
   jobs: {
     'get-version': get_version_job,
