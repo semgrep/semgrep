@@ -1,4 +1,5 @@
 // Build aarch64 Python wheels using qemu?
+local gha = import "libs/gha.libsonnet";
 
 // ----------------------------------------------------------------------------
 // The job
@@ -76,10 +77,7 @@ local build_wheels_job = {
 
 {
   name: 'build-test-manylinux-aarch64',
-  on: {
-    workflow_dispatch: null,
-    workflow_call: null,
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-wheels': build_wheels_job,
   },

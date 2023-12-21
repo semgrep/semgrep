@@ -1,5 +1,5 @@
 // This workflow generates the manylinux-wheel for pypi.
-
+local gha = import "libs/gha.libsonnet";
 local actions = import "libs/actions.libsonnet";
 local core_x86 = import "build-test-core-x86.jsonnet";
 
@@ -99,10 +99,7 @@ local test_wheels_job = {
 
 {
   name: 'build-test-manylinux-x86',
-  on: {
-    workflow_dispatch: null,
-    workflow_call: null,
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-wheels': build_wheels_job,
     'test-wheels': test_wheels_job,

@@ -2,6 +2,7 @@
 // compilation and tests of semgrep-pro if semgrep-pro was using this
 // semgrep branch as a submodule.
 
+local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -116,15 +117,7 @@ local job = {
 
 {
   name: 'check-semgrep-pro',
-  on: {
-    workflow_dispatch: null,
-    pull_request: null,
-    push: {
-      branches: [
-        'develop',
-      ],
-    },
-  },
+  on: gha.on_classic,
   jobs: {
     job: job,
   },
