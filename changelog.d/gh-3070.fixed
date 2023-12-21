@@ -1,2 +1,2 @@
-Autofix: Fixes that span multiple lines will now try to align 
+Autofix: Fixes that span multiple lines will now try to align
 inserted fixed lines with each other.
