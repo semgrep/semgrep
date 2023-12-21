@@ -8,14 +8,16 @@ val to_alcotest : unit Types.test list -> unit Alcotest.test list
 val to_alcotest_lwt : unit Lwt.t Types.test list -> unit Alcotest_lwt.test list
 
 val run_tests :
-  ?filter_by_substring:string ->
-  ?lazy_:bool ->
+  filter_by_substring:string option ->
+  lazy_:bool ->
+  show_output:bool ->
   unit Types.test list ->
   int * unit Types.test_with_status list
 
 val run_tests_lwt :
-  ?filter_by_substring:string ->
-  ?lazy_:bool ->
+  filter_by_substring:string option ->
+  lazy_:bool ->
+  show_output:bool ->
   unit Lwt.t Types.test list ->
   (int * unit Lwt.t Types.test_with_status list) Lwt.t
 
@@ -23,8 +25,9 @@ val run_tests_lwt :
    Return a non-zero exit status if any of the tests is not a success
    (PASS or XFAIL). *)
 val list_status :
-  ?filter_by_substring:string ->
-  ?output_style:status_output_style ->
+  filter_by_substring:string option ->
+  output_style:status_output_style ->
+  show_output:bool ->
   'a Types.test list ->
   int * 'a Types.test_with_status list
 

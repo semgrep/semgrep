@@ -15,7 +15,7 @@ let checked_command cmd =
   | _ -> failwith (Common.spf "Error running cmd: %s" (Bos.Cmd.to_string cmd))
 
 let setup_git workspace =
-  Git_wrapper.init workspace;
+  Git_wrapper.init ~cwd:workspace ();
   checked_command
     Bos.Cmd.(
       v "git" % "-C" % Fpath.to_string workspace % "config" % "user.email"
@@ -116,8 +116,8 @@ let add_file ?(git = false) ?(dirty = false)
   let oc = open_out_bin file in
   output_string oc content;
   close_out oc;
-  if git then Git_wrapper.add workspace [ Fpath.v file ];
-  if (not dirty) && git then Git_wrapper.commit workspace "test";
+  if git then Git_wrapper.add ~cwd:workspace [ Fpath.v file ];
+  if (not dirty) && git then Git_wrapper.commit ~cwd:workspace "test";
   file
 
 let with_mock_envvars f () =

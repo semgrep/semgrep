@@ -108,6 +108,12 @@ let cd (opt_cwd : Fpath.t option) : Cmd.args =
   | None -> []
   | Some path -> [ "-C"; !!path ]
 
+(* Convert an option to a list. Used to inject optional arguments. *)
+let opt (o : string option) : string list =
+  match o with
+  | None -> []
+  | Some str -> [ str ]
+
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
   let range_of_substrings substrings =
@@ -249,22 +255,21 @@ let run_with_worktree ~commit ?(branch = None) f =
   | Ok _ -> raise (Error ("Could not create git worktree for " ^ commit))
   | Error (`Msg e) -> raise (Error e)
 
-let status ~cwd ~commit =
+let status ?cwd ?commit () =
   let cmd =
     ( git,
-      [
-        "-C";
-        !!cwd;
-        "diff";
-        "--cached";
-        "--name-status";
-        "--no-ext-diff";
-        "-z";
-        "--diff-filter=ACDMRTUXB";
-        "--ignore-submodules";
-        "--relative";
-        commit;
-      ] )
+      cd cwd
+      @ [
+          "diff";
+          "--cached";
+          "--name-status";
+          "--no-ext-diff";
+          "-z";
+          "--diff-filter=ACDMRTUXB";
+          "--ignore-submodules";
+          "--relative";
+        ]
+      @ opt commit )
   in
   let stats =
     match UCmd.string_of_run ~trim:true cmd with
@@ -335,23 +340,27 @@ let status ~cwd ~commit =
     renamed = !renamed;
   }
 
-let is_git_repo cwd =
-  let cmd = (git, [ "-C"; !!cwd; "rev-parse"; "--is-inside-work-tree" ]) in
+let is_git_repo ?cwd () =
+  let cmd = (git, cd cwd @ [ "rev-parse"; "--is-inside-work-tree" ]) in
   match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) -> true
   | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
-let dirty_lines_of_file ?(git_ref = "HEAD") file =
-  let cwd = Fpath.parent file in
+let dirty_lines_of_file ?cwd ?(git_ref = "HEAD") file =
+  let cwd =
+    match cwd with
+    | None -> Some (Fpath.parent file)
+    | Some _ -> cwd
+  in
   let cmd =
     (* --error-unmatch Returns a non 0 exit code if a file is not tracked by git. This way further on in this function we don't try running git diff on untracked files, as this isn't allowed. *)
-    (git, [ "-C"; !!cwd; "ls-files"; "--error-unmatch"; !!file ])
+    (git, cd cwd @ [ "ls-files"; "--error-unmatch"; !!file ])
   in
   match (UCmd.status_of_run ~quiet:true cmd, git_ref = "HEAD") with
   | _, false
   | Ok (`Exited 0), _ ->
-      let cmd = (git, [ "-C"; !!cwd; "diff"; "-U0"; git_ref; !!file ]) in
+      let cmd = (git, cd cwd @ [ "diff"; "-U0"; git_ref; !!file ]) in
       let lines =
         match UCmd.string_of_run ~trim:true cmd with
         | Ok (lines, (_, `Exited 1))
@@ -364,17 +373,21 @@ let dirty_lines_of_file ?(git_ref = "HEAD") file =
   | Ok _, _ -> None
   | Error (`Msg e), _ -> raise (Error e)
 
-let is_tracked_by_git file =
-  let cwd = Fpath.parent file in
-  let cmd = (git, [ "-C"; !!cwd; "ls-files"; "--error-unmatch"; !!file ]) in
+let is_tracked_by_git ?cwd file =
+  let cwd =
+    match cwd with
+    | None -> Some (Fpath.parent file)
+    | Some _ -> cwd
+  in
+  let cmd = (git, cd cwd @ [ "ls-files"; "--error-unmatch"; !!file ]) in
   match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) -> true
   | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
-let dirty_files cwd =
+let dirty_files ?cwd () =
   let cmd =
-    (git, [ "-C"; !!cwd; "status"; "--porcelain"; "--ignore-submodules" ])
+    (git, cd cwd @ [ "status"; "--porcelain"; "--ignore-submodules" ])
   in
   let lines =
     match UCmd.lines_of_run ~trim:false cmd with
@@ -386,22 +399,21 @@ let dirty_files cwd =
   let files = List_.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files
 
-let init cwd =
-  let cmd = (git, [ "-C"; !!cwd; "init" ]) in
+let init ?cwd ?(branch = "main") () =
+  let cmd = (git, cd cwd @ [ "init"; "-b"; branch ]) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
-let add cwd files =
+let add ?cwd files =
   let files = List_.map Fpath.to_string files in
-  let files = String.concat " " files in
-  let cmd = (git, [ "-C"; !!cwd; "add"; files ]) in
+  let cmd = (git, cd cwd @ [ "add" ] @ files) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")
 
-let commit cwd msg =
-  let cmd = (git, [ "-C"; !!cwd; "commit"; "-m"; msg ]) in
+let commit ?cwd msg =
+  let cmd = (git, cd cwd @ [ "commit"; "-m"; msg ]) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | Ok (`Exited i) ->
@@ -412,8 +424,8 @@ let commit cwd msg =
       raise (Error (Common.spf "Error running git commit: %s" s))
 
 (* TODO: should return Uri.t option *)
-let get_project_url () : string option =
-  let cmd = (git, [ "ls-remote"; "--get-url" ]) in
+let get_project_url ?cwd () : string option =
+  let cmd = (git, cd cwd @ [ "ls-remote"; "--get-url" ]) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (url, _) -> Some url
   | Error _ ->
@@ -438,13 +450,13 @@ let time_to_str (timestamp : float) : string =
   Printf.sprintf "%04d-%02d-%02d" year month day
 
 (* TODO: should really return a JSON.t list at least *)
-let get_git_logs ?(since = None) () : string list =
+let get_git_logs ?cwd ?(since = None) () : string list =
   let cmd : Cmd.t =
     match since with
-    | None -> (git, [ "log"; git_log_json_format ])
+    | None -> (git, cd cwd @ [ "log"; git_log_json_format ])
     | Some time ->
         let after = spf "--after=\"%s\"" (time_to_str time) in
-        (git, [ "log"; after; git_log_json_format ])
+        (git, cd cwd @ [ "log"; after; git_log_json_format ])
   in
   let lines =
     match UCmd.lines_of_run ~trim:true cmd with

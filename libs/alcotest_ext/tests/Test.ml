@@ -8,6 +8,8 @@ let t = Alcotest_ext.create
 let tests =
   [
     t "simple" (fun () -> ());
+    t "unchecked stdout" (fun () -> print_endline "hello");
+    t "unchecked stderr" (fun () -> prerr_string "hello\n");
     t "capture stdout" ~output_kind:Stdout (fun () -> print_string "hello\n");
     t "capture stderr" ~output_kind:Stderr (fun () -> prerr_string "error\n");
     t "capture stdxxx" ~output_kind:Merged_stdout_stderr (fun () ->
@@ -23,7 +25,7 @@ let tests =
       (fun () -> failwith "this exception is expected");
     t "skipped" ~skipped:true (fun () -> failwith "this shouldn't happen");
     t "chdir" ~tolerate_chdir:true (fun () -> Sys.chdir "/");
-    t ~output_kind:Stdout ~mask_output:String.lowercase_ascii "masked"
+    t ~output_kind:Stdout ~mask_output:[ String.lowercase_ascii ] "masked"
       (fun () -> print_endline "HELLO");
   ]
 

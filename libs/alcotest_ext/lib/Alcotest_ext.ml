@@ -18,11 +18,18 @@ type expected_outcome = T.expected_outcome =
 type outcome = T.outcome = Succeeded | Failed
 
 type captured_output = T.captured_output =
-  | Ignored
-  | Captured_stdout of string
-  | Captured_stderr of string
+  | Ignored of string
+  | Captured_stdout of string * string
+  | Captured_stderr of string * string
   | Captured_stdout_stderr of string * string
   | Captured_merged of string
+
+type expected_output = T.expected_output =
+  | Ignored
+  | Expected_stdout of string
+  | Expected_stderr of string
+  | Expected_stdout_stderr of string * string (* stdout, stderr *)
+  | Expected_merged of string (* combined output *)
 
 type result = T.result = {
   outcome : outcome;
@@ -31,12 +38,12 @@ type result = T.result = {
 
 type expectation = T.expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (captured_output, string) Result.t;
+  expected_output : (expected_output, string list (* missing files *)) Result.t;
 }
 
 type status = T.status = {
   expectation : expectation;
-  result : (result, string) Result.t;
+  result : (result, string list) Result.t;
 }
 
 type status_class = T.status_class = PASS | FAIL | XFAIL | XPASS | MISS
@@ -72,7 +79,7 @@ type 'a t = 'a T.test = {
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   speed_level : Alcotest.speed_level;
-  mask_output : (string -> string) option;
+  mask_output : (string -> string) list;
   output_kind : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
@@ -106,9 +113,9 @@ let update_id (test : _ t) =
   let id = String.sub md5_hex 0 12 in
   { test with id; internal_full_name }
 
-let create ?(category = []) ?(expected_outcome = Should_succeed) ?mask_output
-    ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)
-    ?(tags = []) ?(tolerate_chdir = false) name func =
+let create ?(category = []) ?(expected_outcome = Should_succeed)
+    ?(mask_output = []) ?(output_kind = Ignore_output) ?(skipped = false)
+    ?(speed_level = `Quick) ?(tags = []) ?(tolerate_chdir = false) name func =
   {
     id = "";
     internal_full_name = "";

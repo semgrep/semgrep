@@ -207,8 +207,13 @@ let with_tempfiles_verbose (files : t list) func =
       print_files files;
       write root files;
       (* Nice listing of the real file tree.
-         Don't care if the 'tree' command is unavailable. *)
-      USys.command (Printf.sprintf "tree -a '%s'" !!root) |> ignore;
+            old: Don't care if the 'tree' command is unavailable.
+            new: Having the same output on all platform matters because we
+            now compare the output of tests against expectations. The version
+            of 'tree' in CI seems to be ignoring '-a'.
+            TODO: remove permanently or implement our own version of 'tree'.
+         USys.command (Printf.sprintf "tree -a '%s'" !!root) |> ignore;
+      *)
       func root)
 
 let () =

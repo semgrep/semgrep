@@ -32,7 +32,8 @@ let filter_clean_lines git_ref matches =
     matches_by_file
     |> List.partition (fun (f, _) ->
            let parent = Fpath.parent f in
-           (Git_wrapper.is_tracked_by_git f && Git_wrapper.is_git_repo parent)
+           Git_wrapper.is_tracked_by_git f
+           && Git_wrapper.is_git_repo ~cwd:parent ()
            || Option.is_some git_ref)
     (* If the git_ref is set here, we might be comparing a tracked file
        with some sort of temporary file *)

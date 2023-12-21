@@ -15,45 +15,67 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[33m[MISS][0m  8dbdda48fb87 simple
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome"
-[33m[MISS][0m  d1a055429711 capture stdout
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout"
-[33m[MISS][0m  72f48157b077 capture stderr
-  checked output: stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr"
-[33m[MISS][0m  5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx"
-[33m[MISS][0m  486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout"
-[33m[MISS][0m  85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[33m[MISS][0m  91a3c9030236 chdir
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome"
-[33m[MISS][0m  a3e1a604f579 masked
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout"
+[1mAll tests[0m
+[33m[MISS][0m  8dbdda48fb87 [36msimple[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[33m[MISS][0m  2c57c8917bfb [36munchecked stdout[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[33m[MISS][0m  68358d78cb0b [36munchecked stderr[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[33m[MISS][0m  d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[MISS][0m  72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[MISS][0m  5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[MISS][0m  486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[33m[MISS][0m  85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[33m[MISS][0m  91a3c9030236 [36mchdir[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[33m[MISS][0m  a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
 
-[1mShort status[0m
-[33m[MISS][0m  8dbdda48fb87 simple
-[33m[MISS][0m  d1a055429711 capture stdout
-[33m[MISS][0m  72f48157b077 capture stderr
-[33m[MISS][0m  5deda5ac4212 capture stdxxx
-[33m[MISS][0m  486ef3ce86ab capture stdout and stderr
-[33m[MISS][0m  85349a4a9157 xfail
-[33m[MISS][0m  91a3c9030236 chdir
-[33m[MISS][0m  a3e1a604f579 masked
-9/9 selected tests:
+[1mTests that need attention[0m
+[33m[MISS][0m  8dbdda48fb87 [36msimple[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[33m[MISS][0m  2c57c8917bfb [36munchecked stdout[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[33m[MISS][0m  68358d78cb0b [36munchecked stderr[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[33m[MISS][0m  d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[MISS][0m  72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[MISS][0m  5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[MISS][0m  486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[33m[MISS][0m  85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[33m[MISS][0m  91a3c9030236 [36mchdir[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[33m[MISS][0m  a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+11/11 selected tests:
   0 successful (0 pass, 0 xfail),
   0 unsuccessful (0 fail, 0 xpass),
-9 new tests
+11 new tests
 0 test whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
@@ -75,6 +97,8 @@ Testing `test'.
 This run has ID `<MASKED RUN ID>'.
 
   [OK]          8dbdda48fb87 simple                             0   simple.
+  [OK]          2c57c8917bfb unchecked stdout                   0   unchecked...
+  [OK]          68358d78cb0b unchecked stderr                   0   unchecked...
   [OK]          d1a055429711 capture stdout                     0   capture s...
   [OK]          72f48157b077 capture stderr                     0   capture s...
   [OK]          5deda5ac4212 capture stdxxx                     0   capture s...
@@ -94,16 +118,32 @@ This run has ID `<MASKED RUN ID>'.
           Called from <MASKED>
           Re-raised at <MASKED>
           Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
           Called from <MASKED>
           Re-raised at <MASKED>
           Called from <MASKED>
           Called from <MASKED>
-
-Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+005D xfail.000.output'.
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Called from <MASKED>
+          
+Logs saved to <MASKED>
  ──────────────────────────────────────────────────────────────────────────────
 
-Full test results in `~/semgrep/libs/alcotest_ext/_build/_tests/test'.
-1 failure! <MASKED DURATION>. 8 tests run.
+Full test results in <MASKED>
+1 failure! <MASKED DURATION>. 10 tests run.
 The status of completed tests is reported below as one of four kinds:
 - PASS: a successful test that was expected to succeed (good);
 - FAIL: a failing test that was expected to succeed (needs fixing);
@@ -115,37 +155,54 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[32m[PASS][0m  8dbdda48fb87 simple
-[33m[PASS*][0m d1a055429711 capture stdout
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout"
-[33m[PASS*][0m 72f48157b077 capture stderr
-  checked output: stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr"
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx"
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout"
-[32m[XFAIL][0m 85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[32m[PASS][0m  91a3c9030236 chdir
-[33m[PASS*][0m a3e1a604f579 masked
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout"
+[1mAll tests[0m
+[32m[PASS][0m  8dbdda48fb87 [36msimple[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[32m[PASS][0m  2c57c8917bfb [36munchecked stdout[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[32m[PASS][0m  68358d78cb0b [36munchecked stderr[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[32m[XFAIL][0m 85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[32m[PASS][0m  91a3c9030236 [36mchdir[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
 
-[1mShort status[0m
-[33m[PASS*][0m d1a055429711 capture stdout
-[33m[PASS*][0m 72f48157b077 capture stderr
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-[33m[PASS*][0m a3e1a604f579 masked
-9/9 selected tests:
-  8 successful (7 pass, 1 xfail),
+[1mTests that need attention[0m
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+11/11 selected tests:
+  10 successful (9 pass, 1 xfail),
   0 unsuccessful (0 fail, 0 xpass),
 1 new test
 5 tests whose output needs first-time approval
@@ -163,51 +220,78 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[32m[PASS][0m  8dbdda48fb87 simple
-[33m[PASS*][0m d1a055429711 capture stdout
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout"
-[33m[PASS*][0m 72f48157b077 capture stderr
-  checked output: stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr"
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx"
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout"
-[32m[XFAIL][0m 85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[32m[PASS][0m  91a3c9030236 chdir
-[33m[PASS*][0m a3e1a604f579 masked
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout"
+[1mAll tests[0m
+[32m[PASS][0m  8dbdda48fb87 [36msimple[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[32m[PASS][0m  2c57c8917bfb [36munchecked stdout[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[32m[PASS][0m  68358d78cb0b [36munchecked stderr[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[32m[XFAIL][0m 85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[32m[PASS][0m  91a3c9030236 [36mchdir[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
 
-[1mShort status[0m
-[33m[PASS*][0m d1a055429711 capture stdout
-[33m[PASS*][0m 72f48157b077 capture stderr
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-[33m[PASS*][0m a3e1a604f579 masked
-9/9 selected tests:
-  8 successful (7 pass, 1 xfail),
+[1mTests that need attention[0m
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+11/11 selected tests:
+  10 successful (9 pass, 1 xfail),
   0 unsuccessful (0 fail, 0 xpass),
 1 new test
 5 tests whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
 RUN ./test status --short
-[1mShort status[0m
-[33m[PASS*][0m d1a055429711 capture stdout
-[33m[PASS*][0m 72f48157b077 capture stderr
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-[33m[PASS*][0m a3e1a604f579 masked
-9/9 selected tests:
-  8 successful (7 pass, 1 xfail),
+[1mTests that need attention[0m
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+11/11 selected tests:
+  10 successful (9 pass, 1 xfail),
   0 unsuccessful (0 fail, 0 xpass),
 1 new test
 5 tests whose output needs first-time approval
@@ -227,27 +311,48 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[32m[PASS][0m  8dbdda48fb87 simple
-[32m[PASS][0m  d1a055429711 capture stdout
-  checked output: stdout
-[32m[PASS][0m  72f48157b077 capture stderr
-  checked output: stderr
-[32m[PASS][0m  5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-[32m[PASS][0m  486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-[32m[XFAIL][0m 85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[32m[PASS][0m  91a3c9030236 chdir
-[32m[PASS][0m  a3e1a604f579 masked
-  checked output: stdout
+[1mAll tests[0m
+[32m[PASS][0m  8dbdda48fb87 [36msimple[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[32m[PASS][0m  2c57c8917bfb [36munchecked stdout[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[32m[PASS][0m  68358d78cb0b [36munchecked stderr[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[32m[PASS][0m  d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  Path to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout
+  Path to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/unchecked
+[32m[PASS][0m  72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  Path to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr
+  Path to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/unchecked
+[32m[PASS][0m  5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  Path to expected stdxxx: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
+  Path to latest stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
+[32m[PASS][0m  486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  Path to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+  Path to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+  Path to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
+  Path to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
+[32m[XFAIL][0m 85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[32m[PASS][0m  91a3c9030236 [36mchdir[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[32m[PASS][0m  a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  Path to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+  Path to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/unchecked
 
-[1mShort status[0m
-9/9 selected tests:
-  8 successful (7 pass, 1 xfail),
+11/11 selected tests:
+  10 successful (9 pass, 1 xfail),
   0 unsuccessful (0 fail, 0 xpass),
 1 new test
 0 test whose output needs first-time approval
@@ -269,45 +374,67 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[33m[MISS][0m  8dbdda48fb87 simple
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome"
-[33m[MISS][0m  d1a055429711 capture stdout
-  checked output: stdout
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/outcome"
-[33m[MISS][0m  72f48157b077 capture stderr
-  checked output: stderr
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/outcome"
-[33m[MISS][0m  5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/outcome"
-[33m[MISS][0m  486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/outcome"
-[33m[MISS][0m  85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[33m[MISS][0m  91a3c9030236 chdir
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome"
-[33m[MISS][0m  a3e1a604f579 masked
-  checked output: stdout
-Missing file(s) containing the test output: Missing file "_build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/outcome"
+[1mAll tests[0m
+[33m[MISS][0m  8dbdda48fb87 [36msimple[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[33m[MISS][0m  2c57c8917bfb [36munchecked stdout[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[33m[MISS][0m  68358d78cb0b [36munchecked stderr[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[33m[MISS][0m  d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/outcome[0m
+[33m[MISS][0m  72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/outcome[0m
+[33m[MISS][0m  5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/outcome[0m
+[33m[MISS][0m  486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/outcome[0m
+[33m[MISS][0m  85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[33m[MISS][0m  91a3c9030236 [36mchdir[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[33m[MISS][0m  a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/outcome[0m
 
-[1mShort status[0m
-[33m[MISS][0m  8dbdda48fb87 simple
-[33m[MISS][0m  d1a055429711 capture stdout
-[33m[MISS][0m  72f48157b077 capture stderr
-[33m[MISS][0m  5deda5ac4212 capture stdxxx
-[33m[MISS][0m  486ef3ce86ab capture stdout and stderr
-[33m[MISS][0m  85349a4a9157 xfail
-[33m[MISS][0m  91a3c9030236 chdir
-[33m[MISS][0m  a3e1a604f579 masked
-9/9 selected tests:
+[1mTests that need attention[0m
+[33m[MISS][0m  8dbdda48fb87 [36msimple[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[33m[MISS][0m  2c57c8917bfb [36munchecked stdout[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[33m[MISS][0m  68358d78cb0b [36munchecked stderr[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[33m[MISS][0m  d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/outcome[0m
+[33m[MISS][0m  72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/outcome[0m
+[33m[MISS][0m  5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/outcome[0m
+[33m[MISS][0m  486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/outcome[0m
+[33m[MISS][0m  85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[33m[MISS][0m  91a3c9030236 [36mchdir[0m
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[33m[MISS][0m  a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/outcome[0m
+11/11 selected tests:
   0 successful (0 pass, 0 xfail),
   0 unsuccessful (0 fail, 0 xpass),
-9 new tests
+11 new tests
 0 test whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
@@ -329,6 +456,8 @@ Testing `test'.
 This run has ID `<MASKED RUN ID>'.
 
   [OK]          8dbdda48fb87 simple                             0   simple.
+  [OK]          2c57c8917bfb unchecked stdout                   0   unchecked...
+  [OK]          68358d78cb0b unchecked stderr                   0   unchecked...
   [OK]          d1a055429711 capture stdout                     0   capture s...
   [OK]          72f48157b077 capture stderr                     0   capture s...
   [OK]          5deda5ac4212 capture stdxxx                     0   capture s...
@@ -348,16 +477,32 @@ This run has ID `<MASKED RUN ID>'.
           Called from <MASKED>
           Re-raised at <MASKED>
           Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
           Called from <MASKED>
           Re-raised at <MASKED>
           Called from <MASKED>
           Called from <MASKED>
-
-Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+005D xfail.000.output'.
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Called from <MASKED>
+          
+Logs saved to <MASKED>
  ──────────────────────────────────────────────────────────────────────────────
 
-Full test results in `~/semgrep/libs/alcotest_ext/_build/_tests/test'.
-1 failure! <MASKED DURATION>. 8 tests run.
+Full test results in <MASKED>
+1 failure! <MASKED DURATION>. 10 tests run.
 The status of completed tests is reported below as one of four kinds:
 - PASS: a successful test that was expected to succeed (good);
 - FAIL: a failing test that was expected to succeed (needs fixing);
@@ -369,27 +514,48 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[32m[PASS][0m  8dbdda48fb87 simple
-[32m[PASS][0m  d1a055429711 capture stdout
-  checked output: stdout
-[32m[PASS][0m  72f48157b077 capture stderr
-  checked output: stderr
-[32m[PASS][0m  5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-[32m[PASS][0m  486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-[32m[XFAIL][0m 85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[32m[PASS][0m  91a3c9030236 chdir
-[32m[PASS][0m  a3e1a604f579 masked
-  checked output: stdout
+[1mAll tests[0m
+[32m[PASS][0m  8dbdda48fb87 [36msimple[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[32m[PASS][0m  2c57c8917bfb [36munchecked stdout[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[32m[PASS][0m  68358d78cb0b [36munchecked stderr[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[32m[PASS][0m  d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  Path to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout
+  Path to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/unchecked
+[32m[PASS][0m  72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  Path to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr
+  Path to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/unchecked
+[32m[PASS][0m  5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  Path to expected stdxxx: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
+  Path to latest stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
+[32m[PASS][0m  486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  Path to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+  Path to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+  Path to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
+  Path to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
+[32m[XFAIL][0m 85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[32m[PASS][0m  91a3c9030236 [36mchdir[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[32m[PASS][0m  a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  Path to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+  Path to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/unchecked
 
-[1mShort status[0m
-9/9 selected tests:
-  8 successful (7 pass, 1 xfail),
+11/11 selected tests:
+  10 successful (9 pass, 1 xfail),
   0 unsuccessful (0 fail, 0 xpass),
 1 new test
 0 test whose output needs first-time approval
@@ -411,37 +577,54 @@ Other states:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 
-[1mLong status[0m
-[32m[PASS][0m  8dbdda48fb87 simple
-[33m[PASS*][0m d1a055429711 capture stdout
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout"
-[33m[PASS*][0m 72f48157b077 capture stderr
-  checked output: stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr"
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-  checked output: merged stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx"
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-  checked output: separate stdout and stderr
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout"
-[32m[XFAIL][0m 85349a4a9157 xfail
-  expected to fail: "raises exception on purpose"
-[33m[MISS][0m  e52e279299e9 skipped
-  always skipped
-[32m[PASS][0m  91a3c9030236 chdir
-[33m[PASS*][0m a3e1a604f579 masked
-  checked output: stdout
-Missing file(s) containing the expected output: Missing file "tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout"
+[1mAll tests[0m
+[32m[PASS][0m  8dbdda48fb87 [36msimple[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[32m[PASS][0m  2c57c8917bfb [36munchecked stdout[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[32m[PASS][0m  68358d78cb0b [36munchecked stderr[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[32m[XFAIL][0m 85349a4a9157 [36mxfail[0m
+  Expected to fail: raises exception on purpose
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[33m[MISS][0m  e52e279299e9 [36mskipped[0m
+  Always skipped
+[32m[PASS][0m  91a3c9030236 [36mchdir[0m
+  Path to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
 
-[1mShort status[0m
-[33m[PASS*][0m d1a055429711 capture stdout
-[33m[PASS*][0m 72f48157b077 capture stderr
-[33m[PASS*][0m 5deda5ac4212 capture stdxxx
-[33m[PASS*][0m 486ef3ce86ab capture stdout and stderr
-[33m[PASS*][0m a3e1a604f579 masked
-9/9 selected tests:
-  8 successful (7 pass, 1 xfail),
+[1mTests that need attention[0m
+[33m[PASS*][0m d1a055429711 [36mcapture stdout[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[33m[PASS*][0m 72f48157b077 [36mcapture stderr[0m
+  Checked output: stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[33m[PASS*][0m 5deda5ac4212 [36mcapture stdxxx[0m
+  Checked output: merged stdout and stderr
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[33m[PASS*][0m 486ef3ce86ab [36mcapture stdout and stderr[0m
+  Checked output: separate stdout and stderr
+  [31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[33m[PASS*][0m a3e1a604f579 [36mmasked[0m
+  Checked output: stdout
+  [31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+11/11 selected tests:
+  10 successful (9 pass, 1 xfail),
   0 unsuccessful (0 fail, 0 xpass),
 1 new test
 5 tests whose output needs first-time approval

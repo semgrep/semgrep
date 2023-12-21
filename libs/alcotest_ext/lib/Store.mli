@@ -22,9 +22,13 @@ val init_settings :
 *)
 val init_workspace : unit -> unit
 
+(*
+   For one kind of captured output, this is the corresponding pair of files.
+   Unchecked output doesn't have a file for expected output.
+*)
 type output_file_pair = {
   short_name : string;
-  path_to_expected_output : string;
+  path_to_expected_output : string option;
   path_to_output : string;
 }
 
@@ -32,6 +36,12 @@ type output_file_pair = {
    For diffing output against expected output
 *)
 val get_output_file_pairs : 'a Types.test -> output_file_pair list
+
+(*
+   Ordinary output that's not compared against expectations.
+   This is what's left of stdout and stderr after redirections.
+*)
+val get_unchecked_output : 'a Types.test -> string option
 
 (*
    These functions are available after the call to 'init'.

@@ -8,6 +8,10 @@ module T = Alcotest_ext
 
 let t = T.create
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (*
    Invoke an arbitrary shell command.
 *)
@@ -17,6 +21,18 @@ let shell_command command =
   match Sys.command command with
   | 0 -> ()
   | n -> failwith (sprintf "Command '%s' failed with exit code %i" command n)
+
+let section text =
+  printf
+    {|#####################################################################
+# %s
+#####################################################################
+%!|}
+    text
+
+(*****************************************************************************)
+(* Exercise the regular test suite *)
+(*****************************************************************************)
 
 (*
    Invoke the pre-build test program.
@@ -30,14 +46,6 @@ let clear_status () =
 
 let clear_snapshots () =
   shell_command "rm -rf tests/snapshots/alcotest_ext_dummy_tests"
-
-let section text =
-  printf
-    {|#####################################################################
-# %s
-#####################################################################
-%!|}
-    text
 
 let test_standard_flow () =
   section "Clean start";
@@ -58,19 +66,51 @@ let test_standard_flow () =
   test_subcommand "status";
   test_subcommand "approve"
 
-(* Function composition *)
-let ( @@@ ) f g x = f (g x)
+(*****************************************************************************)
+(* Exercise the failing test suite *)
+(*****************************************************************************)
+
+let failing_test_subcommand shell_command_string =
+  let command = "./failing-test " ^ shell_command_string in
+  shell_command command
+
+let test_failing_flow_run () = failing_test_subcommand "run"
+let test_failing_flow_status () = failing_test_subcommand "status"
+
+(*****************************************************************************)
+(* Meta test suite *)
+(*****************************************************************************)
+
+let delete pat = T.mask_pcre_pattern ~mask:"" pat
+
+let mask_alcotest_output =
+  [
+    T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `" ~before:"'"
+      ();
+    T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|};
+    T.mask_line ~after:"Called from " ();
+    T.mask_line ~after:"Re-raised at " ();
+    T.mask_line ~after:"Logs saved to " ();
+    T.mask_line ~after:"Full test results in " ();
+    (* These extra markers show up in the Alcotest output in GitHub Actions.
+       There may be a better way to disable them but this will have to do for
+       now. *)
+    delete (Re.Pcre.quote "::group::{test}\n");
+    delete (Re.Pcre.quote "::endgroup::\n");
+  ]
 
 let tests =
   [
-    t ~output_kind:Merged_stdout_stderr
-      ~mask_output:
-        (T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `"
-           ~before:"'" ()
-        @@@ T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|}
-        @@@ T.mask_line ~after:"Called from " ()
-        @@@ T.mask_line ~after:"Re-raised at " ())
+    t ~output_kind:Merged_stdout_stderr ~mask_output:mask_alcotest_output
       "standard flow" test_standard_flow;
+    t "failing flow run"
+      ~expected_outcome:
+        (Should_fail "the invoked test suite is designed to fail")
+      test_failing_flow_run;
+    t "failing flow status"
+      ~expected_outcome:
+        (Should_fail "the invoked test suite is designed to fail")
+      test_failing_flow_status;
   ]
 
 let () =
