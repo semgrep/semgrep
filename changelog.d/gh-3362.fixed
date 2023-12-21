@@ -6,7 +6,7 @@ try:
   ...
 catch A:
   ...
-``` 
+```
 can now match
 ```
 try:
