@@ -643,7 +643,7 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules, _, _ = R.partition_rules rules in
+  let _, _, erules, _ = R.partition_rules rules in
   let erule_langs =
     erules |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
   in
@@ -688,12 +688,11 @@ let tainting_test lang rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let search_rules, taint_rules, extract_rules, secrets_rules, join_rules =
+  let search_rules, taint_rules, extract_rules, join_rules =
     Rule.partition_rules rules
   in
   assert (search_rules =*= []);
   assert (extract_rules =*= []);
-  assert (secrets_rules =*= []);
   assert (join_rules =*= []);
   let xconf = Match_env.default_xconfig in
 
