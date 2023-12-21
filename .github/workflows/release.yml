@@ -78,10 +78,8 @@ jobs:
     - inputs
     with:
       docker-flavor: latest=false
-      docker-tags: "\n      # tag image with \"canary\"\n      type=raw,value=canary\n
-        \     # tag image with full version (ex. \"1.2.3\")\n      type=semver,pattern={{version}}\n
-        \     # tag image with major.minor (ex. \"1.2\")\n      type=semver,pattern={{major}}.{{minor}}\n
-        \   "
+      docker-tags: "\n      type=raw,value=canary\n      type=semver,pattern={{version}}\n
+        \     type=semver,pattern={{major}}.{{minor}}\n    "
       repository-name: returntocorp/semgrep
       artifact-name: image-release
       file: Dockerfile
@@ -94,13 +92,9 @@ jobs:
     - inputs
     - build-test-docker
     with:
-      docker-flavor: "\n      # suffix all tags with \"-nonroot\"\n      suffix=-nonroot\n
-        \     # don't add a \"latest-nonroot\" tag (we'll promote \"canary-nonroot\"
-        to \"latest-nonroot\" after testing)\n      latest=false\n    "
-      docker-tags: "\n      # tag image with \"canary-nonroot\"\n      type=raw,value=canary\n
-        \     # tag image with full version (ex. \"1.2.3-nonroot\")\n      type=semver,pattern={{version}}\n
-        \     # tag image with major.minor version (ex. \"1.2-nonroot\")\n      type=semver,pattern={{major}}.{{minor}}\n
-        \   "
+      docker-flavor: "\n      suffix=-nonroot\n      latest=false\n    "
+      docker-tags: "\n      type=raw,value=canary\n      type=semver,pattern={{version}}\n
+        \     type=semver,pattern={{major}}.{{minor}}\n    "
       repository-name: returntocorp/semgrep
       artifact-name: image-release-nonroot
       file: Dockerfile

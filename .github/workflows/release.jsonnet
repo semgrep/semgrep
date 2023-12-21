@@ -5,7 +5,6 @@
 //  - prepare and upload to PyPy a new semgrep package
 //  - make a PR for homebrew's formula to update to the latest semgrep
 
-// TODO: remove the \n
 // TODO: use semgrep.github_bot.token instead of ref to step each time
 // TODO: factorize more, use reference and local instead of duplicating strings
 // TODO: remove some useless name:
@@ -59,6 +58,17 @@ local inputs_job = {
 // Docker jobs
 // ----------------------------------------------------------------------------
 
+// TODO: those are comments for the docker-tags below. Not sure
+// why but if we put those comments directly in the ||| |||
+// then the job does not work.
+//
+// # tag image with "canary"
+// type=raw,value=canary
+// # tag image with full version (ex. "1.2.3")
+// type=semver,pattern={{version}}
+// # tag image with major.minor (ex. "1.2")
+// type=semver,pattern={{major}}.{{minor}}
+
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
@@ -69,11 +79,8 @@ local build_test_docker_job = {
     // don't add a "latest" tag (we'll promote "canary" to "latest" after testing)
     'docker-flavor': 'latest=false',
     'docker-tags': |||
-      # tag image with "canary"
       type=raw,value=canary
-      # tag image with full version (ex. "1.2.3")
       type=semver,pattern={{version}}
-      # tag image with major.minor (ex. "1.2")
       type=semver,pattern={{major}}.{{minor}}
     |||,
     'repository-name': 'returntocorp/semgrep',
@@ -83,6 +90,18 @@ local build_test_docker_job = {
     'enable-tests': true,
   },
 };
+
+// # suffix all tags with "-nonroot"
+// suffix=-nonroot
+// # don't add a "latest-nonroot" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
+// latest=false
+
+// # tag image with "canary-nonroot"
+// type=raw,value=canary
+// # tag image with full version (ex. "1.2.3-nonroot")
+// type=semver,pattern={{version}}
+// # tag image with major.minor version (ex. "1.2-nonroot")
+// type=semver,pattern={{major}}.{{minor}}
 
 local build_test_docker_nonroot_job = {
   uses: './.github/workflows/build-test-docker.yaml',
@@ -96,17 +115,12 @@ local build_test_docker_nonroot_job = {
   ],
   with: {
     'docker-flavor': |||
-      # suffix all tags with "-nonroot"
       suffix=-nonroot
-      # don't add a "latest-nonroot" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
       latest=false
     |||,
     'docker-tags': |||
-      # tag image with "canary-nonroot"
       type=raw,value=canary
-      # tag image with full version (ex. "1.2.3-nonroot")
       type=semver,pattern={{version}}
-      # tag image with major.minor version (ex. "1.2-nonroot")
       type=semver,pattern={{major}}.{{minor}}
     |||,
     'repository-name': 'returntocorp/semgrep',
