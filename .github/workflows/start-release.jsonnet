@@ -136,15 +136,15 @@ local release_setup_job = {
       run: |||
         pip3 install pipenv==2022.6.7
         pipenv install --dev
-        pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt
-      |||,
+        pipenv run towncrier build --draft --version %s > release_body.txt
+      ||| % version,
     },
     {
       name: 'Upload Changelog Body Artifact',
       'if': '${{ ! inputs.dry-run }}',
       uses: 'actions/upload-artifact@v3',
       with: {
-        name: 'release_body_${{ needs.get-version.outputs.version }}',
+        name: 'release_body_%s' % version,
         path: 'scripts/release/release_body.txt',
       },
     },
@@ -155,9 +155,9 @@ local release_setup_job = {
       run: |||
         pip3 install pipenv==2022.6.7
         pipenv install --dev
-        pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version }}
+        pipenv run towncrier build --yes --version %s
         pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
-      |||,
+      ||| % version,
     },
     {
       name: 'Push release branch',
@@ -180,7 +180,7 @@ local release_setup_job = {
       env: {
         SOURCE: '${{ steps.release-branch.outputs.release-branch }}',
         TARGET: '${{ github.event.repository.default_branch }}',
-        TITLE: 'Release Version ${{ needs.get-version.outputs.version }}',
+        TITLE: 'Release Version %s' % version,
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: |||
@@ -297,9 +297,9 @@ local create_tag_job = {
       run: |||
         git config user.name ${{ github.actor }}
         git config user.email ${{ github.actor }}@users.noreply.github.com
-        git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
-        git push origin "v${{ needs.get-version.outputs.version }}"
-      |||,
+        git tag -a -m "Release %s" "v%s"
+        git push origin "v%s"
+      ||| % [version, version, version],
     },
     {
       name: 'Create semgrep-interfaces release version tag',
@@ -307,9 +307,9 @@ local create_tag_job = {
         cd cli/src/semgrep/semgrep_interfaces
         git config user.name ${{ github.actor }}
         git config user.email ${{ github.actor }}@users.noreply.github.com
-        git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
-        git push origin "v${{ needs.get-version.outputs.version }}"
-      |||,
+        git tag -a -m "Release %s" "v%s"
+        git push origin "v%s"
+      ||| % [version, version, version],
     },
   ],
 };
@@ -328,7 +328,7 @@ local create_draft_release_job = {
       name: 'Download Release Body Artifact',
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'release_body_${{ needs.get-version.outputs.version }}',
+        name: 'release_body_%s' % version,
         path: 'scripts/release',
       },
     },
@@ -336,8 +336,8 @@ local create_draft_release_job = {
       name: 'Create Draft Release Semgrep',
       uses: 'softprops/action-gh-release@v1',
       with: {
-        tag_name: 'v${{ needs.get-version.outputs.version }}',
-        name: 'Release v${{ needs.get-version.outputs.version }}',
+        tag_name: 'v%s' % version,
+        name: 'Release v%s' % version,
         body_path: 'scripts/release/release_body.txt',
         token: '${{ secrets.GITHUB_TOKEN }}',
         prerelease: false,
@@ -350,8 +350,8 @@ local create_draft_release_job = {
       name: 'Create Draft Release Semgrep Interfaces',
       uses: 'softprops/action-gh-release@v1',
       with: {
-        tag_name: 'v${{ needs.get-version.outputs.version }}',
-        name: 'Release v${{ needs.get-version.outputs.version }}',
+        tag_name: 'v%s' % version,
+        name: 'Release v%s' % version,
         body_path: 'scripts/release/release_body.txt',
         token: semgrep.github_bot.token_ref,
         prerelease: false,
@@ -481,23 +481,23 @@ local notify_success_job = {
   'runs-on': 'ubuntu-20.04',
   steps: [
     {
-      run: 'echo "${{needs.get-version.outputs.version}}"',
+      run: 'echo "%s"' % version,
     },
     {
       name: 'Notify Success',
       run: |||
         # POST a webhook to Zapier to allow for public notifications to our users via Twitter
         curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-          -d '{"version":"${{needs.get-version.outputs.version}}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${{needs.get-version.outputs.version}}"}'
+          -d '{"version":"%s","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v%s"}'
 
         curl --request POST \
         --url  ${{ secrets.NOTIFICATIONS_URL }} \
         --header 'content-type: application/json' \
         --data '{
-          "version": "${{needs.get-version.outputs.version}}",
+          "version": "%s",
           "message": "Release Validation has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow."
         }'
-      |||,
+      ||| % [version, version, version],
     },
   ],
 };
@@ -521,10 +521,10 @@ local notify_failure_job = {
         --url  ${{ secrets.NOTIFICATIONS_URL }} \
         --header 'content-type: application/json' \
         --data '{
-          "version": "${{needs.get-version.outputs.version}}",
+          "version": "%s",
           "message": "Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
         }'
-      |||,
+      ||| % version,
     },
   ],
 };
