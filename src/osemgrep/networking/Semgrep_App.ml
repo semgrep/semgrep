@@ -264,8 +264,8 @@ let url_for_policy caps =
                "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
       | Some repo_name -> scan_config_uri repo_name)
 
-let fetch_scan_config_async ~dry_run ~sca ~full_scan ~repository caps :
-    (OutJ.scan_config, string) result Lwt.t =
+let fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps :
+    (string, string) result Lwt.t =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -295,13 +295,23 @@ let fetch_scan_config_async ~dry_run ~sca ~full_scan ~repository caps :
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   (* TODO? use Result.map? or a let*? *)
-  let conf =
+  let conf_string =
     match content with
     | Error _ as e -> e
-    | Ok (content, _) -> Ok (OutJ.scan_config_of_string content)
+    | Ok (content, _) -> Ok content
   in
 
-  Lwt.return conf
+  Lwt.return conf_string
+
+let fetch_scan_config_async ~dry_run ~sca ~full_scan ~repository caps :
+    (OutJ.scan_config, string) result Lwt.t =
+  let%lwt scan_config_string =
+    fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps
+  in
+  let scan_config_opt =
+    Result.bind scan_config_string (fun c -> Ok (OutJ.scan_config_of_string c))
+  in
+  Lwt.return scan_config_opt
 
 let fetch_scan_config ~dry_run ~sca ~full_scan ~repository caps =
   Lwt_platform.run
