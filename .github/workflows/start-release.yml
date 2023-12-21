@@ -110,8 +110,8 @@ jobs:
         cache-dependency-path: scripts/release/Pipfile.lock
     - name: Create GitHub Release Body
       working-directory: scripts/release
-      run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
-        \       pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version
+      run: "\n        \n        pip3 install pipenv==2022.6.7\n        pipenv install
+        --dev\n \n        pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version
         }} > release_body.txt\n      "
       if: ${{ ! inputs.dry-run }}
     - name: Upload Changelog Body Artifact
@@ -122,16 +122,16 @@ jobs:
       if: ${{ ! inputs.dry-run }}
     - name: Update Changelog
       working-directory: scripts/release
-      run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
-        \       pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version
+      run: "\n        \n        pip3 install pipenv==2022.6.7\n        pipenv install
+        --dev\n \n        pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version
         }}\n        pipenv run pre-commit run --files ../../CHANGELOG.md --config
         ../../.pre-commit-config.yaml || true\n      "
     - name: Push release branch
       env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
-      run: "\n        git config user.name ${{ github.actor }}\n        git config
-        user.email ${{ github.actor }}@users.noreply.github.com\n        git add --all\n
-        \       git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
+      run: "\n        \n        git config user.name ${{ github.actor }}\n        git
+        config user.email ${{ github.actor }}@users.noreply.github.com\n\n        git
+        add --all\n        git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
         \       git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
         }}\n      "
       if: ${{ ! inputs.dry-run }}
@@ -167,17 +167,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n\n        #
-        Immediately after creation, the PR doesn't have any checks attached\n        #
-        yet, wait until this is not the case. If you immediately start waiting\n        #
-        for checks, then it just fails saying there's no checks.\n          while
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n          while
         [ ${LEN_CHECKS} = \"0\" ]; do\n            echo \"No checks available yet\"\n
         \           sleep 1\n            LEN_CHECKS=$(gh pr -R returntocorp/semgrep
         view \"${{ needs.release-setup.outputs.pr-number }}\" --json statusCheckRollup
         --jq '.statusCheckRollup | length');\n          done\n          echo \"checks
         are valid\"\n\n          echo ${LEN_CHECKS}\n\n          gh pr -R returntocorp/semgrep
         view \"${{ needs.release-setup.outputs.pr-number }}\" --json statusCheckRollup\n
-        \     "
+        \ "
     - name: Wait for checks to complete
       id: wait-checks
       env:
@@ -220,17 +217,17 @@ jobs:
         ref: ${{ needs.release-setup.outputs.release-branch }}
         token: ${{ steps.token.outputs.token }}
     - name: Create semgrep release version tag
-      run: "\n        git config user.name ${{ github.actor }}\n        git config
-        user.email ${{ github.actor }}@users.noreply.github.com\n        git tag -a
-        -m \"Release ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
+      run: "\n        \n        git config user.name ${{ github.actor }}\n        git
+        config user.email ${{ github.actor }}@users.noreply.github.com\n\n        git
+        tag -a -m \"Release ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
         }}\"\n        git push origin \"v${{ needs.get-version.outputs.version }}\"\n
         \     "
     - name: Create semgrep-interfaces release version tag
-      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        git config user.name
-        ${{ github.actor }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
-        \       git tag -a -m \"Release ${{ needs.get-version.outputs.version }}\"
-        \"v${{ needs.get-version.outputs.version }}\"\n        git push origin \"v${{
-        needs.get-version.outputs.version }}\"\n      "
+      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        \n        git
+        config user.name ${{ github.actor }}\n        git config user.email ${{ github.actor
+        }}@users.noreply.github.com\n\n        git tag -a -m \"Release ${{ needs.get-version.outputs.version
+        }}\" \"v${{ needs.get-version.outputs.version }}\"\n        git push origin
+        \"v${{ needs.get-version.outputs.version }}\"\n      "
     if: ${{ ! inputs.dry-run }}
   create-draft-release:
     runs-on: ubuntu-20.04
@@ -286,22 +283,20 @@ jobs:
     - wait-for-pr-checks
     - create-tag
     steps:
-    - name: Wait for release checks to register
-      id: register-release-checks
+    - name: Wait for checks to register
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n\n        #
-        We need to wait for the new checks to register when the release tag is pushed\n
-        \       while [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks
-        }} ]; do\n          echo \"No checks available yet\"\n          sleep 1\n
-        \         LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n        done\n
-        \       echo \"checks are valid\"\n\n        echo ${LEN_CHECKS}\n\n        gh
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n          while
+        [ ${LEN_CHECKS} = \"${{ needs.wait-for-pr-checks.outputs.num-checks }}\" ];
+        do\n            echo \"No checks available yet\"\n            sleep 1\n            LEN_CHECKS=$(gh
         pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
-        }}\" --json statusCheckRollup\n      "
-    - name: Wait for release checks
-      id: wait-release-checks
+        }}\" --json statusCheckRollup --jq '.statusCheckRollup | length');\n          done\n
+        \         echo \"checks are valid\"\n\n          echo ${LEN_CHECKS}\n\n          gh
+        pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
+        }}\" --json statusCheckRollup\n  "
+    - name: Wait for checks to complete
+      id: wait-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number
@@ -362,16 +357,17 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - run: echo "${{ needs.get-version.outputs.version }}"
-    - name: Notify Success
+    - name: Notify Success on Twitter
       run: "\n        # POST a webhook to Zapier to allow for public notifications
         to our users via Twitter\n        curl \"${{ secrets.ZAPIER_WEBHOOK_URL }}\"
         \\\n          -d '{\"version\":\"${{ needs.get-version.outputs.version }}\",\"changelog_url\":\"https://github.com/returntocorp/semgrep/releases/tag/v${{
-        needs.get-version.outputs.version }}\"}'\n\n        curl --request POST \\\n
-        \       --url  ${{ secrets.NOTIFICATIONS_URL }} \\\n        --header 'content-type:
-        application/json' \\\n        --data '{\n          \"version\": \"${{ needs.get-version.outputs.version
-        }}\",\n          \"message\": \"Release Validation has succeeded! Please review
-        the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated
-        by this workflow.\"\n        }'\n      "
+        needs.get-version.outputs.version }}\"}'\n      "
+    - name: Notify Success on Slack
+      run: "\n    curl --request POST \\\n    --url  ${{ secrets.NOTIFICATIONS_URL
+        }} \\\n    --header 'content-type: application/json' \\\n    --data '{\n      \"version\":
+        \"${{ needs.get-version.outputs.version }}\",\n      \"message\": \"Release
+        Validation has succeeded! Please review the PRs in semgrep-app, semgrep-rpc,
+        and semgrep-action that were generated by this workflow.\"\n    }'\n  "
   notify-failure:
     if: ${{ failure() && ! inputs.dry-run }}
     needs:
@@ -384,8 +380,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Notify Failure
-      run: "\n        curl --request POST \\\n        --url  ${{ secrets.NOTIFICATIONS_URL
-        }} \\\n        --header 'content-type: application/json' \\\n        --data
-        '{\n          \"version\": \"${{ needs.get-version.outputs.version }}\",\n
-        \         \"message\": \"Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        for more details!\"\n        }'\n      "
+      run: "\n    curl --request POST \\\n    --url  ${{ secrets.NOTIFICATIONS_URL
+        }} \\\n    --header 'content-type: application/json' \\\n    --data '{\n      \"version\":
+        \"${{ needs.get-version.outputs.version }}\",\n      \"message\": \"Release
+        Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+        for more details!\"\n    }'\n  "
