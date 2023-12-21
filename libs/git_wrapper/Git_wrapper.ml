@@ -399,8 +399,8 @@ let dirty_files ?cwd () =
   let files = List_.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files
 
-let init ?cwd () =
-  let cmd = (git, cd cwd @ [ "init" ]) in
+let init ?cwd ?(branch = "main") () =
+  let cmd = (git, cd cwd @ [ "init"; "-b"; branch ]) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")

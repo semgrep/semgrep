@@ -98,8 +98,11 @@ val is_tracked_by_git : ?cwd:Fpath.t -> Fpath.t -> bool
 val dirty_files : ?cwd:Fpath.t -> unit -> Fpath.t list
 (** Returns a list of files that are dirty in a git repo *)
 
-val init : ?cwd:Fpath.t -> unit -> unit
-(** Initialize a git repo in the given directory *)
+val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
+(** Initialize a git repo in the given directory.
+    The branch is set by default to 'main' to avoid warnings that depend
+    on the git version.
+*)
 
 val add : ?cwd:Fpath.t -> Fpath.t list -> unit
 (** Add the given files to the git repo *)
