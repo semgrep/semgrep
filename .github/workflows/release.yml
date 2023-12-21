@@ -48,8 +48,7 @@ jobs:
         python-version: "3.10"
         cache: pipenv
     - run: sudo python3 -m pip install pipenv==2022.6.7
-    - name: Install dependencies
-      run: pipenv install --dev
+    - run: pipenv install --dev
     - name: Build parked packages
       run: pipenv run python setup.py park
     - name: Publish to Pypi

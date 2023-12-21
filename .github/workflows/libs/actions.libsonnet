@@ -1,5 +1,4 @@
 // Factorize GHA Action plugins boilerplate.
-
 {
   // TODO: default to submodules=true, and a flexible with={}?
   // What about 'persist-credentials': false? needed? A few of
@@ -20,7 +19,9 @@
     uses: 'actions/setup-python@v4',
     with: {
       'python-version': version,
-      // ??? where is this cache created?
+      // TODO where is this cache created?
+      // TODO at least force to specify the key?
+      // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
       cache: 'pipenv',
     },
   },

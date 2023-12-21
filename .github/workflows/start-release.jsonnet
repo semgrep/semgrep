@@ -259,7 +259,7 @@ local release_setup_job = {
       },
       run: 'make release',
     },
-    // for towncrier
+    // for towncrier, TODO reuse actions.setup_python
     {
       uses: 'actions/setup-python@v4',
       with: {
@@ -545,7 +545,6 @@ local notify_failure_job = {
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'start-release',
   on: {
