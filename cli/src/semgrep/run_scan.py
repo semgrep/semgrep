@@ -62,11 +62,9 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_metrics import Any_ as AnySecretsOrigin
-from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import Semgrep as SemgrepSecretsOrigin
-from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -430,7 +428,7 @@ def run_scan(
         metrics.add_configs(configs)
         metrics.add_engine_config(
             engine_type,
-            CodeConfig(),
+            with_code_rules,
             SecretsConfig(
                 SecretsOrigin(AnySecretsOrigin())
                 if allow_untrusted_validators
@@ -438,7 +436,7 @@ def run_scan(
             )
             if run_secrets and not disable_secrets_validation
             else None,
-            SupplyChainConfig() if with_supply_chain else None,
+            with_supply_chain,
         )
         metrics.add_is_diff_scan(baseline_commit is not None)
         if engine_type.is_pro:

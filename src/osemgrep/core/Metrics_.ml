@@ -286,7 +286,7 @@ let add_engine_type (engine_type : Engine_type.t) =
             | Intraprocedural -> `Intraprocedural
             | Interprocedural -> `Interprocedural
             | Interfile -> `Interfile);
-          code_config;
+          code_config = Option.map (Fun.const true) code_config;
           secrets_config =
             Option.map
               (fun (conf : Engine_type.secrets_config) :
@@ -296,7 +296,7 @@ let add_engine_type (engine_type : Engine_type.t) =
                     (if conf.allow_all_origins then `Any else `Semgrep);
                 })
               secrets_config;
-          supply_chain_config;
+          supply_chain_config = Option.map (Fun.const true) supply_chain_config;
           pro_langs = extra_languages;
         }
   in
