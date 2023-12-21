@@ -192,6 +192,14 @@ let names_of_checked_output (output : T.output_kind) : string list =
   | Merged_stdout_stderr -> [ stdxxx_filename ]
   | Separate_stdout_stderr -> [ stdout_filename; stderr_filename ]
 
+let has_unchecked_output (output : T.output_kind) : bool =
+  match output with
+  | Ignore_output -> true
+  | Stdout -> true
+  | Stderr -> true
+  | Merged_stdout_stderr -> false
+  | Separate_stdout_stderr -> false
+
 let get_output_path (test : _ T.test) filename =
   get_status_workspace () // test.id // filename
 
@@ -209,6 +217,14 @@ let get_output (test : _ T.test) =
 
 let get_checked_output (test : _ T.test) =
   test |> get_checked_output_paths |> list_map read_file
+
+let get_unchecked_output (test : _ T.test) =
+  if has_unchecked_output test.output_kind then
+    let path = get_unchecked_output_path test in
+    match read_file path with
+    | Ok data -> Some data
+    | Error _cant_read_file -> None
+  else None
 
 let get_expected_output_path (test : _ T.test) filename =
   get_expectation_workspace () // test.id // filename

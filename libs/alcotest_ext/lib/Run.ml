@@ -404,54 +404,60 @@ let show_output (test : _ T.test) (sum : T.status_summary)
 
 let print_error text = printf "  %s\n" (Color.format Red text)
 
-let print_status ?(output_style = Full)
-    ((test : _ T.test), (status : T.status), sum) =
+let print_status ((test : _ T.test), (status : T.status), sum) =
   printf "%s %s%s %s\n"
     (format_status_summary sum)
     test.id (format_tags test)
     (Color.format Cyan test.internal_full_name);
 
-  match output_style with
-  | Short -> ()
-  | Full ->
-      if (* Details about expectations *)
-         test.skipped then printf "  Always skipped\n"
-      else (
-        (match status.expectation.expected_outcome with
-        | Should_succeed -> ()
-        | Should_fail reason -> printf "  Expected to fail: %s\n" reason);
-        (match test.output_kind with
-        | Ignore_output -> ()
-        | _ ->
-            let text =
-              match test.output_kind with
-              | Ignore_output -> assert false
-              | Stdout -> "stdout"
-              | Stderr -> "stderr"
-              | Merged_stdout_stderr -> "merged stdout and stderr"
-              | Separate_stdout_stderr -> "separate stdout and stderr"
-            in
-            printf "  Checked output: %s\n" text);
-        (* Details about results *)
-        match status.expectation.expected_output with
+  if (* Details about expectations *)
+     test.skipped then printf "  Always skipped\n"
+  else (
+    (match status.expectation.expected_outcome with
+    | Should_succeed -> ()
+    | Should_fail reason -> printf "  Expected to fail: %s\n" reason);
+    (match test.output_kind with
+    | Ignore_output -> ()
+    | _ ->
+        let text =
+          match test.output_kind with
+          | Ignore_output -> assert false
+          | Stdout -> "stdout"
+          | Stderr -> "stderr"
+          | Merged_stdout_stderr -> "merged stdout and stderr"
+          | Separate_stdout_stderr -> "separate stdout and stderr"
+        in
+        printf "  Checked output: %s\n" text);
+    (* Details about results *)
+    (match status.expectation.expected_output with
+    | Error msg ->
+        print_error
+          (sprintf "Missing file(s) containing the expected output: %s" msg)
+    | Ok _expected_output -> (
+        match status.result with
         | Error msg ->
             print_error
-              (sprintf "Missing file(s) containing the expected output: %s" msg)
-        | Ok _expected_output -> (
-            match status.result with
-            | Error msg ->
-                print_error
-                  (sprintf "Missing file(s) containing the test output: %s" msg)
-            | Ok _result ->
-                let output_file_pairs = Store.get_output_file_pairs test in
-                show_output test sum output_file_pairs))
+              (sprintf "Missing file(s) containing the test output: %s" msg)
+        | Ok _result ->
+            let output_file_pairs = Store.get_output_file_pairs test in
+            show_output test sum output_file_pairs));
+    match success_of_status_summary sum with
+    | OK -> ()
+    | OK_but_new ->
+        (* TODO: show the checked output to be approved? *)
+        ()
+    | Not_OK -> (
+        match Store.get_unchecked_output test with
+        | Some ""
+        | None ->
+            ()
+        | Some data ->
+            print_string data;
+            if not (String.ends_with ~suffix:"\n" data) then print_char '\n';
+            flush stdout))
 
-let print_statuses ~only_important ~output_style tests_with_status =
-  let tests_with_status =
-    if only_important then List.filter is_important_status tests_with_status
-    else tests_with_status
-  in
-  tests_with_status |> List.iter (print_status ~output_style)
+let print_statuses tests_with_status =
+  tests_with_status |> List.iter print_status
 
 let is_overall_success statuses =
   statuses
@@ -467,8 +473,7 @@ let is_overall_success statuses =
    0. Introduction: explain how to read the output.
    1. Long status: for each selected test, show all the details one might
       want to know about the test.
-   2. Short status: for each selected test that's considered important
-      (= needs our attention), list a short summary of the test status.
+   2. Short status: show only the status of the tests that need our attention.
    3. Summary: give the counts for each test with a particular state.
 
    Options:
@@ -490,12 +495,19 @@ Other states:
 |}
 
 let print_short_status tests_with_status =
-  print_endline (Color.format Bold "Short status");
-  print_statuses ~only_important:true ~output_style:Short tests_with_status
+  let tests_with_status = List.filter is_important_status tests_with_status in
+  match tests_with_status with
+  | [] -> ()
+  | _ ->
+      print_endline (Color.format Bold "Tests that need attention");
+      print_statuses tests_with_status
 
 let print_long_status tests_with_status =
-  print_endline (Color.format Bold "Long status");
-  print_statuses ~only_important:false ~output_style:Full tests_with_status
+  match tests_with_status with
+  | [] -> ()
+  | _ ->
+      print_endline (Color.format Bold "All tests");
+      print_statuses tests_with_status
 
 let plural num = if num >= 2 then "s" else ""
 

@@ -7,9 +7,11 @@ let t = Alcotest_ext.create
 
 let tests =
   [
-    t "failing" (fun () -> failwith "oh no, I'm failing");
+    t "failing" (fun () ->
+        print_endline "<something being printed by the test>";
+        failwith "oh no, I'm failing");
     t "failing to fail" ~expected_outcome:(Should_fail "<reasons>") (fun () ->
-        ());
+        print_string "<something being printed by the test>");
   ]
 
 let () =
