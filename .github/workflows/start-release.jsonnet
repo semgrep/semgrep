@@ -4,13 +4,16 @@
 // See also the 'release:' rule in the toplevel Makefile which is used here to
 // prepare the release branch and scripts/release/ which contains helper scripts
 // for the release (e.g., towncrier to manage the changelog).
-
-// TODO:
-//  - factorize, lots of repeated content still
+//
+// LATER:
 //  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step instead
 //  - remove step.release-branch, use directly release-%s % version
 
 local semgrep = import 'libs/semgrep.libsonnet';
+
+// ----------------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------------
 
 // this is computed by the get_version_job (e.g., "1.55.0")
 // and can be referenced from other jobs
@@ -60,6 +63,7 @@ local unless_dry_run = {
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
+// this will post on Slack
 local curl_notify(message) = |||
     curl --request POST \
     --url  ${{ secrets.NOTIFICATIONS_URL }} \
@@ -69,6 +73,52 @@ local curl_notify(message) = |||
       "message": "%s"
     }'
   ||| % [version, message];
+
+local len_checks = "$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
+
+local wait_pr_checks_to_register(while_cond) = |||
+        LEN_CHECKS=%s;
+          while [ ${LEN_CHECKS} = "%s" ]; do
+            echo "No checks available yet"
+            sleep 1
+            LEN_CHECKS=%s;
+          done
+          echo "checks are valid"
+
+          echo ${LEN_CHECKS}
+
+          gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+  ||| % [len_checks, while_cond, len_checks, pr_number];
+
+local wait_pr_checks_to_register_step(while_cond) = {
+  name: 'Wait for checks to register',
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  },
+  run: wait_pr_checks_to_register(while_cond),
+};
+
+local wait_pr_checks_to_complete_step = {
+  name: 'Wait for checks to complete',
+  id: 'wait-checks',
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  },
+  // Wait for PR checks to finish
+  run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
+};
+
+local get_current_num_checks_step = {
+  name: 'Get Current Num Checks',
+  id: 'num-checks',
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  },
+      run: |||
+        LEN_CHECKS=%s;
+        echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
+      ||| % len_checks,
+};
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -273,57 +323,21 @@ local wait_for_pr_checks_job = {
     'release-setup',
   ],
   outputs: {
+    // to be used by wait_for_release_checks_job
     'num-checks': '${{ steps.num-checks.outputs.num-checks }}',
   },
   steps: [
-    {
-      name: 'Wait for checks to register',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      },
-      run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
-
-        # Immediately after creation, the PR doesn't have any checks attached
-        # yet, wait until this is not the case. If you immediately start waiting
-        # for checks, then it just fails saying there's no checks.
-          while [ ${LEN_CHECKS} = "0" ]; do
-            echo "No checks available yet"
-            sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
-          done
-          echo "checks are valid"
-
-          echo ${LEN_CHECKS}
-
-          gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
-      ||| % [pr_number, pr_number, pr_number],
-    },
-    {
-      name: 'Wait for checks to complete',
-      id: 'wait-checks',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      },
-      // Wait for PR checks to finish
-      run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
-    },
-    {
-      name: 'Get Current Num Checks',
-      id: 'num-checks',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      },
-      // Once all checks are complete on the PR, find the number of checks
-      // so that we can wait for the new checks to register. We can't do this
-      // above because sometimes all checks aren't yet ready by the time the
-      // first one is, so we end up in a case where we aren't getting waiting
-      // for all checks.
-      run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
-        echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
-      ||| % pr_number,
-    },
+    // Immediately after creation, the PR doesn't have any checks attached
+    // yet, wait until this is not the case. If you immediately start waiting
+    // for checks, then it just fails saying there's no checks.
+    wait_pr_checks_to_register_step("0"),
+    wait_pr_checks_to_complete_step,
+    // Once all checks are complete on the PR, find the number of checks
+    // so that we can wait for the new checks to register. We can't do this
+    // above because sometimes all checks aren't yet ready by the time the
+    // first one is, so we end up in a case where we aren't getting waiting
+    // for all checks.
+    get_current_num_checks_step,
   ],
 } + unless_dry_run;
 
@@ -418,6 +432,7 @@ local create_draft_release_job = {
   ],
 } + unless_dry_run;
 
+// similar to wait_for_pr_checks_job
 local wait_for_release_checks_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
@@ -432,23 +447,8 @@ local wait_for_release_checks_job = {
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
-      // TODO: factorize this script, only diff with previous one
-      // is the condition check on LEN_CHECKS
-      run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
-
-        # We need to wait for the new checks to register when the release tag is pushed
-        while [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks }} ]; do
-          echo "No checks available yet"
-          sleep 1
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
-        done
-        echo "checks are valid"
-
-        echo ${LEN_CHECKS}
-
-        gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
-      ||| % [ pr_number, pr_number, pr_number],
+      // We need to wait for the new checks to register when the release tag is pushed
+      run: wait_pr_checks_to_register("${{ needs.wait-for-pr-checks.outputs.num-checks }}"),
     },
     {
       name: 'Wait for release checks',
