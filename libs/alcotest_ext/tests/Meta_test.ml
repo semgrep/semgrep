@@ -81,17 +81,27 @@ let test_failing_flow_status () = failing_test_subcommand "status"
 (* Meta test suite *)
 (*****************************************************************************)
 
+let delete pat = T.mask_pcre_pattern ~mask:"" pat
+
+let mask_alcotest_output =
+  [
+    T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `" ~before:"'"
+      ();
+    T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|};
+    T.mask_line ~after:"Called from " ();
+    T.mask_line ~after:"Re-raised at " ();
+    T.mask_line ~after:"Logs saved to " ();
+    T.mask_line ~after:"Full test results in " ();
+    (* These extra markers show up in the Alcotest output in GitHub Actions.
+       There may be a better way to disable them but this will have to do for
+       now. *)
+    delete (Re.Pcre.quote "::group::{test}\n");
+    delete (Re.Pcre.quote "::endgroup::\n");
+  ]
+
 let tests =
   [
-    t ~output_kind:Merged_stdout_stderr
-      ~mask_output:
-        [
-          T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `"
-            ~before:"'" ();
-          T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|};
-          T.mask_line ~after:"Called from " ();
-          T.mask_line ~after:"Re-raised at " ();
-        ]
+    t ~output_kind:Merged_stdout_stderr ~mask_output:mask_alcotest_output
       "standard flow" test_standard_flow;
     t "failing flow run"
       ~expected_outcome:

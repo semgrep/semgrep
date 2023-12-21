@@ -139,10 +139,10 @@ This run has ID `<MASKED RUN ID>'.
           Called from <MASKED>
           Called from <MASKED>
           
-Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+005D xfail.000.output'.
+Logs saved to <MASKED>
  ──────────────────────────────────────────────────────────────────────────────
 
-Full test results in `~/semgrep/libs/alcotest_ext/_build/_tests/test'.
+Full test results in <MASKED>
 1 failure! <MASKED DURATION>. 10 tests run.
 The status of completed tests is reported below as one of four kinds:
 - PASS: a successful test that was expected to succeed (good);
@@ -498,10 +498,10 @@ This run has ID `<MASKED RUN ID>'.
           Called from <MASKED>
           Called from <MASKED>
           
-Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+005D xfail.000.output'.
+Logs saved to <MASKED>
  ──────────────────────────────────────────────────────────────────────────────
 
-Full test results in `~/semgrep/libs/alcotest_ext/_build/_tests/test'.
+Full test results in <MASKED>
 1 failure! <MASKED DURATION>. 10 tests run.
 The status of completed tests is reported below as one of four kinds:
 - PASS: a successful test that was expected to succeed (good);
