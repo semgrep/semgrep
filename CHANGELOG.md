@@ -6,6 +6,26 @@
 
 <!-- insertion point -->
 
+## [1.54.2](https://github.com/returntocorp/semgrep/releases/tag/v1.54.2) - 2023-12-21
+
+
+### Added
+
+
+- metrics: added more granular information about pro engine configurations to
+  help differentiate scans using different engine capabilities. For instance,
+  maintainers are now able to distinguish intraprocedural scans without secrets
+  validation from intraprocedural scans with secrets validation. This allows us
+  to have a better understanding of usage and more accurately identify
+  product-specific issues (e.g., to see if something only affects secrets scans). (ea-297)
+
+
+### Fixed
+
+
+- Revise error message when running `semgrep ci` without being logged in to clarify that `--config` is used with `semgrep scan`. (gh-9485)
+
+
 ## [1.54.1](https://github.com/returntocorp/semgrep/releases/tag/v1.54.1) - 2023-12-20
 
 
