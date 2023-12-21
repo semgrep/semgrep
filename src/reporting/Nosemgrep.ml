@@ -124,20 +124,12 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
     | None -> None
     | Some line -> recognise_and_collect ~rex:nosem_inline_re line
   in
-  UCommon.(
-    pr2
-      (Common.spf "ids line %s"
-         ([%show: (int * string * int) option list option] ids_line)));
   let ids_previous_line =
     match previous_line with
     | None -> None
     | Some previous_line ->
         recognise_and_collect ~rex:nosem_previous_line_re previous_line
   in
-  UCommon.(
-    pr2
-      (Common.spf "ids line %s"
-         ([%show: (int * string * int) option list option] ids_previous_line)));
 
   match
     ( Option.value ~default:[] ids_line,
