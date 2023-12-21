@@ -6,7 +6,7 @@
 // for the release (e.g., towncrier to manage the changelog).
 //
 // LATER:
-//  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step instead
+//  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step
 //  - remove step.release-branch, use directly release-%s % version
 
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -15,17 +15,27 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // Constants
 // ----------------------------------------------------------------------------
 
-// this is computed by the get_version_job (e.g., "1.55.0")
-// and can be referenced from other jobs
+// This is computed by the get_version_job (e.g., "1.55.0")
+// and can be referenced from other jobs.
 local version = '${{ needs.get-version.outputs.version }}';
-// this is computed by the release_setup_job (e.g., "9545")
-// and can be referenced from other jobs
+// This is computed by the release_setup_job (e.g., "9545")
+// and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
+// When we use git directly instead of gh.
+local git_config_user = |||
+        git config user.name ${{ github.actor }}
+        git config user.email ${{ github.actor }}@users.noreply.github.com
+|||;
+// For towncrier setup in scripts/release/
+local pipenv_setup = |||
+        pip3 install pipenv==2022.6.7
+        pipenv install --dev
+ |||;
 
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
-// to be used by the workflow
+// To be used by the workflow.
 local input = {
   inputs: {
     bumpVersionFragment: {
@@ -262,10 +272,9 @@ local release_setup_job = {
       name: 'Create GitHub Release Body',
       'working-directory': 'scripts/release',
       run: |||
-        pip3 install pipenv==2022.6.7
-        pipenv install --dev
+        %s
         pipenv run towncrier build --draft --version %s > release_body.txt
-      ||| % version,
+      ||| % [pipenv_setup, version],
     } + unless_dry_run,
     {
       name: 'Upload Changelog Body Artifact',
@@ -280,24 +289,24 @@ local release_setup_job = {
       'working-directory': 'scripts/release',
       // use || true below since modifications mean exit code != 0
       run: |||
-        pip3 install pipenv==2022.6.7
-        pipenv install --dev
+        %s
         pipenv run towncrier build --yes --version %s
         pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
-      ||| % version,
+      ||| % [pipenv_setup, version],
     },
     {
       name: 'Push release branch',
+      // LATER: can probably simplify and use directly version instead
+      // of intermediate env
       env: {
         SEMGREP_RELEASE_NEXT_VERSION: version,
       },
       run: |||
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
+        %s
         git add --all
         git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
         git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
-      |||,
+      ||| % git_config_user,
     } + unless_dry_run,
     {
       name: 'Create PR',
@@ -385,21 +394,19 @@ local create_tag_job = {
     {
       name: 'Create semgrep release version tag',
       run: |||
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
+        %s
         git tag -a -m "Release %s" "v%s"
         git push origin "v%s"
-      ||| % [version, version, version],
+      ||| % [git_config_user, version, version, version],
     },
     {
       name: 'Create semgrep-interfaces release version tag',
       run: |||
         cd cli/src/semgrep/semgrep_interfaces
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
+        %s
         git tag -a -m "Release %s" "v%s"
         git push origin "v%s"
-      ||| % [version, version, version],
+      ||| % [git_config_user, version, version, version],
     },
   ],
 } + unless_dry_run;

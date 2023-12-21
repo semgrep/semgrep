@@ -110,8 +110,8 @@ jobs:
         cache-dependency-path: scripts/release/Pipfile.lock
     - name: Create GitHub Release Body
       working-directory: scripts/release
-      run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
-        \       pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version
+      run: "\n        \n        pip3 install pipenv==2022.6.7\n        pipenv install
+        --dev\n \n        pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version
         }} > release_body.txt\n      "
       if: ${{ ! inputs.dry-run }}
     - name: Upload Changelog Body Artifact
@@ -122,16 +122,16 @@ jobs:
       if: ${{ ! inputs.dry-run }}
     - name: Update Changelog
       working-directory: scripts/release
-      run: "\n        pip3 install pipenv==2022.6.7\n        pipenv install --dev\n
-        \       pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version
+      run: "\n        \n        pip3 install pipenv==2022.6.7\n        pipenv install
+        --dev\n \n        pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version
         }}\n        pipenv run pre-commit run --files ../../CHANGELOG.md --config
         ../../.pre-commit-config.yaml || true\n      "
     - name: Push release branch
       env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
-      run: "\n        git config user.name ${{ github.actor }}\n        git config
-        user.email ${{ github.actor }}@users.noreply.github.com\n        git add --all\n
-        \       git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
+      run: "\n        \n        git config user.name ${{ github.actor }}\n        git
+        config user.email ${{ github.actor }}@users.noreply.github.com\n\n        git
+        add --all\n        git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
         \       git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
         }}\n      "
       if: ${{ ! inputs.dry-run }}
@@ -217,17 +217,17 @@ jobs:
         ref: ${{ needs.release-setup.outputs.release-branch }}
         token: ${{ steps.token.outputs.token }}
     - name: Create semgrep release version tag
-      run: "\n        git config user.name ${{ github.actor }}\n        git config
-        user.email ${{ github.actor }}@users.noreply.github.com\n        git tag -a
-        -m \"Release ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
+      run: "\n        \n        git config user.name ${{ github.actor }}\n        git
+        config user.email ${{ github.actor }}@users.noreply.github.com\n\n        git
+        tag -a -m \"Release ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
         }}\"\n        git push origin \"v${{ needs.get-version.outputs.version }}\"\n
         \     "
     - name: Create semgrep-interfaces release version tag
-      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        git config user.name
-        ${{ github.actor }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
-        \       git tag -a -m \"Release ${{ needs.get-version.outputs.version }}\"
-        \"v${{ needs.get-version.outputs.version }}\"\n        git push origin \"v${{
-        needs.get-version.outputs.version }}\"\n      "
+      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        \n        git
+        config user.name ${{ github.actor }}\n        git config user.email ${{ github.actor
+        }}@users.noreply.github.com\n\n        git tag -a -m \"Release ${{ needs.get-version.outputs.version
+        }}\" \"v${{ needs.get-version.outputs.version }}\"\n        git push origin
+        \"v${{ needs.get-version.outputs.version }}\"\n      "
     if: ${{ ! inputs.dry-run }}
   create-draft-release:
     runs-on: ubuntu-20.04
