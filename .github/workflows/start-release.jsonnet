@@ -323,16 +323,19 @@ local create_tag_job = {
     'wait-for-pr-checks',
   ],
   steps: [
+    // TODO? why special token again?
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
       uses: 'actions/checkout@v3',
       with: {
         submodules: true,
+        // checkout the release branch this time
         ref: '${{ needs.release-setup.outputs.release-branch }}',
         token: semgrep.github_bot.token_ref,
       },
     },
+    // pushing on a vxxx branch will trigger the release.jsonnet workflow?
     {
       name: 'Create semgrep release version tag',
       run: |||
@@ -416,6 +419,8 @@ local wait_for_release_checks_job = {
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
+      // TODO: factorize this script, only diff with previous one
+      // is the condition check on LEN_CHECKS
       run: |||
         LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
 
