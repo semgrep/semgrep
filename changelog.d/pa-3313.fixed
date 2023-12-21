@@ -1,0 +1,11 @@
+taint-mode: Semgrep was missing some sources occurring inside type expressions,
+for example:
+
+```cpp
+char *p = new char[source(x)];
+sink(x);
+```
+
+Now, if `x` is tainted by side-effect, Semgrep will check `x` inside the type
+expression `char[...]` and record it as tainting, and generate a finding for
+`sink(x)`.

@@ -175,12 +175,15 @@ let mk_unit tok eorig =
 
 let add_instr env instr = Stack_.push (mk_s (Instr instr)) env.stmts
 
-(* Create an auxiliary variable for an expression---unless the expression
- * itself is already a variable! *)
-let mk_aux_var ?str env tok exp =
+(* Create an auxiliary variable for an expression.
+ *
+ * If 'force' is 'false' and the expression tself is already a variable then
+ * it will not create an auxiliary variable but just return that. *)
+let mk_aux_var ?(force = false) ?str env tok exp =
   match exp.e with
-  | Fetch ({ base = Var var; rev_offset = []; _ } as lval) -> (var, lval)
-  | _ ->
+  | Fetch ({ base = Var var; rev_offset = []; _ } as lval) when not force ->
+      (var, lval)
+  | __else__ ->
       let var = fresh_var ?str env tok in
       let lval = lval_of_base (Var var) in
       add_instr env (mk_i (Assign (lval, exp)) NoOrig);
@@ -352,7 +355,9 @@ and pattern env pat =
         |> List.concat
       in
       (tmp_lval, ss)
-  | G.PatTyped (pat1, _typTODO) -> pattern env pat1
+  | G.PatTyped (pat1, ty) ->
+      type_ env ty |> ignore;
+      pattern env pat1
   | _ -> todo (G.P pat)
 
 and _catch_exn env exn =
@@ -1105,8 +1110,9 @@ and stmt_expr env ?e_gen st =
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
       expr_opt env None
-  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO })
+  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty })
     when def_expr_evaluates_to_value env.lang ->
+      opt_ty |> Option.iter (fun ty -> type_ env ty |> ignore);
       (* We may end up here due to Elixir_to_elixir's parsing. Other languages
        * such as Ruby, Julia, and C seem to result in Assignments, not DefStmts.
        *)
@@ -1157,9 +1163,9 @@ and cond_with_pre_stmts env cond =
       | G.Cond e -> expr env e
       | G.OtherCond
           ( todok,
-            [
-              (Def (ent, VarDef { G.vinit = Some e; vtype = _typTODO }) as def);
-            ] ) ->
+            [ (Def (ent, VarDef { G.vinit = Some e; vtype = opt_ty }) as def) ]
+          ) ->
+          opt_ty |> Option.iter (fun ty -> type_ env ty |> ignore);
           (* e.g. C/C++: `if (const char *tainted_or_null = source("PATH"))` *)
           let e' = expr env e in
           let lv = lval_of_ent env ent in
@@ -1190,10 +1196,16 @@ and for_var_or_expr_list env xs =
        | G.ForInitVar (ent, vardef) -> (
            (* copy paste of VarDef case in stmt *)
            match vardef with
-           | { G.vinit = Some e; vtype = _typTODO } ->
-               let ss, e' = expr_with_pre_stmts env e in
+           | { G.vinit = Some e; vtype = opt_ty } ->
+               let ss1, e' = expr_with_pre_stmts env e in
+               let ss2 =
+                 match opt_ty with
+                 | None -> []
+                 | Some ty ->
+                     with_pre_stmts env (fun env -> type_ env ty) |> fst
+               in
                let lv = lval_of_ent env ent in
-               ss
+               ss1 @ ss2
                @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
            | _ -> []))
 
@@ -1210,13 +1222,28 @@ and parameters _env params : name list =
 (* Type *)
 (*****************************************************************************)
 
-and type_ env (ty : G.type_) : type_ =
+and type_ env (ty : G.type_) : G.type_ =
+  (* Expressions inside types also need to be analyzed.
+   *
+   * E.g., in C we need to be able to do const prop here:
+   *
+   *     int x = 3;
+   *     int arr[x]; // should match 'int arr[3]'
+   *)
   let exps =
     match ty.t with
-    | G.TyExpr e -> [ expr env e ]
+    | G.TyArray ((_, Some e, _), _)
+    | G.TyExpr e ->
+        [ expr env e ]
     | __TODO__ -> []
   in
-  { type_ = ty; exps }
+  let tok = G.fake "type" in
+  exps
+  |> List.iter (fun e ->
+         (* We add a fake assignment for dataflow analysis to reach these
+          * expressions occurring inside types. *)
+         mk_aux_var ~force:true ~str:"_type" env tok e |> ignore);
+  ty
 
 (*****************************************************************************)
 (* Statement *)
@@ -1344,7 +1371,7 @@ and stmt_aux env st =
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
       let obj_lval = lval_of_base (Var obj') in
-      let ss, args' = args_with_pre_stmts env (Tok.unbracket args) in
+      let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
       let opt_cons =
         let* cons = mk_class_constructor_name ty cons_id_info in
         let cons' = var_of_name cons in
@@ -1361,37 +1388,25 @@ and stmt_aux env st =
         in
         Some cons_exp
       in
-      ss
+      let ss2, ty = with_pre_stmts env (fun env -> type_ env ty) in
+      ss1 @ ss2
       @ [
           mk_s
-            (Instr
-               (mk_i
-                  (New (obj_lval, type_ env ty, opt_cons, args'))
-                  (SameAs new_exp)));
+            (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp)));
         ]
-  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
-      let ss, e' = expr_with_pre_stmts env e in
+  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
+      let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
-      ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
-  | G.DefStmt
-      ( ent,
-        G.VarDef
-          {
-            G.vinit = None;
-            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
-          } ) ->
-      (* Expressions inside types still need to be dflow'd!
-       *   ex: In C we need to be able to const prop:
-       *       int e = 3;
-       *       int arr[e]; // s.t arr : TyArray(Var e)
-       * So in IL we lift this type expr to be a stmt:
-       *     _tmp = e
-       *     DECL arr
-       *)
-      let ss, e' = expr_with_pre_stmts env e in
-      let lv = lval_of_ent env ent in
-      let inst = mk_i (Assign (lv, e')) (SameAs e) in
-      ss @ [ mk_s @@ Instr inst ]
+      let ss2 =
+        match opt_ty with
+        | None -> []
+        | Some ty -> with_pre_stmts env (fun env -> type_ env ty) |> fst
+      in
+      ss1 @ ss2 @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
+  | G.DefStmt (_ent, G.VarDef { G.vinit = None; vtype = Some ty }) ->
+      (* We want to analyze any expressions in 'ty'. *)
+      let ss, _ = with_pre_stmts env (fun env -> type_ env ty) in
+      ss
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (stmt env)
