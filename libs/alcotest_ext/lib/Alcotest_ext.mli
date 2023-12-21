@@ -43,10 +43,14 @@ type result = { outcome : outcome; captured_output : captured_output }
 
 type expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (expected_output, string) Result.t;
+  expected_output : (expected_output, string list (* missing files *)) Result.t;
 }
 
-type status = { expectation : expectation; result : (result, string) Result.t }
+type status = {
+  expectation : expectation;
+  result : (result, string list) Result.t;
+}
+
 type status_class = PASS | FAIL | XFAIL | XPASS | MISS
 
 type status_summary = {

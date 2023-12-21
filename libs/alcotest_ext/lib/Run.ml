@@ -430,14 +430,22 @@ let print_status ((test : _ T.test), (status : T.status), sum) =
         printf "  Checked output: %s\n" text);
     (* Details about results *)
     (match status.expectation.expected_output with
-    | Error msg ->
+    | Error [ path ] ->
         print_error
-          (sprintf "Missing file(s) containing the expected output: %s" msg)
+          (sprintf "Missing file containing the expected output: %s" path)
+    | Error paths ->
+        print_error
+          (sprintf "Missing files containing the expected output: %s"
+             (String.concat ", " paths))
     | Ok _expected_output -> (
         match status.result with
-        | Error msg ->
+        | Error [ path ] ->
             print_error
-              (sprintf "Missing file(s) containing the test output: %s" msg)
+              (sprintf "Missing file containing the test output: %s" path)
+        | Error paths ->
+            print_error
+              (sprintf "Missing files containing the test output: %s"
+                 (String.concat ", " paths))
         | Ok _result ->
             let output_file_pairs = Store.get_output_file_pairs test in
             show_output test sum output_file_pairs));

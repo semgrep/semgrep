@@ -38,12 +38,12 @@ type result = T.result = {
 
 type expectation = T.expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (expected_output, string) Result.t;
+  expected_output : (expected_output, string list (* missing files *)) Result.t;
 }
 
 type status = T.status = {
   expectation : expectation;
-  result : (result, string) Result.t;
+  result : (result, string list) Result.t;
 }
 
 type status_class = T.status_class = PASS | FAIL | XFAIL | XPASS | MISS

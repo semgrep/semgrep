@@ -32,21 +32,21 @@ module T = Types
 let list_map f xs = List.rev_map f xs |> List.rev
 let ( // ) a b = if Filename.is_relative b then Filename.concat a b else b
 
-exception Local_message of string
-
 (* Return the first error message and drop the other messages in case
    of an error. *)
-let list_result_of_result_list (xs : ('a, _) Result.t list) :
-    ('a list, _) Result.t =
-  try
-    Ok
-      (list_map
-         (function
-           | Ok x -> x
-           | Error msg -> raise (Local_message msg))
-         xs)
-  with
-  | Local_message msg -> Error msg
+let list_result_of_result_list (xs : ('a, 'b) Result.t list) :
+    ('a list, 'b list) Result.t =
+  let oks, errs =
+    List.fold_right
+      (fun res (oks, errs) ->
+        match res with
+        | Ok x -> (x :: oks, errs)
+        | Error x -> (oks, x :: errs))
+      xs ([], [])
+  in
+  match errs with
+  | [] -> Ok oks
+  | errs -> Error errs
 
 let with_file_in path f =
   if Sys.file_exists path then
@@ -54,20 +54,20 @@ let with_file_in path f =
     let ic = open_in_bin path in
     (* nosemgrep: no-fun-protect *)
     Fun.protect ~finally:(fun () -> close_in_noerr ic) (fun () -> Ok (f ic))
-  else Error (sprintf "Missing file %S" path)
+  else Error path
 
 let with_file_out path f =
   let oc = open_out_bin path in
   (* nosemgrep: no-fun-protect *)
   Fun.protect ~finally:(fun () -> close_out_noerr oc) (fun () -> f oc)
 
-let read_file path : (string, string) Result.t =
+let read_file path : (string, string (* missing file *)) Result.t =
   with_file_in path (fun ic -> really_input_string ic (in_channel_length ic))
 
 let read_file_exn path : string =
   match read_file path with
   | Ok data -> data
-  | Error msg -> failwith msg
+  | Error path -> failwith (sprintf "Missing file %s" path)
 
 let write_file path data = with_file_out path (fun oc -> output_string oc data)
 let remove_file path = if Sys.file_exists path then Sys.remove path
@@ -161,9 +161,12 @@ let set_outcome (test : _ T.test) outcome =
   let path = get_outcome_path test in
   outcome |> string_of_outcome |> write_file path
 
-let get_outcome (test : _ T.test) : (T.outcome, string) Result.t =
+let get_outcome (test : _ T.test) :
+    (T.outcome, string (* missing file *)) Result.t =
   let path = get_outcome_path test in
-  read_file path |> Result.map (outcome_of_string path)
+  match read_file path with
+  | Ok data -> Ok (outcome_of_string path data)
+  | Error path -> Error path
 
 (* File names used to the test output, possibly after masking the variable
    parts. *)
@@ -339,7 +342,7 @@ let mask_output (test : unit T.test) =
   | [] -> ()
   | mask_functions ->
       let rewrite_string = compose_functions_left_to_right mask_functions in
-      get_output_paths test
+      get_checked_output_paths test
       |> List.iter (fun std_path ->
              let backup_path = std_path ^ orig_suffix in
              if Sys.file_exists backup_path then Sys.remove backup_path;
@@ -471,9 +474,9 @@ let get_expectation (test : _ T.test) : T.expectation =
   in
   { expected_outcome = test.expected_outcome; expected_output }
 
-let get_result (test : _ T.test) : (T.result, string) Result.t =
+let get_result (test : _ T.test) : (T.result, string list) Result.t =
   match get_outcome test with
-  | Error _ as res -> res
+  | Error missing_file -> Error [ missing_file ]
   | Ok outcome -> (
       let opt_captured_output =
         test |> get_output |> list_result_of_result_list

@@ -46,7 +46,7 @@ type expected_outcome =
 *)
 type expectation = {
   expected_outcome : expected_outcome;
-  expected_output : (expected_output, string) Result.t;
+  expected_output : (expected_output, string list (* missing files *)) Result.t;
 }
 
 (*
@@ -55,7 +55,10 @@ type expectation = {
    other statuses such as: missing expectation, missing result, xpass
    (success when expected outcome was Failed), ...
 *)
-type status = { expectation : expectation; result : (result, string) Result.t }
+type status = {
+  expectation : expectation;
+  result : (result, string list (* missing files *)) Result.t;
+}
 
 (* A summary of the 'status' object using the same language as pytest.
 
