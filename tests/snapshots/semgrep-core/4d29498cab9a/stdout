@@ -1,11 +1,3 @@
-/tmp<MASKED>
-├── a
-├── b
-├── c
-├── .gitignore
-└── .semgrepignore
-
-0 directories, 5 files
 Initialized empty Git repository in<MASKED>
 [main (root-commit) <MASKED>] Add all the files
  4 files changed, 2 insertions(+)
