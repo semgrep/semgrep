@@ -52,9 +52,7 @@ local github_bot = {
   },
   // Token computed in get_token_step to be used by the user of this
   // github_bot.
-  github_token: {
-    GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
-  },
+  token_ref: '${{ steps.token.outputs.token }}',
 };
 
 // ----------------------------------------------------------------------------

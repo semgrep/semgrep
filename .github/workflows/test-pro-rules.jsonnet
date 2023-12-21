@@ -43,7 +43,9 @@ local job = {
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
-      env: semgrep.github_bot.github_token,
+      env: {
+	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
       name: 'Checkout semgrep-pro',
       // We are in /home/runner/work/semgrep/semgrep at this point
       // and we must keep it that way otherwise GHA will complain
@@ -97,7 +99,9 @@ local job = {
     // We are in /home/runner/work/semgrep/semgrep at this point.
 
     {
-      env: semgrep.github_bot.github_token,
+      env: {
+	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
       name: 'Checkout Pro rules',
       run: |||
         cd ..

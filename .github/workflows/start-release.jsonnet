@@ -8,21 +8,69 @@
 // TODO:
 //  - factorize, lots of repeated content still
 //  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step instead
+//  - remove step.release-branch, use directly release-%s % version
 
 local semgrep = import 'libs/semgrep.libsonnet';
+
+// this is computed by the get_version_job (e.g., "1.55.0")
+// and can be referenced from other jobs
+local version = '${{ needs.get-version.outputs.version }}';
+// this is computed by the release_setup_job (e.g., "9545")
+// and can be referenced from other jobs
+local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
+
+// ----------------------------------------------------------------------------
+// Input
+// ----------------------------------------------------------------------------
+// to be used by the workflow
+local input = {
+  inputs: {
+    bumpVersionFragment: {
+      description: 'Version fragment to bump',
+      required: true,
+      // These options are passed directly into
+      // christian-draeger/increment-semantic-version in the `next-vesion`
+      // step to decide which of X.Y.Z to increment
+      type: 'choice',
+      options: [
+        // Many folks are concerned about a mis-click and releasing 2.0 which
+        // is why we commented the 'major' option below
+        // 'major', // x.0.0
+        'feature',  // 1.x.0
+        'bug',  // 1.1.x
+      ],
+      default: 'feature',
+    },
+    'dry-run': {
+      required: true,
+      type: 'boolean',
+      description: |||
+        Check the box for a dry-run - A dry-run will not push any external state
+        (branches, tags, images, or PyPI packages).
+      |||,
+      default: false,
+    },
+  },
+};
+
+local unless_dry_run = {
+  'if': '${{ ! inputs.dry-run }}',
+};
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
-// This job just infers the next release version (e.g., 1.53.1) based on past git
-// tags in the semgrep repo and the workflow input choice (feature vs bug) and
-// using christian-draeger/increment-semantic-version to compute it.
+// This job just infers the next release version (e.g., 1.53.1) based on past
+// git tags in the semgrep repo and the workflow input choice (feature vs bug)
+// and using christian-draeger/increment-semantic-version to compute it.
 local get_version_job = {
   'runs-on': 'ubuntu-20.04',
   outputs: {
+    // other jobs can refer to this output via the 'version' constant above
     version: '${{ steps.next-version.outputs.next-version }}',
   },
   steps: [
+    //TODO: why we need a special token? Can't we just do the default checkout?
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
@@ -30,7 +78,7 @@ local get_version_job = {
       with: {
         submodules: 'recursive',
         ref: '${{ github.event.repository.default_branch }}',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
     // Note that checkout@v3 does not get the tags by default. It does if you do
@@ -73,7 +121,7 @@ local check_semgrep_pro_job = {
   with: {
     'bucket-name': 'deep-semgrep-artifacts',
     'manifest-key': 'versions-manifest.json',
-    'semgrep-version': '${{ needs.get-version.outputs.version }}',
+    'semgrep-version': version,
     'dry-run': '${{ inputs.dry-run }}',
   },
 };
@@ -86,10 +134,14 @@ local release_setup_job = {
   ],
   'runs-on': 'ubuntu-20.04',
   outputs: {
+    // other jobs can refer to this output via 'pr_number' constant above
     'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
+    // TODO: delete, can be derived from version, it's release-<version>
     'release-branch': '${{ steps.release-branch.outputs.release-branch }}',
   },
   steps: [
+    // TODO: again why we need this token? we release from
+    // the repo of the workflow, can't we just checkout?
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
@@ -97,21 +149,21 @@ local release_setup_job = {
       with: {
         submodules: 'recursive',
         ref: '${{ github.event.repository.default_branch }}',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
     {
       name: 'Create release branch',
       id: 'release-branch',
       run: |||
-        RELEASE_BRANCH="release-${{ needs.get-version.outputs.version }}"
+        RELEASE_BRANCH="release-%s"
         git checkout -b ${RELEASE_BRANCH}
         echo "release-branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
-      |||,
+      ||| % version,
     },
     {
       env: {
-        SEMGREP_RELEASE_NEXT_VERSION: '${{ needs.get-version.outputs.version }}',
+        SEMGREP_RELEASE_NEXT_VERSION: version,
       },
       run: 'make release',
     },
@@ -126,23 +178,21 @@ local release_setup_job = {
     },
     {
       name: 'Create GitHub Release Body',
-      'if': '${{ ! inputs.dry-run }}',
       'working-directory': 'scripts/release',
       run: |||
         pip3 install pipenv==2022.6.7
         pipenv install --dev
-        pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt
-      |||,
-    },
+        pipenv run towncrier build --draft --version %s > release_body.txt
+      ||| % version,
+    } + unless_dry_run,
     {
       name: 'Upload Changelog Body Artifact',
-      'if': '${{ ! inputs.dry-run }}',
       uses: 'actions/upload-artifact@v3',
       with: {
-        name: 'release_body_${{ needs.get-version.outputs.version }}',
+        name: 'release_body_%s' % version,
         path: 'scripts/release/release_body.txt',
       },
-    },
+    } + unless_dry_run,
     {
       name: 'Update Changelog',
       'working-directory': 'scripts/release',
@@ -150,15 +200,14 @@ local release_setup_job = {
       run: |||
         pip3 install pipenv==2022.6.7
         pipenv install --dev
-        pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version }}
+        pipenv run towncrier build --yes --version %s
         pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
-      |||,
+      ||| % version,
     },
     {
       name: 'Push release branch',
-      'if': '${{ ! inputs.dry-run }}',
       env: {
-        SEMGREP_RELEASE_NEXT_VERSION: '${{ needs.get-version.outputs.version }}',
+        SEMGREP_RELEASE_NEXT_VERSION: version,
       },
       run: |||
         git config user.name ${{ github.actor }}
@@ -167,16 +216,15 @@ local release_setup_job = {
         git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
         git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
       |||,
-    },
+    } + unless_dry_run,
     {
       name: 'Create PR',
-      'if': '${{ ! inputs.dry-run }}',
       id: 'open-pr',
       env: {
         SOURCE: '${{ steps.release-branch.outputs.release-branch }}',
         TARGET: '${{ github.event.repository.default_branch }}',
-        TITLE: 'Release Version ${{ needs.get-version.outputs.version }}',
-        GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
+        TITLE: 'Release Version %s' % version,
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: |||
         # check if the branch already has a pull request open
@@ -200,12 +248,11 @@ local release_setup_job = {
 
         echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
       |||,
-    },
+    } + unless_dry_run,
   ],
 };
 
 local wait_for_pr_checks_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -222,7 +269,7 @@ local wait_for_pr_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
 
         # Immediately after creation, the PR doesn't have any checks attached
         # yet, wait until this is not the case. If you immediately start waiting
@@ -230,14 +277,14 @@ local wait_for_pr_checks_job = {
           while [ ${LEN_CHECKS} = "0" ]; do
             echo "No checks available yet"
             sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
 
           echo ${LEN_CHECKS}
 
-          gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
-      |||,
+          gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+      ||| % [pr_number, pr_number, pr_number],
     },
     {
       name: 'Wait for checks to complete',
@@ -246,7 +293,7 @@ local wait_for_pr_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       // Wait for PR checks to finish
-      run: 'gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch',
+      run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
     },
     {
       name: 'Get Current Num Checks',
@@ -260,15 +307,14 @@ local wait_for_pr_checks_job = {
       // first one is, so we end up in a case where we aren't getting waiting
       // for all checks.
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
         echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
-      |||,
+      ||| % pr_number,
     },
   ],
-};
+} + unless_dry_run;
 
 local create_tag_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -277,24 +323,27 @@ local create_tag_job = {
     'wait-for-pr-checks',
   ],
   steps: [
+    // TODO? why special token again?
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
       uses: 'actions/checkout@v3',
       with: {
         submodules: true,
+        // checkout the release branch this time
         ref: '${{ needs.release-setup.outputs.release-branch }}',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
+    // pushing on a vxxx branch will trigger the release.jsonnet workflow?
     {
       name: 'Create semgrep release version tag',
       run: |||
         git config user.name ${{ github.actor }}
         git config user.email ${{ github.actor }}@users.noreply.github.com
-        git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
-        git push origin "v${{ needs.get-version.outputs.version }}"
-      |||,
+        git tag -a -m "Release %s" "v%s"
+        git push origin "v%s"
+      ||| % [version, version, version],
     },
     {
       name: 'Create semgrep-interfaces release version tag',
@@ -302,15 +351,14 @@ local create_tag_job = {
         cd cli/src/semgrep/semgrep_interfaces
         git config user.name ${{ github.actor }}
         git config user.email ${{ github.actor }}@users.noreply.github.com
-        git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
-        git push origin "v${{ needs.get-version.outputs.version }}"
-      |||,
+        git tag -a -m "Release %s" "v%s"
+        git push origin "v%s"
+      ||| % [version, version, version],
     },
   ],
-};
+} + unless_dry_run;
 
 local create_draft_release_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'get-version',
@@ -323,7 +371,7 @@ local create_draft_release_job = {
       name: 'Download Release Body Artifact',
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'release_body_${{ needs.get-version.outputs.version }}',
+        name: 'release_body_%s' % version,
         path: 'scripts/release',
       },
     },
@@ -331,8 +379,8 @@ local create_draft_release_job = {
       name: 'Create Draft Release Semgrep',
       uses: 'softprops/action-gh-release@v1',
       with: {
-        tag_name: 'v${{ needs.get-version.outputs.version }}',
-        name: 'Release v${{ needs.get-version.outputs.version }}',
+        tag_name: 'v%s' % version,
+        name: 'Release v%s' % version,
         body_path: 'scripts/release/release_body.txt',
         token: '${{ secrets.GITHUB_TOKEN }}',
         prerelease: false,
@@ -345,20 +393,19 @@ local create_draft_release_job = {
       name: 'Create Draft Release Semgrep Interfaces',
       uses: 'softprops/action-gh-release@v1',
       with: {
-        tag_name: 'v${{ needs.get-version.outputs.version }}',
-        name: 'Release v${{ needs.get-version.outputs.version }}',
+        tag_name: 'v%s' % version,
+        name: 'Release v%s' % version,
         body_path: 'scripts/release/release_body.txt',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
         prerelease: false,
         draft: true,
         repository: 'returntocorp/semgrep-interfaces',
       },
     },
   ],
-};
+} + unless_dry_run;
 
 local wait_for_release_checks_job = {
-  'if': '${{ ! inputs.dry-run }}',
   'runs-on': 'ubuntu-20.04',
   needs: [
     'release-setup',
@@ -372,21 +419,23 @@ local wait_for_release_checks_job = {
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
+      // TODO: factorize this script, only diff with previous one
+      // is the condition check on LEN_CHECKS
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
 
         # We need to wait for the new checks to register when the release tag is pushed
         while [ ${LEN_CHECKS} = ${{ needs.wait-for-pr-checks.outputs.num-checks }} ]; do
           echo "No checks available yet"
           sleep 1
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length');
         done
         echo "checks are valid"
 
         echo ${LEN_CHECKS}
 
-        gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
-      |||,
+        gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+      ||| % [ pr_number, pr_number, pr_number],
     },
     {
       name: 'Wait for release checks',
@@ -395,13 +444,12 @@ local wait_for_release_checks_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       // # Wait for PR checks to finish
-      run: 'gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch',
+      run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
     },
   ],
-};
+} + unless_dry_run;
 
 local validate_release_trigger_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'wait-for-release-checks',
@@ -410,12 +458,11 @@ local validate_release_trigger_job = {
   uses: './.github/workflows/validate-release.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
   },
-};
+} + unless_dry_run;
 
 local bump_semgrep_app_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'validate-release-trigger',
@@ -424,13 +471,12 @@ local bump_semgrep_app_job = {
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
     repository: 'semgrep/semgrep-app',
   },
-};
+} + unless_dry_run;
 
 local bump_semgrep_action_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'validate-release-trigger',
@@ -439,13 +485,12 @@ local bump_semgrep_action_job = {
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
     repository: 'semgrep/semgrep-action',
   },
-};
+} + unless_dry_run;
 
 local bump_semgrep_rpc_job = {
-  'if': '${{ ! inputs.dry-run }}',
   needs: [
     'get-version',
     'validate-release-trigger',
@@ -454,10 +499,10 @@ local bump_semgrep_rpc_job = {
   uses: './.github/workflows/call-bump-pr-workflow.yml',
   secrets: 'inherit',
   with: {
-    version: '${{needs.get-version.outputs.version}}',
+    version: version,
     repository: 'semgrep/semgrep-rpc',
   },
-};
+} + unless_dry_run;
 
 // ----------------------------------------------------------------------------
 // Success/failure notifications
@@ -476,23 +521,23 @@ local notify_success_job = {
   'runs-on': 'ubuntu-20.04',
   steps: [
     {
-      run: 'echo "${{needs.get-version.outputs.version}}"',
+      run: 'echo "%s"' % version,
     },
     {
       name: 'Notify Success',
       run: |||
         # POST a webhook to Zapier to allow for public notifications to our users via Twitter
         curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-          -d '{"version":"${{needs.get-version.outputs.version}}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${{needs.get-version.outputs.version}}"}'
+          -d '{"version":"%s","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v%s"}'
 
         curl --request POST \
         --url  ${{ secrets.NOTIFICATIONS_URL }} \
         --header 'content-type: application/json' \
         --data '{
-          "version": "${{needs.get-version.outputs.version}}",
+          "version": "%s",
           "message": "Release Validation has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow."
         }'
-      |||,
+      ||| % [version, version, version],
     },
   ],
 };
@@ -516,10 +561,10 @@ local notify_failure_job = {
         --url  ${{ secrets.NOTIFICATIONS_URL }} \
         --header 'content-type: application/json' \
         --data '{
-          "version": "${{needs.get-version.outputs.version}}",
+          "version": "%s",
           "message": "Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
         }'
-      |||,
+      ||| % version,
     },
   ],
 };
@@ -531,35 +576,7 @@ local notify_failure_job = {
 {
   name: 'start-release',
   on: {
-    workflow_dispatch: {
-      inputs: {
-        bumpVersionFragment: {
-          description: 'Version fragment to bump',
-          required: true,
-          // These options are passed directly into
-          // christian-draeger/increment-semantic-version in the `next-vesion`
-          // step to decide which of X.Y.Z to increment
-          type: 'choice',
-          options: [
-            // Many folks are concerned about a mis-click and releasing 2.0 which
-            // is why we commented the 'major' option below
-            // 'major', // x.0.0
-            'feature',  // 1.x.0
-            'bug',  // 1.1.x
-          ],
-          default: 'feature',
-        },
-        'dry-run': {
-          required: true,
-          type: 'boolean',
-          description: |||
-            Check the box for a dry-run - A dry-run will not push any external state
-            (branches, tags, images, or PyPI packages).
-          |||,
-          default: false,
-        },
-      },
-    },
+    workflow_dispatch: input,
   },
   jobs: {
     'get-version': get_version_job,

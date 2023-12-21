@@ -213,7 +213,9 @@ local wait_for_checks_job = {
     semgrep.github_bot.get_token_step,
     {
       name: 'Wait for checks to register',
-      env: semgrep.github_bot.github_token,
+      env: {
+	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
       run: |||
         LEN_CHECKS=$(gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
 
@@ -235,7 +237,9 @@ local wait_for_checks_job = {
     },
     {
       name: 'Wait for checks to complete',
-      env: semgrep.github_bot.github_token,
+      env: {
+	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
       run: |||
         # Wait for PR checks to finish
         gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
