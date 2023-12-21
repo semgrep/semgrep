@@ -1,9 +1,12 @@
-// This workflow is used interactively when we want to trigger a new release.
-// Most of the release is automated thanks to this workflow and release.jsonnet
+// This workflow is used interactively when we want to trigger a new release;
+// most of the release is automated thanks to this workflow and release.jsonnet
 // which is triggered when start-release.jsonnet creates a PR for a new release.
-// See also the 'release:' rule in the toplevel Makefile which is used here to
-// prepare the release branch and scripts/release/ which contains helper scripts
-// for the release (e.g., towncrier to manage the changelog).
+// See also:
+//  - the 'release:' rule in the toplevel Makefile which is used here to
+//     prepare the release branch
+//  - scripts/release/ which contains helper scripts for the release
+//    (e.g., towncrier to manage the changelog)
+//  - scripts/validate-docker-release.sh
 //
 // LATER:
 //  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step
