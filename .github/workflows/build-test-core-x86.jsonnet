@@ -1,7 +1,7 @@
 // This workflow builds and test semgrep-core. It also generates an
 // ocaml-build-artifacts.tgz file which is used in many other jobs
-// such as test-cli in tests.yml or build-wheels-manylinux in
-// build-test-manylinux-x86.yaml
+// such as test-cli in tests.jsonnet or build-wheels-manylinux in
+// build-test-manylinux-x86.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
@@ -61,9 +61,8 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
 // ----------------------------------------------------------------------------
 {
   name: 'build-test-core-x86',
-  // This is called from tests.yml and release.yml
-  // TODO: just make this job a function so no need
-  // to use this ugly GHA inherit/workflow_call thing
+  // This is called from tests.jsonnet and release.jsonnet
+  // TODO: just make this job a func so no need to use GHA inherit/call
   on: gha.on_dispatch_or_call,
   jobs: {
     job: job(),
