@@ -13,7 +13,6 @@ local artifact_name = 'ocaml-build-artifacts-release';
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-
 local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_test=true) =
 
   local test_steps =
@@ -60,16 +59,12 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'build-test-core-x86',
-  on: {
-    workflow_dispatch: null,
-    // This is called from tests.yml and release.yml
-    // TODO: just make this job a function so no need
-    // to use this ugly GHA inherit/workflow_call thing
-    workflow_call: null,
-  },
+  // This is called from tests.yml and release.yml
+  // TODO: just make this job a function so no need
+  // to use this ugly GHA inherit/workflow_call thing
+  on: gha.on_dispatch_or_call,
   jobs: {
     job: job(),
   },

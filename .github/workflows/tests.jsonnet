@@ -619,7 +619,7 @@ local ignore_md = {
       // - the branch name starts with "release-" (TODO: move this to release.yml instead)
       // - the PR is not a fork and has a "publish-js" label
       with: {
-        'upload-artifacts': "${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}",
+        'upload-artifacts': "${{ (github.ref == 'refs/heads/develop') || startsWith(github.head_ref, 'release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}",
       },
     },
   },
