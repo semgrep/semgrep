@@ -283,8 +283,7 @@ jobs:
     - wait-for-pr-checks
     - create-tag
     steps:
-    - name: Wait for release checks to register
-      id: register-release-checks
+    - name: Wait for checks to register
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: "\n        LEN_CHECKS=$(gh pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
@@ -296,8 +295,8 @@ jobs:
         \         echo \"checks are valid\"\n\n          echo ${LEN_CHECKS}\n\n          gh
         pr -R returntocorp/semgrep view \"${{ needs.release-setup.outputs.pr-number
         }}\" --json statusCheckRollup\n  "
-    - name: Wait for release checks
-      id: wait-release-checks
+    - name: Wait for checks to complete
+      id: wait-checks
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number

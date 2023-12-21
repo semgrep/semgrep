@@ -441,24 +441,9 @@ local wait_for_release_checks_job = {
     'create-tag',
   ],
   steps: [
-    {
-      name: 'Wait for release checks to register',
-      id: 'register-release-checks',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      },
-      // We need to wait for the new checks to register when the release tag is pushed
-      run: wait_pr_checks_to_register("${{ needs.wait-for-pr-checks.outputs.num-checks }}"),
-    },
-    {
-      name: 'Wait for release checks',
-      id: 'wait-release-checks',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      },
-      // # Wait for PR checks to finish
-      run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
-    },
+    // We need to wait for the new checks to register when the release tag is pushed
+    wait_pr_checks_to_register_step("${{ needs.wait-for-pr-checks.outputs.num-checks }}"),
+    wait_pr_checks_to_complete_step,
   ],
 } + unless_dry_run;
 
