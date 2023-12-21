@@ -5,7 +5,6 @@
 //  - prepare and upload to PyPy a new semgrep package
 //  - make a PR for homebrew's formula to update to the latest semgrep
 
-// TODO: use semgrep.github_bot.token instead of ref to step each time
 // TODO: factorize more, use reference and local instead of duplicating strings
 // TODO: remove some useless name:
 
@@ -361,14 +360,14 @@ local create_release_interfaces_job = {
       uses: 'actions/checkout@v3',
       with: {
         submodules: true,
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
     {
       name: 'Upload Schema Files',
       id: 'upload-semgrep-schema-files',
       env: {
-        GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: 'gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml',
     },
@@ -376,7 +375,7 @@ local create_release_interfaces_job = {
       name: 'Publish Release Semgrep Interfaces',
       id: 'publish_release_semgrep_interfaces',
       env: {
-        GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: 'gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false',
     },

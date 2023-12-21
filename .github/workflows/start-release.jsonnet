@@ -14,9 +14,9 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
-// This job just infers the next release version (e.g., 1.53.1) based on past git
-// tags in the semgrep repo and the workflow input choice (feature vs bug) and
-// using christian-draeger/increment-semantic-version to compute it.
+// This job just infers the next release version (e.g., 1.53.1) based on past
+// git tags in the semgrep repo and the workflow input choice (feature vs bug)
+// and using christian-draeger/increment-semantic-version to compute it.
 local get_version_job = {
   'runs-on': 'ubuntu-20.04',
   outputs: {
@@ -30,7 +30,7 @@ local get_version_job = {
       with: {
         submodules: 'recursive',
         ref: '${{ github.event.repository.default_branch }}',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
     // Note that checkout@v3 does not get the tags by default. It does if you do
@@ -97,7 +97,7 @@ local release_setup_job = {
       with: {
         submodules: 'recursive',
         ref: '${{ github.event.repository.default_branch }}',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
     {
@@ -176,7 +176,7 @@ local release_setup_job = {
         SOURCE: '${{ steps.release-branch.outputs.release-branch }}',
         TARGET: '${{ github.event.repository.default_branch }}',
         TITLE: 'Release Version ${{ needs.get-version.outputs.version }}',
-        GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: |||
         # check if the branch already has a pull request open
@@ -284,7 +284,7 @@ local create_tag_job = {
       with: {
         submodules: true,
         ref: '${{ needs.release-setup.outputs.release-branch }}',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
       },
     },
     {
@@ -348,7 +348,7 @@ local create_draft_release_job = {
         tag_name: 'v${{ needs.get-version.outputs.version }}',
         name: 'Release v${{ needs.get-version.outputs.version }}',
         body_path: 'scripts/release/release_body.txt',
-        token: '${{ steps.token.outputs.token }}',
+        token: semgrep.github_bot.token_ref,
         prerelease: false,
         draft: true,
         repository: 'returntocorp/semgrep-interfaces',
