@@ -8,14 +8,13 @@
 // TODO:
 //  - factorize, lots of repeated content still
 //  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step instead
-//  - remove step.release-branch, use directly release-
+//  - remove step.release-branch, use directly release-%s % version
 
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // this is computed by the get_version_job (e.g., "1.55.0")
 // and can be referenced from other jobs
 local version = '${{ needs.get-version.outputs.version }}';
-
 // this is computed by the release_setup_job (e.g., "9545")
 // and can be referenced from other jobs
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
@@ -135,7 +134,9 @@ local release_setup_job = {
   ],
   'runs-on': 'ubuntu-20.04',
   outputs: {
+    // other jobs can refer to this output via 'pr_number' constant above
     'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
+    // TODO: delete, can be derived from version, it's release-<version>
     'release-branch': '${{ steps.release-branch.outputs.release-branch }}',
   },
   steps: [
