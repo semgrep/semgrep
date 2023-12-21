@@ -74,6 +74,25 @@ local curl_notify(message) = |||
     }'
   ||| % [version, message];
 
+local bump_job(repository) = {
+  needs: [
+    'get-version',
+    'validate-release-trigger',
+    'release-setup',
+  ],
+  // TODO: jsonnetify this and use simple function instead of call/inherit
+  uses: './.github/workflows/call-bump-pr-workflow.yml',
+  secrets: 'inherit',
+  with: {
+    version: version,
+    repository: repository,
+  },
+} + unless_dry_run;
+
+// ----------------------------------------------------------------------------
+// Wait PR checks helpers
+// ----------------------------------------------------------------------------
+
 local len_checks = "$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
 
 local wait_pr_checks_to_register(while_cond) = |||
@@ -460,48 +479,6 @@ local validate_release_trigger_job = {
   },
 } + unless_dry_run;
 
-local bump_semgrep_app_job = {
-  needs: [
-    'get-version',
-    'validate-release-trigger',
-    'release-setup',
-  ],
-  uses: './.github/workflows/call-bump-pr-workflow.yml',
-  secrets: 'inherit',
-  with: {
-    version: version,
-    repository: 'semgrep/semgrep-app',
-  },
-} + unless_dry_run;
-
-local bump_semgrep_action_job = {
-  needs: [
-    'get-version',
-    'validate-release-trigger',
-    'release-setup',
-  ],
-  uses: './.github/workflows/call-bump-pr-workflow.yml',
-  secrets: 'inherit',
-  with: {
-    version: version,
-    repository: 'semgrep/semgrep-action',
-  },
-} + unless_dry_run;
-
-local bump_semgrep_rpc_job = {
-  needs: [
-    'get-version',
-    'validate-release-trigger',
-    'release-setup',
-  ],
-  uses: './.github/workflows/call-bump-pr-workflow.yml',
-  secrets: 'inherit',
-  with: {
-    version: version,
-    repository: 'semgrep/semgrep-rpc',
-  },
-} + unless_dry_run;
-
 // ----------------------------------------------------------------------------
 // Success/failure notifications
 // ----------------------------------------------------------------------------
@@ -576,9 +553,9 @@ local notify_failure_job = {
     'create-draft-release': create_draft_release_job,
     'wait-for-release-checks': wait_for_release_checks_job,
     'validate-release-trigger': validate_release_trigger_job,
-    'bump-semgrep-app': bump_semgrep_app_job,
-    'bump-semgrep-action': bump_semgrep_action_job,
-    'bump-semgrep-rpc': bump_semgrep_rpc_job,
+    'bump-semgrep-app': bump_job("semgrep/semgrep-app"),
+    'bump-semgrep-action': bump_job("semgrep/semgrep-action"),
+    'bump-semgrep-rpc': bump_job("semgrep/semgrep-rpc"),
     'notify-success': notify_success_job,
     'notify-failure': notify_failure_job,
   },
