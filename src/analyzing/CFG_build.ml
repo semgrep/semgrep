@@ -464,7 +464,7 @@ let build_cfg_of_unused_lambdas state previ nexti =
   Hashtbl.clear state.unused_lambdas
 
 (*****************************************************************************)
-(* Marking notes *)
+(* Marking nodes *)
 (*****************************************************************************)
 
 let mark_at_exit_nodes cfg =
@@ -477,13 +477,14 @@ let mark_at_exit_nodes cfg =
     | NGoto _
     | Join ->
         CFG.predecessors cfg nodei |> List.iter (fun (predi, _) -> loop predi)
-    (* Certain instruction nodes may be implicitly returned. *)
+    (* These can be at-exit nodes. *)
     | NInstr _
     | NReturn _
     | NThrow _
     | NLambda _
     | NTodo _ ->
         node.at_exit <- true
+    (* Whereas these cannot. *)
     | NOther _
     | NCond _
     | TrueNode _

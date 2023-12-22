@@ -1,6 +1,8 @@
 Pro only: taint-mode: Added experimental `at-exit: true` option for sinks, that
 makes a sink spec only apply on the "exit" instructions/statements of a function.
-
+That is, the instructions after which the control-flow exits the function. This is
+useful for writing rules to find "leaks", such as checking that file descriptors
+are being closed within the same function where they were opened.
 
 For example, given this taint rule:
 

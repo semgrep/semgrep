@@ -192,6 +192,7 @@ let any_is_best_source ?(is_lval = false) env any =
 let any_is_best_sink env any =
   env.config.is_sink any
   |> List.filter (fun (tm : R.taint_sink TM.t) ->
+         (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
          (not tm.spec.sink_at_exit) && TM.is_best_match env.top_matches tm)
 
 let orig_is_source config orig = config.is_source (any_of_orig orig)
@@ -222,7 +223,13 @@ let lval_is_source env lval =
 let lval_is_best_sanitizer env lval =
   any_is_best_sanitizer env (any_of_lval lval)
 
-let lval_is_sink env lval = env.config.is_sink (any_of_lval lval)
+let lval_is_sink env lval =
+  (* TODO: This should be = any_is_best_sink env (any_of_lval lval)
+   *    but see tests/rules/TODO_taint_messy_sink. *)
+  env.config.is_sink (any_of_lval lval)
+  |> List.filter (fun (tm : R.taint_sink TM.t) ->
+         (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
+         not tm.spec.sink_at_exit)
 
 let taints_of_matches env ~incoming sources =
   let control_sources, data_sources =
