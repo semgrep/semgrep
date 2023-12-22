@@ -89,12 +89,7 @@ local semgrep_rules = [
 // ----------------------------------------------------------------------------
 // TCB rules
 // ----------------------------------------------------------------------------
-
-local forbid_exit = import 'TCB/forbid_exit.jsonnet';
-local forbid_network = import 'TCB/forbid_network.jsonnet';
-local forbid_exec = import 'TCB/forbid_exec.jsonnet';
-
-local tcb_rules = forbid_exit.rules + forbid_network.rules + forbid_exec.rules;
+local tcb = import "TCB/forbid_everything.jsonnet";
 
 // ----------------------------------------------------------------------------
 // Skip and last-minute override
@@ -129,7 +124,7 @@ local override_messages = {
 // Entry point
 // ----------------------------------------------------------------------------
 
-local all = yml.rules + semgrep_rules + ocaml_rules + tcb_rules;
+local all = yml.rules + semgrep_rules + ocaml_rules + tcb.rules;
 
 {
   rules:
