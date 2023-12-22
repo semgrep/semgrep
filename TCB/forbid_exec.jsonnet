@@ -1,25 +1,25 @@
+// helpers
+local unix_funcs = [
+  'system',
+  'execv',
+  'execve',
+  'execvp',
+  'execvpe',
+  'create_process',
+  'create_process_env',
+  'open_process_in',
+  'open_process_out',
+  'open_process',
+  'open_process_full',
+  'open_process_args_in',
+  'open_process_args_out',
+  'open_process_args',
+  'open_process_args_full',
+];
+
 // The rule
 {
   rules: [
-    // helpers
-    // TODO: move this at the toplevel, but ojsonnet bug!
-    local unix_funcs = [
-      'system',
-      'execv',
-      'execve',
-      'execvp',
-      'execvpe',
-      'create_process',
-      'create_process_env',
-      'open_process_in',
-      'open_process_out',
-      'open_process',
-      'open_process_full',
-      'open_process_args_in',
-      'open_process_args_out',
-      'open_process_args',
-      'open_process_args_full',
-    ];
     {
       id: 'forbid-exec',
       match: {
@@ -51,5 +51,4 @@
       |||,
     },
   ],
-
 }

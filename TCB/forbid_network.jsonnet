@@ -1,15 +1,15 @@
+local unix_funcs_network = [
+  'socket',
+  'socketpair',
+  'accept',
+  'bind',
+  'connect',
+  'listen',
+  'establish_server',
+];
+
 {
   rules: [
-    // TODO: move this at the toplevel, but ojsonnet bug!
-    local unix_funcs_network = [
-      'socket',
-      'socketpair',
-      'accept',
-      'bind',
-      'connect',
-      'listen',
-      'establish_server',
-    ];
     {
       id: 'forbid-network',
       match: {
