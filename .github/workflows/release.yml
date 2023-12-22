@@ -295,11 +295,11 @@ jobs:
     - name: Dry Run Brew PR
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
+      if: ${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run
+        == 'true' }}
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
         \\\n          --message=\"semgrep 99.99.99\" \\\n          --tag=\"v99.99.99\"
         --revision=\"${GITHUB_SHA}\" semgrep --python-exclude-packages semgrep\n      "
-      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-        != 'true' }}
     - name: Open Brew PR
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
