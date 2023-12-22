@@ -28,6 +28,8 @@ type 'spec t = {
 val is_exact : 'spec t -> bool
 (** An exact match, i.e. overlap 0.99. Typically useful for l-values. *)
 
+val sink_of_match : Rule.taint_sink t -> Taint.sink
+
 (** Any kind of spec-match (existential type). *)
 type any = Any : 'a t -> any
 

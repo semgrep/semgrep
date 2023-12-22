@@ -373,6 +373,7 @@ type node = {
       (* old: there are tok in the nodes anyway
        * t: Parse_info.t option;
        *)
+  mutable at_exit : bool;
 }
 
 and node_kind =
@@ -401,6 +402,8 @@ type cfg = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei
+
+let mk_node n = { n; at_exit = false }
 
 (*****************************************************************************)
 (* Any *)

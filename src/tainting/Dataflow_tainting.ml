@@ -113,6 +113,7 @@ type env = {
 
 let hook_function_taint_signature = ref None
 let hook_find_attribute_in_class = ref None
+let hook_check_tainted_at_exit_sinks = ref None
 
 (*****************************************************************************)
 (* Options *)
@@ -189,7 +190,10 @@ let any_is_best_source ?(is_lval = false) env any =
              (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
 
 let any_is_best_sink env any =
-  env.config.is_sink any |> List.filter (TM.is_best_match env.top_matches)
+  env.config.is_sink any
+  |> List.filter (fun (tm : R.taint_sink TM.t) ->
+         (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
+         (not tm.spec.sink_at_exit) && TM.is_best_match env.top_matches tm)
 
 let orig_is_source config orig = config.is_source (any_of_orig orig)
 
@@ -219,8 +223,13 @@ let lval_is_source env lval =
 let lval_is_best_sanitizer env lval =
   any_is_best_sanitizer env (any_of_lval lval)
 
-let lval_is_sink config lval = config.is_sink (any_of_lval lval)
-let sink_of_match x = { T.pm = x.TM.spec_pm; rule_sink = x.spec }
+let lval_is_sink env lval =
+  (* TODO: This should be = any_is_best_sink env (any_of_lval lval)
+   *    but see tests/rules/TODO_taint_messy_sink. *)
+  env.config.is_sink (any_of_lval lval)
+  |> List.filter (fun (tm : R.taint_sink TM.t) ->
+         (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
+         not tm.spec.sink_at_exit)
 
 let taints_of_matches env ~incoming sources =
   let control_sources, data_sources =
@@ -547,7 +556,7 @@ let check_orig_if_sink env ?filter_sinks orig taints =
     | None -> sinks
     | Some sink_pred -> sinks |> List.filter sink_pred
   in
-  let sinks = sinks |> List_.map sink_of_match in
+  let sinks = sinks |> List_.map TM.sink_of_match in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings
 
@@ -874,9 +883,9 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
     check_type_and_drop_taints_if_bool_or_number env taints type_of_lval lval
   in
   let sinks =
-    lval_is_sink env.config lval
+    lval_is_sink env lval
     |> List.filter (TM.is_best_match env.top_matches)
-    |> List_.map sink_of_match
+    |> List_.map TM.sink_of_match
   in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
   report_findings { env with lval_env } findings;
@@ -1064,14 +1073,14 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       in
       let new_taints = taints_incoming |> Taints.union taints_propagated in
       let sinks =
-        lval_is_sink env.config lval
+        lval_is_sink env lval
         (* For sub-lvals we require sinks to be exact matches. Why? Let's say
            * we have `sink(x.a)` and `x' is tainted but `x.a` is clean...
            * with the normal subset semantics for sinks we would consider `x'
            * itself to be a sink, and we would report a finding!
         *)
         |> List.filter TM.is_exact
-        |> List_.map sink_of_match
+        |> List_.map TM.sink_of_match
       in
       let all_taints = Taints.union taints_from_env new_taints in
       let findings =
@@ -1625,9 +1634,9 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
  * report the finding too (by side effect). *)
 let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
-    env.config.is_sink (G.Tk tok) @ orig_is_sink env.config e.eorig
+    any_is_best_sink env (G.Tk tok) @ orig_is_best_sink env e.eorig
     |> List.filter (TM.is_best_match env.top_matches)
-    |> List_.map sink_of_match
+    |> List_.map TM.sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
   let taints =
@@ -1666,6 +1675,16 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
                [ T.ToArg (new_taints |> Taints.elements, arg) ]
              else [])
 
+let check_tainted_at_exit_sinks node env =
+  match !hook_check_tainted_at_exit_sinks with
+  | None -> ()
+  | Some hook -> (
+      match hook env.config env.lval_env node with
+      | None -> ()
+      | Some (taints_at_exit, sink_matches_at_exit) ->
+          findings_of_tainted_sinks env taints_at_exit sink_matches_at_exit
+          |> report_findings env)
+
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
@@ -1700,18 +1719,18 @@ let transfer :
   (* DataflowX.display_mapping flow mapping show_tainted; *)
   let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
   let node = flow.graph#nodes#assoc ni in
+  let env =
+    {
+      lang;
+      options;
+      config;
+      fun_name = opt_name;
+      lval_env = in';
+      top_matches;
+      java_props;
+    }
+  in
   let out' : Lval_env.t =
-    let env =
-      {
-        lang;
-        options;
-        config;
-        fun_name = opt_name;
-        lval_env = in';
-        top_matches;
-        java_props;
-      }
-    in
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
@@ -1793,6 +1812,7 @@ let transfer :
     | NTodo _ ->
         in'
   in
+  check_tainted_at_exit_sinks node { env with lval_env = out' };
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)

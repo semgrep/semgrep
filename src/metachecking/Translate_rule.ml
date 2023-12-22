@@ -122,15 +122,21 @@ and translate_taint_source
        ])
 
 and translate_taint_sink
-    { sink_id = _; sink_formula; sink_requires; sink_is_func_with_focus = _ } :
-    [> `O of (string * Yaml.value) list ] =
+    {
+      sink_id = _;
+      sink_formula;
+      sink_requires;
+      sink_at_exit;
+      sink_is_func_with_focus = _;
+    } : [> `O of (string * Yaml.value) list ] =
   let (`O sink_f) = translate_formula sink_formula in
+  let at_exit_obj = if sink_at_exit then [ ("at-exit", `Bool true) ] else [] in
   let requires_obj =
     match sink_requires with
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
-  `O (List.concat [ sink_f; requires_obj ])
+  `O (List.concat [ sink_f; requires_obj; at_exit_obj ])
 
 and translate_taint_sanitizer
     {
