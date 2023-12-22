@@ -177,9 +177,9 @@ class Metrics:
     def add_engine_config(
         self,
         engineType: "EngineType",
-        code: CodeConfig,
-        secrets: SecretsConfig,
-        supply_chain: SupplyChainConfig,
+        code: Optional[CodeConfig],
+        secrets: Optional[SecretsConfig],
+        supply_chain: Optional[SupplyChainConfig],
     ) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config

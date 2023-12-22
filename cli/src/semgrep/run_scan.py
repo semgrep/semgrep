@@ -430,7 +430,7 @@ def run_scan(
         metrics.add_configs(configs)
         metrics.add_engine_config(
             engine_type,
-            CodeConfig(),
+            CodeConfig() if with_code_rules else None,
             SecretsConfig(
                 SecretsOrigin(AnySecretsOrigin())
                 if allow_untrusted_validators

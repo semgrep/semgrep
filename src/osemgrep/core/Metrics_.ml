@@ -286,7 +286,10 @@ let add_engine_type (engine_type : Engine_type.t) =
             | Intraprocedural -> `Intraprocedural
             | Interprocedural -> `Interprocedural
             | Interfile -> `Interfile);
-          code_config;
+          code_config =
+            Option.map
+              (fun () : Semgrep_metrics_t.code_config -> { _rfu = None })
+              code_config;
           secrets_config =
             Option.map
               (fun (conf : Engine_type.secrets_config) :
@@ -296,7 +299,11 @@ let add_engine_type (engine_type : Engine_type.t) =
                     (if conf.allow_all_origins then `Any else `Semgrep);
                 })
               secrets_config;
-          supply_chain_config;
+          supply_chain_config =
+            Option.map
+              (fun () : Semgrep_metrics_t.supply_chain_config ->
+                { _rfu = None })
+              supply_chain_config;
           pro_langs = extra_languages;
         }
   in
