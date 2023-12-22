@@ -38,8 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
     - inputs
-    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-      != 'true' }}
     defaults:
       run:
         working-directory: cli/
@@ -50,8 +48,7 @@ jobs:
         python-version: "3.10"
         cache: pipenv
     - run: sudo python3 -m pip install pipenv==2022.6.7
-    - name: Install dependencies
-      run: pipenv install --dev
+    - run: pipenv install --dev
     - name: Build parked packages
       run: pipenv run python setup.py park
     - name: Publish to Pypi
@@ -71,6 +68,8 @@ jobs:
         password: ${{ secrets.test_pypi_upload_token }}
         skip_existing: true
         packages_dir: cli/dist/
+    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+      != 'true' }}
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
@@ -189,20 +188,18 @@ jobs:
       run: unzip ./osx-arm64-wheel/dist.zip "*.whl"
     - name: Publish to Pypi
       uses: pypa/gh-action-pypi-publish@release/v1
-      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-        != 'true' }}
       with:
         user: __token__
         password: ${{ secrets.pypi_upload_token }}
         skip_existing: true
+      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+        != 'true' }}
   create-release:
     name: Create the Github Release
     runs-on: ubuntu-latest
     needs:
     - wait-for-build-test
     - inputs
-    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-      != 'true' }}
     steps:
     - name: Get the version
       id: get-version
@@ -221,11 +218,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION
         }} --draft=false
+    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+      != 'true' }}
   create-release-interfaces:
     name: Create the Github Release on Semgrep Interfaces
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-      != 'true' }}
     needs:
     - wait-for-build-test
     - inputs
@@ -263,6 +260,8 @@ jobs:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       run: gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION
         }} --draft=false
+    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+      != 'true' }}
   sleep-before-homebrew:
     name: Sleep 10 min before releasing to homebrew
     needs:
@@ -271,9 +270,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Sleep 10 min
+      run: sleep 10m
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
-      run: sleep 10m
   homebrew-core-pr:
     name: Update on Homebrew-Core
     needs:
@@ -296,19 +295,19 @@ jobs:
     - name: Dry Run Brew PR
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-      if: ${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run
-        == 'true' }}
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
         \\\n          --message=\"semgrep 99.99.99\" \\\n          --tag=\"v99.99.99\"
         --revision=\"${GITHUB_SHA}\" semgrep --python-exclude-packages semgrep\n      "
-    - name: Open Brew PR
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
+    - name: Open Brew PR
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
         \\\n          --message=\"semgrep ${{ steps.get-version.outputs.VERSION }}\"
         \\\n          --tag=\"${{ steps.get-version.outputs.TAG }}\" semgrep\n      "
+      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+        != 'true' }}
     - name: Prepare Branch
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
@@ -323,19 +322,19 @@ jobs:
     - name: Push Branch to Fork
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-        != 'true' }}
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
         \       git push --set-upstream r2c --force \"bump-semgrep-${{ steps.get-version.outputs.VERSION
         }}\"\n      "
+      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+        != 'true' }}
     - name: Push to Fork
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         R2C_HOMEBREW_CORE_OWNER: semgrep-release
-      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-        != 'true' }}
       run: "\n        gh pr create --repo homebrew/homebrew-core \\\n          --base
         master --head \"${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION
         }}\" \\\n          --title=\"semgrep ${{ steps.get-version.outputs.VERSION
         }}\" \\\n          --body \"Bump semgrep to version ${{ steps.get-version.outputs.VERSION
         }}\"\n      "
+      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
+        != 'true' }}

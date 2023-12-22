@@ -26,7 +26,7 @@ local setup_runner_step = {
 };
 
 // Our self-hosted runner do not come with python pre-installed
-// TODO? could be moved to actions.libsonnet
+// TODO? reuse actions.setup_python?
 local setup_python_step = {
   uses: 'actions/setup-python@v4',
   with: {

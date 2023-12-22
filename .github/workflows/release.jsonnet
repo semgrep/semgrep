@@ -5,17 +5,21 @@
 //  - prepare and upload to PyPy a new semgrep package
 //  - make a PR for homebrew's formula to update to the latest semgrep
 
-// TODO: factorize more, use reference and local instead of duplicating strings
 // TODO: remove some useless name:
 
 local semgrep = import 'libs/semgrep.libsonnet';
+local actions = import 'libs/actions.libsonnet';
+
+// ----------------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------------
+local version = "${{ steps.get-version.outputs.VERSION }}";
 
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
-
 // to be used by the workflow
-local release_input = {
+local release_inputs = {
   inputs: {
     'dry-run': {
       description: |||
@@ -28,9 +32,18 @@ local release_input = {
   },
 };
 
+local unless_dry_run = {
+  if: "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}"
+};
+
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
+
+// TODO? delete this intermediate? do we care about those *test* refs below ?
+// In any case to test you can always create a branch, make a PR, and
+// then trigger the workflow manually with dry-mode on from the GHA action
+// dashboard
 local inputs_job = {
   'runs-on': 'ubuntu-22.04',
   outputs: {
@@ -130,7 +143,7 @@ local build_test_docker_nonroot_job = {
   },
 };
 
-local push_docker_job = {
+local push_docker_job(artifact_name) = {
   needs: [
     'wait-for-build-test',
     'inputs',
@@ -138,21 +151,7 @@ local push_docker_job = {
   uses: './.github/workflows/push-docker.yaml',
   secrets: 'inherit',
   with: {
-    'artifact-name': 'image-release',
-    'repository-name': 'returntocorp/semgrep',
-    'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
-  },
-};
-
-local push_docker_nonroot_job = {
-  needs: [
-    'wait-for-build-test',
-    'inputs',
-  ],
-  uses: './.github/workflows/push-docker.yaml',
-  secrets: 'inherit',
-  with: {
-    'artifact-name': 'image-release-nonroot',
+    'artifact-name': artifact_name,
     'repository-name': 'returntocorp/semgrep',
     'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
   },
@@ -168,7 +167,6 @@ local park_pypi_packages_job = {
   needs: [
     'inputs',
   ],
-  'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
   defaults: {
     run: {
       'working-directory': 'cli/',
@@ -178,18 +176,11 @@ local park_pypi_packages_job = {
     {
       uses: 'actions/checkout@v3',
     },
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.10',
-        cache: 'pipenv',
-      },
-    },
+    actions.setup_python('3.10'),
     {
       run: 'sudo python3 -m pip install pipenv==2022.6.7',
     },
     {
-      name: 'Install dependencies',
       run: 'pipenv install --dev',
     },
     // There are no semgrep-core here, just the Python code.
@@ -223,7 +214,7 @@ local park_pypi_packages_job = {
       },
     },
   ],
-};
+} + unless_dry_run;
 
 local upload_wheels_job = {
   name: 'Upload Wheels to PyPI',
@@ -287,13 +278,12 @@ local upload_wheels_job = {
     {
       name: 'Publish to Pypi',
       uses: 'pypa/gh-action-pypi-publish@release/v1',
-      'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
       with: {
         user: '__token__',
         password: '${{ secrets.pypi_upload_token }}',
         skip_existing: true,
       },
-    },
+    } + unless_dry_run,
   ],
 };
 
@@ -308,7 +298,6 @@ local create_release_job = {
     'wait-for-build-test',
     'inputs',
   ],
-  'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
   steps: [
     {
       name: 'Get the version',
@@ -323,11 +312,11 @@ local create_release_job = {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
       run: |||
-        while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
+        while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "%s"; do
           echo "release not yet ready, sleeping for 5 seconds"
           sleep 5
         done
-      |||,
+      ||| % version,
     },
     {
       name: 'Publish Release',
@@ -335,15 +324,14 @@ local create_release_job = {
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
-      run: 'gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false',
+      run: 'gh release --repo returntocorp/semgrep edit %s --draft=false' % version,
     },
   ],
-};
+} + unless_dry_run;
 
 local create_release_interfaces_job = {
   name: 'Create the Github Release on Semgrep Interfaces',
   'runs-on': 'ubuntu-latest',
-  'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
   needs: [
     'wait-for-build-test',
     'inputs',
@@ -369,7 +357,7 @@ local create_release_interfaces_job = {
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
-      run: 'gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml',
+      run: 'gh release --repo returntocorp/semgrep-interfaces upload %s cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml' % version,
     },
     {
       name: 'Publish Release Semgrep Interfaces',
@@ -377,10 +365,10 @@ local create_release_interfaces_job = {
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
-      run: 'gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false',
+      run: 'gh release --repo returntocorp/semgrep-interfaces edit %s --draft=false' % version,
     },
   ],
-};
+} + unless_dry_run;
 
 // ----------------------------------------------------------------------------
 // Homebrew jobs
@@ -399,9 +387,8 @@ local sleep_before_homebrew_job = {
   steps: [
     {
       name: 'Sleep 10 min',
-      'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
       run: 'sleep 10m',
-    },
+    } + unless_dry_run,
   ],
 };
 
@@ -428,6 +415,7 @@ local homebrew_core_pr_job = {
         echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       |||,
     },
+    // TODO: reuse actions.setup_python
     {
       uses: 'actions/setup-python@v4',
       id: 'python-setup',
@@ -447,25 +435,23 @@ local homebrew_core_pr_job = {
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
-      'if': "${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run == 'true' }}",
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep 99.99.99" \
           --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
       |||,
-    },
+    } + unless_dry_run,
     {
       name: 'Open Brew PR',
-      'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
-          --message="semgrep ${{ steps.get-version.outputs.VERSION }}" \
+          --message="semgrep %s" \
           --tag="${{ steps.get-version.outputs.TAG }}" semgrep
-      |||,
-    },
+      ||| % version,
+    } + unless_dry_run,
     {
       name: 'Prepare Branch',
       env: {
@@ -480,51 +466,48 @@ local homebrew_core_pr_job = {
         git config user.email ${{ github.actor }}@users.noreply.github.com
         gh auth setup-git
         git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
-        git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}
+        git checkout -b bump-semgrep-%s
         git add Formula/s/semgrep.rb
-        git commit -m "semgrep ${{ steps.get-version.outputs.VERSION }}"
-      |||,
+        git commit -m "semgrep %s"
+      ||| % [version, version],
     },
     {
       name: 'Push Branch to Fork',
       env: {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
-      'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
       run: |||
         cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
-        git push --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION }}"
-      |||,
+        git push --set-upstream r2c --force "bump-semgrep-%s"
+      ||| % version,
 
-    },
+    } + unless_dry_run,
     {
       name: 'Push to Fork',
       env: {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
         R2C_HOMEBREW_CORE_OWNER: 'semgrep-release',
       },
-      'if': "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}",
       run: |||
         gh pr create --repo homebrew/homebrew-core \
-          --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION }}" \
-          --title="semgrep ${{ steps.get-version.outputs.VERSION }}" \
-          --body "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"
-      |||,
-    },
+          --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-%s" \
+          --title="semgrep %s" \
+          --body "Bump semgrep to version %s"
+      ||| % [version, version, version],
+    } + unless_dry_run,
   ],
 };
 
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'release',
   on: {
     // this workflow can be triggered manually, via a call (see nightly.jsonnet)
     // or when something (human or start-release.jsonnet) push to a vxxx branch.
-    workflow_dispatch: release_input,
-    workflow_call: release_input,
+    workflow_dispatch: release_inputs,
+    workflow_call: release_inputs,
     push: {
       branches: [
         // Sequence of patterns matched against refs/tags
@@ -587,8 +570,8 @@ local homebrew_core_pr_job = {
         },
       ],
     },
-    'push-docker': push_docker_job,
-    'push-docker-nonroot': push_docker_nonroot_job,
+    'push-docker': push_docker_job('image-release'),
+    'push-docker-nonroot': push_docker_job('image-release-nonroot'),
     'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,
