@@ -6,6 +6,50 @@
 
 <!-- insertion point -->
 
+## [1.54.3](https://github.com/returntocorp/semgrep/releases/tag/v1.54.3) - 2023-12-22
+
+
+### Added
+
+
+- Pro only: taint-mode: Added experimental `at-exit: true` option for sinks, that
+  makes a sink spec only apply on the "exit" instructions/statements of a function.
+  That is, the instructions after which the control-flow exits the function. This is
+  useful for writing rules to find "leaks", such as checking that file descriptors
+  are being closed within the same function where they were opened.
+
+  For example, given this taint rule:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: true
+      patterns:
+        - pattern: $FILE = open(...)
+        - focus-metavariable: $FILE
+  pattern-sanitizers:
+    - by-side-effect: true
+      patterns:
+        - pattern: $FILE.close(...)
+        - focus-metavariable: $FILE
+  pattern-sinks:
+    - at-exit: true
+      pattern: |
+        def $FUN(...):
+          ...
+  ```
+
+  Semgrep will report a finding in the code below since at `print(content)`, after
+  which the control flow reaches the exit of the function, the `file` has not yet
+  been closed:
+
+  ```python
+  def test():
+      file = open("test.txt")
+      content = file.read()
+      print(content) # FINDING
+  ``` (pa-3266)
+
+
 ## [1.54.2](https://github.com/returntocorp/semgrep/releases/tag/v1.54.2) - 2023-12-21
 
 
