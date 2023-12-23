@@ -285,46 +285,56 @@ let get_output_file_pairs (test : _ T.test) =
 
    redirects stderr to stdout.
 *)
-let with_redirect_fd ~from ~to_ func () =
+let with_redirect_fd ~mona ~from ~to_ func () =
   (* keep the original file alive *)
   let original = Unix.dup from in
   (* nosemgrep: no-fun-protect *)
-  Fun.protect
-    ~finally:(fun () -> Unix.close original)
+  Mona.protect mona
+    ~finally:(fun () ->
+      Unix.close original;
+      mona.return ())
     (fun () ->
       (* redirect to file *)
       Unix.dup2 to_ from;
       (* nosemgrep: no-fun-protect *)
-      Fun.protect
-        ~finally:(fun () -> (* cancel the redirect *)
-                            Unix.dup2 original from)
+      Mona.protect mona
+        ~finally:(fun () ->
+          (* cancel the redirect *)
+          Unix.dup2 original from;
+          mona.return ())
         func)
 
 (* Redirect stdout or stderr to a file *)
-let with_redirect_fd_to_file fd filename func () =
+let with_redirect_fd_to_file ~mona fd filename func () =
   let file = Unix.openfile filename [ O_CREAT; O_TRUNC; O_WRONLY ] 0o666 in
   (* nosemgrep: no-fun-protect *)
-  Fun.protect
-    ~finally:(fun () -> Unix.close file)
-    (with_redirect_fd ~from:fd ~to_:file func)
+  Mona.protect mona
+    ~finally:(fun () ->
+      Unix.close file;
+      mona.return ())
+    (with_redirect_fd ~mona ~from:fd ~to_:file func)
 
 (* stdout/stderr redirect using buffered channels. We're careful about
    flushing the channel of interest (from) before any redirection. *)
-let with_redirect ~from ~to_ func () =
+let with_redirect ~(mona : _ Mona.t) ~from ~to_ func () =
   flush from;
   let from_fd = Unix.descr_of_out_channel from in
   let to_fd = Unix.descr_of_out_channel to_ in
-  with_redirect_fd ~from:from_fd ~to_:to_fd
+  with_redirect_fd ~mona ~from:from_fd ~to_:to_fd
     (fun () ->
       (* nosemgrep: no-fun-protect *)
-      Fun.protect ~finally:(fun () -> flush from) func)
+      Mona.protect mona
+        ~finally:(fun () ->
+          flush from;
+          mona.return ())
+        func)
     ()
 
 (* Redirect a buffered channel to a file. *)
-let with_redirect_to_file from filename func () =
+let with_redirect_to_file ~mona from filename func () =
   flush from;
   let from_fd = Unix.descr_of_out_channel from in
-  with_redirect_fd_to_file from_fd filename
+  with_redirect_fd_to_file ~mona from_fd filename
     (fun () ->
       (* nosemgrep: no-fun-protect *)
       Fun.protect ~finally:(fun () -> flush from) func)
@@ -337,7 +347,7 @@ let compose_functions_left_to_right funcs x =
 (* Iff the test is configured to rewrite its output so as to mask the
    unpredicable parts, we rewrite the standard output file and we make a
    backup of the original. *)
-let mask_output (test : unit T.test) =
+let mask_output (test : 'unit_promise T.test) =
   match test.mask_output with
   | [] -> ()
   | mask_functions ->
@@ -359,82 +369,59 @@ let mask_output (test : unit T.test) =
              in
              write_file std_path masked_data)
 
-let with_redirect_merged_stdout_stderr path func =
+let with_redirect_merged_stdout_stderr ~mona path func =
   (* redirect stderr to stdout, then redirect stdout to stdxxx file *)
-  with_redirect_to_file stdout path
-    (with_redirect ~from:stderr ~to_:stdout func)
+  with_redirect_to_file ~mona stdout path
+    (with_redirect ~mona ~from:stderr ~to_:stdout func)
 
-let with_output_capture (test : unit T.test) func =
+let with_output_capture (test : 'unit_promise T.test)
+    (func : unit -> 'unit_promise) =
+  let mona = test.m in
   let unchecked_output_path = get_unchecked_output_path test in
   let func =
     match test.output_kind with
     | Ignore_output ->
-        with_redirect_merged_stdout_stderr unchecked_output_path func
+        with_redirect_merged_stdout_stderr ~mona unchecked_output_path func
     | Stdout ->
-        with_redirect_to_file stderr unchecked_output_path
-          (with_redirect_to_file stdout
+        with_redirect_to_file ~mona stderr unchecked_output_path
+          (with_redirect_to_file ~mona stdout
              (get_output_path test stdout_filename)
              func)
     | Stderr ->
-        with_redirect_to_file stdout unchecked_output_path
-          (with_redirect_to_file stderr
+        with_redirect_to_file ~mona stdout unchecked_output_path
+          (with_redirect_to_file ~mona stderr
              (get_output_path test stderr_filename)
              func)
     | Merged_stdout_stderr ->
-        with_redirect_merged_stdout_stderr
+        with_redirect_merged_stdout_stderr ~mona
           (get_output_path test stdxxx_filename)
           func
     | Separate_stdout_stderr ->
-        with_redirect_to_file stdout
+        with_redirect_to_file ~mona stdout
           (get_output_path test stdout_filename)
-          (with_redirect_to_file stderr
+          (with_redirect_to_file ~mona stderr
              (get_output_path test stderr_filename)
              func)
   in
   fun () ->
-    func ();
-    mask_output test
+    mona.bind (func ()) (fun () ->
+        mask_output test;
+        mona.return ())
 
-let with_outcome_capture (test : unit T.test) func () =
-  try
-    let res = func () in
-    set_outcome test Succeeded;
-    res
-  with
-  | e ->
-      let trace = Printexc.get_raw_backtrace () in
-      set_outcome test Failed;
-      Printexc.raise_with_backtrace e trace
-
-let with_outcome_capture_lwt (test : unit Lwt.t T.test) func () =
-  Lwt.catch
+let with_outcome_capture (test : 'unit_promise T.test) func () =
+  test.m.catch
     (fun () ->
-      Lwt.bind (func ()) (fun res ->
+      test.m.bind (func ()) (fun res ->
           set_outcome test Succeeded;
-          Lwt.return res))
+          test.m.return res))
     (fun e ->
       let trace = Printexc.get_raw_backtrace () in
       set_outcome test Failed;
       Printexc.raise_with_backtrace e trace)
 
-let with_output_capture_lwt (test : unit Lwt.t T.test) func =
-  (* TODO: IO redirections for Lwt *)
-  match test.output_kind with
-  | Ignore_output -> func
-  | _ ->
-      failwith
-        (sprintf "TODO: lwt test output capture (requested for test %s)" test.id)
-
-let with_result_capture (test : unit T.test) func () =
+let with_result_capture (test : 'unit_promise T.test) func () : 'unit_promise =
   init_test_workspace test;
-  let func = func |> with_output_capture test |> with_outcome_capture test in
-  func ()
-
-let with_result_capture_lwt (test : unit Lwt.t T.test) func () =
-  init_test_workspace test;
-  let func =
-    func |> with_output_capture_lwt test |> with_outcome_capture_lwt test
-  in
+  let func = with_outcome_capture test (with_output_capture test func) in
   func ()
 
 (**************************************************************************)

@@ -20,6 +20,12 @@ type status_stats = {
 
 type success = OK | OK_but_new | Not_OK
 
+type 'unit_promise alcotest_test_case =
+  string * Alcotest.speed_level * (unit -> 'unit_promise)
+
+type 'unit_promise alcotest_test =
+  string * 'unit_promise alcotest_test_case list
+
 (*
    Check that no two tests have the same full name or the same ID.
 *)
@@ -164,44 +170,28 @@ let chdir_error (test : _ T.test) =
    TODO: add options at test creation time to tolerate the failure to restore
    this or that setting.
 *)
-let protect_globals test (func : unit -> 'a) : unit -> 'a =
+let protect_globals (test : _ T.test) (func : unit -> 'promise) :
+    unit -> 'promise =
   let protect_global ?error_if_changed get set func () =
     let original_value = get () in
-    (* nosemgrep: no-fun-protect *)
-    Fun.protect func ~finally:(fun () ->
-        let current_value = get () in
-        set original_value;
-        match error_if_changed with
-        | Some err_msg_func when current_value <> original_value ->
-            Alcotest.fail (err_msg_func original_value current_value)
-        | _ -> ())
-  in
-  func
-  |> protect_global Sys.getcwd Sys.chdir ?error_if_changed:(chdir_error test)
-  |> protect_global Printexc.backtrace_status Printexc.record_backtrace
-(* TODO: more universal settings to protect? *)
-
-(* TODO: remove this code duplication by either removing support for Lwt
-   (do we really need it?) or some other abtraction mechanism like a functor
-   or a polymorphic record providing bind, return, catch, etc. *)
-let protect_globals_lwt test (func : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
-  let protect_global ?error_if_changed get set func () =
-    let original_value = get () in
-    Lwt.finalize func (fun () ->
+    Mona.protect test.m
+      ~finally:(fun () ->
         let current_value = get () in
         set original_value;
         (match error_if_changed with
         | Some err_msg_func when current_value <> original_value ->
             Alcotest.fail (err_msg_func original_value current_value)
         | _ -> ());
-        Lwt.return ())
+        test.m.return ())
+      func
   in
   func
   |> protect_global Sys.getcwd Sys.chdir ?error_if_changed:(chdir_error test)
   |> protect_global Printexc.backtrace_status Printexc.record_backtrace
 (* TODO: more universal settings to protect? *)
 
-let to_alcotest_generic
+(* TODO: simplify and run this directly without Alcotest.run *)
+let to_alcotest_gen
     ~(wrap_test_function : 'a T.test -> (unit -> 'a) -> unit -> 'a)
     (tests : 'a T.test list) : _ list =
   tests
@@ -247,14 +237,7 @@ let print_exn (test : _ T.test) exn trace =
               (Printexc.raw_backtrace_to_string trace)))
 
 let with_print_exn (test : _ T.test) func () =
-  try func () with
-  | exn ->
-      let trace = Printexc.get_raw_backtrace () in
-      print_exn test exn trace;
-      Printexc.raise_with_backtrace exn trace
-
-let with_print_exn_lwt (test : _ T.test) func () =
-  Lwt.catch func (fun exn ->
+  test.m.catch func (fun exn ->
       let trace = Printexc.get_raw_backtrace () in
       print_exn test exn trace;
       Printexc.raise_with_backtrace exn trace)
@@ -262,58 +245,35 @@ let with_print_exn_lwt (test : _ T.test) func () =
 let with_flip_xfail_outcome (test : _ T.test) func =
   match test.expected_outcome with
   | Should_succeed -> func
-  | Should_fail _reason -> (
-      fun () ->
-        try
-          func ();
-          Alcotest.fail "XPASS: This test should have raised an exception."
-        with
-        | exn ->
-            eprintf "XFAIL: As expected, an exception was raised: %s\n"
-              (Printexc.to_string exn))
-
-let with_flip_xfail_outcome_lwt (test : _ T.test) func =
-  match test.expected_outcome with
-  | Should_succeed -> func
   | Should_fail _reason ->
       fun () ->
-        Lwt.catch
+        test.m.catch
           (fun () ->
-            Lwt.bind (func ()) (fun () ->
+            test.m.bind (func ()) (fun () ->
                 Alcotest.fail "XPASS: This test failed to raise an exception"))
           (fun exn ->
             eprintf "XFAIL: As expected, an exception was raised: %s\n"
               (Printexc.to_string exn);
-            Lwt.return ())
+            test.m.return ())
 
 let conditional_wrap condition wrapper func =
   if condition then wrapper func else func
 
-let to_alcotest_internal ~with_storage ~flip_xfail_outcome tests =
-  let wrap_test_function test func =
-    func |> with_print_exn test
-    |> conditional_wrap flip_xfail_outcome (with_flip_xfail_outcome test)
-    |> protect_globals test
-    |> conditional_wrap with_storage (Store.with_result_capture test)
-  in
-  to_alcotest_generic ~wrap_test_function tests
+let wrap_test_function ~with_storage ~flip_xfail_outcome test func =
+  func |> with_print_exn test
+  |> conditional_wrap flip_xfail_outcome (with_flip_xfail_outcome test)
+  |> protect_globals test
+  |> conditional_wrap with_storage (Store.with_result_capture test)
 
-let to_alcotest_lwt_internal ~with_storage ~flip_xfail_outcome tests =
-  let wrap_test_function test func =
-    func |> with_print_exn_lwt test
-    |> conditional_wrap flip_xfail_outcome (with_flip_xfail_outcome_lwt test)
-    |> protect_globals_lwt test
-    |> conditional_wrap with_storage (Store.with_result_capture_lwt test)
-  in
-  to_alcotest_generic ~wrap_test_function tests
+let to_alcotest_internal ~with_storage ~flip_xfail_outcome tests =
+  to_alcotest_gen
+    ~wrap_test_function:(wrap_test_function ~with_storage ~flip_xfail_outcome)
+    tests
 
 (* Exported versions that exposes a plain Alcotest test suite that doesn't
    write test statuses and prints "OK" for XFAIL statuses. *)
-let to_alcotest =
-  to_alcotest_internal ~with_storage:false ~flip_xfail_outcome:true
-
-let to_alcotest_lwt =
-  to_alcotest_lwt_internal ~with_storage:false ~flip_xfail_outcome:true
+let to_alcotest tests =
+  to_alcotest_internal ~with_storage:false ~flip_xfail_outcome:true tests
 
 let contains_regexp pat =
   let rex = Re.Pcre.regexp pat in
@@ -556,11 +516,11 @@ let print_short_status ~show_output tests tests_with_status =
   print_short_status ~show_output tests_with_status;
   print_status_summary tests tests_with_status
 
-let get_tests_with_status tests =
-  tests
-  |> Helpers.list_map (fun test ->
-         let status = Store.get_status test in
-         (test, status, Store.status_summary_of_status status))
+let get_test_with_status test =
+  let status = Store.get_status test in
+  (test, status, Store.status_summary_of_status status)
+
+let get_tests_with_status tests = tests |> Helpers.list_map get_test_with_status
 
 (*
    Entry point for the status subcommand
@@ -576,42 +536,26 @@ let list_status ~filter_by_substring ~output_style ~show_output tests =
   in
   (exit_code, tests_with_status)
 
-(* Important: for unknown reasons, the "test" subcommand of alcotest
-   force an exit after Alcotest.run, regardless of the 'and_exit' argument
-   that we pass.
-
-   '-e': synonym for '--show-errors' causing the output of all failing
-         tests to be shown (rather than just one if I remember correctly).
-*)
-let alcotest_argv = [| ""; "-e" |]
-
-let run_tests_with_alcotest tests =
-  let alcotest_tests =
-    to_alcotest_internal ~with_storage:true ~flip_xfail_outcome:false tests
-  in
-  (try
-     Alcotest.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests
-   with
-  | Alcotest.Test_error -> ());
-  Format.print_flush ()
-
-let run_tests_with_alcotest_lwt tests =
-  let alcotest_tests =
-    to_alcotest_lwt_internal ~with_storage:true ~flip_xfail_outcome:false tests
-  in
-  Lwt.finalize
-    (fun () ->
-      Lwt.catch
-        (fun () ->
-          Lwt.bind
-            (Alcotest_lwt.run ~and_exit:false ~argv:alcotest_argv "test"
-               alcotest_tests) (fun () -> Lwt.return ()))
-        (function
-          | Alcotest.Test_error -> Lwt.return ()
-          | e -> raise e))
-    (fun () ->
-      Format.print_flush ();
-      Lwt.return ())
+let run_tests_sequentially ~(mona : _ Mona.t)
+    (tests : 'unit_promise T.test list) : 'unit_promise =
+  List.fold_left
+    (fun previous (test : _ T.test) ->
+      let test_func : unit -> 'unit_promise =
+        wrap_test_function ~with_storage:true ~flip_xfail_outcome:false test
+          test.func
+      in
+      mona.bind previous (fun () ->
+          if test.skipped then (
+            printf "SKIP %s\n%!" (Color.format Cyan test.name);
+            mona.return ())
+          else (
+            printf "RUN %s...\n%!" (Color.format Cyan test.name);
+            mona.bind
+              (mona.catch test_func (fun _exn -> mona.return ()))
+              (fun () ->
+                get_test_with_status test |> print_status ~show_output:true;
+                mona.return ()))))
+    (mona.return ()) tests
 
 (* Run this before a run or Lwt run. Returns the filtered tests. *)
 let before_run ~filter_by_substring ~lazy_ tests =
@@ -646,15 +590,22 @@ let after_run ~show_output tests selected_tests =
 (*
    Entry point for the 'run' subcommand
 *)
-let run_tests ~filter_by_substring ~lazy_ ~show_output tests =
+let run_tests ~(mona : _ Mona.t) ~filter_by_substring ~lazy_ ~show_output tests
+    cont =
   let selected_tests = before_run ~filter_by_substring ~lazy_ tests in
-  run_tests_with_alcotest selected_tests;
-  after_run tests ~show_output selected_tests
-
-let run_tests_lwt ~filter_by_substring ~lazy_ ~show_output tests =
-  let selected_tests = before_run ~filter_by_substring ~lazy_ tests in
-  Lwt.bind (run_tests_with_alcotest_lwt selected_tests) (fun () ->
-      after_run tests ~show_output selected_tests |> Lwt.return)
+  mona.bind (run_tests_sequentially ~mona selected_tests) (fun () ->
+      let exit_code, tests_with_status =
+        after_run ~show_output tests selected_tests
+      in
+      cont exit_code tests_with_status |> ignore;
+      (* The continuation 'cont' should exit but otherwise we exit once
+         it's done. *)
+      (* nosemgrep: forbid-exit *)
+      exit exit_code)
+  |> ignore;
+  (* shouldn't be reached if 'bind' does what it's supposed to *)
+  (* nosemgrep: forbid-exit *)
+  exit 0
 
 (*
    Entry point for the 'approve' subcommand

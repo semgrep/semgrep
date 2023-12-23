@@ -53,11 +53,12 @@ type status_summary = T.status_summary = {
   has_expected_output : bool;
 }
 
-type test_with_status = unit T.test * status * status_summary
+type 'unit_promise test_with_status =
+  'unit_promise T.test * status * status_summary
 
-type subcommand_result = Cmd.subcommand_result =
-  | Run_result of test_with_status list
-  | Status_result of test_with_status list
+type 'unit_promise subcommand_result = 'unit_promise Cmd.subcommand_result =
+  | Run_result of 'unit_promise test_with_status list
+  | Status_result of 'unit_promise test_with_status list
   | Approve_result
 
 (* export *)
@@ -70,12 +71,12 @@ type output_kind = T.output_kind =
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
-type 'a t = 'a T.test = {
+type 'unit_promise t = 'unit_promise T.test = {
   id : string;
   internal_full_name : string;
   category : string list;
   name : string;
-  func : unit -> 'a;
+  func : unit -> 'unit_promise;
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   speed_level : Alcotest.speed_level;
@@ -83,13 +84,21 @@ type 'a t = 'a T.test = {
   output_kind : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
+  m : 'unit_promise Mona.t;
 }
 
 type test = unit t
-type lwt_test = unit Lwt.t t
 
 (* Legacy type that doesn't support options *)
 type simple_test = string * (unit -> unit)
+
+(* Polymorphic type alias for an Alcotest's 'test_case'. *)
+type 'unit_promise alcotest_test_case =
+  string * Alcotest.speed_level * (unit -> 'unit_promise)
+
+(* Polymorphic type alias for an Alcotest's 'test'. *)
+type 'unit_promise alcotest_test =
+  string * 'unit_promise alcotest_test_case list
 
 (****************************************************************************)
 (* Conversions *)
@@ -113,9 +122,10 @@ let update_id (test : _ t) =
   let id = String.sub md5_hex 0 12 in
   { test with id; internal_full_name }
 
-let create ?(category = []) ?(expected_outcome = Should_succeed)
+let create_gen ?(category = []) ?(expected_outcome = Should_succeed)
     ?(mask_output = []) ?(output_kind = Ignore_output) ?(skipped = false)
-    ?(speed_level = `Quick) ?(tags = []) ?(tolerate_chdir = false) name func =
+    ?(speed_level = `Quick) ?(tags = []) ?(tolerate_chdir = false) mona name
+    func =
   {
     id = "";
     internal_full_name = "";
@@ -129,8 +139,14 @@ let create ?(category = []) ?(expected_outcome = Should_succeed)
     output_kind;
     skipped;
     tolerate_chdir;
+    m = mona;
   }
   |> update_id
+
+let create ?category ?expected_outcome ?mask_output ?output_kind ?skipped
+    ?speed_level ?tags ?tolerate_chdir name func =
+  create_gen ?category ?expected_outcome ?mask_output ?output_kind ?skipped
+    ?speed_level ?tags ?tolerate_chdir Mona.sync name func
 
 let opt option default = Option.value option ~default
 
@@ -150,6 +166,7 @@ let update ?category ?expected_outcome ?func ?mask_output ?name ?output_kind
     output_kind = opt output_kind old.output_kind;
     skipped = opt skipped old.skipped;
     tolerate_chdir = opt tolerate_chdir old.tolerate_chdir;
+    m = old.m;
   }
   |> update_id
 
@@ -167,7 +184,7 @@ let mask_pcre_pattern ?(mask = "<MASKED>") pat =
   fun subj -> Re.Pcre.substitute ~rex ~subst subj
 
 (* Allow conversion from Lwt to synchronous function *)
-let update_func (test : 'a t) func : 'b t = { test with func }
+let update_func (test : 'a t) mona2 func : 'b t = { test with func; m = mona2 }
 let has_tag tag test = List.mem tag test.tags
 let simple_test (name, func) = create name func
 let simple_tests simple_tests = Helpers.list_map simple_test simple_tests
@@ -192,24 +209,14 @@ let sort (tests : _ t list) : _ t list =
          if c <> 0 then c else String.compare a.name b.name)
 
 let to_alcotest = Run.to_alcotest
-let to_alcotest_lwt = Run.to_alcotest_lwt
 let registered_tests : test list ref = ref []
-let registered_lwt_tests : lwt_test list ref = ref []
 let register x = registered_tests := x :: !registered_tests
-let register_lwt x = registered_lwt_tests := x :: !registered_lwt_tests
 
-let test ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
-    func =
-  create ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
-    func
+let test ?category ?expected_outcome ?mask_output ?output_kind ?skipped
+    ?speed_level ?tags ?tolerate_chdir name func =
+  create ?category ?expected_outcome ?mask_output ?output_kind ?skipped
+    ?speed_level ?tags ?tolerate_chdir name func
   |> register
 
-let test_lwt ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
-    func =
-  create ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
-    func
-  |> register_lwt
-
 let get_registered_tests () = List.rev !registered_tests
-let get_registered_lwt_tests () = List.rev !registered_lwt_tests
 let interpret_argv = Cmd.interpret_argv
