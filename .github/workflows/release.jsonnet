@@ -435,12 +435,14 @@ local homebrew_core_pr_job = {
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
+      // this is run only in dry-mode
+      if: "${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run == 'true' }}",
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep 99.99.99" \
           --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
       |||,
-    } + unless_dry_run,
+    },
     {
       name: 'Open Brew PR',
       env: {
