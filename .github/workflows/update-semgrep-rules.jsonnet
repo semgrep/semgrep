@@ -1,6 +1,6 @@
-// Cron to make a PR to update the semgrep/tests/semgrep-rules
-// submodule to its latest version. This will allow to detect ASAP (or at
-// least not too late) when semgrep-core can't check all the rules and tests
+// Cron to make a PR to update the semgrep/tests/semgrep-rules submodule
+// to its latest version. This will allow to detect ASAP (or at least not
+// too late) when semgrep-core can't check all the rules and tests
 // in semgrep-rules (which are updated frequently).
 //
 // Note that semgrep-rules CI itself is testing whether
@@ -17,17 +17,11 @@ local job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     // The 2 steps below allow then later to trigger a PR (using 'gh')
-    // from a workflow by (ab)using our Semgrep-CI Github App.
-    // The PR will come from "Semgrep-CI bot".
-    //
-    // This is quite complicated and CircleCI is far simpler
-    // for those kinds of things (see semgrep-pro/.circleci/config.yml
-    // for an example of such cron simply using circleci/github-cli orb
+    // from a workflow by using our Semgrep-CI Github App.
+    // The PR will come from "Semgrep-CI bot". We need this because
+    // you can't by default trigger a workflow from a workflow.
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
-    // Recursively checkout all submodules
-    // ensure that we're on the default branch (develop)
-    // Use the token provided by the JWT token getter above
     {
       uses: 'actions/checkout@v3',
       with: {
@@ -38,6 +32,7 @@ local job = {
         // Because this would require some form of configuring URLs or auth using
         // the token, and so 'ref:' and 'token:' below handles that for us instead.
         ref: '${{ github.event.repository.default_branch }}',
+        // Use the token provided by the JWT token getter above
         token: semgrep.github_bot.token_ref,
       },
     },
@@ -145,6 +140,7 @@ local job = {
     ],
   },
   //TODO: how to handle failures if the cron fails? Who gets the error notification?
+  // send the failure on Slack?
   jobs: {
     job: job,
   },
