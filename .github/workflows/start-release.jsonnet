@@ -122,16 +122,14 @@ local len_checks = "$(gh pr -R returntocorp/semgrep view %s --json statusCheckRo
 
 local wait_pr_checks_to_register(while_cond) = |||
   LEN_CHECKS=%s;
-    while [ ${LEN_CHECKS} = "%s" ]; do
-      echo "No checks available yet"
-      sleep 1
-      LEN_CHECKS=%s;
-    done
-    echo "checks are valid"
-
-    echo ${LEN_CHECKS}
-
-    gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+  while [ ${LEN_CHECKS} = "%s" ]; do
+    echo "No checks available yet"
+    sleep 1
+    LEN_CHECKS=%s;
+  done
+  echo "checks are valid"
+  echo ${LEN_CHECKS}
+  gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
 ||| % [len_checks, while_cond, len_checks, pr_number];
 
 local wait_pr_checks_to_register_step(while_cond) = {
