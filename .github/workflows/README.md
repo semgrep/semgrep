@@ -31,29 +31,25 @@ Here is a short description of the workflows in this directory:
 - semgrep.jsonnet: dogfood Semgrep by using our Semgrep Github action
   and submitting findings to Semgrep App for bugs in the semgrep repo itself.
 
-- start-release.yml: workflow to manually trigger a new Semgrep release.
+- start-release.jsonnet: workflow to manually trigger a new Semgrep release.
   This internally creates a new branch, calls 'make release' on it, and
   puts it on a vXxx branch which then triggers the release workflow below.
   It also coordinates separate workflows, waits for them to finish to
   start other workflows. Here are the dependent workflows:
 
-  - release.yml: this workflow is triggered after start-release.yml created
+  - release.jsonnet: this workflow is triggered after start-release.jsonnet created
     a candidate release PR and pushed a vXxx branch. It then performs lots of tasks
     such as creating the Linux and MacOS binary artifacts,
     publishing to PyPy, HomeBrew, updating our Semgrep develop Docker image, etc.
 
-  - validate-release.yml: this workflow is activated by start-release.yml
-    once release.yml has finished. It performs checks to make sure
-    the artifacts produced by release.yml are valid.
-
   - open-bump-pr.yml: this workflow is activated once we have a new Semgrep release
-    (after validate-release.yml) and in turn bumps to the new Semgrep version
+    and in turn bumps to the new Semgrep version
     many dependent repositories (semgrep-rpc, semgrep-action, semgrep-app)
 
-- nightly.yml: cron to check that the Homebrew Core Formula works.
-  Why can't this be part of validate-release.yml?
+- nightly.jsonnet: cron to check that the Homebrew Core Formula works.
+  Why can't this be part of validate-release.jsonnet?
   Because it usually takes some time for HomeBrew developers to accept the PR
-  created in release.yml, so we shouldn't block on actions we can't control.
+  created in release.jsonnet, so we shouldn't block on actions we can't control.
   This is why we have the find-old-brew-prs.yml and homebrew-core-head.yml
   workflows.
 
@@ -63,5 +59,5 @@ Here is a short description of the workflows in this directory:
 - revert-semgrep-docker-image.yml: interactive workflow
   to manually revert the Semgrep 'latest' Docker image.
 
-- e2e-semgrep-ci.yml: end-to-end testing of the 'semgrep ci' subcommand,
+- e2e-semgrep-ci.jsonnet: end-to-end testing of the 'semgrep ci' subcommand,
   and our 'develop' Docker image, which are used by all the users of Semgrep App.

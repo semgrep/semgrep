@@ -482,11 +482,20 @@ local validate_release_trigger_job = {
     'wait-for-release-checks',
     'release-setup',
   ],
-  uses: './.github/workflows/validate-release.yml',
-  secrets: 'inherit',
-  with: {
-    version: version,
-  },
+  'runs-on': 'ubuntu-latest',
+  steps: [
+    {
+      uses: 'actions/checkout@v3',
+      // I don't think it's important to checkout here this specific version;
+      // the actual important check is done in the script below.
+      with: {
+        ref: 'v%s' % version,
+      },
+    },
+    {
+      run: './scripts/validate-docker-release.sh %s' % version,
+    },
+  ],
 } + unless_dry_run;
 
 // ----------------------------------------------------------------------------

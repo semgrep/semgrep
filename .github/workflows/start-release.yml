@@ -307,10 +307,13 @@ jobs:
     - get-version
     - wait-for-release-checks
     - release-setup
-    uses: ./.github/workflows/validate-release.yml
-    secrets: inherit
-    with:
-      version: ${{ needs.get-version.outputs.version }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: v${{ needs.get-version.outputs.version }}
+    - run: ./scripts/validate-docker-release.sh ${{ needs.get-version.outputs.version
+        }}
     if: ${{ ! inputs.dry-run }}
   bump-semgrep-app:
     needs:
