@@ -7,22 +7,22 @@
 // findings because of networking errors (or for other reasons such as the failing
 // of 'git').
 
-local actions = import "libs/actions.libsonnet";
-local semgrep = import "libs/semgrep.libsonnet";
+local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
 
 local docker_tag_input = {
-      inputs: {
-        docker_tag: {
-          description: 'Docker Tag to Run. Default: develop',
-          required: false,
-          //TODO? could propose choice with 'canary' also
-          default: 'develop',
-        },
-      }
+  inputs: {
+    docker_tag: {
+      description: 'Docker Tag to Run. Default: develop',
+      required: false,
+      //TODO? could propose choice with 'canary' also
+      default: 'develop',
+    },
+  },
 };
 
 // just validate and reexport the input in docker_tag_input above.
@@ -40,7 +40,7 @@ local get_inputs_job = {
       id: 'get-inputs',
       //TODO? why do we need that given we set a default value above?
       env: {
-	DOCKER_TAG: 'develop'
+        DOCKER_TAG: 'develop',
       },
       run: 'echo "docker_tag=${{ inputs.docker_tag || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT',
     },
@@ -61,8 +61,8 @@ local needs_docker_tag = '${{ needs.get-inputs.outputs.docker_tag }}';
 local semgrep_ci_job = {
   'runs-on': 'ubuntu-22.04',
   env: {
-   // TODO: why not semgrep.secrets.SEMGREP_APP_TOKEN? Why a different token?
-   // We use a different ruleboard for that?
+    // TODO: why not semgrep.secrets.SEMGREP_APP_TOKEN? Why a different token?
+    // We use a different ruleboard for that?
     SEMGREP_APP_TOKEN: semgrep.secrets.E2E_APP_TOKEN,
   },
   needs: 'get-inputs',
@@ -214,7 +214,7 @@ local wait_for_checks_job = {
     {
       name: 'Wait for checks to register',
       env: {
-	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: |||
         LEN_CHECKS=$(gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
@@ -238,7 +238,7 @@ local wait_for_checks_job = {
     {
       name: 'Wait for checks to complete',
       env: {
-	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       run: |||
         # Wait for PR checks to finish
@@ -252,14 +252,14 @@ local wait_for_checks_job = {
 // Failure notification
 // ----------------------------------------------------------------------------
 
-#TODO: use instead the more direct:
-#        if: failure()
-#        uses: slackapi/slack-github-action@v1.23.0
-#        with:
-#          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
-#          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-#        env:
-#           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
+//TODO: use instead the more direct:
+//        if: failure()
+//        uses: slackapi/slack-github-action@v1.23.0
+//        with:
+//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
+//          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+//        env:
+//           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
 
 local notify_failure_job = {
   needs: [

@@ -42,22 +42,18 @@ Here is a short description of the workflows in this directory:
     such as creating the Linux and MacOS binary artifacts,
     publishing to PyPy, HomeBrew, updating our Semgrep develop Docker image, etc.
 
-  - open-bump-pr.yml: this workflow is activated once we have a new Semgrep release
-    and in turn bumps to the new Semgrep version
-    many dependent repositories (semgrep-rpc, semgrep-action, semgrep-app)
-
 - nightly.jsonnet: cron to check that the Homebrew Core Formula works.
-  Why can't this be part of validate-release.jsonnet?
+  Why can't this be part of release.jsonnet?
   Because it usually takes some time for HomeBrew developers to accept the PR
   created in release.jsonnet, so we shouldn't block on actions we can't control.
   This is why we have the find-old-brew-prs.yml and homebrew-core-head.yml
   workflows.
 
 - update-semgrep-rules.jsonnet: cron to update semgrep/tests/semgrep-rules
-  submodule to its latest version
+  submodule to its latest version.
 
 - revert-semgrep-docker-image.yml: interactive workflow
   to manually revert the Semgrep 'latest' Docker image.
 
-- e2e-semgrep-ci.jsonnet: end-to-end testing of the 'semgrep ci' subcommand,
+- test-e2e-semgrep-ci.jsonnet: end-to-end testing of the 'semgrep ci' subcommand,
   and our 'develop' Docker image, which are used by all the users of Semgrep App.
