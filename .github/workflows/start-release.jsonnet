@@ -24,6 +24,7 @@ local version = '${{ needs.get-version.outputs.version }}';
 // This is computed by the release_setup_job (e.g., "9545")
 // and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
+
 // When we use git directly instead of gh.
 local git_config_user = |||
   git config user.name ${{ github.actor }}

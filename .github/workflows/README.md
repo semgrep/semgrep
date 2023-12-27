@@ -31,6 +31,9 @@ Here is a short description of the workflows in this directory:
 - semgrep.jsonnet: dogfood Semgrep by using our Semgrep Github action
   and submitting findings to Semgrep App for bugs in the semgrep repo itself.
 
+- update-semgrep-rules.jsonnet: cron to update semgrep/tests/semgrep-rules
+  submodule to its latest version.
+
 - start-release.jsonnet: workflow to manually trigger a new Semgrep release.
   This internally creates a new branch, calls 'make release' on it, and
   puts it on a vXxx branch which then triggers the release workflow below.
@@ -49,11 +52,8 @@ Here is a short description of the workflows in this directory:
   This is why we have the find-old-brew-prs.yml and homebrew-core-head.yml
   workflows.
 
-- update-semgrep-rules.jsonnet: cron to update semgrep/tests/semgrep-rules
-  submodule to its latest version.
+- test-e2e-semgrep-ci.jsonnet: end-to-end testing of the 'semgrep ci' subcommand,
+  and our 'develop' Docker image, which are used by all the users of Semgrep App.
 
 - revert-semgrep-docker-image.yml: interactive workflow
   to manually revert the Semgrep 'latest' Docker image.
-
-- test-e2e-semgrep-ci.jsonnet: end-to-end testing of the 'semgrep ci' subcommand,
-  and our 'develop' Docker image, which are used by all the users of Semgrep App.

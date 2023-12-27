@@ -1,11 +1,10 @@
 // Daily cron to check end-to-end (e2e) that the 'semgrep ci' subcommand,
-// ran from our docker 'develop' semgrep image, works correctly.
+// run from a returntocorp/semgrep:develop docker image, works correctly.
 // This is very important because 'semgrep ci' and our docker images
-// are the main things the users of Semgrep WebApp are using in their CIs.
-// It also allows us to confirm "fail-open" behavior is still functioning as
-// expected, that is we aren't failing the CI check when we can't upload
-// findings because of networking errors (or for other reasons such as a 'git'
-// execution failure).
+// are the main things the users of our Semgrep WebApp are using in their CIs.
+// This cron also double checks that "fail-open" is working as expected, that is
+// we aren't failing the CI check when we can't upload findings because of
+// networking errors (or for other reasons such as a 'git' execution failure).
 
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -25,7 +24,7 @@ local pr_number = '"${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"';
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-// this will post on Slack
+// This will post on Slack.
 // TODO: factorize with start-release.jsonnet and other workflows using Slack
 local curl_notify(message) = |||
   curl --request POST \
@@ -55,7 +54,8 @@ local docker_tag_input = {
 // Why this intermediate job? Can't we use directly inputs.docker_tag
 // in the other jobs? It's because this workflow can be called
 // interactively (workflow_dispatch), or via a cron, and for a cron
-// we don't have a way to say docker_tag should be 'develop'.
+// we don't have a way to say docker_tag should be 'develop', hence
+// this intermediate job.
 local get_inputs_job = {
   name: 'Get Inputs',
   'runs-on': 'ubuntu-22.04',
@@ -80,7 +80,7 @@ local get_inputs_job = {
 };
 
 // ----------------------------------------------------------------------------
-// Basic semgrep CI checks
+// Basic semgrep CI checks (on the semgrep repo itself)
 // ----------------------------------------------------------------------------
 local semgrep_ci_job = {
   'runs-on': 'ubuntu-22.04',
@@ -194,42 +194,67 @@ local semgrep_ci_fail_open_blocking_findings_job = {
 };
 
 // ----------------------------------------------------------------------------
-// PR checks
+// PR check on another repo
 // ----------------------------------------------------------------------------
 
-// This series of workflows work together and with the returntocorp/e2e repo
-// which was specifically designed to test semgrep ci e2e (hence the name).
+// The two jobs below work together and with the returntocorp/e2e repo
+// to check that 'semgrep ci' reports only new findings on PRs.
+// This 'e2e' repo contains:
+//  - a file-under-test.py with a '10 == 10' that
+//    should be reported by semgrep (by the '$X == $X' semgrep rule)
+//  - a .github/workflows/semgrep-ci-e2e.yml that runs 'semgrep ci'
+//    with the docker image specified in semgrep-docker-image-tag.txt
+//  - a scripts/change-version.sh that updates semgrep-docker-image-tag.txt
+//    and modifies a file that is not file-under-test.py
+//
+// Because semgrep ci reports only new findings, the goal of the jobs below is to
+// make sure no finding are reported since we don't modify file-under-test.py
 
 // just open a PR on the returntocorp/e2e repo
 local semgrep_ci_on_pr_job = {
-  uses: './.github/workflows/open-bump-pr.yml',
-  secrets: 'inherit',
-  needs: 'get-inputs',
-  with: {
-    version: docker_tag,
-    // ??
-    repository: 'returntocorp/e2e',
-    base_branch: 'develop',
-    new_branch_name: 'e2e-test-${{ github.run_id }}',
-    // ??
-    bump_script_path: 'scripts/change-version.sh',
-  },
-};
-
-// Debugging
-// TODO? get rid of this job
-local pr_url_job = {
   'runs-on': 'ubuntu-22.04',
-  needs: 'semgrep-ci-on-pr',
+  needs: 'get-inputs',
+  outputs: {
+    'pr-number': "${{ steps.open-pr.outputs.pr-number }}",
+  },
   steps: [
+    semgrep.github_bot.get_jwt_step,
+    semgrep.github_bot.get_token_step,
     {
-      run: 'echo ${{ needs.semgrep-ci-on-pr.outputs.pr-url }}',
+      uses: 'actions/checkout@v3',
+      with: {
+	repository: 'returntocorp/e2e',
+        ref: '${{ github.event.repository.default_branch }}',
+        token: semgrep.github_bot.token_ref,
+      },
     },
     {
-      run: 'echo %s' % pr_number,
+      name: 'Prepare the PR',
+      run: |||
+	git checkout -b e2e-test-pr-${{ github.run_id }}
+        scripts/change-version.sh %s
+        git config user.name ${{ github.actor }}
+        git config user.email ${{ github.actor }}@users.noreply.github.com
+        git add --all
+        git commit -m "chore: Bump version to %s"
+        git push --set-upstream origin e2e-test-pr-${{ github.run_id }}
+      ||| % [ docker_tag, docker_tag],
+    },
+    {
+      name: 'Make the PR',
+      id: 'open-pr',
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+      run: |||
+          PR_URL=$(gh pr create --title "chore: fake PR for %s" --body "Fake PR" --base "develop" --head "e2e-test-pr-${{ github.run_id }}")
+          PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+      ||| % [docker_tag],
     },
   ],
 };
+
 
 // TODO: factorize with start-release.jsonnet
 local len_checks = "$(gh pr -R returntocorp/e2e view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
@@ -317,9 +342,8 @@ local notify_failure_job = {
     'semgrep-ci': semgrep_ci_job,
     'semgrep-ci-fail-open': semgrep_ci_fail_open_job,
     'semgrep-ci-fail-open-blocking-findings': semgrep_ci_fail_open_blocking_findings_job,
-    // the 3 jobs below work together
+    // the two jobs below work together
     'semgrep-ci-on-pr': semgrep_ci_on_pr_job,
-    'pr-url': pr_url_job,
     'wait-for-checks': wait_for_checks_job,
     'notify-failure': notify_failure_job,
   },

@@ -66,21 +66,45 @@ jobs:
       run: "\n        if semgrep ci --suppress-errors; then\n           exit 2\n        else\n
         \          exit 0\n        fi\n      "
   semgrep-ci-on-pr:
-    uses: ./.github/workflows/open-bump-pr.yml
-    secrets: inherit
-    needs: get-inputs
-    with:
-      version: ${{ needs.get-inputs.outputs.docker_tag }}
-      repository: returntocorp/e2e
-      base_branch: develop
-      new_branch_name: e2e-test-${{ github.run_id }}
-      bump_script_path: scripts/change-version.sh
-  pr-url:
     runs-on: ubuntu-22.04
-    needs: semgrep-ci-on-pr
+    needs: get-inputs
+    outputs:
+      pr-number: ${{ steps.open-pr.outputs.pr-number }}
     steps:
-    - run: echo ${{ needs.semgrep-ci-on-pr.outputs.pr-url }}
-    - run: echo "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"
+    - name: Get JWT for semgrep-ci GitHub App
+      id: jwt
+      uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+      env:
+        EXPIRATION: 600
+        ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }}
+        PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+    - name: Get token for semgrep-ci GitHub App
+      id: token
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - uses: actions/checkout@v3
+      with:
+        repository: returntocorp/e2e
+        ref: ${{ github.event.repository.default_branch }}
+        token: ${{ steps.token.outputs.token }}
+    - name: Prepare the PR
+      run: "\n\tgit checkout -b e2e-test-pr-${{ github.run_id }}\n        scripts/change-version.sh
+        ${{ needs.get-inputs.outputs.docker_tag }}\n        git config user.name ${{
+        github.actor }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
+        \       git add --all\n        git commit -m \"chore: Bump version to ${{
+        needs.get-inputs.outputs.docker_tag }}\"\n        git push --set-upstream
+        origin e2e-test-pr-${{ github.run_id }}\n      "
+    - name: Make the PR
+      id: open-pr
+      env:
+        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+      run: "\n          PR_URL=$(gh pr create --title \"chore: fake PR for ${{ needs.get-inputs.outputs.docker_tag
+        }}\" --body \"Fake PR\" --base \"develop\" --head \"e2e-test-pr-${{ github.run_id
+        }}\")\n          PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\\(.*\\)|\\1|')\n
+        \         echo \"pr-number=$PR_NUMBER\" >> $GITHUB_OUTPUT\n      "
   wait-for-checks:
     runs-on: ubuntu-22.04
     needs: semgrep-ci-on-pr
