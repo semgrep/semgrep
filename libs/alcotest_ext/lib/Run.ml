@@ -26,6 +26,9 @@ type 'unit_promise alcotest_test_case =
 type 'unit_promise alcotest_test =
   string * 'unit_promise alcotest_test_case list
 
+(* Left margin for text relating to a test *)
+let indent = "        "
+
 (*
    Check that no two tests have the same full name or the same ID.
 *)
@@ -117,8 +120,17 @@ let format_tags (test : _ T.test) =
   match test.tags with
   | [] -> ""
   | tags ->
-      let tags = List.sort Tag.compare tags |> Helpers.list_map Tag.to_string in
+      let tags =
+        List.sort Tag.compare tags
+        |> Helpers.list_map (fun tag -> Color.format Bold (Tag.to_string tag))
+      in
       sprintf " {%s}" (String.concat ", " tags)
+
+let format_title (test : _ T.test) : string =
+  sprintf "%s%s %s"
+    (Color.format Cyan test.id)
+    (format_tags test)
+    (Color.format Cyan test.internal_full_name)
 
 (*
    Group pairs by the first value of the pair, preserving the original
@@ -349,7 +361,8 @@ let show_output_details (test : _ T.test) (sum : T.status_summary)
          flush stdout;
          flush stderr;
          match path_to_expected_output with
-         | None -> printf "  Path to unchecked output: %s\n" path_to_output
+         | None ->
+             printf "%sPath to unchecked output: %s\n" indent path_to_output
          | Some path_to_expected_output ->
              (match success with
              | OK
@@ -360,24 +373,21 @@ let show_output_details (test : _ T.test) (sum : T.status_summary)
                  show_diff test short_name path_to_expected_output
                    path_to_output);
              if success <> OK_but_new then
-               printf "  Path to expected %s: %s\n" short_name
+               printf "%sPath to expected %s: %s\n" indent short_name
                  path_to_expected_output;
-             printf "  Path to latest %s: %s\n" short_name path_to_output)
+             printf "%sPath to latest %s: %s\n" indent short_name path_to_output)
 
-let print_error text = printf "  %s\n" (Color.format Red text)
+let print_error text = printf "%s%s\n" indent (Color.format Red text)
 
 let print_status ~show_output ((test : _ T.test), (status : T.status), sum) =
-  printf "%s %s%s %s\n"
-    (format_status_summary sum)
-    test.id (format_tags test)
-    (Color.format Cyan test.internal_full_name);
+  printf "%s %s\n" (format_status_summary sum) (format_title test);
 
   if (* Details about expectations *)
-     test.skipped then printf "  Always skipped\n"
+     test.skipped then printf "%sAlways skipped\n" indent
   else (
     (match status.expectation.expected_outcome with
     | Should_succeed -> ()
-    | Should_fail reason -> printf "  Expected to fail: %s\n" reason);
+    | Should_fail reason -> printf "%sExpected to fail: %s\n" indent reason);
     (match test.output_kind with
     | Ignore_output -> ()
     | _ ->
@@ -389,7 +399,7 @@ let print_status ~show_output ((test : _ T.test), (status : T.status), sum) =
           | Merged_stdout_stderr -> "merged stdout and stderr"
           | Separate_stdout_stderr -> "separate stdout and stderr"
         in
-        printf "  Checked output: %s\n" text);
+        printf "%sChecked output: %s\n" indent text);
     (* Details about results *)
     (match status.expectation.expected_output with
     | Error [ path ] ->
@@ -546,13 +556,14 @@ let run_tests_sequentially ~(mona : _ Mona.t)
       in
       mona.bind previous (fun () ->
           if test.skipped then (
-            printf "SKIP %s\n%!" (Color.format Cyan test.name);
+            printf "%s %s\n%!" (Color.format Yellow "SKIP") (format_title test);
             mona.return ())
           else (
-            printf "RUN %s...\n%!" (Color.format Cyan test.name);
+            printf "RUN %s...\n%!" (format_title test);
             mona.bind
               (mona.catch test_func (fun _exn -> mona.return ()))
               (fun () ->
+                print_endline "a";
                 get_test_with_status test |> print_status ~show_output:true;
                 mona.return ()))))
     (mona.return ()) tests

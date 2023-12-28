@@ -219,4 +219,5 @@ let test ?category ?expected_outcome ?mask_output ?output_kind ?skipped
   |> register
 
 let get_registered_tests () = List.rev !registered_tests
-let interpret_argv = Cmd.interpret_argv
+let interpret_argv_gen = Cmd.interpret_argv
+let interpret_argv = interpret_argv_gen ~mona:Mona.sync

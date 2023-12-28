@@ -308,8 +308,18 @@ val to_alcotest : 'unit_promise t list -> 'unit_promise alcotest_test list
 val interpret_argv :
   ?argv:string array ->
   ?expectation_workspace_root:string ->
-  ?handle_subcommand_result:(int -> 'unit_promise subcommand_result -> unit) ->
+  ?handle_subcommand_result:(int -> unit subcommand_result -> unit) ->
   ?status_workspace_root:string ->
   project_name:string ->
   (unit -> test list) ->
   unit
+
+val interpret_argv_gen :
+  ?argv:string array ->
+  ?expectation_workspace_root:string ->
+  ?handle_subcommand_result:(int -> 'unit_promise subcommand_result -> unit) ->
+  ?status_workspace_root:string ->
+  mona:'unit_promise Mona.t ->
+  project_name:string ->
+  (unit -> 'unit_promise t list) ->
+  'unit_promise

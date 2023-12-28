@@ -10,14 +10,26 @@ type 'unit_promise t = {
 }
 
 let protect m ~finally func =
-  m.catch func (fun exn ->
+  let safe_finally () =
+    m.catch finally (fun exn ->
+        failwith
+          (Printf.sprintf
+             "Internal error in test framework: exception raised by 'finally': \
+              %s"
+             (Printexc.to_string exn)))
+  in
+  m.catch
+    (fun () ->
+      m.bind (func ()) (fun res ->
+          m.bind (safe_finally ()) (fun () -> m.return res)))
+    (fun exn ->
       let bt = Printexc.get_raw_backtrace () in
-      m.bind (finally ()) (fun () -> Printexc.raise_with_backtrace exn bt))
+      m.bind (safe_finally ()) (fun () -> Printexc.raise_with_backtrace exn bt))
 
 let sync : unit t =
   {
-    return = (fun x -> x);
-    bind = (fun x func -> func x);
+    return = (fun () -> ());
+    bind = (fun () func -> func ());
     catch =
       (fun func handler ->
         try func () with

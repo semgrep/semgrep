@@ -4,10 +4,13 @@
 
 (* We should consider a shorter name for this library. *)
 let t = Alcotest_ext.create
+let testing_tag = Alcotest_ext.Tag.declare "testing"
+let tags_tag = Alcotest_ext.Tag.declare "tags"
 
 let tests =
   [
     t "simple" (fun () -> ());
+    t "tags" ~tags:[ testing_tag; tags_tag ] (fun () -> ());
     t "unchecked stdout" (fun () -> print_endline "hello");
     t "unchecked stderr" (fun () -> prerr_string "hello\n");
     t "capture stdout" ~output_kind:Stdout (fun () -> print_string "hello\n");

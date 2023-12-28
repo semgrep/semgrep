@@ -25,4 +25,4 @@ val interpret_argv :
   mona:'unit_promise Mona.t ->
   project_name:string ->
   (unit -> 'unit_promise Types.test list) ->
-  unit
+  'unit_promise
