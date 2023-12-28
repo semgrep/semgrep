@@ -26,8 +26,14 @@ type 'unit_promise alcotest_test_case =
 type 'unit_promise alcotest_test =
   string * 'unit_promise alcotest_test_case list
 
+let pad_left width str =
+  let padding = max 0 (width - String.length str) in
+  str ^ String.make padding ' '
+
+let left_col text = pad_left 8 text
+
 (* Left margin for text relating to a test *)
-let indent = "        "
+let indent = left_col ""
 
 (*
    Check that no two tests have the same full name or the same ID.
@@ -85,8 +91,7 @@ let brackets s = sprintf "[%s]" s
 let format_status_summary (sum : T.status_summary) =
   let style = style_of_status_summary sum in
   let displayed_string = sum |> string_of_status_summary |> brackets in
-  let padding = max 0 (7 - String.length displayed_string) in
-  sprintf "%s%s" (Color.format style displayed_string) (String.make padding ' ')
+  left_col displayed_string |> Color.format style
 
 let stats_of_tests tests tests_with_status =
   let stats =
@@ -380,7 +385,7 @@ let show_output_details (test : _ T.test) (sum : T.status_summary)
 let print_error text = printf "%s%s\n" indent (Color.format Red text)
 
 let print_status ~show_output ((test : _ T.test), (status : T.status), sum) =
-  printf "%s %s\n" (format_status_summary sum) (format_title test);
+  printf "%s%s\n" (format_status_summary sum) (format_title test);
 
   if (* Details about expectations *)
      test.skipped then printf "%sAlways skipped\n" indent
@@ -556,10 +561,12 @@ let run_tests_sequentially ~(mona : _ Mona.t)
       in
       mona.bind previous (fun () ->
           if test.skipped then (
-            printf "%s %s\n%!" (Color.format Yellow "SKIP") (format_title test);
+            printf "%s%s\n%!"
+              (Color.format Yellow (left_col "SKIP"))
+              (format_title test);
             mona.return ())
           else (
-            printf "RUN %s...\n%!" (format_title test);
+            printf "%s%s...\n%!" (left_col "RUN") (format_title test);
             mona.bind
               (mona.catch test_func (fun _exn -> mona.return ()))
               (fun () ->
