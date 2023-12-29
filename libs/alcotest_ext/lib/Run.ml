@@ -26,14 +26,8 @@ type 'unit_promise alcotest_test_case =
 type 'unit_promise alcotest_test =
   string * 'unit_promise alcotest_test_case list
 
-let pad_left width str =
-  let padding = max 0 (width - String.length str) in
-  str ^ String.make padding ' '
-
-let left_col text = pad_left 8 text
-
 (* Left margin for text relating to a test *)
-let indent = left_col ""
+let bullet = Style.color Faint "• "
 
 (*
    Check that no two tests have the same full name or the same ID.
@@ -79,7 +73,7 @@ let success_of_status_summary (sum : T.status_summary) =
   | XPASS -> Not_OK
   | MISS -> OK_but_new
 
-let style_of_status_summary (sum : T.status_summary) : Color.style =
+let color_of_status_summary (sum : T.status_summary) : Style.color =
   match success_of_status_summary sum with
   | OK -> Green
   | OK_but_new -> Yellow
@@ -89,9 +83,9 @@ let brackets s = sprintf "[%s]" s
 
 (* Fixed-width output: "[PASS] ", "[XFAIL]" *)
 let format_status_summary (sum : T.status_summary) =
-  let style = style_of_status_summary sum in
+  let style = color_of_status_summary sum in
   let displayed_string = sum |> string_of_status_summary |> brackets in
-  left_col displayed_string |> Color.format style
+  Style.left_col displayed_string |> Style.color style
 
 let stats_of_tests tests tests_with_status =
   let stats =
@@ -127,15 +121,15 @@ let format_tags (test : _ T.test) =
   | tags ->
       let tags =
         List.sort Tag.compare tags
-        |> Helpers.list_map (fun tag -> Color.format Bold (Tag.to_string tag))
+        |> Helpers.list_map (fun tag -> Style.color Bold (Tag.to_string tag))
       in
-      sprintf " {%s}" (String.concat ", " tags)
+      sprintf " (%s)" (String.concat " " tags)
 
 let format_title (test : _ T.test) : string =
-  sprintf "%s%s %s"
-    (Color.format Cyan test.id)
-    (format_tags test)
-    (Color.format Cyan test.internal_full_name)
+  sprintf "%s%s %s" test.id (format_tags test)
+    (test.category @ [ test.name ]
+    |> Helpers.list_map (Style.color Cyan)
+    |> String.concat " > ")
 
 (*
    Group pairs by the first value of the pair, preserving the original
@@ -242,13 +236,13 @@ let print_exn (test : _ T.test) exn trace =
   match test.expected_outcome with
   | Should_succeed ->
       prerr_string
-        (Color.format Red
+        (Style.color Red
            (sprintf "FAIL: The test raised an exception: %s\n%s"
               (Printexc.to_string exn)
               (Printexc.raw_backtrace_to_string trace)))
   | Should_fail _reason ->
       prerr_string
-        (Color.format Green
+        (Style.color Green
            (sprintf "XFAIL: As expected, the test raised an exception: %s\n%s"
               (Printexc.to_string exn)
               (Printexc.raw_backtrace_to_string trace)))
@@ -268,9 +262,10 @@ let with_flip_xfail_outcome (test : _ T.test) func =
           (fun () ->
             test.m.bind (func ()) (fun () ->
                 Alcotest.fail "XPASS: This test failed to raise an exception"))
-          (fun exn ->
-            eprintf "XFAIL: As expected, an exception was raised: %s\n"
-              (Printexc.to_string exn);
+          (fun exn trace ->
+            eprintf "XFAIL: As expected, an exception was raised: %s\n%s\n"
+              (Printexc.to_string exn)
+              (Printexc.raw_backtrace_to_string trace);
             test.m.return ())
 
 let conditional_wrap condition wrapper func =
@@ -322,8 +317,8 @@ let print_errors (xs : (_, string) Result.t list) : int =
   | xs ->
       let n_errors = List.length xs in
       let error_str =
-        if n_errors >= 2 then Color.format Red "Errors:\n"
-        else Color.format Red "Error: "
+        if n_errors >= 2 then Style.color Red "Errors:\n"
+        else Style.color Red "Error: "
       in
       let msg = String.concat "\n" error_messages in
       eprintf "%s%s\n%!" error_str msg;
@@ -351,7 +346,7 @@ let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
   with
   | 0 -> ()
   | _nonzero ->
-      printf "  Captured %s differs from expectation for test %s %s\n"
+      printf "%sCaptured %s differs from expectation for test %s %s\n" bullet
         output_kind test.id test.internal_full_name
 
 let show_output_details (test : _ T.test) (sum : T.status_summary)
@@ -367,7 +362,7 @@ let show_output_details (test : _ T.test) (sum : T.status_summary)
          flush stderr;
          match path_to_expected_output with
          | None ->
-             printf "%sPath to unchecked output: %s\n" indent path_to_output
+             printf "%sPath to unchecked output: %s\n" bullet path_to_output
          | Some path_to_expected_output ->
              (match success with
              | OK
@@ -378,73 +373,81 @@ let show_output_details (test : _ T.test) (sum : T.status_summary)
                  show_diff test short_name path_to_expected_output
                    path_to_output);
              if success <> OK_but_new then
-               printf "%sPath to expected %s: %s\n" indent short_name
+               printf "%sPath to expected %s: %s\n" bullet short_name
                  path_to_expected_output;
-             printf "%sPath to latest %s: %s\n" indent short_name path_to_output)
+             printf "%sPath to latest %s: %s\n" bullet short_name path_to_output)
 
-let print_error text = printf "%s%s\n" indent (Color.format Red text)
+let print_error text = printf "%s%s\n" bullet (Style.color Red text)
 
-let print_status ~show_output ((test : _ T.test), (status : T.status), sum) =
-  printf "%s%s\n" (format_status_summary sum) (format_title test);
+let with_highlight_test ~highlight_test ~title func =
+  if highlight_test then printf "%s" (Style.frame title)
+  else printf "%s\n" title;
+  func ();
+  if highlight_test then printf "%s\n" (Style.horizontal_line ())
 
-  if (* Details about expectations *)
-     test.skipped then printf "%sAlways skipped\n" indent
-  else (
-    (match status.expectation.expected_outcome with
-    | Should_succeed -> ()
-    | Should_fail reason -> printf "%sExpected to fail: %s\n" indent reason);
-    (match test.output_kind with
-    | Ignore_output -> ()
-    | _ ->
-        let text =
-          match test.output_kind with
-          | Ignore_output -> assert false
-          | Stdout -> "stdout"
-          | Stderr -> "stderr"
-          | Merged_stdout_stderr -> "merged stdout and stderr"
-          | Separate_stdout_stderr -> "separate stdout and stderr"
-        in
-        printf "%sChecked output: %s\n" indent text);
-    (* Details about results *)
-    (match status.expectation.expected_output with
-    | Error [ path ] ->
-        print_error
-          (sprintf "Missing file containing the expected output: %s" path)
-    | Error paths ->
-        print_error
-          (sprintf "Missing files containing the expected output: %s"
-             (String.concat ", " paths))
-    | Ok _expected_output -> (
-        match status.result with
+let print_status ~highlight_test ~show_output
+    ((test : _ T.test), (status : T.status), sum) =
+  let title = sprintf "%s%s" (format_status_summary sum) (format_title test) in
+  with_highlight_test ~highlight_test ~title (fun () ->
+      if (* Details about expectations *)
+         test.skipped then printf "%sAlways skipped\n" bullet
+      else (
+        (match status.expectation.expected_outcome with
+        | Should_succeed -> ()
+        | Should_fail reason -> printf "%sExpected to fail: %s\n" bullet reason);
+        (match test.output_kind with
+        | Ignore_output -> ()
+        | _ ->
+            let text =
+              match test.output_kind with
+              | Ignore_output -> assert false
+              | Stdout -> "stdout"
+              | Stderr -> "stderr"
+              | Merged_stdout_stderr -> "merged stdout and stderr"
+              | Separate_stdout_stderr -> "separate stdout and stderr"
+            in
+            printf "%sChecked output: %s\n" bullet text);
+        (* Details about results *)
+        (match status.expectation.expected_output with
         | Error [ path ] ->
             print_error
-              (sprintf "Missing file containing the test output: %s" path)
+              (sprintf "Missing file containing the expected output: %s" path)
         | Error paths ->
             print_error
-              (sprintf "Missing files containing the test output: %s"
+              (sprintf "Missing files containing the expected output: %s"
                  (String.concat ", " paths))
-        | Ok _result ->
-            let output_file_pairs = Store.get_output_file_pairs test in
-            show_output_details test sum output_file_pairs));
-    match success_of_status_summary sum with
-    | OK when not show_output -> ()
-    | OK_but_new when not show_output ->
-        (* TODO: show the checked output to be approved? *)
-        ()
-    | OK
-    | OK_but_new
-    | Not_OK -> (
-        match Store.get_unchecked_output test with
-        | Some ""
-        | None ->
+        | Ok _expected_output -> (
+            match status.result with
+            | Error [ path ] ->
+                print_error
+                  (sprintf "Missing file containing the test output: %s" path)
+            | Error paths ->
+                print_error
+                  (sprintf "Missing files containing the test output: %s"
+                     (String.concat ", " paths))
+            | Ok _result ->
+                let output_file_pairs = Store.get_output_file_pairs test in
+                show_output_details test sum output_file_pairs));
+        match success_of_status_summary sum with
+        | OK when not show_output -> ()
+        | OK_but_new when not show_output ->
+            (* TODO: show the checked output to be approved? *)
             ()
-        | Some data ->
-            print_string data;
-            if not (String.ends_with ~suffix:"\n" data) then print_char '\n';
-            flush stdout))
+        | OK
+        | OK_but_new
+        | Not_OK -> (
+            match Store.get_unchecked_output test with
+            | Some ""
+            | None ->
+                ()
+            | Some data ->
+                printf "%sTest log (unchecked output):\n%s" bullet data;
+                if not (String.ends_with ~suffix:"\n" data) then print_char '\n'
+            )));
+  flush stdout
 
-let print_statuses ~show_output tests_with_status =
-  tests_with_status |> List.iter (print_status ~show_output)
+let print_statuses ~highlight_test ~show_output tests_with_status =
+  tests_with_status |> List.iter (print_status ~highlight_test ~show_output)
 
 let is_overall_success statuses =
   statuses
@@ -469,32 +472,28 @@ let is_overall_success statuses =
 *)
 let print_status_introduction () =
   printf
-    {|The status of completed tests is reported below as one of four kinds:
-- PASS: a successful test that was expected to succeed (good);
-- FAIL: a failing test that was expected to succeed (needs fixing);
-- XFAIL: a failing test that was expected to fail (tolerated failure);
-- XPASS: a successful test that was expected to fail (progress?).
-Other states:
-- MISS: a test that never ran;
-- xxxx*: a new test for which the expected output is missing.
+    {|Legend:
+%s[PASS]: a successful test that was expected to succeed (good);
+%s[FAIL]: a failing test that was expected to succeed (needs fixing);
+%s[XFAIL]: a failing test that was expected to fail (tolerated failure);
+%s[XPASS]: a successful test that was expected to fail (progress?).
+%s[MISS]: a test that never ran;
+%s[xxxx*]: a new test for which there's no expected output yet.
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 |}
+    bullet bullet bullet bullet bullet bullet
 
 let print_short_status ~show_output tests_with_status =
   let tests_with_status = List.filter is_important_status tests_with_status in
   match tests_with_status with
   | [] -> ()
-  | _ ->
-      print_endline (Color.format Bold "Tests that need attention");
-      print_statuses ~show_output tests_with_status
+  | _ -> print_statuses ~highlight_test:true ~show_output tests_with_status
 
 let print_long_status ~show_output tests_with_status =
   match tests_with_status with
   | [] -> ()
-  | _ ->
-      print_endline (Color.format Bold "All tests");
-      print_statuses ~show_output tests_with_status
+  | _ -> print_statuses ~highlight_test:false ~show_output tests_with_status
 
 let plural num = if num >= 2 then "s" else ""
 
@@ -503,8 +502,8 @@ let print_status_summary tests tests_with_status =
   let overall_success = is_overall_success tests_with_status in
   printf
     "%i/%i selected test%s:\n\
-    \  %i successful (%i pass, %i xfail),\n\
-    \  %i unsuccessful (%i fail, %i xpass),\n\
+    \  %i successful (%i pass, %i xfail)\n\
+    \  %i unsuccessful (%i fail, %i xpass)\n\
      %i new test%s\n\
      %i test%s whose output needs first-time approval\n\
      overall status: %s\n"
@@ -515,8 +514,8 @@ let print_status_summary tests tests_with_status =
     !(stats.fail) !(stats.xpass) !(stats.miss) (plural !(stats.miss))
     !(stats.needs_approval)
     (plural !(stats.needs_approval))
-    (if overall_success then Color.format Green "success"
-     else Color.format Red "failure");
+    (if overall_success then Style.color Green "success"
+     else Style.color Red "failure");
   if overall_success then 0 else 1
 
 let print_full_status ~show_output tests tests_with_status =
@@ -562,16 +561,18 @@ let run_tests_sequentially ~(mona : _ Mona.t)
       mona.bind previous (fun () ->
           if test.skipped then (
             printf "%s%s\n%!"
-              (Color.format Yellow (left_col "SKIP"))
+              (Style.left_col (Style.color Yellow "[SKIP]"))
               (format_title test);
             mona.return ())
           else (
-            printf "%s%s...\n%!" (left_col "RUN") (format_title test);
+            printf "%s%s...\n%!"
+              (Style.left_col (Style.color Yellow "[RUN]"))
+              (format_title test);
             mona.bind
-              (mona.catch test_func (fun _exn -> mona.return ()))
+              (mona.catch test_func (fun _exn _trace -> mona.return ()))
               (fun () ->
-                print_endline "a";
-                get_test_with_status test |> print_status ~show_output:true;
+                get_test_with_status test
+                |> print_status ~highlight_test:false ~show_output:true;
                 mona.return ()))))
     (mona.return ()) tests
 
@@ -589,20 +590,12 @@ let before_run ~filter_by_substring ~lazy_ tests =
         |> Helpers.list_map (fun (test, _, _) -> test)
   in
   print_status_introduction ();
-  let selected_tests = tests |> filter ~filter_by_substring in
-  (* It would probably be less confusing to report the 4-way outcome here
-     (pass/fail/xfail/xpass) but we can't as long as we rely on Alcotest
-     for running and printing test results. *)
-  print_endline (Color.format Bold "Test run");
-  print_endline
-    "In this section, tests are reported as either OK or FAIL without looking\n\
-     at the expected outcome or expected output.";
-  selected_tests
+  filter ~filter_by_substring tests
 
 (* Run this after a run or Lwt run. *)
 let after_run ~show_output tests selected_tests =
   let tests_with_status = get_tests_with_status selected_tests in
-  let exit_code = print_full_status ~show_output tests tests_with_status in
+  let exit_code = print_short_status ~show_output tests tests_with_status in
   (exit_code, tests_with_status)
 
 (*

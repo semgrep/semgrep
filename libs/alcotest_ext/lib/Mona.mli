@@ -15,7 +15,10 @@
 type 'unit_promise t = {
   return : unit -> 'unit_promise;
   bind : 'unit_promise -> (unit -> 'unit_promise) -> 'unit_promise;
-  catch : (unit -> 'unit_promise) -> (exn -> 'unit_promise) -> 'unit_promise;
+  catch :
+    (unit -> 'unit_promise) ->
+    (exn -> Printexc.raw_backtrace -> 'unit_promise) ->
+    'unit_promise;
 }
 
 (* Generalized version of Fun.protect *)

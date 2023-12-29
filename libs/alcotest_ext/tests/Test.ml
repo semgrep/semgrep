@@ -11,6 +11,7 @@ let tests =
   [
     t "simple" (fun () -> ());
     t "tags" ~tags:[ testing_tag; tags_tag ] (fun () -> ());
+    t "category" ~category:[ "category"; "subcategory" ] (fun () -> ());
     t "unchecked stdout" (fun () -> print_endline "hello");
     t "unchecked stderr" (fun () -> prerr_string "hello\n");
     t "capture stdout" ~output_kind:Stdout (fun () -> print_string "hello\n");
