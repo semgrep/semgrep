@@ -384,7 +384,8 @@ let with_highlight_test ~highlight_test ~title func =
   if highlight_test then printf "%s" (Style.frame title)
   else printf "%s\n" title;
   func ();
-  if highlight_test then printf "%s\n" (Style.horizontal_line ())
+  (* Mark the end of the test output *)
+  print_string (Style.horizontal_line ())
 
 let print_status ~highlight_test ~show_output
     ((test : _ T.test), (status : T.status), sum) =
