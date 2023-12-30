@@ -10,6 +10,5 @@ Things to do:
 * make color output optional (on/off/auto)
 * protect against tests that might change terminal settings mid-run
   and cause color to disappear mid-run (already an issue with plain Alcotest)
-* investigate whether an Lwt- or Async- specific interface is necessary.
-  If not, drop the Lwt-specific interface.
-* make the output more readable
+* use the Duff library for portable, color diff ('diff --color' is not
+  available everywhere)
