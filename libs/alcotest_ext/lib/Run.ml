@@ -339,7 +339,8 @@ let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
   match
     (* Warning: the implementation of 'diff' (which is it?) available on
        BusyBox doesn't support '--color' option which is very sad.
-       TODO: find a way to show color diffs. *)
+       TODO: find a way to show color diffs
+       -> use duff? https://github.com/mirage/duff *)
     (* nosemgrep: forbid-exec *)
     Sys.command
       (sprintf "diff -u '%s' '%s'" path_to_expected_output path_to_output)
@@ -565,12 +566,14 @@ let run_tests_sequentially ~(mona : _ Mona.t)
               (format_title test);
             mona.return ())
           else (
-            printf "%s%s...\n%!"
+            printf "%s%s...%!"
               (Style.left_col (Style.color Yellow "[RUN]"))
               (format_title test);
             mona.bind
               (mona.catch test_func (fun _exn _trace -> mona.return ()))
               (fun () ->
+                (* Erase RUN line *)
+                printf "\027[2K\r";
                 get_test_with_status test
                 |> print_status ~highlight_test:false ~show_output:true;
                 mona.return ()))))
