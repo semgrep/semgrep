@@ -33,6 +33,7 @@ let bullet = Style.color Faint "• "
    Check that no two tests have the same full name or the same ID.
 *)
 let check_id_uniqueness (tests : _ T.test list) =
+  (* nosemgrep: ocamllint-hashtable-dos *)
   let id_tbl = Hashtbl.create 1000 in
   tests
   |> List.iter (fun (test : _ T.test) ->
