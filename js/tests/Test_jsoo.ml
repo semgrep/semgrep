@@ -112,7 +112,7 @@ let () =
          in
          let lwt_tests =
            List_.map
-             (fun (test : Alcotest_ext.lwt_test) ->
+             (fun (test : Alcotest_ext_lwt.test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
@@ -131,7 +131,7 @@ let () =
          in
          let run_lwt () : unit Lwt.t =
            Alcotest_lwt.run "semgrep-js"
-             (Alcotest_ext.to_alcotest_lwt lwt_tests)
+             (Alcotest_ext.to_alcotest lwt_tests)
              ~and_exit:false ~argv
          in
          (* Some gymnastics are needed here because we need to
