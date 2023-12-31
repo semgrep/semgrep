@@ -76,3 +76,14 @@ let frame str =
     sprintf "%s %s %s\n" (color Faint "│") padded_str (color Faint "│")
   in
   top_line ^ contents_line ^ bottom_line
+
+(*
+   Add a trailing newline and indent each line.
+*)
+let quote_multiline_text =
+  (* Indent by one space, similarly to 'diff -u' output *)
+  let margin = " " in
+  fun str ->
+    str |> String.split_on_char '\n'
+    |> Helpers.list_map (fun line -> margin ^ line ^ "\n")
+    |> String.concat ""

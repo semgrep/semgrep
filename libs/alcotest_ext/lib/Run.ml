@@ -384,8 +384,7 @@ let with_highlight_test ~highlight_test ~title func =
   if highlight_test then printf "%s" (Style.frame title)
   else printf "%s\n" title;
   func ();
-  (* Mark the end of the test output *)
-  print_string (Style.horizontal_line ())
+  if highlight_test then print_string (Style.horizontal_line ())
 
 let print_status ~highlight_test ~show_output
     ((test : _ T.test), (status : T.status), sum) =
@@ -443,7 +442,8 @@ let print_status ~highlight_test ~show_output
             | None ->
                 ()
             | Some data ->
-                printf "%sTest log (unchecked output):\n%s" bullet data;
+                printf "%sTest log (unchecked output):\n%s" bullet
+                  (Style.quote_multiline_text data);
                 if not (String.ends_with ~suffix:"\n" data) then print_char '\n'
             )));
   flush stdout

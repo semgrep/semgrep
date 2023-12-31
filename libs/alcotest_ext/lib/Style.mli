@@ -21,3 +21,11 @@ val horizontal_line : unit -> string
    Pad text to be the correct width for the left column.
 *)
 val left_col : string -> string
+
+(*
+   Print multiline text with an indentation. Always adds a trailing newline.
+
+   Pros: disambiguates the quoted text from other output
+   Cons: interferes with proper copy-pasting (since it inserts whitespace)
+*)
+val quote_multiline_text : string -> string
