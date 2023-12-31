@@ -117,7 +117,6 @@ Legend:
   0 successful (0 pass, 0 xfail)
   0 unsuccessful (0 fail, 0 xpass)
 13 new tests
-0 test whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
 RUN ./test run
@@ -390,7 +389,6 @@ Legend:
   12 successful (11 pass, 1 xfail)
   0 unsuccessful (0 fail, 0 xpass)
 1 new test
-0 test whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
 #####################################################################
@@ -511,7 +509,6 @@ Legend:
   0 successful (0 pass, 0 xfail)
   0 unsuccessful (0 fail, 0 xpass)
 13 new tests
-0 test whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
 RUN ./test run
@@ -582,7 +579,6 @@ Legend:
   12 successful (11 pass, 1 xfail)
   0 unsuccessful (0 fail, 0 xpass)
 1 new test
-0 test whose output needs first-time approval
 overall status: [32msuccess[0m
 <handling result before exiting>
 #####################################################################

@@ -334,8 +334,7 @@ let is_important_status ((test : _ T.test), _status, (sum : T.status_summary)) =
      | Not_OK ->
          true)
 
-let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
-    path_to_output =
+let show_diff (output_kind : string) path_to_expected_output path_to_output =
   match
     (* Warning: the implementation of 'diff' (which is it?) available on
        BusyBox doesn't support '--color' option which is very sad.
@@ -347,10 +346,9 @@ let show_diff (test : _ T.test) (output_kind : string) path_to_expected_output
   with
   | 0 -> ()
   | _nonzero ->
-      printf "%sCaptured %s differs from expectation for test %s %s\n" bullet
-        output_kind test.id test.internal_full_name
+      printf "%sCaptured %s differs from expectation.\n" bullet output_kind
 
-let show_output_details (test : _ T.test) (sum : T.status_summary)
+let show_output_details (sum : T.status_summary)
     (output_file_pairs : Store.output_file_pair list) =
   let success = success_of_status_summary sum in
   output_file_pairs
@@ -371,8 +369,7 @@ let show_output_details (test : _ T.test) (sum : T.status_summary)
                  ()
              | Not_OK ->
                  (* TODO: only show diff if this particular file differs *)
-                 show_diff test short_name path_to_expected_output
-                   path_to_output);
+                 show_diff short_name path_to_expected_output path_to_output);
              if success <> OK_but_new then
                printf "%sPath to expected %s: %s\n" bullet short_name
                  path_to_expected_output;
@@ -428,7 +425,7 @@ let print_status ~highlight_test ~show_output
                      (String.concat ", " paths))
             | Ok _result ->
                 let output_file_pairs = Store.get_output_file_pairs test in
-                show_output_details test sum output_file_pairs));
+                show_output_details sum output_file_pairs));
         match success_of_status_summary sum with
         | OK when not show_output -> ()
         | OK_but_new when not show_output ->
@@ -505,17 +502,19 @@ let print_status_summary tests tests_with_status =
   printf
     "%i/%i selected test%s:\n\
     \  %i successful (%i pass, %i xfail)\n\
-    \  %i unsuccessful (%i fail, %i xpass)\n\
-     %i new test%s\n\
-     %i test%s whose output needs first-time approval\n\
-     overall status: %s\n"
+    \  %i unsuccessful (%i fail, %i xpass)\n"
     stats.selected_tests stats.total_tests (plural stats.total_tests)
     (!(stats.pass) + !(stats.xfail))
     !(stats.pass) !(stats.xfail)
     (!(stats.fail) + !(stats.xpass))
-    !(stats.fail) !(stats.xpass) !(stats.miss) (plural !(stats.miss))
-    !(stats.needs_approval)
-    (plural !(stats.needs_approval))
+    !(stats.fail) !(stats.xpass);
+  if !(stats.miss) > 0 then
+    printf "%i new test%s\n" !(stats.miss) (plural !(stats.miss));
+  if !(stats.needs_approval) > 0 then
+    printf "%i test%s whose output needs first-time approval\n"
+      !(stats.needs_approval)
+      (plural !(stats.needs_approval));
+  printf "overall status: %s\n"
     (if overall_success then Style.color Green "success"
      else Style.color Red "failure");
   if overall_success then 0 else 1
