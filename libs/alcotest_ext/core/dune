@@ -4,8 +4,7 @@
   (name alcotest_ext)
   (libraries
     alcotest
-    alcotest-lwt
     cmdliner
-    lwt
+    re
   )
 )

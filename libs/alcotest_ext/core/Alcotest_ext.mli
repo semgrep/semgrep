@@ -69,6 +69,7 @@ type output_kind =
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
+module Mona : module type of Mona
 module Tag : module type of Tag
 
 (*
@@ -110,8 +111,6 @@ type 'unit_promise t = private {
   (***** Options *****)
   expected_outcome : expected_outcome;
   tags : Tag.t list; (* tags must be declared once using 'create_tag' *)
-  (* special "tag" supported directly by Alcotest: *)
-  speed_level : Alcotest.speed_level;
   (* An optional function to rewrite any output data so as to mask the
      variable parts. *)
   mask_output : (string -> string) list;
@@ -126,6 +125,8 @@ type 'unit_promise t = private {
   m : 'unit_promise Mona.t;
 }
 
+(* The type of an ordinary test, i.e. one that returns when it's done rather
+   than one that returns a deferred computation (Lwt, Async, etc.). *)
 type test = unit t
 type 'unit_promise test_with_status = 'unit_promise t * status * status_summary
 
@@ -152,7 +153,6 @@ val create :
   ?mask_output:(string -> string) list ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
   string ->
@@ -169,7 +169,6 @@ val create_gen :
   ?mask_output:(string -> string) list ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
   'unit_promise Mona.t ->
@@ -190,7 +189,6 @@ val update :
   ?name:string ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
   'unit_promise t ->
@@ -242,7 +240,6 @@ val test :
   ?mask_output:(string -> string) list ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
   string ->
@@ -274,7 +271,7 @@ val sort : 'a t list -> 'a t list
 
 (* Type alias for Alcotest test cases *)
 type 'unit_promise alcotest_test_case =
-  string * Alcotest.speed_level * (unit -> 'unit_promise)
+  string * [ `Quick | `Slow ] * (unit -> 'unit_promise)
 
 (* Type alias for an Alcotest 'test'. *)
 type 'unit_promise alcotest_test =

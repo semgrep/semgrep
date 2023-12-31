@@ -6,7 +6,7 @@ type status_output_style = Short | Full
 
 (* Type alias for Alcotest test cases *)
 type 'unit_promise alcotest_test_case =
-  string * Alcotest.speed_level * (unit -> 'unit_promise)
+  string * [ `Quick | `Slow ] * (unit -> 'unit_promise)
 
 (* Type alias for an Alcotest 'test'. *)
 type 'unit_promise alcotest_test =

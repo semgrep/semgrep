@@ -62,6 +62,7 @@ type 'unit_promise subcommand_result = 'unit_promise Cmd.subcommand_result =
   | Approve_result
 
 (* export *)
+module Mona = Mona
 module Tag = Tag
 
 type output_kind = T.output_kind =
@@ -79,7 +80,6 @@ type 'unit_promise t = 'unit_promise T.test = {
   func : unit -> 'unit_promise;
   expected_outcome : expected_outcome;
   tags : Tag.t list;
-  speed_level : Alcotest.speed_level;
   mask_output : (string -> string) list;
   output_kind : output_kind;
   skipped : bool;
@@ -94,7 +94,7 @@ type simple_test = string * (unit -> unit)
 
 (* Polymorphic type alias for an Alcotest's 'test_case'. *)
 type 'unit_promise alcotest_test_case =
-  string * Alcotest.speed_level * (unit -> 'unit_promise)
+  string * [ `Quick | `Slow ] * (unit -> 'unit_promise)
 
 (* Polymorphic type alias for an Alcotest's 'test'. *)
 type 'unit_promise alcotest_test =
@@ -124,8 +124,7 @@ let update_id (test : _ t) =
 
 let create_gen ?(category = []) ?(expected_outcome = Should_succeed)
     ?(mask_output = []) ?(output_kind = Ignore_output) ?(skipped = false)
-    ?(speed_level = `Quick) ?(tags = []) ?(tolerate_chdir = false) mona name
-    func =
+    ?(tags = []) ?(tolerate_chdir = false) mona name func =
   {
     id = "";
     internal_full_name = "";
@@ -134,7 +133,6 @@ let create_gen ?(category = []) ?(expected_outcome = Should_succeed)
     func;
     expected_outcome;
     tags;
-    speed_level;
     mask_output;
     output_kind;
     skipped;
@@ -143,15 +141,15 @@ let create_gen ?(category = []) ?(expected_outcome = Should_succeed)
   }
   |> update_id
 
-let create ?category ?expected_outcome ?mask_output ?output_kind ?skipped
-    ?speed_level ?tags ?tolerate_chdir name func =
+let create ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
+    ?tolerate_chdir name func =
   create_gen ?category ?expected_outcome ?mask_output ?output_kind ?skipped
-    ?speed_level ?tags ?tolerate_chdir Mona.sync name func
+    ?tags ?tolerate_chdir Mona.sync name func
 
 let opt option default = Option.value option ~default
 
 let update ?category ?expected_outcome ?func ?mask_output ?name ?output_kind
-    ?skipped ?speed_level ?tags ?tolerate_chdir old =
+    ?skipped ?tags ?tolerate_chdir old =
   {
     id = "";
     internal_full_name = "";
@@ -161,7 +159,6 @@ let update ?category ?expected_outcome ?func ?mask_output ?name ?output_kind
     (* requires same type for func and old.func *)
     expected_outcome = opt expected_outcome old.expected_outcome;
     tags = opt tags old.tags;
-    speed_level = opt speed_level old.speed_level;
     mask_output = opt mask_output old.mask_output;
     output_kind = opt output_kind old.output_kind;
     skipped = opt skipped old.skipped;
@@ -212,10 +209,10 @@ let to_alcotest = Run.to_alcotest
 let registered_tests : test list ref = ref []
 let register x = registered_tests := x :: !registered_tests
 
-let test ?category ?expected_outcome ?mask_output ?output_kind ?skipped
-    ?speed_level ?tags ?tolerate_chdir name func =
-  create ?category ?expected_outcome ?mask_output ?output_kind ?skipped
-    ?speed_level ?tags ?tolerate_chdir name func
+let test ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
+    ?tolerate_chdir name func =
+  create ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
+    ?tolerate_chdir name func
   |> register
 
 let get_registered_tests () = List.rev !registered_tests

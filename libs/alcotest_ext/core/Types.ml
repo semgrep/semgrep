@@ -101,7 +101,6 @@ type 'unit_promise test = {
   (* Options *)
   expected_outcome : expected_outcome;
   tags : Tag.t list;
-  speed_level : Alcotest.speed_level;
   mask_output : (string -> string) list;
   output_kind : output_kind;
   skipped : bool;

@@ -43,27 +43,17 @@ let sync : unit t =
             handler exn trace);
   }
 
-(* TODO: move out of the core library to avoid a systematic dependency
-   on Lwt. *)
-let lwt : unit Lwt.t t =
-  let catch func handler =
-    Lwt.catch func (fun exn ->
-        (* TODO: need to capture the stack trace earlier? How? *)
-        let trace = Printexc.get_raw_backtrace () in
-        handler exn trace)
-  in
-  { return = Lwt.return; bind = Lwt.bind; catch }
+(* TODO: create a separate package for Async like we did for Lwt.
 
-(*
-let async : unit Async.Deferred.t t = {
-  return = Async.return;
-  bind = Async.(>>=);
-  catch = (fun func handler ->
-    Async.(
-      try_with func >>= function
-      | Ok a -> return a
-      | Error exn -> handler exn
-    )
-  );
-}
+   let async : unit Async.Deferred.t t = {
+     return = Async.return;
+     bind = Async.(>>=);
+     catch = (fun func handler ->
+       Async.(
+         try_with func >>= function
+         | Ok a -> return a
+         | Error exn -> handler exn
+       )
+     );
+   }
 *)

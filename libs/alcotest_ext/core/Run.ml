@@ -21,7 +21,7 @@ type status_stats = {
 type success = OK | OK_but_new | Not_OK
 
 type 'unit_promise alcotest_test_case =
-  string * Alcotest.speed_level * (unit -> 'unit_promise)
+  string * [ `Quick | `Slow ] * (unit -> 'unit_promise)
 
 type 'unit_promise alcotest_test =
   string * 'unit_promise alcotest_test_case list
@@ -229,7 +229,7 @@ let to_alcotest_gen
            else wrap_test_function test test.func
          in
          (* This is the format expected by Alcotest: *)
-         (suite_name, (test.name, test.speed_level, func)))
+         (suite_name, (test.name, `Quick, func)))
   |> group_by_key
 
 let print_exn (test : _ T.test) exn trace =

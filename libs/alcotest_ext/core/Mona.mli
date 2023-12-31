@@ -30,6 +30,3 @@ val protect :
 
 (* The usual way to carry out computations and catch exceptions. *)
 val sync : unit t
-
-(* Operations over Lwt promises *)
-val lwt : unit Lwt.t t
