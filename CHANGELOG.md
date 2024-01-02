@@ -6,6 +6,16 @@
 
 <!-- insertion point -->
 
+## [1.55.0](https://github.com/returntocorp/semgrep/releases/tag/v1.55.0) - 2024-01-02
+
+
+### Changed
+
+
+- The rule option `commutative_compop` has been renamed to `symmetric_eq`. It is
+  deprecated and will be removed after the 1.60.0 release. (gh-9496)
+
+
 ## [1.54.3](https://github.com/returntocorp/semgrep/releases/tag/v1.54.3) - 2023-12-22
 
 
