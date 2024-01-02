@@ -59,15 +59,15 @@ let run_with_conf ((mona, get_tests, handle_subcommand_result) : _ test_spec)
   let tests = get_tests () in
   match cmd_conf with
   | Run_tests conf ->
-      Run.run_tests ~mona ~filter_by_substring:conf.filter_by_substring
-        ~lazy_:conf.lazy_ ~show_output:conf.show_output tests
+      Run.run_tests ~mona ~always_show_unchecked_output:conf.show_output
+        ~filter_by_substring:conf.filter_by_substring ~lazy_:conf.lazy_ tests
         (fun exit_code tests_with_status ->
           handle_subcommand_result exit_code (Run_result tests_with_status))
   | Status conf ->
       let exit_code, tests_with_status =
-        Run.list_status ~filter_by_substring:conf.filter_by_substring
-          ~output_style:conf.status_output_style ~show_output:conf.show_output
-          tests
+        Run.list_status ~always_show_unchecked_output:conf.show_output
+          ~filter_by_substring:conf.filter_by_substring
+          ~output_style:conf.status_output_style tests
       in
       handle_subcommand_result exit_code (Status_result tests_with_status)
   | Approve conf ->

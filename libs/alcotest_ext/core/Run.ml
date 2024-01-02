@@ -384,7 +384,7 @@ let with_highlight_test ~highlight_test ~title func =
   func ();
   if highlight_test then print_string (Style.horizontal_line ())
 
-let print_status ~highlight_test ~show_output
+let print_status ~highlight_test ~always_show_unchecked_output
     ((test : _ T.test), (status : T.status), sum) =
   let title = sprintf "%s%s" (format_status_summary sum) (format_title test) in
   with_highlight_test ~highlight_test ~title (fun () ->
@@ -428,8 +428,8 @@ let print_status ~highlight_test ~show_output
                 let output_file_pairs = Store.get_output_file_pairs test in
                 show_output_details sum output_file_pairs));
         match success_of_status_summary sum with
-        | OK when not show_output -> ()
-        | OK_but_new when not show_output ->
+        | OK when not always_show_unchecked_output -> ()
+        | OK_but_new when not always_show_unchecked_output ->
             (* TODO: show the checked output to be approved? *)
             ()
         | OK
@@ -446,8 +446,10 @@ let print_status ~highlight_test ~show_output
             )));
   flush stdout
 
-let print_statuses ~highlight_test ~show_output tests_with_status =
-  tests_with_status |> List.iter (print_status ~highlight_test ~show_output)
+let print_statuses ~highlight_test ~always_show_unchecked_output
+    tests_with_status =
+  tests_with_status
+  |> List.iter (print_status ~highlight_test ~always_show_unchecked_output)
 
 let is_overall_success statuses =
   statuses
@@ -484,16 +486,20 @@ let print_status_introduction () =
 |}
     bullet bullet bullet bullet bullet bullet
 
-let print_short_status ~show_output tests_with_status =
+let print_short_status ~always_show_unchecked_output tests_with_status =
   let tests_with_status = List.filter is_important_status tests_with_status in
   match tests_with_status with
   | [] -> ()
-  | _ -> print_statuses ~highlight_test:true ~show_output tests_with_status
+  | _ ->
+      print_statuses ~highlight_test:true ~always_show_unchecked_output
+        tests_with_status
 
-let print_long_status ~show_output tests_with_status =
+let print_long_status ~always_show_unchecked_output tests_with_status =
   match tests_with_status with
   | [] -> ()
-  | _ -> print_statuses ~highlight_test:false ~show_output tests_with_status
+  | _ ->
+      print_statuses ~highlight_test:false ~always_show_unchecked_output
+        tests_with_status
 
 let plural num = if num >= 2 then "s" else ""
 
@@ -520,16 +526,16 @@ let print_status_summary tests tests_with_status =
      else Style.color Red "failure");
   if overall_success then 0 else 1
 
-let print_full_status ~show_output tests tests_with_status =
+let print_full_status ~always_show_unchecked_output tests tests_with_status =
   print_status_introduction ();
   print_newline ();
-  print_long_status ~show_output tests_with_status;
+  print_long_status ~always_show_unchecked_output tests_with_status;
   print_newline ();
-  print_short_status ~show_output tests_with_status;
+  print_short_status ~always_show_unchecked_output tests_with_status;
   print_status_summary tests tests_with_status
 
-let print_short_status ~show_output tests tests_with_status =
-  print_short_status ~show_output tests_with_status;
+let print_short_status ~always_show_unchecked_output tests tests_with_status =
+  print_short_status ~always_show_unchecked_output tests_with_status;
   print_status_summary tests tests_with_status
 
 let get_test_with_status test =
@@ -541,18 +547,21 @@ let get_tests_with_status tests = tests |> Helpers.list_map get_test_with_status
 (*
    Entry point for the status subcommand
 *)
-let list_status ~filter_by_substring ~output_style ~show_output tests =
+let list_status ~always_show_unchecked_output ~filter_by_substring ~output_style
+    tests =
   check_id_uniqueness tests;
   let selected_tests = filter ~filter_by_substring tests in
   let tests_with_status = get_tests_with_status selected_tests in
   let exit_code =
     match output_style with
-    | Full -> print_full_status ~show_output tests tests_with_status
-    | Short -> print_short_status ~show_output tests tests_with_status
+    | Full ->
+        print_full_status ~always_show_unchecked_output tests tests_with_status
+    | Short ->
+        print_short_status ~always_show_unchecked_output tests tests_with_status
   in
   (exit_code, tests_with_status)
 
-let run_tests_sequentially ~(mona : _ Mona.t)
+let run_tests_sequentially ~(mona : _ Mona.t) ~always_show_unchecked_output
     (tests : 'unit_promise T.test list) : 'unit_promise =
   List.fold_left
     (fun previous (test : _ T.test) ->
@@ -576,7 +585,8 @@ let run_tests_sequentially ~(mona : _ Mona.t)
                 (* Erase RUN line *)
                 printf "\027[2K\r";
                 get_test_with_status test
-                |> print_status ~highlight_test:false ~show_output:true;
+                |> print_status ~highlight_test:false
+                     ~always_show_unchecked_output;
                 mona.return ()))))
     (mona.return ()) tests
 
@@ -597,20 +607,24 @@ let before_run ~filter_by_substring ~lazy_ tests =
   filter ~filter_by_substring tests
 
 (* Run this after a run or Lwt run. *)
-let after_run ~show_output tests selected_tests =
+let after_run ~always_show_unchecked_output tests selected_tests =
   let tests_with_status = get_tests_with_status selected_tests in
-  let exit_code = print_short_status ~show_output tests tests_with_status in
+  let exit_code =
+    print_short_status ~always_show_unchecked_output tests tests_with_status
+  in
   (exit_code, tests_with_status)
 
 (*
    Entry point for the 'run' subcommand
 *)
-let run_tests ~(mona : _ Mona.t) ~filter_by_substring ~lazy_ ~show_output tests
-    cont =
+let run_tests ~(mona : _ Mona.t) ~always_show_unchecked_output
+    ~filter_by_substring ~lazy_ tests cont =
   let selected_tests = before_run ~filter_by_substring ~lazy_ tests in
-  mona.bind (run_tests_sequentially ~mona selected_tests) (fun () ->
+  mona.bind
+    (run_tests_sequentially ~mona ~always_show_unchecked_output selected_tests)
+    (fun () ->
       let exit_code, tests_with_status =
-        after_run ~show_output tests selected_tests
+        after_run ~always_show_unchecked_output tests selected_tests
       in
       cont exit_code tests_with_status |> ignore;
       (* The continuation 'cont' should exit but otherwise we exit once

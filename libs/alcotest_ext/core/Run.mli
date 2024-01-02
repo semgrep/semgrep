@@ -18,9 +18,9 @@ val to_alcotest :
 
 val run_tests :
   mona:'unit_promise Mona.t ->
+  always_show_unchecked_output:bool ->
   filter_by_substring:string option ->
   lazy_:bool ->
-  show_output:bool ->
   'unit_promise Types.test list ->
   (int -> 'unit_promise Types.test_with_status list -> _) ->
   _
@@ -29,10 +29,11 @@ val run_tests :
    Return a non-zero exit status if any of the tests is not a success
    (PASS or XFAIL). *)
 val list_status :
+  always_show_unchecked_output:bool ->
   filter_by_substring:string option ->
   output_style:status_output_style ->
-  show_output:bool ->
   'unit_promise Types.test list ->
   int * 'unit_promise Types.test_with_status list
 
-val approve_output : ?filter_by_substring:string -> _ Types.test list -> int
+val approve_output :
+  ?filter_by_substring:string -> 'unit_promise Types.test list -> int
