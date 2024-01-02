@@ -85,6 +85,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/pipfile_with_vuln_in_dev-packages",
         ),
         (
+            "rules/dependency_aware/python-pipfile-sca.yaml",
+            "dependency_aware/pipfile_with_one_newline_between_sections",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
         ),
