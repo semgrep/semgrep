@@ -1,20 +1,20 @@
 rules:
-  - id: test-commutative-matching-enabled
+  - id: test-symmetric-matching-enabled
     languages:
       - php
     message: Working!
     options:
-      commutative_compop: true
+      symmetric_eq: true
     pattern-either:
       - pattern: foo1($stuff) == foo2($stuff)
       - pattern: foo1($stuff) != foo2($stuff)
     severity: WARNING
-  - id: test-commutative-matching-disabled
+  - id: test-symmetric-matching-disabled
     languages:
       - php
     message: Working!
     options:
-      commutative_compop: false
+      symmetric_eq: false
     pattern-either:
       - pattern: bar1($stuff) == bar2($stuff)
       - pattern: bar1($stuff) != bar2($stuff)

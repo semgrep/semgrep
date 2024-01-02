@@ -1,41 +1,41 @@
 <?php
 
-// ruleid:test-commutative-matching-enabled
+// ruleid:test-symmetric-matching-enabled
 if (foo1($stuff) == foo2($stuff)) {
     // Do stuff
 }
 
-// ruleid:test-commutative-matching-enabled
+// ruleid:test-symmetric-matching-enabled
 if (foo2($stuff) == foo1($stuff)) {
     // Do stuff
 }
 
-// ruleid:test-commutative-matching-enabled
+// ruleid:test-symmetric-matching-enabled
 if (foo1($stuff) != foo2($stuff)) {
     // Do stuff
 }
 
-// ruleid:test-commutative-matching-enabled
+// ruleid:test-symmetric-matching-enabled
 if (foo2($stuff) != foo1($stuff)) {
     // Do stuff
 }
 
-// ruleid:test-commutative-matching-disabled
+// ruleid:test-symmetric-matching-disabled
 if (bar1($stuff) == bar2($stuff)) {
     // Do stuff
 }
 
-// ok:test-commutative-matching-disabled
+// ok:test-symmetric-matching-disabled
 if (bar2($stuff) == bar1($stuff)) {
     // Do stuff
 }
 
-// ruleid:test-commutative-matching-disabled
+// ruleid:test-symmetric-matching-disabled
 if (bar1($stuff) != bar2($stuff)) {
     // Do stuff
 }
 
-// ok:test-commutative-matching-disabled
+// ok:test-symmetric-matching-disabled
 if (bar2($stuff) != bar1($stuff)) {
     // Do stuff
 }
