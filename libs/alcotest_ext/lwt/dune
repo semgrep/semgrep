@@ -1,0 +1,9 @@
+; Alcotest_ext for tests that must return promises
+(library
+  (public_name alcotest_ext_lwt)
+  (name alcotest_ext_lwt)
+  (libraries
+    alcotest_ext
+    lwt
+  )
+)

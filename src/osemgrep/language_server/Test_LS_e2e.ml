@@ -1026,16 +1026,18 @@ let test_ls_libev () =
 (*****************************************************************************)
 
 module Test = Alcotest_ext
+module Test_lwt = Alcotest_ext_lwt
 
 let promise_tests =
   [
-    Test.create "Test LS" test_ls_specs ~tolerate_chdir:true;
-    Test.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
-    Test.create "Test LS multi-workspaces" test_ls_multi ~tolerate_chdir:true;
-    Test.create "Test LS login" test_login
+    Test_lwt.create "Test LS" test_ls_specs ~tolerate_chdir:true;
+    Test_lwt.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
+    Test_lwt.create "Test LS multi-workspaces" test_ls_multi
+      ~tolerate_chdir:true;
+    Test_lwt.create "Test LS login" test_login
       ~expected_outcome:
         (Should_fail "TODO: currently failing in js tests in CI");
-    Test.create "Test LS with no folders" test_ls_no_folders;
+    Test_lwt.create "Test LS with no folders" test_ls_no_folders;
   ]
   |> List_.map (fun (test : _ Test.t) ->
          Test.update test ~func:(with_timeout test.func))
@@ -1045,8 +1047,8 @@ let tests =
   Test.pack_tests_pro "Language Server (e2e)"
     (promise_tests
     |> List_.map (fun (test : _ Test.t) ->
-           Test.update_func test (prepare test.func)))
+           Test.update_func test Test.Mona.sync (prepare test.func)))
 
 let lwt_tests =
   Test.pack_tests_pro "Language Server (e2e)"
-    (Test.create "Test LS with libev" test_ls_libev :: promise_tests)
+    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests)

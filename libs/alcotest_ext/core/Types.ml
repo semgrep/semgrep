@@ -86,7 +86,7 @@ type output_kind =
   | Separate_stdout_stderr
 
 (* public *)
-type 'a test = {
+type 'unit_promise test = {
   (* The ID will be used as a compact key
      for referencing tests in filters and in file names.
      It's a hash of the internal full name. Both must be unique. *)
@@ -97,15 +97,15 @@ type 'a test = {
   internal_full_name : string;
   category : string list;
   name : string;
-  func : unit -> 'a;
+  func : unit -> 'unit_promise;
   (* Options *)
   expected_outcome : expected_outcome;
   tags : Tag.t list;
-  speed_level : Alcotest.speed_level;
   mask_output : (string -> string) list;
   output_kind : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
+  m : 'unit_promise Mona.t;
 }
 
 type 'a test_with_status = 'a test * status * status_summary

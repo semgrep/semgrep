@@ -69,6 +69,7 @@ type output_kind =
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
+module Mona : module type of Mona
 module Tag : module type of Tag
 
 (*
@@ -95,7 +96,7 @@ module Tag : module type of Tag
    test and put it in its own file so we can consult it later. Don't
    hesitate to log a lot during the execution of the test.
 *)
-type 'a t = private {
+type 'unit_promise t = private {
   (* Hash of the full name of the test, computed automatically. *)
   id : string;
   (* Full name of the test, derived automatically from category and name. *)
@@ -106,12 +107,10 @@ type 'a t = private {
      e.g. ["food"; "fruit"; "kiwi"] *)
   category : string list;
   name : string;
-  func : unit -> 'a;
+  func : unit -> 'unit_promise;
   (***** Options *****)
   expected_outcome : expected_outcome;
   tags : Tag.t list; (* tags must be declared once using 'create_tag' *)
-  (* special "tag" supported directly by Alcotest: *)
-  speed_level : Alcotest.speed_level;
   (* An optional function to rewrite any output data so as to mask the
      variable parts. *)
   mask_output : (string -> string) list;
@@ -122,10 +121,14 @@ type 'a t = private {
   (* If the test function changes the current directory without restoring it,
      it's an error unless this flag is set. *)
   tolerate_chdir : bool;
+  (* All the tests in a test suite should share this field. *)
+  m : 'unit_promise Mona.t;
 }
 
+(* The type of an ordinary test, i.e. one that returns when it's done rather
+   than one that returns a deferred computation (Lwt, Async, etc.). *)
 type test = unit t
-type test_with_status = test * status * status_summary
+type 'unit_promise test_with_status = 'unit_promise t * status * status_summary
 
 (*
    The return type of each subcommand.
@@ -133,20 +136,13 @@ type test_with_status = test * status * status_summary
    to the JUnit format via the optional 'handle_subcommand_result' argument
    of 'interpret_argv'.
 *)
-type subcommand_result =
-  | Run_result of test_with_status list
-  | Status_result of test_with_status list
+type 'unit_promise subcommand_result =
+  | Run_result of 'unit_promise test_with_status list
+  | Status_result of 'unit_promise test_with_status list
   | Approve_result
 
 (* Legacy type that doesn't support options *)
 type simple_test = string * (unit -> unit)
-
-(* Lwt.t promises transpiled to JS via jsoo must have their Lwt.t nature
-   hoisted all the way to the top level, so we can run them properly on the
-   JS runtime.
-   When running such tests in JS, we need our tests to also return promises.
-*)
-type lwt_test = unit Lwt.t t
 
 (*
    Create a test to appear in a test suite.
@@ -157,12 +153,28 @@ val create :
   ?mask_output:(string -> string) list ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
   string ->
-  (unit -> 'a) ->
-  'a t
+  (unit -> unit) ->
+  unit t
+
+(*
+   Generic version of 'create' provided for libraries whose test function
+   returns a promise (Lwt, Async, ...).
+*)
+val create_gen :
+  ?category:string list ->
+  ?expected_outcome:expected_outcome ->
+  ?mask_output:(string -> string) list ->
+  ?output_kind:output_kind ->
+  ?skipped:bool ->
+  ?tags:Tag.t list ->
+  ?tolerate_chdir:bool ->
+  'unit_promise Mona.t ->
+  string ->
+  (unit -> 'unit_promise) ->
+  'unit_promise t
 
 (*
    Update some of the test's fields. This ensures that the 'id' is recomputed
@@ -172,16 +184,15 @@ val create :
 val update :
   ?category:string list ->
   ?expected_outcome:expected_outcome ->
-  ?func:(unit -> 'a) ->
+  ?func:(unit -> 'unit_promise) ->
   ?mask_output:(string -> string) list ->
   ?name:string ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
-  'a t ->
-  'a t
+  'unit_promise t ->
+  'unit_promise t
 
 (*
    String replacement utilities to be used for masking the variable parts
@@ -197,18 +208,25 @@ val mask_pcre_pattern : ?mask:string -> string -> string -> string
    for the new test function. This is useful for converting an Lwt test
    to a regular one.
 *)
-val update_func : 'a t -> (unit -> 'b) -> 'b t
+val update_func :
+  'unit_promise t ->
+  'unit_promise2 Mona.t ->
+  (unit -> 'unit_promise2) ->
+  'unit_promise2 t
+
 val has_tag : Tag.t -> 'a t -> bool
 
 (* Convert legacy optionless format to new format *)
-val simple_test : string * (unit -> 'a) -> 'a t
-val simple_tests : (string * (unit -> 'a)) list -> 'a t list
+val simple_test : string * (unit -> unit) -> unit t
+val simple_tests : (string * (unit -> unit)) list -> unit t list
 
 (* Legacy interface. It's fine to keep using it but it doesn't allow
    defining tests with special options such as capturing and checking stdout. *)
 val pack_tests : string -> simple_test list -> test list
 
-(* Register a test. The test gets added to the global list of tests.
+(* Register a test. This supports only synchronous tests.
+
+   The test gets added to the global list of tests.
    This is meant to declare inline tests as follows:
 
      let () = Alcotest_ext.test "foo" (fun () ->
@@ -219,26 +237,17 @@ val pack_tests : string -> simple_test list -> test list
 val test :
   ?category:string list ->
   ?expected_outcome:expected_outcome ->
+  ?mask_output:(string -> string) list ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
+  ?tags:Tag.t list ->
+  ?tolerate_chdir:bool ->
   string ->
   (unit -> unit) ->
   unit
 
-val test_lwt :
-  ?category:string list ->
-  ?expected_outcome:expected_outcome ->
-  ?output_kind:output_kind ->
-  ?skipped:bool ->
-  ?speed_level:Alcotest.speed_level ->
-  string ->
-  (unit -> unit Lwt.t) ->
-  unit
-
 (* Get the list of registered tests. *)
 val get_registered_tests : unit -> test list
-val get_registered_lwt_tests : unit -> lwt_test list
 
 (*
    Usage:
@@ -260,22 +269,22 @@ val pack_suites : string -> 'a t list list -> 'a t list
 *)
 val sort : 'a t list -> 'a t list
 
-(*
-   Convert a test suite to be run with the Alcotest.run which provides
-   a command-line interface with the 'test' and 'list' subcommands only.
+(* Type alias for Alcotest test cases *)
+type 'unit_promise alcotest_test_case =
+  string * [ `Quick | `Slow ] * (unit -> 'unit_promise)
 
-   The outcome of tests that are expected to fail (Should_fail) will
-   be flipped so as to produce OK iff the test function raises an exception
-   as expected.
-*)
-val to_alcotest : test list -> unit Alcotest.test list
+(* Type alias for an Alcotest 'test'. *)
+type 'unit_promise alcotest_test =
+  string * 'unit_promise alcotest_test_case list
 
 (*
-   Same as 'to_alcotest' but with Lwt promises.
-
-   TODO: Do we really need a special type for Lwt tests?
+   Export our tests to a list of tests that can run in Alcotest.
+   This removes the ability to store test outcomes or to check the test output
+   against expectations. Tests that are expected to fail and indeed fail
+   (XFAIL) will be treated as successful by Alcotest. Conversely, tests that
+   fail to raise an exception (XPASS) will be shown as failed by Alcotest.
 *)
-val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
+val to_alcotest : 'unit_promise t list -> 'unit_promise alcotest_test list
 
 (*
    Launch the extended command-line interface with subcommands for running
@@ -296,8 +305,18 @@ val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
 val interpret_argv :
   ?argv:string array ->
   ?expectation_workspace_root:string ->
-  ?handle_subcommand_result:(int -> subcommand_result -> unit) ->
+  ?handle_subcommand_result:(int -> unit subcommand_result -> unit) ->
   ?status_workspace_root:string ->
   project_name:string ->
   (unit -> test list) ->
   unit
+
+val interpret_argv_gen :
+  ?argv:string array ->
+  ?expectation_workspace_root:string ->
+  ?handle_subcommand_result:(int -> 'unit_promise subcommand_result -> unit) ->
+  ?status_workspace_root:string ->
+  mona:'unit_promise Mona.t ->
+  project_name:string ->
+  (unit -> 'unit_promise t list) ->
+  'unit_promise

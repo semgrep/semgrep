@@ -5,13 +5,25 @@
 
 let t = Alcotest_ext.create
 
+let failing_function () =
+  print_endline "<something being printed by the test>";
+  raise (Failure "oh no, I'm failing")
+
 let tests =
   [
-    t "failing" (fun () ->
-        print_endline "<something being printed by the test>";
-        failwith "oh no, I'm failing");
+    t "failing" failing_function;
     t "failing to fail" ~expected_outcome:(Should_fail "<reasons>") (fun () ->
         print_string "<something being printed by the test>");
+    t "output mismatch" ~output_kind:Stdout (fun () ->
+        print_string
+          {|
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+|});
   ]
 
 let () =

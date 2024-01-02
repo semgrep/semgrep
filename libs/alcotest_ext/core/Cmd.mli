@@ -5,9 +5,9 @@
    supports.
 *)
 
-type subcommand_result =
-  | Run_result of unit Types.test_with_status list
-  | Status_result of unit Types.test_with_status list
+type 'unit_promise subcommand_result =
+  | Run_result of 'unit_promise Types.test_with_status list
+  | Status_result of 'unit_promise Types.test_with_status list
   | Approve_result
 
 (*
@@ -20,8 +20,9 @@ type subcommand_result =
 val interpret_argv :
   ?argv:string array ->
   ?expectation_workspace_root:string ->
-  ?handle_subcommand_result:(int -> subcommand_result -> unit) ->
+  ?handle_subcommand_result:(int -> 'unit_promise subcommand_result -> unit) ->
   ?status_workspace_root:string ->
+  mona:'unit_promise Mona.t ->
   project_name:string ->
-  (unit -> unit Types.test list) ->
-  unit
+  (unit -> 'unit_promise Types.test list) ->
+  'unit_promise

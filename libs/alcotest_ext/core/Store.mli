@@ -72,7 +72,5 @@ val approve_new_output : 'a Types.test -> (unit, string) Result.t
 (* Wrappers for capturing test output *)
 (**************************************************************************)
 
-val with_result_capture : unit Types.test -> (unit -> unit) -> unit -> unit
-
-val with_result_capture_lwt :
-  unit Lwt.t Types.test -> (unit -> unit Lwt.t) -> unit -> unit Lwt.t
+val with_result_capture :
+  'unit_promise Types.test -> (unit -> 'unit_promise) -> unit -> 'unit_promise
