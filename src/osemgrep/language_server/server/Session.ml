@@ -2,7 +2,13 @@ module Env = Semgrep_envvars
 open Lsp
 open Types
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_j
+(*****************************************************************************)
+(* Refs *)
+(*****************************************************************************)
+
+let scan_config_parser_ref = ref OutJ.scan_config_of_string
 
 (*****************************************************************************)
 (* Types *)
@@ -25,7 +31,7 @@ type t = {
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
   cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
-  cached_scans : (Fpath.t, OutJ.cli_match list) Hashtbl.t; [@opaque]
+  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
@@ -98,6 +104,36 @@ let auth_token () =
       let settings = Semgrep_settings.load () in
       settings.api_token
 
+let scan_config_of_token = function
+  | Some token -> (
+      let caps =
+        Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ())
+      in
+      let%lwt config_string =
+        Semgrep_App.fetch_scan_config_string caps ~sca:false ~dry_run:true
+          ~full_scan:true ~repository:""
+      in
+      match config_string with
+      | Ok config_string ->
+          (* TODO: Check config string hash, and update rules iff its different, and cache rules in file *)
+          (* See [scan_config_parser_ref] declaration for why we do this *)
+          let scan_config = !scan_config_parser_ref config_string in
+          Lwt.return_some scan_config
+      | Error e ->
+          Logs.warn (fun m -> m "Failed to fetch scan config: %s" e);
+          Lwt.return_none)
+  | _ -> Lwt.return_none
+
+let fetch_ci_rules_and_origins () =
+  let token = auth_token () in
+  let%lwt scan_config_opt = scan_config_of_token token in
+
+  let rules_opt =
+    Option.bind scan_config_opt (fun scan_config ->
+        Some (decode_rules scan_config.rule_config))
+  in
+  Lwt.return rules_opt
+
 let cache_workspace_targets session =
   let folders = session.workspace_folders in
   let targets = List_.map (fun f -> (f, get_targets session f)) folders in
@@ -136,33 +172,12 @@ let targets session =
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
 
-let fetch_ci_rules_and_origins () =
-  let token = auth_token () in
-  match token with
-  | Some token ->
-      let caps =
-        Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ())
-      in
-      let%lwt res =
-        Semgrep_App.fetch_scan_config_async caps ~sca:false ~dry_run:true
-          ~full_scan:true ~repository:""
-      in
-      let conf =
-        match res with
-        | Ok scan_config -> Some (decode_rules scan_config.rule_config)
-        | Error e ->
-            Logs.warn (fun m -> m "Failed to fetch rules from CI: %s" e);
-            None
-      in
-      Lwt.return conf
-  | _ -> Lwt.return None
-
 let fetch_rules session =
   let%lwt ci_rules =
     if session.user_settings.ci then fetch_ci_rules_and_origins ()
     else Lwt.return_none
   in
-  let home = Unix.getenv "HOME" |> Fpath.v in
+  let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
     session.user_settings.configuration |> List_.map Fpath.v
     |> List_.map Fpath.normalize
@@ -344,7 +359,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Assoc.group_by (fun (r : OutJ.cli_match) -> r.path) results
+    Assoc.group_by (fun (r : Out.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter

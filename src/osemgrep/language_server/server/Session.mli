@@ -1,6 +1,9 @@
 open Lsp
 open Types
 
+val scan_config_parser_ref : (string -> Semgrep_output_v1_t.scan_config) ref
+(** [scan_config_parser_ref] is a reference to a function that parses a scan config from a string *)
+
 type session_cache = {
   mutable rules : Rule.t list;
       (* Rules can take a long time to fetch + load, so we want to minimize it *)

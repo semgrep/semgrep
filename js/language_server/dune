@@ -1,5 +1,10 @@
 (env
- (js_of_ocaml (flags -no-inline -debug-info)))
+  (dev
+   (js_of_ocaml
+    (flags
+     (:standard --debug-info --no-inline --disable shortvar --disable staticeval --disable share))
+    (build_runtime_flags
+     (:standard --debug-info --no-inline --disable shortvar --disable staticeval --disable share)))))
 
 (executables
  (names Main)

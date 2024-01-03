@@ -67,6 +67,7 @@ type t = {
   git_command_timeout : int;
   src_directory : Fpath.t;
   user_agent_append : string option;
+  user_home_dir : Fpath.t;
   user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
@@ -85,18 +86,16 @@ type t = {
 
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)
 let of_current_sys_env () : t =
-  let user_dot_semgrep_dir =
-    let parent_dir =
-      let home_env_var =
-        (* In windows USERPROFILE=C:\Users\<user> *)
-        if Sys.win32 then "USERPROFILE" else "XDG_CONFIG_HOME"
-      in
-      match Sys.getenv_opt home_env_var with
-      | Some x when Sys.is_directory x -> Fpath.v x
-      | _else_ -> Fpath.v (env_or (fun x -> x) "HOME" "/")
+  let user_home_dir =
+    let home_env_var =
+      (* In windows USERPROFILE=C:\Users\<user> *)
+      if Sys.win32 then "USERPROFILE" else "XDG_CONFIG_HOME"
     in
-    parent_dir / ".semgrep"
+    match Sys.getenv_opt home_env_var with
+    | Some x when Sys.is_directory x -> Fpath.v x
+    | _else_ -> Fpath.v (env_or (fun x -> x) "HOME" "/")
   in
+  let user_dot_semgrep_dir = user_home_dir / ".semgrep" in
   {
     (* semgrep_url is set by env vars $SEMGREP_URL | $SEMGREP_APP_URL, or default *)
     semgrep_url =
@@ -127,6 +126,7 @@ let of_current_sys_env () : t =
     src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
     (* user_agent_append is a literal string like "(Docker)" for inclusion in our metrics user agent field *)
     user_agent_append = env_opt "SEMGREP_USER_AGENT_APPEND";
+    user_home_dir;
     user_dot_semgrep_dir;
     user_log_file =
       env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");

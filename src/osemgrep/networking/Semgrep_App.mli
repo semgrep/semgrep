@@ -91,6 +91,17 @@ val get_scan_config_from_token_async :
   < Cap.network ; Auth.cap_token ; .. > ->
   Semgrep_output_v1_t.scan_config option Lwt.t
 
+val fetch_scan_config_string :
+  dry_run:bool ->
+  sca:bool ->
+  full_scan:bool ->
+  repository:string ->
+  < Cap.network ; Auth.cap_token ; .. > ->
+  (string, string) result Lwt.t
+(** [fetch_scan_config_string ~token ~sca ~dry_run ~full_scan repo] returns the
+    rules (as a RAW string containing JSON data) for the provided
+    configuration. *)
+
 val fetch_scan_config_async :
   dry_run:bool ->
   sca:bool ->

@@ -13,7 +13,8 @@ ESBUILD_DEFAULTS = \
 	--external:fs \
 	--external:constants \
 	--external:tty \
-	--external:child_process
+	--external:child_process \
+    --external:perf_hooks
 
 ifdef SEMGREP_JS_TEST_BUILD
 ESBUILD_DEFAULTS += \

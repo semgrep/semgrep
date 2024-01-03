@@ -28,7 +28,9 @@ type t = {
   src_directory : Fpath.t;
   (* $SEMGREP_USER_AGENT_APPEND -> "(Docker)" *)
   user_agent_append : string option;
-  (* $XDG_CONFIG_HOME/.semgrep or ~/.semgrep *)
+  (* XDG_CONFIG_HOME on *nix, USERPROFILE on windows, or default to HOME or / *)
+  user_home_dir : Fpath.t;
+  (* user_home_dir/.semgrep *)
   user_dot_semgrep_dir : Fpath.t;
   (* $SEMGREP_LOG_FILE or ~/.semgrep/semgrep.log  *)
   user_log_file : Fpath.t;
