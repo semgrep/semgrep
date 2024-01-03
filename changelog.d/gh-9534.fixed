@@ -1,0 +1,3 @@
+Honor temporary folder specified via the TMPDIR environment variable (or
+equivalent on Windows) in some instances where it used to be hardcoded as
+`/tmp`.

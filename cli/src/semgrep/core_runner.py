@@ -435,7 +435,7 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
-        open_and_ignore("/tmp/core-runner-semgrep-BEGIN")
+        open_and_ignore(f"{tempfile.gettempdir()}/core-runner-semgrep-BEGIN")
 
         terminal = get_state().terminal
         with Progress(
@@ -460,7 +460,7 @@ class StreamingSemgrepCore:
 
             rc = asyncio.run(self._stream_exec_subprocess())
 
-        open_and_ignore("/tmp/core-runner-semgrep-END")
+        open_and_ignore(f"{tempfile.gettempdir()}/core-runner-semgrep-END")
         return rc
 
 
