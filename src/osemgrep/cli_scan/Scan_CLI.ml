@@ -94,9 +94,11 @@ let default : conf =
     core_runner_conf =
       {
         (* Maxing out number of cores used to 16 if more not requested to
-         * not overload on large machines
+         * not overload on large machines.
+         * Also, hardcode num_jobs to 1 for non-unix environments.
          *)
-        Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
+        Core_runner.num_jobs =
+          min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
         timeout = 5.0;
         (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
         timeout_threshold = 3;

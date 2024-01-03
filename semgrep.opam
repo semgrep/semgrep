@@ -28,7 +28,7 @@ depends: [
   "ocolor"
   "ANSITerminal"
   "terminal_size"
-  "notty"
+  "notty" {os != "win32"}
   "easy_logging" {= "0.8.1"}
   "easy_logging_yojson" {= "0.8.1"}
   "logs"
@@ -61,7 +61,7 @@ depends: [
   "digestif" {>= "1.0.0"}
   "lwt"
   "lwt_ppx"
-  "conf-libev"
+  "conf-libev" {os != "win32"}
   "js_of_ocaml" {= "5.4.0"}
   "js_of_ocaml-compiler" {= "5.4.0"}
   "js_of_ocaml-ppx" {= "5.4.0"}
