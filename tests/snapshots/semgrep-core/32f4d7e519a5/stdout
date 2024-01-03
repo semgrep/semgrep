@@ -5,3 +5,6 @@ Initialized empty Git repository in<MASKED>
 Input files:
 .gitignore
 a
+RUN semgrep scan --experimental --x-ls .
++ .gitignore
+- [semgrepignore_patterns_match] a

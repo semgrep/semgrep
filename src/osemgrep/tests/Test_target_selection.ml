@@ -2,6 +2,7 @@
    Test target selection on git repos with osemgrep.
 *)
 
+open Printf
 module T = Alcotest_ext
 
 let with_git_repo (files : Testutil_files.t list) func =
@@ -12,9 +13,15 @@ let with_git_repo (files : Testutil_files.t list) func =
           Git_wrapper.commit "Add all the files";
           func ()))
 
-let osemgrep_ls () =
-  (* TODO: see/reuse what's being done in Test_osemgrep.ml *)
-  ()
+let run_osemgrep caps argv =
+  printf "RUN %s\n%!" (argv |> Array.to_list |> String.concat " ");
+  CLI.main caps argv
+
+let osemgrep_ls caps =
+  let exit_code =
+    run_osemgrep caps [| "semgrep"; "scan"; "--experimental"; "--x-ls"; "." |]
+  in
+  Alcotest.(check int) "exit code" 0 (Exit_code.to_int exit_code)
 
 let repos : (string * Testutil_files.t list) list =
   let open Testutil_files in
@@ -30,7 +37,7 @@ let repos : (string * Testutil_files.t list) list =
     ("no-semgrepignore", [ file "a"; File (".gitignore", "a\n") ]);
   ]
 
-let tests =
+let tests caps =
   repos
   |> List_.map (fun (repo_name, (files : Testutil_files.t list)) ->
          T.create
@@ -43,4 +50,4 @@ let tests =
                T.mask_pcre_pattern "/test-[a-f0-9]+";
              ]
            repo_name
-           (fun () -> with_git_repo files osemgrep_ls))
+           (fun () -> with_git_repo files (fun () -> osemgrep_ls caps)))

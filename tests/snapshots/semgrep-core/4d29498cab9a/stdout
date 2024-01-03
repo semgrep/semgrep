@@ -11,3 +11,9 @@ Input files:
 a
 b
 c
+RUN semgrep scan --experimental --x-ls .
++ .gitignore
++ .semgrepignore
++ c
+- [semgrepignore_patterns_match] a
+- [semgrepignore_patterns_match] b
