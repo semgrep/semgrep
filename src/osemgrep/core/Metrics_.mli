@@ -69,7 +69,7 @@ val string_of_user_agent : unit -> string
  * You should not call this function though; only CLI.metrics_init()
  * should call it.
  *)
-val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
+val init : < Cap.random > -> anonymous_user_id:Uuidm.t -> ci:bool -> unit
 
 (* just set the payload.sent_at field *)
 val prepare_to_send : unit -> unit

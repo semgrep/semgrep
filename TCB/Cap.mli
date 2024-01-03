@@ -37,7 +37,7 @@ module Process : sig
   type domain
 end
 
-(* read/write on root|cwd|tmp|~|~.xxx| (and files coming mentioned in argv) *)
+(* read/write on root|cwd|tmp|~|~.xxx| (and files/dirs mentioned in argv) *)
 module FS : sig
   type root_r
   type root_w
@@ -68,6 +68,7 @@ module Exec : sig
   type t
 end
 
+(* See also commons/Chan.ml *)
 module File : sig
   type in_channel = Stdlib.in_channel
   type out_channel = Stdlib.out_channel
@@ -78,9 +79,14 @@ module Network : sig
   type t
 end
 
+(* If your program does not use those capabilities, it has the nice property
+ * of being deterministic.
+ *)
 module Misc : sig
-  type time
   type random
+
+  (* profiling functions are an "ambient" authority though *)
+  type time
 end
 
 (**************************************************************************)

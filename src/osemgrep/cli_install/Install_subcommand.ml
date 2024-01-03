@@ -9,6 +9,12 @@ open Fpath_.Operators
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* TODO: FS too *)
+type caps = < Cap.random >
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -340,13 +346,14 @@ let semgrep_workflow_exists ~repo : bool =
    we first clone the repo to a temporary directory,
    and then return the path to the cloned repo.
 *)
-let prep_repo (repo : string) : Fpath.t =
+let prep_repo (caps : caps) (repo : string) : Fpath.t =
   if UFile.dir_exists (Fpath.v repo) then Fpath.v repo
   else
     let tmp_dir =
       Filename.concat
         (Filename.get_temp_dir_name ())
-        (Printf.sprintf "semgrep_install_ci_%6X" (Random.int 0xFFFFFF))
+        (Printf.sprintf "semgrep_install_ci_%6X"
+           (CapRandom.int caps#random 0xFFFFFF))
     in
     mkdir_if_needed tmp_dir;
     clone_repo_to ~repo ~dst:(Fpath.v tmp_dir);
@@ -399,8 +406,8 @@ let write_workflow_file ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow ~(token : Auth.token) (conf : Install_CLI.conf) : unit
-    =
+let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
+    unit =
   let (repo : string) =
     match conf.repo with
     | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
@@ -413,7 +420,7 @@ let add_semgrep_workflow ~(token : Auth.token) (conf : Install_CLI.conf) : unit
       Logs.info (fun m -> m "Semgrep workflow already present, skipping")
   | _else_ ->
       Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
-      let dir = prep_repo repo in
+      let dir = prep_repo caps repo in
       write_workflow_file ~git_dir:dir;
       if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
         Logs.info (fun m -> m "Semgrep secret already present, skipping")
@@ -424,7 +431,7 @@ let add_semgrep_workflow ~(token : Auth.token) (conf : Install_CLI.conf) : unit
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (conf : Install_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
@@ -450,7 +457,7 @@ let run_conf (conf : Install_CLI.conf) : Exit_code.t =
       prompt_gh_auth_if_needed ();
       set_ssh_as_default ();
       (* let's go! this may raise some errors (catched in CLI.safe_run()) *)
-      add_semgrep_workflow ~token conf;
+      add_semgrep_workflow caps ~token conf;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
             (Logs_.success_tag ()));
@@ -459,6 +466,6 @@ let run_conf (conf : Install_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Install_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

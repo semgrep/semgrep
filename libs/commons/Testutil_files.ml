@@ -156,13 +156,13 @@ let with_chdir dir f =
       UUnix.chdir dir_s;
       f ())
 
-let init_rng = lazy (Random.self_init ())
+let init_rng = lazy (URandom.self_init ())
 
 let create_tempdir () =
   let rec loop n =
     if n > 10 then
       failwith "Can't create a temporary test folder with a random name";
-    let name = sprintf "test-%x" (Random.bits ()) in
+    let name = sprintf "test-%x" (URandom.bits ()) in
     let path = Filename.concat (UFilename.get_temp_dir_name ()) name in
     if USys.file_exists path then loop (n + 1)
     else (

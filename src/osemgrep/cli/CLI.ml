@@ -56,11 +56,11 @@ let default_subcommand = "scan"
 (* Metrics start and end *)
 (*****************************************************************************)
 
-let metrics_init () : unit =
+let metrics_init (caps : < Cap.random >) : unit =
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
-  Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
+  Metrics_.init caps ~anonymous_user_id ~ci:!Env.v.is_ci;
   api_token
   |> Option.iter (fun (_token : Auth.token) ->
          Metrics_.g.payload.environment.isAuthenticated <- true);
@@ -187,7 +187,8 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
               (caps :> < Cap.stdout ; Cap.network ; Cap.exec >)
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
-        | "install-ci" -> Install_subcommand.main subcmd_argv
+        | "install-ci" ->
+            Install_subcommand.main (caps :> < Cap.random >) subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
         | "show" ->
             Show_subcommand.main
@@ -310,7 +311,7 @@ let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   Data_init.init ();
   Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
 
-  metrics_init ();
+  metrics_init (caps :> < Cap.random >);
   (* TOPORT: maybe_set_git_safe_directories() *)
   (* TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in

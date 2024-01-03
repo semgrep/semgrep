@@ -497,10 +497,10 @@ let test_exn x s =
 (*---------------------------------------------------------------------------*)
 type 'a gen = unit -> 'a
 
-let (ig : int gen) = fun () -> Random.int 10
+let (ig : int gen) = fun () -> URandom.int 10
 
 let (lg : 'a gen -> 'a list gen) =
- fun gen () -> foldn (fun acc _i -> gen () :: acc) [] (Random.int 10)
+ fun gen () -> foldn (fun acc _i -> gen () :: acc) [] (URandom.int 10)
 
 let (pg : 'a gen -> 'b gen -> ('a * 'b) gen) =
  fun gen1 gen2 () -> (gen1 (), gen2 ())
@@ -509,18 +509,18 @@ let polyg = ig
 let (ng : string gen) = fun () -> "a" ^ string_of_int (ig ())
 
 let (oneofl : 'a list -> 'a gen) =
- fun xs () -> List.nth xs (Random.int (List.length xs))
+ fun xs () -> List.nth xs (URandom.int (List.length xs))
 (* let oneofl l = oneof (List.map always l) *)
 
 let (oneof : 'a gen list -> 'a gen) =
- fun xs -> List.nth xs (Random.int (List.length xs))
+ fun xs -> List.nth xs (URandom.int (List.length xs))
 
 let (always : 'a -> 'a gen) = fun e () -> e
 
 let (frequency : (int * 'a gen) list -> 'a gen) =
  fun xs ->
   let sums = sum_int (List.map fst xs) in
-  let i = Random.int sums in
+  let i = URandom.int sums in
   let rec freq_aux acc = function
     | (x, g) :: xs -> if i < acc + x then g else freq_aux (acc + x) xs
     | _ -> failwith "frequency"
@@ -620,11 +620,11 @@ let b = laws "funs" (fun (f,g,h) -> x <= y ==> (max x y  = y)       )(pg ig ig)
  *)
 
 (*
-let one_of xs = List.nth xs (Random.int (List.length xs))
+let one_of xs = List.nth xs (URandom.int (List.length xs))
 let take_one xs =
   if empty xs then failwith "Take_one: empty list"
   else
-    let i = Random.int (List.length xs) in
+    let i = URandom.int (List.length xs) in
     List.nth xs i, filter_index (fun j _ -> i <> j) xs
 *)
 
@@ -4800,7 +4800,7 @@ let unserial x =
 (* Random *)
 (*****************************************************************************)
 
-let _init_random = Random.self_init ()
+(* let _init_random = Random.self_init () *)
 
 (*
 let random_insert i l =
@@ -4813,7 +4813,7 @@ let rec randomize_list = function
   []  -> []
   | a::l -> random_insert a (randomize_list l)
 *)
-let random_list xs = List.nth xs (Random.int (length xs))
+let random_list xs = List.nth xs (URandom.int (length xs))
 
 (* todo_opti: use fisher/yates algorithm.
  * ref: http://en.wikipedia.org/wiki/Knuth_shuffle
@@ -4843,7 +4843,7 @@ let random_subset_of_list num xs =
   let h = Hashtbl.create 101 in
   let cnt = ref num in
   while !cnt > 0 do
-    let x = Random.int len in
+    let x = URandom.int len in
     if not (Hashtbl.mem h array.(x)) (* bugfix2: not just x :) *) then (
       Hashtbl.add h array.(x) true;
       (* bugfix1: not just x :) *)
