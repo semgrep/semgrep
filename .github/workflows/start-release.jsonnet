@@ -24,16 +24,17 @@ local version = '${{ needs.get-version.outputs.version }}';
 // This is computed by the release_setup_job (e.g., "9545")
 // and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
+
 // When we use git directly instead of gh.
 local git_config_user = |||
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
+  git config user.name ${{ github.actor }}
+  git config user.email ${{ github.actor }}@users.noreply.github.com
 |||;
 // For towncrier setup in scripts/release/
 local pipenv_setup = |||
-        pip3 install pipenv==2022.6.7
-        pipenv install --dev
- |||;
+  pip3 install pipenv==2022.6.7
+  pipenv install --dev
+|||;
 
 // ----------------------------------------------------------------------------
 // Input
@@ -78,28 +79,40 @@ local unless_dry_run = {
 // ----------------------------------------------------------------------------
 // this will post on Slack
 local curl_notify(message) = |||
-    curl --request POST \
-    --url  ${{ secrets.NOTIFICATIONS_URL }} \
-    --header 'content-type: application/json' \
-    --data '{
-      "version": "%s",
-      "message": "%s"
-    }'
-  ||| % [version, message];
+  curl --request POST \
+  --url  ${{ secrets.NOTIFICATIONS_URL }} \
+  --header 'content-type: application/json' \
+  --data '{
+    "version": "%s",
+    "message": "%s"
+  }'
+||| % [version, message];
 
+// Open PRs to bump the semgrep version in semgrep-app, semgrep-rpc,
+// and semgrep-action. Indeed, those repos reference a particular
+// version of Semgrep.
+//alt: could move to libs/semgrep.libsonnet
 local bump_job(repository) = {
+  'runs-on': 'ubuntu-22.04',
   needs: [
     'get-version',
+    // we open PRs only when we're sure the release is valid
     'validate-release-trigger',
     'release-setup',
   ],
-  // TODO: jsonnetify this and use simple function instead of call/inherit
-  uses: './.github/workflows/call-bump-pr-workflow.yml',
-  secrets: 'inherit',
-  with: {
-    version: version,
-    repository: repository,
-  },
+  steps: [
+    semgrep.github_bot.get_jwt_step,
+    semgrep.github_bot.get_token_step,
+    {
+      name: 'Bump semgrep version in %s' % repository,
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+      // Initiate run of workflow (non-blocking)
+      // bump_version.yml is defined in semgrep-app/semgrep-rpc/semgrep-action
+      run: 'gh workflow run bump_version.yml --repo "%s" --raw-field version="%s"' % [repository, version],
+    },
+  ],
 } + unless_dry_run;
 
 // ----------------------------------------------------------------------------
@@ -109,18 +122,16 @@ local bump_job(repository) = {
 local len_checks = "$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
 
 local wait_pr_checks_to_register(while_cond) = |||
-        LEN_CHECKS=%s;
-          while [ ${LEN_CHECKS} = "%s" ]; do
-            echo "No checks available yet"
-            sleep 1
-            LEN_CHECKS=%s;
-          done
-          echo "checks are valid"
-
-          echo ${LEN_CHECKS}
-
-          gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
-  ||| % [len_checks, while_cond, len_checks, pr_number];
+  LEN_CHECKS=%s;
+  while [ ${LEN_CHECKS} = "%s" ]; do
+    echo "No checks available yet"
+    sleep 1
+    LEN_CHECKS=%s;
+  done
+  echo "checks are valid"
+  echo ${LEN_CHECKS}
+  gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+||| % [len_checks, while_cond, len_checks, pr_number];
 
 local wait_pr_checks_to_register_step(while_cond) = {
   name: 'Wait for checks to register',
@@ -146,10 +157,10 @@ local get_current_num_checks_step = {
   env: {
     GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
   },
-      run: |||
-        LEN_CHECKS=%s;
-        echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
-      ||| % len_checks,
+  run: |||
+    LEN_CHECKS=%s;
+    echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
+  ||| % len_checks,
 };
 
 // ----------------------------------------------------------------------------
@@ -361,7 +372,7 @@ local wait_for_pr_checks_job = {
     // Immediately after creation, the PR doesn't have any checks attached
     // yet, wait until this is not the case. If you immediately start waiting
     // for checks, then it just fails saying there's no checks.
-    wait_pr_checks_to_register_step("0"),
+    wait_pr_checks_to_register_step('0'),
     wait_pr_checks_to_complete_step,
     // Once all checks are complete on the PR, find the number of checks
     // so that we can wait for the new checks to register. We can't do this
@@ -471,7 +482,7 @@ local wait_for_release_checks_job = {
   ],
   steps: [
     // We need to wait for the new checks to register when the release tag is pushed
-    wait_pr_checks_to_register_step("${{ needs.wait-for-pr-checks.outputs.num-checks }}"),
+    wait_pr_checks_to_register_step('${{ needs.wait-for-pr-checks.outputs.num-checks }}'),
     wait_pr_checks_to_complete_step,
   ],
 } + unless_dry_run;
@@ -482,11 +493,20 @@ local validate_release_trigger_job = {
     'wait-for-release-checks',
     'release-setup',
   ],
-  uses: './.github/workflows/validate-release.yml',
-  secrets: 'inherit',
-  with: {
-    version: version,
-  },
+  'runs-on': 'ubuntu-latest',
+  steps: [
+    {
+      uses: 'actions/checkout@v3',
+      // I don't think it's important to checkout here this specific version;
+      // the actual important check is done in the script below.
+      with: {
+        ref: 'v%s' % version,
+      },
+    },
+    {
+      run: './scripts/validate-docker-release.sh %s' % version,
+    },
+  ],
 } + unless_dry_run;
 
 // ----------------------------------------------------------------------------
@@ -517,11 +537,11 @@ local notify_success_job = {
         # POST a webhook to Zapier to allow for public notifications to our users via Twitter
         curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
           -d '{"version":"%s","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v%s"}'
-      ||| % [version, version]
+      ||| % [version, version],
     },
     {
       name: 'Notify Success on Slack',
-      run: curl_notify("Release Validation has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow."),
+      run: curl_notify('Release Validation has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow.'),
     },
   ],
 };
@@ -540,7 +560,7 @@ local notify_failure_job = {
   steps: [
     {
       name: 'Notify Failure',
-      run: curl_notify("Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"),
+      run: curl_notify('Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!'),
     },
   ],
 };
@@ -562,9 +582,9 @@ local notify_failure_job = {
     'create-draft-release': create_draft_release_job,
     'wait-for-release-checks': wait_for_release_checks_job,
     'validate-release-trigger': validate_release_trigger_job,
-    'bump-semgrep-app': bump_job("semgrep/semgrep-app"),
-    'bump-semgrep-action': bump_job("semgrep/semgrep-action"),
-    'bump-semgrep-rpc': bump_job("semgrep/semgrep-rpc"),
+    'bump-semgrep-app': bump_job('semgrep/semgrep-app'),
+    'bump-semgrep-action': bump_job('semgrep/semgrep-action'),
+    'bump-semgrep-rpc': bump_job('semgrep/semgrep-rpc'),
     'notify-success': notify_success_job,
     'notify-failure': notify_failure_job,
   },
