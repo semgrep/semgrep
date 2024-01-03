@@ -180,6 +180,12 @@ let mask_pcre_pattern ?(mask = "<MASKED>") pat =
   let subst _matched = mask in
   fun subj -> Re.Pcre.substitute ~rex ~subst subj
 
+let mask_temp_paths ?(mask = "<TEMPORARY FILE PATH>") () =
+  let pat =
+    Re.Pcre.quote (Filename.get_temp_dir_name ()) ^ {|[/\\A-Za-z0-9_.-]*|}
+  in
+  mask_pcre_pattern ~mask pat
+
 (* Allow conversion from Lwt to synchronous function *)
 let update_func (test : 'a t) mona2 func : 'b t = { test with func; m = mona2 }
 let has_tag tag test = List.mem tag test.tags

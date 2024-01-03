@@ -204,6 +204,16 @@ val mask_line :
 val mask_pcre_pattern : ?mask:string -> string -> string -> string
 
 (*
+   Mask strings that look like temporary file paths. This is useful in the
+   following cases:
+   - the temporary folder depends on the platform (Unix, Windows) or
+     on the environment (TMPDIR environment variable or equivalent);
+   - the files placed in the system's temporary folder are assigned
+     random names.
+*)
+val mask_temp_paths : ?mask:string -> unit -> string -> string
+
+(*
    Special case of the 'update' function that allows a different type
    for the new test function. This is useful for converting an Lwt test
    to a regular one.
