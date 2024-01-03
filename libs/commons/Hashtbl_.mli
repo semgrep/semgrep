@@ -28,6 +28,8 @@ val hashset_to_list : 'a hashset -> 'a list
    insight.
 
    push: add a value to the stack associated with a key.
+   peek_opt: peek a value at the top of the stack associated with a key.
+             Returns None if the key is unbound.
    get_stack: get the stack associated with a key. Values are returned as
               a list, most recently-added first. Returns an empty list
               if the key is unbound.
@@ -43,4 +45,5 @@ val hashset_to_list : 'a hashset -> 'a list
      Hashtbl_.get_stack tbl 42 |> List.rev
 *)
 val push : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v -> unit
+val peek_opt : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v option
 val get_stack : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v list
