@@ -592,8 +592,6 @@ module Buffer = Buffer
 (* only unsafe is [usage()] printing on stdout, but not worth it for now *)
 module Arg = Arg
 module Lazy = Lazy
-(* less: *)
-module Random = Random
 (* ?? *)
 module Callback = Callback
 module Digest = Digest
@@ -624,6 +622,9 @@ module Oo = struct end
 (*###########################################################################*)
 (* Other module aliases (FORBIDDEN) *)
 (*###########################################################################*)
+
+module URandom = Random
+module Random = struct end
 
 (*###########################################################################*)
 (* RESTRICTED modules *)

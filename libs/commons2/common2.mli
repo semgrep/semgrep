@@ -482,7 +482,7 @@ end
 (* Random *)
 (*****************************************************************************)
 
-val _init_random : unit
+(* val _init_random : unit *)
 val random_list : 'a list -> 'a
 val randomize_list : 'a list -> 'a list
 val random_subset_of_list : int -> 'a list -> 'a list
