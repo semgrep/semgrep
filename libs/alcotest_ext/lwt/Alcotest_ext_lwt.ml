@@ -13,9 +13,9 @@ let mona : unit Lwt.t Alcotest_ext.Mona.t =
   in
   { return = Lwt.return; bind = Lwt.bind; catch }
 
-let create ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
-    ?tolerate_chdir name func =
-  Alcotest_ext.create_gen ?category ?expected_outcome ?mask_output ?output_kind
-    ?skipped ?tags ?tolerate_chdir mona name func
+let create ?category ?checked_output ?expected_outcome ?mask_output ?skipped
+    ?tags ?tolerate_chdir name func =
+  Alcotest_ext.create_gen ?category ?checked_output ?expected_outcome
+    ?mask_output ?skipped ?tags ?tolerate_chdir mona name func
 
 let interpret_argv = Alcotest_ext.interpret_argv_gen ~mona
