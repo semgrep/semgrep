@@ -61,6 +61,12 @@ let push (tbl : ('k, 'v list ref) Hashtbl.t) (key : 'k) (value : 'v) =
   in
   stack := value :: !stack
 
+let peek_opt (tbl : ('k, 'v list ref) Hashtbl.t) (key : 'k) : 'v option =
+  match Hashtbl.find_opt tbl key with
+  | Some { contents = hd :: _ } -> Some hd
+  | Some { contents = [] } -> None
+  | None -> None
+
 let get_stack tbl key =
   try !(Hashtbl.find tbl key) with
   | Not_found -> []
