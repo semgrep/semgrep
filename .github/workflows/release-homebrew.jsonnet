@@ -41,7 +41,7 @@ local homebrew_core_pr_job = {
       uses: 'actions/setup-python@v4',
       id: 'python-setup',
       with: {
-        'python-version': '3.10',
+        'python-version': '3.9',
       },
     },
     {
@@ -60,7 +60,7 @@ local homebrew_core_pr_job = {
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep %s" \
-          --tag="%s" semgrep
+          --tag="%s" semgrep --debug
       ||| % [version, tag],
     } + unless_dry_run,
     {
