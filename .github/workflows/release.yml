@@ -203,7 +203,7 @@ jobs:
     steps:
     - name: Get the version
       id: get-version
-      run: echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT
+      run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
     - name: Wait for Draft Release if not Ready
       id: wait-draft-release
       env:
@@ -229,7 +229,7 @@ jobs:
     steps:
     - name: Get the version
       id: get-version
-      run: echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT
+      run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
     - name: Get JWT for semgrep-ci GitHub App
       id: jwt
       uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
