@@ -15,6 +15,12 @@ local actions = import 'libs/actions.libsonnet';
 // ----------------------------------------------------------------------------
 local version = "${{ steps.get-version.outputs.VERSION }}";
 
+local get_version_step = {
+  name: 'Get the version',
+  id: 'get-version',
+  run: 'echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT',
+};
+
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
@@ -299,12 +305,9 @@ local create_release_job = {
     'inputs',
   ],
   steps: [
-    {
-      name: 'Get the version',
-      id: 'get-version',
-      run: 'echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT',
-    },
-    // wait for the draft release since these may not be ready after the refactor of the start-release.
+    get_version_step,
+    // wait for the draft release since these may not be ready after the refactor
+    // of the start-release.
     {
       name: 'Wait for Draft Release if not Ready',
       id: 'wait-draft-release',
@@ -337,11 +340,7 @@ local create_release_interfaces_job = {
     'inputs',
   ],
   steps: [
-    {
-      name: 'Get the version',
-      id: 'get-version',
-      run: 'echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT',
-    },
+    get_version_step,
     semgrep.github_bot.get_jwt_step,
     semgrep.github_bot.get_token_step,
     {
