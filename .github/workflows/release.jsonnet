@@ -1,11 +1,15 @@
 // This workflow performs additional tasks on a PR when someone
-// (or start-release.jsonnet) push to a vXXX branch. Those tasks are to
-//  - push a new canary docker image
-//  - create release artifacts with the Linux and MacOS semgrep packages
-//  - prepare and upload to PyPy a new semgrep package
+// (or start-release.jsonnet) pushes to a vXXX branch. Those tasks are to
+//  - push a new :canary docker image. We used to push to :latest, but it
+//    is safer to first push to :canary and a few days later to promote
+//    :canary to :latest (see promote-canary-to-latest.yml)
+//  - create release artifacts on Github. We now just release the source
+//    of Semgrep in https://github.com/semgrep/semgrep/releases
+//    We used to release Linux and MacOS binaries, but we prefer now
+//    users to install Semgrep via docker, Pypi, or homebrew.
+//  - prepare and upload to PyPi a new semgrep package
+//    see https://pypi.org/project/semgrep/
 //  - make a PR for homebrew's formula to update to the latest semgrep
-
-// TODO: remove some useless name:
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
