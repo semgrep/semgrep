@@ -51,6 +51,8 @@ local homebrew_core_pr_job = {
       name: 'Open Brew PR',
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
+        HOMEBREW_NO_INSTALL_FROM_API: 1,
+
       },
       // Note that we use '--write-only' below so the command does not
       // open a new PR; it just modifies
