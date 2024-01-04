@@ -3,32 +3,32 @@
 a/b
 dir/a/b
 --- Filtered files ---
-** pattern: "a/"  path: "/.gitignore"  matches: false
-** pattern: "!dir/a"  path: "/.gitignore"  matches: false
-** pattern: "!a/b"  path: "/.gitignore"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/.gitignore"  matches: false
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/.gitignore"  matches: false
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/.gitignore"  matches: false
 Selection events for path .gitignore:
 SEL .gitignore
-** pattern: "a/"  path: "/a"  matches: false
-** pattern: "!dir/a"  path: "/a"  matches: false
-** pattern: "!a/b"  path: "/a"  matches: false
-** pattern: "a/"  path: "/a/"  matches: true
-** pattern: "!dir/a"  path: "/a/"  matches: false
-** pattern: "!a/b"  path: "/a/"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/a"  matches: false
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/a"  matches: false
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/a"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/a/"  matches: true
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/a/"  matches: false
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/a/"  matches: false
 Selection events for path a/b:
 ignored at <TEMPORARY FILE PATH>, line 1: a/
 IGN a/b
-** pattern: "a/"  path: "/dir"  matches: false
-** pattern: "!dir/a"  path: "/dir"  matches: false
-** pattern: "!a/b"  path: "/dir"  matches: false
-** pattern: "a/"  path: "/dir/"  matches: false
-** pattern: "!dir/a"  path: "/dir/"  matches: false
-** pattern: "!a/b"  path: "/dir/"  matches: false
-** pattern: "a/"  path: "/dir/a"  matches: false
-** pattern: "!dir/a"  path: "/dir/a"  matches: true
-** pattern: "!a/b"  path: "/dir/a"  matches: false
-** pattern: "a/"  path: "/dir/a/b"  matches: false
-** pattern: "!dir/a"  path: "/dir/a/b"  matches: false
-** pattern: "!a/b"  path: "/dir/a/b"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir"  matches: false
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir"  matches: false
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir/"  matches: false
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir/"  matches: false
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir/"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir/a"  matches: false
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir/a"  matches: true
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir/a"  matches: false
+** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir/a/b"  matches: false
+** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir/a/b"  matches: false
+** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir/a/b"  matches: false
 Selection events for path dir/a/b:
 de-ignored at <TEMPORARY FILE PATH>, line 2: !dir/a
 SEL dir/a/b

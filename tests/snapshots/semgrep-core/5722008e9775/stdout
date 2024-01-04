@@ -3,19 +3,19 @@
 dir/ignore-me
 sub/dir/ignore-me-not
 --- Filtered files ---
-** pattern: "dir/*"  path: "/.gitignore"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/.gitignore"  matches: false
 Selection events for path .gitignore:
 SEL .gitignore
-** pattern: "dir/*"  path: "/dir"  matches: false
-** pattern: "dir/*"  path: "/dir/"  matches: false
-** pattern: "dir/*"  path: "/dir/ignore-me"  matches: true
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/dir"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/dir/"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/dir/ignore-me"  matches: true
 Selection events for path dir/ignore-me:
 ignored at <TEMPORARY FILE PATH>, line 1: dir/*
 IGN dir/ignore-me
-** pattern: "dir/*"  path: "/sub"  matches: false
-** pattern: "dir/*"  path: "/sub/"  matches: false
-** pattern: "dir/*"  path: "/sub/dir"  matches: false
-** pattern: "dir/*"  path: "/sub/dir/"  matches: false
-** pattern: "dir/*"  path: "/sub/dir/ignore-me-not"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/sub"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/sub/"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/sub/dir"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/sub/dir/"  matches: false
+** glob: "dir/*"  pcre: \A/+(?=[^/])dir/+(?=[^/])[^/]*\z  path: "/sub/dir/ignore-me-not"  matches: false
 Selection events for path sub/dir/ignore-me-not:
 SEL sub/dir/ignore-me-not
