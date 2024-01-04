@@ -62,7 +62,7 @@ let add = Buffer.add_string
 let addc = Buffer.add_char
 let quote_char buf c = add buf (Pcre.quote (String.make 1 c))
 
-let translate_frag buf (frag : Pattern.segment_fragment) =
+let translate_frag buf pos (frag : Pattern.segment_fragment) =
   match frag with
   | Char c -> quote_char buf c
   | Char_class { complement; ranges } ->
@@ -76,8 +76,14 @@ let translate_frag buf (frag : Pattern.segment_fragment) =
                  addc buf '-';
                  quote_char buf b);
       addc buf ']'
-  | Question -> add buf "[^/]"
-  | Star -> add buf "[^/]*"
+  | Question ->
+      if pos = 0 then (* leading dot must match literally *)
+        add buf "[^/.]"
+      else add buf "[^/]"
+  | Star ->
+      if pos = 0 then (* leading dot must match literally *)
+        add buf "(?![.])";
+      add buf "[^/]*"
 
 let translate_seg buf (seg : segment_fragment list) =
   match seg with
@@ -87,7 +93,7 @@ let translate_seg buf (seg : segment_fragment list) =
          because pattern 'a/*' should not match path 'a/' which has an
          empty trailing segment. *)
       add buf "(?=[^/])";
-      List.iter (translate_frag buf) seg
+      List.iteri (translate_frag buf) seg
 
 (* beginning of string *)
 let bos = {|\A|}
