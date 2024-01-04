@@ -3291,5 +3291,7 @@ let parse_pattern str =
     (fun () -> Tree_sitter_swift.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
+      let env =
+        { H.file; conv = (fun _ -> raise Not_found); extra = Pattern }
+      in
       map_source_file env cst)

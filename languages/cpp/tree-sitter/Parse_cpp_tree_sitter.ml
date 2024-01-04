@@ -4934,7 +4934,7 @@ let parse_pattern str =
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
       let x = map_program_or_expr env cst in
       match x with
       | Left [ s ] -> Toplevel s

@@ -29,7 +29,7 @@ type 'a env = {
   (* TODO: use Fpath.t *)
   file : string; (* filename *)
   (* get the charpos (offset) in file given a line x col *)
-  conv : (int * int, int) Hashtbl.t;
+  conv : int * int -> int;
   extra : 'a;
 }
 
@@ -66,7 +66,7 @@ let line_col_to_pos file =
             ()
       in
       full_charpos_to_pos_aux ());
-  h
+  Hashtbl.find h
 
 let token env (tok : Tree_sitter_run.Token.t) =
   let loc, str = tok in
@@ -76,7 +76,7 @@ let token env (tok : Tree_sitter_run.Token.t) =
   let line = start.Tree_sitter_run.Loc.row + 1 in
   let column = start.Tree_sitter_run.Loc.column in
   let bytepos =
-    try Hashtbl.find h (line, column) with
+    try h (line, column) with
     | Not_found -> -1
     (* TODO? more strict? raise exn? *)
   in
