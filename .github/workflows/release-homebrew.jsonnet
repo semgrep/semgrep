@@ -38,18 +38,11 @@ local homebrew_core_pr_job = {
   'runs-on': 'macos-12',
   steps: [
     {
-      uses: 'actions/setup-python@v4',
-      id: 'python-setup',
-      with: {
-        'python-version': '3.11',
-      },
-    },
-    {
       run: 'brew update',
     },
     // This is run internally by bump-formula-pr
     {
-      run: '/usr/local/Cellar/python@3.11/3.11.7/libexec/bin/python -m pip install -q --disable-pip-version-check --dry-run --ignore-installed --report=/dev/stdout semgrep==1.55.1'
+      run: 'python3 -m pip install -q --disable-pip-version-check --dry-run --ignore-installed --report=/dev/stdout semgrep==1.55.1'
     },
     {
       name: 'Open Brew PR',
