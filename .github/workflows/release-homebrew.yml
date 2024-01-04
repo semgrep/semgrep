@@ -4,7 +4,6 @@ name: release-homebrew
   workflow_dispatch:
 jobs:
   homebrew-core-pr:
-    name: Update on Homebrew-Core
     runs-on: macos-12
     steps:
     - uses: actions/setup-python@v4

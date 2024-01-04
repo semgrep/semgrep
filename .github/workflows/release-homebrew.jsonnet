@@ -1,21 +1,21 @@
-// This file contains the jobs to help release Semgrep on Homebrew
-// (https://brew.sh/). Note that the Semgrep "recipe" is stored in
+// This file contains jobs to release Semgrep on Homebrew (https://brew.sh/).
+// Note that the Semgrep homebrew "recipe" is stored in
 // https://github.com/Homebrew/homebrew-core/blob/master/Formula/s/semgrep.rb
-// The goal of the jobs below is to modify semgrep.rb after a new
-// release and open a PR to the homebrew-core repo with the modified semgrep.rb
+// The goal of the jobs below is to modify semgrep.rb after a new release
+// and to open a PR to the homebrew-core repo with the modified semgrep.rb
 // (e.g., https://github.com/Homebrew/homebrew-core/pull/157891 for 1.54.1)
 //
 // The jobs in this file are used from release.jsonnet and nightly.jsonnet,
 // but it's also useful to have a separate workflow to trigger the
 // homebrew release manually as we often get issues with homebrew.
 //
-// You can also call 'brew bump-formula-pr' locally on your mac to help debug
-// issues. However, you'll first need to run:
+// You can also call 'brew bump-formula-pr ...' locally on your mac to
+// debug issues. However, you'll first need to run:
 //
 //    $ brew tap Homebrew/core --force
 //
-// to set the right homebrew environment otherwise the
-// 'brew bump-formula-pr ... semgrep' will fail with:
+// to set the right Homebrew environment otherwise the
+// 'brew bump-formula-pr ... semgrep' command will fail with:
 //
 //    Error: No available formula with the name "semgrep".
 
@@ -26,23 +26,17 @@
 // TODO: hardcoded for now
 local version = "1.55.1";
 local tag = "v1.55.1";
-
 local unless_dry_run = { };
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
+// Note that this job needs to run after pypi released so brew bump-formula-pr
+// can update pypi dependency hashes in semgrep.rb
 local homebrew_core_pr_job = {
-  name: 'Update on Homebrew-Core',
-  // Needs to run after pypi released so brew can update pypi dependency hashes
-  //needs: [
-  //  'inputs',
-  //  'sleep-before-homebrew',
-  //],
   'runs-on': 'macos-12',
   steps: [
-    // TODO: reuse actions.setup_python
     {
       uses: 'actions/setup-python@v4',
       id: 'python-setup',
@@ -58,6 +52,11 @@ local homebrew_core_pr_job = {
       env: {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
+      // Note that we use '--write-only' below so the command does not
+      // open a new PR; it just modifies
+      // /.../Library/Taps/homebrew/homebrew-core/Formula/s/semgrep.rb
+      // The step below will make the commit, and the step further below
+      // will open the PR; We do things in 3 steps to help debug issues.
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep %s" \
@@ -92,7 +91,6 @@ local homebrew_core_pr_job = {
         cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
         git push --set-upstream r2c --force "bump-semgrep-%s"
       ||| % version,
-
     } + unless_dry_run,
     {
       name: 'Push to Fork',

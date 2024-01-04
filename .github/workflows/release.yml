@@ -34,7 +34,6 @@ jobs:
         >> $GITHUB_OUTPUT\n          echo \"Setting dry-run to FALSE\"\n        fi\n
         \     "
   park-pypi-packages:
-    name: Park PyPI package names
     runs-on: ubuntu-latest
     needs:
     - inputs
@@ -195,7 +194,6 @@ jobs:
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
   create-release:
-    name: Create the Github Release
     runs-on: ubuntu-latest
     needs:
     - wait-for-build-test
@@ -221,7 +219,6 @@ jobs:
     if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
       != 'true' }}
   create-release-interfaces:
-    name: Create the Github Release on Semgrep Interfaces
     runs-on: ubuntu-latest
     needs:
     - wait-for-build-test
@@ -263,18 +260,15 @@ jobs:
     if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
       != 'true' }}
   sleep-before-homebrew:
-    name: Sleep 10 min before releasing to homebrew
     needs:
     - inputs
     - upload-wheels
     runs-on: ubuntu-latest
     steps:
-    - name: Sleep 10 min
-      run: sleep 10m
+    - run: sleep 10m
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
   homebrew-core-pr:
-    name: Update on Homebrew-Core
     needs:
     - inputs
     - sleep-before-homebrew

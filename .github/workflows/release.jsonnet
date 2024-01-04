@@ -168,7 +168,6 @@ local push_docker_job(artifact_name) = {
 // ----------------------------------------------------------------------------
 
 local park_pypi_packages_job = {
-  name: 'Park PyPI package names',
   'runs-on': 'ubuntu-latest',
   needs: [
     'inputs',
@@ -298,7 +297,6 @@ local upload_wheels_job = {
 // ----------------------------------------------------------------------------
 
 local create_release_job = {
-  name: 'Create the Github Release',
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
@@ -333,7 +331,6 @@ local create_release_job = {
 } + unless_dry_run;
 
 local create_release_interfaces_job = {
-  name: 'Create the Github Release on Semgrep Interfaces',
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
@@ -375,7 +372,6 @@ local create_release_interfaces_job = {
 // see also nightly.jsonnet
 
 local sleep_before_homebrew_job = {
-  name: 'Sleep 10 min before releasing to homebrew',
   // Need to wait for pypi to propagate since pipgrip relies on it being published on pypi
   // TODO? comment still valid? do we still use pipgrip?
   needs: [
@@ -385,14 +381,12 @@ local sleep_before_homebrew_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     {
-      name: 'Sleep 10 min',
       run: 'sleep 10m',
     } + unless_dry_run,
   ],
 };
 
 local homebrew_core_pr_job = {
-  name: 'Update on Homebrew-Core',
   // Needs to run after pypi released so brew can update pypi dependency hashes
   needs: [
     'inputs',
