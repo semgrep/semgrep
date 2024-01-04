@@ -1,0 +1,34 @@
+--- All files ---
+.gitignore
+a/b
+dir/a/b
+--- Filtered files ---
+** pattern: "a/"  path: "/.gitignore"  matches: false
+** pattern: "!dir/a"  path: "/.gitignore"  matches: false
+** pattern: "!a/b"  path: "/.gitignore"  matches: false
+Selection events for path .gitignore:
+SEL .gitignore
+** pattern: "a/"  path: "/a"  matches: false
+** pattern: "!dir/a"  path: "/a"  matches: false
+** pattern: "!a/b"  path: "/a"  matches: false
+** pattern: "a/"  path: "/a/"  matches: true
+** pattern: "!dir/a"  path: "/a/"  matches: false
+** pattern: "!a/b"  path: "/a/"  matches: false
+Selection events for path a/b:
+ignored at <TEMPORARY FILE PATH>, line 1: a/
+IGN a/b
+** pattern: "a/"  path: "/dir"  matches: false
+** pattern: "!dir/a"  path: "/dir"  matches: false
+** pattern: "!a/b"  path: "/dir"  matches: false
+** pattern: "a/"  path: "/dir/"  matches: false
+** pattern: "!dir/a"  path: "/dir/"  matches: false
+** pattern: "!a/b"  path: "/dir/"  matches: false
+** pattern: "a/"  path: "/dir/a"  matches: false
+** pattern: "!dir/a"  path: "/dir/a"  matches: true
+** pattern: "!a/b"  path: "/dir/a"  matches: false
+** pattern: "a/"  path: "/dir/a/b"  matches: false
+** pattern: "!dir/a"  path: "/dir/a/b"  matches: false
+** pattern: "!a/b"  path: "/dir/a/b"  matches: false
+Selection events for path dir/a/b:
+de-ignored at <TEMPORARY FILE PATH>, line 2: !dir/a
+SEL dir/a/b

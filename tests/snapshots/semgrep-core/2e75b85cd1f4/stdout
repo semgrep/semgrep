@@ -1,0 +1,18 @@
+--- All files ---
+.gitignore
+a
+dir/a
+--- Filtered files ---
+** pattern: "a"  path: "/.gitignore"  matches: false
+Selection events for path .gitignore:
+SEL .gitignore
+** pattern: "a"  path: "/a"  matches: true
+Selection events for path a:
+ignored at <TEMPORARY FILE PATH>, line 1: a
+IGN a
+** pattern: "a"  path: "/dir"  matches: false
+** pattern: "a"  path: "/dir/"  matches: false
+** pattern: "a"  path: "/dir/a"  matches: true
+Selection events for path dir/a:
+ignored at <TEMPORARY FILE PATH>, line 1: a
+IGN dir/a

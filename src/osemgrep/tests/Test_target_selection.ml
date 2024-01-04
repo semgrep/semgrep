@@ -23,18 +23,24 @@ let osemgrep_ls caps =
   in
   Alcotest.(check int) "exit code" 0 (Exit_code.to_int exit_code)
 
+let concat_lines lines = String.concat "\n" lines ^ "\n"
+let gitignore lines : Testutil_files.t = File (".gitignore", concat_lines lines)
+
+let semgrepignore lines : Testutil_files.t =
+  File (".semgrepignore", concat_lines lines)
+
 let repos : (string * Testutil_files.t list) list =
   let open Testutil_files in
   [
     ( "simple-semgrepignore",
+      [ file "a"; file "b"; file "c"; gitignore [ "a" ]; semgrepignore [ "b" ] ]
+    );
+    ("no-semgrepignore", [ file "a"; gitignore [ "a" ] ]);
+    ( "gitignore deignore",
       [
-        file "a";
-        file "b";
-        file "c";
-        File (".gitignore", "a\n");
-        File (".semgrepignore", "b\n");
+        gitignore [ "bin/*"; "!bin/ignore-me-not" ];
+        dir "bin" [ file "ignore-me"; file "ignore-me-not" ];
       ] );
-    ("no-semgrepignore", [ file "a"; File (".gitignore", "a\n") ]);
   ]
 
 let tests caps =
@@ -42,7 +48,7 @@ let tests caps =
   |> List_.map (fun (repo_name, (files : Testutil_files.t list)) ->
          T.create
            ~category:[ "target selection on real git repos" ]
-           ~output_kind:Stdout
+           ~checked_output:Stdout
            ~mask_output:
              [
                T.mask_line ~after:"Initialized empty Git repository in" ();

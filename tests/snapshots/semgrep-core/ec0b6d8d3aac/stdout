@@ -1,0 +1,54 @@
+--- All files ---
+.gitignore
+a/b
+b/a
+b/b/c
+b/c
+b/d
+--- Filtered files ---
+** pattern: "/a"  path: "/.gitignore"  matches: false
+** pattern: "b/c"  path: "/.gitignore"  matches: false
+Selection events for path .gitignore:
+SEL .gitignore
+** pattern: "/a"  path: "/a"  matches: true
+** pattern: "b/c"  path: "/a"  matches: false
+Selection events for path a/b:
+ignored at <TEMPORARY FILE PATH>, line 1: /a
+IGN a/b
+** pattern: "/a"  path: "/b"  matches: false
+** pattern: "b/c"  path: "/b"  matches: false
+** pattern: "/a"  path: "/b/"  matches: false
+** pattern: "b/c"  path: "/b/"  matches: false
+** pattern: "/a"  path: "/b/a"  matches: false
+** pattern: "b/c"  path: "/b/a"  matches: false
+Selection events for path b/a:
+SEL b/a
+** pattern: "/a"  path: "/b"  matches: false
+** pattern: "b/c"  path: "/b"  matches: false
+** pattern: "/a"  path: "/b/"  matches: false
+** pattern: "b/c"  path: "/b/"  matches: false
+** pattern: "/a"  path: "/b/b"  matches: false
+** pattern: "b/c"  path: "/b/b"  matches: false
+** pattern: "/a"  path: "/b/b/"  matches: false
+** pattern: "b/c"  path: "/b/b/"  matches: false
+** pattern: "/a"  path: "/b/b/c"  matches: false
+** pattern: "b/c"  path: "/b/b/c"  matches: false
+Selection events for path b/b/c:
+SEL b/b/c
+** pattern: "/a"  path: "/b"  matches: false
+** pattern: "b/c"  path: "/b"  matches: false
+** pattern: "/a"  path: "/b/"  matches: false
+** pattern: "b/c"  path: "/b/"  matches: false
+** pattern: "/a"  path: "/b/c"  matches: false
+** pattern: "b/c"  path: "/b/c"  matches: true
+Selection events for path b/c:
+ignored at <TEMPORARY FILE PATH>, line 2: b/c
+IGN b/c
+** pattern: "/a"  path: "/b"  matches: false
+** pattern: "b/c"  path: "/b"  matches: false
+** pattern: "/a"  path: "/b/"  matches: false
+** pattern: "b/c"  path: "/b/"  matches: false
+** pattern: "/a"  path: "/b/d"  matches: false
+** pattern: "b/c"  path: "/b/d"  matches: false
+Selection events for path b/d:
+SEL b/d

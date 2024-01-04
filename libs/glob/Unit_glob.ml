@@ -88,4 +88,7 @@ let tests =
       (* not matching either *)
       ("ellipsis 12", test "****" "a/b" false);
       ("double slash", test "//a//b//" "//a//b//" true);
+      ("double slash in pattern", test "//a//b//" "/a/b/" true);
+      ("double slash in path", test "/a/b/" "//a//b//" true);
+      ("empty segment", test "a/*" "a/" false);
     ]
