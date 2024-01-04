@@ -2439,6 +2439,8 @@ let parse_pattern string =
     (fun () -> Tree_sitter_ruby.Parse.string string)
     (fun cst ->
       let file = "<file>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
+      let env =
+        { H.file; conv = (fun _ -> raise Not_found); extra = Pattern }
+      in
       if debug then Boilerplate.dump_tree cst;
       Ss (program env cst))

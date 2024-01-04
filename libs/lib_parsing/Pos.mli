@@ -43,7 +43,7 @@ val string_of_pos : t -> string
    in the range.
    Empty files admit at least one valid byte position.
 
-   If the (line, column) is out of range, a Failure exception will be raised.
+   If the (line, column) is out of range, a Not_found exception will be raised.
 *)
 type bytepos_linecol_converters = {
   bytepos_to_linecol_fun : int -> int * int;

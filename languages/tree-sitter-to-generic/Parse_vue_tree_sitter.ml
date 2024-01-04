@@ -50,18 +50,16 @@ let fb = Tok.unsafe_fake_bracket
  * https://github.com/returntocorp/ocaml-tree-sitter-core/issues/5
  * is fixed.
  *)
-let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
+let str_if_wrong_content_temporary_fix ({ file; conv; _ } : env)
+    (tok : Tree_sitter_run.Token.t) =
   let loc, _wrong_str = tok in
-
-  let file = env.H.file in
-  let h = env.H.conv in
 
   let bytepos, line, column =
     let pos = loc.Tree_sitter_run.Loc.start in
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
     let column = pos.Tree_sitter_run.Loc.column in
-    try (Hashtbl.find h (line, column), line, column) with
+    try (conv (line, column), line, column) with
     | Not_found ->
         failwith (spf "could not find line:%d x col:%d in %s" line column file)
   in
@@ -70,7 +68,7 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
     let column = pos.Tree_sitter_run.Loc.column in
-    try Hashtbl.find h (line, column) with
+    try conv (line, column) with
     | Not_found ->
         failwith (spf "could not find line:%d x col:%d in %s" line column file)
   in

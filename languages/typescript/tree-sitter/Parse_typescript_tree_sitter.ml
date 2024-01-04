@@ -3229,7 +3229,7 @@ let parse_pattern str =
       (fun () -> (Tree_sitter_typescript.Parse.string str :> cst_result))
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
       match program env cst with
       | Program ss -> Stmts ss
       | other -> other)

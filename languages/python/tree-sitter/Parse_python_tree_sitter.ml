@@ -1660,11 +1660,24 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_module_ env cst)
 
+let parse_string ~file ~contents =
+  H.wrap_parser
+    (fun () -> Tree_sitter_python.Parse.string ~src_file:file contents)
+    (fun cst ->
+      let env =
+        {
+          H.file;
+          conv = (Pos.full_converters_str contents).linecol_to_bytepos_fun;
+          extra = ();
+        }
+      in
+      map_module_ env cst)
+
 (* Need return type to be "any"*)
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_python.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
       Program (map_module_ env cst))

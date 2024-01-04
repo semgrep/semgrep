@@ -1069,7 +1069,9 @@ let parse_pattern str =
       str |> ensure_trailing_newline |> Tree_sitter_dockerfile.Parse.string)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
+      let env =
+        { H.file; conv = (fun _ -> raise Not_found); extra = (input_kind, Sh) }
+      in
       source_file env cst)
 
 (*
