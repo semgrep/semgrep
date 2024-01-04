@@ -1,0 +1,21 @@
+#! /usr/bin/env bash
+#
+# A script used by Martin to compare file targeting results between
+# pysemgrep and osemgrep.
+#
+set -eu
+
+pysemgrep="osemgrep"
+osemgrep="osemgrep --experimental"
+
+echo "=== pysemgrep ==="
+time $pysemgrep --x-ls . > target-selection.pysemgrep
+grep -v '^-' target-selection.pysemgrep \
+| cut -c 3- \
+| sort -u > targets.pysemgrep
+
+echo "=== osemgrep ==="
+time $osemgrep --x-ls . > target-selection.osemgrep
+grep -v '^-' target-selection.osemgrep \
+| cut -c 3- \
+| sort -u > targets.osemgrep
