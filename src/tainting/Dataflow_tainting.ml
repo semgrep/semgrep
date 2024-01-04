@@ -593,7 +593,7 @@ let find_pos_in_actual_args args_taints fparams =
             | Some taints ->
                 (* If this parameter is one of our arguments, insert a mapping and then remove it
                    from the list of remaining parameters.*)
-                Hashtbl.add name_to_taints s' taints;
+              Hashtbl.add name_to_taints s' taints;
                 acc
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
@@ -626,9 +626,19 @@ let find_pos_in_actual_args args_taints fparams =
       | _, Some taints -> Some taints
       | __else__ -> None
     in
-    if Option.is_none taint_opt then
+        if Option.is_none taint_opt then begin
       logger#error
         "cannot match taint variable with function arguments (%i: %s)" i s;
+      let to_string key_to_string x =
+        x
+        |> Hashtbl.to_seq
+        |> List.of_seq
+        |> List_.map (fun (k, _) -> (key_to_string k, "_"))
+        |> [%show : (string * string) list]
+      in
+      logger#error "Named taints: %s" (to_string Fun.id name_to_taints);
+      logger#error "Unamed taints: %s" (to_string Int.to_string  idx_to_taints);
+    end;
     taint_opt
 
 let fix_poly_taint_with_field env lval st =

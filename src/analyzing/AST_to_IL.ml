@@ -1804,8 +1804,23 @@ and function_definition env fdef =
 (*****************************************************************************)
 
 let function_definition lang ?ctx def =
+  let is_method = match lang, fst def.G.fkind with
+    (* TODO eliminate class methods and static functions *)
+    | (Lang.Python, G.Method) -> true
+    | _ -> false 
+  in
+  logger#trace "is_method: %s" (if is_method then "true" else "false");
   let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
-  let params = parameters env def.G.fparams in
+  (* TODO add the self or class parameter to the env *)
+  let params =
+    let ps = if is_method then
+        let (lb, ps', rb) = def.G.fparams in
+        (lb, (try List.tl ps'  with Failure _ -> ps'), rb)
+      else def.G.fparams
+    in
+    logger#trace "generic parameters: %s" (G.show_parameters ps); 
+    parameters env ps
+  in
   let body = function_body env def.G.fbody in
   (params, body)
 

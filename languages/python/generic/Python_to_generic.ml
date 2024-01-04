@@ -560,22 +560,26 @@ and fieldstmt x =
 and stmt_aux env x =
   match x with
   | FunctionDef (t, v1, v2, v3, v4, v5) ->
-      let env = { env with context = InFunctionOrMethod } in
-      let v1 = name env v1
-      and v2 = parameters env v2
-      and v3 = option (type_ env) v3
-      and v4 = list_stmt1 env v4
-      and v5 = list (decorator env) v5 in
-      let ent = G.basic_entity v1 ~attrs:v5 in
-      let def =
-        {
-          G.fparams = fb v2;
-          frettype = v3;
-          fbody = G.FBStmt v4;
-          fkind = (G.Function, t);
-        }
-      in
-      [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
+    let fkind = match env.context with
+      | InClass -> G.Method
+      | _ -> G.Function
+    in
+    let env = { env with context = InFunctionOrMethod } in
+    let v1 = name env v1
+    and v2 = parameters env v2
+    and v3 = option (type_ env) v3
+    and v4 = list_stmt1 env v4
+    and v5 = list (decorator env) v5 in
+    let ent = G.basic_entity v1 ~attrs:v5 in
+    let def =
+      {
+        G.fparams = fb v2;
+        frettype = v3;
+        fbody = G.FBStmt v4;
+        fkind = (fkind, t);
+      }
+    in
+    [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
   | ClassDef (v0, v1, v2, v3, v4) ->
       let env = { env with context = InClass } in
       let v1 = name env v1
