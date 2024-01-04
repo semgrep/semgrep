@@ -44,6 +44,10 @@ local homebrew_core_pr_job = {
     {
       run: 'find /usr/local/Cellar/python@3.11/'
     },
+    // ugly
+    {
+      run: 'cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7'
+    },
     {
       run: 'ls -al /usr/local/Cellar/python@3.11/3.11.7/libexec/bin/'
     },
