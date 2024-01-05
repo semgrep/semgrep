@@ -1,0 +1,23 @@
+rules:
+  - id: test
+    languages:
+      - cpp
+    message: Test
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              sink($SINK)
+          - focus-metavariable: $SINK
+        requires: USER_CONTROLLED and not SANITIZED
+    pattern-sources:
+      - label: USER_CONTROLLED
+        pattern: |
+          tainted(...)
+      - by-side-effect: true
+        label: SANITIZED
+        patterns:
+          - pattern: |
+              strlen(..., $STR, ...)
+          - focus-metavariable: $STR
+    severity: ERROR

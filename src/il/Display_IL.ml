@@ -1,7 +1,7 @@
 open IL
 
-let string_of_type (ty : IL.type_) =
-  match ty.type_.t with
+let string_of_type (ty : G.type_) =
+  match ty.t with
   | TyN (Id (id, _)) -> fst id
   | __else__ -> "<TYPE>"
 

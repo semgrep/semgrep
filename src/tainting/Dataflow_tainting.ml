@@ -1591,10 +1591,11 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         with
         | Some (call_taints, lval_env) -> (call_taints, lval_env)
         | None -> (all_args_taints, lval_env))
-    | New (_, ty, None, args) ->
+    | New (_lval, _ty, None, args) ->
         (* 'New' without reference to constructor *)
-        let exps = ty.exps @ (args |> List_.map IL_helpers.exp_of_arg) in
-        exps |> union_map_taints_and_vars env check_expr
+        args
+        |> List_.map IL_helpers.exp_of_arg
+        |> union_map_taints_and_vars env check_expr
     | CallSpecial (_, _, args) ->
         let _, taints, lval_env = check_function_call_arguments env args in
         let taints =
