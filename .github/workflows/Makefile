@@ -21,7 +21,7 @@ OBJS = \
   build-test-javascript.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
-  check-semgrep-pro.yml test-pro-rules.yml \
+  check-semgrep-pro.yml \
   start-release.yml release.yml release-homebrew.yml
 
 #TODO: ExprTodo ObjectComp
