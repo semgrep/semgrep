@@ -1,13 +1,14 @@
-// This file contains jobs to release Semgrep on Homebrew (https://brew.sh/).
+// Workflow to test/release Semgrep on Homebrew (https://brew.sh/).
+//
 // Note that the Semgrep Homebrew "formula" is not stored in this repo but at
 // https://github.com/Homebrew/homebrew-core/blob/master/Formula/s/semgrep.rb
-// The goal of the jobs below is to modify semgrep.rb after a new release
+// The main goal of this workflow is to modify semgrep.rb after a new release
 // and to open a PR to the homebrew-core repo with the modified semgrep.rb
 // (e.g., https://github.com/Homebrew/homebrew-core/pull/157891 for 1.54.1)
 //
 // The jobs in this file are used from release.jsonnet and nightly.jsonnet,
 // but it's also useful to have a separate workflow to trigger the
-// homebrew release manually as we often get issues with homebrew.
+// Homebrew release manually as we often get issues with Homebrew.
 //
 // You can also call 'brew bump-formula-pr ...' locally on your Mac to
 // debug issues. However, you'll first need to run:
@@ -64,27 +65,26 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
     // ugly:  'brew bump-formula-pr' below internally calls
     // /path/to/python -m pip install -q ... semgrep==1.xxx.yyy
     // to fetch Semgrep python dependencies from Pypi but this path to python
-    // seems currently wrong hence this ugly fix below
+    // seems currently broken hence the ugly fix below
     {
       name: 'ugly: fix the python path for brew bump-formula-pr',
       run: 'cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7'
     },
     {
       name: 'Bump semgrep.rb',
-      // Note that we use '--write-only' below so the command does not
-      // open a new PR; it just modifies .../Formula/s/semgrep.rb
+      // Note that we use '--write-only' below so the command does not open a
+      // new PR; it just modifies /usr/local/.../homebrew-core/.../s/semgrep.rb
       // The step below will make the commit, and the step further below
       // will open the PR. We do things in 3 steps to help debug issues.
       //
       // alt: use dawidd6/action-homebrew-bump-formula@v3
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
-          --message="semgrep %s" \
-          --tag="v%s" semgrep --debug
+          --message="semgrep %s" --tag="v%s" semgrep --debug
       ||| % [version, version],
     },
     {
-      name: 'Prepare commit',
+      name: 'Make the commit',
       env: {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
@@ -95,6 +95,7 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
         git config user.name ${{ github.actor }}
         git config user.email ${{ github.actor }}@users.noreply.github.com
         gh auth setup-git
+        # TODO: we should move this repo in the semgrep org
         git remote add r2c https://github.com/semgrep-release/homebrew-core.git
         git checkout -b bump-semgrep-%s
         git add Formula/s/semgrep.rb
@@ -116,7 +117,7 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
       env: {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
-      // 'semgrep-release' below corresponds to r2c homebrew core owner
+      // 'semgrep-release' below corresponds to r2c Homebrew core owner
       run: |||
         gh pr create --repo homebrew/homebrew-core \
           --base master --head "semgrep-release:bump-semgrep-%s" \
@@ -129,8 +130,8 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
 
 
 local env = {
-  // We've had issues with this workflow in the past, and needed to ensure that
-  // homebrew wouldn't use the API.
+  // We've had issues with the below in the past, and needed to ensure that
+  // Homebrew wouldn't use the API.
   // See: https://github.com/orgs/Homebrew/discussions/4150, and
   // https://github.com/orgs/Homebrew/discussions/4136
   // There's also much other discussion on this topic available on GH and in
