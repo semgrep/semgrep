@@ -7,7 +7,7 @@
 // (e.g., https://github.com/Homebrew/homebrew-core/pull/157891 for 1.54.1)
 //
 // The jobs in this file are used from release.jsonnet and nightly.jsonnet,
-// but it's also useful to have a separate workflow to trigger the
+// but it's also useful to have a separate workflow (this file) to trigger the
 // Homebrew release manually as we often get issues with Homebrew.
 //
 // You can also call 'brew bump-formula-pr ...' locally on your Mac to
@@ -45,12 +45,14 @@ local input = {
   },
 };
 
-local unless_dry_run = {
+//TODO: if remove the _here, then get bad scope when generating
+// release.yml from release.jsonnet
+local unless_dry_run_here = {
   'if': '${{ ! inputs.dry-run }}',
 };
 
 // ----------------------------------------------------------------------------
-// The jobs
+// The release job
 // ----------------------------------------------------------------------------
 
 // This is also called from release.jsonnet.
@@ -128,22 +130,24 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
   ],
 };
 
+// ----------------------------------------------------------------------------
+// The test job
+// ----------------------------------------------------------------------------
 
 local env = {
-  // We've had issues with the below in the past, and needed to ensure that
+  // We've had issues with the job below in the past, and needed to ensure that
   // Homebrew wouldn't use the API.
   // See: https://github.com/orgs/Homebrew/discussions/4150, and
-  // https://github.com/orgs/Homebrew/discussions/4136
-  // There's also much other discussion on this topic available on GH and in
-  // the brew discussions.
+  // https://github.com/orgs/Homebrew/discussions/4136 as well as
+  // other discussions on this topic on Github.
   HOMEBREW_NO_INSTALL_FROM_API: 1,
 };
 
 // This is called from nightly.jsonnet
 // The Semgrep formula is bumped by homebrew_core_pr_job(), however
-// we also want to double check that the formula still works with
+// we also want to double check that the formula still builds with
 // the 'develop' branch. This serves two purposes:
-//  - verifies that our changes don't break Brew
+//  - verifies that our changes in develop don't break brew
 //  - gives us time before release to fix these issues and adjust our
 //    Homebrew formula if needed.
 local brew_build_job = {
@@ -180,7 +184,7 @@ local brew_build_job = {
   },
   jobs: {
     'homebrew-core-pr':
-       homebrew_core_pr_job('${{ inputs.version }}', unless_dry_run),
+       homebrew_core_pr_job('${{ inputs.version }}', unless_dry_run_here),
     'brew-build': brew_build_job,
   },
   export:: {
