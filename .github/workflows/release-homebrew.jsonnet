@@ -38,8 +38,8 @@ local input = {
 };
 
 // TODO: hardcoded for now
-local version = "1.55.1";
-local tag = "v1.55.1";
+local version = "1.55.2";
+local tag = "v1.55.2";
 
 local unless_dry_run = {
   'if': '${{ ! inputs.dry-run }}',

@@ -18,7 +18,7 @@ jobs:
       run: cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7
     - name: Bump semgrep.rb
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
-        \\\n          --message=\"semgrep 1.55.1\" \\\n          --tag=\"v1.55.1\"
+        \\\n          --message=\"semgrep 1.55.2\" \\\n          --tag=\"v1.55.2\"
         semgrep --debug\n      "
     - name: Prepare commit
       env:
@@ -27,18 +27,18 @@ jobs:
         \       git status\n        git diff\n        git config user.name ${{ github.actor
         }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
         \       gh auth setup-git\n        git remote add r2c https://github.com/semgrep-release/homebrew-core.git\n
-        \       git checkout -b bump-semgrep-1.55.1\n        git add Formula/s/semgrep.rb\n
-        \       git commit -m \"semgrep 1.55.1\"\n      "
+        \       git checkout -b bump-semgrep-1.55.2\n        git add Formula/s/semgrep.rb\n
+        \       git commit -m \"semgrep 1.55.2\"\n      "
     - name: Push commit to our fork of homebrew-core
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
-        \       git push --set-upstream r2c --force \"bump-semgrep-1.55.1\"\n      "
+        \       git push --set-upstream r2c --force \"bump-semgrep-1.55.2\"\n      "
       if: ${{ ! inputs.dry-run }}
     - name: Open PR to official homebrew-core repo
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        gh pr create --repo homebrew/homebrew-core \\\n          --base
-        master --head \"semgrep-release:bump-semgrep-1.55.1\" \\\n          --title=\"semgrep
-        1.55.1\" \\\n          --body \"Bump semgrep to version 1.55.1\"\n      "
+        master --head \"semgrep-release:bump-semgrep-1.55.2\" \\\n          --title=\"semgrep
+        1.55.2\" \\\n          --body \"Bump semgrep to version 1.55.2\"\n      "
       if: ${{ ! inputs.dry-run }}
