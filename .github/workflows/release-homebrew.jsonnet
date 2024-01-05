@@ -132,7 +132,7 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
   },
   jobs: {
     'homebrew-core-pr':
-      homebrew_core_pr_job('{{ inputs.version }}', unless_dry_run),
+      homebrew_core_pr_job('${{ inputs.version }}', unless_dry_run),
   },
   export:: {
    job: homebrew_core_pr_job,
