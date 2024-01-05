@@ -3,7 +3,11 @@
    about configuring the engine, whereas Engine_kind.t is more useful as metrics for the users.
 *)
 
-type analysis_flavor = Intraprocedural | Interprocedural | Interfile
+type analysis_flavor =
+  | Intraprocedural
+  | Interprocedural
+  | Interfile
+  | GitRemote of string
 [@@deriving show]
 
 type code_config = unit [@@deriving show]

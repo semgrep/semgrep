@@ -93,6 +93,8 @@ exception Error of string
  *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
+let _remote_repo_name_re = {|^http.*\/(.*)\.git$|}
+let remote_repo_name_re = Pcre_.regexp _remote_repo_name_re
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -143,6 +145,22 @@ let range_of_git_diff lines =
         ranges
   | Error _ -> [||]
 
+let remote_repo_name url =
+  match Pcre_.exec ~rex:remote_repo_name_re url with
+  | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
+  | _ -> None
+
+let temporary_remote_checkout_path url =
+  let name =
+    match remote_repo_name url with
+    | Some name -> Some name
+    | None -> None
+  in
+  Option.map
+    (fun name ->
+      let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
+      Fpath.add_seg tmp_dir name)
+    name
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -207,6 +225,42 @@ let get_project_root_exn () =
   match get_project_root () with
   | Some path -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
+
+let checkout ?cwd ?git_ref () =
+  let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Could not checkout git ref")
+
+let sparse_shallow_filtered_checkout url path =
+  let path = Fpath.to_string path in
+  let cmd =
+    ( git,
+      [
+        "clone";
+        "--depth=1";
+        "--filter=blob:none";
+        "--sparse";
+        "--no-checkout";
+        url;
+        path;
+      ] )
+  in
+  match UCmd.status_of_run ~quiet:true cmd with
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not clone git repo"
+
+let sparse_checkout_add ?cwd folders =
+  let folders = List_.map Fpath.to_string folders in
+  let cmd =
+    ( git,
+      cd cwd
+      @ [ "sparse-checkout"; "add"; "--sparse-index"; "--cone" ]
+      @ folders )
+  in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not add sparse checkout"
 
 let get_merge_base commit =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in

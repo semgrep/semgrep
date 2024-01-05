@@ -285,7 +285,9 @@ let add_engine_type (engine_type : Engine_type.t) =
             (match analysis with
             | Intraprocedural -> `Intraprocedural
             | Interprocedural -> `Interprocedural
-            | Interfile -> `Interfile);
+            | Interfile -> `Interfile
+            (* TODO make this report back that its remote (and the repo?)*)
+            | GitRemote _repository -> `Interfile);
           code_config =
             Option.map
               (fun () : Semgrep_metrics_t.code_config -> { _rfu = None })

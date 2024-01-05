@@ -59,6 +59,17 @@ let setup_profiling (conf : Scan_CLI.conf) =
     { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
+let setup_repository url =
+  let repository_path =
+    url |> Git_wrapper.temporary_remote_checkout_path |> Option.get
+  in
+  Logs.debug (fun m ->
+      m "Sparse cloning %s into %a" url Fpath.pp repository_path);
+  ignore (Git_wrapper.sparse_shallow_filtered_checkout url repository_path);
+  Git_wrapper.checkout ~cwd:repository_path ();
+  Logs.debug (fun m -> m "Sparse cloning done");
+  repository_path
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -724,11 +735,19 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let rules_and_origins =
     Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
-
+  (match conf.engine_type with
+  | Engine_type.PRO { analysis = Engine_type.GitRemote url; _ } ->
+      let path = setup_repository url in
+      Sys.chdir (Fpath.to_string path)
+  | _ -> ());
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
+  Logs.debug (fun m ->
+      m "targets_and_skipped = %s"
+        (String.concat ", "
+           (fst targets_and_skipped |> List.map Fpath.to_string)));
   (* step3: let's go *)
   let res =
     run_scan_files

@@ -841,9 +841,15 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-
-    let target_roots = target_roots |> Fpath_.of_strings in
-
+    let is_git_repo_target =
+      match target_roots with
+      | [ target ] -> target |> Git_wrapper.remote_repo_name |> Option.is_some
+      | _ :: _ ->
+          Error.abort
+            "Multiple targets are not supported when scanning a remote git \
+             repository"
+      | _ -> false
+    in
     let output_format =
       let all_flags =
         [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
@@ -924,6 +930,37 @@ let cmdline_term ~allow_empty_config : conf Term.t =
                 secrets_config;
                 supply_chain_config;
               }
+    in
+    let engine_type, target_roots =
+      match (is_git_repo_target, engine_type) with
+      | true, Engine_type.OSS
+      | true, Engine_type.PRO { analysis = Engine_type.Interfile; _ } ->
+          let url = List.hd target_roots in
+          Logs.app (fun m ->
+              m
+                "Note that PRO interfile is turned off for remote git \
+                 repositories");
+          Logs.app (fun m ->
+              m "Using OSS engine with remote git repository %s" url);
+          let analysis = Engine_type.GitRemote url in
+          let engine_type =
+            Engine_type.PRO
+              {
+                extra_languages = false;
+                analysis;
+                code_config = None;
+                secrets_config = None;
+                supply_chain_config = None;
+              }
+          in
+          (engine_type, [ Fpath.v "." ])
+      | true, Engine_type.PRO _ ->
+          Error.abort
+            "Mutually exclusive options --pro/--pro-languages/--pro-intrafile \
+             and a remote git repository target"
+      | false, _ ->
+          let target_roots = List.map Fpath.v target_roots in
+          (engine_type, target_roots)
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with

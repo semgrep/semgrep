@@ -136,6 +136,8 @@ let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
       | { Unix.st_kind = S_REG; _ } -> Keep
       | { Unix.st_kind = S_DIR; _ } -> Dir
       | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> Ignore_silently
+      (* This is handled in the Core_scan_function already *)
+      | exception Unix.Unix_error (ENOENT, _fun, _info) -> Keep
       (* ignore for now errors. TODO? return a skip? *)
       | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
 
