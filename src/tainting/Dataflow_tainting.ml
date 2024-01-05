@@ -1093,7 +1093,9 @@ and check_tainted_lval_base env base =
   | Var _
   | VarSpecial _ ->
       (Taints.empty, `None, env.lval_env)
-  | Mem { e = Fetch lval; _ } -> check_tainted_lval_aux env lval
+  | Mem { e = Fetch lval; _ } ->
+      (* i.e. `*ptr` *)
+      check_tainted_lval_aux env lval
   | Mem e ->
       let taints, lval_env = check_tainted_expr env e in
       (taints, `None, lval_env)
