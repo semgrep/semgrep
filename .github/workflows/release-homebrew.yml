@@ -3,6 +3,10 @@ name: release-homebrew
 "on":
   workflow_dispatch:
     inputs:
+      version:
+        type: string
+        description: The version of Semgrep to release on Homebrew (e.g., 1.55.2)
+        required: true
       dry-run:
         type: boolean
         description: "\n        Check the box for a dry-run.\n        A dry-run will
@@ -18,8 +22,8 @@ jobs:
       run: cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7
     - name: Bump semgrep.rb
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
-        \\\n          --message=\"semgrep 1.55.2\" \\\n          --tag=\"v1.55.2\"
-        semgrep --debug\n      "
+        \\\n          --message=\"semgrep {{ inputs.version }}\" \\\n          --tag=\"v{{
+        inputs.version }}\" semgrep --debug\n      "
     - name: Prepare commit
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
@@ -27,18 +31,21 @@ jobs:
         \       git status\n        git diff\n        git config user.name ${{ github.actor
         }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
         \       gh auth setup-git\n        git remote add r2c https://github.com/semgrep-release/homebrew-core.git\n
-        \       git checkout -b bump-semgrep-1.55.2\n        git add Formula/s/semgrep.rb\n
-        \       git commit -m \"semgrep 1.55.2\"\n      "
+        \       git checkout -b bump-semgrep-{{ inputs.version }}\n        git add
+        Formula/s/semgrep.rb\n        git commit -m \"semgrep {{ inputs.version }}\"\n
+        \     "
     - name: Push commit to our fork of homebrew-core
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
-        \       git push --set-upstream r2c --force \"bump-semgrep-1.55.2\"\n      "
+        \       git push --set-upstream r2c --force \"bump-semgrep-{{ inputs.version
+        }}\"\n      "
       if: ${{ ! inputs.dry-run }}
     - name: Open PR to official homebrew-core repo
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        gh pr create --repo homebrew/homebrew-core \\\n          --base
-        master --head \"semgrep-release:bump-semgrep-1.55.2\" \\\n          --title=\"semgrep
-        1.55.2\" \\\n          --body \"Bump semgrep to version 1.55.2\"\n      "
+        master --head \"semgrep-release:bump-semgrep-{{ inputs.version }}\" \\\n          --title=\"semgrep
+        {{ inputs.version }}\" \\\n          --body \"Bump semgrep to version {{ inputs.version
+        }}\"\n      "
       if: ${{ ! inputs.dry-run }}

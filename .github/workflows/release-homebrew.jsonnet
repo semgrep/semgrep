@@ -25,6 +25,11 @@
 
 local input = {
   inputs: {
+    version: {
+      type: 'string',
+      description: "The version of Semgrep to release on Homebrew (e.g., 1.55.2)",
+      required: true,
+    },
     'dry-run': {
       type: 'boolean',
       description: |||
@@ -37,10 +42,6 @@ local input = {
   },
 };
 
-// TODO: hardcoded for now
-local version = "1.55.2";
-local tag = "v1.55.2";
-
 local unless_dry_run = {
   'if': '${{ ! inputs.dry-run }}',
 };
@@ -51,7 +52,7 @@ local unless_dry_run = {
 
 // Note that this job needs to run after Semgrep has been released on Pypi so
 // brew bump-formula-pr below can update Pypi dependency hashes in semgrep.rb
-local homebrew_core_pr_job = {
+local homebrew_core_pr_job(version, unless_dry_run) = {
   'runs-on': 'macos-12',
   steps: [
     {
@@ -74,8 +75,8 @@ local homebrew_core_pr_job = {
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep %s" \
-          --tag="%s" semgrep --debug
-      ||| % [version, tag],
+          --tag="v%s" semgrep --debug
+      ||| % [version, version],
     },
     {
       name: 'Prepare commit',
@@ -130,6 +131,10 @@ local homebrew_core_pr_job = {
     workflow_dispatch: input,
   },
   jobs: {
-    'homebrew-core-pr': homebrew_core_pr_job,
+    'homebrew-core-pr':
+      homebrew_core_pr_job('{{ inputs.version }}', unless_dry_run),
+  },
+  export:: {
+   job: homebrew_core_pr_job,
   },
 }
