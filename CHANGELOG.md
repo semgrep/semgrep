@@ -6,6 +6,18 @@
 
 <!-- insertion point -->
 
+## [1.55.1](https://github.com/returntocorp/semgrep/releases/tag/v1.55.1) - 2024-01-04
+
+
+### Fixed
+
+
+- Honor temporary folder specified via the TMPDIR environment variable (or
+  equivalent on Windows) in some instances where it used to be hardcoded as
+  `/tmp`. (gh-9534)
+- Fix pipfile manifest parser error (sc-1084)
+
+
 ## [1.55.0](https://github.com/returntocorp/semgrep/releases/tag/v1.55.0) - 2024-01-02
 
 
