@@ -177,7 +177,7 @@ let add_instr env instr = Stack_.push (mk_s (Instr instr)) env.stmts
 
 (* Create an auxiliary variable for an expression.
  *
- * If 'force' is 'false' and the expression tself is already a variable then
+ * If 'force' is 'false' and the expression itself is already a variable then
  * it will not create an auxiliary variable but just return that. *)
 let mk_aux_var ?(force = false) ?str env tok exp =
   match exp.e with
@@ -1112,7 +1112,7 @@ and stmt_expr env ?e_gen st =
       expr_opt env None
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty })
     when def_expr_evaluates_to_value env.lang ->
-      opt_ty |> Option.iter (fun ty -> type_ env ty |> ignore);
+      type_opt env opt_ty;
       (* We may end up here due to Elixir_to_elixir's parsing. Other languages
        * such as Ruby, Julia, and C seem to result in Assignments, not DefStmts.
        *)
@@ -1165,7 +1165,7 @@ and cond_with_pre_stmts env cond =
           ( todok,
             [ (Def (ent, VarDef { G.vinit = Some e; vtype = opt_ty }) as def) ]
           ) ->
-          opt_ty |> Option.iter (fun ty -> type_ env ty |> ignore);
+          type_opt env opt_ty;
           (* e.g. C/C++: `if (const char *tainted_or_null = source("PATH"))` *)
           let e' = expr env e in
           let lv = lval_of_ent env ent in
@@ -1198,12 +1198,7 @@ and for_var_or_expr_list env xs =
            match vardef with
            | { G.vinit = Some e; vtype = opt_ty } ->
                let ss1, e' = expr_with_pre_stmts env e in
-               let ss2 =
-                 match opt_ty with
-                 | None -> []
-                 | Some ty ->
-                     with_pre_stmts env (fun env -> type_ env ty) |> fst
-               in
+               let ss2 = type_opt_with_pre_stmts env opt_ty in
                let lv = lval_of_ent env ent in
                ss1 @ ss2
                @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
@@ -1244,6 +1239,15 @@ and type_ env (ty : G.type_) : G.type_ =
           * expressions occurring inside types. *)
          mk_aux_var ~force:true ~str:"_type" env tok e |> ignore);
   ty
+
+and type_with_pre_stmts env ty = with_pre_stmts env (fun env -> type_ env ty)
+
+and type_opt env opt_ty =
+  opt_ty |> Option.iter (fun ty -> type_ env ty |> ignore)
+
+and type_opt_with_pre_stmts env opt_ty =
+  let ss, () = with_pre_stmts env (fun env -> type_opt env opt_ty) in
+  ss
 
 (*****************************************************************************)
 (* Statement *)
@@ -1388,7 +1392,7 @@ and stmt_aux env st =
         in
         Some cons_exp
       in
-      let ss2, ty = with_pre_stmts env (fun env -> type_ env ty) in
+      let ss2, ty = type_with_pre_stmts env ty in
       ss1 @ ss2
       @ [
           mk_s
@@ -1397,15 +1401,11 @@ and stmt_aux env st =
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
-      let ss2 =
-        match opt_ty with
-        | None -> []
-        | Some ty -> with_pre_stmts env (fun env -> type_ env ty) |> fst
-      in
+      let ss2 = type_opt_with_pre_stmts env opt_ty in
       ss1 @ ss2 @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt (_ent, G.VarDef { G.vinit = None; vtype = Some ty }) ->
       (* We want to analyze any expressions in 'ty'. *)
-      let ss, _ = with_pre_stmts env (fun env -> type_ env ty) in
+      let ss, _ = type_with_pre_stmts env ty in
       ss
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
