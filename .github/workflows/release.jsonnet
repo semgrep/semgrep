@@ -18,8 +18,10 @@ local release_homebrew = import 'release-homebrew.jsonnet';
 // ----------------------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------------------
+
 local version = "${{ steps.get-version.outputs.VERSION }}";
 
+// this actually produces the tag (e.g., "v1.55.1", and not "1.55.1")
 local get_version_step = {
   name: 'Get the version',
   id: 'get-version',
@@ -29,78 +31,46 @@ local get_version_step = {
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
-// to be used by the workflow
+
 local release_inputs = {
   inputs: {
     'dry-run': {
+      type: 'boolean',
       description: |||
         Run the release in dry-run mode, e.g., without changing external
-        state (like pushing to PyPI/Docker)
+        state (like pushing to PyPI/Docker/Homebrew)
       |||,
       required: true,
-      type: 'boolean',
     },
   },
 };
 
 local unless_dry_run = {
-  if: "${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}"
-};
-
-// ----------------------------------------------------------------------------
-// The jobs
-// ----------------------------------------------------------------------------
-
-// TODO? delete this intermediate? do we care about those *test* refs below ?
-// In any case to test you can always create a branch, make a PR, and
-// then trigger the workflow manually with dry-mode on from the GHA action
-// dashboard
-local inputs_job = {
-  'runs-on': 'ubuntu-22.04',
-  outputs: {
-    'dry-run': '${{steps.dry-run.outputs.dry-run}}',
-  },
-  steps: [
-    {
-      name: 'Evaluate Dry Run',
-      id: 'dry-run',
-      run: |||
-        if [[ "${{ inputs.dry-run }}" == "true" ]] || [[ "${{ github.ref_name }}" == *test* ]]; then
-          echo "dry-run=true" >> $GITHUB_OUTPUT
-          echo "Setting dry-run to TRUE"
-        else
-          echo "dry-run=false" >> $GITHUB_OUTPUT
-          echo "Setting dry-run to FALSE"
-        fi
-      |||,
-    },
-  ],
+  if: "${{ ! inputs.dry-run }}"
 };
 
 // ----------------------------------------------------------------------------
 // Docker jobs
 // ----------------------------------------------------------------------------
 
-// TODO: those are comments for the docker-tags below. Not sure
-// why but if we put those comments directly in the ||| |||
-// then the job does not work.
-//
-// # tag image with "canary"
-// type=raw,value=canary
-// # tag image with full version (ex. "1.2.3")
-// type=semver,pattern={{version}}
-// # tag image with major.minor (ex. "1.2")
-// type=semver,pattern={{major}}.{{minor}}
-
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
-  needs: [
-    'inputs',
-  ],
   with: {
-    // don't add a "latest" tag (we'll promote "canary" to "latest" after testing)
+    // don't add a "latest" tag (we'll promote "canary" to "latest" after
+    // testing)
     'docker-flavor': 'latest=false',
+    // TODO: those are comments for the docker-tags below. Not sure
+    // why but if we put those comments directly in the ||| |||
+    // then the job does not work. It was working though when
+    // we were adding those comments in the .yml
+    //
+    // # tag image with "canary"
+    // type=raw,value=canary
+    // # tag image with full version (ex. "1.2.3")
+    // type=semver,pattern={{version}}
+    // # tag image with major.minor (ex. "1.2")
+    // type=semver,pattern={{major}}.{{minor}}
     'docker-tags': |||
       type=raw,value=canary
       type=semver,pattern={{version}}
@@ -114,33 +84,30 @@ local build_test_docker_job = {
   },
 };
 
-// # suffix all tags with "-nonroot"
-// suffix=-nonroot
-// # don't add a "latest-nonroot" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
-// latest=false
-
-// # tag image with "canary-nonroot"
-// type=raw,value=canary
-// # tag image with full version (ex. "1.2.3-nonroot")
-// type=semver,pattern={{version}}
-// # tag image with major.minor version (ex. "1.2-nonroot")
-// type=semver,pattern={{major}}.{{minor}}
-
 local build_test_docker_nonroot_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
   needs: [
-    'inputs',
-    // We want to run build-test-docker-nonroot *after*
-    // build-test-docker so that it reuses the warmed-up
-    // docker cache.
+    // We want to run build-test-docker-nonroot *after* build-test-docker
+    // so that it reuses the warmed-up docker cache.
     'build-test-docker',
   ],
   with: {
+    // # suffix all tags with "-nonroot"
+    // suffix=-nonroot
+    // # don't add a "latest-nonroot" tag (we'll promote "canary-nonroot" to
+    // "latest-nonroot" after testing)
+    // latest=false
     'docker-flavor': |||
       suffix=-nonroot
       latest=false
     |||,
+    // # tag image with "canary-nonroot"
+    // type=raw,value=canary
+    // # tag image with full version (ex. "1.2.3-nonroot")
+    // type=semver,pattern={{version}}
+    // # tag image with major.minor version (ex. "1.2-nonroot")
+    // type=semver,pattern={{major}}.{{minor}}
     'docker-tags': |||
       type=raw,value=canary
       type=semver,pattern={{version}}
@@ -157,14 +124,13 @@ local build_test_docker_nonroot_job = {
 local push_docker_job(artifact_name) = {
   needs: [
     'wait-for-build-test',
-    'inputs',
   ],
   uses: './.github/workflows/push-docker.yaml',
   secrets: 'inherit',
   with: {
     'artifact-name': artifact_name,
     'repository-name': 'returntocorp/semgrep',
-    'dry-run': "${{ needs.inputs.outputs.dry-run == 'true' }}",
+    'dry-run': "${{ inputs.dry-run == 'true' }}",
   },
 };
 
@@ -174,9 +140,6 @@ local push_docker_job(artifact_name) = {
 
 local park_pypi_packages_job = {
   'runs-on': 'ubuntu-latest',
-  needs: [
-    'inputs',
-  ],
   defaults: {
     run: {
       'working-directory': 'cli/',
@@ -203,7 +166,6 @@ local park_pypi_packages_job = {
     {
       name: 'Publish to Pypi',
       uses: 'pypa/gh-action-pypi-publish@release/v1',
-      'if': "${{ !contains(github.ref,'-test-release') }}",
       with: {
         user: '__token__',
         password: '${{ secrets.pypi_upload_token }}',
@@ -214,7 +176,6 @@ local park_pypi_packages_job = {
     {
       name: 'Publish to test Pypi',
       uses: 'pypa/gh-action-pypi-publish@release/v1',
-      'if': "${{ contains(github.ref,'-test-release') }}",
       with: {
         repository_url: 'https://test.pypi.org/legacy/',
         user: '__token__',
@@ -231,7 +192,6 @@ local upload_wheels_job = {
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
-    'inputs',
   ],
   steps: [
     {
@@ -305,7 +265,6 @@ local create_release_job = {
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
-    'inputs',
   ],
   steps: [
     get_version_step,
@@ -339,7 +298,6 @@ local create_release_interfaces_job = {
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
-    'inputs',
   ],
   steps: [
     get_version_step,
@@ -382,7 +340,6 @@ local sleep_before_homebrew_job = {
   // TODO: is this still needed? We used to rely on a pipgrip thing,
   // but it's not the case anymore, so maybe we can just sleep 1m
   needs: [
-    'inputs',
     'upload-wheels',
   ],
   'runs-on': 'ubuntu-latest',
@@ -400,7 +357,6 @@ local homebrew_core_pr_job =
  homebrew_core_pr_job_base + {
   // Needs to run after Pypi released so brew can update Pypi dependency hashes
   needs: [
-    'inputs',
     'sleep-before-homebrew',
   ],
   steps: [
@@ -409,12 +365,9 @@ local homebrew_core_pr_job =
       id: 'get-version',
       run: |||
         TAG=${GITHUB_REF/refs\/tags\//}
-        if [ "${{ needs.inputs.outputs.dry-run }}" = "true" ]; then
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
           TAG=v99.99.99
         fi
-        echo "Using TAG=${TAG}"
-        echo "TAG=${TAG}" >> $GITHUB_OUTPUT
-        echo "Using VERSION=${TAG#v}"
         echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       |||,
     },
@@ -428,7 +381,7 @@ local homebrew_core_pr_job =
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
       // this is run only in dry-mode
-      if: "${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run == 'true' }}",
+      if: "${{ inputs.dry-run == 'true' }}",
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep 99.99.99" \
@@ -444,15 +397,12 @@ local homebrew_core_pr_job =
 {
   name: 'release',
   on: {
-    // this workflow can be triggered manually, via a call (see nightly.jsonnet)
-    // or when something (human or start-release.jsonnet) push to a vxxx branch.
+    // to trigger manually a release, especially in dry-mode
     workflow_dispatch: release_inputs,
+    // see nightly.jsonnet
     workflow_call: release_inputs,
+    // see start-release.jsonnet which pushes to a vxxx branch
     push: {
-      branches: [
-        // Sequence of patterns matched against refs/tags
-        '**-test-release',
-      ],
       tags: [
         // Push events to matching v*, i.e. v1.0, v20.15.10
         'v*',
@@ -460,11 +410,12 @@ local homebrew_core_pr_job =
     },
   },
   jobs: {
-    inputs: inputs_job,
     'park-pypi-packages': park_pypi_packages_job,
     'build-test-docker': build_test_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
-    // similar to tests.jsonnet
+    // TODO? Not sure why we run those jobs here again; tests.jsonnet already
+    // runs those jobs on the release PR. Not sure also why then we don't run
+    // build-test-javascript like in tests.jsonnet.
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
@@ -486,12 +437,12 @@ local homebrew_core_pr_job =
     },
     'build-test-manylinux-aarch64': {
       needs: [
+        // we extract aarch64 from our docker image
         'build-test-docker',
       ],
       uses: './.github/workflows/build-test-manylinux-aarch64.yml',
       secrets: 'inherit',
     },
-    // no build-test-javascript though here because ??? TODO?
     'wait-for-build-test': {
       name: 'Wait for Build/Test All Platforms',
       'runs-on': 'ubuntu-22.04',

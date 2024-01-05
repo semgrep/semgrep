@@ -39,7 +39,6 @@ local input = {
         Check the box for a dry-run.
         A dry-run will not push any external state.
       |||,
-      default: false,
       required: true,
     },
   },

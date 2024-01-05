@@ -12,7 +12,6 @@ name: release-homebrew
         type: boolean
         description: "\n        Check the box for a dry-run.\n        A dry-run will
           not push any external state.\n      "
-        default: false
         required: true
 jobs:
   homebrew-core-pr:
