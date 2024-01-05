@@ -10,12 +10,23 @@ osemgrep="osemgrep --experimental"
 
 echo "=== pysemgrep ==="
 time $pysemgrep --x-ls . > target-selection.pysemgrep
-grep -v '^-' target-selection.pysemgrep \
-| cut -c 3- \
+grep '^SEL' target-selection.pysemgrep \
+| cut -c 5- \
 | sort -u > targets.pysemgrep
+
+echo -n "number of selected targets: "
+wc -l targets.pysemgrep
 
 echo "=== osemgrep ==="
 time $osemgrep --x-ls . > target-selection.osemgrep
-grep -v '^-' target-selection.osemgrep \
-| cut -c 3- \
+grep '^SEL' target-selection.osemgrep \
+| cut -c 5- \
 | sort -u > targets.osemgrep
+
+echo -n "number of selected targets: "
+wc -l targets.osemgrep
+
+echo -n "number of differences in the set of selected targets: "
+diff -u targets.pysemgrep targets.osemgrep \
+| grep -P '^[+-]' \
+| wc -l
