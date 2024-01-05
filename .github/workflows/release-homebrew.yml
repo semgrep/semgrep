@@ -2,41 +2,67 @@
 name: release-homebrew
 "on":
   workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: "\n        The version of Semgrep to release on Homebrew (e.g.,
+          1.55.2)\n      "
+        required: true
+      dry-run:
+        type: boolean
+        description: "\n        Check the box for a dry-run.\n        A dry-run will
+          not push any external state.\n      "
+        default: false
+        required: true
 jobs:
   homebrew-core-pr:
-    name: Update on Homebrew-Core
     runs-on: macos-12
     steps:
-    - uses: actions/setup-python@v4
-      id: python-setup
-      with:
-        python-version: "3.10"
     - run: brew update
-    - name: Open Brew PR
-      env:
-        HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
+    - name: 'ugly: fix the python path for brew bump-formula-pr'
+      run: cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7
+    - name: Bump semgrep.rb
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
-        \\\n          --message=\"semgrep 1.55.1\" \\\n          --tag=\"v1.55.1\"
-        semgrep\n      "
-    - name: Prepare Branch
+        \\\n          --message=\"semgrep ${{ inputs.version }}\" --tag=\"v${{ inputs.version
+        }}\" semgrep --debug\n      "
+    - name: Make the commit
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-        R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/semgrep-release/homebrew-core.git
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
         \       git status\n        git diff\n        git config user.name ${{ github.actor
         }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
-        \       gh auth setup-git\n        git remote add r2c \"${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}\"\n
-        \       git checkout -b bump-semgrep-1.55.1\n        git add Formula/s/semgrep.rb\n
-        \       git commit -m \"semgrep 1.55.1\"\n      "
-    - name: Push Branch to Fork
+        \       gh auth setup-git\n        # TODO: we should move this repo in the
+        semgrep org\n        git remote add r2c https://github.com/semgrep-release/homebrew-core.git\n
+        \       git checkout -b bump-semgrep-${{ inputs.version }}\n        git add
+        Formula/s/semgrep.rb\n        git commit -m \"semgrep ${{ inputs.version }}\"\n
+        \     "
+    - name: Push commit to our fork of homebrew-core
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
-        \       git push --set-upstream r2c --force \"bump-semgrep-1.55.1\"\n      "
-    - name: Push to Fork
+        \       git push --set-upstream r2c --force \"bump-semgrep-${{ inputs.version
+        }}\"\n      "
+      if: ${{ ! inputs.dry-run }}
+    - name: Open PR to official homebrew-core repo
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-        R2C_HOMEBREW_CORE_OWNER: semgrep-release
       run: "\n        gh pr create --repo homebrew/homebrew-core \\\n          --base
-        master --head \"${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-1.55.1\" \\\n          --title=\"semgrep
-        1.55.1\" \\\n          --body \"Bump semgrep to version 1.55.1\"\n      "
+        master --head \"semgrep-release:bump-semgrep-${{ inputs.version }}\" \\\n
+        \         --title=\"semgrep ${{ inputs.version }}\" \\\n          --body \"Bump
+        semgrep to version ${{ inputs.version }}\"\n      "
+      if: ${{ ! inputs.dry-run }}
+  brew-build:
+    name: Build Semgrep via Brew from HEAD
+    runs-on: macos-12
+    steps:
+    - run: brew update --debug --verbose
+      env:
+        HOMEBREW_NO_INSTALL_FROM_API: 1
+    - run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
+      env:
+        HOMEBREW_NO_INSTALL_FROM_API: 1
+        NONINTERACTIVE: 1
+    - name: Check installed correctly
+      run: brew test semgrep --HEAD
+      env:
+        HOMEBREW_NO_INSTALL_FROM_API: 1

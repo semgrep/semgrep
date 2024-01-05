@@ -15,4 +15,5 @@ check-semgrep-pro.yml
 test-pro-rules.yml
 start-release.yml
 release.yml
+release-homebrew.yml
 trigger-semgrep-comparison-argo.yml

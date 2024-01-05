@@ -1,14 +1,19 @@
 // This workflow performs additional tasks on a PR when someone
-// (or start-release.jsonnet) push to a vXXX branch. Those tasks are to
-//  - push a new canary docker image
-//  - create release artifacts with the Linux and MacOS semgrep packages
-//  - prepare and upload to PyPy a new semgrep package
-//  - make a PR for homebrew's formula to update to the latest semgrep
-
-// TODO: remove some useless name:
+// (or start-release.jsonnet) pushes to a vXXX branch. Those tasks are to
+//  - push a new :canary docker image. We used to push to :latest, but it
+//    is safer to first push to :canary and a few days later to promote
+//    :canary to :latest (see promote-canary-to-latest.yml)
+//  - create release artifacts on Github. We now just release the source
+//    of Semgrep in https://github.com/semgrep/semgrep/releases
+//    We used to release Linux and MacOS binaries, but we prefer now
+//    users to install Semgrep via Docker, Pypi, or Homebrew.
+//  - prepare and upload to PyPi a new semgrep package
+//    see https://pypi.org/project/semgrep/
+//  - make a PR for Homebrew's semgrep formula to update to the latest semgrep
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
+local release_homebrew = import 'release-homebrew.jsonnet';
 
 // ----------------------------------------------------------------------------
 // Constants
@@ -168,7 +173,6 @@ local push_docker_job(artifact_name) = {
 // ----------------------------------------------------------------------------
 
 local park_pypi_packages_job = {
-  name: 'Park PyPI package names',
   'runs-on': 'ubuntu-latest',
   needs: [
     'inputs',
@@ -298,7 +302,6 @@ local upload_wheels_job = {
 // ----------------------------------------------------------------------------
 
 local create_release_job = {
-  name: 'Create the Github Release',
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
@@ -333,7 +336,6 @@ local create_release_job = {
 } + unless_dry_run;
 
 local create_release_interfaces_job = {
-  name: 'Create the Github Release on Semgrep Interfaces',
   'runs-on': 'ubuntu-latest',
   needs: [
     'wait-for-build-test',
@@ -372,12 +374,13 @@ local create_release_interfaces_job = {
 // ----------------------------------------------------------------------------
 // Homebrew jobs
 // ----------------------------------------------------------------------------
-// see also nightly.jsonnet
 
 local sleep_before_homebrew_job = {
-  name: 'Sleep 10 min before releasing to homebrew',
-  // Need to wait for pypi to propagate since pipgrip relies on it being published on pypi
-  // TODO? comment still valid? do we still use pipgrip?
+  // Need to wait for Pypi to propagate information so that
+  // 'brew bump-formula-pr' in release_homebrew.jsonnet can access
+  // information about the latest semgrep from Pypi
+  // TODO: is this still needed? We used to rely on a pipgrip thing,
+  // but it's not the case anymore, so maybe we can just sleep 1m
   needs: [
     'inputs',
     'upload-wheels',
@@ -385,20 +388,21 @@ local sleep_before_homebrew_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     {
-      name: 'Sleep 10 min',
       run: 'sleep 10m',
     } + unless_dry_run,
   ],
 };
 
-local homebrew_core_pr_job = {
-  name: 'Update on Homebrew-Core',
-  // Needs to run after pypi released so brew can update pypi dependency hashes
+local homebrew_core_pr_job_base =
+  release_homebrew.export.homebrew_core_pr(version, unless_dry_run);
+
+local homebrew_core_pr_job =
+ homebrew_core_pr_job_base + {
+  // Needs to run after Pypi released so brew can update Pypi dependency hashes
   needs: [
     'inputs',
     'sleep-before-homebrew',
   ],
-  'runs-on': 'macos-12',
   steps: [
     {
       name: 'Get the version',
@@ -413,17 +417,6 @@ local homebrew_core_pr_job = {
         echo "Using VERSION=${TAG#v}"
         echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       |||,
-    },
-    // TODO: reuse actions.setup_python
-    {
-      uses: 'actions/setup-python@v4',
-      id: 'python-setup',
-      with: {
-        'python-version': '3.10',
-      },
-    },
-    {
-      run: 'brew update',
     },
     {
       name: 'Dry Run Brew PR',
@@ -442,61 +435,7 @@ local homebrew_core_pr_job = {
           --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
       |||,
     },
-    {
-      name: 'Open Brew PR',
-      env: {
-        HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
-      },
-      run: |||
-        brew bump-formula-pr --force --no-audit --no-browse --write-only \
-          --message="semgrep %s" \
-          --tag="${{ steps.get-version.outputs.TAG }}" semgrep
-      ||| % version,
-    } + unless_dry_run,
-    {
-      name: 'Prepare Branch',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
-        R2C_HOMEBREW_CORE_FORK_HTTPS_URL: 'https://github.com/semgrep-release/homebrew-core.git',
-      },
-      run: |||
-        cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
-        git status
-        git diff
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
-        gh auth setup-git
-        git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
-        git checkout -b bump-semgrep-%s
-        git add Formula/s/semgrep.rb
-        git commit -m "semgrep %s"
-      ||| % [version, version],
-    },
-    {
-      name: 'Push Branch to Fork',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
-      },
-      run: |||
-        cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
-        git push --set-upstream r2c --force "bump-semgrep-%s"
-      ||| % version,
-
-    } + unless_dry_run,
-    {
-      name: 'Push to Fork',
-      env: {
-        GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
-        R2C_HOMEBREW_CORE_OWNER: 'semgrep-release',
-      },
-      run: |||
-        gh pr create --repo homebrew/homebrew-core \
-          --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-%s" \
-          --title="semgrep %s" \
-          --body "Bump semgrep to version %s"
-      ||| % [version, version, version],
-    } + unless_dry_run,
-  ],
+  ] + homebrew_core_pr_job_base.steps,
 };
 
 // ----------------------------------------------------------------------------

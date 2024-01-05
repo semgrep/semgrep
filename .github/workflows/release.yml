@@ -34,7 +34,6 @@ jobs:
         >> $GITHUB_OUTPUT\n          echo \"Setting dry-run to FALSE\"\n        fi\n
         \     "
   park-pypi-packages:
-    name: Park PyPI package names
     runs-on: ubuntu-latest
     needs:
     - inputs
@@ -195,7 +194,6 @@ jobs:
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
   create-release:
-    name: Create the Github Release
     runs-on: ubuntu-latest
     needs:
     - wait-for-build-test
@@ -221,7 +219,6 @@ jobs:
     if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
       != 'true' }}
   create-release-interfaces:
-    name: Create the Github Release on Semgrep Interfaces
     runs-on: ubuntu-latest
     needs:
     - wait-for-build-test
@@ -263,22 +260,19 @@ jobs:
     if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
       != 'true' }}
   sleep-before-homebrew:
-    name: Sleep 10 min before releasing to homebrew
     needs:
     - inputs
     - upload-wheels
     runs-on: ubuntu-latest
     steps:
-    - name: Sleep 10 min
-      run: sleep 10m
+    - run: sleep 10m
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
   homebrew-core-pr:
-    name: Update on Homebrew-Core
+    runs-on: macos-12
     needs:
     - inputs
     - sleep-before-homebrew
-    runs-on: macos-12
     steps:
     - name: Get the version
       id: get-version
@@ -287,11 +281,6 @@ jobs:
         \"Using TAG=${TAG}\"\n        echo \"TAG=${TAG}\" >> $GITHUB_OUTPUT\n        echo
         \"Using VERSION=${TAG#v}\"\n        echo \"VERSION=${TAG#v}\" >> $GITHUB_OUTPUT\n
         \     "
-    - uses: actions/setup-python@v4
-      id: python-setup
-      with:
-        python-version: "3.10"
-    - run: brew update
     - name: Dry Run Brew PR
       env:
         HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
@@ -300,26 +289,25 @@ jobs:
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
         \\\n          --message=\"semgrep 99.99.99\" \\\n          --tag=\"v99.99.99\"
         --revision=\"${GITHUB_SHA}\" semgrep --python-exclude-packages semgrep\n      "
-    - name: Open Brew PR
-      env:
-        HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
+    - run: brew update
+    - name: 'ugly: fix the python path for brew bump-formula-pr'
+      run: cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7
+    - name: Bump semgrep.rb
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
         \\\n          --message=\"semgrep ${{ steps.get-version.outputs.VERSION }}\"
-        \\\n          --tag=\"${{ steps.get-version.outputs.TAG }}\" semgrep\n      "
-      if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
-        != 'true' }}
-    - name: Prepare Branch
+        --tag=\"v${{ steps.get-version.outputs.VERSION }}\" semgrep --debug\n      "
+    - name: Make the commit
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-        R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/semgrep-release/homebrew-core.git
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
         \       git status\n        git diff\n        git config user.name ${{ github.actor
         }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
-        \       gh auth setup-git\n        git remote add r2c \"${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}\"\n
+        \       gh auth setup-git\n        # TODO: we should move this repo in the
+        semgrep org\n        git remote add r2c https://github.com/semgrep-release/homebrew-core.git\n
         \       git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION
         }}\n        git add Formula/s/semgrep.rb\n        git commit -m \"semgrep
         ${{ steps.get-version.outputs.VERSION }}\"\n      "
-    - name: Push Branch to Fork
+    - name: Push commit to our fork of homebrew-core
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
@@ -327,12 +315,11 @@ jobs:
         }}\"\n      "
       if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run
         != 'true' }}
-    - name: Push to Fork
+    - name: Open PR to official homebrew-core repo
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-        R2C_HOMEBREW_CORE_OWNER: semgrep-release
       run: "\n        gh pr create --repo homebrew/homebrew-core \\\n          --base
-        master --head \"${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION
+        master --head \"semgrep-release:bump-semgrep-${{ steps.get-version.outputs.VERSION
         }}\" \\\n          --title=\"semgrep ${{ steps.get-version.outputs.VERSION
         }}\" \\\n          --body \"Bump semgrep to version ${{ steps.get-version.outputs.VERSION
         }}\"\n      "
