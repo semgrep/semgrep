@@ -241,20 +241,21 @@ jobs:
       run: "\n        TAG=${GITHUB_REF/refs\\/tags\\//}\n        if [ \"${{ inputs.dry-run
         }}\" = \"true\" ]; then\n          TAG=v99.99.99\n        fi\n        echo
         \"VERSION=${TAG#v}\" >> $GITHUB_OUTPUT\n      "
-    - name: Dry Run Brew PR
-      env:
-        HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-      if: ${{ inputs.dry-run == 'true' }}
-      run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
-        \\\n          --message=\"semgrep 99.99.99\" \\\n          --tag=\"v99.99.99\"
-        --revision=\"${GITHUB_SHA}\" semgrep --python-exclude-packages semgrep\n      "
     - run: brew update
     - name: 'ugly: fix the python path for brew bump-formula-pr'
       run: cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7
+    - name: Dry Run bump semgrep.rb
+      env:
+        HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
+      if: ${{ inputs.dry-run }}
+      run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
+        \\\n          --message=\"semgrep 99.99.99\" \\\n          --tag=\"v99.99.99\"
+        --revision=\"${GITHUB_SHA}\" semgrep --python-exclude-packages semgrep\n      "
     - name: Bump semgrep.rb
       run: "\n        brew bump-formula-pr --force --no-audit --no-browse --write-only
         \\\n          --message=\"semgrep ${{ steps.get-version.outputs.VERSION }}\"
         --tag=\"v${{ steps.get-version.outputs.VERSION }}\" semgrep --debug\n      "
+      if: ${{ ! inputs.dry-run }}
     - name: Make the commit
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}

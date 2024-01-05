@@ -321,7 +321,7 @@ local sleep_before_homebrew_job = {
 };
 
 local homebrew_core_pr_job_base =
-  release_homebrew.export.homebrew_core_pr(version, unless_dry_run);
+  release_homebrew.export.homebrew_core_pr(version);
 
 local homebrew_core_pr_job =
  homebrew_core_pr_job_base + {
@@ -339,23 +339,6 @@ local homebrew_core_pr_job =
           TAG=v99.99.99
         fi
         echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
-      |||,
-    },
-    {
-      name: 'Dry Run Brew PR',
-      // This step does some brew oddities (setting a fake version, and
-      // setting a revision) to allow the brew PR prep to succeed.
-      // The `brew bump-formula-pr` does checks to ensure your PR is legit,
-      // but we want to do a phony PR (or at least prep it) for Dry Run only
-      env: {
-        HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
-      },
-      // this is run only in dry-mode
-      if: "${{ inputs.dry-run == 'true' }}",
-      run: |||
-        brew bump-formula-pr --force --no-audit --no-browse --write-only \
-          --message="semgrep 99.99.99" \
-          --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
       |||,
     },
   ] + homebrew_core_pr_job_base.steps,
