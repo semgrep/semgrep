@@ -434,10 +434,10 @@ let get_targets_for_project conf (project_roots : project_roots) =
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
     | Some tracked, Some untracked ->
-        Printf.printf
-          "target file candidates from git: tracked: %i, untracked: %i\n%!"
-          (Fppath_set.cardinal tracked)
-          (Fppath_set.cardinal untracked);
+        Logs.debug (fun m ->
+            m "target file candidates from git: tracked: %i, untracked: %i"
+              (Fppath_set.cardinal tracked)
+              (Fppath_set.cardinal untracked));
         let all_files = Fppath_set.union tracked untracked in
         all_files |> Fppath_set.elements |> filter_targets conf project_roots
     | None, _

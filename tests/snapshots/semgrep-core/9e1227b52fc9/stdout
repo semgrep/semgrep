@@ -1,13 +1,14 @@
 Initialized empty Git repository in<MASKED>
 [main (root-commit) <MASKED>] Add all the files
- 2 files changed, 2 insertions(+)
+ 3 files changed, 2 insertions(+)
  create mode 100644 .gitignore
+ create mode 100644 bin/ignore-me
  create mode 100644 bin/ignore-me-not
 Input files:
 .gitignore
 bin/ignore-me
 bin/ignore-me-not
 RUN semgrep scan --experimental --x-ls .
-+ .gitignore
-+ bin/ignore-me-not
-- [semgrepignore_patterns_match] bin/ignore-me
+SEL .gitignore
+SEL bin/ignore-me-not
+IGN bin/ignore-me [semgrepignore_patterns_match]

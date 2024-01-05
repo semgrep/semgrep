@@ -108,7 +108,7 @@ val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
     on the git version.
 *)
 
-val add : ?cwd:Fpath.t -> Fpath.t list -> unit
+val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
 (** Add the given files to the git repo *)
 
 val commit : ?cwd:Fpath.t -> string -> unit

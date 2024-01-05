@@ -1,10 +1,11 @@
 Initialized empty Git repository in<MASKED>
 [main (root-commit) <MASKED>] Add all the files
- 1 file changed, 1 insertion(+)
+ 2 files changed, 1 insertion(+)
  create mode 100644 .gitignore
+ create mode 100644 a
 Input files:
 .gitignore
 a
 RUN semgrep scan --experimental --x-ls .
-+ .gitignore
-- [semgrepignore_patterns_match] a
+SEL .gitignore
+IGN a [semgrepignore_patterns_match]

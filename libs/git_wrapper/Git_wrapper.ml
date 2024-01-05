@@ -427,9 +427,9 @@ let init ?cwd ?(branch = "main") () =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
-let add ?cwd files =
+let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
-  let cmd = (git, cd cwd @ [ "add" ] @ files) in
+  let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")

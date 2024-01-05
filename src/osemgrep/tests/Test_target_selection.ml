@@ -9,7 +9,7 @@ let with_git_repo (files : Testutil_files.t list) func =
   Testutil_files.with_tempfiles_verbose files (fun path ->
       Testutil_files.with_chdir path (fun () ->
           Git_wrapper.init ();
-          Git_wrapper.add [ Fpath.v "." ];
+          Git_wrapper.add ~force:true [ Fpath.v "." ];
           Git_wrapper.commit "Add all the files";
           func ()))
 
