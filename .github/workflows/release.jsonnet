@@ -269,10 +269,8 @@ local create_release_interfaces_job = {
   needs: [
     'wait-for-build-test',
   ],
-  steps: [
+  steps: semgrep.github_bot.get_token_steps + [
     get_version_step,
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
     {
       uses: 'actions/checkout@v3',
       with: {

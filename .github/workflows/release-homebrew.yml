@@ -36,10 +36,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
       run: "\n        cd \"$(brew --repository)/Library/Taps/homebrew/homebrew-core\"\n
-        \       git status\n        git diff\n        git config user.name ${{ github.actor
-        }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
-        \       gh auth setup-git\n        # TODO: we should move this repo in the
-        semgrep org\n        git remote add r2c https://github.com/semgrep-release/homebrew-core.git\n
+        \       git status\n        git diff\n\t\n    git config user.name ${{ github.actor
+        }}\n    git config user.email ${{ github.actor }}@users.noreply.github.com\n
+        \ \n        gh auth setup-git\n        git remote add r2c https://github.com/semgrep-release/homebrew-core.git\n
         \       git checkout -b bump-semgrep-${{ inputs.version }}\n        git add
         Formula/s/semgrep.rb\n        git commit -m \"semgrep ${{ inputs.version }}\"\n
         \     "

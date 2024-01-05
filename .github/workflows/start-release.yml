@@ -129,10 +129,10 @@ jobs:
     - name: Push release branch
       env:
         SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
-      run: "\n        \n  git config user.name ${{ github.actor }}\n  git config user.email
-        ${{ github.actor }}@users.noreply.github.com\n\n        git add --all\n        git
-        commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n        git
-        push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
+      run: "\n        \n    git config user.name ${{ github.actor }}\n    git config
+        user.email ${{ github.actor }}@users.noreply.github.com\n  \n        git add
+        --all\n        git commit -m \"chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}\"\n
+        \       git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch
         }}\n      "
       if: ${{ ! inputs.dry-run }}
     - name: Create PR
@@ -215,17 +215,17 @@ jobs:
         ref: ${{ needs.release-setup.outputs.release-branch }}
         token: ${{ steps.token.outputs.token }}
     - name: Create semgrep release version tag
-      run: "\n        \n  git config user.name ${{ github.actor }}\n  git config user.email
-        ${{ github.actor }}@users.noreply.github.com\n\n        git tag -a -m \"Release
-        ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
+      run: "\n        \n    git config user.name ${{ github.actor }}\n    git config
+        user.email ${{ github.actor }}@users.noreply.github.com\n  \n        git tag
+        -a -m \"Release ${{ needs.get-version.outputs.version }}\" \"v${{ needs.get-version.outputs.version
         }}\"\n        git push origin \"v${{ needs.get-version.outputs.version }}\"\n
         \     "
     - name: Create semgrep-interfaces release version tag
-      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        \n  git config
-        user.name ${{ github.actor }}\n  git config user.email ${{ github.actor }}@users.noreply.github.com\n\n
-        \       git tag -a -m \"Release ${{ needs.get-version.outputs.version }}\"
-        \"v${{ needs.get-version.outputs.version }}\"\n        git push origin \"v${{
-        needs.get-version.outputs.version }}\"\n      "
+      run: "\n        cd cli/src/semgrep/semgrep_interfaces\n        \n    git config
+        user.name ${{ github.actor }}\n    git config user.email ${{ github.actor
+        }}@users.noreply.github.com\n  \n        git tag -a -m \"Release ${{ needs.get-version.outputs.version
+        }}\" \"v${{ needs.get-version.outputs.version }}\"\n        git push origin
+        \"v${{ needs.get-version.outputs.version }}\"\n      "
     if: ${{ ! inputs.dry-run }}
   create-draft-release:
     runs-on: ubuntu-20.04
@@ -235,20 +235,6 @@ jobs:
     - create-tag
     - wait-for-pr-checks
     steps:
-    - name: Download Release Body Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: release_body_${{ needs.get-version.outputs.version }}
-        path: scripts/release
-    - name: Create Draft Release Semgrep
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: v${{ needs.get-version.outputs.version }}
-        name: Release v${{ needs.get-version.outputs.version }}
-        body_path: scripts/release/release_body.txt
-        token: ${{ secrets.GITHUB_TOKEN }}
-        prerelease: false
-        draft: true
     - name: Get JWT for semgrep-ci GitHub App
       id: jwt
       uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
@@ -263,6 +249,20 @@ jobs:
         \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
         }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
         \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - name: Download Release Body Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: release_body_${{ needs.get-version.outputs.version }}
+        path: scripts/release
+    - name: Create Draft Release Semgrep
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.get-version.outputs.version }}
+        name: Release v${{ needs.get-version.outputs.version }}
+        body_path: scripts/release/release_body.txt
+        token: ${{ secrets.GITHUB_TOKEN }}
+        prerelease: false
+        draft: true
     - name: Create Draft Release Semgrep Interfaces
       uses: softprops/action-gh-release@v1
       with:

@@ -6,6 +6,7 @@ local release_homebrew = import 'release-homebrew.jsonnet';
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
+// This will post on Slack on #logs-semgrep-release
 // TODO: factorize with test-e2e-semgrep-ci.jsonnet using slack-github action
 local curl_notify() = |||
         curl --request POST \
