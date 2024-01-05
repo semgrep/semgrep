@@ -5,7 +5,8 @@ name: release-homebrew
     inputs:
       version:
         type: string
-        description: The version of Semgrep to release on Homebrew (e.g., 1.55.2)
+        description: "\n        The version of Semgrep to release on Homebrew (e.g.,
+          1.55.2)\n      "
         required: true
       dry-run:
         type: boolean
@@ -49,3 +50,18 @@ jobs:
         \         --title=\"semgrep ${{ inputs.version }}\" \\\n          --body \"Bump
         semgrep to version ${{ inputs.version }}\"\n      "
       if: ${{ ! inputs.dry-run }}
+  brew-build:
+    name: Build Semgrep via Brew from HEAD
+    runs-on: macos-12
+    steps:
+    - run: brew update --debug --verbose
+      env:
+        HOMEBREW_NO_INSTALL_FROM_API: 1
+    - run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
+      env:
+        HOMEBREW_NO_INSTALL_FROM_API: 1
+        NONINTERACTIVE: 1
+    - name: Check installed correctly
+      run: brew test semgrep --HEAD
+      env:
+        HOMEBREW_NO_INSTALL_FROM_API: 1

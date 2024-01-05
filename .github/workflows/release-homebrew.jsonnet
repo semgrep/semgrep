@@ -1,5 +1,5 @@
 // This file contains jobs to release Semgrep on Homebrew (https://brew.sh/).
-// Note that the Semgrep homebrew "recipe" is not stored in this repo but at
+// Note that the Semgrep Homebrew "formula" is not stored in this repo but at
 // https://github.com/Homebrew/homebrew-core/blob/master/Formula/s/semgrep.rb
 // The goal of the jobs below is to modify semgrep.rb after a new release
 // and to open a PR to the homebrew-core repo with the modified semgrep.rb
@@ -27,7 +27,9 @@ local input = {
   inputs: {
     version: {
       type: 'string',
-      description: "The version of Semgrep to release on Homebrew (e.g., 1.55.2)",
+      description: |||
+        The version of Semgrep to release on Homebrew (e.g., 1.55.2)
+      |||,
       required: true,
     },
     'dry-run': {
@@ -50,6 +52,7 @@ local unless_dry_run = {
 // The jobs
 // ----------------------------------------------------------------------------
 
+// This is also called from release.jsonnet.
 // Note that this job needs to run after Semgrep has been released on Pypi so
 // brew bump-formula-pr below can update Pypi dependency hashes in semgrep.rb
 local homebrew_core_pr_job(version, unless_dry_run) = {
@@ -72,6 +75,8 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
       // open a new PR; it just modifies .../Formula/s/semgrep.rb
       // The step below will make the commit, and the step further below
       // will open the PR. We do things in 3 steps to help debug issues.
+      //
+      // alt: use dawidd6/action-homebrew-bump-formula@v3
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep %s" \
@@ -122,6 +127,48 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
   ],
 };
 
+
+local env = {
+  // We've had issues with this workflow in the past, and needed to ensure that
+  // homebrew wouldn't use the API.
+  // See: https://github.com/orgs/Homebrew/discussions/4150, and
+  // https://github.com/orgs/Homebrew/discussions/4136
+  // There's also much other discussion on this topic available on GH and in
+  // the brew discussions.
+  HOMEBREW_NO_INSTALL_FROM_API: 1,
+};
+
+// This is called from nightly.jsonnet
+// The Semgrep formula is bumped by homebrew_core_pr_job(), however
+// we also want to double check that the formula still works with
+// the 'develop' branch. This serves two purposes:
+//  - verifies that our changes don't break Brew
+//  - gives us time before release to fix these issues and adjust our
+//    Homebrew formula if needed.
+local brew_build_job = {
+  name: 'Build Semgrep via Brew from HEAD',
+  'runs-on': 'macos-12',
+  steps: [
+    {
+      run: 'brew update --debug --verbose',
+      env: env,
+    },
+    {
+      // See https://github.com/Homebrew/brew/issues/1742 for context on the
+      // brew link step.
+      run: 'brew install semgrep --HEAD --debug || brew link --overwrite semgrep',
+      env: env + {
+        NONINTERACTIVE: 1,
+      },
+    },
+    {
+      name: 'Check installed correctly',
+      run: 'brew test semgrep --HEAD',
+      env: env,
+    },
+  ],
+};
+
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
@@ -132,9 +179,11 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
   },
   jobs: {
     'homebrew-core-pr':
-      homebrew_core_pr_job('${{ inputs.version }}', unless_dry_run),
+       homebrew_core_pr_job('${{ inputs.version }}', unless_dry_run),
+    'brew-build': brew_build_job,
   },
   export:: {
-   job: homebrew_core_pr_job,
+     homebrew_core_pr: homebrew_core_pr_job,
+     brew_build: brew_build_job,
   },
 }
