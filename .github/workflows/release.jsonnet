@@ -187,6 +187,15 @@ local park_pypi_packages_job = {
   ],
 } + unless_dry_run;
 
+local download_step(name) = {
+  name: 'Download %s' % name,
+  uses: 'actions/download-artifact@v3',
+  with: {
+    name: name,
+    path: name,
+  },
+};
+
 local upload_wheels_job = {
   name: 'Upload Wheels to PyPI',
   'runs-on': 'ubuntu-latest',
@@ -194,56 +203,17 @@ local upload_wheels_job = {
     'wait-for-build-test',
   ],
   steps: [
+    download_step('manylinux-x86-wheel'),
+    download_step('manylinux-aarch64-wheel'),
+    download_step('osx-x86-wheel'),
+    download_step('osx-arm64-wheel'),
     {
-      name: 'Download Artifact',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: 'manylinux-x86-wheel',
-        path: 'manylinux-x86-wheel',
-      },
-    },
-    {
-      name: 'Download aarch64 Artifact',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: 'manylinux-aarch64-wheel',
-        path: 'manylinux-aarch64-wheel',
-      },
-    },
-    {
-      name: 'Download OSX x86 Artifact',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: 'osx-x86-wheel',
-        path: 'osx-x86-wheel',
-      },
-    },
-    {
-      name: 'Download OSX ARM64 Artifact',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: 'osx-arm64-wheel',
-        path: 'osx-arm64-wheel',
-      },
-    },
-    {
-      name: 'Unzip x86_64 Wheel',
-      run: 'unzip ./manylinux-x86-wheel/dist.zip',
-    },
-    {
-      name: 'Unzip aarch64 Wheel',
-      // Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
-      run: 'unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"',
-    },
-    {
-      name: 'Unzip OSX x86 Wheel',
-      // Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
-      run: 'unzip ./osx-x86-wheel/dist.zip "*.whl"',
-    },
-    {
-      name: 'Unzip OSX ARM64 Wheel',
-      // Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
-      run: 'unzip ./osx-arm64-wheel/dist.zip "*.whl"',
+      run: |||
+       unzip ./manylinux-x86-wheel/dist.zip
+       unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
+       unzip ./osx-x86-wheel/dist.zip "*.whl"
+       unzip ./osx-arm64-wheel/dist.zip "*.whl"
+     |||,
     },
     {
       name: 'Publish to Pypi',

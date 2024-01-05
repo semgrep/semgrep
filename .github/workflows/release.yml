@@ -132,34 +132,29 @@ jobs:
     needs:
     - wait-for-build-test
     steps:
-    - name: Download Artifact
+    - name: Download manylinux-x86-wheel
       uses: actions/download-artifact@v3
       with:
         name: manylinux-x86-wheel
         path: manylinux-x86-wheel
-    - name: Download aarch64 Artifact
+    - name: Download manylinux-aarch64-wheel
       uses: actions/download-artifact@v3
       with:
         name: manylinux-aarch64-wheel
         path: manylinux-aarch64-wheel
-    - name: Download OSX x86 Artifact
+    - name: Download osx-x86-wheel
       uses: actions/download-artifact@v3
       with:
         name: osx-x86-wheel
         path: osx-x86-wheel
-    - name: Download OSX ARM64 Artifact
+    - name: Download osx-arm64-wheel
       uses: actions/download-artifact@v3
       with:
         name: osx-arm64-wheel
         path: osx-arm64-wheel
-    - name: Unzip x86_64 Wheel
-      run: unzip ./manylinux-x86-wheel/dist.zip
-    - name: Unzip aarch64 Wheel
-      run: unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
-    - name: Unzip OSX x86 Wheel
-      run: unzip ./osx-x86-wheel/dist.zip "*.whl"
-    - name: Unzip OSX ARM64 Wheel
-      run: unzip ./osx-arm64-wheel/dist.zip "*.whl"
+    - run: "\n       unzip ./manylinux-x86-wheel/dist.zip\n       unzip ./manylinux-aarch64-wheel/dist.zip
+        \"*.whl\"\n       unzip ./osx-x86-wheel/dist.zip \"*.whl\"\n       unzip ./osx-arm64-wheel/dist.zip
+        \"*.whl\"\n     "
     - name: Publish to Pypi
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
