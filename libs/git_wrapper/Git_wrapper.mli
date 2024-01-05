@@ -34,7 +34,11 @@ type ls_files_kind =
    This returns a list of paths relative to cwd.
 *)
 val ls_files :
-  ?cwd:Fpath.t -> ?kinds:ls_files_kind list -> Fpath.t list -> Fpath.t list
+  ?cwd:Fpath.t ->
+  ?exclude_standard:bool ->
+  ?kinds:ls_files_kind list ->
+  Fpath.t list ->
+  Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string

@@ -91,8 +91,8 @@ exception Error of string
  * We use a named capture group for the lines, and then split on the comma if
  * it's a multiline diff
  *)
-let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
+let git_diff_lines_pat = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
+let git_diff_lines_re = Pcre_.regexp git_diff_lines_pat
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -113,6 +113,21 @@ let opt (o : string option) : string list =
   match o with
   | None -> []
   | Some str -> [ str ]
+
+(*
+   Add an optional flag to the command line by returning a list of arguments
+   to add to the current arguments.
+
+   Usage:
+
+   let do_something ?(foo = false) () =
+     let cmd = (git, [ "do-something" ] @ flag "--foo" foo) in
+     ...
+*)
+let flag name (is_set : bool) : string list =
+  match is_set with
+  | true -> [ name ]
+  | false -> []
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
@@ -176,10 +191,17 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Cached -> "--cached"
   | Others -> "--others"
 
-let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
+let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
+    root_paths =
   let roots = root_paths |> List_.map Fpath.to_string in
   let kinds = kinds |> List_.map string_of_ls_files_kind in
-  let cmd = (git, [ "-C"; !!cwd; "ls-files" ] @ kinds @ roots) in
+  let cmd =
+    ( git,
+      [ "-C"; !!cwd; "ls-files" ]
+      @ kinds
+      @ flag "--exclude-standard" exclude_standard
+      @ roots )
+  in
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with

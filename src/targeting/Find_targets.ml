@@ -246,7 +246,8 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               Git_wrapper.ls_files ~kinds:file_kinds [ sc_root.fpath ]
+               Git_wrapper.ls_files ~exclude_standard:true ~kinds:file_kinds
+                 [ sc_root.fpath ]
                |> List_.map (fun fpath ->
                       let fpath_relative_to_scan_root =
                         match Fpath.relativize ~root:sc_root.fpath fpath with
@@ -433,6 +434,10 @@ let get_targets_for_project conf (project_roots : project_roots) =
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
     | Some tracked, Some untracked ->
+        Printf.printf
+          "target file candidates from git: tracked: %i, untracked: %i\n%!"
+          (Fppath_set.cardinal tracked)
+          (Fppath_set.cardinal untracked);
         let all_files = Fppath_set.union tracked untracked in
         all_files |> Fppath_set.elements |> filter_targets conf project_roots
     | None, _
