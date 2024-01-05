@@ -39,15 +39,12 @@ local input = {
         Check the box for a dry-run.
         A dry-run will not push any external state.
       |||,
-      default: false,
       required: true,
     },
   },
 };
 
-//TODO: if remove the _here, then get bad scope when generating
-// release.yml from release.jsonnet
-local unless_dry_run_here = {
+local unless_dry_run = {
   'if': '${{ ! inputs.dry-run }}',
 };
 
@@ -58,7 +55,8 @@ local unless_dry_run_here = {
 // This is also called from release.jsonnet.
 // Note that this job needs to run after Semgrep has been released on Pypi so
 // brew bump-formula-pr below can update Pypi dependency hashes in semgrep.rb
-local homebrew_core_pr_job(version, unless_dry_run) = {
+// This job assumes the presence of a workflow with a 'inputs.dry-mode'
+local homebrew_core_pr_job(version) = {
   'runs-on': 'macos-12',
   steps: [
     {
@@ -73,6 +71,23 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
       run: 'cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7'
     },
     {
+      name: 'Dry Run bump semgrep.rb',
+      // This step does some brew oddities (setting a fake version, and
+      // setting a revision) to allow the brew PR prep to succeed.
+      // The `brew bump-formula-pr` does checks to ensure your PR is legit,
+      // but we want to do a phony PR (or at least prep it) for Dry Run only
+      env: {
+        HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
+      },
+      // this is run only in dry-mode
+      if: "${{ inputs.dry-run }}",
+      run: |||
+        brew bump-formula-pr --force --no-audit --no-browse --write-only \
+          --message="semgrep 99.99.99" \
+          --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
+      |||,
+    },
+    {
       name: 'Bump semgrep.rb',
       // Note that we use '--write-only' below so the command does not open a
       // new PR; it just modifies /usr/local/.../homebrew-core/.../s/semgrep.rb
@@ -84,7 +99,7 @@ local homebrew_core_pr_job(version, unless_dry_run) = {
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep %s" --tag="v%s" semgrep --debug
       ||| % [version, version],
-    },
+    } + unless_dry_run,
     {
       name: 'Make the commit',
       env: {
@@ -184,7 +199,7 @@ local brew_build_job = {
   },
   jobs: {
     'homebrew-core-pr':
-       homebrew_core_pr_job('${{ inputs.version }}', unless_dry_run_here),
+       homebrew_core_pr_job('${{ inputs.version }}'),
     'brew-build': brew_build_job,
   },
   export:: {
