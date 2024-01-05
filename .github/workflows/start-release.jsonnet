@@ -73,7 +73,7 @@ local unless_dry_run = {
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-// this will post on Slack
+// this will post on Slack on #team-semgrep-core
 local curl_notify(message) = |||
   curl --request POST \
   --url  ${{ secrets.NOTIFICATIONS_URL }} \

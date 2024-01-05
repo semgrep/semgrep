@@ -25,7 +25,7 @@ local pr_number = '"${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"';
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-// This will post on Slack.
+// This will post on Slack on #???
 // TODO: factorize with start-release.jsonnet and other workflows using Slack
 local curl_notify(message) = |||
   curl --request POST \
