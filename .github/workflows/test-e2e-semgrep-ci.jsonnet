@@ -6,6 +6,7 @@
 // we aren't failing the CI check when we can't upload findings because of
 // networking errors (or for other reasons such as a 'git' execution failure).
 
+local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -217,9 +218,7 @@ local semgrep_ci_on_pr_job = {
   outputs: {
     'pr-number': "${{ steps.open-pr.outputs.pr-number }}",
   },
-  steps: [
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  steps: semgrep.github_bot.get_token_steps + [
     {
       uses: 'actions/checkout@v3',
       with: {
@@ -233,12 +232,11 @@ local semgrep_ci_on_pr_job = {
       run: |||
 	git checkout -b e2e-test-pr-${{ github.run_id }}
         scripts/change-version.sh %s
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
+        %s
         git add --all
         git commit -m "chore: Bump version to %s"
         git push --set-upstream origin e2e-test-pr-${{ github.run_id }}
-      ||| % [ docker_tag, docker_tag],
+      ||| % [ docker_tag, gha.git_config_user, docker_tag],
     },
     {
       name: 'Make the PR',
@@ -263,9 +261,7 @@ local len_checks = "$(gh pr -R returntocorp/e2e view %s --json statusCheckRollup
 local wait_for_checks_job = {
   'runs-on': 'ubuntu-22.04',
   needs: 'semgrep-ci-on-pr',
-  steps: [
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  steps: semgrep.github_bot.get_token_steps + [
     {
       name: 'Wait for checks to register',
       env: {

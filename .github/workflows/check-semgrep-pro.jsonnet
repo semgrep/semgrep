@@ -23,7 +23,7 @@ local job = {
   // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
   //      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
   //      and opam can work only when run from this directory
-  steps: [
+  steps: semgrep.github_bot.get_token_steps + [
     actions.checkout_with_submodules(),
     // this must be done after the checkout as opam installs itself
     // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
@@ -49,8 +49,6 @@ local job = {
     {
       run: 'sudo apt-get install gh',
     },
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
     {
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,

@@ -24,6 +24,11 @@
     name: 'Make checkout speedy',
     run: 'git config --global fetch.parallel 50',
   },
+  // When we use git directly instead of gh.
+  git_config_user: |||
+    git config user.name ${{ github.actor }}
+    git config user.email ${{ github.actor }}@users.noreply.github.com
+  |||,
   git_safedir: {
     name: 'Configure git safedir properly',
     run: "git config --global --add safe.directory $(pwd)",

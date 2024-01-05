@@ -20,6 +20,8 @@
 //
 //    Error: No available formula with the name "semgrep".
 
+local gha = import "libs/gha.libsonnet";
+
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
@@ -116,15 +118,13 @@ local homebrew_core_pr_job(version) = {
         cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
         git status
         git diff
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
+	%s
         gh auth setup-git
-        # TODO: we should move this repo in the semgrep org
         git remote add r2c https://github.com/semgrep-release/homebrew-core.git
         git checkout -b bump-semgrep-%s
         git add Formula/s/semgrep.rb
         git commit -m "semgrep %s"
-      ||| % [version, version],
+      ||| % [gha.git_config_user, version, version],
     },
     {
       name: 'Push commit to our fork of homebrew-core',

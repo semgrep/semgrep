@@ -20,7 +20,8 @@
 // TODO: if a token is rotated, do we need to update this docker link?
 
 local github_bot = {
-  get_jwt_step: {
+  get_token_steps: [
+   {
     name: 'Get JWT for semgrep-ci GitHub App',
     id: 'jwt',
     uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
@@ -37,7 +38,7 @@ local github_bot = {
   // We are using the standard github-recommended method for short-live
   // authentification.
   // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-  get_token_step: {
+  {
     name: 'Get token for semgrep-ci GitHub App',
     id: 'token',
     run: |||
@@ -49,9 +50,8 @@ local github_bot = {
       echo "::add-mask::$TOKEN"
       echo "token=$TOKEN" >> $GITHUB_OUTPUT
     |||,
-  },
-  // Token computed in get_token_step to be used by the user of this
-  // github_bot.
+  }],
+  // Token computed in get_token_steps to be used in the caller
   token_ref: '${{ steps.token.outputs.token }}',
 };
 

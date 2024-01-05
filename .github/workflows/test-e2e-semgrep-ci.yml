@@ -92,10 +92,10 @@ jobs:
         token: ${{ steps.token.outputs.token }}
     - name: Prepare the PR
       run: "\n\tgit checkout -b e2e-test-pr-${{ github.run_id }}\n        scripts/change-version.sh
-        ${{ needs.get-inputs.outputs.docker_tag }}\n        git config user.name ${{
-        github.actor }}\n        git config user.email ${{ github.actor }}@users.noreply.github.com\n
-        \       git add --all\n        git commit -m \"chore: Bump version to ${{
-        needs.get-inputs.outputs.docker_tag }}\"\n        git push --set-upstream
+        ${{ needs.get-inputs.outputs.docker_tag }}\n        \n    git config user.name
+        ${{ github.actor }}\n    git config user.email ${{ github.actor }}@users.noreply.github.com\n
+        \ \n        git add --all\n        git commit -m \"chore: Bump version to
+        ${{ needs.get-inputs.outputs.docker_tag }}\"\n        git push --set-upstream
         origin e2e-test-pr-${{ github.run_id }}\n      "
     - name: Make the PR
       id: open-pr
