@@ -1,4 +1,5 @@
-// coupling: This is the same than build-test-core-x86.jsonnet but for OCaml 5.
+// This is the same than build-test-core-x86.jsonnet but using OCaml 5,
+// just to make sure Semgrep is ready to be migrated to OCaml 5.
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 local core_x86 = import 'build-test-core-x86.jsonnet';

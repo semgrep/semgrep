@@ -105,6 +105,13 @@ local homebrew_core_pr_job(version) = {
       env: {
         GITHUB_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
+      // We're using a weird org below, https://github.com/semgrep-release/ instead of
+      // https://github.com/semgrep/ (which was https://github.com/returntocorp before)
+      // because Homebrew doesn't allow to use API tokens that were created by
+      // an "Organization" account to create PRs to homebrew/homebrew-core; it has to
+      // come from an individual account. The cleanest solution at the time was to
+      // create a separate account for doing this.
+      // See https://github.com/semgrep/semgrep/pull/7484 for more context.
       run: |||
         cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
         git status
