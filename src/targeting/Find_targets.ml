@@ -237,8 +237,14 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
    Get the list of files being tracked by git. Return a list of paths
    relative to the project root in addition to their system path
    so that we can filter them with semgrepignore.
+
+   exclude_standard is the --exclude-standard flag to 'git ls-files'
+   and requests filtering based on gitignore rules. We don't want it when
+   obtaining the list of tracked files because some files can be tracked
+   despite being excluded by gitignore.
 *)
-let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
+let git_list_files ~exclude_standard
+    (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : project_roots) : Fppath_set.t option =
   let project = project_roots.project in
   match project.kind with
@@ -246,7 +252,7 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               Git_wrapper.ls_files ~exclude_standard:true ~kinds:file_kinds
+               Git_wrapper.ls_files ~exclude_standard ~kinds:file_kinds
                  [ sc_root.fpath ]
                |> List_.map (fun fpath ->
                       let fpath_relative_to_scan_root =
@@ -281,7 +287,7 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
 *)
 let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
     =
-  git_list_files [ Cached ] project_roots
+  git_list_files ~exclude_standard:false [ Cached ] project_roots
 
 (*
    List all the files that are not being tracked by git except those in
@@ -291,7 +297,7 @@ let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
 *)
 let git_list_untracked_files (project_roots : project_roots) :
     Fppath_set.t option =
-  git_list_files [ Others ] project_roots
+  git_list_files ~exclude_standard:true [ Others ] project_roots
 
 (*************************************************************************)
 (* Grouping *)
