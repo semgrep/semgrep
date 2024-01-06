@@ -532,7 +532,7 @@ local test_semgrep_pro_job = {
     'build-test-docker',
     'push-docker',
   ],
-  uses: './.github/workflows/test-semgrep-pro.yaml',
+  uses: './.github/workflows/test-semgrep-pro.yml',
   'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
   secrets: 'inherit',
   with: {
