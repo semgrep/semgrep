@@ -25,6 +25,7 @@ rules:
         slug: rule-board-block
       semgrep.url: https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
       semgrep.ruleset: ci
+      semgrep.ruleset_id: 735
   - id: duplicate-eq
     pattern: $X == $X
     message: Found redundant comparison
@@ -51,3 +52,4 @@ rules:
         slug: rule-board-block
       semgrep.url: https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
       semgrep.ruleset: other
+      semgrep.ruleset_id: 1234
