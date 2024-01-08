@@ -1805,13 +1805,14 @@ and function_definition env fdef =
 
 let function_definition lang ?ctx def =
   let is_method = match lang, fst def.G.fkind with
-    (* TODO eliminate class methods and static functions *)
+    (* TODO handle class methods and static methods *)
     | (Lang.Python, G.Method) -> true
     | _ -> false 
   in
   logger#trace "is_method: %s" (if is_method then "true" else "false");
   let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
   (* TODO add the self or class parameter to the env *)
+  logger#trace "def parameters: %s" (G.show_parameters def.G.fparams);
   let params =
     let ps = if is_method then
         let (lb, ps', rb) = def.G.fparams in

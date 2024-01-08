@@ -575,8 +575,8 @@ let find_pos_in_actual_args args_taints fparams =
   let named_arg_map =
     named_args_taints
     |> List.fold_left
-         (fun xmap ((s, _), taint) -> SMap.add s taint xmap)
-         SMap.empty
+      (fun xmap ((s, _), taint) -> SMap.add s taint xmap)
+      SMap.empty
   in
   let name_to_taints = Hashtbl.create 10 in
   let idx_to_taints = Hashtbl.create 10 in
@@ -626,7 +626,9 @@ let find_pos_in_actual_args args_taints fparams =
       | _, Some taints -> Some taints
       | __else__ -> None
     in
-        if Option.is_none taint_opt then begin
+    logger#trace
+      "cannot match taint variable with function arguments (%i: %s)" i s;
+    if Option.is_none taint_opt then begin
       logger#error
         "cannot match taint variable with function arguments (%i: %s)" i s;
       let to_string key_to_string x =
@@ -637,7 +639,7 @@ let find_pos_in_actual_args args_taints fparams =
         |> [%show : (string * string) list]
       in
       logger#error "Named taints: %s" (to_string Fun.id name_to_taints);
-      logger#error "Unamed taints: %s" (to_string Int.to_string  idx_to_taints);
+      logger#error "Unnamed taints: %s" (to_string Int.to_string  idx_to_taints);
     end;
     taint_opt
 
@@ -1347,6 +1349,7 @@ let check_function_signature env fun_exp args args_taints =
 
          So we will isolate this as a specific step to be applied as necessary.
       *)
+      logger#trace "check_function_sig fun_sid: %s" (Taint.show_signature fun_sig);
       let arg_to_taints arg =
         taints_of_sig_arg env fparams fun_exp args args_taints arg
       in

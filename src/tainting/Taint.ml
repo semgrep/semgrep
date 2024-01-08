@@ -365,6 +365,7 @@ module Findings = Set.Make (struct
   let compare = compare_finding
 end)
 
+
 module Findings_tbl = Hashtbl.Make (struct
   type t = finding
 
@@ -373,6 +374,13 @@ module Findings_tbl = Hashtbl.Make (struct
 end)
 
 type signature = Findings.t
+
+let show_signature s =
+  s
+  |> Findings.to_seq |> List.of_seq
+  |> List.map _show_finding
+  |> [%show : string list]
+                       
 
 (*****************************************************************************)
 (* Taint sets *)
