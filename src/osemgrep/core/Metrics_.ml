@@ -279,15 +279,16 @@ let add_engine_type (engine_type : Engine_type.t) =
           secrets_config;
           code_config;
           supply_chain_config;
+          git_remote;
         } ->
+        (* TODO report this? *)
+        ignore git_remote;
         {
           analysis_type =
             (match analysis with
             | Intraprocedural -> `Intraprocedural
             | Interprocedural -> `Interprocedural
-            | Interfile -> `Interfile
-            (* TODO make this report back that its remote (and the repo?)*)
-            | GitRemote _repository -> `Interfile);
+            | Interfile -> `Interfile);
           code_config =
             Option.map
               (fun () : Semgrep_metrics_t.code_config -> { _rfu = None })

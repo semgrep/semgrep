@@ -929,35 +929,34 @@ let cmdline_term ~allow_empty_config : conf Term.t =
                 code_config;
                 secrets_config;
                 supply_chain_config;
+                git_remote = None;
               }
     in
     let engine_type, target_roots =
+      let get_git_remote_config analysis =
+        let url = List.hd target_roots in
+        Logs.app (fun m ->
+            m
+              "Note that PRO interfile is turned off for remote git \
+               repositories");
+        Logs.app (fun m ->
+            m "Using OSS engine with remote git repository %s" url);
+        let git_remote = Some url in
+        Engine_type.PRO
+          {
+            extra_languages = false;
+            analysis;
+            code_config = None;
+            secrets_config = None;
+            supply_chain_config = None;
+            git_remote;
+          }
+      in
       match (is_git_repo_target, engine_type) with
-      | true, Engine_type.OSS
-      | true, Engine_type.PRO { analysis = Engine_type.Interfile; _ } ->
-          let url = List.hd target_roots in
-          Logs.app (fun m ->
-              m
-                "Note that PRO interfile is turned off for remote git \
-                 repositories");
-          Logs.app (fun m ->
-              m "Using OSS engine with remote git repository %s" url);
-          let analysis = Engine_type.GitRemote url in
-          let engine_type =
-            Engine_type.PRO
-              {
-                extra_languages = false;
-                analysis;
-                code_config = None;
-                secrets_config = None;
-                supply_chain_config = None;
-              }
-          in
-          (engine_type, [ Fpath.v "." ])
-      | true, Engine_type.PRO _ ->
-          Error.abort
-            "Mutually exclusive options --pro/--pro-languages/--pro-intrafile \
-             and a remote git repository target"
+      | true, Engine_type.OSS ->
+          (get_git_remote_config Engine_type.Interfile, [ Fpath.v "." ])
+      | true, Engine_type.PRO { analysis; _ } ->
+          (get_git_remote_config analysis, [ Fpath.v "." ])
       | false, _ ->
           let target_roots = List.map Fpath.v target_roots in
           (engine_type, target_roots)

@@ -736,7 +736,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
   (match conf.engine_type with
-  | Engine_type.PRO { analysis = Engine_type.GitRemote url; _ } ->
+  | Engine_type.PRO { git_remote = Some url; _ } ->
       let path = setup_repository url in
       Sys.chdir (Fpath.to_string path)
   | _ -> ());
