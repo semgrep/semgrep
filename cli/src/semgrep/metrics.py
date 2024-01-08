@@ -62,6 +62,14 @@ logger = getLogger(__name__)
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
+# Kept in sync with the command line options in ci.py, so that metrics
+# are reported in the same language that the user uses.
+USER_FRIENDLY_PRODUCT_NAMES = {
+    out.Product(out.SAST()): "code",
+    out.Product(out.SCA()): "supply-chain",
+    out.Product(out.Secrets()): "secrets",
+}
+
 
 class MetricsState(Enum):
     """
@@ -307,6 +315,15 @@ class Metrics:
         ]
         self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
+
+        # Breakdown # of findings per-product.
+        _num_findings_by_product: Dict[out.Product, int] = defaultdict(int)
+        for r, f in findings.kept.items():
+            _num_findings_by_product[r.product] += len(f)
+        self.payload.value.numFindingsByProduct = [
+            (USER_FRIENDLY_PRODUCT_NAMES[p], n_findings)
+            for p, n_findings in _num_findings_by_product.items()
+        ]
 
     @suppress_errors
     def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
