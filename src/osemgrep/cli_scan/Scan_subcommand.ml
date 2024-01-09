@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Martin Jambon
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -273,6 +273,24 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
   scan_func_for_osemgrep
     ~respect_git_ignore:conf.targeting_conf.respect_gitignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
+
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
+    rules_source =
+  (* Create the wait hook for our progress indicator *)
+  let spinner_ls =
+    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
+      [ Console_Spinner.spinner_async () ]
+    else []
+  in
+  (* Fetch the rules *)
+  let rules_and_origins =
+    Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
+      ~registry_caching
+      (caps :> < Cap.network >)
+      rules_source
+  in
+  Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
+[@@profiling]
 
 (*****************************************************************************)
 (* Differential scanning *)
@@ -704,25 +722,16 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
 
-  (* Display a message to denote rule fetching that is made interactive when possible *)
+  (* Display a message to denote rule fetching that is made interactive when
+   * possible *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
-  (* Create the wait hook for our progress indicator *)
-  let spinner_ls =
-    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
-      [ Console_Spinner.spinner_async () ]
-    else []
-  in
-  (* Fetch the rules *)
   let rules_and_origins =
-    Rule_fetching.rules_from_rules_source_async ~token_opt:settings.api_token
+    rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching
       (caps :> < Cap.network >)
       conf.rules_source
-  in
-  let rules_and_origins =
-    Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
 
   (* step2: getting the targets *)

@@ -14,6 +14,10 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*
    Fetching rules from the local filesystem or from the network (registry).
 
+   Note that you should not hadd some [@@profiling] on functions suffixed
+   with _async because the profiling info will be useless; the body of
+   the function is actually called from elsewhere.
+
    TODO:
     - lots of stuff ...
 
@@ -187,6 +191,11 @@ let fetch_content_from_registry_url_async ~token_opt ~registry_caching caps url
     in
     Cache_disk.cache_lwt (fetch_content_from_url_async caps) cache_methods url
 
+let fetch_content_from_registry_url ~token_opt ~registry_caching caps url =
+  Lwt_platform.run
+    (fetch_content_from_registry_url_async ~token_opt ~registry_caching caps url)
+[@@profiling]
+
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
 (*****************************************************************************)
@@ -246,9 +255,8 @@ let mk_import_callback ~registry_caching (caps : < Cap.network ; .. >) base str
               * parse_rule should take an import_callback as a parameter.
               *)
              let content =
-               Lwt_platform.run
-                 (fetch_content_from_registry_url_async ~token_opt:None
-                    ~registry_caching caps url)
+               fetch_content_from_registry_url ~token_opt:None ~registry_caching
+                 caps url
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
               * also import URLs to jsonnet files or gist! or look at the
@@ -397,6 +405,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
 let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
     rules_and_origin =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
+[@@profiling]
 
 (* TODO: merge caps and token_opt and caps_opt? *)
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
@@ -485,6 +494,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
   Lwt_platform.run
     (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
        ~registry_caching caps kind)
+[@@profiling]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -541,6 +551,7 @@ let rules_from_pattern pattern : rules_and_origin list =
              | Failure _ ->
                  None)
 
+(* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
     caps (src : Rules_source.t) : rules_and_origin list Lwt.t =
   match src with
@@ -558,12 +569,14 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
    *)
   | Pattern (pat, xlang_opt, fix) ->
       Lwt.return (rules_from_pattern (pat, xlang_opt, fix))
-[@@profiling]
 
-(* TODO We can probably delete this. *)
-(* python: mix of resolver_config.get_config() and get_rules() *)
+(* You should probably avoid using directly this function and prefer
+ * to use the _async variant above mixed with a spinner as in
+ * Scan_subcommand.rules_from_rules_source()
+ *)
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
     (src : Rules_source.t) : rules_and_origin list =
   Lwt_platform.run
     (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
        ~registry_caching caps src)
+[@@profiling]
