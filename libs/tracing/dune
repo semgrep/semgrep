@@ -6,6 +6,10 @@
    commons
    trace
    trace-tef
+   opentelemetry
+   opentelemetry.trace
+   opentelemetry-client-ocurl
+   ambient-context-lwt
  )
  (preprocess
    (pps
