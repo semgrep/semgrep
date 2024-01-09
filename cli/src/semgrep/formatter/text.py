@@ -397,7 +397,10 @@ def get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
     source_url = rule_match.metadata.get("shortlink")
     if not source_url:
         return ""
-    return f"Details: {source_url}"
+    url_with_underline = with_color(Colors.foreground, source_url, underline=True)
+    return with_color(
+        color=Colors.foreground, text=f"Details: {url_with_underline}", bold=True
+    )
 
 
 def print_time_summary(
