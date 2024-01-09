@@ -28,8 +28,7 @@ jobs:
         opam-repositories: |
           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
-    - id: build-tree-sitter
-      name: Build tree-sitter
+    - name: Build tree-sitter
       env:
         CC: x86_64-w64-mingw32-gcc
       run: |
@@ -40,8 +39,11 @@ jobs:
         cd downloads/tree-sitter
         make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
         make PREFIX="$prefix" install
-    - id: install-deps
-      name: Build semgrep-core
+    - name: Install deps
+      run: |
+        opam depext conf-pkg-config conf-gmp conf-libpcre
+        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
+    - name: Build semgrep-core
       env:
         ARTIFACT_PATH: /tmp/ocaml-build-artifacts.tgz
       run: |
