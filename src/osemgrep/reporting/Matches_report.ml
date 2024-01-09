@@ -278,13 +278,19 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     in
     if print then (
       (* The 24m is "no underline", and for python compatibility *)
-      let esc =
+      let no_underline_esc =
         if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
+        else Fmt.any ""
+      in
+      let no_bold_esc =
+        if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[22m"
         else Fmt.any ""
       in
       List.iter
         (fun (sp, l) ->
-          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
+          Fmt.pf ppf "%s%a@." sp
+            Fmt.(styled `Bold (no_underline_esc ++ string))
+            l)
         (wrap ~indent:7 ~width:text_width (Rule_ID.to_string cur.check_id));
       List.iter
         (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
@@ -292,9 +298,9 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
       | `String s ->
           Fmt.pf ppf "%s%a %a@." base_indent
-            (Fmt.styled `Bold Fmt.string)
+            Fmt.(styled `Bold (no_underline_esc ++ string))
             "Details:"
-            (Fmt.styled `Underline Fmt.string)
+            Fmt.(styled `Underline (no_bold_esc ++ string))
             s
       | _ -> ());
       Fmt.pf ppf "@.");
