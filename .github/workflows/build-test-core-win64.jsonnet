@@ -41,7 +41,10 @@ local job(artifact=artifact_name) =
         with: {
           'ocaml-compiler': '4.14',
           'opam-pin': false,
-          'opam-repositories': 'opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset\ndefault: https://github.com/ocaml/opam-repository.git'
+          'opam-repositories': {
+            'opam-repository-mingw': 'https://github.com/ocaml-opam/opam-repository-mingw.git#sunset',
+            'default': 'https://github.com/ocaml/opam-repository.git',
+          } ,
         }
       },
       {
