@@ -97,6 +97,7 @@ let default : conf =
          * not overload on large machines.
          * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
          * we don't believe that Parmap works in those environments
+         * TODO: figure out a solution for Windows multi-processing (OCaml 5 in the worst case)
          *)
         Core_runner.num_jobs =
           min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
