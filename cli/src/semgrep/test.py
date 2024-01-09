@@ -393,6 +393,7 @@ def get_config_fixtest_filenames(
         fixtests = list(original_target.rglob("*"))
 
     def fixtest_matches_target(target: Path, fixtest: Path) -> bool:
+        print(f"fixtest_matches_target({target}, {fixtest})")
         correct_suffix = is_config_fixtest_suffix(fixtest) and final_suffix_matches(
             target, fixtest
         )
@@ -402,9 +403,11 @@ def get_config_fixtest_filenames(
         else:
             original_target_directory = original_target
 
-        return correct_suffix and relatively_eq(
+        res = correct_suffix and relatively_eq(
             original_target_directory, target, original_target_directory, fixtest
         )
+        print(f"-> {res}")
+        return res
 
     return {
         config: [

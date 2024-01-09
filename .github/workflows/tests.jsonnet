@@ -321,7 +321,16 @@ local test_qa_job = {
       name: 'Test semgrep',
       'working-directory': 'cli',
       run: |||
+        set -x
         export PATH=/github/home/.local/bin:$PATH
+
+        # This fails for me locally.
+        (
+           export PIPENV_PIPFILE=$(pwd)/Pipfile
+           cd ../tests/semgrep-rules
+           pipenv run semgrep --test --test-ignore-todo --strict --disable-version-check --metrics=off --verbose python/flask/security/xss/audit
+        )
+
         pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
       |||,
       env: {
