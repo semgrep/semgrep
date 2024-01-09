@@ -300,7 +300,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
           Fmt.pf ppf "%s%a %a@." base_indent
             Fmt.(styled `Bold (no_underline_esc ++ string))
             "Details:"
-            Fmt.(styled `Underline (no_bold_esc ++ string))
+            Fmt.(styled `Underline (string ++ no_bold_esc))
             s
       | _ -> ());
       Fmt.pf ppf "@.");
