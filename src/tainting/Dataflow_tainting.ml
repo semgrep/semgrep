@@ -1269,6 +1269,11 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
          _;
         } ->
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
+        | {
+         e = Fetch { base = Var method_; rev_offset = [ ] };
+         _;
+        } ->
+            Some ({ base = VarSpecial (This, Tok.fake_tok (snd method_.ident) "this"); rev_offset = List.rev os }, method_)
         | __else__ -> None)
     | BArg pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
