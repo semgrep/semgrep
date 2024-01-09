@@ -1481,11 +1481,22 @@ let check_function_signature env fun_exp args args_taints =
                  * to the formal argument 'dst_arg'. *)
               lval_of_sig_arg fun_exp fparams args dst_arg
             in
+            logger#flash "ToArg dst-lval: %s dst-obj: %s" (Display_IL.string_of_lval dst_lval) (fst dst_obj.ident);
             taints
             |> List.concat_map (fun t ->
+                    (* TODO: Add Call trace. *)
                    let dst_taints =
                      match t.T.orig with
-                     | Src _ -> (
+                     | Src src -> (
+                       let call_trace =
+                         T.Call (eorig, t.tokens, src.call_trace)
+                       in
+                       let t =
+                         {
+                           Taint.orig = Src { src with call_trace };
+                           tokens = [];
+                         }
+                       in
                          match t |> subst_in_precondition with
                          | None -> Taints.empty
                          | Some t -> Taints.singleton t)
