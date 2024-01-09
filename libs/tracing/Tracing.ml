@@ -13,6 +13,8 @@
  * license.txt for more details.
  *)
 
+module Otel = Opentelemetry
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -34,7 +36,18 @@ let with_span = Trace_core.with_span
 (* Here is a simple backend for profiling that makes it easy to collect traces
    and start to see this library work. TODO For actual tracing, we'll probably
    use something else like https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let with_setup f = Trace_tef.with_setup ~out:(`File "trace.json") () @@ f
+let initial_configuration () =
+  Otel.Globals.service_name := "semgrep";
+  Otel.GC_metrics.basic_setup ();
+  Ambient_context.set_storage_provider (Ambient_context_lwt.storage ())
+
+let with_setup f =
+  let otel_backend =
+    Opentelemetry_client_ocurl.create_backend
+      (* TODO we would actually have a config *) ()
+  in
+  Opentelemetry_trace.setup_with_otel_backend otel_backend;
+  Opentelemetry_client_ocurl.with_setup () @@ f
 
 (* Here's an example of how the two functions might be used in `Core_scan.ml`:
 
