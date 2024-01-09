@@ -183,9 +183,11 @@ jobs:
         \     "
     - name: Test semgrep
       working-directory: cli
-      run: "\n        export PATH=/github/home/.local/bin:$PATH\n        pipenv run
-        pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa\n
-        \     "
+      run: "\n        set -x\n        export PATH=/github/home/.local/bin:$PATH\n
+        \       semgrep --test --test-ignore-todo --strict --disable-version-check
+        --metrics=off --verbose ../tests/semgrep-rules/python/flask/security/xss/audit\n
+        \       pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split
+        }} tests/qa\n      "
       env:
         QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
   benchmarks-lite:
