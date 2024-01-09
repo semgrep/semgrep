@@ -183,11 +183,17 @@ jobs:
         \     "
     - name: Test semgrep
       working-directory: cli
-      run: "\n        set -x\n        export PATH=/github/home/.local/bin:$PATH\n
-        \       pipenv run semgrep --test --test-ignore-todo --strict --disable-version-check
-        --metrics=off --verbose ../tests/semgrep-rules/python/flask/security/xss/audit\n
-        \       pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split
-        }} tests/qa\n      "
+      run: "\n        set -x\n        export PATH=/github/home/.local/bin:$PATH\n\n
+        \       # This succeeds because semgrep doesn't find .semgrepignore and\n
+        \       # uses the default semgrepignore rules, resulting in this rule\n        #
+        being ignored!\n        pipenv run semgrep --test --test-ignore-todo --strict
+        --disable-version-check --metrics=off --verbose ../tests/semgrep-rules/python/flask/security/xss/audit\n\n
+        \       # Let's see if running from the semgrep-rules repo works better.\n
+        \       (\n           export PIPENV_PIPFILE=$(pwd)/Pipfile\n           cd
+        ../tests/semgrep-rules\n           pipenv run semgrep --test --test-ignore-todo
+        --strict --disable-version-check --metrics=off --verbose python/flask/security/xss/audit\n
+        \       )\n\n        pipenv run pytest -n auto -vv --tb=short --splits 4 --group
+        ${{ matrix.split }} tests/qa\n      "
       env:
         QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
   benchmarks-lite:

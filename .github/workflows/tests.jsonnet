@@ -323,7 +323,19 @@ local test_qa_job = {
       run: |||
         set -x
         export PATH=/github/home/.local/bin:$PATH
+
+        # This succeeds because semgrep doesn't find .semgrepignore and
+        # uses the default semgrepignore rules, resulting in this rule
+        # being ignored!
         pipenv run semgrep --test --test-ignore-todo --strict --disable-version-check --metrics=off --verbose ../tests/semgrep-rules/python/flask/security/xss/audit
+
+        # Let's see if running from the semgrep-rules repo works better.
+        (
+           export PIPENV_PIPFILE=$(pwd)/Pipfile
+           cd ../tests/semgrep-rules
+           pipenv run semgrep --test --test-ignore-todo --strict --disable-version-check --metrics=off --verbose python/flask/security/xss/audit
+        )
+
         pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
       |||,
       env: {
