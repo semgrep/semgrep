@@ -1,17 +1,31 @@
+  relatively_eq(targets/cli_test/ignore_rule_paths, targets/cli_test/ignore_rule_paths/foo.xml, rules/cli_test/ignore_rule_paths, rules/cli_test/ignore_rule_paths/foo.yaml)
+  -> True
+fixtest_matches_target(targets/cli_test/ignore_rule_paths/foo.xml, targets/cli_test/ignore_rule_paths/foo.xml)
+-> False
+config_fixtest_filenames: {PosixPath('rules/cli_test/ignore_rule_paths/foo.yaml'): []}
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/cli_test/ignore_rule_paths/foo.yaml": {
-      "checks": {
-        "ATS-insecure-media-loads": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {
+        "rules/cli_test/ignore_rule_paths/foo.yaml": {
+            "checks": {
+                "ATS-insecure-media-loads": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/cli_test/ignore_rule_paths/foo.xml": {
+                            "expected_lines": [
+                                5
+                            ],
+                            "reported_lines": [
+                                5
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
-    }
-  }
+    },
+    "fixtest_results": {}
 }

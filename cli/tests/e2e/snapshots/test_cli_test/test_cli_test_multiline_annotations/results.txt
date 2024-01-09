@@ -1,2 +1,11 @@
+  relatively_eq(targets/cli_test/multiple_annotations, targets/cli_test/multiple_annotations/multiple-annotations-bad.py, rules/cli_test/multiple_annotations, rules/cli_test/multiple_annotations/multiple-annotations.yaml)
+  -> False
+  relatively_eq(targets/cli_test/multiple_annotations, targets/cli_test/multiple_annotations/multiple-annotations.py, rules/cli_test/multiple_annotations, rules/cli_test/multiple_annotations/multiple-annotations.yaml)
+  -> True
+fixtest_matches_target(targets/cli_test/multiple_annotations/multiple-annotations.py, targets/cli_test/multiple_annotations/multiple-annotations-bad.py)
+-> False
+fixtest_matches_target(targets/cli_test/multiple_annotations/multiple-annotations.py, targets/cli_test/multiple_annotations/multiple-annotations.py)
+-> False
+config_fixtest_filenames: {PosixPath('rules/cli_test/multiple_annotations/multiple-annotations.yaml'): []}
 2/2: ✓ All tests passed
 No tests for fixes found.
