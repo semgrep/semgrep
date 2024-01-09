@@ -1,0 +1,3 @@
+Added a new field that breaks down the number of findings per product
+in the metrics that are sent out by the CLI. This will help Semgrep
+understand users better.
