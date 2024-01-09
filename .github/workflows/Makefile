@@ -15,6 +15,7 @@ LIBS = \
 OBJS = \
   semgrep.yml lint.yml \
   update-semgrep-rules.yml \
+  build-test-core-win64.yml \
   build-test-core-x86.yml build-test-core-x86-ocaml5.yml \
   build-test-osx-x86.yml build-test-osx-arm64.yml \
   build-test-manylinux-x86.yml build-test-manylinux-aarch64.yml \

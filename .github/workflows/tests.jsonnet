@@ -588,6 +588,10 @@ local ignore_md = {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
     },
+    'build-test-core-win64': {
+      uses: './.github/workflows/build-test-core-win64.yml',
+      secrets: 'inherit',
+    },
     'build-test-manylinux-x86': {
       needs: [
         'build-test-core-x86',
