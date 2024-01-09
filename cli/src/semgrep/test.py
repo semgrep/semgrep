@@ -321,6 +321,8 @@ def create_temporary_copy(path: Path) -> str:
 def relatively_eq(
     parent_target: Path, target: Path, parent_config: Path, config: Path
 ) -> bool:
+    print(f"  relatively_eq({parent_target}, {target}, {parent_config}, {config})")
+
     def remove_all_suffixes(p: str) -> str:
         return p.split(".", 1)[0]
 
@@ -330,9 +332,11 @@ def relatively_eq(
     if len(rel1) < s:
         return False
     s -= 1
-    return rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
+    res = rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
         rel2[s]
     )
+    print(f"  -> {res}")
+    return res
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
@@ -471,6 +475,7 @@ def generate_test_results(
     config_fixtest_filenames: Dict[
         Path, List[Tuple[Path, Path]]
     ] = get_config_fixtest_filenames(target, config_test_filenames)
+    print(f"config_fixtest_filenames: {config_fixtest_filenames}")
 
     config_with_tests, config_without_tests = partition(
         config_test_filenames.items(),
