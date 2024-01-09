@@ -290,8 +290,13 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
         (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
         (wrap ~indent:10 ~width:text_width cur.extra.message);
       (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
-      | `String s -> Fmt.pf ppf "%sDetails: %s@." base_indent s
-      | _else -> ());
+      | `String s ->
+          Fmt.pf ppf "%s%a %a@." base_indent
+            (Fmt.styled `Bold Fmt.string)
+            "Details:"
+            (Fmt.styled `Underline Fmt.string)
+            s
+      | _ -> ());
       Fmt.pf ppf "@.");
     (* TODO autofix *)
     let same_file =
