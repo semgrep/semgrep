@@ -43,5 +43,9 @@
   dependabot_guard: {
     'if': "(github.actor != 'dependabot[bot]')",
   },
-
+  git_longpaths: {
+    run: |||
+      git config --system core.longpaths true
+    |||
+  },
 }
