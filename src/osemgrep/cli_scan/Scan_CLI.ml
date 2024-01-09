@@ -95,7 +95,8 @@ let default : conf =
       {
         (* Maxing out number of cores used to 16 if more not requested to
          * not overload on large machines.
-         * Also, hardcode num_jobs to 1 for non-unix environments.
+         * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
+         * we don't believe that Parmap works in those environments
          *)
         Core_runner.num_jobs =
           min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
