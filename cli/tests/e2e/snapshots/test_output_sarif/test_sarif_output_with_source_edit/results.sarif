@@ -70,7 +70,7 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {

@@ -99,7 +99,7 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
@@ -108,6 +108,7 @@
               "fullDescription": {
                 "text": "this rule comes from the rule board!"
               },
+              "help": {},
               "id": "rules.rule-board-eqeq-five",
               "name": "rules.rule-board-eqeq-five",
               "properties": {

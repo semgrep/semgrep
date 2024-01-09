@@ -41,7 +41,7 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
@@ -50,6 +50,7 @@
               "fullDescription": {
                 "text": "possibly useless comparison but in eq function"
               },
+              "help": {},
               "id": "rules.assert-eqeq-is-ok",
               "name": "rules.assert-eqeq-is-ok",
               "properties": {
@@ -68,8 +69,12 @@
                 "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
               "help": {
-                "markdown": "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
-                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+                "markdown": [
+                  "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n"
+                ],
+                "text": [
+                  "useless comparison operation `$X == $X` or `$X != $X`"
+                ]
               },
               "helpUri": "https://semgrep.dev/r/eqeq-bad",
               "id": "rules.eqeq-is-bad",
@@ -89,6 +94,7 @@
               "fullDescription": {
                 "text": "useless comparison"
               },
+              "help": {},
               "id": "rules.javascript-basic-eqeq-bad",
               "name": "rules.javascript-basic-eqeq-bad",
               "properties": {
@@ -106,6 +112,7 @@
               "fullDescription": {
                 "text": "this function is only available on Python 3.7+"
               },
+              "help": {},
               "id": "rules.python37-compatability-os-module",
               "name": "rules.python37-compatability-os-module",
               "properties": {

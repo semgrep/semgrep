@@ -154,7 +154,7 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
@@ -163,6 +163,7 @@
               "fullDescription": {
                 "text": "A user input source() went into a dangerous sink()"
               },
+              "help": {},
               "id": "rules.classic",
               "name": "rules.classic",
               "properties": {

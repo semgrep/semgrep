@@ -479,7 +479,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
@@ -489,8 +489,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "text": "useless comparison"
               },
               "help": {
-                "markdown": "useless comparison\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
-                "text": "useless comparison"
+                "markdown": [
+                  "useless comparison\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n"
+                ],
+                "text": [
+                  "useless comparison"
+                ]
               },
               "helpUri": "https://semgrep.dev/r/eqeq-bad",
               "id": "eqeq-bad",
@@ -511,8 +515,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "text": "useless comparison to 5"
               },
               "help": {
-                "markdown": "useless comparison to 5\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-five)\n",
-                "text": "useless comparison to 5"
+                "markdown": [
+                  "useless comparison to 5\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-five)\n"
+                ],
+                "text": [
+                  "useless comparison to 5"
+                ]
               },
               "helpUri": "https://semgrep.dev/r/eqeq-five",
               "id": "eqeq-five",
@@ -533,8 +541,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "text": "useless comparison to 4"
               },
               "help": {
-                "markdown": "useless comparison to 4\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-four)\n",
-                "text": "useless comparison to 4"
+                "markdown": [
+                  "useless comparison to 4\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-four)\n"
+                ],
+                "text": [
+                  "useless comparison to 4"
+                ]
               },
               "helpUri": "https://semgrep.dev/r/eqeq-four",
               "id": "eqeq-four",
@@ -555,8 +567,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "text": "found a dependency"
               },
               "help": {
-                "markdown": "found a dependency\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/-/advisories/supply-chain1)\n",
-                "text": "found a dependency"
+                "markdown": [
+                  "found a dependency\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/-/advisories/supply-chain1)\n"
+                ],
+                "text": [
+                  "found a dependency"
+                ]
               },
               "helpUri": "https://semgrep.dev/-/advisories/supply-chain1",
               "id": "supply-chain1",
@@ -577,8 +593,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "text": "unsafe use of danger"
               },
               "help": {
-                "markdown": "unsafe use of danger\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/taint-test)\n",
-                "text": "unsafe use of danger"
+                "markdown": [
+                  "unsafe use of danger\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/taint-test)\n"
+                ],
+                "text": [
+                  "unsafe use of danger"
+                ]
               },
               "helpUri": "https://semgrep.dev/r/taint-test",
               "id": "taint-test",
