@@ -27,6 +27,7 @@ from typing_extensions import LiteralString
 import semgrep.semgrep_interfaces.semgrep_metrics as met
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -61,14 +62,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
-
-# Kept in sync with the command line options in ci.py, so that metrics
-# are reported in the same language that the user uses.
-USER_FRIENDLY_PRODUCT_NAMES = {
-    out.Product(out.SAST()): "code",
-    out.Product(out.SCA()): "supply-chain",
-    out.Product(out.Secrets()): "secrets",
-}
 
 
 class MetricsState(Enum):
