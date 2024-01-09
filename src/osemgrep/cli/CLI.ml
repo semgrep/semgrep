@@ -104,7 +104,7 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "install-ci";
-    "interactive";
+    (* "interactive"; *)
     "show";
     "test";
   ]
@@ -189,7 +189,8 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" ->
             Install_subcommand.main (caps :> < Cap.random >) subcmd_argv
-        | "interactive" -> Interactive_subcommand.main subcmd_argv
+            (* | "interactive" -> Interactive_subcommand.main subcmd_argv *)
+            (* todo: move interactive to pro *)
         | "show" ->
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)

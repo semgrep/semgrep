@@ -18,7 +18,7 @@
     osemgrep_cli_ci
     osemgrep_cli_login
     osemgrep_cli_lsp
-    osemgrep_cli_interactive
+    ;osemgrep_cli_interactive  ; todo: move to pro
     osemgrep_cli_install
     osemgrep_cli_install_semgrep_pro
     osemgrep_cli_publish
