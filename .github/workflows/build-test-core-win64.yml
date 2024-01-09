@@ -9,53 +9,69 @@ jobs:
     defaults:
       run:
         shell: bash
+        working-directory: checkout
     steps:
-    - run: "\n      git config --system core.longpaths true\n    "
-    - name: Make checkout speedy
-      run: git config --global fetch.parallel 50
+    - name: Configure git
+      working-directory: ""
+      run: |
+        git config --system core.longpaths true
+        git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
         path: checkout
-    - name: Configure git safedir properly
-      run: git config --global --add safe.directory $(pwd)
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: "4.14"
         opam-pin: false
         allow-prerelease-opam: true
-        opam-repositories: "opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset\ndefault: https://github.com/ocaml/opam-repository.git"
+        opam-repositories: |
+          opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+          default: https://github.com/ocaml/opam-repository.git
     - id: build-tree-sitter
       name: Build tree-sitter
-      working-directory: checkout
-      run: "\n          export CC=x86_64-w64-mingw32-gcc\n          cd libs/ocaml-tree-sitter-core\n
-        \         ./configure\n          ./scripts/download-tree-sitter --lazy\n          prefix=\"$(pwd)/tree-sitter\"\n
-        \         cd downloads/tree-sitter\n          make PREFIX=\"$prefix\" CFLAGS=\"-O3
-        -Wall -Wextra\"\n          make PREFIX=\"$prefix\" install\n        "
+      env:
+        CC: x86_64-w64-mingw32-gcc
+      run: |
+        cd libs/ocaml-tree-sitter-core
+        ./configure
+        ./scripts/download-tree-sitter --lazy
+        prefix="$(pwd)/tree-sitter"
+        cd downloads/tree-sitter
+        make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
+        make PREFIX="$prefix" install
     - id: install-deps
       name: Build semgrep-core
-      working-directory: checkout
       env:
         ARTIFACT_PATH: /tmp/ocaml-build-artifacts.tgz
-      run: "\n          export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n          export
-        TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
-        \         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib\n\n
-        \         # rpath is not supported in cygwin\n          for filename in $(find
-        ./languages/ -name dune); do\n            grep -v rpath $filename > $filename.new\n
-        \           mv $filename.new $filename\n          done\n          for filename
-        in $(find ./libs/ocaml-tree-sitter-core/ -name dune); do\n            grep
-        -v rpath $filename > $filename.new\n            mv $filename.new $filename\n
-        \         done\n\n          opam exec -- dune build src/main\n\n          tar
-        czvf ${ARTIFACT_PATH} _build/default/src/main/Main.exe \\\n            d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll
-        \\\n            d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll
-        \\\n            d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll
-        \\\n            d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll
-        \\\n            d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll\n
-        \       "
+      run: |
+        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+        export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
+        export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
+
+        # cygwin cant handle rpath
+        for filename in $(find ./languages/ -name dune); do
+          grep -v rpath $filename > $filename.new
+          mv $filename.new $filename
+        done
+        for filename in $(find ./libs/ocaml-tree-sitter-core/ -name dune); do
+          grep -v rpath $filename > $filename.new
+          mv $filename.new $filename
+        done
+
+        # TODO: build everything once osemgrep_cli_interactive has been moved to pro
+        opam exec -- dune build src/main
+
+        tar czvf ${ARTIFACT_PATH} _build/default/src/main/Main.exe \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll
     - name: Test semgrep-core
-      working-directory: checkout
-      run: "\n          echo 'print(\"foo\")' > test.py\n          _build/default/src/main/Main.exe
-        -e 'print($X)' -lang python -json test.py\n        "
+      run: |
+        echo 'print(\"foo\")' > test.py
+        _build/default/src/main/Main.exe -e 'print($X)' -lang python -json test.py
     - uses: actions/upload-artifact@v3
       with:
         path: /tmp/ocaml-build-artifacts.tgz
