@@ -1,3 +1,17 @@
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test4.fixed.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test1.fixed.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test2.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test3.fixed.py)
+-> True
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test4.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test3.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test1.py)
+-> False
 1/1: ✓ All tests passed
 0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------

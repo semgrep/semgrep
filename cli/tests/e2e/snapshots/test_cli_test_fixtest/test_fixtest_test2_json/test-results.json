@@ -1,19 +1,44 @@
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test4.fixed.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test1.fixed.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test2.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test3.fixed.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test4.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test3.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test1.py)
+-> False
 {
-  "config_missing_fixtests": [
-    "rules/fixtest/test2.yaml"
-  ],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/fixtest/test2.yaml": {
-      "checks": {
-        "test2": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [
+        "rules/fixtest/test2.yaml"
+    ],
+    "config_with_errors": [],
+    "results": {
+        "rules/fixtest/test2.yaml": {
+            "checks": {
+                "test2": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/fixtest/test2.py": {
+                            "expected_lines": [
+                                2,
+                                5
+                            ],
+                            "reported_lines": [
+                                2,
+                                5
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
-    }
-  }
+    },
+    "fixtest_results": {}
 }
