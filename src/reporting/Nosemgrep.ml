@@ -168,7 +168,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
              HTML comments inside tags are not allowed by the spec.
           *)
           let id = Common2.strip '"' id in
-          let loc =
+          let _loc =
             Tok.
               {
                 str = id;
@@ -182,28 +182,46 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
                     };
               }
           in
+          (* brandon: This behavior was ported from the original Python, but I don't
+             think it should exist.
+             This code is saying that, for every match, if there exists an ID that is
+             being ignored which is _not_ that match's ID, then throw an error.
+
+             So if we had:
+             foo(A, B) # nosemgrep: match-A, match-B
+
+             we would _always_ throw two errors, because the match to `A` sees the
+             ID for `match-B`, and the match to `B` sees the ID for `match-A`.
+
+             This means that pretty much every multiple-ID ignore will throw this
+             error.
+             The proper behavior of this code would be to see if there exists a
+             match to ignore, for each ID. This is left for future work, though, as
+             it would likely be more involved.
+          *)
           let errors =
             (* If the rule-id is 'foo.bar.my-rule' we accept 'foo.bar.my-rule' as well as
              * any suffix of it such as 'my-rule' or 'bar.my-rule'. *)
-            if not (nosem_matches id) then
-              let msg =
-                Format.asprintf
-                  "found 'nosem' comment with id '%s', but no corresponding \
-                   rule trying '%s'"
-                  id
-                  (Rule_ID.to_string pm.rule_id.id)
-              in
-              let core_error =
-                {
-                  Core_error.rule_id = None;
-                  typ = SemgrepWarning;
-                  msg;
-                  loc;
-                  details = None;
-                }
-              in
-              core_error :: errors
-            else errors
+            (* if not (nosem_matches id) then
+                 let msg =
+                   Format.asprintf
+                     "found 'nosem' comment with id '%s', but no corresponding \
+                      rule trying '%s'"
+                     id
+                     (Rule_ID.to_string pm.rule_id.id)
+                 in
+                 let core_error =
+                   {
+                     Core_error.rule_id = None;
+                     typ = SemgrepWarning;
+                     msg;
+                     loc;
+                     details = None;
+                   }
+                 in
+                 core_error :: errors
+               else errors *)
+            errors
           in
           (nosem_matches id || result, errors))
         (false, []) ids

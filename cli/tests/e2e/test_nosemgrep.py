@@ -32,7 +32,7 @@ def test_nosem_rule__invalid_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_nosem_with_multiple_ids(run_semgrep_in_tmp: RunSemgrep):
     run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
+        "rules/two_matches.yaml",
         target_name="nosemgrep/multiple-nosemgrep.py",
         assert_exit_code=0,
     )
