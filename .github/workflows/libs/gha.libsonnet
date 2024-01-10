@@ -19,6 +19,12 @@
     workflow_dispatch: null,
     workflow_call: null,
   },
+  write_permissions: {
+    // needed when we want to upload data to s3
+    'id-token': 'write',
+    // needed when the job modifies the repository
+    contents: 'write',
+  },
   // Why this is not the default? GHA ...
   speedy_checkout_step: {
     name: 'Make checkout speedy',
