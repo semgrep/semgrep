@@ -303,12 +303,17 @@ class SarifFormatter(BaseFormatter):
             if isinstance(other_references, list)
             else [f"[{other_references}]({other_references})"]
         )
-        references_markdown = "".join(f" - {ref}\n" for ref in references)
+        references_joined = "".join(f" - {ref}\n" for ref in references)
+        references_markdown = (
+            ""
+            if not references_joined
+            else f"\n\n<b>References:</b>\n{references_joined}"
+        )
         text_suffix = "" if hide_nudge else f"\n{nudge_plaintext}"
         markdown_interstitial = "" if hide_nudge else f"\n\n{nudge_md}"
         rule_json["help"] = {
             "text": f"{rule_help_text}{text_suffix}",
-            "markdown": f"{rule_help_text}{markdown_interstitial}\n\n<b>References:</b>\n{references_markdown}",
+            "markdown": f"{rule_help_text}{markdown_interstitial}{references_markdown}",
         }
 
         return rule_json

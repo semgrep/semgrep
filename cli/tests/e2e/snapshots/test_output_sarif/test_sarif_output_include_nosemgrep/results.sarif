@@ -75,13 +75,17 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
                 "level": "error"
               },
               "fullDescription": {
+                "text": "AWS Account ID detected"
+              },
+              "help": {
+                "markdown": "AWS Account ID detected",
                 "text": "AWS Account ID detected"
               },
               "id": "rules.detected-aws-account-id",

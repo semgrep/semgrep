@@ -124,13 +124,17 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
                 "level": "error"
               },
               "fullDescription": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error"
+              },
+              "help": {
+                "markdown": "Use `.get()` method to avoid a KeyNotFound error",
                 "text": "Use `.get()` method to avoid a KeyNotFound error"
               },
               "id": "rules.autofix.use-dict-get",
