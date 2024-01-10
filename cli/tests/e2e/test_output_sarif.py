@@ -39,8 +39,11 @@ def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.osemfail
 def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
-        "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
+        "rules/eqeq-source.yml",
+        env={"MOCK_USING_REGISTRY": "1"},
+        output_format=OutputFormat.SARIF,
     ).stdout
+
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
@@ -48,9 +51,13 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
         "results.sarif",
     )
 
+    rules = json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]
     # Assert that each sarif rule object has a helpURI
-    for rule in json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]:
+    for rule in rules:
         assert rule.get("helpUri", None) is not None
+
+    # Assert that we have our awareness nudge for our pro product
+    assert "sg.run/pro" in rules[0].get("help", {}).get("text") or ""
 
 
 @pytest.mark.kinda_slow
