@@ -42,7 +42,7 @@ from semgrep.util import with_color
 
 MAX_TEXT_WIDTH = 120
 
-RULE_INDENT = 8
+RULE_INDENT = 8  # NOTE: There are 2 leading spaces not included in this number
 BASE_INDENT = 10
 FINDINGS_INDENT_DEPTH = 16
 
@@ -69,17 +69,16 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
 }
 
 
-def pp_severity(rule_match: RuleMatch) -> str:
+def pp_severity(rule_match: RuleMatch, no_color: bool = False) -> str:
     """Return a pretty-printed severity string."""
     severity = rule_match.severity.to_json()
-    if severity == out.Error.to_json():
-        return with_color(Colors.red, "❯❯❱")
-    elif severity == out.Warning.to_json():
-        return with_color(Colors.magenta, " ❯❱")
-    elif severity == out.Info.to_json():
-        return with_color(Colors.green, "  ❱")
-    else:
-        return "   "
+    severity_map = {
+        out.Error.to_json(): (Colors.red, "❯❯❱"),
+        out.Warning.to_json(): (Colors.magenta, " ❯❱"),
+        out.Info.to_json(): (Colors.green, "  ❱"),
+    }
+    color, symbol = severity_map.get(severity, (None, "   "))
+    return symbol if no_color or not color else with_color(color, symbol)
 
 
 def format_finding_line(
@@ -202,7 +201,7 @@ def format_lines(
             )
             yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
         elif lines and show_separator:
-            yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
+            yield f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40
 
 
 def finding_to_line(
@@ -388,7 +387,7 @@ def dataflow_trace_to_lines(
 
         if sink:
             yield ""
-            yield (BASE_INDENT * " " + "This is how taint reaches the sink:")
+            yield (FINDINGS_INDENT_DEPTH * " " + "This is how taint reaches the sink:")
             yield from call_trace_to_lines(
                 rule_match_path,
                 sink,
@@ -399,7 +398,7 @@ def dataflow_trace_to_lines(
             yield ""
 
         if source and show_separator:
-            yield f" " * BASE_INDENT + f"⋮┆" + f"-" * 40
+            yield f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40
 
 
 def get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -611,14 +610,16 @@ def print_text_output(
             )
         ):
             rule_title = with_color(Colors.foreground, rule_match.title, bold=True)
-            title_with_prefix = f"{4 * ' '}{pp_severity(rule_match)} {rule_title}"
-            title_text = click.wrap_text(
-                title_with_prefix,
-                width=base_width + 4,
-                initial_indent="",
+            wrapped_text = textwrap.fill(  # should be equivalent to textwrap.fill
+                rule_title,
+                width=base_width - RULE_INDENT * 2,
+                initial_indent=RULE_INDENT * " ",
                 subsequent_indent=RULE_INDENT * " ",
-                preserve_paragraphs=False,
             )
+            # Wrapping text seems to bug out with color codes, so we add them post-wrap
+            severity_icon = pp_severity(rule_match)
+            title_text = 4 * " " + f"{severity_icon} " + wrapped_text[RULE_INDENT:]
+
             severity = (
                 (
                     f"{RULE_INDENT * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"

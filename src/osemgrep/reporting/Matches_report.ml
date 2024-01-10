@@ -311,7 +311,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       in
       pp_styled_severity cur.extra.severity;
       let lines =
-        wrap ~indent:base_indent_size ~width:text_width
+        wrap ~indent:base_indent_size
+          ~width:(text_width - ((2 + base_indent_size) * 2))
           (Rule_ID.to_string cur.check_id)
       in
       match lines with
@@ -326,7 +327,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
           List.iter
             (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
             (wrap ~indent:detail_indent_size
-               ~width:(text_width - (base_indent_size * 2))
+               ~width:(text_width - (detail_indent_size * 2))
                cur.extra.message);
           (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
           | `String s -> Fmt.pf ppf "%sDetails: %s@." detail_indent s
