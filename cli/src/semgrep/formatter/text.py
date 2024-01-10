@@ -192,14 +192,14 @@ def format_lines(
         stripped_str = (
             f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
         )
-        yield " " * FINDINGS_INDENT_DEPTH + stripped_str
+        yield " " * (FINDINGS_INDENT_DEPTH - 4) + stripped_str
 
     if per_finding_max_lines_limit != 1:
         if trimmed > 0:
             trimmed_str = (
                 f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
             )
-            yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
+            yield " " * (FINDINGS_INDENT_DEPTH - 4) + trimmed_str
         elif lines and show_separator:
             yield f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40
 
@@ -612,13 +612,17 @@ def print_text_output(
             rule_title = with_color(Colors.foreground, rule_match.title, bold=True)
             wrapped_text = textwrap.fill(  # should be equivalent to textwrap.fill
                 rule_title,
-                width=base_width - RULE_INDENT * 2,
+                width=base_width - max(16, RULE_INDENT * 2),
                 initial_indent=RULE_INDENT * " ",
                 subsequent_indent=RULE_INDENT * " ",
             )
             # Wrapping text seems to bug out with color codes, so we add them post-wrap
             severity_icon = pp_severity(rule_match)
-            title_text = 4 * " " + f"{severity_icon} " + wrapped_text[RULE_INDENT:]
+            title_text = (
+                (RULE_INDENT - 4) * " "
+                + f"{severity_icon} "
+                + wrapped_text[RULE_INDENT:]
+            )
 
             severity = (
                 (
