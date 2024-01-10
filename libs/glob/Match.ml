@@ -102,7 +102,7 @@ let run matcher path =
   let res = Re.execp matcher.re path in
   if !debug then
     (* expensive string concatenation; may not be suitable for logger#debug *)
-    Printf.printf "** pattern: %S  path: %S  matches: %B\n"
+    Printf.eprintf "** pattern: %S  path: %S  matches: %B\n"
       matcher.source.line_contents path res;
   res
 [@@profiling "Glob.Match.run"]

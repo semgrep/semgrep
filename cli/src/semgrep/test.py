@@ -596,17 +596,19 @@ def generate_test_results(
         for _config, testfiles in config_with_fixtests
         for target, fixtest in testfiles
     }
+    print(f"fixtest_comparisons: {fixtest_comparisons}")
 
     fixtest_results: Dict[Path, Tuple[List[str], Path]] = {}
     fixtest_results_output = {}
     for t, tempcopy in temp_copies.items():
         fixtest = fixtest_comparisons[tempcopy]
         filediff = fixed_file_comparison(fixtest, tempcopy)
+        print(f"filediff: {filediff}")
         # fixtest_results[t] = {"filediff": filediff, "fixtest": fixtest}
         fixtest_results[t] = (filediff, fixtest)
         fixtest_results_output[str(t)] = {"passed": len(filediff) == 0}
         os.remove(tempcopy)
-
+    print(f"fixtest_results: {fixtest_results}")
     output = {
         "config_missing_tests": config_missing_tests_output,
         "config_missing_fixtests": configs_missing_fixtests,
