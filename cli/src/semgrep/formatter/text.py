@@ -44,18 +44,13 @@ MAX_TEXT_WIDTH = 120
 
 RULE_INDENT = 8
 BASE_INDENT = 10
+FINDINGS_INDENT_DEPTH = 16
 
 terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
 if terminal_size <= 0:
     terminal_size = MAX_TEXT_WIDTH
-width = min(MAX_TEXT_WIDTH, terminal_size)
-if width <= 110:
-    width = width - 5
-else:
-    width = width - (width - 100)
 
-FINDINGS_INDENT_DEPTH = 16
-
+base_width = min(MAX_TEXT_WIDTH, terminal_size)
 
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.SCA()), "unreachable"): "Unreachable Supply Chain Finding",
@@ -619,7 +614,7 @@ def print_text_output(
             title_with_prefix = f"{4 * ' '}{pp_severity(rule_match)} {rule_title}"
             title_text = click.wrap_text(
                 title_with_prefix,
-                width=width + 12,
+                width=base_width + 4,
                 initial_indent="",
                 subsequent_indent=RULE_INDENT * " ",
                 preserve_paragraphs=False,
@@ -634,7 +629,7 @@ def print_text_output(
             )
             message_text = click.wrap_text(
                 f"{message}",
-                width,
+                width=base_width - BASE_INDENT * 2,
                 initial_indent=BASE_INDENT * " ",
                 subsequent_indent=BASE_INDENT * " ",
                 preserve_paragraphs=True,

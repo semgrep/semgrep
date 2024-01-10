@@ -43,7 +43,7 @@ from boltons.iterutils import partition
 
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import FilesNotFoundError
-from semgrep.formatter.text import width
+from semgrep.formatter.text import base_width as width
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE

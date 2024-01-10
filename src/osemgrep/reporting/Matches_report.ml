@@ -24,8 +24,7 @@ let findings_indent = String.make findings_indent_size ' '
 let text_width =
   let max_text_width = 120 in
   let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
-  (* TODO: what is this w - (w - 100) ? What if w <= 5? *)
-  if w <= 110 then w - 5 else w - (w - 100)
+  min w max_text_width
 
 type report_group =
   [ OutJ.validation_state
@@ -326,7 +325,9 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             rest;
           List.iter
             (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
-            (wrap ~indent:detail_indent_size ~width:text_width cur.extra.message);
+            (wrap ~indent:detail_indent_size
+               ~width:(text_width - (base_indent_size * 2))
+               cur.extra.message);
           (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
           | `String s -> Fmt.pf ppf "%sDetails: %s@." detail_indent s
           | _else -> ());
