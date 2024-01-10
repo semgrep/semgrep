@@ -1,2 +1,5 @@
+config_fixtest_filenames: {PosixPath('rules/fixtest/test5.yaml'): []}
+fixtest_comparisons: {}
+fixtest_results: {}
 No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 No tests for fixes found.

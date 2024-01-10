@@ -1,2 +1,25 @@
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test4.fixed.py)
+  relatively_eq(targets/fixtest, targets/fixtest/test2.py, targets/fixtest, targets/fixtest/test4.fixed.py)
+  -> False
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test1.fixed.py)
+  relatively_eq(targets/fixtest, targets/fixtest/test2.py, targets/fixtest, targets/fixtest/test1.fixed.py)
+  -> False
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test2.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test3.fixed.py)
+  relatively_eq(targets/fixtest, targets/fixtest/test2.py, targets/fixtest, targets/fixtest/test3.fixed.py)
+  -> False
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test4.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test3.py)
+-> False
+fixtest_matches_target(targets/fixtest/test2.py, targets/fixtest/test1.py)
+-> False
+config_fixtest_filenames: {PosixPath('rules/fixtest/test2.yaml'): []}
+fixtest_comparisons: {}
+fixtest_results: {}
 1/1: ✓ All tests passed
 No tests for fixes found.

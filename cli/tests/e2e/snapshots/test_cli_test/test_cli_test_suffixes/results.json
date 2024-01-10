@@ -1,17 +1,33 @@
+  relatively_eq(targets/cli_test/suffixes, targets/cli_test/suffixes/this.that.check.py, rules/cli_test/suffixes, rules/cli_test/suffixes/this.that.check.yaml)
+  -> True
+fixtest_matches_target(targets/cli_test/suffixes/this.that.check.py, targets/cli_test/suffixes/this.that.check.py)
+-> False
+config_fixtest_filenames: {PosixPath('rules/cli_test/suffixes/this.that.check.yaml'): []}
+fixtest_comparisons: {}
+fixtest_results: {}
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/cli_test/suffixes/this.that.check.yaml": {
-      "checks": {
-        "basic-test": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {
+        "rules/cli_test/suffixes/this.that.check.yaml": {
+            "checks": {
+                "basic-test": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/cli_test/suffixes/this.that.check.py": {
+                            "expected_lines": [
+                                2
+                            ],
+                            "reported_lines": [
+                                2
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
-    }
-  }
+    },
+    "fixtest_results": {}
 }

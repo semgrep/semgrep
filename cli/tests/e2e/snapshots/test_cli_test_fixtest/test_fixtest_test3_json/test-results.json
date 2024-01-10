@@ -1,21 +1,56 @@
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test4.fixed.py)
+  relatively_eq(targets/fixtest, targets/fixtest/test3.py, targets/fixtest, targets/fixtest/test4.fixed.py)
+  -> False
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test1.fixed.py)
+  relatively_eq(targets/fixtest, targets/fixtest/test3.py, targets/fixtest, targets/fixtest/test1.fixed.py)
+  -> False
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test2.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test3.fixed.py)
+  relatively_eq(targets/fixtest, targets/fixtest/test3.py, targets/fixtest, targets/fixtest/test3.fixed.py)
+  -> True
+-> True
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test4.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test3.py)
+-> False
+fixtest_matches_target(targets/fixtest/test3.py, targets/fixtest/test1.py)
+-> False
+config_fixtest_filenames: {PosixPath('rules/fixtest/test3.yaml'): [(PosixPath('targets/fixtest/test3.py'), PosixPath('targets/fixtest/test3.fixed.py'))]}
+fixtest_comparisons: {'<MASKED>': PosixPath('targets/fixtest/test3.fixed.py')}
+filediff: ['---', '+++', '@@ -2 +2 @@', '-sys.exit(1)', '+somethingElse(1)', '@@ -5 +5 @@', '-sys.exit(2)', '+somethingElse(1)']
+fixtest_results: {PosixPath('targets/fixtest/test3.py'): (['---', '+++', '@@ -2 +2 @@', '-sys.exit(1)', '+somethingElse(1)', '@@ -5 +5 @@', '-sys.exit(2)', '+somethingElse(1)'], PosixPath('targets/fixtest/test3.fixed.py'))}
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {
-    "targets/fixtest/test3.py": {
-      "passed": false
-    }
-  },
-  "results": {
-    "rules/fixtest/test3.yaml": {
-      "checks": {
-        "test3": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {
+        "rules/fixtest/test3.yaml": {
+            "checks": {
+                "test3": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/fixtest/test3.py": {
+                            "expected_lines": [
+                                2,
+                                5
+                            ],
+                            "reported_lines": [
+                                2,
+                                5
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
+    },
+    "fixtest_results": {
+        "targets/fixtest/test3.py": {
+            "passed": false
+        }
     }
-  }
 }
