@@ -58,6 +58,16 @@ type status = {
 
 let git : Cmd.name = Cmd.Name "git"
 
+type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+type sha = string [@@deriving show]
+
+(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
+type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+[@@deriving show]
+
+type batch_check_extra = { size : int } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -469,3 +479,104 @@ let get_git_logs ?cwd ?(since = None) () : string list =
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   List.filter (fun f -> not (String.trim f = "")) lines
+
+let cat_file_batch_check_all_objects ?cwd () =
+  let cmd =
+    ( git,
+      ("cat-file" :: cd cwd)
+      @ [
+          "--batch-all-objects";
+          "--batch-check";
+          "--unordered" (* List in pack order instead of hash; faster. *);
+        ] )
+  in
+  let* objects =
+    match UCmd.lines_of_run ~trim:true cmd with
+    | Ok (s, (_, `Exited 0)) -> Some s
+    | _ -> None
+  in
+  let objects : batch_check_extra obj list =
+    List.filter_map
+      (fun obj ->
+        let parsed_obj =
+          match String.split_on_char ' ' obj with
+          | [ sha; "tag"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Tag; sha; extra = { size } }
+          | [ sha; "commit"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Commit; sha; extra = { size } }
+          | [ sha; "tree"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Tree; sha; extra = { size } }
+          | [ sha; "blob"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Blob; sha; extra = { size } }
+          | _ -> None
+        in
+        if Option.is_none parsed_obj then
+          Logs.warn (fun m ->
+              m "Issue parsing git object: %s; this object will be ignored" obj);
+        parsed_obj)
+      objects
+  in
+  Some objects
+
+let cat_file_blob sha =
+  let cmd = (git, [ "cat-file"; "blob"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) -> Ok s
+  | Ok (s, _)
+  | Error (`Msg s) ->
+      Error s
+
+let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
+  let cmd =
+    ( git,
+      ("ls-tree" :: cd cwd)
+      @ (if recurse then [ "-r" ] else [])
+      @ [ "--full-tree"; "--format=%(objecttype) %(objectname) %(path)"; sha ]
+    )
+  in
+  let* objects =
+    match UCmd.lines_of_run ~trim:true cmd with
+    | Ok (s, (_, `Exited 0)) -> Some s
+    | _ -> None
+  in
+  let objects =
+    List.filter_map
+      (fun obj ->
+        let parsed_obj =
+          match String.split_on_char ' ' obj with
+          | [ "commit"; sha; path ] -> (
+              (* possible for submodules *)
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Commit; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | [ "tree"; sha; path ] -> (
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Tree; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | [ "blob"; sha; path ] -> (
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Blob; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | [ "tag"; sha; path ] -> (
+              (* possible, but we probably don't care. *)
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Tag; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | _ -> Error "invalid syntax"
+        in
+        match parsed_obj with
+        | Ok obj -> Some obj
+        | Error s ->
+            Logs.warn (fun m ->
+                m
+                  "Issue parsing git object: %s -- %s; this object will be \
+                   ignored"
+                  obj s);
+            None)
+      objects
+  in
+  Some objects
