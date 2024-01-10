@@ -87,6 +87,7 @@ class Env:
     in_gh_action: bool = field()
     in_agent: bool = field()
     with_new_cli_ux: bool = field()
+    mock_using_registry: bool = field()
     min_fetch_depth: int = field()
 
     upload_findings_timeout: int = field()
@@ -153,6 +154,10 @@ class Env:
     @with_new_cli_ux.default
     def with_new_cli_default(self) -> bool:
         return os.environ.get("SEMGREP_NEW_CLI_UX", "0") == "1"
+
+    @mock_using_registry.default
+    def with_mock_using_registry(self) -> bool:
+        return "MOCK_USING_REGISTRY" in os.environ
 
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:
