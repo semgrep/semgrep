@@ -15,6 +15,7 @@
         submodules: true,
       },
     },
+
   // TODO: add _step suffix and maybe simplify callers now that
   // has default version to 3.11
   setup_python: function(version='3.11') {
@@ -26,5 +27,19 @@
       // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
       cache: 'pipenv',
     },
+  },
+  // TODO? can we pin a more recent version?
+  pipenv_install_step: {
+    run: 'pip install pipenv==2022.6.7',
+  },
+
+  // alt: run: docker-login -u USER -p PASS
+  // alt: run a .github/docker-login
+  docker_login_step: {
+      uses: 'docker/login-action@v3',
+      with: {
+        username: '${{ secrets.DOCKER_USERNAME }}',
+        password: '${{ secrets.DOCKER_PASSWORD }}',
+     }
   },
 }
