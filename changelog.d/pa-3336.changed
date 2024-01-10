@@ -1,0 +1,3 @@
+The primitive object construct expression will no longer match the new
+expression pattern. For example, the pattern `new $TYPE` will now only match
+`new int`, not `int()`.
