@@ -41,9 +41,11 @@ local build_core_job = {
   },
   steps: [
     setup_runner_step,
-    // Our self-hosted runner do not come with python pre-installed
-    actions.setup_python('3.11'),
     actions.checkout_with_submodules(),
+    // Our self-hosted runner do not come with python pre-installed
+    // Note that because of the cache:pipenv in actions.setup_python, this
+    // needs to be after the checkout, otherwise you get an error
+    actions.setup_python('3.11'),
     osx_x86.export.cache.cache_opam_step,
     // exactly the same than in build-test-oxs-x86.jsonnet
     {
@@ -79,8 +81,9 @@ local build_wheels_job = {
   ],
   steps: [
     setup_runner_step,
-    actions.setup_python('3.11'),
+    // needed for ./script/build-wheels.sh below
     actions.checkout_with_submodules(),
+    actions.setup_python('3.11'),
     {
       uses: 'actions/download-artifact@v3',
       with: {

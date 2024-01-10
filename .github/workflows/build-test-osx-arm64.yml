@@ -30,13 +30,13 @@ jobs:
     - name: Setup runner directory
       run: "\n    sudo mkdir /Users/runner\n    sudo chown admin:staff /Users/runner\n
         \   sudo chmod 750 /Users/runner\n  "
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - uses: actions/setup-python@v4
       with:
         python-version: "3.11"
         cache: pipenv
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
     - name: Cache Opam
       uses: actions/cache@v3
       if: ${{ inputs.use-cache }}
@@ -71,13 +71,13 @@ jobs:
     - name: Setup runner directory
       run: "\n    sudo mkdir /Users/runner\n    sudo chown admin:staff /Users/runner\n
         \   sudo chmod 750 /Users/runner\n  "
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - uses: actions/setup-python@v4
       with:
         python-version: "3.11"
         cache: pipenv
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
     - uses: actions/download-artifact@v3
       with:
         name: semgrep-osx-arm64-${{ github.sha }}
