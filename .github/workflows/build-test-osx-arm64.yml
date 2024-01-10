@@ -33,6 +33,7 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: "3.11"
+        cache: pipenv
     - uses: actions/checkout@v3
       with:
         submodules: true
@@ -50,8 +51,10 @@ jobs:
     - name: Install dependencies
       run: ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
     - name: Compile semgrep
-      run: "\n        opam exec -- make core\n        mkdir -p artifacts\n        cp
-        ./bin/semgrep-core artifacts\n        zip -r artifacts.zip artifacts\n      "
+      run: opam exec -- make core
+    - name: Make artifact
+      run: "\n        mkdir -p artifacts\n        cp ./bin/semgrep-core artifacts\n
+        \       zip -r artifacts.zip artifacts\n      "
     - uses: actions/upload-artifact@v3
       with:
         path: artifacts.zip
@@ -71,6 +74,7 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: "3.11"
+        cache: pipenv
     - uses: actions/checkout@v3
       with:
         submodules: true
@@ -98,6 +102,7 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: "3.11"
+        cache: pipenv
     - uses: actions/download-artifact@v1
       with:
         name: osx-arm64-wheel
