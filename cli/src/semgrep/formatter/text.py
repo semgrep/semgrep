@@ -103,9 +103,7 @@ def format_finding_line(
     else:
         mid = line[start:end]
     # adjust for 1-indexed line number and add separator
-    line_number_str = f"{start + 1 if start > 0 else ''}┆ ".rjust(
-        5
-    )  # 3 digits + 1 separator + 1 space
+    line_number_str = f"{line_number}┆ ".rjust(5)  # 3 digits + 1 separator + 1 space
     # use manual bold styling when color is enabled to ensure we wrap properly
     mid_styled = mid or "" if not color else f"\033[1m{mid}\033[0m"
     wrapped_text = textwrap.fill(
@@ -631,14 +629,16 @@ def print_text_output(
             autofix_tag = "▶▶┆ Autofix ▶ "
             wrapped_fix = (
                 textwrap.fill(
-                    fix,
+                    textwrap.dedent(
+                        "".join(l.strip() for l in fix.splitlines(keepends=True))
+                    ),
                     width=base_width
                     - (RULE_INDENT + 20),  # 13 for autofix tag, 7 for indent
                     initial_indent="",
                     subsequent_indent=(RULE_INDENT + 7) * " ",
                 )
                 if fix
-                else ""
+                else ""  # keep as empty string if fix is empty string
             )
             fix_text = Text.assemble(
                 (11) * " ",
