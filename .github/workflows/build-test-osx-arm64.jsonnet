@@ -25,15 +25,6 @@ local setup_runner_step = {
   |||,
 };
 
-// Our self-hosted runner do not come with python pre-installed
-// TODO? reuse actions.setup_python?
-local setup_python_step = {
-  uses: 'actions/setup-python@v4',
-  with: {
-    'python-version': '3.11',
-  },
-};
-
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
@@ -50,7 +41,8 @@ local build_core_job = {
   },
   steps: [
     setup_runner_step,
-    setup_python_step,
+    // Our self-hosted runner do not come with python pre-installed
+    actions.setup_python_step('3.11'),
     actions.checkout_with_submodules(),
     osx_x86.export.cache.cache_opam_step,
     // exactly the same than in build-test-oxs-x86.jsonnet
@@ -60,8 +52,11 @@ local build_core_job = {
     },
     {
       name: 'Compile semgrep',
+      run: "opam exec -- make core",
+    },
+    {
+      name: 'Make artifact',
       run: |||
-        opam exec -- make core
         mkdir -p artifacts
         cp ./bin/semgrep-core artifacts
         zip -r artifacts.zip artifacts
@@ -84,7 +79,7 @@ local build_wheels_job = {
   ],
   steps: [
     setup_runner_step,
-    setup_python_step,
+    actions.setup_python_step('3.11'),
     actions.checkout_with_submodules(),
     {
       uses: 'actions/download-artifact@v3',
@@ -117,7 +112,7 @@ local test_wheels_job = {
   ],
   steps: [
     setup_runner_step,
-    setup_python_step,
+    actions.setup_python_step('3.11'),
     {
       uses: 'actions/download-artifact@v1',
       with: {

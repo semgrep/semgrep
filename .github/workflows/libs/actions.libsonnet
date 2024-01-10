@@ -15,7 +15,7 @@
         submodules: true,
       },
     },
-  setup_python: function(version) {
+  setup_python: function(version='3.11') {
     uses: 'actions/setup-python@v4',
     with: {
       'python-version': version,

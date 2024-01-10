@@ -10,6 +10,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // Helpers
 // ----------------------------------------------------------------------------
 
+// See https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
 // this already comes with python installed so no need to
 // have a setup_python_step like in build-test-osx-arm64.jsonnet
 local runs_on = 'macos-12';
