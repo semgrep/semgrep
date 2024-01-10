@@ -321,6 +321,8 @@ def create_temporary_copy(path: Path) -> str:
 def relatively_eq(
     parent_target: Path, target: Path, parent_config: Path, config: Path
 ) -> bool:
+    print(f"  relatively_eq({parent_target}, {target}, {parent_config}, {config})")
+
     def remove_all_suffixes(p: str) -> str:
         return p.split(".", 1)[0]
 
@@ -330,9 +332,11 @@ def relatively_eq(
     if len(rel1) < s:
         return False
     s -= 1
-    return rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
+    res = rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
         rel2[s]
     )
+    print(f"  -> {res}")
+    return res
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
@@ -393,6 +397,7 @@ def get_config_fixtest_filenames(
         fixtests = list(original_target.rglob("*"))
 
     def fixtest_matches_target(target: Path, fixtest: Path) -> bool:
+        print(f"fixtest_matches_target({target}, {fixtest})")
         correct_suffix = is_config_fixtest_suffix(fixtest) and final_suffix_matches(
             target, fixtest
         )
@@ -402,9 +407,11 @@ def get_config_fixtest_filenames(
         else:
             original_target_directory = original_target
 
-        return correct_suffix and relatively_eq(
+        res = correct_suffix and relatively_eq(
             original_target_directory, target, original_target_directory, fixtest
         )
+        print(f"-> {res}")
+        return res
 
     return {
         config: [
@@ -468,6 +475,7 @@ def generate_test_results(
     config_fixtest_filenames: Dict[
         Path, List[Tuple[Path, Path]]
     ] = get_config_fixtest_filenames(target, config_test_filenames)
+    print(f"config_fixtest_filenames: {config_fixtest_filenames}")
 
     config_with_tests, config_without_tests = partition(
         config_test_filenames.items(),
@@ -588,17 +596,19 @@ def generate_test_results(
         for _config, testfiles in config_with_fixtests
         for target, fixtest in testfiles
     }
+    print(f"fixtest_comparisons: {fixtest_comparisons}")
 
     fixtest_results: Dict[Path, Tuple[List[str], Path]] = {}
     fixtest_results_output = {}
     for t, tempcopy in temp_copies.items():
         fixtest = fixtest_comparisons[tempcopy]
         filediff = fixed_file_comparison(fixtest, tempcopy)
+        print(f"filediff: {filediff}")
         # fixtest_results[t] = {"filediff": filediff, "fixtest": fixtest}
         fixtest_results[t] = (filediff, fixtest)
         fixtest_results_output[str(t)] = {"passed": len(filediff) == 0}
         os.remove(tempcopy)
-
+    print(f"fixtest_results: {fixtest_results}")
     output = {
         "config_missing_tests": config_missing_tests_output,
         "config_missing_fixtests": configs_missing_fixtests,
