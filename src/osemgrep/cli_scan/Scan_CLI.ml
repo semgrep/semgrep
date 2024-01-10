@@ -841,14 +841,17 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-    let is_git_repo_target =
+    let git_repo_target =
+      let is_git_repo target =
+        target |> Git_wrapper.remote_repo_name |> Option.is_some
+      in
       match target_roots with
-      | [ target ] -> target |> Git_wrapper.remote_repo_name |> Option.is_some
-      | _ :: _ ->
+      | [ target ] when is_git_repo target -> Some target
+      | target :: _ when is_git_repo target ->
           Error.abort
             "Multiple targets are not supported when scanning a remote git \
              repository"
-      | _ -> false
+      | _ -> None
     in
     let output_format =
       let all_flags =
@@ -933,8 +936,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
               }
     in
     let engine_type, target_roots =
-      let get_git_remote_config analysis =
-        let url = List.hd target_roots in
+      let get_git_remote_config url analysis =
         Logs.app (fun m ->
             m
               "Note that PRO interfile is turned off for remote git \
@@ -952,12 +954,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             git_remote;
           }
       in
-      match (is_git_repo_target, engine_type) with
-      | true, Engine_type.OSS ->
-          (get_git_remote_config Engine_type.Interfile, [ Fpath.v "." ])
-      | true, Engine_type.PRO { analysis; _ } ->
-          (get_git_remote_config analysis, [ Fpath.v "." ])
-      | false, _ ->
+      match (git_repo_target, engine_type) with
+      | Some url, Engine_type.OSS ->
+          (get_git_remote_config url Engine_type.Interfile, [ Fpath.v "." ])
+      | Some url, Engine_type.PRO { analysis; _ } ->
+          (get_git_remote_config url analysis, [ Fpath.v "." ])
+      | None, _ ->
           let target_roots = List.map Fpath.v target_roots in
           (engine_type, target_roots)
     in

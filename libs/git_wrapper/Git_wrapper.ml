@@ -158,6 +158,8 @@ let temporary_remote_checkout_path url =
   in
   Option.map
     (fun name ->
+      let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
+      let name = rand_prefix ^ "_" ^ name in
       let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
       Fpath.add_seg tmp_dir name)
     name

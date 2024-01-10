@@ -9,7 +9,7 @@ val remote_repo_name : string -> string option
 
 val temporary_remote_checkout_path : string -> Fpath.t option
 (** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"] will return
-    ["<TMPDIR>/semgrep"] *)
+    [Some "<TMPDIR>/RAND_UUID_semgrep"]. Only [None] if [url] passed is not a valid git remote *)
 
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and

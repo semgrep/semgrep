@@ -61,7 +61,12 @@ let setup_profiling (conf : Scan_CLI.conf) =
 
 let setup_repository url =
   let repository_path =
-    url |> Git_wrapper.temporary_remote_checkout_path |> Option.get
+    match Git_wrapper.temporary_remote_checkout_path url with
+    | Some path -> path
+    | None ->
+        Error.abort
+          (Printf.sprintf
+             "Could not create temporary directory for git clone of %s" url)
   in
   Logs.debug (fun m ->
       m "Sparse cloning %s into %a" url Fpath.pp repository_path);
