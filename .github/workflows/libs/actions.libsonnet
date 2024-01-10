@@ -16,9 +16,8 @@
       },
     },
 
-  // TODO: add _step suffix and maybe simplify callers now that
-  // has default version to 3.11
-  setup_python: function(version='3.11') {
+  // TODO: maybe simplify callers now that has default version to 3.11
+  setup_python_step: function(version='3.11') {
     uses: 'actions/setup-python@v4',
     with: {
       'python-version': version,

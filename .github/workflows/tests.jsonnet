@@ -238,7 +238,7 @@ local test_cli_job = {
   steps: [
     actions.checkout(),
     fetch_submodules_step,
-    actions.setup_python('${{ matrix.python }}'),
+    actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
@@ -288,7 +288,7 @@ local test_qa_job = {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
     },
-    actions.setup_python('3.11'),
+    actions.setup_python_step('3.11'),
     actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
@@ -335,7 +335,7 @@ local test_qa_job = {
 local bench_prepare_steps = [
   actions.checkout(),
   fetch_submodules_step,
-  actions.setup_python('3.8'),
+  actions.setup_python_step('3.8'),
   actions.pipenv_install_step,
   download_x86_artifacts,
   install_x86_artifacts,

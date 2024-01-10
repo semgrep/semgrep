@@ -149,7 +149,7 @@ local park_pypi_packages_job = {
     {
       uses: 'actions/checkout@v3',
     },
-    actions.setup_python('3.10'),
+    actions.setup_python_step('3.10'),
     {
       run: 'sudo python3 -m pip install pipenv==2022.6.7',
     },
