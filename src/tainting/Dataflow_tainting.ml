@@ -1257,11 +1257,14 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
+  (* logger#flash "lval_of_sig_arg %s : %s" (_show_fun_exp fun_exp) (T.show_arg sig_arg); *)
   let os =
     sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
   in
   let* lval, obj =
     match sig_arg.base with
+    | BGlob gvar ->
+      Some ({base = Var gvar; rev_offset = List.rev os}, gvar)
     | BThis -> (
         match fun_exp with
         | {

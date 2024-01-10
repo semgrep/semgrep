@@ -121,7 +121,21 @@ let normalize_lval lval =
     (* explicit dereference of `ptr` e.g. `ptr->x` *)
     | Mem { e = Fetch { base = Var x; rev_offset = [] }; _ } ->
         Some (IL.Var x, rev_offset)
-    | Var _ -> Some (base, rev_offset)
+    | Var name -> 
+      let is_class =
+        match !(name.id_info.id_resolved), !(name.id_info.id_type) with
+        | Some resolved1,  Some {t = TyN (Id (_, {id_resolved; _})); _} ->
+          (match !id_resolved with
+          | None -> false        
+          | Some resolved2 -> 
+            AST_generic.equal_resolved_name resolved1 resolved2)
+        | _, None
+        | _, Some _ -> false
+      in
+      (match rev_offset with
+      | [ { o = IL.Dot var; _ }  ] when is_class -> Some (Var var, [])
+      | __else__ ->
+    Some (base, rev_offset))
     (* explicit dereference of `this` e.g. `this->x` *)
     | Mem { e = Fetch { base = VarSpecial (This, _); rev_offset = [] }; _ }
     | VarSpecial _ -> (

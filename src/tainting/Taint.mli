@@ -29,6 +29,7 @@ type arg_pos = { name : string; index : int } [@@deriving show]
 (** A formal argument of a function given by its name and it's index/position. *)
 
 type arg_base =
+  | BGlob of IL.name
   | BThis
       (** The 'this' or 'self' object, treated here like an special argument. *)
   | BArg of arg_pos
