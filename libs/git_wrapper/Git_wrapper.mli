@@ -67,6 +67,16 @@ type status = {
 }
 [@@deriving show]
 
+type sha [@@deriving show]
+type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+
+(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
+type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+[@@deriving show]
+
+type batch_check_extra = { size : int } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+
 (* git status *)
 val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
@@ -124,4 +134,31 @@ val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
     It returns an empty list if it found nothing relevant.
     You can use the [since] parameter to restrict the logs to
     the commits since the specified time.
+ *)
+
+val cat_file_batch_check_all_objects :
+  ?cwd:Fpath.t -> unit -> batch_check_extra obj list option
+(** [cat_file_batch_all_objects ()] will run `git log
+ * --batch-all-objects --batch-check` in the current working directory (or such
+ * directory provided by `cwd`)
+ *
+ * A batch format sufficient for obtaining the information in
+ * [batch_check_extra] will be used and that information will be attached to each
+ * object.
+ *)
+
+val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
+(** [cat_file_blob sha] will run `git cat-file blob sha` and return either
+ * - [Ok contents], where [contents] is the contents of the blob; or
+ * - [Error message] where [message] is a brief message indicating why git
+ *   could not perform the action, e.g., [sha] is not the sha of a blob or
+ *   [sha] does not designate an object.
+ *)
+
+val ls_tree :
+  ?cwd:Fpath.t -> ?recurse:bool -> sha -> ls_tree_extra obj list option
+(** [ls_tree ~recurse sha] will run `git ls-tree --full-tree` and report the
+ * listed objects and their file paths relative to that tree. If [recurse] is
+ * specified to be true (it is false by default) then the `-r` option is passed
+ * and git will recurse into subtrees.
  *)
