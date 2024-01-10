@@ -41,13 +41,17 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
                 "level": "error"
               },
               "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "help": {
+                "markdown": "possibly useless comparison but in eq function",
                 "text": "possibly useless comparison but in eq function"
               },
               "id": "rules.assert-eqeq-is-ok",
@@ -89,6 +93,10 @@
               "fullDescription": {
                 "text": "useless comparison"
               },
+              "help": {
+                "markdown": "useless comparison",
+                "text": "useless comparison"
+              },
               "id": "rules.javascript-basic-eqeq-bad",
               "name": "rules.javascript-basic-eqeq-bad",
               "properties": {
@@ -104,6 +112,10 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "markdown": "this function is only available on Python 3.7+",
                 "text": "this function is only available on Python 3.7+"
               },
               "id": "rules.python37-compatability-os-module",
