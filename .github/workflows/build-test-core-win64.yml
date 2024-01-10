@@ -9,17 +9,11 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: checkout
     steps:
     - name: Configure git
-      working-directory: ""
       run: |
         git config --system core.longpaths true
         git config --global fetch.parallel 50
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
-        path: checkout
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: "4.14"
@@ -28,6 +22,9 @@ jobs:
         opam-repositories: |
           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - name: Build tree-sitter
       env:
         CC: x86_64-w64-mingw32-gcc
