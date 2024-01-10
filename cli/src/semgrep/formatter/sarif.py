@@ -305,7 +305,7 @@ class SarifFormatter(BaseFormatter):
         )
         references_markdown = "".join(f" - {ref}\n" for ref in references)
         text_suffix = "" if hide_nudge else f"\n{nudge_plaintext}"
-        markdown_interstitial = "\n\n" if hide_nudge else f"\n\n{nudge_md}"
+        markdown_interstitial = "" if hide_nudge else f"\n\n{nudge_md}"
         rule_json["help"] = {
             "text": f"{rule_help_text}{text_suffix}",
             "markdown": f"{rule_help_text}{markdown_interstitial}\n\n<b>References:</b>\n{references_markdown}",
