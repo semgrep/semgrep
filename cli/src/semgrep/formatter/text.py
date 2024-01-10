@@ -42,7 +42,8 @@ from semgrep.util import with_color
 
 MAX_TEXT_WIDTH = 120
 
-BASE_INDENT = 8
+RULE_INDENT = 8
+BASE_INDENT = 10
 
 terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
 if terminal_size <= 0:
@@ -53,7 +54,7 @@ if width <= 110:
 else:
     width = width - (width - 100)
 
-FINDINGS_INDENT_DEPTH = 10
+FINDINGS_INDENT_DEPTH = 16
 
 
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
@@ -71,6 +72,19 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
         "validation error",
     ): "Secrets Validation Error",
 }
+
+
+def pp_severity(rule_match: RuleMatch) -> str:
+    """Return a pretty-printed severity string."""
+    severity = rule_match.severity.to_json()
+    if severity == out.Error.to_json():
+        return with_color(Colors.red, "❯❯❱")
+    elif severity == out.Warning.to_json():
+        return with_color(Colors.magenta, " ❯❱")
+    elif severity == out.Info.to_json():
+        return with_color(Colors.green, "  ❱")
+    else:
+        return "   "
 
 
 def format_finding_line(
@@ -177,7 +191,7 @@ def format_lines(
             ) + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
 
         yield f" " * (
-            11 - len(line_number)
+            FINDINGS_INDENT_DEPTH - 3 - len(line_number)
         ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
     if stripped:
@@ -601,24 +615,32 @@ def print_text_output(
                 or last_message != message
             )
         ):
-            shortlink = get_details_shortlink(rule_match)
-            shortlink_text = (8 * " " + shortlink + "\n") if shortlink else ""
+            rule_title = with_color(Colors.foreground, rule_match.title, bold=True)
+            title_with_prefix = f"{4 * ' '}{pp_severity(rule_match)} {rule_title}"
             title_text = click.wrap_text(
-                f"{with_color(Colors.foreground, rule_match.title, bold=True)}",
-                width + 10,
-                5 * " ",
-                5 * " ",
-                False,
+                title_with_prefix,
+                width=width + 12,
+                initial_indent="",
+                subsequent_indent=RULE_INDENT * " ",
+                preserve_paragraphs=False,
             )
             severity = (
                 (
-                    f"{8 * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
+                    f"{RULE_INDENT * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
                 )
                 if "sca_info" in rule_match.extra
                 and "sca-severity" in rule_match.metadata
                 else ""
             )
-            message_text = click.wrap_text(f"{message}", width, 8 * " ", 8 * " ", True)
+            message_text = click.wrap_text(
+                f"{message}",
+                width,
+                initial_indent=BASE_INDENT * " ",
+                subsequent_indent=BASE_INDENT * " ",
+                preserve_paragraphs=True,
+            )
+            shortlink = get_details_shortlink(rule_match)
+            shortlink_text = (BASE_INDENT * " " + shortlink + "\n") if shortlink else ""
             console.print(f"{title_text}\n{severity}{message_text}\n{shortlink_text}")
 
         autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
