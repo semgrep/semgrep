@@ -13,8 +13,8 @@ a
 b
 c
 RUN semgrep scan --experimental --x-ls .
-SEL .gitignore
-SEL .semgrepignore
-SEL c
-IGN a [semgrepignore_patterns_match]
-IGN b [semgrepignore_patterns_match]
+selected .gitignore
+selected .semgrepignore
+selected c
+ignored a [semgrepignore_patterns_match]
+ignored b [semgrepignore_patterns_match]

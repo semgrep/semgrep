@@ -9,6 +9,6 @@ Input files:
 bin/ignore-me
 bin/ignore-me-not
 RUN semgrep scan --experimental --x-ls .
-SEL .gitignore
-SEL bin/ignore-me-not
-IGN bin/ignore-me [semgrepignore_patterns_match]
+selected .gitignore
+selected bin/ignore-me-not
+ignored bin/ignore-me [semgrepignore_patterns_match]

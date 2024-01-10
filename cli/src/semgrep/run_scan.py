@@ -312,9 +312,9 @@ def run_rules(
 def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -> None:
     targets = target_manager.get_files_for_language(None, product)
     for path in sorted(targets.kept):
-        print(f"SEL {path}")
+        print(f"selected {path}")
     for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
-        print(f"IGN {path} [{reason}]")
+        print(f"ignored {path} [{reason}]")
     exit(0)
 
 

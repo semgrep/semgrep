@@ -7,5 +7,5 @@ Input files:
 .gitignore
 a
 RUN semgrep scan --experimental --x-ls .
-SEL .gitignore
-IGN a [semgrepignore_patterns_match]
+selected .gitignore
+ignored a [semgrepignore_patterns_match]
