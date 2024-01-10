@@ -259,6 +259,11 @@ class SarifFormatter(BaseFormatter):
     def _rule_to_sarif(rule: Rule, hide_nudge: bool) -> Mapping[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
+
+        rule_url = rule.metadata.get("source")
+        rule_short_description = rule.metadata.get("shortDescription")
+        rule_help_text = rule.metadata.get("help") or rule.message or ""
+        rule_short_description = rule.metadata.get("shortDescription")
         security_severity = rule.metadata.get("security-severity")
 
         nudge_base = "💎 Enable cross-file analysis and Pro rules for free at"
@@ -266,67 +271,46 @@ class SarifFormatter(BaseFormatter):
         nudge_plaintext = f"{nudge_base} {nudge_url}"
         nudge_md = f"#### {nudge_base} <a href='https://{nudge_url}'>{nudge_url}</a>"
 
+        properties = {
+            "precision": "very-high",
+            "tags": tags,
+        }
+
         if security_severity is not None:
-            rule_json = {
-                "id": rule.id,
-                "name": rule.id,
-                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
-                "fullDescription": {"text": rule.message},
-                "defaultConfiguration": {"level": severity},
-                "properties": {
-                    "precision": "very-high",
-                    "tags": tags,
-                    "security-severity": security_severity,
-                },
-            }
-        else:
-            rule_json = {
-                "id": rule.id,
-                "name": rule.id,
-                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
-                "fullDescription": {"text": rule.message},
-                "defaultConfiguration": {"level": severity},
-                "properties": {"precision": "very-high", "tags": tags},
-            }
+            properties["security-severity"] = security_severity
 
-        rule_url = rule.metadata.get("source")
-        references = []
-        rule_json_help = {}
+        rule_json = {
+            "id": rule.id,
+            "name": rule.id,
+            "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
+            "fullDescription": {"text": rule.message},
+            "defaultConfiguration": {"level": severity},
+            "properties": properties,
+        }
 
-        if rule_url is not None:
-            rule_json["helpUri"] = rule_url
-            references.append(f"[Semgrep Rule]({rule_url})")
-
-        if rule.metadata.get("references"):
-            ref = rule.metadata["references"]
-            # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
-            references.extend(
-                [f"[{r}]({r})" for r in ref]
-                if isinstance(ref, list)
-                else [f"[{ref}]({ref})"]
-            )
-        if references:
-            r = "".join(
-                [f" - {references_markdown}\n" for references_markdown in references]
-            )
-            rule_json_help["text"] = (
-                rule.message if hide_nudge else f"{rule.message}\n{nudge_plaintext}",
-            )
-            rule_json_help["markdown"] = (
-                f"{rule.message}\n\n<b>References:</b>\n{r}"
-                if hide_nudge
-                else f"{rule.message}\n\n{nudge_md}\n\n<b>References:</b>\n{r}",
-            )
-
-        rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
 
-        rule_help_text = rule.metadata.get("help")
-        if rule_help_text:
-            rule_json_help["text"] = rule_help_text
+        if rule_url is not None:
+            rule_json["helpUri"] = rule_url
 
-        rule_json["help"] = rule_json_help
+        semgrep_reference = f"[Semgrep Rule]({rule_url})" if rule_url else None
+        references = [semgrep_reference] if semgrep_reference else []
+        other_references = rule.metadata.get("references") or []
+        # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
+        references.extend(
+            [f"[{r}]({r})" for r in other_references]
+            if isinstance(other_references, list)
+            else [f"[{other_references}]({other_references})"]
+        )
+        references_markdown = "".join(f" - {ref}\n" for ref in references)
+        text_suffix = "" if hide_nudge else f"\n{nudge_plaintext}"
+        markdown_interstitial = "\n\n" if hide_nudge else f"\n\n{nudge_md}"
+        rule_json["help"] = {
+            "text": f"{rule_help_text}{text_suffix}",
+            "markdown": f"{rule_help_text}{markdown_interstitial}\n\n<b>References:</b>\n{references_markdown}",
+        }
+
         return rule_json
 
     @staticmethod
