@@ -2,7 +2,6 @@ import textwrap
 from contextlib import contextmanager
 from itertools import groupby
 from pathlib import Path
-from shutil import get_terminal_size
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -14,16 +13,15 @@ from typing import Sequence
 from typing import Tuple
 
 import click
-import colorama
 from rich.console import Console
+from rich.text import Text
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
+from semgrep.console import MAX_WIDTH
 from semgrep.console import Title
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
-from semgrep.constants import ELLIPSIS_STRING
-from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -39,18 +37,15 @@ from semgrep.util import MASK_SHOW_PCT
 from semgrep.util import truncate
 from semgrep.util import unit_str
 from semgrep.util import with_color
+from semgrep.verbose_logging import getLogger
 
-MAX_TEXT_WIDTH = 120
+logger = getLogger(__name__)
 
 RULE_INDENT = 8  # NOTE: There are 2 leading spaces not included in this number
 BASE_INDENT = 10
 FINDINGS_INDENT_DEPTH = 16
-
-terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
-if terminal_size <= 0:
-    terminal_size = MAX_TEXT_WIDTH
-
-base_width = min(MAX_TEXT_WIDTH, terminal_size)
+# Use the terminal width if we can, otherwise use the standard max width (120)
+base_width = MAX_WIDTH if console.width <= 0 else console.width
 
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.SCA()), "unreachable"): "Unreachable Supply Chain Finding",
@@ -68,17 +63,17 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     ): "Secrets Validation Error",
 }
 
+SEVERITY_MAP = {
+    out.Error.to_json(): ("red", "❯❯❱"),
+    out.Warning.to_json(): ("magenta", " ❯❱"),
+    out.Info.to_json(): ("green", "  ❱"),
+}
 
-def pp_severity(rule_match: RuleMatch, no_color: bool = False) -> str:
-    """Return a pretty-printed severity string."""
+
+def to_severity_indicator(rule_match: RuleMatch) -> Tuple[str, str]:
+    """Return a color and severity icon."""
     severity = rule_match.severity.to_json()
-    severity_map = {
-        out.Error.to_json(): (Colors.red, "❯❯❱"),
-        out.Warning.to_json(): (Colors.magenta, " ❯❱"),
-        out.Info.to_json(): (Colors.green, "  ❱"),
-    }
-    color, symbol = severity_map.get(severity, (None, "   "))
-    return symbol if no_color or not color else with_color(color, symbol)
+    return SEVERITY_MAP.get(severity, ("bright_white", "   "))
 
 
 def format_finding_line(
@@ -90,7 +85,8 @@ def format_finding_line(
     end_col: int,
     color: bool,
     mask: bool,
-) -> str:
+    per_line_max_chars_limit: int,
+) -> Text:
     """
     Assumes column start and end numbers are 1-indexed
     """
@@ -106,12 +102,17 @@ def format_finding_line(
         mid = line[start:show_until] + (MASK_CHAR * (end - show_until))
     else:
         mid = line[start:end]
-
-    if color:
-        mid = with_color(Colors.foreground, mid, bold=True)
-
-    line = line[:start] + mid + line[end:]
-    return line
+    # adjust for 1-indexed line number and add separator
+    line_number_str = f"{start + 1}┆ ".rjust(5)  # 3 digits + 1 separator + 1 space
+    # use manual bold styling when color is enabled to ensure we wrap properly
+    mid_styled = mid or "" if not color else f"\033[1m{mid}\033[0m"
+    wrapped_text = textwrap.fill(
+        f"{line_number_str}{line[:start]}{mid_styled}{line[end:]}",
+        width=per_line_max_chars_limit,
+        initial_indent=(FINDINGS_INDENT_DEPTH - 6) * " ",
+        subsequent_indent=(FINDINGS_INDENT_DEPTH - 1) * " ",
+    )
+    return Text.from_ansi(wrapped_text)
 
 
 def format_lines(
@@ -127,14 +128,17 @@ def format_lines(
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
     show_path: bool,
-) -> Iterator[str]:
+) -> Iterator[Text]:
     trimmed = 0
-    stripped = False
 
     if per_finding_max_lines_limit:
         trimmed = len(lines) - per_finding_max_lines_limit
         lines = lines[:per_finding_max_lines_limit]
 
+    per_line_max_chars_limit = min(
+        per_line_max_chars_limit or base_width - FINDINGS_INDENT_DEPTH,
+        base_width - FINDINGS_INDENT_DEPTH,
+    )
     # we remove indentation at the start of the snippet to avoid wasting space
     dedented_lines = textwrap.dedent("".join(lines)).splitlines()
     indent_len = (
@@ -146,62 +150,36 @@ def format_lines(
     # since we dedented each line, we need to adjust where the highlighting is
     start_col -= indent_len
     end_col -= indent_len
-
     for i, line in enumerate(dedented_lines):
         line = line.rstrip()
-        line_number = ""
-        if start_line:
-            line = format_finding_line(
-                line,
-                start_line + i,
-                start_line,
-                start_col,
-                end_line,
-                end_col,
-                color=color_output,
-                mask=mask_match,
-            )
-            line_number = f"{start_line + i}"
-
-            if per_line_max_chars_limit and len(line) > per_line_max_chars_limit:
-                stripped = True
-                is_first_line = i == 0
-                if is_first_line:
-                    line = (
-                        line[start_col - 1 : start_col - 1 + per_line_max_chars_limit]
-                        + ELLIPSIS_STRING
-                    )
-                    if start_col > 1:
-                        line = ELLIPSIS_STRING + line
-                else:
-                    line = line[:per_line_max_chars_limit] + ELLIPSIS_STRING
-                # while stripping a string, the ANSI code for resetting color might also get stripped.
-                line = line + colorama.Style.RESET_ALL
-
-        # plus one because we want this to be slightly separated from the intervening messages
-        if i == 0 and show_path:
-            yield f" " * (
-                BASE_INDENT + 1
-            ) + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
-
-        yield f" " * (
-            FINDINGS_INDENT_DEPTH - 3 - len(line_number)
-        ) + f"{line_number}┆ {line}" if line_number else f"{line}"
-
-    if stripped:
-        stripped_str = (
-            f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
+        # NOTE: need to consider length of line number when calculating max chars
+        yield format_finding_line(
+            line,
+            start_line + i,
+            start_line,
+            start_col,
+            end_line,
+            end_col,
+            color=color_output,
+            mask=mask_match,
+            per_line_max_chars_limit=per_line_max_chars_limit,
         )
-        yield " " * (FINDINGS_INDENT_DEPTH - 4) + stripped_str
 
-    if per_finding_max_lines_limit != 1:
-        if trimmed > 0:
-            trimmed_str = (
-                f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
-            )
-            yield " " * (FINDINGS_INDENT_DEPTH - 4) + trimmed_str
-        elif lines and show_separator:
-            yield f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40
+    if per_finding_max_lines_limit == 1:
+        return
+
+    if trimmed > 0:
+        yield Text.assemble(
+            " " * (FINDINGS_INDENT_DEPTH - 4),
+            f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] ",
+        )
+    elif lines and show_separator:
+        fill_count = base_width - FINDINGS_INDENT_DEPTH - 8
+        yield Text.assemble(
+            f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * fill_count
+        )
+    else:
+        yield Text.assemble(" ")  # empty line
 
 
 def finding_to_line(
@@ -210,7 +188,7 @@ def finding_to_line(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
-) -> Iterator[str]:
+) -> Iterator[Text]:
     path = rule_match.path
     start_line = rule_match.start.line
     end_line = rule_match.end.line
@@ -241,7 +219,7 @@ def match_to_lines(
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
-) -> Iterator[str]:
+) -> Iterator[Text]:
     path = Path(location.path.value)
     is_same_file = path == ref_path
     lines = get_lines(path, location.start.line, location.end.line)
@@ -267,7 +245,7 @@ def call_trace_to_lines(
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
-) -> Iterator[str]:
+) -> Iterator[Text]:
     trace = call_trace.value
     if isinstance(trace, out.CliLoc):
         yield from match_to_lines(
@@ -294,7 +272,7 @@ def call_trace_to_lines(
         if intermediate_vars and len(intermediate_vars) > 0:
             # TODO change this message based on rule kind if we ever use
             # dataflow traces for more than just taint
-            yield (
+            yield Text.assemble(
                 BASE_INDENT * " " + "Taint flows through these intermediate variables:"
             )
             prev_path = ref_path
@@ -320,9 +298,9 @@ def call_trace_to_lines(
                 prev_path = path
 
         if isinstance(call_trace.value, out.CliCall):
-            yield (BASE_INDENT * " " + "then call to:")
+            yield Text.assemble(BASE_INDENT * " " + "then call to:")
         elif isinstance(call_trace.value, out.CliLoc):
-            yield (BASE_INDENT * " " + "then reaches:")
+            yield Text.assemble(BASE_INDENT * " " + "then reaches:")
         yield from call_trace_to_lines(
             ref_path,
             call_trace,
@@ -339,15 +317,15 @@ def dataflow_trace_to_lines(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
-) -> Iterator[str]:
+) -> Iterator[Text]:
     if dataflow_trace:
         source = dataflow_trace.taint_source
         intermediate_vars = dataflow_trace.intermediate_vars
         sink = dataflow_trace.taint_sink
 
         if source:
-            yield ""
-            yield (BASE_INDENT * " " + "Taint comes from:")
+            yield Text.assemble("")
+            yield Text.assemble(BASE_INDENT * " " + "Taint comes from:")
             yield from call_trace_to_lines(
                 rule_match_path,
                 source,
@@ -359,8 +337,8 @@ def dataflow_trace_to_lines(
         if intermediate_vars and len(intermediate_vars) > 0:
             # TODO change this message based on rule kind of we ever use
             # dataflow traces for more than just taint
-            yield ""
-            yield (
+            yield Text.assemble("")
+            yield Text.assemble(
                 BASE_INDENT * " " + "Taint flows through these intermediate variables:"
             )
             prev_path = rule_match_path
@@ -386,8 +364,10 @@ def dataflow_trace_to_lines(
                 prev_path = path
 
         if sink:
-            yield ""
-            yield (FINDINGS_INDENT_DEPTH * " " + "This is how taint reaches the sink:")
+            yield Text.assemble("")
+            yield Text.assemble(
+                FINDINGS_INDENT_DEPTH * " " + "This is how taint reaches the sink:"
+            )
             yield from call_trace_to_lines(
                 rule_match_path,
                 sink,
@@ -395,10 +375,10 @@ def dataflow_trace_to_lines(
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
             )
-            yield ""
+            yield Text.assemble("")
 
         if source and show_separator:
-            yield f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40
+            yield Text.assemble(f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40)
 
 
 def get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -609,20 +589,22 @@ def print_text_output(
                 or last_message != message
             )
         ):
-            rule_title = with_color(Colors.foreground, rule_match.title, bold=True)
-            wrapped_text = textwrap.fill(  # should be equivalent to textwrap.fill
+            rule_title = (
+                rule_match.title
+            )  # Title of the rule that we need to bold later
+            wrapped_text = textwrap.fill(
                 rule_title,
-                width=base_width - max(16, RULE_INDENT * 2),
-                initial_indent=RULE_INDENT * " ",
+                width=base_width - (RULE_INDENT + 4),
+                initial_indent="",
                 subsequent_indent=RULE_INDENT * " ",
             )
-            # Wrapping text seems to bug out with color codes, so we add them post-wrap
-            severity_icon = pp_severity(rule_match)
-            title_text = (
-                (RULE_INDENT - 4) * " "
-                + f"{severity_icon} "
-                + wrapped_text[RULE_INDENT:]
+            sev_color, sev_icon = to_severity_indicator(rule_match)
+            text = Text.assemble(
+                (RULE_INDENT - 4) * " ",
+                (sev_icon, sev_color),
+                (f" {wrapped_text}", "bold"),
             )
+            console.print(text)
 
             severity = (
                 (
@@ -634,14 +616,14 @@ def print_text_output(
             )
             message_text = click.wrap_text(
                 f"{message}",
-                width=base_width - BASE_INDENT * 2,
+                width=base_width - (BASE_INDENT + 4),
                 initial_indent=BASE_INDENT * " ",
                 subsequent_indent=BASE_INDENT * " ",
                 preserve_paragraphs=True,
             )
             shortlink = get_details_shortlink(rule_match)
             shortlink_text = (BASE_INDENT * " " + shortlink + "\n") if shortlink else ""
-            console.print(f"{title_text}\n{severity}{message_text}\n{shortlink_text}")
+            console.print(f"{severity}{message_text}\n{shortlink_text}")
 
         autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
         if fix is not None:
@@ -691,6 +673,9 @@ def print_text_output(
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
+        is_same_rule = (
+            next_rule_match.rule_id == rule_match.rule_id if next_rule_match else False
+        )
         for line in finding_to_line(
             rule_match,
             color_output,
@@ -699,7 +684,9 @@ def print_text_output(
             # if we have dataflow traces on, then we should print the separator,
             # because otherwise it is easy to mistake taint traces as belonging
             # to a different finding
-            is_same_file and not (dataflow_traces and rule_match.dataflow_trace),
+            is_same_file
+            and is_same_rule
+            and not (dataflow_traces and rule_match.dataflow_trace),
         ):
             console.print(line)
 
@@ -712,7 +699,8 @@ def print_text_output(
                 per_line_max_chars_limit,
                 is_same_file,
             ):
-                console.print("  " + line)
+                console.print("  ", end="")
+                console.print(line)
 
 
 @contextmanager
