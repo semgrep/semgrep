@@ -136,8 +136,8 @@ def format_lines(
         lines = lines[:per_finding_max_lines_limit]
 
     per_line_max_chars_limit = min(
-        per_line_max_chars_limit or base_width - FINDINGS_INDENT_DEPTH,
-        base_width - FINDINGS_INDENT_DEPTH,
+        per_line_max_chars_limit or base_width - FINDINGS_INDENT_DEPTH - 3,
+        base_width - FINDINGS_INDENT_DEPTH - 3,
     )
     # we remove indentation at the start of the snippet to avoid wasting space
     dedented_lines = textwrap.dedent("".join(lines)).splitlines()
