@@ -1372,7 +1372,9 @@ let check_function_signature env fun_exp args args_taints =
             lval * Taints.t
             (* ^ Taints flowing through function's arguments (or the callee object) by side-effect *)
           ]
-          list = function
+          list = fun fi ->
+        logger#flash "progress-sig %s -> %s" (_show_fun_exp fun_exp) (Taint._show_finding fi);
+        match fi with
         | T.ToReturn (taints, _return_tok) ->
             taints
             |> List_.map_filter (fun t ->
@@ -1566,10 +1568,15 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
           ~filter_sinks:(fun m -> not m.spec.sink_is_func_with_focus);
         let call_taints, lval_env =
+          let lval_env_BEFORE = lval_env in
           match
             check_function_signature { env with lval_env } e args args_taints
           with
-          | Some (call_taints, lval_env) -> (call_taints, lval_env)
+          | Some (call_taints, lval_env) -> 
+            logger#flash "===== CALL %s\n- BEFORE: %s\n- AFTER:%s\n=====" (_show_fun_exp e)
+                (Lval_env.to_string Taint.show_taints lval_env_BEFORE)
+                (Lval_env.to_string Taint.show_taints lval_env);
+            (call_taints, lval_env)
           | None ->
               let call_taints =
                 if not (propagate_through_functions env) then Taints.empty
