@@ -483,8 +483,9 @@ let get_git_logs ?cwd ?(since = None) () : string list =
 let cat_file_batch_check_all_objects ?cwd () =
   let cmd =
     ( git,
-      ("cat-file" :: cd cwd)
+      cd cwd
       @ [
+          "cat-file";
           "--batch-all-objects";
           "--batch-check";
           "--unordered" (* List in pack order instead of hash; faster. *);
@@ -522,8 +523,8 @@ let cat_file_batch_check_all_objects ?cwd () =
   in
   Some objects
 
-let cat_file_blob sha =
-  let cmd = (git, [ "cat-file"; "blob"; sha ]) in
+let cat_file_blob ?cwd sha =
+  let cmd = (git, cd cwd @ [ "cat-file"; "blob"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> Ok s
   | Ok (s, _)
@@ -533,8 +534,8 @@ let cat_file_blob sha =
 let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
   let cmd =
     ( git,
-      ("ls-tree" :: cd cwd)
-      @ (if recurse then [ "-r" ] else [])
+      cd cwd
+      @ ("ls-tree" :: (if recurse then [ "-r" ] else []))
       @ [ "--full-tree"; "--format=%(objecttype) %(objectname) %(path)"; sha ]
     )
   in
