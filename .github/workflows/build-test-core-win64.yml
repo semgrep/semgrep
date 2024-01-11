@@ -63,7 +63,7 @@ jobs:
           mv $filename.new $filename
         done
 
-        opam exec -- dune build _build/install/default/bin/semgrep-core
+        opam exec -- dune build _build/install/default/bin/semgrep-core.exe
 
         # TODO: figure out how to statically link in cygwin / windows (use opam for inspiration?)
         tar czvf ${ARTIFACT_PATH} _build/install/default/bin/semgrep-core.exe \
