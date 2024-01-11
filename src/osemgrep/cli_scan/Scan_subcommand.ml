@@ -59,22 +59,6 @@ let setup_profiling (conf : Scan_CLI.conf) =
     { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
-let setup_repository url =
-  let repository_path =
-    match Git_wrapper.temporary_remote_checkout_path url with
-    | Some path -> path
-    | None ->
-        Error.abort
-          (Printf.sprintf
-             "Could not create temporary directory for git clone of %s" url)
-  in
-  Logs.debug (fun m ->
-      m "Sparse cloning %s into %a" url Fpath.pp repository_path);
-  ignore (Git_wrapper.sparse_shallow_filtered_checkout url repository_path);
-  Git_wrapper.checkout ~cwd:repository_path ();
-  Logs.debug (fun m -> m "Sparse cloning done");
-  repository_path
-
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -285,6 +269,19 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
         | Some pro_scan_func ->
             let roots = conf.target_roots in
             pro_scan_func roots ~diff_config conf.engine_type)
+  in
+  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+    match conf.targeting_conf.project_root with
+    | Some (Find_targets.Git_remote git_remote) -> (
+        match !Core_runner.hook_pro_git_remote_scan_setup with
+        | None ->
+            failwith
+              "You have requested running semgrep with a setting that requires \
+               the pro engine, but do not have the pro engine. You may need to \
+               acquire a different binary."
+        | Some pro_git_remote_scan_setup ->
+            pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
+    | _ -> scan_func_for_osemgrep
   in
   scan_func_for_osemgrep
     ~respect_git_ignore:conf.targeting_conf.respect_gitignore
@@ -740,11 +737,6 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let rules_and_origins =
     Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
-  (match conf.engine_type with
-  | Engine_type.PRO { git_remote = Some url; _ } ->
-      let path = setup_repository url in
-      Sys.chdir (Fpath.to_string path)
-  | _ -> ());
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots

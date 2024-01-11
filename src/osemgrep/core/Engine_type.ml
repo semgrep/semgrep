@@ -23,7 +23,6 @@ type pro_config = {
   code_config : code_config option; (* None = Disabled *)
   secrets_config : secrets_config option; (* None = Disabled *)
   supply_chain_config : supply_chain_config option; (* None = Disabled *)
-  git_remote : string option;
 }
 [@@deriving show]
 

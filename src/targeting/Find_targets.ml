@@ -42,6 +42,12 @@ module Fppath_set = Set.Make (Fppath)
          gitignore or semgrepignore exclusions (will be needed for Secrets)
          and have the exclusions apply only to the files that aren't tracked.
 *)
+
+type git_remote = { url : string; checkout_path : Fpath.t } [@@deriving show]
+
+type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+[@@deriving show]
+
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
@@ -64,7 +70,7 @@ type conf = {
   (* TODO: use *)
   scan_unknown_extensions : bool;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : Fpath.t option;
+  project_root : project_root option;
 }
 [@@deriving show]
 
@@ -74,6 +80,9 @@ type project_roots = {
   (* scanning roots that belong to the project *)
   scanning_roots : Fppath.t list;
 }
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
 
 (*************************************************************************)
 (* Diagnostic *)
@@ -248,12 +257,16 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               Git_wrapper.ls_files ~kinds:file_kinds [ sc_root.fpath ]
+               let cwd = Rpath.to_fpath project.path in
+               Git_wrapper.ls_files ~cwd ~kinds:file_kinds [ sc_root.fpath ]
                |> List_.map (fun fpath ->
                       let fpath_relative_to_scan_root =
                         match Fpath.relativize ~root:sc_root.fpath fpath with
                         | Some x -> x
-                        | None -> assert false
+                        | None ->
+                            failwith
+                              (Printf.sprintf "failed to relativize %s to %s"
+                                 !!fpath !!(sc_root.fpath))
                       in
                       let ppath =
                         Ppath.append_fpath sc_root.ppath
@@ -311,8 +324,10 @@ let group_scanning_roots_by_project (conf : conf)
     (scanning_roots : Fpath.t list) : project_roots list =
   let force_root =
     match conf.project_root with
-    | None -> None
-    | Some proj_root -> Some (Project.Gitignore_project, proj_root)
+    | Some (Git_remote _)
+    | None ->
+        None
+    | Some (Filesystem proj_root) -> Some (Project.Git_project, proj_root)
   in
   scanning_roots
   |> List_.map (fun scanning_root ->
@@ -443,12 +458,33 @@ let get_targets_for_project conf (project_roots : project_roots) =
   in
   (selected_targets, skipped_targets)
 
+let setup_project_roots conf roots =
+  match conf.project_root with
+  | Some (Filesystem _) -> roots
+  | Some (Git_remote { url; checkout_path }) ->
+      Logs.debug (fun m ->
+          m "Sparse cloning %s into %a" url Fpath.pp checkout_path);
+      (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
+      | Ok () -> ()
+      | Error msg ->
+          Logs.err (fun m ->
+              m "Error while sparse cloning %s into %a: %s" url Fpath.pp
+                checkout_path msg);
+          exit 1);
+      Git_wrapper.checkout ~cwd:checkout_path ();
+      Logs.debug (fun m -> m "Sparse cloning done");
+
+      (* all scanning targets must be in the repo or else this would
+         be really weird*)
+      roots
+  | None -> roots
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
 let get_targets conf scanning_roots =
-  scanning_roots
+  scanning_roots |> setup_project_roots conf
   |> group_scanning_roots_by_project conf
   |> List_.map (get_targets_for_project conf)
   |> List.split

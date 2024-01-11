@@ -3,6 +3,12 @@
    regardless of rules or languages.
  *)
 
+(* Git_remote should really be a URI *)
+type git_remote = { url : string; checkout_path : Fpath.t } [@@deriving show]
+
+type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+[@@deriving show]
+
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
@@ -22,7 +28,7 @@ type conf = {
   (* TODO: not used for now *)
   scan_unknown_extensions : bool;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : Fpath.t option;
+  project_root : project_root option;
 }
 [@@deriving show]
 

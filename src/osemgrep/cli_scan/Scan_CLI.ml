@@ -785,6 +785,16 @@ let o_project_root : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_remote : string option Term.t =
+  let info =
+    Arg.info [ "remote" ]
+      ~doc:
+        {|Remote will quickly checkout and scan a remote git repository of
+        the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
+        --pro Incompatible with --project-root|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 let o_ast_caching : bool Term.t =
   H.negatable_flag [ "ast-caching" ] ~neg_options:[ "no-ast-caching" ]
     ~default:default.core_runner_conf.ast_caching
@@ -833,7 +843,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       junit_xml lang ls matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
       no_secrets_validation nosem optimizations oss output pattern pro
-      project_root pro_intrafile pro_lang registry_caching replacement
+      project_root pro_intrafile pro_lang registry_caching remote replacement
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
@@ -841,16 +851,23 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-    let git_repo_target =
-      let is_git_repo target =
-        target |> Git_wrapper.remote_repo_name |> Option.is_some
+    let target_roots = target_roots |> Fpath_.of_strings in
+    let project_root =
+      let is_git_repo remote =
+        remote |> Git_wrapper.remote_repo_name |> Option.is_some
       in
-      match target_roots with
-      | [ target ] when is_git_repo target -> Some target
-      | target :: _ when is_git_repo target ->
+      match (project_root, remote) with
+      | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
+      | None, Some url when is_git_repo url ->
+          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          Some (Find_targets.Git_remote { url; checkout_path })
+      | None, Some _url ->
           Error.abort
-            "Multiple targets are not supported when scanning a remote git \
-             repository"
+            "Remote arg is not a valid git remote, expected something like \
+             http[s]://website.com/.../<REPONAME>.git"
+      | Some _, Some _ ->
+          Error.abort
+            "Cannot use both --project-root and --remote at the same time"
       | _ -> None
     in
     let output_format =
@@ -932,36 +949,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
                 code_config;
                 secrets_config;
                 supply_chain_config;
-                git_remote = None;
               }
-    in
-    let engine_type, target_roots =
-      let get_git_remote_config url analysis =
-        Logs.app (fun m ->
-            m
-              "Note that PRO interfile is turned off for remote git \
-               repositories");
-        Logs.app (fun m ->
-            m "Using OSS engine with remote git repository %s" url);
-        let git_remote = Some url in
-        Engine_type.PRO
-          {
-            extra_languages = false;
-            analysis;
-            code_config = None;
-            secrets_config = None;
-            supply_chain_config = None;
-            git_remote;
-          }
-      in
-      match (git_repo_target, engine_type) with
-      | Some url, Engine_type.OSS ->
-          (get_git_remote_config url Engine_type.Interfile, [ Fpath.v "." ])
-      | Some url, Engine_type.PRO { analysis; _ } ->
-          (get_git_remote_config url analysis, [ Fpath.v "." ])
-      | None, _ ->
-          let target_roots = List.map Fpath.v target_roots in
-          (engine_type, target_roots)
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
@@ -1030,7 +1018,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_targets.project_root = Option.map Fpath.v project_root;
+        Find_targets.project_root;
         exclude = exclude_;
         include_;
         baseline_commit;
@@ -1184,8 +1172,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
     $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
     $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
-    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
+    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version

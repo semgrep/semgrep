@@ -100,6 +100,15 @@ let (hook_pro_scan_func_for_osemgrep :
       ref) =
   ref None
 
+(* TODO Explain what this is *)
+let (hook_pro_git_remote_scan_setup :
+      (Find_targets.git_remote ->
+      scan_func_for_osemgrep ->
+      scan_func_for_osemgrep)
+      option
+      ref) =
+  ref None
+
 (*************************************************************************)
 (* Extract mode *)
 (*************************************************************************)

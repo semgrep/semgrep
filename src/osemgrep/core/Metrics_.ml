@@ -279,10 +279,7 @@ let add_engine_type (engine_type : Engine_type.t) =
           secrets_config;
           code_config;
           supply_chain_config;
-          git_remote;
         } ->
-        (* TODO report this? *)
-        ignore git_remote;
         {
           analysis_type =
             (match analysis with

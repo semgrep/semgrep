@@ -153,16 +153,13 @@ let remote_repo_name url =
 let temporary_remote_checkout_path url =
   let name =
     match remote_repo_name url with
-    | Some name -> Some name
-    | None -> None
+    | Some name -> name
+    | None -> failwith "Could not get remote repo name"
   in
-  Option.map
-    (fun name ->
-      let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
-      let name = rand_prefix ^ "_" ^ name in
-      let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
-      Fpath.add_seg tmp_dir name)
-    name
+  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
+  let name = rand_prefix ^ "_" ^ name in
+  let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
+  Fpath.add_seg tmp_dir name
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -234,6 +231,22 @@ let checkout ?cwd ?git_ref () =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Could not checkout git ref")
 
+(* Why these options?
+ * --depth=1: only get the most recent commit
+ *  --filter=blob:none: don't get any blobs (file contents) from the repo
+ *  --sparse: only get the files we need
+ *  --no-checkout: don't checkout the files, we'll do that later
+ * See https://github.blog/2020-01-17-bring-your-monorepo-down-to-size-with-sparse-checkout/#sparse-checkout-and-partial-clones
+ * for a better explanation
+
+   The following benchmarks were run scanning the django repo
+   for a bash rule
+   Mini benchmarks:
+   clone then scan repo for : 32.9s
+   depth=1 then scan repo for a bash rule: 4.8s
+   using sparse shallow checkout + sparse checkout adding files
+   determined during the targeting step: 1.09s
+ *)
 let sparse_shallow_filtered_checkout url path =
   let path = Fpath.to_string path in
   let cmd =
@@ -252,6 +265,10 @@ let sparse_shallow_filtered_checkout url path =
   | Ok (`Exited 0) -> Ok ()
   | _ -> Error "Could not clone git repo"
 
+(* To be used in combination with [sparse_shallow_filtered_checkout]
+   This function will add the files we want to actually pull the blobs for
+   and checkout the files we want.
+*)
 let sparse_checkout_add ?cwd folders =
   let folders = List_.map Fpath.to_string folders in
   let cmd =

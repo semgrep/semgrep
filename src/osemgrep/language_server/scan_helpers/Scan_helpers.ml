@@ -75,7 +75,6 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
                       secrets_config = None;
                       code_config = Some ();
                       supply_chain_config = None;
-                      git_remote = None;
                     })
           | _ ->
               (* TODO: improve this error message depending on what the
