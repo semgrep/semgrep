@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        shell: bash  # Windows GHA runners use pwsh (Powershell) as the default shell. We want to use bash for consistency.
+        shell: bash  # Windows GHA runners default to pwsh (PowerShell). We want to use bash to be consistent with our other workflows.
     steps:
     - name: Configure git
       run: |
@@ -58,16 +58,11 @@ jobs:
 
         # We have to strip rpath from the tree-sitter projects because there's no equivalent in Windows
         # TODO: investigate removing rpath from the tree-sitter projects
-        for filename in $(find ./languages/ -name dune); do
-          grep -v rpath $filename > $filename.new
-          mv $filename.new $filename
-        done
-        for filename in $(find ./libs/ocaml-tree-sitter-core/ -name dune); do
+        for filename in $(find ./languages/ ./libs/ocaml-tree-sitter-core/ -name dune); do
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
 
-        # TODO: build everything once osemgrep_cli_interactive has been moved to pro
         opam exec -- dune build _build/install/default/bin/semgrep-core
 
         # TODO: figure out how to statically link in cygwin / windows (use opam for inspiration?)
