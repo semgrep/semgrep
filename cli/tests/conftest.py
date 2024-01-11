@@ -351,6 +351,10 @@ def _run_semgrep(
 
     if force_color:
         env["SEMGREP_FORCE_COLOR"] = "true"
+        # NOTE: We should also apply the known color flags to the env
+        env["FORCE_COLOR"] = "1"
+        if "NO_COLOR" in env:
+            del env["NO_COLOR"]
 
     if "SEMGREP_USER_AGENT_APPEND" not in env:
         env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
