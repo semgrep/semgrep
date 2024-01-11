@@ -622,12 +622,7 @@ def print_text_output(
                 " ",
                 (f"{wrapped_text}", "bold"),
             )
-            if (
-                last_file == current_file
-                and last_rule_id != rule_match.rule_id
-                and sys.stderr.isatty()
-            ):
-                # Keep legacy behavior for non-tty (for now)
+            if last_file == current_file and last_rule_id != rule_match.rule_id:
                 console.print(
                     " "
                 )  # add a blank line between different rules in the same file
@@ -722,9 +717,7 @@ def print_text_output(
         )
         show_separator = (
             is_same_file
-            and (
-                is_same_rule or not sys.stderr.isatty()
-            )  # Keep legacy behavior for non-tty (for now)
+            and is_same_rule
             and not (dataflow_traces and rule_match.dataflow_trace)
         )
         for line in finding_to_line(
