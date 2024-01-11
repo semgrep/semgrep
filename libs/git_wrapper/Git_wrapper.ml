@@ -248,14 +248,14 @@ let checkout ?cwd ?git_ref () =
  *  --no-checkout: don't checkout the files, we'll do that later
  * See https://github.blog/2020-01-17-bring-your-monorepo-down-to-size-with-sparse-checkout/#sparse-checkout-and-partial-clones
  * for a better explanation
-
-   The following benchmarks were run scanning the django repo
-   for a bash rule
-   Mini benchmarks:
-   clone then scan repo for : 32.9s
-   depth=1 then scan repo for a bash rule: 4.8s
-   using sparse shallow checkout + sparse checkout adding files
-   determined during the targeting step: 1.09s
+ *
+ * The following benchmarks were run scanning the django repo
+ * for a bash rule
+ * Mini benchmarks:
+ * clone then scan repo for : 32.9s
+ * depth=1 then scan repo for a bash rule: 4.8s
+ * using sparse shallow checkout + sparse checkout adding files
+ * determined during the targeting step: 1.09s
  *)
 let sparse_shallow_filtered_checkout (url : Uri.t) path =
   let path = Fpath.to_string path in

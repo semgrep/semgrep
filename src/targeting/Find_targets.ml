@@ -257,18 +257,9 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
                let cwd = Rpath.to_fpath project.path in
                Git_wrapper.ls_files ~cwd ~kinds:file_kinds [ sc_root.fpath ]
                |> List_.map (fun fpath ->
-                      let fpath_relative_to_scan_root =
-                        match Fpath.relativize ~root:sc_root.fpath fpath with
-                        | Some x -> x
-                        | None ->
-                            failwith
-                              (Printf.sprintf "failed to relativize %s to %s"
-                                 !!fpath !!(sc_root.fpath))
-                      in
-                      let ppath =
-                        Ppath.append_fpath sc_root.ppath
-                          fpath_relative_to_scan_root
-                      in
+                      (* No need to relativize here since ls-files will be
+                         relative to cwd (project_root) anyways *)
+                      let ppath = Ppath.append_fpath sc_root.ppath fpath in
                       ({ fpath; ppath } : Fppath.t)))
         |> Fppath_set.of_list)
   | Gitignore_project
