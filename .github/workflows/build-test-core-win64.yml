@@ -32,6 +32,7 @@ jobs:
         opam-repositories: |
           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
+        opam-local-packages: dont_install_local_packages.opam
     - name: Build tree-sitter
       env:
         CC: x86_64-w64-mingw32-gcc
