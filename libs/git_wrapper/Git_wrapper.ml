@@ -93,8 +93,8 @@ exception Error of string
  *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
-let _remote_repo_name_re = {|^http.*\/(.*)\.git$|}
-let remote_repo_name_re = Pcre_.regexp _remote_repo_name_re
+let remote_repo_name_pat = {|^http.*\/(.*)\.git$|}
+let remote_repo_name_re = Pcre_.regexp _remote_repo_name_pat
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
