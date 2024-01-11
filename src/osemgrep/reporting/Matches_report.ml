@@ -310,7 +310,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       in
       pp_styled_severity cur.extra.severity;
       let lines =
-        wrap ~indent:rule_indent_size ~width:(text_width - 4)
+        wrap ~indent:rule_indent_size ~width:text_width
           (Rule_ID.to_string cur.check_id)
       in
       match lines with
