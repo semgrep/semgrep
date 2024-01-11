@@ -24,12 +24,12 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
+
        eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
+
        taint-test
           unsafe use of danger
 

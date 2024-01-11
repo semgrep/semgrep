@@ -24,12 +24,12 @@ BUILDKITE="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https://rando
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
+
        eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
+
        taint-test
           unsafe use of danger
 
@@ -75,8 +75,7 @@ BUILDKITE="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https://rando
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment buildkite, triggering event is
-                pull_request
+  environment - running in environment buildkite, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)

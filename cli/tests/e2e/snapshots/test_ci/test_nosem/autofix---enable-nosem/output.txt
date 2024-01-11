@@ -24,12 +24,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
+
        eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
+
        taint-test
           unsafe use of danger
 
