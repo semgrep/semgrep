@@ -1819,27 +1819,8 @@ and function_definition env fdef =
 (*****************************************************************************)
 
 let function_definition lang ?ctx def =
-  let is_method =
-    match (lang, fst def.G.fkind) with
-    (* TODO handle class methods and static methods *)
-    | Lang.Python, G.Method -> true
-    | _ -> false
-  in
   let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
-  (* TODO add the self or class parameter to the env *)
-  let params =
-    let ps =
-      if is_method then
-        let lb, ps', rb = def.G.fparams in
-        ( lb,
-          (match ps' with
-          | [] -> []
-          | _ :: ps'' -> ps''),
-          rb )
-      else def.G.fparams
-    in
-    parameters env ps
-  in
+  let params = parameters env def.G.fparams in
   let body = function_body env def.G.fbody in
   (params, body)
 

@@ -374,8 +374,8 @@ end)
 
 type signature = Findings.t
 
-let show_signature s =
-  s |> Findings.to_seq |> List.of_seq |> List.map _show_finding
+let _show_signature s =
+  s |> Findings.to_seq |> List.of_seq |> List_.map _show_finding
   |> [%show: string list]
 
 (*****************************************************************************)
