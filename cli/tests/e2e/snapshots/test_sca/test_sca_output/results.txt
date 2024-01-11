@@ -4,8 +4,7 @@
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
 
-    targets/dependency_aware/monorepo/webapp1/app.js with lockfile
-  targets/dependency_aware/monorepo/webapp1/yarn.lock
+    targets/dependency_aware/monorepo/webapp1/app.js with lockfile targets/dependency_aware/monorepo/webapp1/yarn.lock
        bad-lib - CVE-FOO-BAR
           Severity: HIGH
           oh no

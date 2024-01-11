@@ -631,7 +631,7 @@ def print_text_output(
 
             severity = (
                 (
-                    f"{RULE_INDENT * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
+                    f"{BASE_INDENT * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
                 )
                 if "sca_info" in rule_match.extra
                 and "sca-severity" in rule_match.metadata
