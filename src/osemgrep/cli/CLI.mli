@@ -10,3 +10,6 @@
    (unless you used --debug).
 *)
 val main : Cap.all_caps -> string array -> Exit_code.t
+
+(* set in semgrep-pro *)
+val hook_semgrep_interactive : (string array -> Exit_code.t) ref
