@@ -18,8 +18,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is
-                pull_request
+  environment - running in environment github-actions, triggering event is pull_request
 Fixing git state for github action pull request
 Not on head ref: <MASKED>; checking that out now.
 

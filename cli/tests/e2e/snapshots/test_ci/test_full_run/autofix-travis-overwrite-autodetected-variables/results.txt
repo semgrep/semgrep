@@ -75,8 +75,7 @@ CI="true" TRAVIS="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment travis-ci, triggering event is
-                pull_request
+  environment - running in environment travis-ci, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)

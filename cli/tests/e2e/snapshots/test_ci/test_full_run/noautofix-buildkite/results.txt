@@ -75,8 +75,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment buildkite, triggering event is
-                pull_request
+  environment - running in environment buildkite, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)
