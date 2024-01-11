@@ -860,6 +860,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
       | None, Some url when is_git_repo url ->
           let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })
       | None, Some _url ->
           Error.abort

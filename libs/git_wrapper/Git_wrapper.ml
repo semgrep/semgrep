@@ -94,7 +94,7 @@ exception Error of string
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
 let remote_repo_name_pat = {|^http.*\/(.*)\.git$|}
-let remote_repo_name_re = Pcre_.regexp _remote_repo_name_pat
+let remote_repo_name_re = Pcre_.regexp remote_repo_name_pat
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -247,7 +247,7 @@ let checkout ?cwd ?git_ref () =
    using sparse shallow checkout + sparse checkout adding files
    determined during the targeting step: 1.09s
  *)
-let sparse_shallow_filtered_checkout url path =
+let sparse_shallow_filtered_checkout (url : Uri.t) path =
   let path = Fpath.to_string path in
   let cmd =
     ( git,
@@ -257,7 +257,7 @@ let sparse_shallow_filtered_checkout url path =
         "--filter=blob:none";
         "--sparse";
         "--no-checkout";
-        url;
+        Uri.to_string url;
         path;
       ] )
   in

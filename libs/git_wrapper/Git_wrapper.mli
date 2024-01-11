@@ -87,7 +87,7 @@ val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
 
 val checkout : ?cwd:Fpath.t -> ?git_ref:string -> unit -> unit
 (** Checkout the given optional ref *)
-val sparse_shallow_filtered_checkout : string -> Fpath.t -> (unit, string) result
+val sparse_shallow_filtered_checkout : Uri.t -> Fpath.t -> (unit, string) result
 (** Checkout the given commit in the given directory, but only
     the files that are tracked by git and that are not in the
     sparse-checkout config.

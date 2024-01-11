@@ -4,7 +4,7 @@
  *)
 
 (* Git_remote should really be a URI *)
-type git_remote = { url : string; checkout_path : Fpath.t } [@@deriving show]
+type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
 
 type project_root = Git_remote of git_remote | Filesystem of Fpath.t
 [@@deriving show]

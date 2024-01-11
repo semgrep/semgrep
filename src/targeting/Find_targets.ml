@@ -43,7 +43,7 @@ module Fppath_set = Set.Make (Fppath)
          and have the exclusions apply only to the files that aren't tracked.
 *)
 
-type git_remote = { url : string; checkout_path : Fpath.t } [@@deriving show]
+type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
 
 type project_root = Git_remote of git_remote | Filesystem of Fpath.t
 [@@deriving show]
@@ -463,12 +463,12 @@ let setup_project_roots conf roots =
   | Some (Filesystem _) -> roots
   | Some (Git_remote { url; checkout_path }) ->
       Logs.debug (fun m ->
-          m "Sparse cloning %s into %a" url Fpath.pp checkout_path);
+          m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
       (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
       | Ok () -> ()
       | Error msg ->
           Logs.err (fun m ->
-              m "Error while sparse cloning %s into %a: %s" url Fpath.pp
+              m "Error while sparse cloning %a into %a: %s" Uri.pp url Fpath.pp
                 checkout_path msg);
           exit 1);
       Git_wrapper.checkout ~cwd:checkout_path ();
