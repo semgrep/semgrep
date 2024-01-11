@@ -88,6 +88,9 @@
     ],
     "interfileLanguagesUsed": [],
     "numFindings": 1,
+    "numFindingsByProduct": {
+      "code": 1
+    },
     "numIgnored": 0,
     "ruleHashesWithFindings": {
       "7d0af7d79e44c9bafdba5c83bacbb44c5b663c3c3efe1eec1676df5158303eb4": 1

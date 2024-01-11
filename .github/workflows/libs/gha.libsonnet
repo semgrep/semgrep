@@ -19,6 +19,12 @@
     workflow_dispatch: null,
     workflow_call: null,
   },
+  write_permissions: {
+    // needed when we want to upload data to s3
+    'id-token': 'write',
+    // needed when the job modifies the repository
+    contents: 'write',
+  },
   // Why this is not the default? GHA ...
   speedy_checkout_step: {
     name: 'Make checkout speedy',
@@ -37,5 +43,11 @@
   dependabot_guard: {
     'if': "(github.actor != 'dependabot[bot]')",
   },
-
+  # Git's filename limit is 4096 characters, except on Windows when Git is compiled with msys.
+  # It uses an older version of the Windows API and there's a limit of 260 characters for a filename.
+  # You can force the longer limit (and avoid git issues) by enabling core.longpaths in your git config.
+  # More info: https://stackoverflow.com/a/22575737
+  git_longpaths: {
+    run: 'git config --system core.longpaths true'
+  },
 }

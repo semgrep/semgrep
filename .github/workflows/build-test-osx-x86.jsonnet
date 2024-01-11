@@ -10,7 +10,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // Helpers
 // ----------------------------------------------------------------------------
 
-// this already comes with python installed so no need to
+// See https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
+// This already comes with Python installed so no need to
 // have a setup_python_step like in build-test-osx-arm64.jsonnet
 local runs_on = 'macos-12';
 
@@ -121,10 +122,9 @@ local cache_opam_step = {
   with: {
     path: '~/.opam',
     //TODO: we should add the md5sum of opam.lock as part of the key
-    key: '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-${{ github.run_id }}',
-    //TODO: what is restore-keys needed for? Why we don't suffix it with
-    // the github.run_id?
-    'restore-keys': '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps\n',
+    key: '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps',
+    //TODO: what is restore-keys needed for?
+    'restore-keys': '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps',
   },
 };
 
@@ -153,17 +153,20 @@ local build_core_job = {
     },
     {
       name: 'Compile semgrep',
+      run: 'opam exec -- make core',
+    },
+    {
+      name: 'Make artifact',
       run: |||
-        opam exec -- make core
-        mkdir -p artifacts
-        cp ./bin/semgrep-core artifacts
-        zip -r artifacts.zip artifacts
+        mkdir artifacts
+        cp ./bin/semgrep-core artifacts/
+        tar czf artifacts.tgz artifacts
       |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
       with: {
-        path: 'artifacts.zip',
+        path: 'artifacts.tgz',
         name: artifact_name,
       },
     },
@@ -185,7 +188,7 @@ local build_wheels_job = {
     },
     {
       run: |||
-        unzip artifacts.zip
+        tar xvfz artifacts.tgz
         cp artifacts/semgrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
       |||,

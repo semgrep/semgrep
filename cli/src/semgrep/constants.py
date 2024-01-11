@@ -2,6 +2,8 @@ import re
 from enum import auto
 from enum import Enum
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+
 RULES_KEY = "rules"
 MISSED_KEY = "missed"  # The number of Pro rules missed out on
 ID_KEY = "id"
@@ -127,3 +129,12 @@ class Colors(Enum):
     # these colors ignore user's terminal theme
     forced_black = 16  # #000
     forced_white = 231  # #FFF
+
+
+# Maps from product names used in our ATD files to product names
+# used in as command line options that users are more familiar with.
+USER_FRIENDLY_PRODUCT_NAMES = {
+    out.Product(out.SAST()): "code",
+    out.Product(out.SCA()): "supply-chain",
+    out.Product(out.Secrets()): "secrets",
+}

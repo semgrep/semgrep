@@ -256,64 +256,65 @@ class SarifFormatter(BaseFormatter):
         return fix_sarif
 
     @staticmethod
-    def _rule_to_sarif(rule: Rule) -> Mapping[str, Any]:
+    def _rule_to_sarif(rule: Rule, hide_nudge: bool) -> Mapping[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
-        security_severity = rule.metadata.get("security-severity")
-
-        if security_severity is not None:
-            rule_json = {
-                "id": rule.id,
-                "name": rule.id,
-                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
-                "fullDescription": {"text": rule.message},
-                "defaultConfiguration": {"level": severity},
-                "properties": {
-                    "precision": "very-high",
-                    "tags": tags,
-                    "security-severity": security_severity,
-                },
-            }
-        else:
-            rule_json = {
-                "id": rule.id,
-                "name": rule.id,
-                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
-                "fullDescription": {"text": rule.message},
-                "defaultConfiguration": {"level": severity},
-                "properties": {"precision": "very-high", "tags": tags},
-            }
 
         rule_url = rule.metadata.get("source")
-        references = []
-
-        if rule_url is not None:
-            rule_json["helpUri"] = rule_url
-            references.append(f"[Semgrep Rule]({rule_url})")
-
-        if rule.metadata.get("references"):
-            ref = rule.metadata["references"]
-            # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
-            references.extend(
-                [f"[{r}]({r})" for r in ref]
-                if isinstance(ref, list)
-                else [f"[{ref}]({ref})"]
-            )
-        if references:
-            r = "".join(
-                [f" - {references_markdown}\n" for references_markdown in references]
-            )
-            rule_json["help"] = {
-                "text": rule.message,
-                "markdown": f"{rule.message}\n\n<b>References:</b>\n{r}",
-            }
         rule_short_description = rule.metadata.get("shortDescription")
+        rule_help_text = rule.metadata.get("help") or rule.message or ""
+        rule_short_description = rule.metadata.get("shortDescription")
+        security_severity = rule.metadata.get("security-severity")
+
+        nudge_base = "💎 Enable cross-file analysis and Pro rules for free at"
+        nudge_url = "sg.run/pro"
+        nudge_plaintext = f"{nudge_base} {nudge_url}"
+        nudge_md = f"#### {nudge_base} <a href='https://{nudge_url}'>{nudge_url}</a>"
+
+        properties = {
+            "precision": "very-high",
+            "tags": tags,
+        }
+
+        if security_severity is not None:
+            properties["security-severity"] = security_severity
+
+        rule_json = {
+            "id": rule.id,
+            "name": rule.id,
+            "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
+            "fullDescription": {"text": rule.message},
+            "defaultConfiguration": {"level": severity},
+            "properties": properties,
+        }
+
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
 
-        rule_help_text = rule.metadata.get("help")
-        if rule_help_text:
-            rule_json["help"] = {"text": rule_help_text}
+        if rule_url is not None:
+            rule_json["helpUri"] = rule_url
+
+        semgrep_reference = f"[Semgrep Rule]({rule_url})" if rule_url else None
+        references = [semgrep_reference] if semgrep_reference else []
+        other_references = rule.metadata.get("references") or []
+        # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
+        references.extend(
+            [f"[{r}]({r})" for r in other_references]
+            if isinstance(other_references, list)
+            else [f"[{other_references}]({other_references})"]
+        )
+        references_joined = "".join(f" - {ref}\n" for ref in references)
+        references_markdown = (
+            ""
+            if not references_joined
+            else f"\n\n<b>References:</b>\n{references_joined}"
+        )
+        text_suffix = "" if hide_nudge else f"\n{nudge_plaintext}"
+        markdown_interstitial = "" if hide_nudge else f"\n\n{nudge_md}"
+        rule_json["help"] = {
+            "text": f"{rule_help_text}{text_suffix}",
+            "markdown": f"{rule_help_text}{markdown_interstitial}{references_markdown}",
+        }
 
         return rule_json
 
@@ -413,6 +414,24 @@ class SarifFormatter(BaseFormatter):
         - Full specification is at:
             https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
         """
+        engine_label = (
+            cli_output_extra.engine_requested.value.to_json()
+            if cli_output_extra.engine_requested
+            else "OSS"
+        )
+        """
+        Exclude Semgrep notice for users who
+        1. log in
+        2. use pro engine
+        3. are not using registry
+        """
+        is_pro = (
+            cli_output_extra.engine_requested
+            and cli_output_extra.engine_requested == out.EngineKind(out.PRO())
+        )
+        is_using_registry = extra.get("is_using_registry", False)
+        is_logged_in = extra.get("is_logged_in", False)
+        hide_nudge = is_logged_in or is_pro or not is_using_registry
 
         output_dict = {
             "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
@@ -421,9 +440,11 @@ class SarifFormatter(BaseFormatter):
                 {
                     "tool": {
                         "driver": {
-                            "name": "semgrep",
+                            "name": f"Semgrep {engine_label}",
                             "semanticVersion": __VERSION__,
-                            "rules": [self._rule_to_sarif(rule) for rule in rules],
+                            "rules": [
+                                self._rule_to_sarif(rule, hide_nudge) for rule in rules
+                            ],
                         }
                     },
                     "results": [
