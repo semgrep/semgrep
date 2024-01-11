@@ -92,9 +92,8 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
-  Failed to parse [bold]Pipfile.lock[/bold] at [bold]2:1[/bold] - expected one
-  of ['"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false',
-  'null', 'true', '{']
+  Failed to parse [bold]Pipfile.lock[/bold] at [bold]2:1[/bold] - expected one of ['"',
+  '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']
   2 | invalid
       ^
 
