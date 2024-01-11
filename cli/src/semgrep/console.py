@@ -97,7 +97,7 @@ class AutoIndentingConsole(Console):
         super().print(Padding.indent(Group(*args), indent), **kwargs)
 
 
-MAX_WIDTH = 160
+MAX_WIDTH = 120
 
 console = AutoIndentingConsole(highlighter=None)
 console.width = min(console.width, MAX_WIDTH)
