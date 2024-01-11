@@ -49,8 +49,6 @@ jobs:
         opam depext conf-pkg-config conf-gmp conf-libpcre
         opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
     - name: Build semgrep-core
-      env:
-        ARTIFACT_PATH: d:/a/_temp/ocaml-build-artifacts.tgz
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
@@ -64,19 +62,20 @@ jobs:
         done
 
         opam exec -- dune build _build/install/default/bin/semgrep-core.exe
-
+    - name: Test semgrep-core
+      run: |
+        echo 'print(\"foo\")' > test.py
+        _build/install/default/bin/semgrep-core.exe -e 'print($X)' -lang python -json test.py
+    - name: Package semgrep-core
+      run: |
         # TODO: figure out how to statically link in cygwin / windows (use opam for inspiration?)
-        tar czvf ${ARTIFACT_PATH} _build/install/default/bin/semgrep-core.exe \
+        tar czvf ocaml-build-artifacts.tgz _build/install/default/bin/semgrep-core.exe \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll
-    - name: Test semgrep-core
-      run: |
-        echo 'print(\"foo\")' > test.py
-        _build/install/default/bin/semgrep-core.exe -e 'print($X)' -lang python -json test.py
     - uses: actions/upload-artifact@v3
       with:
-        path: d:/a/_temp/ocaml-build-artifacts.tgz
+        path: ocaml-build-artifacts.tgz
         name: ocaml-build-artifacts-release-w64
