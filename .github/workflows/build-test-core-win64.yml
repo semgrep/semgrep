@@ -52,7 +52,7 @@ jobs:
         opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
     - name: Build semgrep-core
       env:
-        ARTIFACT_PATH: ${{runner.temp}}/ocaml-build-artifacts.tgz
+        ARTIFACT_PATH: d:/a/_temp/ocaml-build-artifacts.tgz
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
@@ -85,5 +85,5 @@ jobs:
         _build/default/src/main/Main.exe -e 'print($X)' -lang python -json test.py
     - uses: actions/upload-artifact@v3
       with:
-        path: ${{runner.temp}}/ocaml-build-artifacts.tgz
+        path: d:/a/_temp/ocaml-build-artifacts.tgz
         name: ocaml-build-artifacts-release-w64
