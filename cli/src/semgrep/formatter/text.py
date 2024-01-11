@@ -1,3 +1,4 @@
+import sys
 import textwrap
 from contextlib import contextmanager
 from itertools import groupby
@@ -40,11 +41,12 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RULE_INDENT = 8  # NOTE: There are 2 leading spaces not included in this number
-BASE_INDENT = 10
-FINDINGS_INDENT_DEPTH = 16
+RULE_INDENT = 5  # NOTE: There are 2 leading spaces not included in this number
+BASE_INDENT = 8
+FINDINGS_INDENT_DEPTH = 14
 BASE_WIDTH = console.width
-MAX_TEXT_WIDTH = BASE_WIDTH - (FINDINGS_INDENT_DEPTH + 6)
+MAX_TEXT_WIDTH = BASE_WIDTH - (FINDINGS_INDENT_DEPTH + 2)
+
 
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.SCA()), "unreachable"): "Unreachable Supply Chain Finding",
@@ -62,11 +64,19 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     ): "Secrets Validation Error",
 }
 
-SEVERITY_MAP = {
-    out.Error.to_json(): ("red", "❯❯❱"),
-    out.Warning.to_json(): ("magenta", " ❯❱"),
-    out.Info.to_json(): ("green", "  ❱"),
-}
+SEVERITY_MAP = (
+    {
+        out.Error.to_json(): ("red", "❯❯❱"),
+        out.Warning.to_json(): ("magenta", " ❯❱"),
+        out.Info.to_json(): ("green", "  ❱"),
+    }
+    if sys.stderr.isatty()
+    else {
+        out.Error.to_json(): ("", "   "),
+        out.Warning.to_json(): ("", "   "),
+        out.Info.to_json(): ("", "   "),
+    }
+)
 
 
 def to_severity_indicator(rule_match: RuleMatch) -> Tuple[str, str]:
@@ -179,6 +189,8 @@ def format_lines(
             per_line_max_chars_limit, max(len(line) for line in lines)
         )
         seperator_fill_count = longest_line_len - 1
+        # TODO: re-enable dynamic size in a separate PR to avoid too many test changes
+        seperator_fill_count = 40 if 1 else seperator_fill_count  # dummy if statement
         yield Text.assemble(
             f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * seperator_fill_count
         )
@@ -609,7 +621,12 @@ def print_text_output(
                 (sev_icon, sev_color),
                 (f" {wrapped_text}", "bold"),
             )
-            if last_file == current_file and last_rule_id != rule_match.rule_id:
+            if (
+                last_file == current_file
+                and last_rule_id != rule_match.rule_id
+                and sys.stderr.isatty()
+            ):
+                # Keep legacy behavior for non-tty (for now)
                 console.print(
                     " "
                 )  # add a blank line between different rules in the same file
@@ -636,22 +653,22 @@ def print_text_output(
             console.print(f"{severity}{message_text}\n{shortlink_text}")
 
         if fix is not None:
-            autofix_tag = "▶▶┆ Autofix ▶ "
+            autofix_tag = "▶▶┆ Autofix ▶ "  # 13 chars for autofix tag
             wrapped_fix = (
                 textwrap.fill(
                     textwrap.dedent(
                         "".join(l.strip() for l in fix.splitlines(keepends=True))
                     ),
                     width=BASE_WIDTH
-                    - (RULE_INDENT + 20),  # 13 for autofix tag, 7 for indent
+                    - (BASE_INDENT + 4 + 13),  # 4 for line number, 13 for autofix tag
                     initial_indent="",
-                    subsequent_indent=(RULE_INDENT + 7) * " ",
+                    subsequent_indent=(BASE_INDENT + 4) * " ",  # 4 for line number
                 )
                 if fix
                 else ""  # keep as empty string if fix is empty string
             )
             fix_text = Text.assemble(
-                (11) * " ",
+                (BASE_INDENT + 1) * " ",
                 (autofix_tag, "green"),
                 wrapped_fix if wrapped_fix else ("delete", "red"),
             )
@@ -702,6 +719,13 @@ def print_text_output(
         is_same_rule = (
             next_rule_match.rule_id == rule_match.rule_id if next_rule_match else False
         )
+        show_separator = (
+            is_same_file
+            and (
+                is_same_rule or not sys.stderr.isatty()
+            )  # Keep legacy behavior for non-tty (for now)
+            and not (dataflow_traces and rule_match.dataflow_trace)
+        )
         for line in finding_to_line(
             rule_match,
             color_output,
@@ -710,9 +734,7 @@ def print_text_output(
             # if we have dataflow traces on, then we should print the separator,
             # because otherwise it is easy to mistake taint traces as belonging
             # to a different finding
-            is_same_file
-            and is_same_rule
-            and not (dataflow_traces and rule_match.dataflow_trace),
+            show_separator,
         ):
             console.print(line)
 
@@ -807,9 +829,12 @@ class TextFormatter(BaseFormatter):
                 if not matches:
                     continue
                 console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
+
+                color_output = extra.get("color_output", False)
+
                 print_text_output(
                     matches,
-                    extra.get("color_output", False),
+                    color_output,
                     extra["per_finding_max_lines_limit"],
                     extra["per_line_max_chars_limit"],
                     extra["dataflow_traces"],

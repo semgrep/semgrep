@@ -101,4 +101,3 @@ class AutoIndentingConsole(Console):
 MAX_WIDTH = 120
 terminal_width = min(MAX_WIDTH, get_terminal_size((MAX_WIDTH, 1))[0])
 console = AutoIndentingConsole(highlighter=None, width=terminal_width)
-# console.width = min(console.width, MAX_WIDTH)
