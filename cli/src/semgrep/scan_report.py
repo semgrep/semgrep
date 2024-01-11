@@ -211,12 +211,9 @@ def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
         _print_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
-    _print_tables(
-        [
-            sca_plan.table_by_ecosystem(),
-            sca_plan.table_by_sca_analysis(),
-        ]
-    )
+    _print_tables([sca_plan.table_by_ecosystem()])
+    console.print("\n")  # space intentional to force second table to be on its own line
+    _print_tables([sca_plan.table_by_sca_analysis()])
 
 
 def _print_detailed_sca_table(
