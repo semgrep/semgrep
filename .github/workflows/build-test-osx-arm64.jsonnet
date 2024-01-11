@@ -69,15 +69,15 @@ local build_core_job = {
     {
       name: 'Make artifact',
       run: |||
-        mkdir -p artifacts
-        cp ./bin/semgrep-core artifacts
-        zip -r artifacts.zip artifacts
+        mkdir artifacts
+        cp ./bin/semgrep-core artifacts/
+        tar czf artifacts.tgz artifacts
       |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
       with: {
-        path: 'artifacts.zip',
+        path: 'artifacts.tgz',
         name: artifact_name,
       },
     },
@@ -103,7 +103,7 @@ local build_wheels_job = {
     // the --plat-name is macosx_11_0_arm64 here!
     {
       run: |||
-        unzip artifacts.zip
+        tar xvfz artifacts.tgz
         cp artifacts/semgrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
       |||,
