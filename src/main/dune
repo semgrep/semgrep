@@ -28,7 +28,7 @@
 (rule
  (targets flags.sexp)
  (enabled_if (= %{os_type} Win32))
- (action (write-file %{targets} "( :standard -ccopt -static )")))
+ (action (write-file %{targets} "( :standard )")))
 
 (install
  (package semgrep)
