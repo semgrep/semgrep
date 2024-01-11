@@ -29,23 +29,25 @@ jobs:
           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
         opam-local-packages: dont_install_local_packages.opam  # bogus filename to prevent the action from attempting to install anything (we want deps only)
-    - name: Build tree-sitter
-      env:
-        CC: x86_64-w64-mingw32-gcc
-      run: |
-        cd libs/ocaml-tree-sitter-core
-        ./configure
-        ./scripts/download-tree-sitter --lazy
-        prefix="$(pwd)/tree-sitter"
-        cd downloads/tree-sitter
-        make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
-        make PREFIX="$prefix" install
-    # - name: Cache opam switch packages
-    #   uses: actions/cache@v3
-    #   with:
-    #     key: opam-switch-windows
-    #     path: |
-    #       _opam/.opam-switch
+    # - name: Build tree-sitter
+    #   env:
+    #     CC: x86_64-w64-mingw32-gcc
+    #   run: |
+    #     cd libs/ocaml-tree-sitter-core
+    #     ./configure
+    #     ./scripts/download-tree-sitter --lazy
+    #     prefix="$(pwd)/tree-sitter"
+    #     cd downloads/tree-sitter
+    #     make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
+    #     make PREFIX="$prefix" install
+    - name: Cache opam switch packages
+      uses: actions/cache@v3
+      with:
+        key: opam-${{ runner.os }}-4.14-${{ hashFiles('semgrep.opam') }}
+        restore-keys: |
+          opam-${{ runner.os }}-4.14
+        path: |
+          _opam/.opam-switch
     # - name: Install deps
     #   run: |
     #     export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
