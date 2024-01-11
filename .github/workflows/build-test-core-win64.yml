@@ -23,7 +23,6 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: true
-        path: checkout
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: "4.14"
@@ -32,7 +31,7 @@ jobs:
         opam-repositories: |
           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
-        opam-local-packages: dont_install_local_packages.opam
+        opam-local-packages: dont_install_local_packages.opam  # bogus filename to prevent the action from attempting to install anything (we want deps only)
     - name: Build tree-sitter
       env:
         CC: x86_64-w64-mingw32-gcc
