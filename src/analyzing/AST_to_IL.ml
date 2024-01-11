@@ -1825,21 +1825,19 @@ let function_definition lang ?ctx def =
     | Lang.Python, G.Method -> true
     | _ -> false
   in
-  logger#trace "is_method: %s" (if is_method then "true" else "false");
   let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
   (* TODO add the self or class parameter to the env *)
-  logger#trace "def parameters: %s" (G.show_parameters def.G.fparams);
   let params =
     let ps =
       if is_method then
         let lb, ps', rb = def.G.fparams in
         ( lb,
-          (try List.tl ps' with
-          | Failure _ -> ps'),
+          (match ps' with
+          | [] -> []
+          | _ :: ps'' -> ps''),
           rb )
       else def.G.fparams
     in
-    logger#trace "generic parameters: %s" (G.show_parameters ps);
     parameters env ps
   in
   let body = function_body env def.G.fbody in
