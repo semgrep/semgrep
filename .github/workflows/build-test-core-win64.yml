@@ -43,7 +43,7 @@ jobs:
     - name: Cache opam switch packages
       uses: actions/cache@v3
       with:
-        key: opam-${{ runner.os }}-4.14-${{ hashFiles('semgrep.opam') }}
+        key: opam-${{ runner.os }}-4.14-${{ hashFiles('semgrep.opam') }}-1
         restore-keys: |
           opam-${{ runner.os }}-4.14
         path: |
@@ -52,11 +52,7 @@ jobs:
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         opam depext conf-pkg-config conf-gmp conf-libpcre
-    #     opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
-    # - name: List switch
-    #   run: |
-    #     ls -lah
-    #     find _opam/.opam-switch
+        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
     # - name: Build semgrep-core
     #   run: |
     #     export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
