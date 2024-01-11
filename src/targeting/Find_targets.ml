@@ -80,9 +80,6 @@ type project_roots = {
   (* scanning roots that belong to the project *)
   scanning_roots : Fppath.t list;
 }
-(*****************************************************************************)
-(* Hooks *)
-(*****************************************************************************)
 
 (*************************************************************************)
 (* Diagnostic *)
@@ -333,7 +330,7 @@ let group_scanning_roots_by_project (conf : conf)
     | Some (Git_remote _)
     | None ->
         None
-    | Some (Filesystem proj_root) -> Some (Project.Git_project, proj_root)
+    | Some (Filesystem proj_root) -> Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
   |> List_.map (fun scanning_root ->
