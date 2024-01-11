@@ -744,7 +744,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   Logs.debug (fun m ->
       m "targets_and_skipped = %s"
         (String.concat ", "
-           (fst targets_and_skipped |> List.map Fpath.to_string)));
+           (fst targets_and_skipped |> List_.map Fpath.to_string)));
   (* step3: let's go *)
   let res =
     run_scan_files
