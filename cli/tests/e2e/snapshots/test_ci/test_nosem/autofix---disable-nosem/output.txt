@@ -14,34 +14,35 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └───────────────────────────┘
 
     foo.py
-       eqeq-bad
-          useless comparison
+      ❯❯❱ eqeq-bad
+            useless comparison
 
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            6┆ a == a  # nosemgrep
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-            9┆ x == x  # nosemgrep
-            ⋮┆----------------------------------------
-           11┆ y == y
-            ⋮┆----------------------------------------
-           13┆ z == z  # nosemgrep
-            ⋮┆----------------------------------------
-       eqeq-four
-          useless comparison to 4
+              4┆ a == a
+              ⋮┆--------------------------------------------------------
+              5┆ a == a
+              ⋮┆--------------------------------------------------------
+              6┆ a == a  # nosemgrep
+              ⋮┆--------------------------------------------------------
+              7┆ a == a
+              ⋮┆--------------------------------------------------------
+              9┆ x == x  # nosemgrep
+              ⋮┆--------------------------------------------------------
+             11┆ y == y
+              ⋮┆--------------------------------------------------------
+             13┆ z == z  # nosemgrep
 
-           18┆ baz == 4  # nosemgrep
-            ⋮┆----------------------------------------
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
-          unsafe use of danger
+      ❯❯❱ eqeq-four
+            useless comparison to 4
 
-           27┆ sink(d2)
+             18┆ baz == 4  # nosemgrep
+              ⋮┆--------------------------------------------------------
+             19┆ baz == 4
+
+       ❯❱ taint-test
+            unsafe use of danger
+
+             27┆ sink(d2)
+
 
 
 ┌──────────────────────────────────┐
@@ -49,10 +50,11 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
-          found a dependency
+      ❯❯❱ supply-chain1
+            found a dependency
 
-            2┆ name = "badlib"
+              2┆ name = "badlib"
+
 
 
 ┌──────────────────────────────┐
@@ -60,14 +62,15 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └──────────────────────────────┘
 
     foo.py
-       eqeq-five
-          useless comparison to 5
+      ❯❯❱ eqeq-five
+            useless comparison to 5
 
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
-            ⋮┆----------------------------------------
-           ▶▶┆ Autofix ▶ (y == 2)
-           16┆ (y == 2)  # nosemgrep
+             ▶▶┆ Autofix ▶ (x == 2)
+             15┆ (x == 2)
+              ⋮┆--------------------------------------------------------
+             ▶▶┆ Autofix ▶ (y == 2)
+             16┆ (y == 2)  # nosemgrep
+
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

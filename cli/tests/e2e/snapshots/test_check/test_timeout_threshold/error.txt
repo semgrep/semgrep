@@ -30,8 +30,8 @@ Files skipped:
    • <all files not listed by `git ls-files` were skipped>
 
   [1m[24mSkipped by .semgrepignore:[0m
-  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
-  defaults)[0m
+  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-
+  code/#understanding-semgrep-defaults)[0m
 
    • <none>
 
@@ -50,7 +50,8 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24mtargets/equivalence/open_redirect.py with rule rules.forcetimeout[0m
+   • [36m[22m[24mtargets/equivalence/open_redirect.py with rule
+     rules.forcetimeout[0m
 
 
 

@@ -14,33 +14,36 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
-          useless comparison
+      ❯❯❱ eqeq-bad
+            useless comparison
 
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-           11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four
-          useless comparison to 4
+              4┆ a == a
+              ⋮┆--------------------------------------------------------
+              5┆ a == a
+              ⋮┆--------------------------------------------------------
+              7┆ a == a
+              ⋮┆--------------------------------------------------------
+             11┆ y == y
 
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       eqeq-bad
-          useless comparison
+      ❯❯❱ eqeq-four
+            useless comparison to 4
 
-           23┆ b == b # Triage ignored by syntactic_id
-            ⋮┆----------------------------------------
-           24┆ a == a # Triage ignored by match_based_id
-            ⋮┆----------------------------------------
-       taint-test
-          unsafe use of danger
+             19┆ baz == 4
 
-           27┆ sink(d2)
+      ❯❯❱ eqeq-bad
+            useless comparison
+
+             23┆ b == b # Triage ignored by
+                 syntactic_id
+              ⋮┆--------------------------------------------------------
+             24┆ a == a # Triage ignored by
+                 match_based_id
+
+       ❯❱ taint-test
+            unsafe use of danger
+
+             27┆ sink(d2)
+
 
 
 ┌──────────────────────────────────┐
@@ -48,10 +51,11 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
-          found a dependency
+      ❯❯❱ supply-chain1
+            found a dependency
 
-            2┆ name = "badlib"
+              2┆ name = "badlib"
+
 
 
 ┌─────────────────────────────┐
@@ -59,11 +63,12 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
-          useless comparison to 5
+      ❯❯❱ eqeq-five
+            useless comparison to 5
 
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
+             ▶▶┆ Autofix ▶ (x == 2)
+             15┆ x == 5
+
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

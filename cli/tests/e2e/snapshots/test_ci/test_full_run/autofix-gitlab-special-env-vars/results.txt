@@ -14,26 +14,27 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
-          useless comparison
+      ❯❯❱ eqeq-bad
+            useless comparison
 
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-           11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four
-          useless comparison to 4
+              4┆ a == a
+              ⋮┆--------------------------------------------------------
+              5┆ a == a
+              ⋮┆--------------------------------------------------------
+              7┆ a == a
+              ⋮┆--------------------------------------------------------
+             11┆ y == y
 
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
-          unsafe use of danger
+      ❯❯❱ eqeq-four
+            useless comparison to 4
 
-           27┆ sink(d2)
+             19┆ baz == 4
+
+       ❯❱ taint-test
+            unsafe use of danger
+
+             27┆ sink(d2)
+
 
 
 ┌─────────────────────────────┐
@@ -41,11 +42,12 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
-          useless comparison to 5
+      ❯❯❱ eqeq-five
+            useless comparison to 5
 
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+             ▶▶┆ Autofix ▶ (x == 2)
+             15┆ (x == 2)
+
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

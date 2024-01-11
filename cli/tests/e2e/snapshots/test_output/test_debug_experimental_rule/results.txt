@@ -65,6 +65,7 @@ Files skipped:
 
   Skipped by .semgrepignore:
   (See: https://semgrep.dev<MASKED>
+  semgrep-defaults)
 
    • <none>
 

@@ -5,10 +5,11 @@
 └────────────────┘
 
   [36m[22m[24m  targets/cli_test/basic/basic.py [0m
-       [1m[24mrules.cli_test.basic.basic-test[0m
-          Basic test
+      ❯❯❱ rules.cli_test.basic.basic-test
+            Basic test
 
-            2┆ print([1m[x.xxx == 1[0m)
+              2┆ print(1 == 1)
+
 
   ============================[ summary ]============================
   Total time: x.xxxs Config time: x.xxxs Core time: x.xxxs

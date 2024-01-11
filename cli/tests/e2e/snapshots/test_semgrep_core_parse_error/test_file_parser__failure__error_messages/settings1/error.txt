@@ -25,8 +25,8 @@ Files skipped:
    • <all files not listed by `git ls-files` were skipped>
 
   [1m[24mSkipped by .semgrepignore:[0m
-  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
-  defaults)[0m
+  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-
+  code/#understanding-semgrep-defaults)[0m
 
    • <none>
 

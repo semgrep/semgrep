@@ -14,16 +14,17 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
-          useless comparison
+      ❯❯❱ eqeq-bad
+            useless comparison
 
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-           11┆ y == y
+              4┆ a == a
+              ⋮┆--------------------------------------------------------
+              5┆ a == a
+              ⋮┆--------------------------------------------------------
+              7┆ a == a
+              ⋮┆--------------------------------------------------------
+             11┆ y == y
+
 
 
 ┌──────────────────────────────────┐
@@ -31,10 +32,11 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
-          found a dependency
+      ❯❯❱ supply-chain1
+            found a dependency
 
-            2┆ name = "badlib"
+              2┆ name = "badlib"
+
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

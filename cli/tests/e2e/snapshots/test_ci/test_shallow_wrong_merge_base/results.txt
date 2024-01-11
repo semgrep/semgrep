@@ -40,11 +40,12 @@ Skipping baseline scan, because all current findings are in files that didn't ex
 └─────────────────────────────┘
 
     bar.py
-       eqeq-five
-          useless comparison to 5
+      ❯❯❱ eqeq-five
+            useless comparison to 5
 
-           ▶▶┆ Autofix ▶ (bar == 2)
-            1┆ bar == 5
+             ▶▶┆ Autofix ▶ (bar == 2)
+              1┆ bar == 5
+
 
 
 

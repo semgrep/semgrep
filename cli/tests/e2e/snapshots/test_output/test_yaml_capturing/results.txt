@@ -5,18 +5,19 @@
 └─────────────────┘
 
     targets/yaml/yaml_capture.yaml
-       rules.foo
-          example
+      ❯❯❱ rules.foo
+            example
 
-            3┆ importantKey:
-            4┆   prop1: true
-            ⋮┆----------------------------------------
-            9┆ importantKey:
-           10┆   - idk: true
-            ⋮┆----------------------------------------
-           15┆ importantKey:
-           16┆   prop1: true
-            ⋮┆----------------------------------------
-           21┆ importantKey:
-           22┆   - idk: true
+              3┆ importantKey:
+              4┆   prop1: true
+              ⋮┆--------------------------------------------------------
+              9┆ importantKey:
+             10┆   - idk: true
+              ⋮┆--------------------------------------------------------
+             15┆ importantKey:
+             16┆   prop1: true
+              ⋮┆--------------------------------------------------------
+             21┆ importantKey:
+             22┆   - idk: true
+
 
