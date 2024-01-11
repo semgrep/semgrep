@@ -322,6 +322,12 @@ let git_list_untracked_files (project_roots : project_roots) :
 *)
 let group_scanning_roots_by_project (conf : conf)
     (scanning_roots : Fpath.t list) : project_roots list =
+  (* Force root relativizes scan roots to project roots.
+   * I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
+   * it would make the scanning root /foo. So it doesn't make sense to do this
+   * with the git remote unless we wanted to make it so git remotes could be
+   * further specified (say github.com/semgrep/semgrep.git:/src/foo).
+   *)
   let force_root =
     match conf.project_root with
     | Some (Git_remote _)
@@ -458,9 +464,9 @@ let get_targets_for_project conf (project_roots : project_roots) =
   in
   (selected_targets, skipped_targets)
 
-let setup_project_roots conf roots =
+let setup_project_roots conf scanning_roots =
   match conf.project_root with
-  | Some (Filesystem _) -> roots
+  | Some (Filesystem _) -> scanning_roots
   | Some (Git_remote { url; checkout_path }) ->
       Logs.debug (fun m ->
           m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
@@ -476,8 +482,8 @@ let setup_project_roots conf roots =
 
       (* all scanning targets must be in the repo or else this would
          be really weird*)
-      roots
-  | None -> roots
+      scanning_roots
+  | None -> scanning_roots
 
 (*************************************************************************)
 (* Entry point *)

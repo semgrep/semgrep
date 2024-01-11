@@ -100,7 +100,11 @@ let (hook_pro_scan_func_for_osemgrep :
       ref) =
   ref None
 
-(* TODO Explain what this is *)
+(* This hooks into the proprietary part of Semgrep, in order to access a
+ * function that helps us quickly checkout and scan a remote git repo.
+ * If a repo is checked out sparsely, this will only checkout the files
+ * that are needed for the scan.
+ *)
 let (hook_pro_git_remote_scan_setup :
       (Find_targets.git_remote ->
       scan_func_for_osemgrep ->
