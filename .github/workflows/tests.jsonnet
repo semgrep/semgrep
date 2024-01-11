@@ -193,9 +193,6 @@ local fetch_submodules_step = {
   name: 'Fetch semgrep-cli submodules',
   run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
 };
-local pipenv_install_step = {
-  run: 'pip install pipenv==2022.6.7',
-};
 
 local download_x86_artifacts = {
   uses: 'actions/download-artifact@v3',
@@ -241,8 +238,8 @@ local test_cli_job = {
   steps: [
     actions.checkout(),
     fetch_submodules_step,
-    actions.setup_python('${{ matrix.python }}'),
-    pipenv_install_step,
+    actions.setup_python_step('${{ matrix.python }}'),
+    actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     install_python_deps,
@@ -291,8 +288,8 @@ local test_qa_job = {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
     },
-    actions.setup_python('3.11'),
-    pipenv_install_step,
+    actions.setup_python_step('3.11'),
+    actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     // TODO: mostly like install_python_deps with PATH adjustment
@@ -338,8 +335,8 @@ local test_qa_job = {
 local bench_prepare_steps = [
   actions.checkout(),
   fetch_submodules_step,
-  actions.setup_python('3.8'),
-  pipenv_install_step,
+  actions.setup_python_step('3.8'),
+  actions.pipenv_install_step,
   download_x86_artifacts,
   install_x86_artifacts,
   install_python_deps,
@@ -532,7 +529,7 @@ local test_semgrep_pro_job = {
     'build-test-docker',
     'push-docker',
   ],
-  uses: './.github/workflows/test-semgrep-pro.yaml',
+  uses: './.github/workflows/test-semgrep-pro.yml',
   'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
   secrets: 'inherit',
   with: {
@@ -586,6 +583,10 @@ local ignore_md = {
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
+      secrets: 'inherit',
+    },
+    'build-test-core-win64': {
+      uses: './.github/workflows/build-test-core-win64.yml',
       secrets: 'inherit',
     },
     'build-test-manylinux-x86': {

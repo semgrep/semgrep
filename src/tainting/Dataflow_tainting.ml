@@ -1016,8 +1016,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
         match lval with
         | { base; rev_offset = [] } ->
             (* Base case, no offset. *)
-            let taints, lval_env = check_tainted_lval_base env base in
-            (taints, `None, lval_env)
+            check_tainted_lval_base env base
         | { base = _; rev_offset = _ :: rev_offset' } ->
             (* Recursive case, given `x.a.b` we must first check `x.a`. *)
             check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
@@ -1102,10 +1101,13 @@ and check_tainted_lval_base env base =
   match base with
   | Var _
   | VarSpecial _ ->
-      (Taints.empty, env.lval_env)
+      (Taints.empty, `None, env.lval_env)
+  | Mem { e = Fetch lval; _ } ->
+      (* i.e. `*ptr` *)
+      check_tainted_lval_aux env lval
   | Mem e ->
       let taints, lval_env = check_tainted_expr env e in
-      (taints, lval_env)
+      (taints, `None, lval_env)
 
 and check_tainted_lval_offset env offset =
   match offset.o with
@@ -1600,10 +1602,11 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         with
         | Some (call_taints, lval_env) -> (call_taints, lval_env)
         | None -> (all_args_taints, lval_env))
-    | New (_, ty, None, args) ->
+    | New (_lval, _ty, None, args) ->
         (* 'New' without reference to constructor *)
-        let exps = ty.exps @ (args |> List_.map IL_helpers.exp_of_arg) in
-        exps |> union_map_taints_and_vars env check_expr
+        args
+        |> List_.map IL_helpers.exp_of_arg
+        |> union_map_taints_and_vars env check_expr
     | CallSpecial (_, _, args) ->
         let _, taints, lval_env = check_function_call_arguments env args in
         let taints =

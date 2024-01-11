@@ -118,6 +118,20 @@ let map_def_in_stmt f st =
   (* less: raise an error? *)
   | _ -> st
 
+let is_primitive_type = function
+  | TPrimitive _ -> true
+  | TypeName (_, _, IdIdent (tyname, _)) -> (
+      match tyname with
+      | "void"
+      | "bool"
+      | "char"
+      | "int"
+      | "float"
+      | "double" ->
+          true
+      | _ -> false)
+  | _ -> false
+
 (*****************************************************************************)
 (* Conversions *)
 (*****************************************************************************)
@@ -512,7 +526,11 @@ and map_expr env x : G.expr =
       StmtExpr (G.Switch (tk, Some cond, cases) |> G.s) |> G.e
   | ConstructedObject (v1, v2) ->
       let t = map_type_ env v1 and l, args, r = map_obj_init env v2 in
-      G.New (Tok.fake_tok l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
+      if snd v1 |> is_primitive_type then
+        (* object construction of primitive types e.g. int() *)
+        G.OtherExpr (("PrimitiveObject", l), [ T t; Args args ]) |> G.e
+      else
+        G.New (Tok.fake_tok l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
   | TypeId (v1, v2) ->
       let v1 = map_tok env v1
       and _l, either, _r =

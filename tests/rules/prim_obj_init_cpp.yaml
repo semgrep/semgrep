@@ -1,0 +1,12 @@
+rules:
+  - id: new-expr
+    pattern-either:
+      - pattern: |
+          new $TYPE
+      - pattern: |
+          new $CALL(...)
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING
+

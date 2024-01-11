@@ -25,14 +25,18 @@ local setup_runner_step = {
   |||,
 };
 
-// Our self-hosted runner do not come with python pre-installed
-// TODO? reuse actions.setup_python?
-local setup_python_step = {
+// Our self-hosted runner do not come with python pre-installed.
+//
+// Note that we can't reuse actions.setup_python because it comes with the
+// cache: 'pipenv' which then trigger failures when we don't checkout any code
+// and there's no code with a Pipfile.lock
+local setup_python_step =  {
   uses: 'actions/setup-python@v4',
   with: {
     'python-version': '3.11',
-  },
+  }
 };
+
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -60,17 +64,20 @@ local build_core_job = {
     },
     {
       name: 'Compile semgrep',
+      run: "opam exec -- make core",
+    },
+    {
+      name: 'Make artifact',
       run: |||
-        opam exec -- make core
-        mkdir -p artifacts
-        cp ./bin/semgrep-core artifacts
-        zip -r artifacts.zip artifacts
+        mkdir artifacts
+        cp ./bin/semgrep-core artifacts/
+        tar czf artifacts.tgz artifacts
       |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
       with: {
-        path: 'artifacts.zip',
+        path: 'artifacts.tgz',
         name: artifact_name,
       },
     },
@@ -85,6 +92,7 @@ local build_wheels_job = {
   steps: [
     setup_runner_step,
     setup_python_step,
+    // needed for ./script/build-wheels.sh below
     actions.checkout_with_submodules(),
     {
       uses: 'actions/download-artifact@v3',
@@ -95,7 +103,7 @@ local build_wheels_job = {
     // the --plat-name is macosx_11_0_arm64 here!
     {
       run: |||
-        unzip artifacts.zip
+        tar xvfz artifacts.tgz
         cp artifacts/semgrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
       |||,

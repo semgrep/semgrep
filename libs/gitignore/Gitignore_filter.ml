@@ -52,6 +52,7 @@ let select_one acc levels path : Gitignore.selection_event list =
           | None -> acc)
         acc level.patterns)
     acc levels
+[@@profiling]
 
 let select_path opt_gitignore_file_cache sel_events levels relative_segments =
   let rec loop sel_events levels parent_path segments =

@@ -15,15 +15,18 @@ LIBS = \
 OBJS = \
   semgrep.yml lint.yml \
   update-semgrep-rules.yml \
+  build-test-core-win64.yml \
   build-test-core-x86.yml build-test-core-x86-ocaml5.yml \
   build-test-osx-x86.yml build-test-osx-arm64.yml \
   build-test-manylinux-x86.yml build-test-manylinux-aarch64.yml \
   build-test-javascript.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
-  check-semgrep-pro.yml test-pro-rules.yml \
-  trigger-semgrep-comparison-argo.jsonnet \
-  start-release.yml release.yml
+  check-semgrep-pro.yml check-semgrep-pro-version.yml test-semgrep-pro.yml \
+  start-release.yml release.yml release-homebrew.yml
+
+#TODO: ExprTodo ObjectComp
+#  trigger-semgrep-comparison-argo.yml \
 
 all: $(OJSONNET) $(OBJS)
 

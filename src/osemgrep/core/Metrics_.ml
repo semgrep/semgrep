@@ -160,6 +160,7 @@ let default_payload =
         features = [];
         proFeatures = None;
         numFindings = None;
+        numFindingsByProduct = None;
         numIgnored = None;
         ruleHashesWithFindings = None;
         engineRequested = "OSS";

@@ -6,6 +6,51 @@
 
 <!-- insertion point -->
 
+## [1.56.0](https://github.com/returntocorp/semgrep/releases/tag/v1.56.0) - 2024-01-10
+
+
+### Added
+
+
+- Added a new field that breaks down the number of findings per product
+  in the metrics that are sent out by the CLI. This will help Semgrep
+  understand users better. (pa-3312)
+
+
+## [1.55.2](https://github.com/returntocorp/semgrep/releases/tag/v1.55.2) - 2024-01-05
+
+
+### Fixed
+
+
+- taint-mode: Semgrep was missing some sources occurring inside type expressions,
+  for example:
+
+  ```cpp
+  char *p = new char[source(x)];
+  sink(x);
+  ```
+
+  Now, if `x` is tainted by side-effect, Semgrep will check `x` inside the type
+  expression `char[...]` and record it as tainting, and generate a finding for
+  `sink(x)`. (pa-3313)
+- taint-mode: C/C++: Sanitization by side-effect was not working correctly for
+  `ptr->fld` l-values. In particular, if `ptr` is tainted, and then `ptr->fld` is
+  sanitized, Semgrep will now correctly consider `ptr->fld` as clean. (pa-3328)
+
+
+## [1.55.1](https://github.com/returntocorp/semgrep/releases/tag/v1.55.1) - 2024-01-04
+
+
+### Fixed
+
+
+- Honor temporary folder specified via the TMPDIR environment variable (or
+  equivalent on Windows) in some instances where it used to be hardcoded as
+  `/tmp`. (gh-9534)
+- Fix pipfile manifest parser error (sc-1084)
+
+
 ## [1.55.0](https://github.com/returntocorp/semgrep/releases/tag/v1.55.0) - 2024-01-02
 
 

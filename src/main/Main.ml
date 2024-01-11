@@ -55,7 +55,8 @@ let () =
       match Filename.basename argv.(0) with
       (* osemgrep!! *)
       | "osemgrep.bc"
-      | "osemgrep" ->
+      | "osemgrep"
+      | "osemgrep.exe" ->
           let exit_code = CLI.main caps argv in
           (* remove? or make debug-only? or use Logs.info? *)
           if exit_code <> Exit_code.ok then

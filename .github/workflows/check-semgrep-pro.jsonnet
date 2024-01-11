@@ -1,6 +1,7 @@
 // This workflow checks whether the current semgrep PR can break the
 // compilation and tests of semgrep-pro if semgrep-pro was using this
-// semgrep branch as a submodule.
+// semgrep branch as a submodule. It also checks whether this PR
+// break Pro rules (rules from the semgrep-rules-proprietary repo).
 
 local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
@@ -22,7 +23,7 @@ local job = {
   // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
   //      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
   //      and opam can work only when run from this directory
-  steps: [
+  steps: semgrep.github_bot.get_token_steps + [
     actions.checkout_with_submodules(),
     // this must be done after the checkout as opam installs itself
     // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
@@ -48,11 +49,9 @@ local job = {
     {
       run: 'sudo apt-get install gh',
     },
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
     {
       env: {
-	GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
       name: 'Checkout semgrep-pro',
       // We are in /home/runner/work/semgrep/semgrep at this point
@@ -108,6 +107,32 @@ local job = {
         cd ../semgrep-proprietary
         eval $(opam env)
         make test
+      |||,
+    },
+
+    // We are in /home/runner/work/semgrep/semgrep at this point.
+    {
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+      name: 'Checkout Pro rules',
+      run: |||
+        cd ..
+        gh repo clone semgrep/semgrep-rules-proprietary
+        cd semgrep-rules-proprietary
+        git submodule update --init
+      |||,
+    },
+
+    {
+      name: 'Test Pro rules',
+      run: |||
+        cd ../semgrep-rules-proprietary/paid
+        # This rule is missing a target file
+        rm -f kotlin/ktor/active-debug-code/ktor-development-mode-yaml.yaml
+        # This is much faster than `pysemgrep --test` and it's also stricter.
+        # TODO: Replace with `osemgrep-pro test` when that is ready.
+        ../../semgrep-proprietary/bin/semgrep-core-proprietary -test_rules .
       |||,
     },
   ],

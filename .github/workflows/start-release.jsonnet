@@ -12,6 +12,7 @@
 //  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step
 //  - remove step.release-branch, use directly release-%s % version
 
+local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
@@ -25,11 +26,6 @@ local version = '${{ needs.get-version.outputs.version }}';
 // and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
 
-// When we use git directly instead of gh.
-local git_config_user = |||
-  git config user.name ${{ github.actor }}
-  git config user.email ${{ github.actor }}@users.noreply.github.com
-|||;
 // For towncrier setup in scripts/release/
 local pipenv_setup = |||
   pip3 install pipenv==2022.6.7
@@ -77,7 +73,7 @@ local unless_dry_run = {
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-// this will post on Slack
+// this will post on Slack on #team-semgrep-core
 local curl_notify(message) = |||
   curl --request POST \
   --url  ${{ secrets.NOTIFICATIONS_URL }} \
@@ -100,9 +96,7 @@ local bump_job(repository) = {
     'validate-release-trigger',
     'release-setup',
   ],
-  steps: [
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  steps: semgrep.github_bot.get_token_steps + [
     {
       name: 'Bump semgrep version in %s' % repository,
       env: {
@@ -175,10 +169,8 @@ local get_version_job = {
     // other jobs can refer to this output via the 'version' constant above
     version: '${{ steps.next-version.outputs.next-version }}',
   },
-  steps: [
     //TODO: why we need a special token? Can't we just do the default checkout?
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  steps: semgrep.github_bot.get_token_steps + [
     {
       uses: 'actions/checkout@v3',
       with: {
@@ -245,11 +237,9 @@ local release_setup_job = {
     // TODO: delete, can be derived from version, it's release-<version>
     'release-branch': '${{ steps.release-branch.outputs.release-branch }}',
   },
-  steps: [
-    // TODO: again why we need this token? we release from
-    // the repo of the workflow, can't we just checkout?
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  // TODO: again why we need this token? we release from
+  // the repo of the workflow, can't we just checkout?
+  steps: semgrep.github_bot.get_token_steps + [
     {
       uses: 'actions/checkout@v3',
       with: {
@@ -320,7 +310,7 @@ local release_setup_job = {
         git add --all
         git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
         git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
-      ||| % git_config_user,
+      ||| % gha.git_config_user,
     } + unless_dry_run,
     {
       name: 'Create PR',
@@ -391,10 +381,8 @@ local create_tag_job = {
     'release-setup',
     'wait-for-pr-checks',
   ],
-  steps: [
-    // TODO? why special token again?
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  // TODO? why special token again?
+  steps: semgrep.github_bot.get_token_steps + [
     {
       uses: 'actions/checkout@v3',
       with: {
@@ -411,7 +399,7 @@ local create_tag_job = {
         %s
         git tag -a -m "Release %s" "v%s"
         git push origin "v%s"
-      ||| % [git_config_user, version, version, version],
+      ||| % [gha.git_config_user, version, version, version],
     },
     {
       name: 'Create semgrep-interfaces release version tag',
@@ -420,7 +408,7 @@ local create_tag_job = {
         %s
         git tag -a -m "Release %s" "v%s"
         git push origin "v%s"
-      ||| % [git_config_user, version, version, version],
+      ||| % [gha.git_config_user, version, version, version],
     },
   ],
 } + unless_dry_run;
@@ -433,7 +421,7 @@ local create_draft_release_job = {
     'create-tag',
     'wait-for-pr-checks',
   ],
-  steps: [
+  steps: semgrep.github_bot.get_token_steps + [
     {
       name: 'Download Release Body Artifact',
       uses: 'actions/download-artifact@v3',
@@ -454,8 +442,6 @@ local create_draft_release_job = {
         draft: true,
       },
     },
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
     {
       name: 'Create Draft Release Semgrep Interfaces',
       uses: 'softprops/action-gh-release@v1',

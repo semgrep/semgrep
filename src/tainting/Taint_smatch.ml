@@ -149,11 +149,7 @@ let top_level_matches_in_nodes ~matches_of_orig flow =
                Seq.cons instr.iorig
                  (match instr.i with
                  | Call (_, c, args) -> Seq.cons c.eorig (origs_of_args args)
-                 | New (_, ty, _, args) ->
-                     let ty_origs =
-                       ty.exps |> List.to_seq |> Seq.map (fun e -> e.IL.eorig)
-                     in
-                     Seq.append ty_origs (origs_of_args args)
+                 | New (_, _, _, args) -> origs_of_args args
                  | CallSpecial (_, _, args) -> origs_of_args args
                  | Assign (_, e) -> List.to_seq [ e.eorig ]
                  | AssignAnon _

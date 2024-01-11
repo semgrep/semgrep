@@ -1,0 +1,20 @@
+rules:
+  - id: test
+    languages:
+      - cpp
+    message: Test
+    mode: taint
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - patterns:
+              - pattern: |
+                  source($SRC)
+              - focus-metavariable: $SRC
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              sink($SINK)
+          - focus-metavariable: $SINK
+    severity: ERROR
+
