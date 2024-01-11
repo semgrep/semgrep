@@ -12,7 +12,7 @@ jobs:
         working-directory: checkout
     steps:
     - name: Configure git
-      working-directory: ""
+      working-directory: "."
       run: |
         # Git's filename limit is 4096 characters, except on Windows when Git is compiled with msys.
         # It uses an older version of the Windows API and there's a limit of 260 characters for a filename.
