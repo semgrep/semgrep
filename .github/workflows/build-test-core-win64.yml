@@ -14,7 +14,13 @@ jobs:
     - name: Configure git
       working-directory: ""
       run: |
+        # Git's filename limit is 4096 characters, except on Windows when Git is compiled with msys.
+        # It uses an older version of the Windows API and there's a limit of 260 characters for a filename.
+        # You can force the longer limit by enabling core.longpaths in your git config.
+        # More info: https://stackoverflow.com/a/22575737
         git config --system core.longpaths true
+
+        # Speed up checkout by running multiple fetches in parallel
         git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
@@ -52,7 +58,8 @@ jobs:
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
 
-        # cygwin cant handle rpath
+        # We have to strip rpath from the tree-sitter projects because there's no equivalent in Windows
+        # TODO: investigate removing rpath from the tree-sitter projects
         for filename in $(find ./languages/ -name dune); do
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
@@ -65,6 +72,7 @@ jobs:
         # TODO: build everything once osemgrep_cli_interactive has been moved to pro
         opam exec -- dune build src/main
 
+        # TODO: figure out how to statically link in cygwin / windows (use opam for inspiration?)
         tar czvf ${ARTIFACT_PATH} _build/default/src/main/Main.exe \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
