@@ -26,6 +26,8 @@ let text_width =
   let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
   min w max_text_width
 
+let fill_count = text_width - findings_indent_size - 8
+
 type report_group =
   [ OutJ.validation_state
   | `Unreachable
@@ -249,7 +251,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
         findings_indent num
   | None ->
       if show_separator then
-        Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make 40 '-')
+        Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make fill_count '-')
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : OutJ.cli_match list) =
@@ -338,8 +340,13 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       | None -> false
       | Some m -> m.path = cur.path
     in
+    let same_rule =
+      match next with
+      | None -> false
+      | Some m -> m.check_id = cur.check_id
+    in
     pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-      ~show_separator:same_file ppf cur;
+      ~show_separator:(same_file && same_rule) ppf cur;
     Fmt.pf ppf "@."
   in
   let last, cur =
