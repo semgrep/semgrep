@@ -619,7 +619,8 @@ def print_text_output(
             text = Text.assemble(
                 (RULE_INDENT - 4) * " ",
                 (sev_icon, sev_color),
-                (f" {wrapped_text}", "bold"),
+                " ",
+                (f"{wrapped_text}", "bold"),
             )
             if (
                 last_file == current_file
@@ -830,11 +831,9 @@ class TextFormatter(BaseFormatter):
                     continue
                 console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
 
-                color_output = extra.get("color_output", False)
-
                 print_text_output(
                     matches,
-                    color_output,
+                    extra.get("color_output", False),
                     extra["per_finding_max_lines_limit"],
                     extra["per_line_max_chars_limit"],
                     extra["dataflow_traces"],

@@ -13,10 +13,13 @@ open Fpath_.Operators
 (*****************************************************************************)
 
 let ellipsis_string = " ... "
-let rule_leading_indent_size = 6
-let base_indent_size = 10
-let detail_indent_size = 12
-let findings_indent_size = 14
+let rule_leading_indent_size = 3
+
+let rule_indent_size =
+  rule_leading_indent_size + 4 (* severity icon and 1 for space *)
+
+let detail_indent_size = 10
+let findings_indent_size = 12
 let rule_leading_indent = String.make rule_leading_indent_size ' '
 let detail_indent = String.make detail_indent_size ' '
 let findings_indent = String.make findings_indent_size ' '
@@ -26,7 +29,8 @@ let text_width =
   let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
   min w max_text_width
 
-let fill_count = text_width - findings_indent_size - 8
+(* TODO: re-enable dynamic size in a separate PR to avoid too many test changes *)
+let fill_count = 40
 
 type report_group =
   [ OutJ.validation_state
@@ -228,13 +232,8 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
            in
            let a, b, c = cut line start_color end_color in
            (* TODO(secrets): Apply masking to b *)
-           (* The 24m is "no underline", and for python compatibility *)
-           let esc =
-             if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
-             else Fmt.any ""
-           in
            Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
-             Fmt.(styled `Bold (esc ++ string))
+             Fmt.(styled `Bold string)
              b c;
            (stripped' || stripped, succ line_number))
          (false, start_line)
@@ -287,13 +286,11 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       | Some m -> m <> cur.extra.message
     in
     if print then (
-      (* The 24m is "no underline", and for python compatibility *)
-      let esc =
-        if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
-        else Fmt.any ""
-      in
+      let sev_icon_enablement = false in
+      (* Enable in a separate PR post-test updates *)
       let pp_styled_severity =
-        if Fmt.style_renderer ppf = `Ansi_tty then function
+        if Fmt.style_renderer ppf = `Ansi_tty && sev_icon_enablement then
+          function
           | `Error ->
               Fmt.pf ppf "%s%a" rule_leading_indent
                 Fmt.(styled (`Fg `Red) string)
@@ -307,23 +304,22 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
               Fmt.pf ppf "%s%a" rule_leading_indent
                 Fmt.(styled (`Fg `Green) string)
                 "  ❱"
-          | _ -> Fmt.pf ppf "   "
+          | _ -> Fmt.pf ppf "%s%s" rule_leading_indent "   "
         else function
-          | _ -> Fmt.pf ppf "   "
+          | _ -> Fmt.pf ppf "%s%s" rule_leading_indent "   "
       in
       pp_styled_severity cur.extra.severity;
       let lines =
-        wrap ~indent:base_indent_size ~width:(text_width - 4)
+        wrap ~indent:rule_indent_size ~width:(text_width - 4)
           (Rule_ID.to_string cur.check_id)
       in
       match lines with
       | [] -> ()
       | (_, l) :: rest ->
-          (* Rule indent of size 10 == 6 leading + 3 chars for severity + 1 leading space *)
-          Fmt.pf ppf " %a@." Fmt.(styled `Bold (esc ++ string)) l;
+          (* Print indented severity with 1 trailing space and then first line *)
+          Fmt.pf ppf " %a@." Fmt.(styled `Bold string) l;
           List.iter
-            (fun (sp, l) ->
-              Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
+            (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold string) l)
             rest;
           List.iter
             (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)

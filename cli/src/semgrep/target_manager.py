@@ -276,7 +276,7 @@ class FileTargetingLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by .semgrepignore:"
-        yield 1, "(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
+        yield 1, "- https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
         if self.semgrepignored:
             for path in sorted(self.semgrepignored):
                 yield 2, with_color(Colors.cyan, str(path))
