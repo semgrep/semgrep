@@ -18,6 +18,7 @@ import os
 import shutil
 import sys
 import tempfile
+import traceback
 import uuid
 from itertools import product
 from pathlib import Path
@@ -301,11 +302,11 @@ def invoke_semgrep_multi(
 ) -> Tuple[Path, Optional[str], Any]:
     try:
         output = semgrep.run_scan.run_scan_and_return_json(config, targets, **kwargs)
-    except Exception as error:
+    except Exception:
         # We must get the string of the error because the multiprocessing library
         # will fail the marshal the error and hang
         # See: https://bugs.python.org/issue39751
-        return (config, str(error), {})
+        return (config, traceback.format_exc(), {})
     else:
         return (config, None, output)
 
