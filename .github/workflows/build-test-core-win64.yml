@@ -8,15 +8,13 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        shell: bash
-        working-directory: checkout
+        shell: bash  # Windows GHA runners use pwsh (Powershell) as the default shell. We want to use bash for consistency.
     steps:
     - name: Configure git
-      working-directory: "."
       run: |
         # Git's filename limit is 4096 characters, except on Windows when Git is compiled with msys.
         # It uses an older version of the Windows API and there's a limit of 260 characters for a filename.
-        # You can force the longer limit by enabling core.longpaths in your git config.
+        # You can force the longer limit (and avoid git issues) by enabling core.longpaths in your git config.
         # More info: https://stackoverflow.com/a/22575737
         git config --system core.longpaths true
 
@@ -70,10 +68,10 @@ jobs:
         done
 
         # TODO: build everything once osemgrep_cli_interactive has been moved to pro
-        opam exec -- dune build src/main
+        opam exec -- dune build _build/install/default/bin/semgrep-core
 
         # TODO: figure out how to statically link in cygwin / windows (use opam for inspiration?)
-        tar czvf ${ARTIFACT_PATH} _build/default/src/main/Main.exe \
+        tar czvf ${ARTIFACT_PATH} _build/install/default/bin/semgrep-core.exe \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll \
@@ -82,7 +80,7 @@ jobs:
     - name: Test semgrep-core
       run: |
         echo 'print(\"foo\")' > test.py
-        _build/default/src/main/Main.exe -e 'print($X)' -lang python -json test.py
+        _build/install/default/bin/semgrep-core.exe -e 'print($X)' -lang python -json test.py
     - uses: actions/upload-artifact@v3
       with:
         path: d:/a/_temp/ocaml-build-artifacts.tgz
