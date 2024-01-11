@@ -1,4 +1,5 @@
 import dataclasses
+import os
 import pathlib
 import sys
 from collections import defaultdict
@@ -465,8 +466,9 @@ class OutputHandler:
             extra["verbose_errors"] = True
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
-                self.settings.output_destination is None and sys.stdout.isatty(),
-            )
+                (self.settings.output_destination is None and sys.stdout.isatty())
+                or os.environ.get("SEMGREP_FORCE_COLOR")
+            ) and not os.environ.get("NO_COLOR")
             extra[
                 "per_finding_max_lines_limit"
             ] = self.settings.output_per_finding_max_lines_limit

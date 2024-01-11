@@ -2,6 +2,7 @@
 # Prelude
 ##############################################################################
 # Helpers to run_scan.py to report scan status
+import sys
 from textwrap import wrap
 from typing import List
 from typing import Sequence
@@ -190,10 +191,14 @@ def _print_sast_table(
         )
         return
 
+    use_color = sys.stderr.isatty()
+    # NOTE: osemgrep lacks support for bold table headers
+    # Given that this is only printed in legacy and compatability
+    # runs, the output doesn't really matter
     _print_tables(
         [
-            sast_plan.table_by_language(with_tables_for=product),
-            sast_plan.table_by_origin(with_tables_for=product),
+            sast_plan.table_by_language(with_tables_for=product, use_color=use_color),
+            sast_plan.table_by_origin(with_tables_for=product, use_color=use_color),
         ]
     )
 
