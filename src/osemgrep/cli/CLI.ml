@@ -40,6 +40,16 @@ module Env = Semgrep_envvars
 let default_subcommand = "scan"
 
 (*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+(* alt: define our own Pro_CLI.ml in semgrep-pro
+ * old: was Interactive_subcommand.main
+ *)
+let hook_semgrep_interactive =
+  ref (fun _argv ->
+      failwith "semgrep interactive not available (requires --pro)")
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -104,9 +114,10 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "install-ci";
-    "interactive";
     "show";
     "test";
+    (* pro-only and osemgrep-only *)
+    "interactive";
   ]
 
 let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
@@ -189,7 +200,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" ->
             Install_subcommand.main (caps :> < Cap.random >) subcmd_argv
-        | "interactive" -> Interactive_subcommand.main subcmd_argv
+        | "interactive" -> !hook_semgrep_interactive subcmd_argv
         | "show" ->
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)

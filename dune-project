@@ -466,7 +466,6 @@ For more information see https://semgrep.dev
     ocolor
     ANSITerminal
     terminal_size
-    (notty (<> :os win32))  ; todo: this can go away once we move interactive to pro
     ; logging
     (easy_logging ( = 0.8.1 ))
     (easy_logging_yojson ( = 0.8.1 ))
