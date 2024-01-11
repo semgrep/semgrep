@@ -9,6 +9,7 @@ See also the semgrep.terminal module which is an earlier attempt to
 standardize some output configuration, but is more low level and
 doesn't really offload logic to other libraries.
 """
+from shutil import get_terminal_size
 from typing import Any
 from typing import Optional
 
@@ -98,6 +99,6 @@ class AutoIndentingConsole(Console):
 
 
 MAX_WIDTH = 120
-
-console = AutoIndentingConsole(highlighter=None)
-console.width = min(console.width, MAX_WIDTH)
+terminal_width = min(MAX_WIDTH, get_terminal_size((MAX_WIDTH, 1))[0])
+console = AutoIndentingConsole(highlighter=None, width=terminal_width)
+# console.width = min(console.width, MAX_WIDTH)

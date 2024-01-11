@@ -18,7 +18,6 @@ from rich.text import Text
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
-from semgrep.console import MAX_WIDTH
 from semgrep.console import Title
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
@@ -44,8 +43,8 @@ logger = getLogger(__name__)
 RULE_INDENT = 8  # NOTE: There are 2 leading spaces not included in this number
 BASE_INDENT = 10
 FINDINGS_INDENT_DEPTH = 16
-# Use the terminal width if we can, otherwise use the standard max width (120)
-base_width = MAX_WIDTH if console.width <= 0 else console.width
+BASE_WIDTH = console.width
+MAX_TEXT_WIDTH = BASE_WIDTH - (FINDINGS_INDENT_DEPTH + 6)
 
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.SCA()), "unreachable"): "Unreachable Supply Chain Finding",
@@ -104,14 +103,16 @@ def format_finding_line(
         mid = line[start:end]
     # adjust for 1-indexed line number and add separator
     line_number_str = f"{line_number}┆ ".rjust(5)  # 3 digits + 1 separator + 1 space
-    # use manual bold styling when color is enabled to ensure we wrap properly
-    mid_styled = mid or "" if not color else f"\033[1m{mid}\033[0m"
+    # use a marker to indicate where we have the match for colored replacement
+    mid_styled = mid or "" if not color else f"▶{mid}◀"
     wrapped_text = textwrap.fill(
         f"{line_number_str}{line[:start]}{mid_styled}{line[end:]}",
         width=per_line_max_chars_limit,
         initial_indent=(FINDINGS_INDENT_DEPTH - 6) * " ",
         subsequent_indent=(FINDINGS_INDENT_DEPTH - 1) * " ",
     )
+    # manually apply bolding when color is enabled to avoid wrapping issues
+    wrapped_text = wrapped_text.replace("▶", "\033[1m").replace("◀", "\033[0m")
     return Text.from_ansi(wrapped_text)
 
 
@@ -136,8 +137,8 @@ def format_lines(
         lines = lines[:per_finding_max_lines_limit]
 
     per_line_max_chars_limit = min(
-        per_line_max_chars_limit or base_width - FINDINGS_INDENT_DEPTH - 3,
-        base_width - FINDINGS_INDENT_DEPTH - 3,
+        per_line_max_chars_limit or MAX_TEXT_WIDTH,
+        MAX_TEXT_WIDTH,
     )
     # we remove indentation at the start of the snippet to avoid wasting space
     dedented_lines = textwrap.dedent("".join(lines)).splitlines()
@@ -174,12 +175,13 @@ def format_lines(
             f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] ",
         )
     elif lines and show_separator:
-        fill_count = base_width - FINDINGS_INDENT_DEPTH - 8
-        yield Text.assemble(
-            f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * fill_count
+        longest_line_len = min(
+            per_line_max_chars_limit, max(len(line) for line in lines)
         )
-    else:
-        yield Text.assemble(" ")  # empty line
+        seperator_fill_count = longest_line_len - 1
+        yield Text.assemble(
+            f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * seperator_fill_count
+        )
 
 
 def finding_to_line(
@@ -378,7 +380,10 @@ def dataflow_trace_to_lines(
             yield Text.assemble("")
 
         if source and show_separator:
-            yield Text.assemble(f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * 40)
+            seperator_fill_count = min(40, MAX_TEXT_WIDTH - 1)
+            yield Text.assemble(
+                f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * seperator_fill_count
+            )
 
 
 def get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -594,7 +599,7 @@ def print_text_output(
             )  # Title of the rule that we need to bold later
             wrapped_text = textwrap.fill(
                 rule_title,
-                width=base_width - (RULE_INDENT + 4),
+                width=BASE_WIDTH - (RULE_INDENT + 4),
                 initial_indent="",
                 subsequent_indent=RULE_INDENT * " ",
             )
@@ -604,6 +609,11 @@ def print_text_output(
                 (sev_icon, sev_color),
                 (f" {wrapped_text}", "bold"),
             )
+            if last_file == current_file and last_rule_id != rule_match.rule_id:
+                console.print(
+                    " "
+                )  # add a blank line between different rules in the same file
+
             console.print(text)
 
             severity = (
@@ -616,7 +626,7 @@ def print_text_output(
             )
             message_text = click.wrap_text(
                 f"{message}",
-                width=base_width - (BASE_INDENT + 4),
+                width=BASE_WIDTH - (BASE_INDENT + 4),
                 initial_indent=BASE_INDENT * " ",
                 subsequent_indent=BASE_INDENT * " ",
                 preserve_paragraphs=True,
@@ -632,7 +642,7 @@ def print_text_output(
                     textwrap.dedent(
                         "".join(l.strip() for l in fix.splitlines(keepends=True))
                     ),
-                    width=base_width
+                    width=BASE_WIDTH
                     - (RULE_INDENT + 20),  # 13 for autofix tag, 7 for indent
                     initial_indent="",
                     subsequent_indent=(RULE_INDENT + 7) * " ",
