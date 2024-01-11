@@ -125,7 +125,7 @@ class Colors(Enum):
     yellow = "yellow"  # TODO: benchmark timing output?
     red = "red"  # for errors
     bright_blue = "bright_blue"  # TODO: line numbers?
-
+    magenta = "magenta"
     # these colors ignore user's terminal theme
     forced_black = 16  # #000
     forced_white = 231  # #FFF
