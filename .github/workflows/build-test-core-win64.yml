@@ -48,10 +48,10 @@ jobs:
           opam-${{ runner.os }}-4.14
         path: |
           _opam/.opam-switch
-    # - name: Install deps
-    #   run: |
-    #     export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-    #     opam depext conf-pkg-config conf-gmp conf-libpcre
+    - name: Install deps
+      run: |
+        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+        opam depext conf-pkg-config conf-gmp conf-libpcre
     #     opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
     # - name: List switch
     #   run: |
