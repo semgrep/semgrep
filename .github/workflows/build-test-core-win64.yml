@@ -41,14 +41,14 @@ jobs:
         make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
         make PREFIX="$prefix" install
     - name: Before deps
-      run: find d:/.opam
+      run: find _opam
     - name: Install deps
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         opam depext conf-pkg-config conf-gmp conf-libpcre
         opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
     - name: After deps
-      run: find d:/.opam
+      run: find _opam
     - name: Build semgrep-core
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
