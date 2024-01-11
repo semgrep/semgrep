@@ -24,12 +24,12 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
+
        eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
+
        taint-test
           unsafe use of danger
 
@@ -75,8 +75,7 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment bitbucket, triggering event is
-                pull_request
+  environment - running in environment bitbucket, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)

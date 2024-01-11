@@ -24,12 +24,12 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
+
        eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
+
        taint-test
           unsafe use of danger
 
@@ -75,8 +75,7 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment azure-pipelines, triggering event is
-                pull_request
+  environment - running in environment azure-pipelines, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)
