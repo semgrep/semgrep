@@ -38,7 +38,6 @@ jobs:
       uses: actions/cache@v3
       with:
         key: opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep.opam') }}
-        restore-keys: opam-${{ runner.os }}-1.14-
         path: _opam
     - name: Install deps
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext

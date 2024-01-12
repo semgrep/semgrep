@@ -66,14 +66,10 @@ default: https://github.com/ocaml/opam-repository.git
       # why this cache when ocaml/setup-ocaml is already caching things?
       # - setup-ocaml caches the cygwin and opam package caches, but not the opam switch (i.e. installed opam packages)
       # - without the opam switch cache we'd spend 8-9 minutes every build running `opam install`
-      # why restore-keys?
-      # - it allows us to specify cache key prefixes to try in the case of a cache miss
-      # - running opam install from a stale opam switch will still be much faster than an empty one
       name: 'Cache opam switch',
       uses: 'actions/cache@v3',
       with: {
         key: "opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep.opam') }}",
-        'restore-keys': "opam-${{ runner.os }}-1.14-",  # An ordered list of prefix-matched keys to use for restoring stale cache if no cache hit occurred for key. (see: https://github.com/actions/cache?tab=readme-ov-file#inputs)
         path: '_opam',  # ocaml/setup-ocam creates the opam switch local to the repository (vs. ~/.opam in our other workflows)
       },
     },
