@@ -48,6 +48,15 @@ let env_or conv var default =
 
 let in_env var = env_opt var <> None
 
+let env_truthy var =
+  env_opt var |> Option.value ~default:"" |> String.lowercase_ascii |> function
+  | "true"
+  | "1"
+  | "yes"
+  | "y" ->
+      true
+  | _ -> false
+
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
@@ -71,6 +80,7 @@ type t = {
   user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
+  no_color : bool;
   is_ci : bool;
   in_docker : bool;
   in_gh_action : bool;
@@ -133,6 +143,7 @@ let of_current_sys_env () : t =
     user_settings_file =
       env_or Fpath.v "SEMGREP_SETTINGS_FILE"
         (user_dot_semgrep_dir / settings_filename);
+    no_color = env_truthy "NO_COLOR" || env_truthy "SEMGREP_COLOR_NO_COLOR";
     is_ci = in_env "CI";
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";

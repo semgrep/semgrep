@@ -9,6 +9,7 @@
    terminal_size
    digestif
 
+  osemgrep_configuring
    osemgrep_core
    osemgrep_core_runner
    semgrep.reporting
