@@ -104,15 +104,18 @@ default: https://github.com/ocaml/opam-repository.git
     },
     {
       name: 'Package semgrep-core',
-      // TODO: figure out how to statically link in cygwin / windows
-      // (use opam for inspiration which managed to ship a static opam.exe for windows)
       run: |||
-        tar czvf ocaml-build-artifacts.tgz _build/install/default/bin/semgrep-core.exe \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll
+        mkdir archive
+        cp _build/install/default/bin/semgrep-core.exe archive/
+
+        # TODO: somehow upgrade to the latest flexdll, which should allow us to statically link these libraries
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll archive/
+
+        tar czvf ocaml-build-artifacts.tgz archive/*
       |||,
     },
     {
