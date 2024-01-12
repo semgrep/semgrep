@@ -63,6 +63,17 @@ default: https://github.com/ocaml/opam-repository.git
       |||,
     },
     {
+      # why this cache when ocaml/setup-ocaml is already caching things?
+      # - setup-ocaml caches the cygwin and opam package caches, but not the opam switch (i.e. installed opam packages)
+      # - without the opam switch cache we'd spend 8-9 minutes every build running `opam install`
+      name: 'Cache opam switch',
+      uses: 'actions/cache@v3',
+      with: {
+        key: "opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep.opam') }}",
+        path: '_opam',  # ocaml/setup-ocam creates the opam switch local to the repository (vs. ~/.opam in our other workflows)
+      },
+    },
+    {
       name: 'Install deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
@@ -95,21 +106,25 @@ default: https://github.com/ocaml/opam-repository.git
     },
     {
       name: 'Package semgrep-core',
-      // TODO: figure out how to statically link in cygwin / windows
-      // (use opam for inspiration which managed to ship a static opam.exe for windows)
       run: |||
-        tar czvf ocaml-build-artifacts.tgz _build/install/default/bin/semgrep-core.exe \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll \
-         d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll
+        mkdir archive
+        cp _build/install/default/bin/semgrep-core.exe archive/
+
+        # TODO: somehow upgrade to the latest flexdll, which should allow us to statically link these libraries
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll archive/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll archive/
+
+        cd archive
+        tar czvf ocaml-build-artifacts.tgz *.exe *.dll
       |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
       with: {
-        path: 'ocaml-build-artifacts.tgz',
+        path: 'archive/ocaml-build-artifacts.tgz',
         name: 'ocaml-build-artifacts-release-w64',
       },
     },
