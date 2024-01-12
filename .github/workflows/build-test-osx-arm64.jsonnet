@@ -55,7 +55,7 @@ local build_core_job = {
     actions.checkout_with_submodules(),
     // TODO: like for osx-x86, we should use opam.lock
     semgrep.cache_opam.step(
-       key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam'}}")
+       key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
      + semgrep.cache_opam.if_cache_inputs,
     // exactly the same than in build-test-oxs-x86.jsonnet
     {

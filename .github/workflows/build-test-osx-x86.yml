@@ -30,7 +30,7 @@ jobs:
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
       with:
         path: ~/.opam
-        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{hashFiles('semgrep.opam'}}
+        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{hashFiles('semgrep.opam')}}
       if: ${{ inputs.use-cache}}
     - name: Install dependencies
       run: ./scripts/osx-setup-for-release.sh "4.14.0"

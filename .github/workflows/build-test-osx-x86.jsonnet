@@ -59,7 +59,7 @@ local build_core_job = {
     // so any update to our dependencies would automatically trigger a
     // cache miss and generate a fresh ~/.opam.
     semgrep.cache_opam.step(
-         key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam'}}")
+         key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
       + semgrep.cache_opam.if_cache_inputs,
     {
       name: 'Install dependencies',
