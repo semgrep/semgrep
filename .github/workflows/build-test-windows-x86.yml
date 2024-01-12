@@ -34,6 +34,12 @@ jobs:
         --lazy\n        prefix=\"$(pwd)/tree-sitter\"\n        cd downloads/tree-sitter\n
         \       make PREFIX=\"$prefix\" CFLAGS=\"-O3 -Wall -Wextra\"\n        make
         PREFIX=\"$prefix\" install\n      "
+    - name: Cache opam switch
+      uses: actions/cache@v3
+      with:
+        key: opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep') }}
+        restore-keys: opam-${{ runner.os }}-1.14
+        path: _opam
     - name: Install deps
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext
         conf-pkg-config conf-gmp conf-libpcre\n        opam install -y ./ ./libs/ocaml-tree-sitter-core

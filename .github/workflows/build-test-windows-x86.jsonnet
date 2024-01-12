@@ -63,6 +63,15 @@ default: https://github.com/ocaml/opam-repository.git
       |||,
     },
     {
+      name: 'Cache opam switch',
+      uses: 'actions/cache@v3',
+      with: {
+        key: "opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep') }}",
+        'restore-keys': "opam-${{ runner.os }}-1.14",  # fall back to most recent opam cache -- deps install will install whatever is missing
+        path: '_opam',
+      },
+    },
+    {
       name: 'Install deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
