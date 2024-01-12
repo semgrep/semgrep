@@ -130,12 +130,16 @@ let save setting =
   try
     let dir = Fpath.(to_string (parent settings)) in
     if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
-    let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
-    if Sys.file_exists tmp then Sys.remove tmp;
-    UFile.write_file (Fpath.v tmp) str;
-    (* Create a temporary file and rename to have a consistent settings file,
-       even if the power fails (or a Ctrl-C happens) during the write_file. *)
-    Unix.rename tmp (Fpath.to_string settings);
+    (if Sys.win32 then
+       (* TODO: Unix.rename doesn't overwrite on Windows, so for now, don't bother with the atomic rename *)
+       UFile.write_file settings str
+     else
+       let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
+       if Sys.file_exists tmp then Sys.remove tmp;
+       UFile.write_file (Fpath.v tmp) str;
+       (* Create a temporary file and rename to have a consistent settings file,
+          even if the power fails (or a Ctrl-C happens) during the write_file. *)
+       Unix.rename tmp (Fpath.to_string settings));
     true
   with
   | Sys_error e ->
