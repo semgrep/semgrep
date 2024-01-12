@@ -62,6 +62,7 @@ local github_bot = {
 // The step below uses the actions/cache@v3 GHA extension to cache
 // the ~/.opam directory which speedups a lot the "install opam dependencies"
 // step, especially in workflows where we can't use ocaml-layer.
+// See also gha.libsonnet for other caching helpers.
 //
 // For example, on GHA-hosted macos runners, without caching it would run
 // very slowly like 35min instead of 10min with caching.
@@ -102,32 +103,33 @@ local github_bot = {
 // if the opam switch is already created, and if a package is already
 // installed (in ~/.opam), then opam install on this package will do nothing.
 //
-local cache_opam_step(key) = {
-  name: 'Cache Opam',
-  uses: 'actions/cache@v3',
-  env: {
-    SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
-  },
-  with: {
-    path: '~/.opam',
-    key: '${{ runner.os }}-${{ runner.arch }}-opam-deps-%s' % key,
-  },
-};
 
-// to be used with workflow_dispatch and workflow_call in the workflow
-local cache_opam_inputs(required) = {
-  inputs: {
+local cache_opam = {
+  step(key): {
+    name: 'Cache Opam',
+    uses: 'actions/cache@v3',
+    env: {
+      SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+    },
+    with: {
+      path: '~/.opam',
+      key: '${{ runner.os }}-${{ runner.arch }}-opam-deps-%s' % key,
+    },
+   },
+   // to be used with workflow_dispatch and workflow_call in the workflow
+  inputs(required): {
+    inputs: {
     'use-cache': {
       description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
       required: required,
       type: 'boolean',
       default: true,
     },
+  }
   },
-};
-
-local if_cache_inputs = {
-  'if': '${{ inputs.cache}}'
+  if_cache_inputs: {
+    'if': '${{ inputs.use-cache}}'
+  },
 };
 
 // ----------------------------------------------------------------------------
@@ -179,9 +181,5 @@ local if_cache_inputs = {
   },
 
   github_bot: github_bot,
-  cache_opam: {
-    step: cache_opam_step,
-    inputs: cache_opam_inputs,
-    if_cache_inputs: if_cache_inputs,
-  }
+  cache_opam: cache_opam,
 }

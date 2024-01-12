@@ -41,7 +41,7 @@ jobs:
       with:
         path: ~/.opam
         key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0
-      if: ${{ inputs.cache}}
+      if: ${{ inputs.use-cache}}
     - name: Install dependencies
       run: ./scripts/osx-setup-for-release.sh "4.14.0"
     - name: Compile semgrep
