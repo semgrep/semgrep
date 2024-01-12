@@ -480,12 +480,17 @@ def generate_test_results(
     # in a test context, we don't want to honor the paths: (include/exclude)
     # directive since the test target file, which must have the same
     # basename than the rule, may not match the paths: of the rule
+    respect_rule_paths = False
+    no_git_ignore = True
+    no_rewrite_rule_ids = True
+    # COUPLING: the arguments are the same as the second semgrep-core
+    # invocation later in this file (except for one)!
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
         engine_type=engine_type,
-        no_git_ignore=True,
-        respect_rule_paths=False,
-        no_rewrite_rule_ids=True,
+        no_git_ignore=no_git_ignore,
+        respect_rule_paths=respect_rule_paths,
+        no_rewrite_rule_ids=no_rewrite_rule_ids,
         strict=strict,
         optimizations=optimizations,
     )
@@ -570,14 +575,16 @@ def generate_test_results(
     ]
 
     # This is the invocation of semgrep for testing autofix.
-    #
-    # TODO: should 'engine' be set to 'engine=engine' or always 'engine=EngineType.OSS'?
+    # COUPLING: except for autofix, the arguments are the same as above
     invoke_semgrep_with_autofix_fn = functools.partial(
         invoke_semgrep_multi,
-        no_git_ignore=True,
-        no_rewrite_rule_ids=True,
+        engine_type=engine_type,
+        no_git_ignore=no_git_ignore,
+        respect_rule_paths=respect_rule_paths,
+        no_rewrite_rule_ids=no_rewrite_rule_ids,
         strict=strict,
         optimizations=optimizations,
+        # only option that differs from the earlier call to semgrep-core:
         autofix=True,
     )
 
