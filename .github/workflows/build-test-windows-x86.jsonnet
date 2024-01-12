@@ -115,7 +115,8 @@ default: https://github.com/ocaml/opam-repository.git
         cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll archive/
         cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll archive/
 
-        tar czvf ocaml-build-artifacts.tgz archive/*
+        cd archive
+        tar czvf ocaml-build-artifacts.tgz *.exe *.dll
       |||,
     },
     {

@@ -65,7 +65,8 @@ jobs:
         archive/\n        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll
         archive/\n        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll
         archive/\n        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll
-        archive/\n\n        tar czvf ocaml-build-artifacts.tgz archive/*\n      "
+        archive/\n\n        cd archive\n        tar czvf ocaml-build-artifacts.tgz
+        *.exe *.dll\n      "
     - uses: actions/upload-artifact@v3
       with:
         path: ocaml-build-artifacts.tgz
