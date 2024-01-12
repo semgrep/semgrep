@@ -278,7 +278,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
     rules_source =
   (* Create the wait hook for our progress indicator *)
   let spinner_ls =
-    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
+    if Console_Spinner.should_show_spinner () then
       [ Console_Spinner.spinner_async () ]
     else []
   in
