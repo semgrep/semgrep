@@ -189,16 +189,10 @@ local upload_job = {
   'if': '${{ inputs.upload-artifacts }}',
   permissions: gha.write_permissions,
   steps: [
-    {
-      name: 'Configure AWS credentials',
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role',
-        'role-duration-seconds': 900,
-        'role-session-name': 'semgrep-s3-access',
-        'aws-region': 'us-west-2',
-      },
-    },
+    semgrep.aws_credentials_step(
+      role='semgrep-oss-js-artifacts-deploy-role',
+      session_name='semgrep-s3-access'
+      ),
     {
       uses: 'actions/download-artifact@v3',
       with: {

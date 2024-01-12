@@ -143,6 +143,19 @@ local cache_opam = {
     // for e2e-semgrep-ci.jsonnet
     E2E_APP_TOKEN: '${{ secrets.SEMGREP_E2E_APP_TOKEN }}',
   },
+
+  aws_credentials_step(role, session_name): {
+      name: 'Configure AWS credentials',
+      uses: 'aws-actions/configure-aws-credentials@v4',
+      with: {
+        // This seems to be semgrep specific magic number
+        'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
+        'role-duration-seconds': 900,
+        'role-session-name': session_name,
+        'aws-region': 'us-west-2',
+      },
+    },
+
   // used in the build-test-osx-xxx jobs but ideally we should get rid
   // of it and rely on opam.lock for caching issues
   opam_switch: '4.14.0',
