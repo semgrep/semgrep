@@ -29,8 +29,8 @@ local job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': '4.14',
-	#TODO: do not reindent this, ojsonnet bug with newlines which
-	# then prevents setup-ocaml to work correctly
+	#TODO: do not reindent this, ojsonnet/ocaml-yaml/--yaml bug with newlines
+	# which then prevents setup-ocaml@v2 to work correctly
         'opam-repositories': |||
 opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
 default: https://github.com/ocaml/opam-repository.git
