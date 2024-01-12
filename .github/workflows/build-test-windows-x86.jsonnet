@@ -29,10 +29,12 @@ local job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': '4.14',
+	#TODO: do not reindent this, ojsonnet bug with newlines which
+	# then prevents setup-ocaml to work correctly
         'opam-repositories': |||
-          opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
-          default: https://github.com/ocaml/opam-repository.git
-        |||,
+opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+default: https://github.com/ocaml/opam-repository.git
+|||,
         // bogus filename to prevent the action from attempting to install
         // anything (we want deps only)
         'opam-local-packages': 'dont_install_local_packages.opam',

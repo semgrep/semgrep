@@ -19,8 +19,13 @@ jobs:
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: "4.14"
-        opam-repositories: "\n          opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset\n
-          \         default: https://github.com/ocaml/opam-repository.git\n        "
+        opam-repositories: '
+
+          opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+
+          default: https://github.com/ocaml/opam-repository.git
+
+          '
         opam-local-packages: dont_install_local_packages.opam
     - name: Build tree-sitter
       env:
