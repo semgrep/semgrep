@@ -13,14 +13,24 @@ open Fpath_.Operators
 (*****************************************************************************)
 
 let ellipsis_string = " ... "
-let base_indent = String.make 10 ' '
-let findings_indent_depth = String.make 12 ' '
+let rule_leading_indent_size = 3
+
+let rule_indent_size =
+  rule_leading_indent_size + 4 (* severity icon and 1 for space *)
+
+let detail_indent_size = 10
+let findings_indent_size = 12
+let rule_leading_indent = String.make rule_leading_indent_size ' '
+let detail_indent = String.make detail_indent_size ' '
+let findings_indent = String.make findings_indent_size ' '
 
 let text_width =
   let max_text_width = 120 in
   let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
-  (* TODO: what is this w - (w - 100) ? What if w <= 5? *)
-  if w <= 110 then w - 5 else w - (w - 100)
+  min w max_text_width
+
+(* TODO: re-enable dynamic size in a separate PR to avoid too many test changes *)
+let fill_count = 40
 
 type report_group =
   [ OutJ.validation_state
@@ -197,7 +207,11 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
              else (line, 0, false)
            in
            let line_number_str = string_of_int line_number in
-           let pad = String.make (13 - String.length line_number_str) ' ' in
+           let pad =
+             String.make
+               (findings_indent_size + 1 - String.length line_number_str)
+               ' '
+           in
            let col c = max 0 (c - 1 - dedented - line_off) in
            let ellipsis_len p =
              if stripped' && p then String.length ellipsis_string else 0
@@ -218,13 +232,8 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
            in
            let a, b, c = cut line start_color end_color in
            (* TODO(secrets): Apply masking to b *)
-           (* The 24m is "no underline", and for python compatibility *)
-           let esc =
-             if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
-             else Fmt.any ""
-           in
            Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
-             Fmt.(styled `Bold (esc ++ string))
+             Fmt.(styled `Bold string)
              b c;
            (stripped' || stripped, succ line_number))
          (false, start_line)
@@ -233,15 +242,15 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
     Fmt.pf ppf
       "%s[shortened a long line from output, adjust with \
        --max-chars-per-line]@."
-      findings_indent_depth;
+      findings_indent;
   match trimmed with
   | Some num ->
       Fmt.pf ppf
         "%s [hid %d additional lines, adjust with --max-lines-per-finding]@."
-        findings_indent_depth num
+        findings_indent num
   | None ->
       if show_separator then
-        Fmt.pf ppf "%s⋮┆%s" findings_indent_depth (String.make 40 '-')
+        Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make fill_count '-')
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : OutJ.cli_match list) =
@@ -277,30 +286,71 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       | Some m -> m <> cur.extra.message
     in
     if print then (
-      (* The 24m is "no underline", and for python compatibility *)
-      let esc =
-        if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
-        else Fmt.any ""
+      (* NOTE: In a subsequent PR we should
+               (1) print the unicode arrows without color when color is disabled
+               (2) remove the in_test conditional
+      *)
+      let no_color = !Semgrep_envvars.v.no_color in
+      let in_test =
+        !Semgrep_envvars.v.user_agent_append
+        |> Option.map (fun s -> String.equal s "pytest")
+        |> Option.value ~default:false
       in
-      List.iter
-        (fun (sp, l) ->
-          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
-        (wrap ~indent:7 ~width:text_width (Rule_ID.to_string cur.check_id));
-      List.iter
-        (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
-        (wrap ~indent:10 ~width:text_width cur.extra.message);
-      (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
-      | `String s -> Fmt.pf ppf "%sDetails: %s@." base_indent s
-      | _else -> ());
-      Fmt.pf ppf "@.");
+      let pp_styled_severity =
+        if Fmt.style_renderer ppf = `Ansi_tty && (not no_color) && not in_test
+        then function
+          | `Error ->
+              Fmt.pf ppf "%s%a" rule_leading_indent
+                Fmt.(styled (`Fg `Red) string)
+                "❯❯❱"
+          (* No out-of-the-box support for Orange and we use here Magenta instead :/ *)
+          | `Warning ->
+              Fmt.pf ppf "%s%a" rule_leading_indent
+                Fmt.(styled (`Fg `Magenta) string)
+                " ❯❱"
+          | `Info ->
+              Fmt.pf ppf "%s%a" rule_leading_indent
+                Fmt.(styled (`Fg `Green) string)
+                "  ❱"
+          | _ -> Fmt.pf ppf "%s%s" rule_leading_indent "   "
+        else function
+          | _ -> Fmt.pf ppf "%s%s" rule_leading_indent "   "
+      in
+      pp_styled_severity cur.extra.severity;
+      let lines =
+        wrap ~indent:rule_indent_size ~width:text_width
+          (Rule_ID.to_string cur.check_id)
+      in
+      match lines with
+      | [] -> ()
+      | (_, l) :: rest ->
+          (* Print indented severity with 1 trailing space and then first line *)
+          Fmt.pf ppf " %a@." Fmt.(styled `Bold string) l;
+          List.iter
+            (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold string) l)
+            rest;
+          List.iter
+            (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
+            (wrap ~indent:detail_indent_size
+               ~width:(text_width - detail_indent_size)
+               cur.extra.message);
+          (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
+          | `String s -> Fmt.pf ppf "%sDetails: %s@." detail_indent s
+          | _else -> ());
+          Fmt.pf ppf "@.");
     (* TODO autofix *)
     let same_file =
       match next with
       | None -> false
       | Some m -> m.path = cur.path
     in
+    let same_rule =
+      match next with
+      | None -> false
+      | Some m -> m.check_id = cur.check_id
+    in
     pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-      ~show_separator:same_file ppf cur;
+      ~show_separator:(same_file && same_rule) ppf cur;
     Fmt.pf ppf "@."
   in
   let last, cur =

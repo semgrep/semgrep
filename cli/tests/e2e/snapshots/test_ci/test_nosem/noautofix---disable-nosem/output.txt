@@ -30,14 +30,14 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
            11┆ y == y
             ⋮┆----------------------------------------
            13┆ z == z  # nosemgrep
-            ⋮┆----------------------------------------
+
        eqeq-four
           useless comparison to 4
 
            18┆ baz == 4  # nosemgrep
             ⋮┆----------------------------------------
            19┆ baz == 4
-            ⋮┆----------------------------------------
+
        taint-test
           unsafe use of danger
 

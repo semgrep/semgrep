@@ -9,7 +9,7 @@
           found something (2)
 
             1┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-1
           found something (1)
 
@@ -19,18 +19,18 @@
             1┆ f()
             2┆ f()
             3┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-2
           found something (2)
 
             2┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-1
           found something (1)
 
             2┆ f()
             3┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-2
           found something (2)
 
@@ -41,7 +41,7 @@
           found something (2)
 
             1┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-1
           found something (1)
 
@@ -51,18 +51,18 @@
             1┆ f()
             2┆ f()
             3┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-2
           found something (2)
 
             2┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-1
           found something (1)
 
             2┆ f()
             3┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-2
           found something (2)
 
@@ -73,13 +73,13 @@
           found something (2)
 
             1┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-1
           found something (1)
 
             1┆ f()
             2┆ f()
-            ⋮┆----------------------------------------
+
        rules.sort-findings-2
           found something (2)
 
