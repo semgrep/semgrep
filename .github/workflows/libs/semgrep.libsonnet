@@ -56,6 +56,81 @@ local github_bot = {
 };
 
 // ----------------------------------------------------------------------------
+// OPAM caching
+// ----------------------------------------------------------------------------
+
+// The step below uses the actions/cache@v3 GHA extension to cache
+// the ~/.opam directory which speedups a lot the "install opam dependencies"
+// step, especially in workflows where we can't use ocaml-layer.
+//
+// For example, on GHA-hosted macos runners, without caching it would run
+// very slowly like 35min instead of 10min with caching.
+// The M1 build runs on fast self-hosted runners where caching does not seem
+// to be necessary.
+// In Linux, we use a special container (returntocorp/ocaml:alpine-xxx) to
+// bring in the required dependencies, which makes 'opam switch create'
+// and 'opam install deps' unnecessary and almost a noop.
+// Still, we could potentially get rid of ocaml-layer and replace it with
+// this more general caching mechanism.
+//
+// alt:
+//  - use a self-hosted runner where we can save the content of ~/.opam between
+//    runs and do whatever we want. The problem is that the build is then
+//    not "hermetic", and we ran in many issues such as the disk of the
+//    self-hosted runner being full, or some stuff being left from other CI
+//    runs (such as a semgrep install) entering in conflicts with some of our
+//    build steps. This also requires some devops work to create and maintain
+//    those pools of self-hosted runners.
+//  - use a GHA-hosted runner which is nice because we don't have to do
+//    anything, and the build are guaranteed to be hermetic. The only problem
+//    originally was that it was slower, and for unknown reasons ocamlc was
+//    not working well on those macos-12 GHA runners, but caching the ~/.opam
+//    with actions/cache@v3 seems to solve the speed issue (and maybe ocamlc
+//    works now well under macos-12).
+//  - use a technique similar to what we do for Linux with our special
+//    container, but can this be done for macos?
+//
+// See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f
+// for more information.
+
+// Note that this actions does cache read and cache write.
+// See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
+// for more information on GHA caching.
+//
+// Note that this works and speedup things because of the way OPAM works
+// and osx-setup-for-release.sh is written. Indeed, this script checks
+// if the opam switch is already created, and if a package is already
+// installed (in ~/.opam), then opam install on this package will do nothing.
+//
+local cache_opam_step(key) = {
+  name: 'Cache Opam',
+  uses: 'actions/cache@v3',
+  env: {
+    SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+  },
+  with: {
+    path: '~/.opam',
+    key: '${{ runner.os }}-${{ runner.arch }}-opam-deps-%s' % key,
+  },
+};
+
+// to be used with workflow_dispatch and workflow_call in the workflow
+local cache_opam_inputs(required) = {
+  inputs: {
+    'use-cache': {
+      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
+      required: required,
+      type: 'boolean',
+      default: true,
+    },
+  },
+};
+
+local if_cache_inputs = {
+  'if': '${{ inputs.cache}}'
+};
+
+// ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
 
@@ -104,4 +179,9 @@ local github_bot = {
   },
 
   github_bot: github_bot,
+  cache_opam: {
+    step: cache_opam_step,
+    inputs: cache_opam_inputs,
+    if_cache_inputs: if_cache_inputs,
+  }
 }
