@@ -98,7 +98,7 @@ local build_job =
 
 local test_job = {
   'runs-on': 'ubuntu-latest-16-core',
-  container: 'emscripten/emsdk:3.1.46',
+  container: 'emscripten/emsdk:3.1.51',
   needs: [
     'build',
   ],
