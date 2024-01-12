@@ -5,7 +5,7 @@
 └─────────────────────────────────────┘
 
     targets/dependency_aware/unreachable_multiple_copies/yarn.lock
-       rules.dependency_aware.GHSA-p6mc-m468-83gw
+    ❯❱ rules.dependency_aware.GHSA-p6mc-m468-83gw
           Versions of lodash prior to 4.17.19 are vulnerable to Prototype Pollution. The function
           zipObjectDeep allows a malicious user to modify the prototype of Object if the property identifiers
           are user-supplied. Being affected by this issue requires zipping objects based on user-provided
