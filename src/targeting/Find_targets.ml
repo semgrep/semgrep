@@ -254,11 +254,11 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               let cwd = Rpath.to_fpath project.path in
-               Git_wrapper.ls_files ~cwd ~kinds:file_kinds [ sc_root.fpath ]
+               let cwd = sc_root.fpath in
+               Git_wrapper.ls_files ~cwd ~kinds:file_kinds []
                |> List_.map (fun fpath ->
                       (* No need to relativize here since ls-files will be
-                         relative to cwd (project_root) anyways *)
+                         relative to cwd (sc_root) anyways *)
                       let ppath = Ppath.append_fpath sc_root.ppath fpath in
                       ({ fpath; ppath } : Fppath.t)))
         |> Fppath_set.of_list)

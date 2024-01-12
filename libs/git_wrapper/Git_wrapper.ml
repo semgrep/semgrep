@@ -101,10 +101,8 @@ exception Error of string
  * We use a named capture group for the lines, and then split on the comma if
  * it's a multiline diff
  *)
-let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
-let remote_repo_name_pat = {|^http.*\/(.*)\.git$|}
-let remote_repo_name_re = Pcre_.regexp remote_repo_name_pat
+let git_diff_lines_re = Pcre_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
+let remote_repo_name_re = Pcre_.regexp {|^http.*\/(.*)\.git$|}
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
