@@ -1,4 +1,3 @@
-import sys
 import textwrap
 from contextlib import contextmanager
 from itertools import groupby
@@ -64,25 +63,27 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     ): "Secrets Validation Error",
 }
 
-SEVERITY_MAP = (
-    {
-        out.Error.to_json(): ("red", "❯❯❱"),
-        out.Warning.to_json(): ("magenta", " ❯❱"),
-        out.Info.to_json(): ("green", "  ❱"),
-    }
-    if sys.stderr.isatty()
-    else {
-        out.Error.to_json(): ("", "   "),
-        out.Warning.to_json(): ("", "   "),
-        out.Info.to_json(): ("", "   "),
-    }
-)
+SEVERITY_MAP_PLAIN = {
+    out.Error.to_json(): ("", "❯❯❱"),
+    out.Warning.to_json(): ("", " ❯❱"),
+    out.Info.to_json(): ("", "  ❱"),
+}
+
+SEVERITY_MAP_STYLED = {
+    out.Error.to_json(): ("red", "❯❯❱"),
+    out.Warning.to_json(): ("magenta", " ❯❱"),
+    out.Info.to_json(): ("green", "  ❱"),
+}
 
 
-def to_severity_indicator(rule_match: RuleMatch) -> Tuple[str, str]:
+def to_severity_indicator(
+    rule_match: RuleMatch,
+    color_output: bool = False,
+) -> Tuple[str, str]:
     """Return a color and severity icon."""
     severity = rule_match.severity.to_json()
-    return SEVERITY_MAP.get(severity, ("bright_white", "   "))
+    lookup = SEVERITY_MAP_STYLED if color_output else SEVERITY_MAP_PLAIN
+    return lookup.get(severity, ("", "   "))
 
 
 def format_finding_line(
@@ -615,7 +616,7 @@ def print_text_output(
                 initial_indent="",
                 subsequent_indent=RULE_INDENT * " ",
             )
-            sev_color, sev_icon = to_severity_indicator(rule_match)
+            sev_color, sev_icon = to_severity_indicator(rule_match, color_output)
             text = Text.assemble(
                 (RULE_INDENT - 4) * " ",
                 (sev_icon, sev_color),

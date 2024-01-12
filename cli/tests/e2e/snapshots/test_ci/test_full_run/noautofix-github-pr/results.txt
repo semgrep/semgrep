@@ -49,7 +49,7 @@ Creating git worktree from '<MASKED>' to scan baseline.
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -60,12 +60,12 @@ Creating git worktree from '<MASKED>' to scan baseline.
             ⋮┆----------------------------------------
            11┆ y == y
 
-       eqeq-four
+   ❯❯❱ eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
 
-       taint-test
+    ❯❱ taint-test
           unsafe use of danger
 
            27┆ sink(d2)
@@ -76,7 +76,7 @@ Creating git worktree from '<MASKED>' to scan baseline.
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)

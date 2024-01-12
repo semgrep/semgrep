@@ -5,7 +5,7 @@
 └────────────────┘
 
     targets/cli_test/long_text/long_text.py
-       rules.cli_test.long_rule_id.this-is-a-very-long-rule-id-which-should-be-wrapped-in-the-cli-thank-you-very-much-
+    ❯❱ rules.cli_test.long_rule_id.this-is-a-very-long-rule-id-which-should-be-wrapped-in-the-cli-thank-you-very-much-
        supercalifragilisticexpialidocious
           This is the description of a very long rule id which should be wrapped in the cli thank you very
           much supercalifragilisticexpialidocious.
