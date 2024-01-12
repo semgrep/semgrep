@@ -55,7 +55,9 @@ local build_core_job = {
   //TODO: could pass it via an argument to cache_opam_step instead of env?
   steps: [
     actions.checkout_with_submodules(),
-    // TODO: should use opam.lock instead of semgrep.opam at some point
+    // TODO: we should use opam.lock instead of semgrep.opam at some point
+    // so any update to our dependencies would automatically trigger a
+    // cache miss and generate a fresh ~/.opam.
     semgrep.cache_opam.step(
          key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam'}}")
       + semgrep.cache_opam.if_cache_inputs,

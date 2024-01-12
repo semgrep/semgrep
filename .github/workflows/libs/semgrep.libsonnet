@@ -63,6 +63,7 @@ local github_bot = {
 // the ~/.opam directory which speedups a lot the "install opam dependencies"
 // step, especially in workflows where we can't use ocaml-layer.
 // See also actions.libsonnet for other GHA caching helpers.
+// Note that actions/setup-ocaml@v2 is using a similar technique.
 //
 // For example, on GHA-hosted macos runners, without caching it would run
 // very slowly like 35min instead of 10min with caching.
@@ -72,7 +73,7 @@ local github_bot = {
 // bring in the required dependencies, which makes 'opam switch create'
 // and 'opam install deps' unnecessary and almost a noop.
 // Still, we could potentially get rid of ocaml-layer and replace it with
-// this more general caching mechanism.
+// this more general caching mechanism (or switch to setup-ocaml@v2).
 //
 // alt:
 //  - use a self-hosted runner where we can save the content of ~/.opam between
@@ -90,6 +91,7 @@ local github_bot = {
 //    works now well under macos-12).
 //  - use a technique similar to what we do for Linux with our special
 //    container, but can this be done for macos?
+//  - use setup-ocaml@v2 which internally uses a GHA cache too
 //
 // See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f
 // for more information.
@@ -106,11 +108,11 @@ local github_bot = {
 // See https://github.com/organizations/semgrep/settings/actions/caches
 // (requires admin access to github org) to see the GHA cache settings
 // and https://github.com/semgrep/semgrep/actions/caches
-
+// to see the actual cache files created.
 
 local cache_opam = {
   step(key): {
-    name: 'Cache Opam',
+    name: 'Cache ~/.opam',
     uses: 'actions/cache@v3',
     env: {
       SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
