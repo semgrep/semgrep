@@ -40,14 +40,14 @@ jobs:
     #     cd downloads/tree-sitter
     #     make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
     #     make PREFIX="$prefix" install
-    - name: Cache opam switch packages
+    - name: Cache opam switch
       uses: actions/cache@v3
       with:
         key: opam-${{ runner.os }}-4.14-${{ hashFiles('semgrep.opam') }}-1
         restore-keys: |
           opam-${{ runner.os }}-4.14
         path: |
-          _opam/.opam-switch
+          _opam
     - name: Install deps
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
