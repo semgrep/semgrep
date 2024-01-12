@@ -141,7 +141,7 @@ let run matcher path =
   let res = Pcre_.pmatch_noerr ~rex:matcher.re path in
   if !debug then
     (* expensive string concatenation; may not be suitable for logger#debug *)
-    Printf.printf "** glob: %S  pcre: %s  path: %S  matches: %B\n"
+    Printf.eprintf "** glob: %S  pcre: %s  path: %S  matches: %B\n"
       matcher.source.line_contents matcher.re.pattern path res;
   res
 [@@profiling "Glob.Match.run"]
