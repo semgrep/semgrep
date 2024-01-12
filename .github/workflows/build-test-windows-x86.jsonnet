@@ -128,7 +128,7 @@ default: https://github.com/ocaml/opam-repository.git
     {
       uses: 'actions/upload-artifact@v3',
       with: {
-        path: 'ocaml-build-artifacts.tgz',
+        path: 'archive/ocaml-build-artifacts.tgz',
         name: 'ocaml-build-artifacts-release-w64',
       },
     },
