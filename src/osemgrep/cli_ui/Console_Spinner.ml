@@ -9,8 +9,10 @@ let should_show_spinner () =
   !ANSITerminal.isatty Unix.stdout && (not !Common.jsoo) && Sys.unix
 
 let show_spinner delay_ms : unit =
-  if not (should_show_spinner ()) then
-    ANSITerminal.printf [ ANSITerminal.green ] "Waiting for sign in..."
+  if not (should_show_spinner ()) then (
+    ANSITerminal.printf [ ANSITerminal.green ] "Waiting for sign in...";
+    (* Note: sleep is measured in seconds *)
+    Unix.sleepf (Float.of_int delay_ms /. Float.of_int 1000))
   else
     let print_frame ~frame_index:i : unit =
       let spinner = spinner.(i mod Array.length spinner) in
