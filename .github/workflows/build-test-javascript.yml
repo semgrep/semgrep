@@ -112,7 +112,7 @@ jobs:
       id-token: write
       contents: write
     steps:
-    - name: Configure AWS credentials
+    - name: Configure AWS credentials for semgrep-oss-js-artifacts-deploy-role
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role

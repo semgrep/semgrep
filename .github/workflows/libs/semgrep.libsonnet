@@ -56,6 +56,89 @@ local github_bot = {
 };
 
 // ----------------------------------------------------------------------------
+// OPAM caching
+// ----------------------------------------------------------------------------
+
+// The step below uses the actions/cache@v3 GHA extension to cache
+// the ~/.opam directory which speedups a lot the "install opam dependencies"
+// step, especially in workflows where we can't use ocaml-layer.
+// See also actions.libsonnet for other GHA caching helpers.
+// Note that actions/setup-ocaml@v2 is using a similar technique.
+//
+// For example, on GHA-hosted macos runners, without caching it would run
+// very slowly like 35min instead of 10min with caching.
+// The M1 build runs on fast self-hosted runners where caching does not seem
+// to be necessary.
+// In Linux, we use a special container (returntocorp/ocaml:alpine-xxx) to
+// bring in the required dependencies, which makes 'opam switch create'
+// and 'opam install deps' unnecessary and almost a noop.
+// Still, we could potentially get rid of ocaml-layer and replace it with
+// this more general caching mechanism (or switch to setup-ocaml@v2).
+//
+// alt:
+//  - use a self-hosted runner where we can save the content of ~/.opam between
+//    runs and do whatever we want. The problem is that the build is then
+//    not "hermetic", and we ran in many issues such as the disk of the
+//    self-hosted runner being full, or some stuff being left from other CI
+//    runs (such as a semgrep install) entering in conflicts with some of our
+//    build steps. This also requires some devops work to create and maintain
+//    those pools of self-hosted runners.
+//  - use a GHA-hosted runner which is nice because we don't have to do
+//    anything, and the build are guaranteed to be hermetic. The only problem
+//    originally was that it was slower, and for unknown reasons ocamlc was
+//    not working well on those macos-12 GHA runners, but caching the ~/.opam
+//    with actions/cache@v3 seems to solve the speed issue (and maybe ocamlc
+//    works now well under macos-12).
+//  - use a technique similar to what we do for Linux with our special
+//    container, but can this be done for macos?
+//  - use setup-ocaml@v2 which internally uses a GHA cache too
+//
+// See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f
+// for more information.
+
+// Note that this actions does cache read and cache write.
+// See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
+// for more information on GHA caching.
+//
+// Note that this works and speedup things because of the way OPAM works
+// and osx-setup-for-release.sh is written. Indeed, this script checks
+// if the opam switch is already created, and if a package is already
+// installed (in ~/.opam), then opam install on this package will do nothing.
+//
+// See https://github.com/organizations/semgrep/settings/actions/caches
+// (requires admin access to github org) to see the GHA cache settings
+// and https://github.com/semgrep/semgrep/actions/caches
+// to see the actual cache files created.
+
+local cache_opam = {
+  step(key): {
+    name: 'Cache ~/.opam',
+    uses: 'actions/cache@v3',
+    env: {
+      SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+    },
+    with: {
+      path: '~/.opam',
+      key: '${{ runner.os }}-${{ runner.arch }}-opam-deps-%s' % key,
+    },
+   },
+   // to be used with workflow_dispatch and workflow_call in the workflow
+  inputs(required): {
+    inputs: {
+    'use-cache': {
+      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
+      required: required,
+      type: 'boolean',
+      default: true,
+    },
+  }
+  },
+  if_cache_inputs: {
+    'if': '${{ inputs.use-cache}}'
+  },
+};
+
+// ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
 
@@ -66,6 +149,19 @@ local github_bot = {
     // for e2e-semgrep-ci.jsonnet
     E2E_APP_TOKEN: '${{ secrets.SEMGREP_E2E_APP_TOKEN }}',
   },
+
+  aws_credentials_step(role, session_name): {
+      name: 'Configure AWS credentials for %s' % role,
+      uses: 'aws-actions/configure-aws-credentials@v4',
+      with: {
+        // This seems to be semgrep specific magic number
+        'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
+        'role-duration-seconds': 900,
+        'role-session-name': session_name,
+        'aws-region': 'us-west-2',
+      },
+    },
+
   // used in the build-test-osx-xxx jobs but ideally we should get rid
   // of it and rely on opam.lock for caching issues
   opam_switch: '4.14.0',
@@ -104,4 +200,5 @@ local github_bot = {
   },
 
   github_bot: github_bot,
+  cache_opam: cache_opam,
 }

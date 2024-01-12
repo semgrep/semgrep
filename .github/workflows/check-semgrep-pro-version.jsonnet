@@ -1,5 +1,8 @@
-// workflow used to check the latest version of Semgrep Pro, ensuring the version
-// manifests are up to date before releasing.
+// workflow used to check the latest version of Semgrep Pro, ensuring the
+// version manifests are up to date before releasing.
+
+local semgrep = import 'libs/semgrep.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The inputs
@@ -34,22 +37,12 @@ local inputs = {
 // ----------------------------------------------------------------------------
 local job = {
   'runs-on': 'ubuntu-22.04',
-  name: 'Check Semgrep Pro Version Manifest',
-  permissions: {
-    'id-token': 'write',
-    contents: 'write',
-  },
+  permissions: gha.write_permissions,
   steps: [
-    {
-      name: 'Configure AWS credentials',
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        'role-to-assume': 'arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role',
-        'role-duration-seconds': 900,
-        'role-session-name': 'semgrep-s3-access',
-        'aws-region': 'us-west-2',
-      },
-    },
+    semgrep.aws_credentials_step(
+     role='returntocorp-semgrep-deploy-role',
+     session_name='semgrep-s3-access'
+    ),
     {
       name: 'Download binaries from S3',
       run: 'aws s3 cp "s3://${{ inputs.bucket-name }}/${{ inputs.manifest-key }}" versions-manifest.json',

@@ -42,12 +42,11 @@ name: check-semgrep-pro-version
 jobs:
   job:
     runs-on: ubuntu-22.04
-    name: Check Semgrep Pro Version Manifest
     permissions:
       id-token: write
       contents: write
     steps:
-    - name: Configure AWS credentials
+    - name: Configure AWS credentials for returntocorp-semgrep-deploy-role
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role

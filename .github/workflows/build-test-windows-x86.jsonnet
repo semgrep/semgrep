@@ -5,6 +5,13 @@
 // native support which will be faster and more convenient than what current
 // Semgrep users have to do which is to use Docker or the Window Subsystem
 // for Linux (WSL).
+//
+// Note that if you want to build semgrep yourself on a Windows machine,
+// you'll need to imitate some of the magic done by setup-ocaml@v2:
+//   c:\Windows\system32\fsutil.exe behavior query SymlinkEvaluation
+//   c:\Windows\system32\fsutil.exe behavior set SymlinkEvaluation R2L:1 R2R:1
+// otherwise the symlinks in semgrep used to link our .atd files would
+// confuse 'dune'
 
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
