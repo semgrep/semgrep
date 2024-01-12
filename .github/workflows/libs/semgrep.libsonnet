@@ -62,7 +62,7 @@ local github_bot = {
 // The step below uses the actions/cache@v3 GHA extension to cache
 // the ~/.opam directory which speedups a lot the "install opam dependencies"
 // step, especially in workflows where we can't use ocaml-layer.
-// See also gha.libsonnet for other caching helpers.
+// See also actions.libsonnet for other GHA caching helpers.
 //
 // For example, on GHA-hosted macos runners, without caching it would run
 // very slowly like 35min instead of 10min with caching.
@@ -103,6 +103,10 @@ local github_bot = {
 // if the opam switch is already created, and if a package is already
 // installed (in ~/.opam), then opam install on this package will do nothing.
 //
+// See https://github.com/organizations/semgrep/settings/actions/caches
+// (requires admin access to github org) to see the GHA cache settings
+// and https://github.com/semgrep/semgrep/actions/caches
+
 
 local cache_opam = {
   step(key): {
@@ -145,7 +149,7 @@ local cache_opam = {
   },
 
   aws_credentials_step(role, session_name): {
-      name: 'Configure AWS credentials',
+      name: 'Configure AWS credentials for %s' % role,
       uses: 'aws-actions/configure-aws-credentials@v4',
       with: {
         // This seems to be semgrep specific magic number
