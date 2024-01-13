@@ -50,9 +50,11 @@ depends: [
   "semver"
   "uri"
   "uuidm"
-  "trace"
-  "trace-tef"
   "lsp" {= "1.15.1-5.0"}
+  "trace"
+  "opentelemetry"
+  "opentelemetry-client-ocurl"
+  "ambient-context-lwt"
   "uri"
   "cohttp-lwt-unix"
   "cohttp-lwt-jsoo"
