@@ -168,8 +168,7 @@ type target_handler = In.target -> RP.matches_single_file * was_scanned
    coupling: this functionality is implemented also in semgrep-python.
 *)
 let replace_named_pipe_by_regular_file path =
-  UFile.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-"
-    path
+  UTmp.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
 
 (*
    Sort targets by decreasing size. This is meant for optimizing
