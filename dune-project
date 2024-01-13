@@ -468,9 +468,12 @@ For more information see https://semgrep.dev
     semver
     uri
     uuidm
-    trace
-    trace-tef ; will probably switch this out for a different backend
     (lsp (= 1.15.1-5.0))
+    ; tracing
+    trace
+    opentelemetry
+    opentelemetry-client-ocurl
+    ambient-context-lwt
     ; web stuff
     uri
     cohttp-lwt-unix
