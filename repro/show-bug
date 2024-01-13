@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Reproduce bug where 'print' fails to print randomly
+#
+set -eux
+
+semgrep() {
+  PIPENV_PIPFILE=../cli/Pipfile pipenv run semgrep "$@"
+}
+
+cat <<EOF
+The first series of 10 runs prints XXX each time.
+The second series of 10 runs sometimes prints XXX and sometimes fails to do
+so. This is the bug we're after.
+EOF
+
+echo "Run regular semgrep scan:"
+for i in $(seq 1 10); do
+  echo "run $i"
+  semgrep scan -c example.yaml . 2>/dev/null | (grep --color=always XXX || true)
+done
+
+echo "Run semgrep --test:"
+for i in $(seq 1 10); do
+  echo "run $i"
+  semgrep scan --test . 2>/dev/null | (grep --color=always XXX || true)
+done

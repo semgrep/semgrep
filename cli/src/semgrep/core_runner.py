@@ -435,6 +435,7 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
+        print("XXX core_runner execute")
         open_and_ignore(f"{tempfile.gettempdir()}/core-runner-semgrep-BEGIN")
 
         terminal = get_state().terminal

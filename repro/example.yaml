@@ -1,0 +1,7 @@
+rules:
+- id: example
+  pattern: "a = 1"
+  message: xxx
+  severity: WARNING
+  languages:
+  - python
