@@ -15,9 +15,9 @@ val mona : unit Lwt.t Alcotest_ext.Mona.t
    See the documentation for Alcotest_ext.create. *)
 val create :
   ?category:string list ->
+  ?checked_output:Alcotest_ext.output_kind ->
   ?expected_outcome:Alcotest_ext.expected_outcome ->
   ?mask_output:(string -> string) list ->
-  ?output_kind:Alcotest_ext.output_kind ->
   ?skipped:bool ->
   ?tags:Alcotest_ext.Tag.t list ->
   ?tolerate_chdir:bool ->

@@ -114,7 +114,7 @@ type 'unit_promise t = private {
   (* An optional function to rewrite any output data so as to mask the
      variable parts. *)
   mask_output : (string -> string) list;
-  output_kind : output_kind;
+  checked_output : output_kind;
   (* The 'skipped' property causes a test to be skipped by Alcotest but still
      shown as "[SKIP]" rather than being omitted. *)
   skipped : bool;
@@ -149,9 +149,9 @@ type simple_test = string * (unit -> unit)
 *)
 val create :
   ?category:string list ->
+  ?checked_output:output_kind ->
   ?expected_outcome:expected_outcome ->
   ?mask_output:(string -> string) list ->
-  ?output_kind:output_kind ->
   ?skipped:bool ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
@@ -165,9 +165,9 @@ val create :
 *)
 val create_gen :
   ?category:string list ->
+  ?checked_output:output_kind ->
   ?expected_outcome:expected_outcome ->
   ?mask_output:(string -> string) list ->
-  ?output_kind:output_kind ->
   ?skipped:bool ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
@@ -183,11 +183,11 @@ val create_gen :
 *)
 val update :
   ?category:string list ->
+  ?checked_output:output_kind ->
   ?expected_outcome:expected_outcome ->
   ?func:(unit -> 'unit_promise) ->
   ?mask_output:(string -> string) list ->
   ?name:string ->
-  ?output_kind:output_kind ->
   ?skipped:bool ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->
@@ -202,6 +202,16 @@ val mask_line :
   ?mask:string -> ?after:string -> ?before:string -> unit -> string -> string
 
 val mask_pcre_pattern : ?mask:string -> string -> string -> string
+
+(*
+   Mask strings that look like temporary file paths. This is useful in the
+   following cases:
+   - the temporary folder depends on the platform (Unix, Windows) or
+     on the environment (TMPDIR environment variable or equivalent);
+   - the files placed in the system's temporary folder are assigned
+     random names.
+*)
+val mask_temp_paths : ?mask:string -> unit -> string -> string
 
 (*
    Special case of the 'update' function that allows a different type
@@ -236,9 +246,9 @@ val pack_tests : string -> simple_test list -> test list
 *)
 val test :
   ?category:string list ->
+  ?checked_output:output_kind ->
   ?expected_outcome:expected_outcome ->
   ?mask_output:(string -> string) list ->
-  ?output_kind:output_kind ->
   ?skipped:bool ->
   ?tags:Tag.t list ->
   ?tolerate_chdir:bool ->

@@ -40,8 +40,10 @@ val get_output_file_pairs : 'a Types.test -> output_file_pair list
 (*
    Ordinary output that's not compared against expectations.
    This is what's left of stdout and stderr after redirections.
+
+   Return a pair (English description, data).
 *)
-val get_unchecked_output : 'a Types.test -> string option
+val get_unchecked_output : 'a Types.test -> (string * string) option
 
 (*
    These functions are available after the call to 'init'.

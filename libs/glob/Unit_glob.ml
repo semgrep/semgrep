@@ -23,12 +23,17 @@ let test pattern path matches () =
      %s\n\
      %s\n"
     pattern path matches res (Pattern.show pat) (Match.show compiled_pat);
-  Alcotest.(check bool) "equal" matches res
+  Alcotest.(check bool) __LOC__ matches res
 
 (*****************************************************************************)
 (* Test data *)
 (*****************************************************************************)
 
+(*
+   These tests conform with the gitignore specification, falling back to
+   the official gitignore implementation in case some important behavior
+   is unspecified (e.g. '**' matches dot files but '*' doesn't).
+*)
 let tests =
   Alcotest_ext.pack_tests "Glob"
     [
@@ -85,7 +90,25 @@ let tests =
        *)
       ("ellipsis 10", test "a**" "a/b" false);
       ("ellipsis 11", test "****" "a" true);
-      (* not matching either *)
       ("ellipsis 12", test "****" "a/b" false);
+      ("ellipsis 13", test "**/*b" "/a/b" true);
+      ("ellipsis 14", test "**/*b" "a/b" true);
+      ("ellipsis 15", test "**/*b" "//a/b" true);
+      ("ellipsis 16", test "a/**" "a/b/c" true);
+      ("ellipsis 17", test "a/**" "a/" true);
+      ("ellipsis 18", test "a/**" "a" false);
       ("double slash", test "//a//b//" "//a//b//" true);
+      ("double slash in pattern", test "//a//b//" "/a/b/" true);
+      ("double slash in path", test "/a/b/" "//a//b//" true);
+      ("empty trailing segment", test "a/*" "a/" false);
+      ("empty leading segment", test "*/a" "/a" false);
+      ("not a dot file", test "*a" "b.a" true);
+      ("don't match dot file with wildcard", test "*" ".a" false);
+      ("don't match dot file with wildcard 2", test "*a" ".a" false);
+      ("don't match dot file with wildcard 3", test "*" ".a" false);
+      ("match dot file with literal dot", test ".?b" ".ab" true);
+      ("don't match dot file with wildcard sequence", test "*?a" ".a" false);
+      ("don't match dot file with wildcard sequence 2", test "?*a" ".a" false);
+      ("match dot file with '**'", test "**" ".a" true);
+      ("match dot file with '**' 2", test "a/**/c" "a/.b/c" true);
     ]

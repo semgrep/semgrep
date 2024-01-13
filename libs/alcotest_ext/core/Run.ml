@@ -360,9 +360,8 @@ let show_output_details (sum : T.status_summary)
        ->
          flush stdout;
          flush stderr;
-         match path_to_expected_output with
-         | None ->
-             printf "%sPath to unchecked output: %s\n" bullet path_to_output
+         (match path_to_expected_output with
+         | None -> ()
          | Some path_to_expected_output ->
              (match success with
              | OK
@@ -373,8 +372,8 @@ let show_output_details (sum : T.status_summary)
                  show_diff short_name path_to_expected_output path_to_output);
              if success <> OK_but_new then
                printf "%sPath to expected %s: %s\n" bullet short_name
-                 path_to_expected_output;
-             printf "%sPath to latest %s: %s\n" bullet short_name path_to_output)
+                 path_to_expected_output);
+         printf "%sPath to captured %s: %s\n" bullet short_name path_to_output)
 
 let print_error text = printf "%s%s\n" bullet (Style.color Red text)
 
@@ -394,11 +393,11 @@ let print_status ~highlight_test ~always_show_unchecked_output
         (match status.expectation.expected_outcome with
         | Should_succeed -> ()
         | Should_fail reason -> printf "%sExpected to fail: %s\n" bullet reason);
-        (match test.output_kind with
+        (match test.checked_output with
         | Ignore_output -> ()
         | _ ->
             let text =
-              match test.output_kind with
+              match test.checked_output with
               | Ignore_output -> assert false
               | Stdout -> "stdout"
               | Stderr -> "stderr"
@@ -424,9 +423,9 @@ let print_status ~highlight_test ~always_show_unchecked_output
                 print_error
                   (sprintf "Missing files containing the test output: %s"
                      (String.concat ", " paths))
-            | Ok _result ->
-                let output_file_pairs = Store.get_output_file_pairs test in
-                show_output_details sum output_file_pairs));
+            | Ok _ -> ()));
+        let output_file_pairs = Store.get_output_file_pairs test in
+        show_output_details sum output_file_pairs;
         match success_of_status_summary sum with
         | OK when not always_show_unchecked_output -> ()
         | OK_but_new when not always_show_unchecked_output ->
@@ -436,11 +435,11 @@ let print_status ~highlight_test ~always_show_unchecked_output
         | OK_but_new
         | Not_OK -> (
             match Store.get_unchecked_output test with
-            | Some ""
+            | Some (_, "")
             | None ->
                 ()
-            | Some data ->
-                printf "%sTest log (unchecked output):\n%s" bullet
+            | Some (log_description, data) ->
+                printf "%sLog (%s):\n%s" bullet log_description
                   (Style.quote_multiline_text data);
                 if not (String.ends_with ~suffix:"\n" data) then print_char '\n'
             )));

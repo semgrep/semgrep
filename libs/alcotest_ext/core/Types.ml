@@ -102,7 +102,7 @@ type 'unit_promise test = {
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   mask_output : (string -> string) list;
-  output_kind : output_kind;
+  checked_output : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
   m : 'unit_promise Mona.t;

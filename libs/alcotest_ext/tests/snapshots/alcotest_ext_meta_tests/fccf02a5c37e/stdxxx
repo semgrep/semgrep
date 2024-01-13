@@ -16,102 +16,134 @@ Legend:
 
 [33m[MISS]  [0m8dbdda48fb87 [36msimple[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [33m[MISS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [33m[MISS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [33m[MISS]  [0m2c57c8917bfb [36munchecked stdout[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [33m[MISS]  [0m68358d78cb0b [36munchecked stderr[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [33m[MISS]  [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [33m[MISS]  [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [33m[MISS]  [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [33m[MISS]  [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [33m[MISS]  [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[MISS]  [0me52e279299e9 [36mskipped[0m
 [2m• [0mAlways skipped
 [33m[MISS]  [0m91a3c9030236 [36mchdir[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [33m[MISS]  [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m8dbdda48fb87 [36msimple[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m                                     [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m                       [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m2c57c8917bfb [36munchecked stdout[0m                                        [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m68358d78cb0b [36munchecked stderr[0m                                        [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0md1a055429711 [36mcapture stdout[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m72f48157b077 [36mcapture stderr[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m5deda5ac4212 [36mcapture stdxxx[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m486ef3ce86ab [36mcapture stdout and stderr[0m                               [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m85349a4a9157 [36mxfail[0m                                                   [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mExpected to fail: raises exception on purpose
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m91a3c9030236 [36mchdir[0m                                                   [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0ma3e1a604f579 [36mmasked[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 13/13 selected tests:
   0 successful (0 pass, 0 xfail)
@@ -130,65 +162,83 @@ Legend:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 [33m[RUN][0m   8dbdda48fb87 [36msimple[0m...[2K[32m[PASS]  [0m8dbdda48fb87 [36msimple[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [33m[RUN][0m   d57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m...[2K[32m[PASS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [33m[RUN][0m   bd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m...[2K[32m[PASS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [33m[RUN][0m   2c57c8917bfb [36munchecked stdout[0m...[2K[32m[PASS]  [0m2c57c8917bfb [36munchecked stdout[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [33m[RUN][0m   68358d78cb0b [36munchecked stderr[0m...[2K[32m[PASS]  [0m68358d78cb0b [36munchecked stderr[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [33m[RUN][0m   d1a055429711 [36mcapture stdout[0m...[2K[33m[PASS*] [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [33m[RUN][0m   72f48157b077 [36mcapture stderr[0m...[2K[33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [33m[RUN][0m   5deda5ac4212 [36mcapture stdxxx[0m...[2K[33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [33m[RUN][0m   486ef3ce86ab [36mcapture stdout and stderr[0m...[2K[33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [33m[RUN][0m   85349a4a9157 [36mxfail[0m...[2K[32m[XFAIL] [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[SKIP][0m  e52e279299e9 [36mskipped[0m
 [33m[RUN][0m   91a3c9030236 [36mchdir[0m...[2K[32m[PASS]  [0m91a3c9030236 [36mchdir[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [33m[RUN][0m   a3e1a604f579 [36mmasked[0m...[2K[33m[PASS*] [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0md1a055429711 [36mcapture stdout[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m                               [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0ma3e1a604f579 [36mmasked[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 13/13 selected tests:
   12 successful (11 pass, 1 xfail)
@@ -209,67 +259,85 @@ Legend:
   subcommand once you're satisfied with the output.
 
 [32m[PASS]  [0m8dbdda48fb87 [36msimple[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [32m[PASS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [32m[PASS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [32m[PASS]  [0m2c57c8917bfb [36munchecked stdout[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [32m[PASS]  [0m68358d78cb0b [36munchecked stderr[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [33m[PASS*] [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [32m[XFAIL] [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[MISS]  [0me52e279299e9 [36mskipped[0m
 [2m• [0mAlways skipped
 [32m[PASS]  [0m91a3c9030236 [36mchdir[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [33m[PASS*] [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0md1a055429711 [36mcapture stdout[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m                               [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0ma3e1a604f579 [36mmasked[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 13/13 selected tests:
   12 successful (11 pass, 1 xfail)
@@ -284,30 +352,39 @@ RUN ./test status --short
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m                               [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0ma3e1a604f579 [36mmasked[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 13/13 selected tests:
   12 successful (11 pass, 1 xfail)
@@ -330,47 +407,47 @@ Legend:
   subcommand once you're satisfied with the output.
 
 [32m[PASS]  [0m8dbdda48fb87 [36msimple[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [32m[PASS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [32m[PASS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [32m[PASS]  [0m2c57c8917bfb [36munchecked stdout[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [32m[PASS]  [0m68358d78cb0b [36munchecked stderr[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [32m[PASS]  [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0mPath to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout
-[2m• [0mPath to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/unchecked
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [32m[PASS]  [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0mPath to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr
-[2m• [0mPath to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/unchecked
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [32m[PASS]  [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0mPath to expected stdxxx: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
-[2m• [0mPath to latest stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [32m[PASS]  [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0mPath to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
-[2m• [0mPath to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
 [2m• [0mPath to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
-[2m• [0mPath to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [32m[XFAIL] [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[MISS]  [0me52e279299e9 [36mskipped[0m
 [2m• [0mAlways skipped
 [32m[PASS]  [0m91a3c9030236 [36mchdir[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [32m[PASS]  [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0mPath to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout
-[2m• [0mPath to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/unchecked
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 
 13/13 selected tests:
   12 successful (11 pass, 1 xfail)
@@ -395,102 +472,134 @@ Legend:
 
 [33m[MISS]  [0m8dbdda48fb87 [36msimple[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [33m[MISS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [33m[MISS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [33m[MISS]  [0m2c57c8917bfb [36munchecked stdout[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [33m[MISS]  [0m68358d78cb0b [36munchecked stderr[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [33m[MISS]  [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/outcome[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [33m[MISS]  [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/outcome[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [33m[MISS]  [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/outcome[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [33m[MISS]  [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/outcome[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [33m[MISS]  [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[MISS]  [0me52e279299e9 [36mskipped[0m
 [2m• [0mAlways skipped
 [33m[MISS]  [0m91a3c9030236 [36mchdir[0m
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [33m[MISS]  [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/outcome[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m8dbdda48fb87 [36msimple[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m                                     [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m                       [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m2c57c8917bfb [36munchecked stdout[0m                                        [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m68358d78cb0b [36munchecked stderr[0m                                        [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0md1a055429711 [36mcapture stdout[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/outcome[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m72f48157b077 [36mcapture stderr[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/outcome[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m5deda5ac4212 [36mcapture stdxxx[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/outcome[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m486ef3ce86ab [36mcapture stdout and stderr[0m                               [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/outcome[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m85349a4a9157 [36mxfail[0m                                                   [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mExpected to fail: raises exception on purpose
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0m91a3c9030236 [36mchdir[0m                                                   [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/outcome[0m
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[MISS]  [0ma3e1a604f579 [36mmasked[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the test output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/outcome[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 13/13 selected tests:
   0 successful (0 pass, 0 xfail)
@@ -509,46 +618,46 @@ Legend:
   In this case, you should review the test output and run the 'approve'
   subcommand once you're satisfied with the output.
 [33m[RUN][0m   8dbdda48fb87 [36msimple[0m...[2K[32m[PASS]  [0m8dbdda48fb87 [36msimple[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [33m[RUN][0m   d57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m...[2K[32m[PASS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [33m[RUN][0m   bd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m...[2K[32m[PASS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [33m[RUN][0m   2c57c8917bfb [36munchecked stdout[0m...[2K[32m[PASS]  [0m2c57c8917bfb [36munchecked stdout[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [33m[RUN][0m   68358d78cb0b [36munchecked stderr[0m...[2K[32m[PASS]  [0m68358d78cb0b [36munchecked stderr[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [33m[RUN][0m   d1a055429711 [36mcapture stdout[0m...[2K[32m[PASS]  [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0mPath to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout
-[2m• [0mPath to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/unchecked
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [33m[RUN][0m   72f48157b077 [36mcapture stderr[0m...[2K[32m[PASS]  [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0mPath to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr
-[2m• [0mPath to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/unchecked
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [33m[RUN][0m   5deda5ac4212 [36mcapture stdxxx[0m...[2K[32m[PASS]  [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0mPath to expected stdxxx: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
-[2m• [0mPath to latest stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [33m[RUN][0m   486ef3ce86ab [36mcapture stdout and stderr[0m...[2K[32m[PASS]  [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0mPath to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
-[2m• [0mPath to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
 [2m• [0mPath to expected stderr: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
-[2m• [0mPath to latest stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [33m[RUN][0m   85349a4a9157 [36mxfail[0m...[2K[32m[XFAIL] [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[SKIP][0m  e52e279299e9 [36mskipped[0m
 [33m[RUN][0m   91a3c9030236 [36mchdir[0m...[2K[32m[PASS]  [0m91a3c9030236 [36mchdir[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [33m[RUN][0m   a3e1a604f579 [36mmasked[0m...[2K[32m[PASS]  [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0mPath to expected stdout: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout
-[2m• [0mPath to latest stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/unchecked
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 13/13 selected tests:
   12 successful (11 pass, 1 xfail)
   0 unsuccessful (0 fail, 0 xpass)
@@ -571,67 +680,85 @@ Legend:
   subcommand once you're satisfied with the output.
 
 [32m[PASS]  [0m8dbdda48fb87 [36msimple[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/8dbdda48fb87/log
 [32m[PASS]  [0md57ac4525684 ([1mtags[0m [1mtesting[0m) [36mtags[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d57ac4525684/log
 [32m[PASS]  [0mbd1c5167dc34 [36mcategory[0m > [36msubcategory[0m > [36mcategory[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/bd1c5167dc34/log
 [32m[PASS]  [0m2c57c8917bfb [36munchecked stdout[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/2c57c8917bfb/log
 [32m[PASS]  [0m68358d78cb0b [36munchecked stderr[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/68358d78cb0b/log
 [33m[PASS*] [0md1a055429711 [36mcapture stdout[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m
 [2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m
 [2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m
 [2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [32m[XFAIL] [0m85349a4a9157 [36mxfail[0m
 [2m• [0mExpected to fail: raises exception on purpose
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/85349a4a9157/log
 [33m[MISS]  [0me52e279299e9 [36mskipped[0m
 [2m• [0mAlways skipped
 [32m[PASS]  [0m91a3c9030236 [36mchdir[0m
-[2m• [0mPath to unchecked output: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/unchecked
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/91a3c9030236/log
 [33m[PASS*] [0ma3e1a604f579 [36mmasked[0m
 [2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0md1a055429711 [36mcapture stdout[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/d1a055429711/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/d1a055429711/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m72f48157b077 [36mcapture stderr[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/72f48157b077/stderr[0m
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/stderr
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/72f48157b077/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m5deda5ac4212 [36mcapture stdxxx[0m                                          [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: merged stdout and stderr
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx[0m
+[2m• [0mPath to captured stdxxx: _build/alcotest_ext/status/alcotest_ext_dummy_tests/5deda5ac4212/stdxxx
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0m486ef3ce86ab [36mcapture stdout and stderr[0m                               [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: separate stdout and stderr
 [2m• [0m[31mMissing files containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stdout, tests/snapshots/alcotest_ext_dummy_tests/486ef3ce86ab/stderr[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stdout
+[2m• [0mPath to captured stderr: _build/alcotest_ext/status/alcotest_ext_dummy_tests/486ef3ce86ab/stderr
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 [2m┌──────────────────────────────────────────────────────────────────────────────┐
 [0m[2m│[0m [33m[PASS*] [0ma3e1a604f579 [36mmasked[0m                                                  [2m│[0m
 [2m└──────────────────────────────────────────────────────────────────────────────┘
 [0m[2m• [0mChecked output: stdout
 [2m• [0m[31mMissing file containing the expected output: tests/snapshots/alcotest_ext_dummy_tests/a3e1a604f579/stdout[0m
+[2m• [0mPath to captured stdout: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/stdout
+[2m• [0mPath to captured log: _build/alcotest_ext/status/alcotest_ext_dummy_tests/a3e1a604f579/log
 [2m────────────────────────────────────────────────────────────────────────────────[0m
 13/13 selected tests:
   12 successful (11 pass, 1 xfail)

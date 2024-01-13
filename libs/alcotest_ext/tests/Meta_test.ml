@@ -101,7 +101,7 @@ let mask_alcotest_output =
 
 let tests =
   [
-    t ~output_kind:Merged_stdout_stderr ~mask_output:mask_alcotest_output
+    t ~checked_output:Merged_stdout_stderr ~mask_output:mask_alcotest_output
       "standard flow" test_standard_flow;
     t "failing flow run"
       ~expected_outcome:

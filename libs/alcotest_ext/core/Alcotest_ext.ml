@@ -81,7 +81,7 @@ type 'unit_promise t = 'unit_promise T.test = {
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   mask_output : (string -> string) list;
-  output_kind : output_kind;
+  checked_output : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
   m : 'unit_promise Mona.t;
@@ -122,8 +122,8 @@ let update_id (test : _ t) =
   let id = String.sub md5_hex 0 12 in
   { test with id; internal_full_name }
 
-let create_gen ?(category = []) ?(expected_outcome = Should_succeed)
-    ?(mask_output = []) ?(output_kind = Ignore_output) ?(skipped = false)
+let create_gen ?(category = []) ?(checked_output = Ignore_output)
+    ?(expected_outcome = Should_succeed) ?(mask_output = []) ?(skipped = false)
     ?(tags = []) ?(tolerate_chdir = false) mona name func =
   {
     id = "";
@@ -134,21 +134,21 @@ let create_gen ?(category = []) ?(expected_outcome = Should_succeed)
     expected_outcome;
     tags;
     mask_output;
-    output_kind;
+    checked_output;
     skipped;
     tolerate_chdir;
     m = mona;
   }
   |> update_id
 
-let create ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
-    ?tolerate_chdir name func =
-  create_gen ?category ?expected_outcome ?mask_output ?output_kind ?skipped
+let create ?category ?checked_output ?expected_outcome ?mask_output ?skipped
+    ?tags ?tolerate_chdir name func =
+  create_gen ?category ?checked_output ?expected_outcome ?mask_output ?skipped
     ?tags ?tolerate_chdir Mona.sync name func
 
 let opt option default = Option.value option ~default
 
-let update ?category ?expected_outcome ?func ?mask_output ?name ?output_kind
+let update ?category ?checked_output ?expected_outcome ?func ?mask_output ?name
     ?skipped ?tags ?tolerate_chdir old =
   {
     id = "";
@@ -160,7 +160,7 @@ let update ?category ?expected_outcome ?func ?mask_output ?name ?output_kind
     expected_outcome = opt expected_outcome old.expected_outcome;
     tags = opt tags old.tags;
     mask_output = opt mask_output old.mask_output;
-    output_kind = opt output_kind old.output_kind;
+    checked_output = opt checked_output old.checked_output;
     skipped = opt skipped old.skipped;
     tolerate_chdir = opt tolerate_chdir old.tolerate_chdir;
     m = old.m;
@@ -179,6 +179,12 @@ let mask_pcre_pattern ?(mask = "<MASKED>") pat =
   let rex = Re.Pcre.regexp pat in
   let subst _matched = mask in
   fun subj -> Re.Pcre.substitute ~rex ~subst subj
+
+let mask_temp_paths ?(mask = "<TEMPORARY FILE PATH>") () =
+  let pat =
+    Re.Pcre.quote (Filename.get_temp_dir_name ()) ^ {|[/\\A-Za-z0-9_.-]*|}
+  in
+  mask_pcre_pattern ~mask pat
 
 (* Allow conversion from Lwt to synchronous function *)
 let update_func (test : 'a t) mona2 func : 'b t = { test with func; m = mona2 }
@@ -209,9 +215,9 @@ let to_alcotest = Run.to_alcotest
 let registered_tests : test list ref = ref []
 let register x = registered_tests := x :: !registered_tests
 
-let test ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
+let test ?category ?checked_output ?expected_outcome ?mask_output ?skipped ?tags
     ?tolerate_chdir name func =
-  create ?category ?expected_outcome ?mask_output ?output_kind ?skipped ?tags
+  create ?category ?checked_output ?expected_outcome ?mask_output ?skipped ?tags
     ?tolerate_chdir name func
   |> register
 

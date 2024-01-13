@@ -14,22 +14,23 @@ let tests =
     t "category" ~category:[ "category"; "subcategory" ] (fun () -> ());
     t "unchecked stdout" (fun () -> print_endline "hello\nworld");
     t "unchecked stderr" (fun () -> prerr_string "hello\n");
-    t "capture stdout" ~output_kind:Stdout (fun () -> print_string "hello\n");
-    t "capture stderr" ~output_kind:Stderr (fun () -> prerr_string "error\n");
-    t "capture stdxxx" ~output_kind:Merged_stdout_stderr (fun () ->
+    t "capture stdout" ~checked_output:Stdout (fun () -> print_string "hello\n");
+    t "capture stderr" ~checked_output:Stderr (fun () -> prerr_string "error\n");
+    t "capture stdxxx" ~checked_output:Merged_stdout_stderr (fun () ->
         print_string "hello\n";
         flush stdout;
         prerr_string "error\n";
         flush stderr;
         print_string "goodbye\n");
-    t "capture stdout and stderr" ~output_kind:Separate_stdout_stderr (fun () ->
+    t "capture stdout and stderr" ~checked_output:Separate_stdout_stderr
+      (fun () ->
         print_string "hello\n";
         prerr_string "error\n");
     t "xfail" ~expected_outcome:(Should_fail "raises exception on purpose")
       (fun () -> failwith "this exception is expected");
     t "skipped" ~skipped:true (fun () -> failwith "this shouldn't happen");
     t "chdir" ~tolerate_chdir:true (fun () -> Sys.chdir "/");
-    t ~output_kind:Stdout ~mask_output:[ String.lowercase_ascii ] "masked"
+    t ~checked_output:Stdout ~mask_output:[ String.lowercase_ascii ] "masked"
       (fun () -> print_endline "HELLO");
   ]
 

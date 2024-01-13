@@ -57,11 +57,13 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
              |> List.iter (fun strategy ->
                     let str_strategy = Conf.show_eval_strategy strategy in
                     try
+                      let timeout = 0.5 in
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->
                             Time_limit.set_timeout
-                              ~name:("ojsonnet-" ^ str_strategy) 0.5 (fun () ->
+                              ~name:("ojsonnet-" ^ str_strategy) timeout
+                              (fun () ->
                                 let value_ = Eval_jsonnet.eval_program core in
                                 JSON.to_yojson
                                   (Eval_jsonnet.manifest_value value_)))
@@ -69,7 +71,8 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                       match json_opt with
                       | None ->
                           failwith
-                            (spf "timeout on %s with %s" !!file str_strategy)
+                            (spf "%gs timeout on %s with %s" timeout !!file
+                               str_strategy)
                       | Some json ->
                           if not (Y.equal json expected) then
                             failwith

@@ -173,7 +173,7 @@ let get_outcome (test : _ T.test) :
 let stdout_filename = "stdout"
 let stderr_filename = "stderr"
 let stdxxx_filename = "stdxxx"
-let unchecked_filename = "unchecked"
+let unchecked_filename = "log"
 
 (* stdout.orig, stderr.orig, etc. obtained after masking the variable parts
    of the test output as specified by the option 'mask_output' function. *)
@@ -195,25 +195,26 @@ let names_of_checked_output (output : T.output_kind) : string list =
   | Merged_stdout_stderr -> [ stdxxx_filename ]
   | Separate_stdout_stderr -> [ stdout_filename; stderr_filename ]
 
-let has_unchecked_output (output : T.output_kind) : bool =
+let describe_unchecked_output (output : T.output_kind) : string option =
   match output with
-  | Ignore_output -> true
-  | Stdout -> true
-  | Stderr -> true
-  | Merged_stdout_stderr -> false
-  | Separate_stdout_stderr -> false
+  | Ignore_output -> Some "stdout, stderr"
+  | Stdout -> Some "stderr"
+  | Stderr -> Some "stdout"
+  | Merged_stdout_stderr -> None
+  | Separate_stdout_stderr -> None
 
 let get_output_path (test : _ T.test) filename =
   get_status_workspace () // test.id // filename
 
 let get_output_paths (test : _ T.test) =
-  test.output_kind |> names_of_output |> list_map (get_output_path test)
+  test.checked_output |> names_of_output |> list_map (get_output_path test)
 
 let get_checked_output_paths (test : _ T.test) =
-  test.output_kind |> names_of_checked_output |> list_map (get_output_path test)
+  test.checked_output |> names_of_checked_output
+  |> list_map (get_output_path test)
 
 let get_unchecked_output_path (test : _ T.test) =
-  get_output_path test "unchecked"
+  get_output_path test unchecked_filename
 
 let get_output (test : _ T.test) =
   test |> get_output_paths |> list_map read_file
@@ -222,18 +223,19 @@ let get_checked_output (test : _ T.test) =
   test |> get_checked_output_paths |> list_map read_file
 
 let get_unchecked_output (test : _ T.test) =
-  if has_unchecked_output test.output_kind then
-    let path = get_unchecked_output_path test in
-    match read_file path with
-    | Ok data -> Some data
-    | Error _cant_read_file -> None
-  else None
+  match describe_unchecked_output test.checked_output with
+  | Some log_description -> (
+      let path = get_unchecked_output_path test in
+      match read_file path with
+      | Ok data -> Some (log_description, data)
+      | Error _cant_read_file -> None)
+  | None -> None
 
 let get_expected_output_path (test : _ T.test) filename =
   get_expectation_workspace () // test.id // filename
 
 let get_expected_output_paths (test : _ T.test) =
-  test.output_kind |> names_of_checked_output
+  test.checked_output |> names_of_checked_output
   |> list_map (get_expected_output_path test)
 
 let get_expected_output (test : _ T.test) =
@@ -262,7 +264,7 @@ type output_file_pair = {
 }
 
 let get_output_file_pairs (test : _ T.test) =
-  test.output_kind |> names_of_output
+  test.checked_output |> names_of_output
   |> Helpers.list_map (fun name ->
          let path_to_expected_output =
            if String.equal name unchecked_filename then None
@@ -379,7 +381,7 @@ let with_output_capture (test : 'unit_promise T.test)
   let mona = test.m in
   let unchecked_output_path = get_unchecked_output_path test in
   let func =
-    match test.output_kind with
+    match test.checked_output with
     | Ignore_output ->
         with_redirect_merged_stdout_stderr ~mona unchecked_output_path func
     | Stdout ->
@@ -457,7 +459,7 @@ let expected_output_of_data (kind : T.output_kind) (data : string list) :
 let get_expectation (test : _ T.test) : T.expectation =
   let expected_output =
     test |> get_expected_output |> list_result_of_result_list
-    |> Result.map (expected_output_of_data test.output_kind)
+    |> Result.map (expected_output_of_data test.checked_output)
   in
   { expected_outcome = test.expected_outcome; expected_output }
 
@@ -467,7 +469,7 @@ let get_result (test : _ T.test) : (T.result, string list) Result.t =
   | Ok outcome -> (
       let opt_captured_output =
         test |> get_output |> list_result_of_result_list
-        |> Result.map (captured_output_of_data test.output_kind)
+        |> Result.map (captured_output_of_data test.checked_output)
       in
       match opt_captured_output with
       | Error _ as res -> res
