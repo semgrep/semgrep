@@ -55,6 +55,7 @@ depends: [
   "opentelemetry"
   "opentelemetry-client-ocurl"
   "ambient-context-lwt"
+  "curl-dev"
   "uri"
   "cohttp-lwt-unix"
   "cohttp-lwt-jsoo"
