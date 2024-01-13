@@ -5,7 +5,6 @@
    unix
    commons
    trace
-   trace-tef
    opentelemetry
    opentelemetry.trace
    opentelemetry-client-ocurl

@@ -208,6 +208,12 @@ _scan_options: List[Callable] = [
         default=False,
     ),
     optgroup.option(
+        "--trace/--no-trace",
+        "trace",
+        is_flag=True,
+        default=False,
+    ),
+    optgroup.option(
         "--matching-explanations",
         is_flag=True,
         default=False,
@@ -446,6 +452,7 @@ def scan(
     timeout: int,
     timeout_threshold: int,
     interfile_timeout: Optional[int],
+    trace: bool,
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -599,6 +606,7 @@ def scan(
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
+                            trace=trace,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
@@ -662,6 +670,7 @@ def scan(
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
+                    trace=trace,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,
