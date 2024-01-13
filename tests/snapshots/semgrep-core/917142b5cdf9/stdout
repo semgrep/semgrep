@@ -3,13 +3,10 @@
 hello.c
 hello.ml
 --- Filtered files ---
-** glob: "*.c"  pcre: \A/+(?:[^/]+/+)*(?=[^/])(?![.])[^/]*\.c\z  path: "/.gitignore"  matches: false
 Selection events for path .gitignore:
 SEL .gitignore
-** glob: "*.c"  pcre: \A/+(?:[^/]+/+)*(?=[^/])(?![.])[^/]*\.c\z  path: "/hello.c"  matches: true
 Selection events for path hello.c:
 ignored at <TEMPORARY FILE PATH>, line 1: *.c
 IGN hello.c
-** glob: "*.c"  pcre: \A/+(?:[^/]+/+)*(?=[^/])(?![.])[^/]*\.c\z  path: "/hello.ml"  matches: false
 Selection events for path hello.ml:
 SEL hello.ml

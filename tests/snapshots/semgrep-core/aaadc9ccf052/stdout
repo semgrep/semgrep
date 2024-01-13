@@ -3,32 +3,11 @@
 a/b
 dir/a/b
 --- Filtered files ---
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/.gitignore"  matches: false
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/.gitignore"  matches: false
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/.gitignore"  matches: false
 Selection events for path .gitignore:
 SEL .gitignore
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/a"  matches: false
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/a"  matches: false
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/a"  matches: false
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/a/"  matches: true
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/a/"  matches: false
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/a/"  matches: false
 Selection events for path a/b:
 ignored at <TEMPORARY FILE PATH>, line 1: a/
 IGN a/b
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir"  matches: false
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir"  matches: false
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir"  matches: false
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir/"  matches: false
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir/"  matches: false
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir/"  matches: false
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir/a"  matches: false
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir/a"  matches: true
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir/a"  matches: false
-** glob: "a/"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a/+\z  path: "/dir/a/b"  matches: false
-** glob: "!dir/a"  pcre: \A/+(?=[^/])dir/+(?=[^/])a\z  path: "/dir/a/b"  matches: false
-** glob: "!a/b"  pcre: \A/+(?=[^/])a/+(?=[^/])b\z  path: "/dir/a/b"  matches: false
 Selection events for path dir/a/b:
 de-ignored at <TEMPORARY FILE PATH>, line 2: !dir/a
 SEL dir/a/b

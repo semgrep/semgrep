@@ -3,16 +3,11 @@
 a
 dir/a
 --- Filtered files ---
-** glob: "a"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a\z  path: "/.gitignore"  matches: false
 Selection events for path .gitignore:
 SEL .gitignore
-** glob: "a"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a\z  path: "/a"  matches: true
 Selection events for path a:
 ignored at <TEMPORARY FILE PATH>, line 1: a
 IGN a
-** glob: "a"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a\z  path: "/dir"  matches: false
-** glob: "a"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a\z  path: "/dir/"  matches: false
-** glob: "a"  pcre: \A/+(?:[^/]+/+)*(?=[^/])a\z  path: "/dir/a"  matches: true
 Selection events for path dir/a:
 ignored at <TEMPORARY FILE PATH>, line 1: a
 IGN dir/a

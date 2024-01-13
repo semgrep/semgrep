@@ -35,17 +35,35 @@ let filter_target_for_xlang (xlang : Xlang.t) (path : Fpath.t) : bool =
   | LAliengrep ->
       true
 
-(* Used by Run_semgrep.semgrep_with_rules().
- * See also https://semgrep.dev/docs/writing-rules/rule-syntax/#paths
- * TODO: according to the doc,
- * "Paths [in include: and exclude: patterns] are relative to the root
- * directory of the scanned project" but it seems pysemgrep does not honor
- * this thing because adding an exclude such as "metachecking/*" will
- * filter code even in subdirs calls metachecking. The glob is not anchored,
- * even when it contains a '/'.
- * LESS: there used to be a time where semgrep-core was handling the
- * include/exclude too. Can we find back this code?
- *)
+(*
+   Tentative plan:
+
+   - write tests specifically to test paths.include and paths.exclude
+     in different contexts (absolute target paths, relative target paths,
+     git project, non-git project);
+   - make sure that the paths passed to the glob matcher are relative
+     to the project root;
+   - use the same rules as for gitignore (forget about Python's wcmatch
+     that we're not going to reimplement completely):
+     * a slash at the beginning or in the middle of the path makes it
+       anchored;
+     * reuse what we implemented for gitignore and semgrepignore.
+   - update the semgrep documentation accordingly i.e. mention that the
+     standard is gitignore/semgrepignore, not wcmatch anymore.
+
+   Details:
+
+   Used by Run_semgrep.semgrep_with_rules().
+   See also https://semgrep.dev/docs/writing-rules/rule-syntax/#paths
+   TODO: according to the doc,
+   "Paths [in include: and exclude: patterns] are relative to the root
+   directory of the scanned project" but it seems pysemgrep does not honor
+   this thing because adding an exclude such as "metachecking/*" will
+   filter code even in subdirs calls metachecking. The glob is not anchored,
+   even when it contains a '/'.
+   LESS: there used to be a time where semgrep-core was handling the
+   include/exclude too. Can we find back this code?
+*)
 let filter_paths (paths : Rule.paths) (path : Fpath.t) : bool =
   let match_glob (pat : Rule.glob) (path : Fpath.t) : bool =
     (* ugly: pysemgrep adds a leading **/ and a suffix /** to each pattern.

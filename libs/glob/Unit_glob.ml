@@ -90,8 +90,13 @@ let tests =
        *)
       ("ellipsis 10", test "a**" "a/b" false);
       ("ellipsis 11", test "****" "a" true);
-      (* not matching either *)
       ("ellipsis 12", test "****" "a/b" false);
+      ("ellipsis 13", test "**/*b" "/a/b" true);
+      ("ellipsis 14", test "**/*b" "a/b" true);
+      ("ellipsis 15", test "**/*b" "//a/b" true);
+      ("ellipsis 16", test "a/**" "a/b/c" true);
+      ("ellipsis 17", test "a/**" "a/" true);
+      ("ellipsis 18", test "a/**" "a" false);
       ("double slash", test "//a//b//" "//a//b//" true);
       ("double slash in pattern", test "//a//b//" "/a/b/" true);
       ("double slash in path", test "/a/b/" "//a//b//" true);
