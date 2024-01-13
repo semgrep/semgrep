@@ -18,24 +18,60 @@ module Otel = Opentelemetry
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Wrapper for ocaml-trace (https://github.com/c-cube/ocaml-trace) and a
- * corresponding backend, which are used to instrument code.
+
+(* Tracing library for Semgrep using several libraries:
+ *
+ * - trace (https://github.com/c-cube/ocaml-trace) for the trace
+     instrumentation frontend (e.g. the annotations)
+ * - opentelemetry (https://github.com/imandra-ai/ocaml-opentelemetry)
+     for the backend that processes traces
+ * - opentelemetry-client-ocurl (included with opentelemetry) for the
+     collector. TODO use opentelemetry-client-cohttp-lwt instead since
+     we rely on cottp in other places already
+ * - ambient-context (https://github.com/ELLIOTTCABLE/ocaml-ambient-context)
+     which we set up for opentelemetry to use
+ *
+ * The goal of tracing is to track how we perform in real scans. Things we
+ * might do with this data include tracking the p95 scan time, tracking the
+ * p95 scan time of a particular phase, alerting on significantly large scans,
+ * or digging into the trace of a scan that's taking too long to figure out
+ * where it's taking the most time.
+ *
+ * We use the `trace` frontend for instrumenting the code so that if we want
+ * to use a different backend (permanently, or for our own profiling), we can
+ * switch it out in just this file.
+ *
+ * Functions can be instrumented using a ppx or directly with the `with_span`
+ * function. The results are sent to <TODO fill this out when we get the
+ * permanent endpoint>, which collects them to send to a viewer.
+ *
+ * If you want to send traces to a different endpoint, prepend your command with
+ * `OTEL_EXPORTER_OTLP_ENDPOINT=<url>`
+ *
+ * TODO we'll probably need instructions for some system of tags?
  *)
 
-(* Functions used to instrument the code *)
+(*****************************************************************************)
+(* Functions to instrument the code *)
+(*****************************************************************************)
+
+(* TODO Now that `ppx_trace` exists, I'm going to use that instead. However, I'm
+   still fighting libraries how to make that work, so I'm starting with these helpers *)
+
+(* TODO this doesn't work with multiple processes. I suspect we're going to have
+   to set it up for each process *)
 
 let with_span = Trace_core.with_span
 
-(* Setting up the backend *)
+let run_with_span span_name ?data f =
+  let data = Option.map (fun d () -> d) data in
+  Trace_core.with_span ?data ~__FILE__ ~__LINE__ span_name @@ fun _sp -> f ()
 
-(* TODO: uncomment - Emma Jin 12/17/2023
-   For testing purposes, here is a function that makes it easy to instrument
-   using a simple backend, trace-tef. For now, I'm leaving it commented so
-   that we don't have to install a package that doesn't do anything. *)
+(*****************************************************************************)
+(* Entry points for setting up tracing *)
+(*****************************************************************************)
 
-(* Here is a simple backend for profiling that makes it easy to collect traces
-   and start to see this library work. TODO For actual tracing, we'll probably
-   use something else like https://github.com/imandra-ai/ocaml-opentelemetry/ *)
+(* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let initial_configuration () =
   Otel.Globals.service_name := "semgrep";
   Otel.GC_metrics.basic_setup ();
@@ -44,29 +80,17 @@ let initial_configuration () =
 let with_setup f =
   let otel_backend =
     Opentelemetry_client_ocurl.create_backend
-      (* TODO we would actually have a config *) ()
+      (* TODO configure this to use a permanent endpoint *) ()
   in
+  (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend;
-  Opentelemetry_client_ocurl.with_setup () @@ f
 
-(* Here's an example of how the two functions might be used in `Core_scan.ml`:
-
-   let get_rules config =
-        Common.with_time (fun () -> rules_from_rule_source config)
-   [@@trace]
-
-   let scan_with_exn_handler (config : Core_scan_config.t) :
-       Core_result.result_or_exn =
-     try
-       let timed_rules = Tracing.with_setup (fun () -> get_rules config) in
-       let res =
-         Pre_post_core_scan.call_with_pre_and_post_processor Fun.id scan config
-           timed_rules
-       in
-       sanity_check_invalid_patterns res
-     with
-     | exn when not !Flag_semgrep.fail_fast ->
-         let e = Exception.catch exn in
-         logger#info "Uncaught exception: %s" (Exception.to_string e);
-         Error (e, None)
-*)
+  (* This sets up the OTel collector and runs the given function.
+   * Note that the function is traced by default. This makes sure we
+     always trace the given function; it also ensures that all the spans from
+     the given run are nested under a single trace.
+   * ALT: we could also have wrapped this with a `Otel.Scope.with_ambient_scope`
+     to ensure the trace_id is the same for all spans, but we decided that
+     having the top level time is a good default. *)
+  Opentelemetry_client_ocurl.with_setup () @@ fun () ->
+  run_with_span "All time" f

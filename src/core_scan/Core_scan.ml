@@ -523,6 +523,11 @@ let parse_equivalences equivalences_file =
 (* Iteration helpers *)
 (*****************************************************************************)
 
+let handle_target_with_trace handle_target t =
+  Tracing.run_with_span "Core_scan.handle_target"
+    ?data:(Some [ ("filename", `String t.In.path) ])
+    (fun () -> handle_target t)
+
 (*
    Returns a list of match results and a separate list of scanned targets.
 *)
@@ -558,7 +563,9 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         *
                         * old: timeout_function file config.timeout ...
                         *)
-                       let res, was_scanned = handle_target target in
+                       let res, was_scanned =
+                         handle_target_with_trace handle_target target
+                       in
 
                        (* This is just to test -max_memory, to give a chance
                         * to Gc.create_alarm to run even if the program does
@@ -1024,8 +1031,7 @@ let get_rules config =
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    Tracing.initial_configuration ();
-    let timed_rules = Tracing.with_setup (fun () -> get_rules config) in
+    let timed_rules = get_rules config in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and

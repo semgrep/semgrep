@@ -18,7 +18,10 @@ open Ast_helper
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* A ppx rewriter to automatically transform
+(* TODO the maintainer has a ppx so we should use that one, as soon as I figure
+ * out what library nonsense I need to do to make it work
+ *
+ * A ppx rewriter to automatically transform
  *  let foo frm = body [@@trace]
  * into
  *  let foo frm = Tracing.with_span ~__FILE__ ~__LINE__ "X.foo" @@
