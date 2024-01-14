@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import os
 import resource
 import subprocess
 import sys
@@ -435,7 +436,8 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
-        print("XXX core_runner execute")
+        print("XXX core_runner execute", flush=os.environ.get("SEMGREP_FLUSH") == "1")
+        return 0
         open_and_ignore(f"{tempfile.gettempdir()}/core-runner-semgrep-BEGIN")
 
         terminal = get_state().terminal
@@ -900,6 +902,24 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             runner = StreamingSemgrepCore(cmd, total=total, engine_type=engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
+            return (
+                outputs,
+                errors,
+                OutputExtra(
+                    out.CoreOutput.from_json({
+                        "paths": {
+                            "scanned": [],
+                            "skipped": [],
+                            "timeout": [],
+                            "max_timeout_files": list(max_timeout_files),
+                        },
+                        "results": [],
+                        "errors": [],
+                    }),
+                    all_targets,
+                    parsing_data,
+                ),
+            )
 
             # Process output
             output_json = self._extract_core_output(

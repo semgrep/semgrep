@@ -2,7 +2,7 @@
 #
 # Reproduce bug where 'print' fails to print randomly
 #
-set -eux
+set -eu
 
 semgrep() {
   PIPENV_PIPFILE=../cli/Pipfile pipenv run semgrep "$@"
@@ -14,14 +14,20 @@ The second series of 10 runs sometimes prints XXX and sometimes fails to do
 so. This is the bug we're after.
 EOF
 
-echo "Run regular semgrep scan:"
+printf "\033[1mRun regular semgrep scan:\033[0m\n"
 for i in $(seq 1 10); do
   echo "run $i"
-  semgrep scan -c example.yaml . 2>/dev/null | (grep --color=always XXX || true)
+  semgrep scan -c example.yaml . 2>/dev/null | (grep --color=always XXX || printf "\033[36mYYY not found\033[0m\n")
 done
 
-echo "Run semgrep --test:"
+printf "\033[1mRun semgrep --test w/ flush:\033[0m\n"
 for i in $(seq 1 10); do
   echo "run $i"
-  semgrep scan --test . 2>/dev/null | (grep --color=always XXX || true)
+  SEMGREP_FLUSH=1 semgrep scan --test . 2>/dev/null | (grep --color=always XXX || printf "\033[36mYYY not found\033[0m\n")
+done
+
+printf "\033[1mRun semgrep --test:\033[0m\n"
+for i in $(seq 1 10); do
+  echo "run $i"
+  semgrep scan --test . 2>/dev/null | (grep --color=always XXX || printf "\033[36mYYY not found\033[0m\n")
 done
