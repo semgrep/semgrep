@@ -512,6 +512,7 @@ and primary_expression (env : env) (x : CST.primary_expression) =
   | `Semg_ellips tok ->
       let tok = (* "..." *) token env tok in
       Ellipsis tok
+  | `Semg_named_ellips tok -> name_of_id env tok
   | `Choice_lit x -> (
       match x with
       | `Lit x -> Literal (literal env x)
@@ -770,6 +771,7 @@ and statement_aux env x : Ast_java.stmt list =
   | `Semg_ellips tok ->
       let tok = (* "..." *) token env tok in
       [ Expr (Ellipsis tok, AST_generic.sc) ]
+  | `Semg_named_ellips tok -> [ Expr (name_of_id env tok, AST_generic.sc) ]
   | `Choice_decl x -> (
       match x with
       | `Decl x -> [ declaration env x ]
@@ -1301,6 +1303,7 @@ and class_body_decl env (x : CST.class_body_declaration) =
       | `Cons_decl x -> [ Method (constructor_declaration env x) ]
       | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ])
   | `Semg_ellips tok -> [ DeclEllipsis (token env tok) ]
+  | `Semg_named_ellips tok -> [ DeclMetavarEllipsis (str env tok) ]
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let _v1 = token env v1 (* ";" *) in
@@ -1845,6 +1848,8 @@ and formal_parameter (env : env) (x : CST.formal_parameter) =
   | `Semg_ellips tok ->
       let tok = (* "..." *) token env tok in
       ParamEllipsis tok
+  | `Semg_named_ellips tok ->
+      ParamClassic (AST.canon_var [] None (IdentDecl (str env tok)))
 
 and receiver_parameter (env : env) ((v1, v2, v3, v4) : CST.receiver_parameter) =
   let _v1 = List_.map (annotation env) v1 in

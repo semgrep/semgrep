@@ -716,6 +716,8 @@ and decl ?(cl_kind = None) decl : G.stmt =
           G.OtherStmtWithStmt (G.OSWS_Block ("Static", tstatic), [], st) |> G.s
       | None -> st)
   | DeclEllipsis v1 -> G.ExprStmt (G.Ellipsis v1 |> G.e, G.sc) |> G.s
+  | DeclMetavarEllipsis v1 ->
+      G.ExprStmt (G.N (Id (v1, G.empty_id_info ())) |> G.e, G.sc) |> G.s
   | EmptyDecl t -> G.Block (t, [], t) |> G.s
   | AnnotationTypeElementTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
 
