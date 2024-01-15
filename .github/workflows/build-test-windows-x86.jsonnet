@@ -39,7 +39,7 @@ local job = {
     // - without the opam switch cache we'd spend 8-9 minutes every build
     // running `opam install`
     semgrep.cache_opam.step(
-      key=semgrep.opam_switch + '${{ hashFiles("semgrep.opam") }}',
+      key=semgrep.opam_switch + "${{ hashFiles('semgrep.opam') }}",
       // ocaml/setup-ocaml creates the opam switch local to the repository
       // (vs. ~/.opam in our other workflows)
       path='_opam',
