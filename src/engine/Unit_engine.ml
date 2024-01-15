@@ -108,7 +108,7 @@ let pack_tests_for_lang
        Fpath.t list ->
        Language.t ->
        Testo.test list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
-  pack_tests_pro
+  categorize
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
      let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
@@ -235,7 +235,7 @@ let language_exceptions =
 (* TODO: infer dir and ext from lang using Lang helper functions *)
 let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
     =
-  pack_tests_pro
+  categorize
     (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
     (let dir = tests_path_patterns / dir in
      let features = assoc_maturity_level |> List.assoc maturity in
@@ -427,7 +427,7 @@ let lang_regression_tests ~polyglot_pattern_path =
   in
   let irregular_tests =
     [
-      pack_tests_pro "semgrep Typescript on Javascript (no JSX)"
+      categorize "semgrep Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
@@ -437,7 +437,7 @@ let lang_regression_tests ~polyglot_pattern_path =
 
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
-      pack_tests_pro "semgrep C++ on C tests"
+      categorize "semgrep C++ on C tests"
         (let dir = test_pattern_path / "c" in
          let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
 
@@ -659,7 +659,7 @@ let get_extract_source_lang file rules =
 
 let extract_tests () =
   let path = tests_path / "extract" in
-  pack_tests_pro "extract mode"
+  categorize "extract mode"
     (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
 
 (*****************************************************************************)
@@ -756,25 +756,25 @@ let lang_tainting_tests () =
   let taint_tests_path = tests_path / "tainting_rules" in
   pack_suites "lang tainting rules testing"
     [
-      pack_tests_pro "tainting Go"
+      categorize "tainting Go"
         (let dir = taint_tests_path / "go" in
          let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting PHP"
+      categorize "tainting PHP"
         (let dir = taint_tests_path / "php" in
          let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Python"
+      categorize "tainting Python"
         (let dir = taint_tests_path / "python" in
          let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Java"
+      categorize "tainting Java"
         (let dir = taint_tests_path / "java" in
          let files =
            Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
@@ -782,25 +782,25 @@ let lang_tainting_tests () =
 
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Javascript"
+      categorize "tainting Javascript"
         (let dir = taint_tests_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Ruby"
+      categorize "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
          let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Typescript"
+      categorize "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
          let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Scala"
+      categorize "tainting Scala"
         (let dir = taint_tests_path / "scala" in
          let files =
            Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
@@ -833,7 +833,7 @@ let full_rule_regression_tests () =
   in
 
   pack_suites "full rule"
-    (groups |> List_.map (fun (group, tests) -> pack_tests_pro group tests))
+    (groups |> List_.map (fun (group, tests) -> categorize group tests))
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -846,7 +846,7 @@ let full_rule_regression_tests () =
  *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
-  pack_tests_pro "taint maturity" (Test_engine.make_tests [ path ])
+  categorize "taint maturity" (Test_engine.make_tests [ path ])
 
 (*
    Special exclusions for Semgrep JS
@@ -947,7 +947,7 @@ let full_rule_semgrep_rules_regression_tests () =
                              "excluded semgrep-rule (see OCaml source file for \
                               details)")
                   | _ -> test)
-           |> pack_tests_pro group))
+           |> categorize group))
 
 (*****************************************************************************)
 (* All tests *)

@@ -1044,11 +1044,11 @@ let promise_tests =
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
-  Test.pack_tests_pro "Language Server (e2e)"
+  Test.categorize "Language Server (e2e)"
     (promise_tests
     |> List_.map (fun (test : _ Test.t) ->
            Test.update_func test Test.Mona.sync (prepare test.func)))
 
 let lwt_tests =
-  Test.pack_tests_pro "Language Server (e2e)"
+  Test.categorize "Language Server (e2e)"
     (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests)

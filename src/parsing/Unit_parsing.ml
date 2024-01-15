@@ -51,7 +51,7 @@ let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
-    pack_tests_pro slang
+    categorize slang
       (let dir = tests_path_parsing / dir in
        let files = Common2.glob (spf "%s/*%s" !!dir ext) in
        if files =*= [] then
@@ -88,7 +88,7 @@ let lang_parsing_tests () =
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
-      pack_tests_pro "C++ partial parsing"
+      categorize "C++ partial parsing"
         (let dir = tests_path_parsing / "cpp" / "parsing_partial" in
          let files = Common2.glob (spf "%s/*.cpp" !!dir) in
          let lang = Lang.Cpp in
