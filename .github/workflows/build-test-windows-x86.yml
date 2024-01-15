@@ -16,14 +16,6 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - name: Set GHA cache for OPAM in _opam
-      uses: actions/cache@v3
-      env:
-        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-      with:
-        path: _opam
-        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{ hashFiles('semgrep.opam')
-          }}
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: "4.14"
@@ -35,6 +27,14 @@ jobs:
 
           '
         opam-local-packages: dont_install_local_packages.opam
+    - name: Set GHA cache for OPAM in _opam
+      uses: actions/cache@v3
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+      with:
+        path: _opam
+        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{ hashFiles('semgrep.opam')
+          }}
     - name: Build tree-sitter
       env:
         CC: x86_64-w64-mingw32-gcc

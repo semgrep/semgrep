@@ -33,17 +33,6 @@ local job = {
     gha.git_longpaths_step,
     gha.speedy_checkout_step,
     actions.checkout_with_submodules(),
-    // Why this cache when ocaml/setup-ocaml is already caching things?
-    // - setup-ocaml caches the cygwin and opam package caches, but not the
-    // opam switch (i.e. installed opam packages)
-    // - without the opam switch cache we'd spend 8-9 minutes every build
-    // running `opam install`
-    semgrep.cache_opam.step(
-      key=semgrep.opam_switch + "-${{ hashFiles('semgrep.opam') }}",
-      // ocaml/setup-ocaml creates the opam switch local to the repository
-      // (vs. ~/.opam in our other workflows)
-      path='_opam',
-      ),
     {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
@@ -59,6 +48,19 @@ default: https://github.com/ocaml/opam-repository.git
         'opam-local-packages': 'dont_install_local_packages.opam',
       },
     },
+    // Why this cache when ocaml/setup-ocaml is already caching things?
+    // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
+    //   installed opam packages
+    // - without the _opam cache we would spend 8-9 minutes every build
+    //   running `opam install`
+    // Note: we must cache after setup-ocaml, not before, because
+    // setup-ocaml would reset the cached _opam
+    semgrep.cache_opam.step(
+      key=semgrep.opam_switch + "-${{ hashFiles('semgrep.opam') }}",
+      // ocaml/setup-ocaml creates the opam switch local to the repository
+      // (vs. ~/.opam in our other workflows)
+      path='_opam',
+      ),
     {
       name: 'Build tree-sitter',
       env: {
