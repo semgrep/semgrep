@@ -4,5 +4,5 @@
 
 let tests () : Testo.test list =
   Spacegrep.Match.debug := true;
-  Testo.pack_suites "spacegrep"
+  Testo.categorize_suites "spacegrep"
     [ File_type.test; Parser.test; Matcher.test; Src_file.test; Comment.test ]

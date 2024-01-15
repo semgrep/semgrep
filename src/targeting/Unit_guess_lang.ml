@@ -111,5 +111,5 @@ let test_inspect_file =
       contents_tests
 
 let tests =
-  Testo.pack_suites "Guess_lang"
+  Testo.categorize_suites "Guess_lang"
     [ Testo.pack_tests "inspect_file" test_inspect_file ]

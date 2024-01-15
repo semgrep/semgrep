@@ -137,9 +137,9 @@ let test_read_file () =
       assert (UCommon.read_file ~max_len file = String.sub data 0 max_len))
 
 let tests =
-  Testo.pack_suites "commons"
+  Testo.categorize_suites "commons"
     [
-      Testo.pack_suites "common"
+      Testo.categorize_suites "common"
         [
           Testo.pack_tests "map" test_common_map;
           Testo.simple_tests [ ("cat", test_cat) ];

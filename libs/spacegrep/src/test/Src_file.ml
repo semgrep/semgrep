@@ -59,7 +59,7 @@ let lines_of_range_corpus =
   ]
 
 let test =
-  Testo.pack_suites "Src_file"
+  Testo.categorize_suites "Src_file"
     [
       Testo.pack_tests "highlight"
         (List_.map

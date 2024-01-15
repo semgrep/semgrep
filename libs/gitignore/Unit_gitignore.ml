@@ -58,7 +58,7 @@ let t =
 
 let tests =
   let open F in
-  Testo.pack_tests_pro "Gitignore"
+  Testo.categorize "Gitignore"
     [
       t "list one file" (test_list [ file "a" ]);
       t "list hierarchy"

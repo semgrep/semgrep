@@ -39,4 +39,4 @@ let test =
         Testo.create name (fun () -> run_one expected_class data))
       corpus
   in
-  Testo.pack_tests_pro "File_type" suite
+  Testo.categorize "File_type" suite

@@ -102,7 +102,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
 (*****************************************************************************)
 
 let tests caps =
-  Testo.pack_tests_pro "Osemgrep (e2e)"
+  Testo.categorize "Osemgrep (e2e)"
     [
       test_scan_config_registry_no_token caps;
       test_scan_config_registry_with_invalid_token

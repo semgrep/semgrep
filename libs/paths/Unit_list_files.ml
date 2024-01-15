@@ -137,7 +137,7 @@ let test_symlink_as_root () =
         (List_files.list_regular_files ~keep_root:true root_path))
 
 let tests =
-  Testo.pack_suites "List_files"
+  Testo.categorize_suites "List_files"
     [
       Testo.pack_tests "list"
         [

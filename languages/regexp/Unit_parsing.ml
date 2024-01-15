@@ -35,7 +35,7 @@ let test_invalid_files dialect rel_path () =
                file)
 
 let tests =
-  Testo.pack_suites "regexp parsing"
+  Testo.categorize_suites "regexp parsing"
     [
       Testo.pack_tests "pcre"
         [

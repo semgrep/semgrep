@@ -87,7 +87,7 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
   |> Testo.pack_tests (spf "tests/jsonnet/%s" subdir)
 
 let tests () : Testo.test list =
-  Testo.pack_suites "ojsonnet"
+  Testo.categorize_suites "ojsonnet"
     [
       mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
       mk_tests "only_subst/" [ Conf.EvalSubst ];
