@@ -107,8 +107,8 @@ local github_bot = {
 //
 // See https://github.com/organizations/semgrep/settings/actions/caches
 // (requires admin access to github org) to see the GHA cache settings
-// and https://github.com/semgrep/semgrep/actions/caches
-// to see the actual cache files created.
+// and https://github.com/semgrep/semgrep/actions/caches?query=sort%3Asize-desc
+// to see the actual cache files created and used.
 
 local cache_opam = {
   step(key, path="~/.opam"): {
