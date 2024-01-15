@@ -31,9 +31,13 @@ local job = {
       name: 'Setup OCaml and opam',
       uses: 'ocaml/setup-ocaml@v2',
       with: {
-        'ocaml-compiler': '4.14.x',
+        'ocaml-compiler': semgrep.opam_switch,
       },
     },
+    semgrep.cache_opam.step(
+      key=semgrep.opam_switch + '-_opam-' + "${{ hashFiles('semgrep.opam') }}",
+      path="_opam",
+    ),
     // alt: call 'sudo make install-deps-UBUNTU-for-semgrep-core'
     // but looks like opam and setup-ocaml@ can automatically install
     // depext dependencies.
