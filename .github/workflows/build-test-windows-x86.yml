@@ -22,7 +22,7 @@ jobs:
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
       with:
         path: _opam
-        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0${{ hashFiles('semgrep.opam')
+        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{ hashFiles('semgrep.opam')
           }}
     - uses: ocaml/setup-ocaml@v2
       with:
