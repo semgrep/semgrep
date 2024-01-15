@@ -112,7 +112,7 @@ local github_bot = {
 
 local cache_opam = {
   step(key, path="~/.opam"): {
-    name: 'Cache ~/.opam',
+    name: 'Set GHA cache for OPAM in ' + path,
     uses: 'actions/cache@v3',
     env: {
       SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,

@@ -31,7 +31,7 @@ jobs:
       uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: 4.14.0
-    - name: Cache ~/.opam
+    - name: Set GHA cache for OPAM in _opam
       uses: actions/cache@v3
       env:
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2

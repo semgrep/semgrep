@@ -17,7 +17,7 @@ jobs:
         submodules: true
     - name: Configure git safedir properly
       run: git config --global --add safe.directory $(pwd)
-    - name: Cache ~/.opam
+    - name: Set GHA cache for OPAM in ~/.opam
       uses: actions/cache@v3
       env:
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
