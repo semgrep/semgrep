@@ -52,7 +52,6 @@ local wheel_name = 'osx-x86-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,
-  //TODO: could pass it via an argument to cache_opam_step instead of env?
   steps: [
     actions.checkout_with_submodules(),
     // TODO: we should use opam.lock instead of semgrep.opam at some point
