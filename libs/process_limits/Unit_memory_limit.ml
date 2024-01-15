@@ -7,6 +7,8 @@
 
 open Printf
 
+let t = Testo.create
+
 let get_stack_size_in_bytes () =
   (Gc.quick_stat ()).stack_size * (Sys.word_size / 8)
 
@@ -83,9 +85,9 @@ let test_memory_limit_with_stack () =
   | Memory_limit.ExceededMemoryLimit _ -> (* success *) ()
 
 let tests =
-  Testo.pack_tests "memory limits"
+  Testo.categorize "memory limits"
     [
-      ("stack warning", test_stack_warning);
-      ("memory limit (heap)", test_memory_limit_with_heap);
-      ("memory limit (stack)", test_memory_limit_with_stack);
+      t "stack warning" test_stack_warning;
+      t "memory limit (heap)" test_memory_limit_with_heap;
+      t "memory limit (stack)" test_memory_limit_with_stack;
     ]

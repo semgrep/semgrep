@@ -1,7 +1,8 @@
 open Fpath_.Operators
-open Testo
 module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
+
+let t = Testo.create
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
     for the python side as testing there is easier *)
@@ -184,21 +185,21 @@ let session_targets () =
   in
   let tests =
     [
-      ("Test no git", test_session_basic false false);
-      ("Test no git with only_git_dirty", test_session_basic false true);
-      ("Test git", test_session_basic true false);
-      ("Test git with dirty files", test_git_dirty);
-      ( "Test multiple workspaces (only_git_dirty: true)",
-        test_multi_workspaces true );
-      ( "Test multiple workspaces (only_git_dirty: false)",
-        test_multi_workspaces false );
-      ( "Test multiple workspaces with some dirty (only_git_dirty: true)",
-        test_multi_some_dirty true );
-      ( "Test multiple workspaces with some dirty (only_git_dirty: false)",
-        test_multi_some_dirty false );
+      t "Test no git" (test_session_basic false false);
+      t "Test no git with only_git_dirty" (test_session_basic false true);
+      t "Test git" (test_session_basic true false);
+      t "Test git with dirty files" test_git_dirty;
+      t "Test multiple workspaces (only_git_dirty: true)"
+        (test_multi_workspaces true);
+      t "Test multiple workspaces (only_git_dirty: false)"
+        (test_multi_workspaces false);
+      t "Test multiple workspaces with some dirty (only_git_dirty: true)"
+        (test_multi_some_dirty true);
+      t "Test multiple workspaces with some dirty (only_git_dirty: false)"
+        (test_multi_some_dirty false);
     ]
   in
-  pack_tests "Session Targets" tests
+  Testo.categorize "Session Targets" tests
 
 let processed_run () =
   let test_processed_run files expected only_git_dirty =
@@ -239,13 +240,13 @@ let processed_run () =
   in
   let tests =
     [
-      ("Test no git", test_processed false false);
-      ("Test git", test_processed false true);
-      ("Test only git dirty with no git", test_processed true false);
-      ("Test only git dirty with dirty files", test_git_dirty_lines);
+      t "Test no git" (test_processed false false);
+      t "Test git" (test_processed false true);
+      t "Test only git dirty with no git" (test_processed true false);
+      t "Test only git dirty with dirty files" test_git_dirty_lines;
     ]
   in
-  pack_tests "Processed Run" tests
+  Testo.categorize "Processed Run" tests
 
 let ci_tests () =
   let with_ci_client =
@@ -278,17 +279,17 @@ let ci_tests () =
   in
   let tests =
     [
-      ( "Test session cache",
-        with_mock_envvars (with_ci_client test_cache_session) );
+      t "Test session cache"
+        (with_mock_envvars (with_ci_client test_cache_session));
     ]
   in
-  pack_tests "CI Tests" tests
+  Testo.categorize "CI Tests" tests
 
 let test_ls_libev () = Lwt_platform.set_engine ()
 
 let libev_tests =
-  pack_tests "Lib EV tests" [ ("Test LS with libev", test_ls_libev) ]
+  Testo.categorize "Lib EV tests" [ t "Test LS with libev" test_ls_libev ]
 
 let tests =
-  pack_suites "Language Server (unit)"
+  Testo.categorize_suites "Language Server (unit)"
     [ session_targets (); processed_run (); ci_tests (); libev_tests ]

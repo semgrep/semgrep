@@ -3,6 +3,7 @@ open Fpath_.Operators
 module Conf = Conf_ojsonnet
 module Y = Yojson.Basic
 
+let t = Testo.create
 let _dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial/fail"
 let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
@@ -22,8 +23,7 @@ let test_maker_err dir : Testo.test list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+         t ~category:[ !!dir ] (Fpath.basename file) (fun () ->
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
              try
@@ -32,16 +32,17 @@ let test_maker_err dir : Testo.test list =
                Alcotest.(fail "this should have raised an error")
              with
              | Eval_jsonnet_common.Error _ ->
-                 Alcotest.(check bool) "this raised an error" true true ))
-  |> Testo.pack_tests !!dir
+                 Alcotest.(check bool) "this raised an error" true true))
 
 let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
     Testo.test list =
   Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+         t
+           ~category:[ spf "tests/jsonnet/%s" subdir ]
+           (Fpath.basename file)
+           (fun () ->
              let comparison_file_path =
                match related_file_of_target ~ext:"json" ~file with
                | Ok json_file -> json_file
@@ -83,8 +84,7 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                     with
                     | Eval_jsonnet_common.Error _ ->
                         failwith
-                          (spf "this threw an error with %s" str_strategy)) ))
-  |> Testo.pack_tests (spf "tests/jsonnet/%s" subdir)
+                          (spf "this threw an error with %s" str_strategy))))
 
 let tests () : Testo.test list =
   Testo.categorize_suites "ojsonnet"

@@ -14,7 +14,8 @@
  *)
 open Common
 open Fpath_.Operators
-open Testo
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Prelude *)
@@ -72,32 +73,32 @@ let with_fake_deployment_response return_value f =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_not_logged_in caps : Testo.simple_test =
-  ( __FUNCTION__,
-    with_login_test_env (fun () ->
-        with_logs
-          ~f:(fun () -> Logout_subcommand.main caps [| "semgrep-logout" |])
-          ~final:(fun res ->
-            assert (res.logs =~ ".*You are not logged in");
-            assert (res.exit_code =*= Exit_code.ok))) )
+let test_logout_not_logged_in caps : Testo.test =
+  t __FUNCTION__
+    (with_login_test_env (fun () ->
+         with_logs
+           ~f:(fun () -> Logout_subcommand.main caps [| "semgrep-logout" |])
+           ~final:(fun res ->
+             assert (res.logs =~ ".*You are not logged in");
+             assert (res.exit_code =*= Exit_code.ok))))
 
-let test_login_no_tty caps : Testo.simple_test =
-  ( __FUNCTION__,
-    with_login_test_env (fun () ->
-        with_logs
-          ~f:(fun () ->
-            (* make stdin non-interactive so Unix.isatty Unix.stdin
-             * called in Login_subcommand.run returns false
-             *)
-            let old_stdin = Unix.dup Unix.stdin in
-            let in_, _out_ = Unix.pipe () in
-            Unix.dup2 in_ Unix.stdin;
-            let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
-            Unix.dup2 old_stdin Unix.stdin;
-            exit_code)
-          ~final:(fun res ->
-            assert (res.logs =~ ".*meant to be run in an interactive terminal");
-            assert (res.exit_code =*= Exit_code.fatal))) )
+let test_login_no_tty caps : Testo.test =
+  t __FUNCTION__
+    (with_login_test_env (fun () ->
+         with_logs
+           ~f:(fun () ->
+             (* make stdin non-interactive so Unix.isatty Unix.stdin
+              * called in Login_subcommand.run returns false
+              *)
+             let old_stdin = Unix.dup Unix.stdin in
+             let in_, _out_ = Unix.pipe () in
+             Unix.dup2 in_ Unix.stdin;
+             let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
+             Unix.dup2 old_stdin Unix.stdin;
+             exit_code)
+           ~final:(fun res ->
+             assert (res.logs =~ ".*meant to be run in an interactive terminal");
+             assert (res.exit_code =*= Exit_code.fatal))))
 
 (* This token does not have to be valid because we mock the deployment
  * request and response that is supposed to come from our endpoint and
@@ -117,53 +118,53 @@ let fake_deployment =
   }
 |}
 
-let test_login_with_env_token caps : Testo.simple_test =
-  ( __FUNCTION__,
-    with_login_test_env (fun () ->
-        Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
-            with_fake_deployment_response fake_deployment (fun () ->
-                (* login with env token *)
-                with_logs
-                  ~f:(fun () ->
-                    Login_subcommand.main caps [| "semgrep-login" |])
-                  ~final:(fun res ->
-                    assert (res.logs =~ "[.\n]*Saved access token");
-                    assert (res.exit_code =*= Exit_code.ok));
+let test_login_with_env_token caps : Testo.test =
+  t __FUNCTION__
+    (with_login_test_env (fun () ->
+         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
+             with_fake_deployment_response fake_deployment (fun () ->
+                 (* login with env token *)
+                 with_logs
+                   ~f:(fun () ->
+                     Login_subcommand.main caps [| "semgrep-login" |])
+                   ~final:(fun res ->
+                     assert (res.logs =~ "[.\n]*Saved access token");
+                     assert (res.exit_code =*= Exit_code.ok));
 
-                (* login should fail on second call *)
-                with_logs
-                  ~f:(fun () ->
-                    Login_subcommand.main caps [| "semgrep-login" |])
-                  ~final:(fun res ->
-                    assert (res.logs =~ ".*You're already logged in");
-                    assert (res.exit_code =*= Exit_code.fatal));
+                 (* login should fail on second call *)
+                 with_logs
+                   ~f:(fun () ->
+                     Login_subcommand.main caps [| "semgrep-login" |])
+                   ~final:(fun res ->
+                     assert (res.logs =~ ".*You're already logged in");
+                     assert (res.exit_code =*= Exit_code.fatal));
 
-                (* clear login (by logging out) *)
-                with_logs
-                  ~f:(fun () ->
-                    Logout_subcommand.main
-                      (caps :> < Cap.stdout >)
-                      [| "semgrep-logout" |])
-                  ~final:(fun res ->
-                    assert (res.logs =~ ".*Logged out!");
-                    assert (res.exit_code =*= Exit_code.ok));
+                 (* clear login (by logging out) *)
+                 with_logs
+                   ~f:(fun () ->
+                     Logout_subcommand.main
+                       (caps :> < Cap.stdout >)
+                       [| "semgrep-logout" |])
+                   ~final:(fun res ->
+                     assert (res.logs =~ ".*Logged out!");
+                     assert (res.exit_code =*= Exit_code.ok));
 
-                (* logout twice should work *)
-                with_logs
-                  ~f:(fun () ->
-                    Logout_subcommand.main
-                      (caps :> < Cap.stdout >)
-                      [| "semgrep-logout" |])
-                  ~final:(fun res ->
-                    assert (res.logs =~ ".*You are not logged in");
-                    assert (res.exit_code =*= Exit_code.ok))))) )
+                 (* logout twice should work *)
+                 with_logs
+                   ~f:(fun () ->
+                     Logout_subcommand.main
+                       (caps :> < Cap.stdout >)
+                       [| "semgrep-logout" |])
+                   ~final:(fun res ->
+                     assert (res.logs =~ ".*You are not logged in");
+                     assert (res.exit_code =*= Exit_code.ok))))))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let tests (caps : < Cap.network ; Cap.stdout >) =
-  pack_tests "Osemgrep Login (e2e)"
+  Testo.categorize "Osemgrep Login (e2e)"
     [
       test_logout_not_logged_in (caps :> < Cap.stdout >);
       test_login_no_tty caps;

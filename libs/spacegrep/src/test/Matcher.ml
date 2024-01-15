@@ -5,6 +5,7 @@
 open Printf
 open Spacegrep
 
+let t = Testo.create
 let word s = Pattern_AST.(Atom (Loc.dummy, Word s))
 let punct c = Pattern_AST.(Atom (Loc.dummy, Punct c))
 let byte c = Pattern_AST.(Atom (Loc.dummy, Byte c))
@@ -219,7 +220,8 @@ let matcher_corpus_two_line_ellipsis =
 let create_matcher_suite param matcher_corpus =
   List_.map
     (fun (name, expectation, pat_str, doc_str) ->
-      (name, fun () -> check_matching param pat_str doc_str expectation))
+      Testo.create name (fun () ->
+          check_matching param pat_str doc_str expectation))
     matcher_corpus
 
 let matcher_suite =
@@ -239,7 +241,7 @@ let matcher_suite_two_line_ellipsis =
   create_matcher_suite param matcher_corpus_two_line_ellipsis
 
 let test =
-  Testo.pack_tests "Matcher"
-    ([ ("pattern parser", test_pattern_parser) ]
+  Testo.categorize "Matcher"
+    ([ t "pattern parser" test_pattern_parser ]
     @ matcher_suite @ matcher_suite_case_insensitive
     @ matcher_suite_same_line_ellipsis @ matcher_suite_two_line_ellipsis)

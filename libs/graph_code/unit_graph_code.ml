@@ -8,6 +8,8 @@ module DMBuild = Dependencies_matrix_build
 (* Helpers *)
 (*****************************************************************************)
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Data *)
 (*****************************************************************************)
@@ -78,10 +80,9 @@ let tests =
       (*---------------------------------------------------------------------------*)
       (* The graph *)
       (*---------------------------------------------------------------------------*)
-      Testo.pack_tests "graph"
+      Testo.categorize "graph"
         [
-          ( "scc",
-            fun () ->
+          t "scc" (fun () ->
               let g = G.create () in
               let ( --> ) f1 f2 =
                 let f1 = (f1, E.Function) in
@@ -135,18 +136,16 @@ let tests =
                     (("bar", E.Function), 1);
                     (("bar_mutual", E.Function), 1);
                     (("foo", E.Function), 2);
-                  ]) );
-          ( "adjust graph",
-            fun () ->
+                  ]));
+          t "adjust graph" (fun () ->
               let g, _dm = build_g_and_dm () in
               let adjust = [ ("a", "EXTRA_DIR") ] in
               Graph_code.adjust_graph g adjust [];
               let gopti = Graph_code_opti.convert g in
               let config = DM.basic_config g in
               let _dm = DMBuild.build config None gopti in
-              () );
-          ( "create fake dotdotdot entries",
-            fun () ->
+              ());
+          t "create fake dotdotdot entries" (fun () ->
               let g, _dm = build_g_and_dm () in
               let gopti = Graph_code_opti.convert g in
               Common.save_excursion DMBuild.threshold_pack 2 (fun () ->
@@ -159,7 +158,7 @@ let tests =
                   (* pr2_gen dm; *)
                   let _xs = DM.explain_cell_list_use_edges (1, 0) dm gopti in
                   (* pr2_gen xs *)
-                  ()) );
+                  ()));
           (*
       "uses and users of file XXX", (fun () ->
         let g = G.create () in
@@ -253,16 +252,14 @@ let tests =
       (*---------------------------------------------------------------------------*)
       (* The matrix *)
       (*---------------------------------------------------------------------------*)
-      Testo.pack_tests "dm"
+      Testo.categorize "dm"
         [
-          ( "dead columns",
-            fun () ->
+          t "dead columns" (fun () ->
               let _, dm = build_g_and_dm () in
               Alcotest.(check bool) "same bools" false (DM.is_dead_column 0 dm);
               Alcotest.(check bool) "same bools" true (DM.is_dead_column 3 dm);
-              () );
-          ( "internal helpers",
-            fun () ->
+              ());
+          t "internal helpers" (fun () ->
               let _, dm = build_g_and_dm () in
               let arr = DM.parents_of_indexes dm in
               Alcotest.(check bool)
@@ -295,14 +292,13 @@ let tests =
                 (DM.is_internal_helper 1 dm);
               Alcotest.(check bool)
                 "same values" false
-                (DM.is_internal_helper 2 dm) );
-          ( "explain cell",
-            fun () ->
+                (DM.is_internal_helper 2 dm));
+          t "explain cell" (fun () ->
               let g, dm = build_g_and_dm () in
               let gopti = Graph_code_opti.convert g in
               let xs = DM.explain_cell_list_use_edges (2, 1) dm gopti in
               Alcotest.(check bool)
                 "same values" true
-                (xs = [ (("a/y.ml", E.File), ("a/x.ml", E.File)) ]) );
+                (xs = [ (("a/y.ml", E.File), ("a/x.ml", E.File)) ]));
         ];
     ]

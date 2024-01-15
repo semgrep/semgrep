@@ -33,7 +33,3 @@ if ! dune runtest -f --no-buffer src/osemgrep; then
   echo -e "\n${RED}If expectation tests have failed, run \`dune promote\` to apply the corresponding diff.${NC}\n\n"
   exit 1
 fi
-
-# Testo has its own test program because it's planned to become
-# a separate project.
-make -C libs/testo test

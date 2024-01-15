@@ -3,6 +3,8 @@ module R = Rule
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
+let t = Testo.create
+
 (* ran from the root of the semgrep repository *)
 let test_path = "tests/synthesizing/targets/"
 
@@ -119,12 +121,9 @@ let run_single_test file linecols expected_pattern =
 (*****************************************************************************)
 
 let tests =
-  Testo.simple_tests
-    [
-      ( "pattern from targets",
-        fun () ->
-          stmt_tests @ statement_list_tests
-          |> List.iter (fun (file, linecols, expected_pattern) ->
-                 run_single_test (test_path ^ file) linecols expected_pattern)
-      );
-    ]
+  [
+    t "pattern from targets" (fun () ->
+        stmt_tests @ statement_list_tests
+        |> List.iter (fun (file, linecols, expected_pattern) ->
+               run_single_test (test_path ^ file) linecols expected_pattern));
+  ]

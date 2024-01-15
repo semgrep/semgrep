@@ -1,5 +1,7 @@
 open Common
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
@@ -8,10 +10,9 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Testo.pack_tests "parsing_ml"
+  Testo.categorize "parsing_ml"
     [
-      ( "regression files",
-        fun () ->
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "ml/parsing" in
           let files = Common2.glob (spf "%s/*.ml" dir) in
           files
@@ -21,13 +22,12 @@ let tests =
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file) );
+                     Alcotest.failf "it should correctly parse %s" file));
       (* Check that the visitor implementation correctly visit all AST
        * subelements, even when they are deep inside the AST tree (e.g.
        * sub-sub expressions inside parenthesis).
        *)
-      ( "visitor",
-        fun () ->
+      t "visitor" (fun () ->
           Common2.with_tmp_file ~ext:".ml" ~str:"open Foo1\nmodule A = Foo2\n"
             (fun file ->
               let _ast = Parse_ml.parse_program file in
@@ -64,5 +64,5 @@ let tests =
                        visitor (Program ast);
                        assert_equal 2 !cnt;
               *)
-              ()) );
+              ()));
     ]

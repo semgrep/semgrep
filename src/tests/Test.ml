@@ -17,6 +17,8 @@
 (* Helpers *)
 (*****************************************************************************)
 
+let t = Testo.create
+
 let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
@@ -96,11 +98,10 @@ let tests_with_delayed_error caps =
   try tests caps with
   | e ->
       let exn = Exception.catch e in
-      Testo.simple_tests
-        [
-          ( "ERROR DURING TEST SUITE INITIALIZATION",
-            fun () -> Exception.reraise exn );
-        ]
+      [
+        t "ERROR DURING TEST SUITE INITIALIZATION" (fun () ->
+            Exception.reraise exn);
+      ]
 
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on

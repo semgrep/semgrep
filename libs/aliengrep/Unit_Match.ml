@@ -11,6 +11,8 @@
 open Printf
 open Match
 
+let t = Testo.create
+
 type expectation =
   | Num_matches of int
   | Match_value of string
@@ -321,21 +323,21 @@ let test_caseless () =
     [ Num_matches 1; Match_value "HeLLo" ]
 
 let tests =
-  Testo.pack_tests "matching"
+  Testo.categorize "matching"
     [
-      ("word", test_word);
-      ("whitespace", test_whitespace);
-      ("ellipsis", test_ellipsis);
-      ("long ellipsis", test_long_ellipsis);
-      ("metavariables", test_metavariables);
-      ("ellipsis brackets", test_ellipsis_brackets);
-      ("explicit brackets", test_explicit_brackets);
-      ("custom brackets", test_custom_brackets);
-      ("backreferences", test_backreferences);
-      ("ellipsis metavariable", test_ellipsis_metavariable);
-      ("skip lines", test_skip_lines);
-      ("left-anchored ellipses", test_left_anchored_ellipses);
-      ("right-anchored ellipses", test_right_anchored_ellipses);
-      ("pure ellipsis", test_pure_ellipsis);
-      ("caseless", test_caseless);
+      t "word" test_word;
+      t "whitespace" test_whitespace;
+      t "ellipsis" test_ellipsis;
+      t "long ellipsis" test_long_ellipsis;
+      t "metavariables" test_metavariables;
+      t "ellipsis brackets" test_ellipsis_brackets;
+      t "explicit brackets" test_explicit_brackets;
+      t "custom brackets" test_custom_brackets;
+      t "backreferences" test_backreferences;
+      t "ellipsis metavariable" test_ellipsis_metavariable;
+      t "skip lines" test_skip_lines;
+      t "left-anchored ellipses" test_left_anchored_ellipses;
+      t "right-anchored ellipses" test_right_anchored_ellipses;
+      t "pure ellipsis" test_pure_ellipsis;
+      t "caseless" test_caseless;
     ]

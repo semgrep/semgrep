@@ -4,6 +4,8 @@
 
 open Printf
 
+let t = Testo.create
+
 (*
    This only checks the correctness of the results of the map function.
    For a benchmark, we could use and adapt
@@ -59,7 +61,7 @@ let test_common_map =
       (fun len ->
         let name = sprintf "list length = %i" len in
         let test () = test len in
-        (name, test))
+        t name test)
       list_lengths
   in
   tests
@@ -141,9 +143,9 @@ let tests =
     [
       Testo.categorize_suites "common"
         [
-          Testo.pack_tests "map" test_common_map;
-          Testo.simple_tests [ ("cat", test_cat) ];
-          Testo.simple_tests [ ("readable", test_readable) ];
-          Testo.simple_tests [ ("read_file", test_read_file) ];
+          Testo.categorize "map" test_common_map;
+          [ t "cat" test_cat ];
+          [ t "readable" test_readable ];
+          [ t "read_file" test_read_file ];
         ];
     ]

@@ -16,8 +16,10 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testo
+
 module Http_helpers = Http_helpers.Make (Lwt_platform)
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Helpers *)
@@ -110,11 +112,11 @@ let html_tests caps =
   let get_async_parallel () =
     get_and_check_multi_lwt ~parallel:true caps urls check_fn
   in
-  pack_tests "Basic HTML"
+  Testo.categorize "Basic HTML"
     [
-      ("GET synchronously", get_sync);
-      ("GET asynchronously", get_async);
-      ("GET asynchronously (parallel)", get_async_parallel);
+      t "GET synchronously" get_sync;
+      t "GET asynchronously" get_async;
+      t "GET asynchronously (parallel)" get_async_parallel;
     ]
 
 let json_tests caps =
@@ -136,11 +138,11 @@ let json_tests caps =
   let get_async_parallel () =
     get_and_check_multi_lwt ~parallel:true caps urls check_fn
   in
-  pack_tests "Basic JSON"
+  Testo.categorize "Basic JSON"
     [
-      ("GET synchronously", get_sync);
-      ("GET asynchronously", get_async);
-      ("GET asynchronously (parallel)", get_async_parallel);
+      t "GET synchronously" get_sync;
+      t "GET asynchronously" get_async;
+      t "GET asynchronously (parallel)" get_async_parallel;
     ]
 
 let post_tests caps =
@@ -153,13 +155,13 @@ let post_tests caps =
   let post_async_parallel () =
     post_and_check_multi_lwt ~parallel:true caps url_body_pairs check_fn
   in
-  pack_tests "Basic POST"
+  Testo.categorize "Basic POST"
     [
-      ("POST synchronously", post_sync);
-      ("POST asynchronously", post_async);
-      ("POST asynchronously (parallel)", post_async_parallel);
+      t "POST synchronously" post_sync;
+      t "POST asynchronously" post_async;
+      t "POST asynchronously (parallel)" post_async_parallel;
     ]
 
 let tests caps =
-  pack_suites "OSemgrep Networking"
+  Testo.categorize_suites "OSemgrep Networking"
     [ html_tests caps; json_tests caps; post_tests caps ]

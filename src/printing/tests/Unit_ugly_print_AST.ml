@@ -1,5 +1,7 @@
 open Common
 
+let t = Testo.create
+
 let test_python_printer () =
   let printer = new Ugly_print_AST.python_printer in
   let check (source, expected) =
@@ -14,5 +16,5 @@ let test_python_printer () =
   List.iter check [ ("foo", "foo"); ("foo()", "foo()") ]
 
 let tests =
-  Testo.pack_tests "ugly printer"
-    [ ("test python printer", test_python_printer) ]
+  Testo.categorize "ugly printer"
+    [ t "test python printer" test_python_printer ]

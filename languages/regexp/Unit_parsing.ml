@@ -4,6 +4,8 @@
 
 open Common
 
+let t = Testo.create
+
 (* ran from the root of the semgrep repository *)
 let tests_path = "tests"
 
@@ -37,27 +39,26 @@ let test_invalid_files dialect rel_path () =
 let tests =
   Testo.categorize_suites "regexp parsing"
     [
-      Testo.pack_tests "pcre"
+      Testo.categorize "pcre"
         [
-          ("valid files", test_valid_files Dialect.PCRE "regexp/pcre/parsing");
-          ( "invalid files",
-            test_invalid_files Dialect.PCRE "regexp/pcre/parsing_errors" );
+          t "valid files" (test_valid_files Dialect.PCRE "regexp/pcre/parsing");
+          t "invalid files"
+            (test_invalid_files Dialect.PCRE "regexp/pcre/parsing_errors");
         ];
-      Testo.pack_tests "pcre_extended"
+      Testo.categorize "pcre_extended"
         [
-          ( "valid files",
-            test_valid_files Dialect.PCRE_extended
-              "regexp/pcre_extended/parsing" );
-          ( "invalid files",
-            test_invalid_files Dialect.PCRE_extended
-              "regexp/pcre_extended/parsing_errors" );
+          t "valid files"
+            (test_valid_files Dialect.PCRE_extended
+               "regexp/pcre_extended/parsing");
+          t "invalid files"
+            (test_invalid_files Dialect.PCRE_extended
+               "regexp/pcre_extended/parsing_errors");
         ];
-      Testo.pack_tests "perl_xx"
+      Testo.categorize "perl_xx"
         [
-          ( "valid files",
-            test_valid_files Dialect.Perl_xx "regexp/perl_xx/parsing" );
-          ( "invalid files",
-            test_invalid_files Dialect.Perl_xx "regexp/perl_xx/parsing_errors"
-          );
+          t "valid files"
+            (test_valid_files Dialect.Perl_xx "regexp/perl_xx/parsing");
+          t "invalid files"
+            (test_invalid_files Dialect.Perl_xx "regexp/perl_xx/parsing_errors");
         ];
     ]

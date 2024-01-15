@@ -2,6 +2,8 @@
    Unit tests for Pcre_
 *)
 
+let t = Testo.create
+
 let test_match_limit_ok () =
   let rex = Pcre_.regexp "(a+)+$" in
   match Pcre_.pmatch ~rex "aaaaaaaaaaaaaaaaa!" with
@@ -32,9 +34,9 @@ let test_register_exception_printer () =
     "equal" "Pcre.Error(Pcre.BadPattern(\"nothing to repeat\", pos=0))" msg
 
 let tests =
-  Testo.pack_tests "pcre settings"
+  Testo.categorize "pcre settings"
     [
-      ("match limit ok", test_match_limit_ok);
-      ("match limit fail", test_match_limit_fail);
-      ("exception printer", test_register_exception_printer);
+      t "match limit ok" test_match_limit_ok;
+      t "match limit fail" test_match_limit_fail;
+      t "exception printer" test_register_exception_printer;
     ]

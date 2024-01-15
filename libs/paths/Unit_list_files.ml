@@ -9,6 +9,8 @@
 open Printf
 open Fpath_.Operators
 
+let t = Testo.create
+
 type file_tree = Dir of string * file_tree list | File of string * file_kind
 and file_kind = Regular of string | Symlink of string
 
@@ -139,13 +141,13 @@ let test_symlink_as_root () =
 let tests =
   Testo.categorize_suites "List_files"
     [
-      Testo.pack_tests "list"
+      Testo.categorize "list"
         [
-          ("regular_file_as_root", test_regular_file_as_root);
-          ("empty_dir_as_root", test_empty_dir_as_root);
-          ("regular_files", test_regular_files);
-          ("symlinks", test_symlinks);
-          ("ignore_symlinks", test_ignore_symlinks);
-          ("symlink_as_root", test_symlink_as_root);
+          t "regular_file_as_root" test_regular_file_as_root;
+          t "empty_dir_as_root" test_empty_dir_as_root;
+          t "regular_files" test_regular_files;
+          t "symlinks" test_symlinks;
+          t "ignore_symlinks" test_ignore_symlinks;
+          t "symlink_as_root" test_symlink_as_root;
         ];
     ]

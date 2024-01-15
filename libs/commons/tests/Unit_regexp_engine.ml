@@ -2,6 +2,8 @@
    Unit tests for SPcre
 *)
 
+let t = Testo.create
+
 let test_remove_eos_assertions () =
   let check (input, expected_output) =
     let output =
@@ -45,5 +47,5 @@ let test_remove_eos_assertions () =
     ]
 
 let tests =
-  Testo.pack_tests "regexp engine"
-    [ ("remove eos assertions", test_remove_eos_assertions) ]
+  Testo.categorize "regexp engine"
+    [ t "remove eos assertions" test_remove_eos_assertions ]

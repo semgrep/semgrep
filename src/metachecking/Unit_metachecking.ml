@@ -1,7 +1,8 @@
 open Common
 open Fpath_.Operators
-open Testo
 module E = Core_error
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Purpose *)
@@ -29,14 +30,13 @@ let tests_path = Fpath.v "tests"
  * as just errors.
  *)
 let metachecker_checks_tests () =
-  pack_tests "metachecker checks testing"
+  Testo.categorize "metachecker checks testing"
     (let dir = tests_path / "errors" in
      let files = Common2.glob (spf "%s/*.yaml" !!dir) in
      files
      |> List_.map (fun file ->
             let file = Fpath.v file in
-            ( Fpath.basename file,
-              fun () ->
+            t (Fpath.basename file) (fun () ->
                 (* note that try_with_exn_to_error also modifies g_errors *)
                 E.try_with_exn_to_error !!file (fun () ->
                     let rules = Parse_rule.parse file in
@@ -47,17 +47,15 @@ let metachecker_checks_tests () =
                 let actual = !E.g_errors in
                 E.g_errors := [];
                 let expected = E.expected_error_lines_of_files [ file ] in
-                E.compare_actual_to_expected_for_alcotest actual expected )))
+                E.compare_actual_to_expected_for_alcotest actual expected)))
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests () =
-  Testo.simple_tests
-    [
-      ( "metachecker regression testing",
-        fun () ->
-          let path = tests_path / "metachecks" in
-          Test_metachecking.test_rules ~unit_testing:true [ path ] );
-    ]
+  [
+    t "metachecker regression testing" (fun () ->
+        let path = tests_path / "metachecks" in
+        Test_metachecking.test_rules ~unit_testing:true [ path ]);
+  ]
 
 (*****************************************************************************)
 (* All tests *)

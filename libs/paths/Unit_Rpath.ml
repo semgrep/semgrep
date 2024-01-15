@@ -1,3 +1,5 @@
+let t = Testo.create
+
 (* TODO: copy paste of Unit_commons.with_file, but should be in Common.ml *)
 let with_file contents f =
   let file, oc = Filename.open_temp_file "test_pfff_read_file_" ".dat" in
@@ -34,4 +36,4 @@ let test_path_conversion () =
       assert (path |> Rpath.to_string |> Sys.is_directory |> not))
 
 let tests =
-  Testo.pack_tests "Rpath" [ ("path_conversion", test_path_conversion) ]
+  Testo.categorize "Rpath" [ t "path_conversion" test_path_conversion ]

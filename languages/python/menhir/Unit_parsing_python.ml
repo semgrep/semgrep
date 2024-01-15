@@ -1,5 +1,7 @@
 open Common
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
@@ -8,14 +10,13 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Testo.pack_tests "parsing_python"
+  Testo.categorize "parsing_python"
     [
-      ( "regression files",
-        fun () ->
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "python/parsing" in
           let files = Common2.glob (spf "%s/*.py" dir) in
           files
           |> List.iter (fun file ->
                  Testutil.run file (fun () ->
-                     Parse_python.parse_program file |> ignore)) );
+                     Parse_python.parse_program file |> ignore)));
     ]
