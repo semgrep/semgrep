@@ -13,7 +13,7 @@ local artifact_name = 'ocaml-build-artifacts-release';
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_test=true) =
+local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run_test=true) =
 
   local test_steps =
     if run_test
@@ -27,7 +27,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
   // already created, and a big set of packages already installed. Thus,
   // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
   // almost a noop.
-  container
+  container.job
   {
     steps: [
       gha.speedy_checkout_step,

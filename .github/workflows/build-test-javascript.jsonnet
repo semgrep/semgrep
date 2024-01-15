@@ -60,7 +60,7 @@ local guard_cache_hit = {
 local build_artifact_name = 'semgrep-js-ocaml-build-${{ github.sha }}';
 
 local build_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     'runs-on': 'ubuntu-latest-16-core',
     steps: [

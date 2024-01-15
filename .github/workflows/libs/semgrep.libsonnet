@@ -96,7 +96,7 @@ local github_bot = {
 // See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f
 // for more information.
 
-// Note that this actions does cache read and cache write.
+// Note that this action does cache read and cache write.
 // See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
 // for more information on GHA caching.
 //
@@ -111,14 +111,14 @@ local github_bot = {
 // to see the actual cache files created.
 
 local cache_opam = {
-  step(key): {
+  step(key, path="~/.opam"): {
     name: 'Cache ~/.opam',
     uses: 'actions/cache@v3',
     env: {
       SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
     },
     with: {
-      path: '~/.opam',
+      path: path,
       key: '${{ runner.os }}-${{ runner.arch }}-opam-deps-%s' % key,
     },
    },
@@ -136,6 +136,53 @@ local cache_opam = {
   if_cache_inputs: {
     'if': '${{ inputs.use-cache}}'
   },
+};
+
+// ----------------------------------------------------------------------------
+// Containers
+// ----------------------------------------------------------------------------
+
+local containers = {
+  ocaml_alpine: {
+    // used in the build-test-osx-xxx jobs but ideally we should get rid
+    // of it and rely on opam.lock for caching issues
+    opam_switch: '4.14.0',
+    job: {
+      'runs-on': 'ubuntu-latest',
+      container: 'returntocorp/ocaml:alpine-2023-11-07',
+      // We need this hack because GHA tampers with the HOME in container
+      // and this does not play well with 'opam' installed in /root
+      env: {
+        HOME: '/root',
+      },
+     },
+  },
+  // ocaml-layer builds an image based on Alpine and another one based on
+  // Ubuntu.
+  // Alpine is necessary in practice for static linking (especially for C++
+  // libraries). Ubuntu is an alternative Linux distribution people may be
+  // more familiar with. It's been cheap to maintain both so far but we could
+  // decide to keep just one if it makes things simpler.
+  ocaml_ubuntu: {
+    opam_switch: '4.14.0',
+    job: {
+      'runs-on': 'ubuntu-latest',
+      container: 'returntocorp/ocaml:ubuntu-2023-11-07',
+      env: {
+        HOME: '/root',
+      },
+      },
+   },
+   ocaml5_alpine: {
+     opam_switch: '5.1.0',
+     job: {
+      'runs-on': 'ubuntu-latest',
+       container: 'returntocorp/ocaml:alpine5.1-2023-11-07',
+       env: {
+        HOME: '/root',
+       },
+     },
+   },
 };
 
 // ----------------------------------------------------------------------------
@@ -162,43 +209,11 @@ local cache_opam = {
       },
     },
 
-  // used in the build-test-osx-xxx jobs but ideally we should get rid
-  // of it and rely on opam.lock for caching issues
+  // default one
+  // coupling: with containers above
   opam_switch: '4.14.0',
 
-  ocaml_alpine_container: {
-    'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:alpine-2023-11-07',
-    // We need this hack because GHA tampers with the HOME in container
-    // and this does not play well with 'opam' installed in /root
-    env: {
-      HOME: '/root',
-    },
-  },
-
-
-  // ocaml-layer builds an image based on Alpine and another one based on
-  // Ubuntu.
-  // Alpine is necessary in practice for static linking (especially for C++
-  // libraries). Ubuntu is an alternative Linux distribution people may be
-  // more familiar with. It's been cheap to maintain both so far but we could
-  // decide to keep just one if it makes things simpler.
-  ocaml_ubuntu_container: {
-    'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:ubuntu-2023-11-07',
-    env: {
-      HOME: '/root',
-    },
-  },
-
-  ocaml5_alpine_container: {
-    'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:alpine5.1-2023-11-07',
-    env: {
-      HOME: '/root',
-    },
-  },
-
+  containers: containers,
   github_bot: github_bot,
   cache_opam: cache_opam,
 }

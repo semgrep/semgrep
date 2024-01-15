@@ -92,7 +92,7 @@ local snapshot_update_pr_steps = [
 // but without the artifact creation and with more tests.
 // alt: we could factorize buy copy-paste is ok.
 local test_semgrep_core_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     steps: [
       gha.speedy_checkout_step,
@@ -142,7 +142,7 @@ local test_semgrep_core_job =
 
 // alt: could factorize with previous job
 local test_osemgrep_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     steps: [
       gha.speedy_checkout_step,
