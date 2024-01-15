@@ -220,12 +220,17 @@ let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
 (* Main logic *)
 (*****************************************************************************)
 
-let read_rules_file ~get_xlang rule_file =
+let read_rules_file ~get_xlang ?fail_callback rule_file =
   match Parse_rule.parse rule_file with
   (* TODO? sanity check rules |> List.iter Check_rule.check; *)
   | [] ->
-      Logs.err (fun m ->
-          m "file %s is empty or all rules were skipped" !!rule_file);
+      (match fail_callback with
+      | None ->
+          Logs.err (fun m ->
+              m "file %s is empty or all rules were skipped" !!rule_file)
+      | Some fail_callback ->
+          fail_callback 1
+            (spf "file %s is empty or all rules were skipped" !!rule_file));
       None
   | rules ->
       let xlang = get_xlang rule_file rules in
@@ -248,7 +253,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
     (rule_file : Fpath.t) : unit Testo.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-    match read_rules_file ~get_xlang rule_file with
+    match read_rules_file ~get_xlang ~fail_callback rule_file with
     | None -> ()
     | Some (rules, target, xlang) -> (
         (* expected *)
