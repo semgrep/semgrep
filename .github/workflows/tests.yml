@@ -24,9 +24,18 @@ jobs:
         submodules: true
     - name: Configure git safedir properly
       run: git config --global --add safe.directory $(pwd)
-    - name: Build semgrep-core
+    - name: Set GHA cache for OPAM in ~/.opam
+      uses: actions/cache@v3
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+      with:
+        path: ~/.opam
+        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{hashFiles('semgrep.opam')}}
+    - name: Install dependencies
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
-        \         make install-deps-for-semgrep-core\n          make core\n        "
+        \         make install-deps-for-semgrep-core\n        "
+    - name: Build semgrep-core
+      run: opam exec -- make core
     - name: Test semgrep-core (and time it)
       run: "\n          eval $(opam env)\n          START=`date +%s`\n\n          make
         core-test\n          make core-test-e2e\n\n          END=`date +%s`\n          TEST_RUN_TIME=$((END-START))\n

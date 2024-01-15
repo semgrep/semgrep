@@ -90,7 +90,7 @@ local snapshot_update_pr_steps = [
 
 // This is mostly the same that in build-test-core-x86.jsonnet
 // but without the artifact creation and with more tests.
-// alt: we could factorize buy copy-paste is ok.
+// alt: we could factorize
 local test_semgrep_core_job =
   semgrep.containers.ocaml_alpine.job
   {
@@ -98,14 +98,21 @@ local test_semgrep_core_job =
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
       gha.git_safedir,
+      semgrep.cache_opam.step(
+        key=semgrep.containers.ocaml_alpine.opam_switch +
+          "-${{hashFiles('semgrep.opam')}}"
+       ),
       {
-        name: 'Build semgrep-core',
+        name: 'Install dependencies',
         run: |||
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-          make core
         |||,
+      },
+      {
+        name: 'Build semgrep-core',
+        run: 'opam exec -- make core',
       },
       {
         name: 'Test semgrep-core (and time it)',
