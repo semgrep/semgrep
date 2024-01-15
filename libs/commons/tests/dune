@@ -3,7 +3,7 @@
  (name commons_tests)
  (libraries
    alcotest
-   alcotest_ext
+   testo
    commons
  )
 )

@@ -7,8 +7,8 @@
    semgrep.language_server.notifications
    networking.http_mock_client
    fileutils
-   alcotest_ext
-   alcotest_ext_lwt
+   testo
+   testo_lwt
  )
  (preprocess
   (pps

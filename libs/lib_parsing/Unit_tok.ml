@@ -2,6 +2,8 @@
    Unit tests for Tok
 *)
 
+let t = Testo.create
+
 let test_end_pos_of_loc () =
   let test ~str ~start ~expected =
     let line, column, bytepos = start in
@@ -20,5 +22,4 @@ let test_end_pos_of_loc () =
   test ~str:"a\n\n" ~start:(1, 0, 0) ~expected:(2, 1, 3);
   test ~str:"\n    line1\n    line2\n" ~start:(2, 11, 17) ~expected:(4, 10, 38)
 
-let tests =
-  Alcotest_ext.pack_tests "tok" [ ("end_pos_of_loc", test_end_pos_of_loc) ]
+let tests = Testo.categorize "tok" [ t "end_pos_of_loc" test_end_pos_of_loc ]

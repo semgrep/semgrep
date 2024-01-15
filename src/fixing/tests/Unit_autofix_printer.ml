@@ -7,6 +7,8 @@ type autofix_printer_test_case = {
   expected : string;
 }
 
+let t = Testo.create
+
 (* Test suite for the autofix printers.
  *
  * This runs Semgrep to get a pattern match, then renders the fix. However, it
@@ -150,8 +152,8 @@ let test_python_autofix_printer () =
 let test_js_autofix_printer () = List.iter (check Lang.Js) polyglot_test_cases
 
 let tests =
-  Alcotest_ext.pack_tests "autofix printer"
+  Testo.categorize "autofix printer"
     [
-      ("test python autofix printer", test_python_autofix_printer);
-      ("test js autofix printer", test_js_autofix_printer);
+      t "test python autofix printer" test_python_autofix_printer;
+      t "test js autofix printer" test_js_autofix_printer;
     ]

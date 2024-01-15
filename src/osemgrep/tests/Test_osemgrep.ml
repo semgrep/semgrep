@@ -34,7 +34,7 @@ module TL = Test_login_subcommand
 
 (* no need for a token to access public rules in the registry *)
 let test_scan_config_registry_no_token (caps : Cap.all_caps) =
-  Alcotest_ext.create __FUNCTION__ (fun () ->
+  Testo.create __FUNCTION__ (fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
@@ -50,8 +50,8 @@ let test_scan_config_registry_no_token (caps : Cap.all_caps) =
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
-let test_scan_config_registry_with_invalid_token caps : Alcotest_ext.test =
-  Alcotest_ext.create __FUNCTION__
+let test_scan_config_registry_with_invalid_token caps : Testo.test =
+  Testo.create __FUNCTION__
     (TL.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token
            (fun () ->
@@ -102,7 +102,7 @@ let test_scan_config_registry_with_invalid_token caps : Alcotest_ext.test =
 (*****************************************************************************)
 
 let tests caps =
-  Alcotest_ext.pack_tests_pro "Osemgrep (e2e)"
+  Testo.categorize "Osemgrep (e2e)"
     [
       test_scan_config_registry_no_token caps;
       test_scan_config_registry_with_invalid_token

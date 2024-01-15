@@ -3,7 +3,7 @@
 *)
 
 open Printf
-module T = Alcotest_ext
+module T = Testo
 
 let with_git_repo (files : Testutil_files.t list) func =
   Testutil_files.with_tempfiles_verbose files (fun path ->

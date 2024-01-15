@@ -40,7 +40,7 @@ repos:
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
-        exclude: "^(bin|test|libs/alcotest_ext/.*test)$"
+        exclude: "^(bin|test|libs/testo/.*test)$"
       - id: check-toml
       - id: check-vcs-permalinks
       - id: check-xml
@@ -56,7 +56,7 @@ repos:
         args: [--remove]
       - id: mixed-line-ending
         args: [--fix=lf]
-        exclude: "libs/alcotest_ext/tests/snapshots"
+        exclude: "libs/testo/tests/snapshots"
       - id: no-commit-to-branch
       - id: requirements-txt-fixer
       - id: trailing-whitespace

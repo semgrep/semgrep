@@ -245,7 +245,7 @@ let read_rules_file ~get_xlang rule_file =
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
     ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
-    (rule_file : Fpath.t) : unit Alcotest_ext.t =
+    (rule_file : Fpath.t) : unit Testo.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!rule_file);
     match read_rules_file ~get_xlang rule_file with
@@ -312,11 +312,11 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let langs = Lang.langs_of_filename target_path in
       let tags = Test_tags.tags_of_langs langs in
       let name = test_name_for_target ~prepend_lang langs rule_file in
-      Alcotest_ext.create ~tags name test
+      Testo.create ~tags name test
   | None ->
       let name = !!rule_file in
       let reason = spf "Missing target file for rule file %s" !!rule_file in
-      Alcotest_ext.create name test ~expected_outcome:(Should_fail reason)
+      Testo.create name test ~expected_outcome:(Should_fail reason)
 
 let find_rule_files roots =
   roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
@@ -333,6 +333,6 @@ let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
          Some (rule_file, target, xlang))
 
 let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
-    unit Alcotest_ext.t list =
+    unit Testo.t list =
   xs |> find_rule_files
   |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)

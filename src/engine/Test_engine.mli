@@ -12,7 +12,7 @@ val make_tests :
   (* default to false *)
   ?prepend_lang:bool ->
   Fpath.t list ->
-  Alcotest_ext.test list
+  Testo.test list
 
 (* For Pro tests *)
 val collect_tests :

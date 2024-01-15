@@ -16,7 +16,8 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Alcotest_ext
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Helpers *)
@@ -115,9 +116,9 @@ let save_token_tests caps =
   in
   let tests =
     [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]
-    |> List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f))
+    |> List_.map (fun (n, f) -> t n (with_mock_envvars_and_normal_responses f))
   in
-  pack_tests "save_token" tests
+  Testo.categorize "save_token" tests
 
 let fetch_token_tests caps =
   let fetch_basic () =
@@ -150,12 +151,13 @@ let fetch_token_tests caps =
         Alcotest.(check int) "retry count" 12 !retry_count
     | _ -> failwith "Expected timeout"
   in
-  pack_tests "fetch_token"
+  Testo.categorize "fetch_token"
     [
-      ("basic", with_mock_envvars_and_normal_responses fetch_basic);
-      ( "no internet",
-        with_mock_envvars (with_mock_four_o_four_responses fetch_no_internet) );
+      t "basic" (with_mock_envvars_and_normal_responses fetch_basic);
+      t "no internet"
+        (with_mock_envvars (with_mock_four_o_four_responses fetch_no_internet));
     ]
 
 let tests caps =
-  pack_suites "Osemgrep Login" [ save_token_tests caps; fetch_token_tests caps ]
+  Testo.categorize_suites "Osemgrep Login"
+    [ save_token_tests caps; fetch_token_tests caps ]

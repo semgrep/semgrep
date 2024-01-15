@@ -3,7 +3,7 @@
    to the current location. Having them created on demand allows running
    'dune utop' from any location.
 *)
-val tests : unit -> Alcotest_ext.test list
+val tests : unit -> Testo.test list
 
 type fix_type =
   | Fix of string
@@ -41,7 +41,7 @@ val make_lang_regression_tests :
   test_pattern_path:Fpath.t ->
   polyglot_pattern_path:Fpath.t ->
   (Lang.t * string * string) list ->
-  Alcotest_ext.test list
+  Testo.test list
 
 (* coupling: https://semgrep.dev/docs/language-support/
  * See also https://r2c.quip.com/FOAuA4ThzULc/How-to-promote-a-language-
@@ -55,4 +55,4 @@ val make_maturity_tests :
   string (* dir *) ->
   string (* ext *) ->
   maturity_level ->
-  Alcotest_ext.test list
+  Testo.test list

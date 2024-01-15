@@ -65,8 +65,8 @@ open Js_of_ocaml
 let skip_todo_tests tests =
   tests
   |> List_.map (fun test ->
-         if Alcotest_ext.has_tag Test_tags.todo_js test then
-           Alcotest_ext.update ~skipped:true test
+         if Testo.has_tag Test_tags.todo_js test then
+           Testo.update ~skipped:true test
          else test)
 
 (* Stolen from Logs' logs_browser.ml *)
@@ -98,7 +98,7 @@ let () =
          let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
          let tests =
            List_.map
-             (fun (test : Alcotest_ext.test) ->
+             (fun (test : Testo.test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
@@ -106,13 +106,13 @@ let () =
                         (fun () -> Firebug.console##log (Js.string test.name)))
                    test.func
                in
-               Alcotest_ext.update test ~func:f)
+               Testo.update test ~func:f)
              tests
            |> skip_todo_tests
          in
          let lwt_tests =
            List_.map
-             (fun (test : Alcotest_ext_lwt.test) ->
+             (fun (test : Testo_lwt.test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
@@ -120,18 +120,17 @@ let () =
                         (fun () -> Firebug.console##log (Js.string test.name)))
                    test.func
                in
-               Alcotest_ext.update test ~func:f)
+               Testo.update test ~func:f)
              lwt_tests
            |> skip_todo_tests
          in
          let run () =
-           Alcotest.run "semgrep-js"
-             (Alcotest_ext.to_alcotest tests)
-             ~and_exit:false ~argv
+           Alcotest.run "semgrep-js" (Testo.to_alcotest tests) ~and_exit:false
+             ~argv
          in
          let run_lwt () : unit Lwt.t =
            Alcotest_lwt.run "semgrep-js"
-             (Alcotest_ext.to_alcotest lwt_tests)
+             (Testo.to_alcotest lwt_tests)
              ~and_exit:false ~argv
          in
          (* Some gymnastics are needed here because we need to

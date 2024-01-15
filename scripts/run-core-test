@@ -18,22 +18,18 @@ NC='\033[0m' # No Color
 # output.
 # Checking the status of the tests and approving the output is done with
 # './test status' and './test approve'. See './test --help' for options.
-# This uses the in-house project alcotest_ext.
+# This uses the in-house project testo.
 ./test
 
 # run inline tests
-# TODO: make them part of the alcotest_ext test program above.
+# TODO: make them part of the testo test program above.
 dune runtest -f --no-buffer libs/commons
 dune runtest -f --no-buffer libs/lib_parsing
 dune runtest -f --no-buffer src/engine
 
 # osemgrep expect tests
-# TODO: migrate to alcotest_ext
+# TODO: migrate to testo
 if ! dune runtest -f --no-buffer src/osemgrep; then
   echo -e "\n${RED}If expectation tests have failed, run \`dune promote\` to apply the corresponding diff.${NC}\n\n"
   exit 1
 fi
-
-# Alcotest_ext has its own test program because it's planned to become
-# a separate project.
-make -C libs/alcotest_ext test

@@ -1,5 +1,7 @@
 open Common
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
@@ -8,10 +10,9 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Alcotest_ext.pack_tests "parsing_scala"
+  Testo.categorize "parsing_scala"
     [
-      ( "regression files",
-        fun () ->
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "scala/parsing" in
           let files = Common2.glob (spf "%s/*.scala" dir) in
           files
@@ -22,9 +23,8 @@ let tests =
                  with
                  | exn ->
                      Alcotest.failf "it should correctly parse %s (exn = %s)"
-                       file (Common.exn_to_s exn)) );
-      ( "rejecting bad code",
-        fun () ->
+                       file (Common.exn_to_s exn)));
+      t "rejecting bad code" (fun () ->
           let dir = Filename.concat tests_path "scala/parsing_errors" in
           let files = Common2.glob (spf "%s/*.scala" dir) in
           files
@@ -36,5 +36,5 @@ let tests =
                  | Parsing_error.Syntax_error _ -> ()
                  | exn ->
                      Alcotest.failf "throwing wrong exn %s on %s"
-                       (Common.exn_to_s exn) file) );
+                       (Common.exn_to_s exn) file));
     ]

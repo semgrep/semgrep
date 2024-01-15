@@ -12,5 +12,4 @@ let test_stack () =
   assert (Hashtbl_.get_stack tbl 110 = [])
 
 let tests =
-  Alcotest_ext.pack_tests_pro "Hashtbl_"
-    [ Alcotest_ext.create "push/get_stack" test_stack ]
+  Testo.categorize "Hashtbl_" [ Testo.create "push/get_stack" test_stack ]
