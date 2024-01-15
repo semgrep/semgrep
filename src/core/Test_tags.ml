@@ -5,17 +5,15 @@
 open Common
 
 (* Should this be "js.todo"? Feel free to change it. *)
-let todo_js = Alcotest_ext.Tag.declare "todo.js"
+let todo_js = Testo.Tag.declare "todo.js"
 
 (* "lang.none" would be shorter but possibly confusing since we're using
    the term "generic" everywhere. *)
-let lang_generic = Alcotest_ext.Tag.declare "lang.generic"
+let lang_generic = Testo.Tag.declare "lang.generic"
 let lang_tags = Hashtbl.create 100
 
 let make_lang_tag lang =
-  let tag =
-    spf "lang.%s" (Lang.to_lowercase_alnum lang) |> Alcotest_ext.Tag.declare
-  in
+  let tag = spf "lang.%s" (Lang.to_lowercase_alnum lang) |> Testo.Tag.declare in
   Hashtbl.add lang_tags lang tag
 
 let get_lang_tag lang =
@@ -46,5 +44,5 @@ let tags_of_langs (langs : Lang.t list) =
   | [] -> [ lang_generic ]
   | langs ->
       langs |> List_.map tags_of_lang |> List_.flatten
-      |> List.sort Alcotest_ext.Tag.compare
-      |> List_.uniq_by Alcotest_ext.Tag.equal
+      |> List.sort Testo.Tag.compare
+      |> List_.uniq_by Testo.Tag.equal

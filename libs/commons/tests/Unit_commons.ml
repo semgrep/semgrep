@@ -137,13 +137,13 @@ let test_read_file () =
       assert (UCommon.read_file ~max_len file = String.sub data 0 max_len))
 
 let tests =
-  Alcotest_ext.pack_suites "commons"
+  Testo.pack_suites "commons"
     [
-      Alcotest_ext.pack_suites "common"
+      Testo.pack_suites "common"
         [
-          Alcotest_ext.pack_tests "map" test_common_map;
-          Alcotest_ext.simple_tests [ ("cat", test_cat) ];
-          Alcotest_ext.simple_tests [ ("readable", test_readable) ];
-          Alcotest_ext.simple_tests [ ("read_file", test_read_file) ];
+          Testo.pack_tests "map" test_common_map;
+          Testo.simple_tests [ ("cat", test_cat) ];
+          Testo.simple_tests [ ("readable", test_readable) ];
+          Testo.simple_tests [ ("read_file", test_read_file) ];
         ];
     ]

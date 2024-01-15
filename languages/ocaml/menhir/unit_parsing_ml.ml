@@ -8,7 +8,7 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Alcotest_ext.pack_tests "parsing_ml"
+  Testo.pack_tests "parsing_ml"
     [
       ( "regression files",
         fun () ->

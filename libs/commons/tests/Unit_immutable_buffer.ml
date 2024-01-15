@@ -23,5 +23,5 @@ let test_immutable_buffer () =
     ]
 
 let tests =
-  Alcotest_ext.pack_tests "immutable buffer"
+  Testo.pack_tests "immutable buffer"
     [ ("test immutable buffer", test_immutable_buffer) ]

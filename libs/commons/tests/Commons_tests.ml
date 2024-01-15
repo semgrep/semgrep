@@ -2,7 +2,7 @@
    All unit tests for the commons library
 *)
 let tests =
-  Alcotest_ext.pack_suites "Commons"
+  Testo.pack_suites "Commons"
     [
       Unit_Hashtbl_.tests;
       Unit_immutable_buffer.tests;

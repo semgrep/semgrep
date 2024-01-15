@@ -59,14 +59,14 @@ let lines_of_range_corpus =
   ]
 
 let test =
-  Alcotest_ext.pack_suites "Src_file"
+  Testo.pack_suites "Src_file"
     [
-      Alcotest_ext.pack_tests "highlight"
+      Testo.pack_tests "highlight"
         (List_.map
            (fun (name, input, start, end_, expected_output) ->
              (name, fun () -> test_highlight input start end_ expected_output))
            highlight_corpus);
-      Alcotest_ext.pack_tests "lines_of_range"
+      Testo.pack_tests "lines_of_range"
         (List_.map
            (fun (name, input, start_word, end_word, expected_output) ->
              ( name,

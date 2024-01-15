@@ -11,7 +11,7 @@ let tests_path = Fpath.v "tests"
 let tests_path_typing = tests_path / "typing"
 
 let tests parse_program parse_pattern =
-  Alcotest_ext.pack_tests "typing_tests"
+  Testo.pack_tests "typing_tests"
     [
       ( "test basic variable definitions java",
         fun () ->

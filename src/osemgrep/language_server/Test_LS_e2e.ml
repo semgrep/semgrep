@@ -1025,8 +1025,8 @@ let test_ls_libev () =
 (* Entry point *)
 (*****************************************************************************)
 
-module Test = Alcotest_ext
-module Test_lwt = Alcotest_ext_lwt
+module Test = Testo
+module Test_lwt = Testo_lwt
 
 let promise_tests =
   [

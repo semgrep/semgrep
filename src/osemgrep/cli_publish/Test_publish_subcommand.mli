@@ -1,1 +1,1 @@
-val tests : < Cap.network ; Cap.stdout > -> Alcotest_ext.test list
+val tests : < Cap.network ; Cap.stdout > -> Testo.test list

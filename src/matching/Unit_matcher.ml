@@ -14,7 +14,7 @@ open Common
  *)
 
 let tests ~any_gen_of_string =
-  Alcotest_ext.simple_tests
+  Testo.simple_tests
     [
       ( "sgrep(generic) features",
         fun () ->

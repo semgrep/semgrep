@@ -8,7 +8,7 @@ module F = Testutil_files
 (*****************************************************************************)
 
 (* similar to F.with_tempfiles_verbose but takes a unit so
- * can be conveniently used inside a Alcotest_ext.test
+ * can be conveniently used inside a Testo.test
  *)
 let test_with_files (files : F.t list) func () =
   F.with_tempfiles_verbose files func
@@ -18,7 +18,7 @@ let test_with_files (files : F.t list) func () =
 (*****************************************************************************)
 
 let tests =
-  Alcotest_ext.pack_tests "Ppath"
+  Testo.pack_tests "Ppath"
     [
       ( "find project root",
         test_with_files

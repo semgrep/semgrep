@@ -195,7 +195,7 @@ let test_high_score () =
                 s x))
 
 let tests =
-  Alcotest_ext.simple_tests
+  Testo.simple_tests
     [
       ("information density", test_information_density);
       ("low entropy", test_low_entropy);

@@ -41,7 +41,7 @@ let test_long_ellipsis () =
 let test_multiline () = ()
 
 let tests =
-  Alcotest_ext.pack_tests "pattern parsing"
+  Testo.pack_tests "pattern parsing"
     [
       ("literal_match", test_literal_match);
       ("parentheses", test_parentheses);

@@ -18,7 +18,7 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-let test_maker_err dir : Alcotest_ext.test list =
+let test_maker_err dir : Testo.test list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -33,10 +33,10 @@ let test_maker_err dir : Alcotest_ext.test list =
              with
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true ))
-  |> Alcotest_ext.pack_tests !!dir
+  |> Testo.pack_tests !!dir
 
 let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
-    Alcotest_ext.test list =
+    Testo.test list =
   Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -84,10 +84,10 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                     | Eval_jsonnet_common.Error _ ->
                         failwith
                           (spf "this threw an error with %s" str_strategy)) ))
-  |> Alcotest_ext.pack_tests (spf "tests/jsonnet/%s" subdir)
+  |> Testo.pack_tests (spf "tests/jsonnet/%s" subdir)
 
-let tests () : Alcotest_ext.test list =
-  Alcotest_ext.pack_suites "ojsonnet"
+let tests () : Testo.test list =
+  Testo.pack_suites "ojsonnet"
     [
       mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
       mk_tests "only_subst/" [ Conf.EvalSubst ];

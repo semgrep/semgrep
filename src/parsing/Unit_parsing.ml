@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-open Alcotest_ext
+open Testo
 module E = Core_error
 
 (*****************************************************************************)
@@ -23,7 +23,7 @@ let tests_path_parsing = tests_path / "parsing"
 let parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+         Testo.create ~tags:(Test_tags.tags_of_lang lang)
            (Filename.basename file) (fun () ->
              Parse_target.parse_and_resolve_name_fail_if_partial lang file
              |> ignore))
@@ -31,7 +31,7 @@ let parsing_tests_for_lang files lang =
 let partial_parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+         Testo.create ~tags:(Test_tags.tags_of_lang lang)
            (Filename.basename file) (fun () ->
              let { Parsing_result2.skipped_tokens = errs; _ } =
                Parse_target.parse_and_resolve_name lang file

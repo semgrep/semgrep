@@ -9,7 +9,7 @@ open Fpath_.Operators
 let tests_path = "tests"
 
 let tests parse_program =
-  Alcotest_ext.pack_tests "naming generic"
+  Testo.pack_tests "naming generic"
     [
       ( "regression files",
         fun () ->

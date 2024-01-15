@@ -62,7 +62,7 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
 (*****************************************************************************)
 
 let tests =
-  Alcotest_ext.pack_tests "Semgrepignore"
+  Testo.pack_tests "Semgrepignore"
     [
       ( "gitignore + semgrepignore",
         test_filter

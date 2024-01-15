@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-open Alcotest_ext
+open Testo
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
@@ -107,8 +107,7 @@ let pack_tests_for_lang
        polyglot_pattern_path:Fpath.t ->
        Fpath.t list ->
        Language.t ->
-       Alcotest_ext.test list) ~test_pattern_path ~polyglot_pattern_path lang
-    dir ext =
+       Testo.test list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
   pack_tests_pro
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
@@ -254,8 +253,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
      let features = Common2.minus_set features exns in
      features
      |> List_.map (fun base ->
-            Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang) base
-              (fun () ->
+            Testo.create ~tags:(Test_tags.tags_of_lang lang) base (fun () ->
                 let path = dir / (base ^ ext) in
                 (* if it's a does-not-apply (NA) case, consider adding it
                  * to language_exceptions above
@@ -374,8 +372,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
-           (Fpath.basename file) (fun () ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
+           (fun () ->
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -493,8 +491,8 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
-           (Fpath.basename file) (fun () ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
+           (fun () ->
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -566,7 +564,7 @@ let lang_autofix_tests ~polyglot_pattern_path =
 (*****************************************************************************)
 
 let eval_regression_tests () =
-  Alcotest_ext.simple_tests
+  Testo.simple_tests
     [
       ( "eval regression testing",
         fun () ->
@@ -742,8 +740,8 @@ let tainting_test lang rules_file file =
 let tainting_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
-           (Fpath.basename file) (fun () ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
+           (fun () ->
              let rules_file =
                let d, b, _e = Filename_.dbe_of_filename !!file in
                let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
@@ -824,7 +822,7 @@ let full_rule_regression_tests () =
   let tests = tests1 @ tests2 in
   let groups =
     tests
-    |> List_.map (fun (test : Alcotest_ext.test) ->
+    |> List_.map (fun (test : Testo.test) ->
            let group =
              match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
@@ -860,7 +858,7 @@ let mark_todo_js test =
             correctly by the OCaml test suite but not by the JS test suite
             (or something close to this). *)
          s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml" ->
-      Alcotest_ext.update test ~tags:(Test_tags.todo_js :: test.tags)
+      Testo.update test ~tags:(Test_tags.todo_js :: test.tags)
   | _ -> test
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
@@ -874,7 +872,7 @@ let full_rule_semgrep_rules_regression_tests () =
   let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
-    |> List_.map_filter (fun (test : Alcotest_ext.test) ->
+    |> List_.map_filter (fun (test : Testo.test) ->
            let test = mark_todo_js test in
            let group_opt =
              match test.name with
@@ -938,12 +936,12 @@ let full_rule_semgrep_rules_regression_tests () =
     (groups
     |> List_.map (fun (group, tests) ->
            tests
-           |> List_.map (fun (test : Alcotest_ext.test) ->
+           |> List_.map (fun (test : Testo.test) ->
                   match group with
                   | "XFAIL" ->
                       (* TODO: populate the excuse below with the exact reason
                          found in the comments above *)
-                      Alcotest_ext.update test
+                      Testo.update test
                         ~expected_outcome:
                           (Should_fail
                              "excluded semgrep-rule (see OCaml source file for \

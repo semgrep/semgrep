@@ -35,7 +35,7 @@ let test pattern path matches () =
    is unspecified (e.g. '**' matches dot files but '*' doesn't).
 *)
 let tests =
-  Alcotest_ext.pack_tests "Glob"
+  Testo.pack_tests "Glob"
     [
       ("simple", test "abc" "abc" true);
       ("anchor left", test "abc" "xabc" false);

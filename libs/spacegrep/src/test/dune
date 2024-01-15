@@ -3,6 +3,6 @@
   (libraries
      spacegrep
      alcotest
-     alcotest_ext
+     testo
   )
 )

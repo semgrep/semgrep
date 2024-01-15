@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-open Alcotest_ext
+open Testo
 module E = Core_error
 
 (*****************************************************************************)
@@ -51,7 +51,7 @@ let metachecker_checks_tests () =
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests () =
-  Alcotest_ext.simple_tests
+  Testo.simple_tests
     [
       ( "metachecker regression testing",
         fun () ->

@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-open Alcotest_ext
+open Testo
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)

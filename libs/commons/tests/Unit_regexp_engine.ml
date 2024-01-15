@@ -45,5 +45,5 @@ let test_remove_eos_assertions () =
     ]
 
 let tests =
-  Alcotest_ext.pack_tests "regexp engine"
+  Testo.pack_tests "regexp engine"
     [ ("remove eos assertions", test_remove_eos_assertions) ]

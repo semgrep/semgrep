@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-open Alcotest_ext
+open Testo
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,7 +46,7 @@ let with_logs ~f ~final =
            (Exit_code.to_message code));
       final { exit_code = code; logs = log_content })
 
-(* we return a fun () to match Alcotest_ext.test second element *)
+(* we return a fun () to match Testo.test second element *)
 let with_login_test_env f () =
   Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
       Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
@@ -72,7 +72,7 @@ let with_fake_deployment_response return_value f =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_not_logged_in caps : Alcotest_ext.simple_test =
+let test_logout_not_logged_in caps : Testo.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
@@ -81,7 +81,7 @@ let test_logout_not_logged_in caps : Alcotest_ext.simple_test =
             assert (res.logs =~ ".*You are not logged in");
             assert (res.exit_code =*= Exit_code.ok))) )
 
-let test_login_no_tty caps : Alcotest_ext.simple_test =
+let test_login_no_tty caps : Testo.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
@@ -117,7 +117,7 @@ let fake_deployment =
   }
 |}
 
-let test_login_with_env_token caps : Alcotest_ext.simple_test =
+let test_login_with_env_token caps : Testo.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->

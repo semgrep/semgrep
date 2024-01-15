@@ -87,4 +87,4 @@ let test =
     in
     (name, run)
   )
-  |> Alcotest_ext.pack_tests "Comment"
+  |> Testo.pack_tests "Comment"

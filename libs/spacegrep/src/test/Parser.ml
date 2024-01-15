@@ -125,4 +125,4 @@ let test =
           (name, fun () -> run_pretty input expected_output))
         pretty_corpus
   in
-  Alcotest_ext.pack_tests "Parser" suite
+  Testo.pack_tests "Parser" suite

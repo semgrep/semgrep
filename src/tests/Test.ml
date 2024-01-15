@@ -78,7 +78,7 @@ let tests (caps : Cap.all_caps) =
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
-      Alcotest_ext.get_registered_tests ();
+      Testo.get_registered_tests ();
     ]
 
 (*****************************************************************************)
@@ -96,7 +96,7 @@ let tests_with_delayed_error caps =
   try tests caps with
   | e ->
       let exn = Exception.catch e in
-      Alcotest_ext.simple_tests
+      Testo.simple_tests
         [
           ( "ERROR DURING TEST SUITE INITIALIZATION",
             fun () -> Exception.reraise exn );
@@ -120,7 +120,7 @@ let main (caps : Cap.all_caps) : unit =
       Data_init.init ();
       Core_CLI.register_exception_printers ();
       Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
-      Alcotest_ext.interpret_argv ~project_name:"semgrep-core" (fun () ->
+      Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
           tests_with_delayed_error caps))
 
 let () = Cap.main (fun all_caps -> main all_caps)

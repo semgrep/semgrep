@@ -35,15 +35,15 @@ let test_invalid_files dialect rel_path () =
                file)
 
 let tests =
-  Alcotest_ext.pack_suites "regexp parsing"
+  Testo.pack_suites "regexp parsing"
     [
-      Alcotest_ext.pack_tests "pcre"
+      Testo.pack_tests "pcre"
         [
           ("valid files", test_valid_files Dialect.PCRE "regexp/pcre/parsing");
           ( "invalid files",
             test_invalid_files Dialect.PCRE "regexp/pcre/parsing_errors" );
         ];
-      Alcotest_ext.pack_tests "pcre_extended"
+      Testo.pack_tests "pcre_extended"
         [
           ( "valid files",
             test_valid_files Dialect.PCRE_extended
@@ -52,7 +52,7 @@ let tests =
             test_invalid_files Dialect.PCRE_extended
               "regexp/pcre_extended/parsing_errors" );
         ];
-      Alcotest_ext.pack_tests "perl_xx"
+      Testo.pack_tests "perl_xx"
         [
           ( "valid files",
             test_valid_files Dialect.Perl_xx "regexp/perl_xx/parsing" );

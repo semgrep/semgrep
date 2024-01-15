@@ -239,7 +239,7 @@ let matcher_suite_two_line_ellipsis =
   create_matcher_suite param matcher_corpus_two_line_ellipsis
 
 let test =
-  Alcotest_ext.pack_tests "Matcher"
+  Testo.pack_tests "Matcher"
     ([ ("pattern parser", test_pattern_parser) ]
     @ matcher_suite @ matcher_suite_case_insensitive
     @ matcher_suite_same_line_ellipsis @ matcher_suite_two_line_ellipsis)

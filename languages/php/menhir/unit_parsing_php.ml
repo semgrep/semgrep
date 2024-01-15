@@ -29,7 +29,7 @@ module Flag = Flag_parsing
 let tests_path = "tests"
 
 let tests =
-  Alcotest_ext.pack_tests "parsing_php"
+  Testo.pack_tests "parsing_php"
     [
       (*-----------------------------------------------------------------------*)
       (* Lexing *)

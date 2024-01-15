@@ -54,12 +54,11 @@ let test_filter (files : F.t list) () =
 (*****************************************************************************)
 
 let t =
-  Alcotest_ext.create ~checked_output:Stdout
-    ~mask_output:[ Alcotest_ext.mask_temp_paths () ]
+  Testo.create ~checked_output:Stdout ~mask_output:[ Testo.mask_temp_paths () ]
 
 let tests =
   let open F in
-  Alcotest_ext.pack_tests_pro "Gitignore"
+  Testo.pack_tests_pro "Gitignore"
     [
       t "list one file" (test_list [ file "a" ]);
       t "list hierarchy"
