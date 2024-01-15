@@ -103,3 +103,6 @@
 [submodule "languages/dart/tree-sitter/semgrep-dart"]
 	path = languages/dart/tree-sitter/semgrep-dart
 	url = https://github.com/returntocorp/semgrep-dart.git
+[submodule "libs/testo"]
+	path = libs/testo
+	url = https://github.com/semgrep/testo.git
