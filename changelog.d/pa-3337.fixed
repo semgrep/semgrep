@@ -1,0 +1,2 @@
+Keep track of the origin of `return;` statements in the dataflow IL so that
+recently added (Pro-only) `at-exit: true` sinks work properly on them.
