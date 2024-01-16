@@ -15,6 +15,7 @@
 
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The job
@@ -23,8 +24,8 @@ local job = {
   'runs-on': 'windows-latest',
   defaults: {
     run: {
-      // Windows GHA runners default to pwsh (PowerShell). We want to use bash to
-      // be consistent with our other workflows.
+      // Windows GHA runners default to pwsh (PowerShell). We want to use bash
+      // to be consistent with our other workflows.
       shell: 'bash',
     },
   },
@@ -47,6 +48,19 @@ default: https://github.com/ocaml/opam-repository.git
         'opam-local-packages': 'dont_install_local_packages.opam',
       },
     },
+    // Why this cache when ocaml/setup-ocaml is already caching things?
+    // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
+    //   installed opam packages
+    // - without the _opam cache we would spend 8-9 minutes every build
+    //   running `opam install`
+    // Note: we must cache after setup-ocaml, not before, because
+    // setup-ocaml would reset the cached _opam
+    semgrep.cache_opam.step(
+      key=semgrep.opam_switch + "-${{ hashFiles('semgrep.opam') }}",
+      // ocaml/setup-ocaml creates the opam switch local to the repository
+      // (vs. ~/.opam in our other workflows)
+      path='_opam',
+      ),
     {
       name: 'Build tree-sitter',
       env: {
@@ -62,17 +76,7 @@ default: https://github.com/ocaml/opam-repository.git
         make PREFIX="$prefix" install
       |||,
     },
-    {
-      # why this cache when ocaml/setup-ocaml is already caching things?
-      # - setup-ocaml caches the cygwin and opam package caches, but not the opam switch (i.e. installed opam packages)
-      # - without the opam switch cache we'd spend 8-9 minutes every build running `opam install`
-      name: 'Cache opam switch',
-      uses: 'actions/cache@v3',
-      with: {
-        key: "opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep.opam') }}",
-        path: '_opam',  # ocaml/setup-ocam creates the opam switch local to the repository (vs. ~/.opam in our other workflows)
-      },
-    },
+    // this should be mostly a noop thx to cache_opam above
     {
       name: 'Install deps',
       run: |||

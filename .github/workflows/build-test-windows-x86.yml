@@ -27,6 +27,14 @@ jobs:
 
           '
         opam-local-packages: dont_install_local_packages.opam
+    - name: Set GHA cache for OPAM in _opam
+      uses: actions/cache@v3
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+      with:
+        path: _opam
+        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{ hashFiles('semgrep.opam')
+          }}
     - name: Build tree-sitter
       env:
         CC: x86_64-w64-mingw32-gcc
@@ -34,11 +42,6 @@ jobs:
         --lazy\n        prefix=\"$(pwd)/tree-sitter\"\n        cd downloads/tree-sitter\n
         \       make PREFIX=\"$prefix\" CFLAGS=\"-O3 -Wall -Wextra\"\n        make
         PREFIX=\"$prefix\" install\n      "
-    - name: Cache opam switch
-      uses: actions/cache@v3
-      with:
-        key: opam-${{ runner.os }}-1.14-${{ hashFiles('semgrep.opam') }}
-        path: _opam
     - name: Install deps
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext
         conf-pkg-config conf-gmp conf-libpcre\n        opam install -y ./ ./libs/ocaml-tree-sitter-core
