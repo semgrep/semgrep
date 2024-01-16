@@ -564,8 +564,10 @@ and map_expr env x : G.expr =
       and v4 = map_expr env v4 in
       match v3 with
       | None ->
+          (* delete <expr> *)
           G.OtherStmt (OS_Delete, [ G.Tk v2; G.E v4 ]) |> G.s |> G.stmt_to_expr
       | Some (l, (), r) ->
+          (* delete[] <expr>  *)
           (* THINK: Add a parameter to `OS_Delete` instead ? *)
           G.OtherStmt (OS_Delete, [ G.Tk v2; G.Tk l; G.Tk r; G.E v4 ])
           |> G.s |> G.stmt_to_expr)
