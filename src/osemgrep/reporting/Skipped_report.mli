@@ -5,6 +5,7 @@ type skipped_targets_grouped = {
   size : Semgrep_output_v1_t.skipped_target list;
   include_ : Semgrep_output_v1_t.skipped_target list;
   exclude : Semgrep_output_v1_t.skipped_target list;
+  always : Semgrep_output_v1_t.skipped_target list;
   other : Semgrep_output_v1_t.skipped_target list;
   (* targets skipped because there was parsing/matching
    * errors while running the engine on it
