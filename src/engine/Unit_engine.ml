@@ -902,6 +902,23 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/unicode/security/bidi.yml"
                     || s
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
+                    (* Apex requires Pro *)
+                    || s =~ ".*/apex/lang/.*"
+                       (* but the following are generic rules ... *)
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoqlInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoslInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml"
+                    (* Elixir requires Pro *)
+                    || s =~ ".*/elixir/lang/.*"
                     (* ?? *)
                     || s =~ ".*/yaml/semgrep/consistency/.*" ->
                  Some "XFAIL"
