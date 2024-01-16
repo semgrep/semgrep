@@ -1,0 +1,7 @@
+Rules stored under an "hidden" directory (e.g., dir/.hidden/myrule.yml)
+are now processed when using --config <dir>.
+We used to skip dot files under dir, but keeping rules/.semgrep.yml,
+but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
+but not ./.pre-commit-config.yaml, ... This was mainly because
+we used to fetch rules from ~/.semgrep/ implicitely when --config
+was not given, but this feature was removed, so now we can keep is simple.

@@ -112,7 +112,9 @@ type filter_result =
   | Ignore_silently (* ignore and don't report this file *)
 
 let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
-  let { fpath; ppath } : Fppath.t = fppath in
+  let { Fppath.fpath; ppath } (* TODO(tree-sitter-ocaml fail) : Fppath.t *) =
+    fppath
+  in
   let status, selection_events = Semgrepignore.select ign ppath in
   match status with
   | Ignored ->
@@ -331,7 +333,7 @@ let group_scanning_roots_by_project (conf : conf)
      correctly even if the scanning_roots went through different symlink paths.
   *)
   |> Assoc.group_by fst
-  |> List.map (fun (project, xs) ->
+  |> List_.map (fun (project, xs) ->
          { project; scanning_roots = xs |> List_.map snd })
 
 (*************************************************************************)
