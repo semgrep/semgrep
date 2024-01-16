@@ -1,0 +1,3 @@
+Tainting has better support for if statements. In particular, for
+languages with block scope, shadowed variables inside if-else blocks
+that are tainted won't "leak" outside of those blocks.

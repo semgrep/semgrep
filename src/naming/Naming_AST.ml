@@ -231,6 +231,15 @@ let lookup_nonlocal_scope id scopes =
       let _ = error tok "no outerscope" in
       None
 
+let has_block_scope (lang : Lang.t) =
+  match lang with
+  | Ruby
+  | Python
+  | Php ->
+      false
+  | _js_ when Lang.is_js lang -> false
+  | _else_ -> true
+
 (*****************************************************************************)
 (* Environment *)
 (*****************************************************************************)
@@ -964,9 +973,20 @@ let resolve lang prog =
         else
           Common.save_excursion env.in_type true (fun () ->
               super#visit_type_ venv x)
-      (* TODO: we should intercept also V.kstmt and especially
-       * create new blocks for For, If with complex init_condition.
-       *)
+
+      (* TODO: support other types of statements that create block scopes. *)
+      method! visit_stmt venv x =
+        match x.s with
+        | If (tok, Cond e, s1, s2_opt) when has_block_scope lang ->
+            self#visit_tok venv tok;
+            self#visit_expr venv e;
+            with_new_block_scope env.names (fun () -> self#visit_stmt venv s1);
+            Option.iter
+              (fun s2 ->
+                with_new_block_scope env.names (fun () ->
+                    self#visit_stmt venv s2))
+              s2_opt
+        | _else_ -> super#visit_stmt venv x
     end
   in
   visitor#visit_program () prog;
