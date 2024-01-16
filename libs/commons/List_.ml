@@ -153,7 +153,7 @@ let rec slow_map2 acc f l1 l2 =
       let d = f d1 d2 in
       let e = f e1 e2 in
       slow_map2 (Tuple (e, d, c, b, a, acc)) f l1 l2
-  | _other -> raise (Failure "Common.map2: lists not equal length")
+  | _other -> raise (Failure "List_.map2: lists not equal length")
 
 let rec fast_map2 rec_calls_remaining f l1 l2 =
   if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
@@ -190,7 +190,7 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
         let d = f d1 d2 in
         let e = f e1 e2 in
         a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
-    | _other -> raise (Failure "Common.map2: lists not equal length")
+    | _other -> raise (Failure "List_.map2: lists not equal length")
 
 (*
    This implementation of List.map makes at most 1000 non-tailrec calls
@@ -234,7 +234,7 @@ let take n xs =
   let rec next n xs acc =
     match (n, xs) with
     | 0, _ -> List.rev acc
-    | _, [] -> failwith "Common.take: not enough"
+    | _, [] -> failwith "List_.take: not enough"
     | n, x :: xs -> next (n - 1) xs (x :: acc)
   in
   next n xs []

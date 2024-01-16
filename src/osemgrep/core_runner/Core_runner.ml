@@ -307,7 +307,7 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
   let config : Core_scan_config.t = core_scan_config_of_conf conf in
   let config = { config with file_match_results_hook } in
-  (* TODO: we should not need to use Common.map below, because
+  (* TODO: we should not need to use List_.map below, because
      Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
      a list of targets with different languages! We just
      need to pass the right target object (and not a lang_job)
