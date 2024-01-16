@@ -1063,6 +1063,16 @@ and stmt_expr env ?e_gen st =
         mk_s (Return (tok, e)) |> add_stmt env;
         expr_opt env None)
       else e
+  | G.OtherStmt
+      ( OS_Delete,
+        ( [ (G.Tk tok as atok); G.E eorig ]
+        | [ (G.Tk tok as atok); G.Tk _; G.Tk _; G.E eorig ] (* delete[] *) ) )
+    ->
+      let e = expr env eorig in
+      let special = (Delete, tok) in
+      add_instr env
+        (mk_i (CallSpecial (None, special, [ Unnamed e ])) (Related atok));
+      mk_unit tok (Related atok)
   | G.If (tok, cond, st1, opt_st2) ->
       (* if cond then e1 else e2
        * -->

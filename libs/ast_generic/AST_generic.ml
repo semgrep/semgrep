@@ -1345,7 +1345,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_Todo
 
 and other_stmt_operator =
-  (* Python *)
+  (* Python, C++ *)
   | OS_Delete
   (* todo: reduce? transpile? *)
   | OS_ForOrElse
