@@ -750,6 +750,14 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
+  (* Change dir if project_root is a git_remote
+   * note: sorry cooper, we gotta do this because
+   * git sparse-checkout doesn't like absolute paths
+   *)
+  (match conf.targeting_conf.project_root with
+  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
+      Sys.chdir (Fpath.to_string checkout_path)
+  | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files

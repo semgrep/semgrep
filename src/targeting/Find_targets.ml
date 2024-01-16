@@ -254,12 +254,22 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               let cwd = sc_root.fpath in
-               Git_wrapper.ls_files ~cwd ~kinds:file_kinds []
+               let cwd = Rpath.to_fpath project.path in
+               Git_wrapper.ls_files ~cwd ~kinds:file_kinds [ sc_root.fpath ]
                |> List_.map (fun fpath ->
-                      (* No need to relativize here since ls-files will be
-                         relative to cwd (sc_root) anyways *)
-                      let ppath = Ppath.append_fpath sc_root.ppath fpath in
+                      let fpath_relative_to_scan_root =
+                        match Fpath.relativize ~root:sc_root.fpath fpath with
+                        | Some x -> x
+                        | None ->
+                            failwith
+                              "Impossible: git ls-files somehow not relative \
+                               to the scan root, even though we passed it as \
+                               an argument"
+                      in
+                      let ppath =
+                        Ppath.append_fpath sc_root.ppath
+                          fpath_relative_to_scan_root
+                      in
                       ({ fpath; ppath } : Fppath.t)))
         |> Fppath_set.of_list)
   | Gitignore_project
@@ -312,15 +322,15 @@ let group_scanning_roots_by_project (conf : conf)
     (scanning_roots : Fpath.t list) : project_roots list =
   (* Force root relativizes scan roots to project roots.
    * I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
-   * it would make the scanning root /foo. So it doesn't make sense to do this
+   * it would make the scanning root /foo. So it doesn't make sense to combine this
    * with the git remote unless we wanted to make it so git remotes could be
    * further specified (say github.com/semgrep/semgrep.git:/src/foo).
    *)
   let force_root =
     match conf.project_root with
-    | Some (Git_remote _)
-    | None ->
-        None
+    | Some (Git_remote { checkout_path; _ }) ->
+        Some (Project.Git_project, checkout_path)
+    | None -> None
     | Some (Filesystem proj_root) -> Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
