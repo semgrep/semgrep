@@ -35,7 +35,6 @@ def test_fixtest_test1_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_fixtest_test2_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/fixtest/test2.yaml",
