@@ -18,6 +18,7 @@ type skipped_targets_grouped = {
   size : Semgrep_output_v1_t.skipped_target list;
   include_ : Semgrep_output_v1_t.skipped_target list;
   exclude : Semgrep_output_v1_t.skipped_target list;
+  always : Semgrep_output_v1_t.skipped_target list;
   other : Semgrep_output_v1_t.skipped_target list;
   (* targets possibly skipped because there was a parsing/matching/...
    * error while running the engine on it.
@@ -56,7 +57,7 @@ let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
         | Cli_include_flags_do_not_match -> `Include
         | Cli_exclude_flags_match -> `Exclude
         | Analysis_failed_parser_or_internal_error -> `Error
-        | Always_skipped
+        | Always_skipped -> `Always
         | Excluded_by_config
         | Wrong_language
         | Minified
@@ -81,6 +82,9 @@ let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
     size =
       (try List.assoc `Size groups with
       | Not_found -> []);
+    always =
+      (try List.assoc `Always groups with
+      | Not_found -> []);
     other =
       (try List.assoc `Other groups with
       | Not_found -> []);
@@ -100,29 +104,17 @@ let pp_skipped ppf
     include_ = include_ignored;
     exclude = exclude_ignored;
     size = file_size_ignored;
+    always = always_ignored;
     other = other_ignored;
     errors;
   } =
     skipped_groups
   in
 
-  (* not sure why but pysemgrep does not use the classic heading for skipped*)
+  (* not sure why but pysemgrep does not use the classic heading for skipped *)
+  (* nope: Fmt_helpers.pp_heading ppf "Files skipped"; *)
   Fmt.pf ppf "%s@.Files skipped:@.%s@." (String.make 40 '=')
     (String.make 40 '=');
-  (* nope: Fmt_helpers.pp_heading ppf "Files skipped"; *)
-  (* TODO: always skipped *)
-  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
-  if respect_git_ignore then (
-    Fmt.pf ppf " %a@.@."
-      Fmt.(styled `Bold string)
-      "(Disable by passing --no-git-ignore)";
-    Fmt.pf ppf "  • <all files not listed by `git ls-files` were skipped>@.")
-  else (
-    Fmt.pf ppf " %a@.@."
-      Fmt.(styled `Bold string)
-      "(Disabled with --no-git-ignore)";
-    Fmt.pf ppf "  • <none>@.");
-  Fmt.pf ppf "@.";
 
   let pp_list (xs : OutJ.skipped_target list) =
     match xs with
@@ -136,6 +128,22 @@ let pp_skipped ppf
                Fpath.compare a.path b.path)
              xs)
   in
+
+  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Always skipped by Semgrep:";
+  pp_list always_ignored;
+  Fmt.pf ppf "@.";
+  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
+  if respect_git_ignore then (
+    Fmt.pf ppf " %a@.@."
+      Fmt.(styled `Bold string)
+      "(Disable by passing --no-git-ignore)";
+    Fmt.pf ppf "  • <all files not listed by `git ls-files` were skipped>@.")
+  else (
+    Fmt.pf ppf " %a@.@."
+      Fmt.(styled `Bold string)
+      "(Disabled with --no-git-ignore)";
+    Fmt.pf ppf "  • <none>@.");
+  Fmt.pf ppf "@.";
 
   Fmt.pf ppf " %a@. %a@.@."
     Fmt.(styled `Bold string)
