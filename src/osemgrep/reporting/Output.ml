@@ -58,7 +58,7 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) =
+    (cli_output : OutJ.cli_output) (hrules : Rule.hrules) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -134,10 +134,48 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         ~color_output:conf.force_color Format.std_formatter cli_output
   (* matches have already been displayed in a file_match_results_hook *)
   | TextIncremental -> ()
+  | Sarif ->
+      let sarif_schema =
+        "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
+      in
+      let engine_label =
+        match cli_output.engine_requested with
+        | Some `OSS
+        | None ->
+            "OSS"
+        | Some `PRO -> "PRO"
+      in
+      let run =
+        let rules = Sarif_output.rules hrules in
+        let tool =
+          `Assoc
+            [
+              ( "driver",
+                `Assoc
+                  [
+                    ("name", `String (spf "Semgrep %s" engine_label));
+                    ("semanticVersion", `String (*"%%VERSION%%"*) "1.56.0");
+                    ("rules", `List rules);
+                  ] );
+            ]
+        in
+        let results = `Null (* FIXME *) in
+        let invocations = `Null (* FIXME *) in
+        `Assoc
+          [ ("tool", tool); ("results", results); ("invocations", invocations) ]
+      in
+      let sarif_json =
+        `Assoc
+          [
+            ("version", `String "2.1.0");
+            ("$schema", `String sarif_schema);
+            ("runs", `List [ run ]);
+          ]
+      in
+      Out.put (Yojson.Basic.to_string sarif_json)
   | Gitlab_sast
   | Gitlab_secrets
-  | Junit_xml
-  | Sarif ->
+  | Junit_xml ->
       Out.put
         (spf "TODO: output format %s not supported yet"
            (Output_format.show output_format))
@@ -175,6 +213,6 @@ let output_result (conf : conf) (profiler : Profiler.t)
   let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output;
+  dispatch_output_format conf.output_format conf cli_output res.hrules;
   cli_output
 [@@profiling]
