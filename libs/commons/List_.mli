@@ -10,16 +10,14 @@ val map : ('a -> 'b) -> 'a list -> 'b list
     left to right like for [List.iter].
 *)
 
-(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the
-   first element of a list or
-   fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
+(* List_.hd_exn msg []' will raise
    the exception 'Failure msg' which is only a slight improvement over
-   'Common.hd_exn "unexpected empty list"'.
+   'List_.hd_exn "unexpected empty list"'.
 
    In general, you should prefer a match-with and not have to call a
    function to extract the first element of a list.
 
-   Usage: Common.hd_exn "found an empty list of things" xs
+   Usage: List_.hd_exn "found an empty list of things" xs
 
    If receiving an empty list is a bug, prefer the following:
 
@@ -29,8 +27,7 @@ val map : ('a -> 'b) -> 'a list -> 'b list
 *)
 val hd_exn : string -> 'a list -> 'a
 
-(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great
-   improvement. The same recommendations as for 'Common.hd_exn "unexpected
+(* The same recommendations as for 'List_.hd_exn "unexpected
    empty list"' apply. *)
 val tl_exn : string -> 'a list -> 'a list
 
@@ -49,7 +46,7 @@ val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 val flatten : 'a list list -> 'a list
 (** Same as [List.flatten] but tail recursive. *)
 
-(* opposite of Common.filter *)
+(* opposite of List.filter *)
 val exclude : ('a -> bool) -> 'a list -> 'a list
 
 (* Sort in a polymorphic way. You should really use 'deriving ord' instead *)
@@ -68,7 +65,7 @@ val optlist_to_list : 'a list option -> 'a list
 
 (* Haskell-inspired list combinators (take/drop/span) *)
 
-(* this may raise Failure "Common.take: not enough" *)
+(* this may raise Failure "List_.take: not enough" *)
 val take : int -> 'a list -> 'a list
 
 (* this does not raise a Failure and take only the first n elements *)

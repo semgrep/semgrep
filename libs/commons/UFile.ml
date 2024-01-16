@@ -45,9 +45,6 @@ let write_file path data = UCommon.write_file !!path data
 let read_file ?max_len path = UCommon.read_file ?max_len !!path
 let with_open_out path func = UCommon.with_open_outfile !!path func
 let with_open_in path func = UCommon.with_open_infile !!path func
-let new_temp_file prefix suffix = UCommon.new_temp_file prefix suffix |> Fpath.v
-let erase_temp_files = UCommon.erase_temp_files
-let erase_this_temp_file path = UCommon.erase_this_temp_file !!path
 
 let filesize file =
   if not !Common.jsoo (* this does not work well with jsoo *) then
@@ -116,28 +113,3 @@ let lines_of_file (start_line, end_line) file : string list =
   (* This is the case of the empty file. *)
   | [| "" |] -> []
   | _ -> lines |> List_.map (fun i -> arr.(i))
-
-let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
-    (path : Fpath.t) : Fpath.t =
-  if !Common.jsoo then path
-    (* don't bother supporting exotic things like fds if running in JS *)
-  else
-    match (UUnix.stat !!path).st_kind with
-    | Unix.S_FIFO ->
-        let data = read_file path in
-        let suffix = "-" ^ Fpath.basename path in
-        let tmp_path, oc =
-          UFilename.open_temp_file
-            ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
-            prefix suffix
-        in
-        let remove () =
-          if USys.file_exists tmp_path then USys.remove tmp_path
-        in
-        (* Try to remove temporary file when program exits. *)
-        UStdlib.at_exit remove;
-        Common.protect
-          ~finally:(fun () -> close_out_noerr oc)
-          (fun () -> output_string oc data);
-        Fpath.v tmp_path
-    | _ -> path

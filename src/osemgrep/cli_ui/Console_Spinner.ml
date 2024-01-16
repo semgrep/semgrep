@@ -4,18 +4,27 @@
 
 let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; "⠏" |]
 
+(* only show the console spinner if this is a non-JSOO Unix TTY *)
+let should_show_spinner () =
+  !ANSITerminal.isatty Unix.stdout && (not !Common.jsoo) && Sys.unix
+
 let show_spinner delay_ms : unit =
-  let print_frame ~frame_index:i : unit =
-    let spinner = spinner.(i mod Array.length spinner) in
-    ANSITerminal.set_cursor 1 (-1);
-    ANSITerminal.printf [ ANSITerminal.green ] "%s Waiting for sign in..."
-      spinner
-  in
-  for frame_index = 1 to 100 do
-    print_frame ~frame_index;
+  if not (should_show_spinner ()) then (
+    ANSITerminal.printf [ ANSITerminal.green ] "Waiting for sign in...";
     (* Note: sleep is measured in seconds *)
-    Unix.sleepf (Float.of_int delay_ms /. Float.of_int (1000 * 100))
-  done
+    Unix.sleepf (Float.of_int delay_ms /. Float.of_int 1000))
+  else
+    let print_frame ~frame_index:i : unit =
+      let spinner = spinner.(i mod Array.length spinner) in
+      ANSITerminal.set_cursor 1 (-1);
+      ANSITerminal.printf [ ANSITerminal.green ] "%s Waiting for sign in..."
+        spinner
+    in
+    for frame_index = 1 to 100 do
+      print_frame ~frame_index;
+      (* Note: sleep is measured in seconds *)
+      Unix.sleepf (Float.of_int delay_ms /. Float.of_int (1000 * 100))
+    done
 
 let erase_spinner () : unit =
   ANSITerminal.set_cursor 1 (-1);

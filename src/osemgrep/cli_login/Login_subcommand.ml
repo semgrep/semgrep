@@ -90,19 +90,28 @@ You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
   else (
     print_preamble ();
     let session_id, url = Semgrep_login.make_login_url () in
-    let cmd = (Cmd.Name "open", [ Uri.to_string url ]) in
-    match UCmd.status_of_run cmd with
-    | Ok _ ->
-        Logs.app (fun m -> m "Opening your sign-in link automatically...");
-        let msg =
-          Ocolor_format.asprintf
-            "If nothing happened, please open this link in your browser:\n\n\
-             @{<cyan;ul>%s@}\n"
-            (Uri.to_string url)
-        in
-        Logs.app (fun m -> m "%s" msg);
-        Some session_id
-    | __else__ -> None)
+    if Sys.win32 then (
+      let msg =
+        Ocolor_format.asprintf
+          "Please open this link in your browser:\n\n@{<cyan;ul>%s@}\n"
+          (Uri.to_string url)
+      in
+      Logs.app (fun m -> m "%s" msg);
+      Some session_id)
+    else
+      let cmd = (Cmd.Name "open", [ Uri.to_string url ]) in
+      match UCmd.status_of_run cmd with
+      | Ok _ ->
+          Logs.app (fun m -> m "Opening your sign-in link automatically...");
+          let msg =
+            Ocolor_format.asprintf
+              "If nothing happened, please open this link in your browser:\n\n\
+               @{<cyan;ul>%s@}\n"
+              (Uri.to_string url)
+          in
+          Logs.app (fun m -> m "%s" msg);
+          Some session_id
+      | __else__ -> None)
 
 (* NOTE: fetch_token will save the token iff valid (else error) *)
 let fetch_token caps session_id =

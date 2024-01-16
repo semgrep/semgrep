@@ -39,7 +39,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -49,13 +49,13 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four
+
+   ❯❯❱ eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
+
+    ❯❱ taint-test
           unsafe use of danger
 
            27┆ sink(d2)
@@ -66,7 +66,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
+   ❯❯❱ supply-chain1
           found a dependency
 
             2┆ name = "badlib"
@@ -77,7 +77,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)

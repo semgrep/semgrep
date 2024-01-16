@@ -3,4 +3,4 @@
    code (string).
 *)
 
-val tests : Alcotest_ext.test list
+val tests : Testo.test list

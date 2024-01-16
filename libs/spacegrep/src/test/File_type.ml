@@ -36,7 +36,7 @@ let test =
   let suite =
     List_.map
       (fun (name, expected_class, data) ->
-        Alcotest_ext.create name (fun () -> run_one expected_class data))
+        Testo.create name (fun () -> run_one expected_class data))
       corpus
   in
-  Alcotest_ext.pack_tests_pro "File_type" suite
+  Testo.categorize "File_type" suite

@@ -60,7 +60,7 @@ local guard_cache_hit = {
 local build_artifact_name = 'semgrep-js-ocaml-build-${{ github.sha }}';
 
 local build_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     'runs-on': 'ubuntu-latest-16-core',
     steps: [
@@ -98,7 +98,7 @@ local build_job =
 
 local test_job = {
   'runs-on': 'ubuntu-latest-16-core',
-  container: 'emscripten/emsdk:3.1.46',
+  container: 'emscripten/emsdk:3.1.51',
   needs: [
     'build',
   ],
@@ -189,16 +189,10 @@ local upload_job = {
   'if': '${{ inputs.upload-artifacts }}',
   permissions: gha.write_permissions,
   steps: [
-    {
-      name: 'Configure AWS credentials',
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role',
-        'role-duration-seconds': 900,
-        'role-session-name': 'semgrep-s3-access',
-        'aws-region': 'us-west-2',
-      },
-    },
+    semgrep.aws_credentials_step(
+      role='semgrep-oss-js-artifacts-deploy-role',
+      session_name='semgrep-s3-access'
+      ),
     {
       uses: 'actions/download-artifact@v3',
       with: {

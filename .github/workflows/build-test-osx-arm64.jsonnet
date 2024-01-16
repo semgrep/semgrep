@@ -49,18 +49,18 @@ local wheel_name = 'osx-arm64-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,
-  env: {
-    OPAM_SWITCH_NAME: semgrep.opam_switch,
-  },
   steps: [
     setup_runner_step,
     setup_python_step,
     actions.checkout_with_submodules(),
-    osx_x86.export.cache.cache_opam_step,
+    // TODO: like for osx-x86, we should use opam.lock
+    semgrep.cache_opam.step(
+       key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
+     + semgrep.cache_opam.if_cache_inputs,
     // exactly the same than in build-test-oxs-x86.jsonnet
     {
       name: 'Install dependencies',
-      run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"',
+      run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
     },
     {
       name: 'Compile semgrep',
@@ -149,8 +149,8 @@ local test_wheels_job = {
 {
   name: 'build-test-osx-arm64',
   on: {
-    workflow_dispatch: osx_x86.export.cache.use_cache_inputs(required=true),
-    workflow_call: osx_x86.export.cache.use_cache_inputs(required=false),
+    workflow_dispatch: semgrep.cache_opam.inputs(required=true),
+    workflow_call: semgrep.cache_opam.inputs(required=false),
   },
   jobs: {
     'build-core': build_core_job,

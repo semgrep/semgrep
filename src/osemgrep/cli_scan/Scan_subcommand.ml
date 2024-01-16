@@ -291,7 +291,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
     rules_source =
   (* Create the wait hook for our progress indicator *)
   let spinner_ls =
-    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
+    if Console_Spinner.should_show_spinner () then
       [ Console_Spinner.spinner_async () ]
     else []
   in
@@ -591,7 +591,20 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        * skipped above too?
        *)
       let skipped =
-        Some (skipped @ List_.optlist_to_list res.core.paths.skipped)
+        let skipped = skipped @ List_.optlist_to_list res.core.paths.skipped in
+        let in_test =
+          !Semgrep_envvars.v.user_agent_append
+          |> Option.map (fun s -> String.equal s "pytest")
+          |> Option.value ~default:false
+        in
+        let skipped =
+          if in_test then
+            List_.map
+              (fun (x : OutJ.skipped_target) -> { x with OutJ.details = None })
+              skipped
+          else skipped
+        in
+        Some skipped
       in
       (* Add the targets that were semgrepignored or errorneous *)
       {

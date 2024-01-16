@@ -1,0 +1,12 @@
+Input files:
+a
+b
+c
+dir/d
+dir/e
+Output files:
+a
+b
+c
+dir/d
+dir/e

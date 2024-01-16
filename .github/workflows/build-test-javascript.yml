@@ -46,7 +46,7 @@ jobs:
         name: semgrep-js-ocaml-build-${{ github.sha }}
   test:
     runs-on: ubuntu-latest-16-core
-    container: emscripten/emsdk:3.1.46
+    container: emscripten/emsdk:3.1.51
     needs:
     - build
     env:
@@ -112,7 +112,7 @@ jobs:
       id-token: write
       contents: write
     steps:
-    - name: Configure AWS credentials
+    - name: Configure AWS credentials for semgrep-oss-js-artifacts-deploy-role
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role

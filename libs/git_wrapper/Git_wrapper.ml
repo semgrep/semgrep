@@ -124,6 +124,21 @@ let opt (o : string option) : string list =
   | None -> []
   | Some str -> [ str ]
 
+(*
+   Add an optional flag to the command line by returning a list of arguments
+   to add to the current arguments.
+
+   Usage:
+
+   let do_something ?(foo = false) () =
+     let cmd = (git, [ "do-something" ] @ flag "--foo" foo) in
+     ...
+*)
+let flag name (is_set : bool) : string list =
+  match is_set with
+  | true -> [ name ]
+  | false -> []
+
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
   let range_of_substrings substrings =
@@ -201,10 +216,17 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Cached -> "--cached"
   | Others -> "--others"
 
-let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
+let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
+    root_paths =
   let roots = root_paths |> List_.map Fpath.to_string in
   let kinds = kinds |> List_.map string_of_ls_files_kind in
-  let cmd = (git, [ "-C"; !!cwd; "ls-files" ] @ kinds @ roots) in
+  let cmd =
+    ( git,
+      [ "-C"; !!cwd; "ls-files" ]
+      @ kinds
+      @ flag "--exclude-standard" exclude_standard
+      @ roots )
+  in
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with
@@ -486,9 +508,9 @@ let init ?cwd ?(branch = "main") () =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
-let add ?cwd files =
+let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
-  let cmd = (git, cd cwd @ [ "add" ] @ files) in
+  let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")

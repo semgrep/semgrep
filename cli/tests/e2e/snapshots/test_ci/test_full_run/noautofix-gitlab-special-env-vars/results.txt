@@ -14,7 +14,7 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -24,13 +24,13 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four
+
+   ❯❯❱ eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
+
+    ❯❱ taint-test
           unsafe use of danger
 
            27┆ sink(d2)
@@ -41,7 +41,7 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
@@ -64,8 +64,7 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment gitlab-ci, triggering event is
-                pull_request
+  environment - running in environment gitlab-ci, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)

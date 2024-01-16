@@ -85,6 +85,6 @@ let test =
       let output = C.remove_comments_from_string style input in
       Alcotest.(check string "equal" expected_output output)
     in
-    (name, run)
+    Testo.create name run
   )
-  |> Alcotest_ext.pack_tests "Comment"
+  |> Testo.categorize "Comment"

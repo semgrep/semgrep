@@ -2,4 +2,4 @@
    Unit tests for ppath
 *)
 
-val tests : Alcotest_ext.test list
+val tests : Testo.test list

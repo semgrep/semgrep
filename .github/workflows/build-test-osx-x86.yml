@@ -20,24 +20,20 @@ name: build-test-osx-x86
 jobs:
   build-core:
     runs-on: macos-12
-    env:
-      OPAM_SWITCH_NAME: 4.14.0
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - name: Cache Opam
+    - name: Set GHA cache for OPAM in ~/.opam
       uses: actions/cache@v3
-      if: ${{ inputs.use-cache }}
       env:
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
       with:
         path: ~/.opam
-        key: ${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps
-        restore-keys: ${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME
-          }}-opam-deps
+        key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{hashFiles('semgrep.opam')}}
+      if: ${{ inputs.use-cache}}
     - name: Install dependencies
-      run: ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
+      run: ./scripts/osx-setup-for-release.sh "4.14.0"
     - name: Compile semgrep
       run: opam exec -- make core
     - name: Make artifact

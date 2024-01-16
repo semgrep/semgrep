@@ -5,10 +5,10 @@
 └───────────────────────────────┘
 
   [36m[22m[24m  targets/cli_test/basic/basic.py [0m
-       [1m[24mrules.basic-test.secret[0m
+   [31m❯❯❱[0m [1mrules.basic-test.secret[0m
           Basic test
 
-            2┆ print([1m[24m1*****[0m)
+            2┆ print([1m1*****[0m)
 
 
 ┌────────────────┐
@@ -16,8 +16,8 @@
 └────────────────┘
 
   [36m[22m[24m  targets/cli_test/basic/basic.py [0m
-       [1m[24mrules.basic-test.nonsecret[0m
+   [31m❯❯❱[0m [1mrules.basic-test.nonsecret[0m
           Basic test
 
-            2┆ print([1m[24m1 == 1[0m)
+            2┆ print([1m1 == 1[0m)
 

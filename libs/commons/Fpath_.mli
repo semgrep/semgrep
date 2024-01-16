@@ -8,7 +8,7 @@
 (*
   Extra utilities to convert between lists of files between
   string and Fpath.t without having to write
-  'Common.map Fpath.v ...' every time.
+  'List_.map Fpath.v ...' every time.
 
   For converting a single path, use Fpath.v and Fpath.to_string directly.
 
