@@ -53,22 +53,21 @@ remotes = (
     string("  remote: ") >> any_char.until(string("\n"), consume_other=True)
 ).at_least(1)
 
-# Gemfiles may have 1 or more GEM sections
-gem_section = (
+# Gemfile.lock contains both locked dependencies and manifest dependencies
+# Ignore everything until GEM, indicating locked dependencies
+# Then ignore everything until DEPENDENCIES, indicating manifest dependencies
+gemfile = (
     any_char.until(string("GEM\n"), consume_other=True)
     >> remotes
     >> string("  specs:\n")
-    >> mark_line(package | consume_line).sep_by(string("\n"))
-).many()
-
-# Gemfile.lock contains both locked depedencies and manifest dependencies
-# Ignore everything until GEM, indicating locked dependencies
-# Then ignore everything until DEPENDENCIES, indicating manifest dependencies
-gemfile = gem_section.bind(
-    lambda deps: string("\n\n")
-    >> any_char.until(string("DEPENDENCIES\n"), consume_other=True)
-    >> (manifest_package.sep_by(string("\n")) << any_char.many()).bind(
-        lambda manifest: success((deps, set(manifest)))
+    >> mark_line(package | consume_line)
+    .sep_by(string("\n"))
+    .bind(
+        lambda deps: string("\n\n")
+        >> any_char.until(string("DEPENDENCIES\n"), consume_other=True)
+        >> (manifest_package.sep_by(string("\n")) << any_char.many()).bind(
+            lambda manifest: success((deps, set(manifest)))
+        )
     )
 )
 
@@ -82,20 +81,19 @@ def parse_gemfile(
     )
     if not parsed_lockfile:
         return [], errors
-    lockfile_deps_sections, manifest_deps = parsed_lockfile
+    deps, manifest_deps = parsed_lockfile
     output = []
-    for deps in lockfile_deps_sections:
-        for line_number, dep in deps:
-            if not dep:
-                continue
-            output.append(
-                FoundDependency(
-                    package=dep[0],
-                    version=dep[1],
-                    ecosystem=Ecosystem(Gem()),
-                    allowed_hashes={},
-                    transitivity=transitivity(manifest_deps, [dep[0]]),
-                    line_number=line_number,
-                )
+    for line_number, dep in deps:
+        if not dep:
+            continue
+        output.append(
+            FoundDependency(
+                package=dep[0],
+                version=dep[1],
+                ecosystem=Ecosystem(Gem()),
+                allowed_hashes={},
+                transitivity=transitivity(manifest_deps, [dep[0]]),
+                line_number=line_number,
             )
+        )
     return output, errors
