@@ -1,3 +1,4 @@
+open Common
 open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
@@ -113,80 +114,89 @@ let pp_skipped ppf
 
   (* not sure why but pysemgrep does not use the classic heading for skipped *)
   (* nope: Fmt_helpers.pp_heading ppf "Files skipped"; *)
-  Fmt.pf ppf "%s@.Files skipped:@.%s@." (String.make 40 '=')
+  Fmt.pf ppf "@.%s@.Files skipped:@.%s@.@." (String.make 40 '=')
     (String.make 40 '=');
+
+  (* python compatibility: the 24m is "underline off" *)
+  let esc =
+    if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[24m" else ""
+  in
 
   let pp_list (xs : OutJ.skipped_target list) =
     match xs with
-    | [] -> Fmt.pf ppf "  • <none>@."
+    | [] -> Fmt.pf ppf "   • <none>@."
     | xs ->
         List.iter
           (fun ({ path; _ } : OutJ.skipped_target) ->
-            Fmt.pf ppf "  • %s@." !!path)
+            Fmt.pf ppf "   • %s@." !!path)
           (List.sort
              (fun (a : OutJ.skipped_target) (b : OutJ.skipped_target) ->
                Fpath.compare a.path b.path)
              xs)
   in
 
-  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Always skipped by Semgrep:";
+  Fmt.pf ppf "  %a@.@."
+    Fmt.(styled `Bold string)
+    (esc ^ "Always skipped by Semgrep:");
   pp_list always_ignored;
   Fmt.pf ppf "@.";
-  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
+  Fmt.pf ppf "  %a@." Fmt.(styled `Bold string) (esc ^ "Skipped by .gitignore:");
   if respect_git_ignore then (
-    Fmt.pf ppf " %a@.@."
+    Fmt.pf ppf "  %a@.@."
       Fmt.(styled `Bold string)
-      "(Disable by passing --no-git-ignore)";
-    Fmt.pf ppf "  • <all files not listed by `git ls-files` were skipped>@.")
+      (esc ^ "(Disable by passing --no-git-ignore)");
+    Fmt.pf ppf "   • <all files not listed by `git ls-files` were skipped>@.")
   else (
-    Fmt.pf ppf " %a@.@."
+    Fmt.pf ppf "  %a@.@."
       Fmt.(styled `Bold string)
-      "(Disabled with --no-git-ignore)";
-    Fmt.pf ppf "  • <none>@.");
+      (esc ^ "(Disabled with --no-git-ignore)");
+    Fmt.pf ppf "   • <none>@.");
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " %a@. %a@.@."
+  Fmt.pf ppf "  %a@.  %a@.@."
     Fmt.(styled `Bold string)
-    "Skipped by .semgrepignore:"
+    (esc ^ "Skipped by .semgrepignore:")
     Fmt.(styled `Bold string)
-    "(See: \
-     https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)";
+    (esc
+   ^ "(See: \
+      https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
+    );
   pp_list semgrep_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " %a@.@."
+  Fmt.pf ppf "  %a@.@."
     Fmt.(styled `Bold string)
-    "Skipped by --include patterns:";
+    (esc ^ "Skipped by --include patterns:");
   pp_list include_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " %a@.@."
+  Fmt.pf ppf "  %a@.@."
     Fmt.(styled `Bold string)
-    "Skipped by --exclude patterns:";
+    (esc ^ "Skipped by --exclude patterns:");
   pp_list exclude_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " %a@. %a@.@."
+  Fmt.pf ppf "  %a@.  %a@.@."
     Fmt.(styled `Bold string)
-    ("Skipped by limiting to files smaller than "
+    (esc ^ "Skipped by limiting to files smaller than "
     ^ string_of_int max_target_bytes
     ^ " bytes:")
     Fmt.(styled `Bold string)
-    "(Adjust with the --max-target-bytes flag)";
+    (esc ^ "(Adjust with the --max-target-bytes flag)");
   pp_list file_size_ignored;
   Fmt.pf ppf "@.";
 
   (match maturity with
   | Maturity.Develop ->
-      Fmt.pf ppf " %a@.@."
+      Fmt.pf ppf "  %a@.@."
         Fmt.(styled `Bold string)
-        "Skipped for other reasons:";
+        (esc ^ "Skipped for other reasons:");
       pp_list other_ignored;
       Fmt.pf ppf "@."
   | _else_ -> ());
 
-  Fmt.pf ppf " %a@.@."
+  Fmt.pf ppf "  %a@.@."
     Fmt.(styled `Bold string)
-    "Partially analyzed due to parsing or internal Semgrep errors";
+    (esc ^ "Partially analyzed due to parsing or internal Semgrep errors");
   pp_list errors;
   Fmt.pf ppf "@."
