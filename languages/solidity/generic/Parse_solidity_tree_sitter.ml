@@ -47,7 +47,7 @@ let map_trailing_comma env v =
   | None -> ()
 
 let tuple_hole_expr _env tok = OtherExpr (("TupleHole", tok), []) |> G.e
-let tuple_hole_pat _env tok = PatUnderscore tok |> G.p
+let tuple_hole_pat _env tok = PatWildcard tok |> G.p
 
 let stmt_of_def_or_dir = function
   | Either_.Left3 def -> DefStmt def |> G.s
