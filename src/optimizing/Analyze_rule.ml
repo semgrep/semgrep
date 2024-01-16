@@ -94,11 +94,11 @@ exception CNF_exploded
 (*****************************************************************************)
 
 (* NOTE "AND vs OR and map_filter":
- * We cannot use `Common.map_filter` for `R.Or`, because it has the wrong
+ * We cannot use `List_.map_filter` for `R.Or`, because it has the wrong
  * semantics. We use `None` to say "we can't handle this", or in other words,
  * "we assume this pattern can match", or just "true"! So in an AND we can
  * remove those "true" terms, but in an OR we need to reduce the entire OR to
- * "true". Therefore, `Common.map_filter` works for AND-semantics, but for
+ * "true". Therefore, `List_.map_filter` works for AND-semantics, but for
  * OR-semantics we need `option_map`. *)
 let option_map f xs =
   List.fold_left
@@ -187,7 +187,7 @@ type cnf_step0 = step0 cnf [@@deriving show]
 (* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
  * TODO the current code triggers some Stack_overflow on
  * tests/rules/tainted-filename.yaml. I've replaced some List.map
- * by Common.map, but we still get some Stack_overflow because of the many
+ * by List_.map, but we still get some Stack_overflow because of the many
  * calls to @.
  *)
 let rec (cnf : Rule.formula -> cnf_step0) =
@@ -282,16 +282,16 @@ let id_mvars_of_formula f =
 (*
 let rec (and_step1: Rule.formula -> cnf_step1) = fun f ->
   match f with
-  | R.And xs -> And (xs |> Common.map_filter or_step1)
-  | _ -> And ([f] |> Common.map_filter or_step1)
+  | R.And xs -> And (xs |> List_.map_filter or_step1)
+  | _ -> And ([f] |> List_.map_filter or_step1)
 and or_step1 f =
   match f with
   | R.Or xs ->
-      let ys = (xs |> Common.map_filter leaf_step1) in
+      let ys = (xs |> List_.map_filter leaf_step1) in
       if null ys
       then None
       else (Some (Or ys))
-  | _ -> let ys = ([f] |> Common.map_filter leaf_step1) in
+  | _ -> let ys = ([f] |> List_.map_filter leaf_step1) in
       if null ys
       then None
       else (Some (Or ys))
@@ -314,7 +314,7 @@ let rec (and_step1 : is_id_mvar:is_id_mvar -> cnf_step0 -> cnf_step1) =
 and or_step1 ~is_id_mvar cnf =
   match cnf with
   | Or xs ->
-      (* old: We had `Common.map_filter` here before, but that gives the wrong
+      (* old: We had `List_.map_filter` here before, but that gives the wrong
        * semantics. See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map (leaf_step1 ~is_id_mvar) xs in
       if List_.null ys then None else Some (Or ys)
@@ -473,7 +473,7 @@ type cnf_final = AndFinal of final_step list
 [@@deriving show]
 
 let or_final (Or xs) =
-  let ys = xs |> Common.map (function
+  let ys = xs |> List_.map (function
    | Idents [] -> raise Impossible
    (* take the first one *)
    | Idents (x::_) -> Re.matching_exact_string x
@@ -496,7 +496,7 @@ let or_final (Or xs) =
  * up the Idents in an AndFinal
  *)
 let and_final (And disjs) =
-  AndFinal (disjs |> Common.map_filter or_final)
+  AndFinal (disjs |> List_.map_filter or_final)
 
 (* todo: instead of running multiple times for the AndFinal, we could
  * do an or, look at the matched string and detect which parts of the
