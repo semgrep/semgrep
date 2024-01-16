@@ -1,0 +1,74 @@
+PATH
+  remote: .
+  specs:
+    faker (2.20.0)
+      i18n (>= 1.8.11, < 2)
+
+GEM
+  remote: https://moregems.bar.com
+  specs:
+    ast (2.4.2)
+    coderay (1.1.3)
+
+GEM
+  remote: https://gems.bar.com/barfoo/
+  specs:
+    concurrent-ruby (1.1.9)
+    docile (1.3.2)
+    i18n (1.8.11)
+      concurrent-ruby (~> 1.0)
+    json (2.3.0)
+    method_source (1.0.0)
+    minitest (5.15.0)
+    parallel (1.19.0)
+    parser (3.1.0.0)
+      ast (~> 2.4.1)
+    power_assert (2.0.1)
+    pry (0.14.1)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
+    rainbow (3.1.1)
+    rake (13.0.6)
+    regexp_parser (2.2.0)
+    rexml (3.2.5)
+    rubocop (1.25.0)
+      parallel (~> 1.10)
+      parser (>= 3.1.0.0)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 1.8, < 3.0)
+      rexml
+      rubocop-ast (>= 1.15.1, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 1.4.0, < 3.0)
+    rubocop-ast (1.15.1)
+      parser (>= 3.0.1.1)
+    ruby-progressbar (1.11.0)
+    simplecov (0.17.1)
+      docile (~> 1.1)
+      json (>= 1.8, < 3)
+      simplecov-html (~> 0.10.0)
+    simplecov-html (0.10.2)
+    test-unit (3.5.3)
+      power_assert
+    timecop (0.9.4)
+    unicode-display_width (2.1.0)
+    webrick (1.7.0)
+    yard (0.9.27)
+      webrick (~> 1.7.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  faker!
+  minitest
+  pry
+  rake
+  rubocop (= 1.25.0)
+  simplecov (= 0.17.1, < 0.18)
+  test-unit (= 3.5.3)
+  timecop (= 0.9.4)
+  yard (= 0.9.27)
+
+BUNDLED WITH
+   2.1.4
