@@ -14,7 +14,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -31,7 +31,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
+   ❯❯❱ supply-chain1
           found a dependency
 
             2┆ name = "badlib"
