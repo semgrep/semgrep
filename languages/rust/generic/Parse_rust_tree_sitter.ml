@@ -851,7 +851,7 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
   | `Vari_param tok -> G.ParamEllipsis (token env tok) (* "..." *)
   | `X__ tok ->
       (* ellided parameter *)
-      G.ParamPattern (G.PatUnderscore (token env tok))
+      G.ParamPattern (G.PatWildcard (token env tok))
   | `Type x -> (
       let ty = map_type_ env x in
       match ty.t with
@@ -2632,7 +2632,7 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
   | `Macro_invo x ->
       let x = map_macro_invocation env x in
       G.OtherPat (("MacroPat", G.fake ""), [ G.E x ])
-  | `X__ tok -> G.PatUnderscore (token env tok)
+  | `X__ tok -> G.PatWildcard (token env tok)
 
 (* "_" *)
 and map_pointer_type (env : env) ((v1, v2, v3) : CST.pointer_type) : G.type_ =

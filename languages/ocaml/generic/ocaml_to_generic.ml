@@ -481,7 +481,7 @@ and pattern = function
       G.PatList v1
   | PatUnderscore v1 ->
       let v1 = tok v1 in
-      G.PatUnderscore v1
+      G.PatWildcard v1
   | PatRecord v1 ->
       let v1 =
         bracket

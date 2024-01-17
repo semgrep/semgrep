@@ -967,9 +967,9 @@ and map_pattern = function
   | PatKeyVal (v1, v2) ->
       let v1 = map_pattern v1 and v2 = map_pattern v2 in
       `PatKeyVal (v1, v2)
-  | PatUnderscore v1 ->
+  | PatWildcard v1 ->
       let v1 = map_tok v1 in
-      `PatUnderscore v1
+      `PatWildcard v1
   | PatDisj (v1, v2) ->
       let v1 = map_pattern v1 and v2 = map_pattern v2 in
       `PatDisj (v1, v2)

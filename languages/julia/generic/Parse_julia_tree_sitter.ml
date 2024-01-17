@@ -1007,7 +1007,7 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) : catch =
         let id = map_identifier env tok in
         CatchPattern (PatId (id, empty_id_info ()))
     | Some (`Semg_ellips tok) -> CatchPattern (PatEllipsis (token env tok))
-    | None -> CatchPattern (PatUnderscore (fake "underscore"))
+    | None -> CatchPattern (PatWildcard (fake "underscore"))
   in
   let _v3 = map_terminator_opt env v3 in
   let v4 = map_source_file_stmt env v4 in

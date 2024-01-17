@@ -328,7 +328,7 @@ and name env = function
  * `LetPattern`s. *)
 and pattern env pat =
   match pat with
-  | G.PatUnderscore tok ->
+  | G.PatWildcard tok ->
       let lval = fresh_lval env tok in
       (lval, [])
   | G.PatId (id, id_info) ->
