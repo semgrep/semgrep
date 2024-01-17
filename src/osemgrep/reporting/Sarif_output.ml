@@ -231,6 +231,131 @@ let sarif_fix (cli_match : OutT.cli_match) =
             ] );
       ]
 
+let sarif_location (cli_match : OutT.cli_match) message
+    (location : OutT.location) content nesting_level =
+  `Assoc
+    [
+      ( "location",
+        `Assoc
+          [
+            ("message", `Assoc [ ("text", `String message) ]);
+            ( "physicalLocation",
+              `Assoc
+                [
+                  ( "artifactLocation",
+                    `Assoc [ ("uri", `String (Fpath.to_string cli_match.path)) ]
+                  );
+                  ( "region",
+                    `Assoc
+                      [
+                        ("startLine", `Int location.start.line);
+                        ("startColumn", `Int location.start.col);
+                        ("endLine", `Int location.end_.line);
+                        ("endColumn", `Int location.end_.col);
+                        ("snippet", `Assoc [ ("text", `String content) ]);
+                        ("message", `Assoc [ ("text", `String message) ]);
+                      ] );
+                ] );
+          ] );
+      ("nestingLevel", `Int nesting_level);
+    ]
+
+let intermediate_var_locations cli_match intermediate_vars =
+  intermediate_vars
+  |> List_.map (fun ({ location; content } : OutT.match_intermediate_var) ->
+         let propagation_message_text =
+           spf "Propagator : '%s' @ '%s:%d'" content
+             (Fpath.to_string location.path)
+             location.start.line
+         in
+         sarif_location cli_match propagation_message_text location content 0)
+
+let thread_flows (cli_match : OutT.cli_match)
+    (dataflow_trace : OutT.match_dataflow_trace) (location : OutT.location)
+    content =
+  (* TODO from sarif.py: deal with taint sink *)
+  let intermediate_vars = dataflow_trace.intermediate_vars in
+  ignore cli_match;
+  ignore dataflow_trace;
+  let thread_flow_location =
+    let source_message_text =
+      spf "Source: '%s' @ '%s:%d'" content
+        (Fpath.to_string location.path)
+        location.start.line
+    in
+    sarif_location cli_match source_message_text location content 0
+  in
+  let intermediate_var_locations =
+    match intermediate_vars with
+    | None -> []
+    | Some intermediate_vars ->
+        intermediate_var_locations cli_match intermediate_vars
+  in
+  let sink_flow_location =
+    let sink_message_text =
+      spf "Sink: '%s' @ '%s:%d'"
+        (String.trim cli_match.extra.lines) (* rule_match.get_lines() ?! *)
+        (Fpath.to_string cli_match.path)
+        cli_match.start.line
+    in
+    sarif_location cli_match sink_message_text
+      {
+        OutT.start = cli_match.start;
+        end_ = cli_match.end_;
+        path = cli_match.path;
+      }
+      cli_match.extra.lines 1
+  in
+  [
+    ( "threadFlows",
+      `List
+        [
+          `Assoc
+            [
+              ( "locations",
+                `List
+                  ([ thread_flow_location ] @ intermediate_var_locations
+                 @ [ sink_flow_location ]) );
+            ];
+        ] );
+  ]
+
+let sarif_codeflow (cli_match : OutT.cli_match) =
+  match cli_match.extra.dataflow_trace with
+  | None
+  | Some { OutT.taint_source = None; _ } ->
+      []
+  | Some { OutT.taint_source = Some (CliCall _); _ } ->
+      Logs.err (fun m ->
+          m
+            "Emitting SARIF output for unsupported dataflow trace (source is a \
+             call)");
+      []
+  | Some
+      ({ taint_source = Some (CliLoc (location, content)); _ } as dataflow_trace)
+    ->
+      (* TODO from sarif.py: handle taint_sink *)
+      let code_flow_message =
+        spf "Untrusted dataflow from %s:%d to %s:%d"
+          (Fpath.to_string location.path)
+          location.start.line
+          (Fpath.to_string cli_match.path)
+          cli_match.start.line
+      in
+      let thread_flows =
+        ignore dataflow_trace;
+        thread_flows cli_match dataflow_trace location content
+      in
+      [
+        ( "codeFlows",
+          `List
+            [
+              `Assoc
+                ([ ("message", `Assoc [ ("text", `String code_flow_message) ]) ]
+                @ thread_flows);
+            ] );
+      ]
+
 let results (cli_output : OutT.cli_output) =
   let result (cli_match : OutT.cli_match) =
     let location =
@@ -269,6 +394,7 @@ let results (cli_output : OutT.cli_output) =
           ]
     in
     let fix = sarif_fix cli_match in
+    let code_flows = sarif_codeflow cli_match in
     `Assoc
       ([
          ("ruleId", `String (Rule_ID.to_string cli_match.check_id));
@@ -279,7 +405,7 @@ let results (cli_output : OutT.cli_output) =
          );
          ("properties", `Assoc []);
        ]
-      @ suppression @ fix)
+      @ suppression @ fix @ code_flows)
   in
   List_.map result cli_output.results
 
