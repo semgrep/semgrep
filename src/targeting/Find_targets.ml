@@ -484,15 +484,14 @@ let setup_project_roots conf scanning_roots =
       (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
       | Ok () -> ()
       | Error msg ->
-          Logs.err (fun m ->
-              m "Error while sparse cloning %a into %a: %s" Uri.pp url Fpath.pp
-                checkout_path msg);
-          exit 1);
+          failwith
+            (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
+               !!checkout_path msg));
       Git_wrapper.checkout ~cwd:checkout_path ();
       Logs.debug (fun m -> m "Sparse cloning done");
 
       (* all scanning targets must be in the repo or else this would
-         be really weird*)
+         be really weird *)
       scanning_roots
   | None -> scanning_roots
 
