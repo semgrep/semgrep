@@ -405,7 +405,9 @@ let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
   (* preserve order *)
   |> List_.mapi (fun i x -> (i, x))
   (* Group by rule and path *)
-  |> Assoc.group_by (fun (_, (x : OutJ.cli_match)) -> (x.path, x.check_id))
+  (* XXX: can we do with grouping by fingerprint only? *)
+  |> Assoc.group_by (fun (_, (x : OutJ.cli_match)) ->
+         (x.path, x.check_id, x.extra.fingerprint))
   (* Sort by start line *)
   |> List_.map (fun (path_and_rule_id, matches) ->
          ( path_and_rule_id,

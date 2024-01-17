@@ -23,7 +23,6 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot
 
 # Test that rule board information makes its way into SARIF output
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

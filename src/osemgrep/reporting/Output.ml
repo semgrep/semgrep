@@ -135,43 +135,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
   (* matches have already been displayed in a file_match_results_hook *)
   | TextIncremental -> ()
   | Sarif ->
-      let sarif_schema =
-        "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
-      in
-      let engine_label =
-        match cli_output.engine_requested with
-        | Some `OSS
-        | None ->
-            "OSS"
-        | Some `PRO -> "PRO"
-      in
-      let run =
-        let rules = Sarif_output.rules hrules in
-        let tool =
-          `Assoc
-            [
-              ( "driver",
-                `Assoc
-                  [
-                    ("name", `String (spf "Semgrep %s" engine_label));
-                    ("semanticVersion", `String (*"%%VERSION%%"*) "1.56.0");
-                    ("rules", `List rules);
-                  ] );
-            ]
-        in
-        let results = `Null (* FIXME *) in
-        let invocations = `Null (* FIXME *) in
-        `Assoc
-          [ ("tool", tool); ("results", results); ("invocations", invocations) ]
-      in
-      let sarif_json =
-        `Assoc
-          [
-            ("version", `String "2.1.0");
-            ("$schema", `String sarif_schema);
-            ("runs", `List [ run ]);
-          ]
-      in
+      let sarif_json = Sarif_output.sarif_output hrules cli_output in
       Out.put (Yojson.Basic.to_string sarif_json)
   | Gitlab_sast
   | Gitlab_secrets
