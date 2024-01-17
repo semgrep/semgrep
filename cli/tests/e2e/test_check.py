@@ -695,7 +695,6 @@ def test_metavariable_propagation_comparison(run_semgrep_in_tmp: RunSemgrep, sna
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_taint_mode(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
