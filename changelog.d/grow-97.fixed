@@ -1,3 +1,0 @@
-Fixed rule IDs, descriptions, findings, and autofix text not wrapping as expected.
-Use newline instead of horiziontal separator for findings with a shared file
-but for different rules per design spec.

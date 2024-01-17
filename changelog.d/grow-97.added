@@ -1,2 +1,0 @@
-Added a severity icon (e.g. "❯❯❱") and corresponding color to our CLI text output
-for findings of known severity.
