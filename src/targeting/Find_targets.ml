@@ -118,7 +118,9 @@ type filter_result =
   | Ignore_silently (* ignore and don't report this file *)
 
 let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
-  let { fpath; ppath } : Fppath.t = fppath in
+  let { Fppath.fpath; ppath } (* TODO(tree-sitter-ocaml fail) : Fppath.t *) =
+    fppath
+  in
   let status, selection_events = Semgrepignore.select ign ppath in
   match status with
   | Ignored ->
@@ -352,7 +354,7 @@ let group_scanning_roots_by_project (conf : conf)
      correctly even if the scanning_roots went through different symlink paths.
   *)
   |> Assoc.group_by fst
-  |> List.map (fun (project, xs) ->
+  |> List_.map (fun (project, xs) ->
          { project; scanning_roots = xs |> List_.map snd })
 
 (*************************************************************************)
@@ -473,33 +475,31 @@ let get_targets_for_project conf (project_roots : project_roots) =
   in
   (selected_targets, skipped_targets)
 
-let setup_project_roots conf scanning_roots =
+(* for semgrep query console *)
+let clone_if_remote_project_root conf =
   match conf.project_root with
-  | Some (Filesystem _) -> scanning_roots
   | Some (Git_remote { url; checkout_path }) ->
       Logs.debug (fun m ->
           m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
       (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
       | Ok () -> ()
       | Error msg ->
-          Logs.err (fun m ->
-              m "Error while sparse cloning %a into %a: %s" Uri.pp url Fpath.pp
-                checkout_path msg);
-          exit 1);
+          failwith
+            (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
+               !!checkout_path msg));
       Git_wrapper.checkout ~cwd:checkout_path ();
-      Logs.debug (fun m -> m "Sparse cloning done");
-
-      (* all scanning targets must be in the repo or else this would
-         be really weird*)
-      scanning_roots
-  | None -> scanning_roots
+      Logs.debug (fun m -> m "Sparse cloning done")
+  | Some (Filesystem _)
+  | None ->
+      ()
 
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
 let get_targets conf scanning_roots =
-  scanning_roots |> setup_project_roots conf
+  clone_if_remote_project_root conf;
+  scanning_roots
   |> group_scanning_roots_by_project conf
   |> List_.map (get_targets_for_project conf)
   |> List.split
