@@ -171,7 +171,7 @@ let fixed_lines (cli_match : OutT.cli_match) fix =
       String.split_on_char '\n' (first_line_part ^ fix ^ last_line_part)
   | [], _
   | _, [] ->
-      assert false
+      []
 
 let sarif_fix (cli_match : OutT.cli_match) =
   match cli_match.extra.fix with
@@ -325,7 +325,7 @@ let sarif_output hrules (cli_output : OutT.cli_output) =
             `Assoc
               [
                 ("name", `String (spf "Semgrep %s" engine_label));
-                ("semanticVersion", `String (*"%%VERSION%%"*) "1.56.0");
+                ("semanticVersion", `String Version.version);
                 ("rules", `List rules);
               ] );
         ]
