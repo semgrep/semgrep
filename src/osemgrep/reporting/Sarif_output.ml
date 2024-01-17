@@ -160,10 +160,24 @@ let rules hide_nudge (hrules : Rule.hrules) =
   in
   List.of_seq rules
 
+let fixed_lines (cli_match : OutT.cli_match) fix =
+  let lines = String.split_on_char '\n' cli_match.extra.lines in
+  match (lines, List.rev lines) with
+  | line :: _, last_line :: _ ->
+      let first_line_part = Str.first_chars line (cli_match.start.col - 1)
+      and last_line_part =
+        Str.string_after last_line (cli_match.end_.col - 1)
+      in
+      String.split_on_char '\n' (first_line_part ^ fix ^ last_line_part)
+  | [], _
+  | _, [] ->
+      assert false
+
 let sarif_fix (cli_match : OutT.cli_match) =
-  match cli_match.extra.fixed_lines with
+  match cli_match.extra.fix with
   | None -> []
-  | Some fixed_lines ->
+  | Some fix ->
+      let fixed_lines = fixed_lines cli_match fix in
       let description_text =
         spf "%s\n Autofix: Semgrep rule suggested fix" cli_match.extra.message
       in

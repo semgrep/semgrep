@@ -339,24 +339,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
        * we concatenate the lines after? *)
       let lines =
         Semgrep_output_utils.lines_of_file_at_range (start, end_) path
+        |> String.concat "\n"
       in
-      let fixed_lines =
-        Option.map
-          (fun fix ->
-            match (lines, List.rev lines) with
-            | line :: _, last_line :: _ ->
-                let first_line_part = Str.first_chars line (start.col - 1)
-                and last_line_part =
-                  Str.string_after last_line (end_.col - 1)
-                in
-                String.split_on_char '\n'
-                  (first_line_part ^ fix ^ last_line_part)
-            | [], _
-            | _, [] ->
-                assert false)
-          fix
-      in
-      let lines = String.concat "\n" lines in
       {
         check_id;
         path;
@@ -375,7 +359,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
             (* TODO: extra fields *)
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
-            fixed_lines;
+            fixed_lines = None;
             dataflow_trace;
             (* It's optional in the CLI output, but not in the core match results!
              *)
