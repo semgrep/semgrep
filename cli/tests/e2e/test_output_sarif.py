@@ -90,7 +90,6 @@ def test_sarif_output_with_nosemgrep_and_error(
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

@@ -59,7 +59,7 @@ let tags_of_metadata metadata =
      defaultConfiguration = { level };
      properties }
 *)
-let rules (hrules : Rule.hrules) =
+let rules hide_nudge (hrules : Rule.hrules) =
   let rules = Hashtbl.to_seq hrules in
   let rules =
     Seq.map
@@ -70,12 +70,13 @@ let rules (hrules : Rule.hrules) =
           | Some (JSON.String shortDescription) -> shortDescription
           | Some _ -> raise Impossible
           | None -> spf "Semgrep Finding: %s" (Rule_ID.to_string rule_id)
-        and rule_url =
+        and source, rule_url =
           match JSON.member "source" metadata with
-          | Some (JSON.String source) -> [ ("helpUri", `String source) ]
+          | Some (JSON.String source) ->
+              (Some source, [ ("helpUri", `String source) ])
           | Some _
           | None ->
-              []
+              (None, [])
         and rule_help_text =
           match JSON.member "help" metadata with
           | Some (JSON.String txt) -> txt
@@ -97,6 +98,41 @@ let rules (hrules : Rule.hrules) =
           ]
           @ security_severity
         in
+        let nudge_base =
+          "💎 Enable cross-file analysis and Pro rules for free at"
+        and nudge_url = "sg.run/pro" in
+        let nudge_plaintext = spf "\n%s %s" nudge_base nudge_url
+        and nudge_md =
+          spf "\n\n#### %s <a href='https://%s'>%s</a>" nudge_base nudge_url
+            nudge_url
+        in
+        let text_suffix = if hide_nudge then "" else nudge_plaintext in
+        let markdown_interstitial = if hide_nudge then "" else nudge_md in
+        let references =
+          Option.to_list
+            (Option.map (fun s -> spf "[Semgrep Rule](%s)" s) source)
+        in
+        let other_references =
+          match JSON.member "references" metadata with
+          | Some (JSON.String s) -> [ spf "[%s](%s)" s s ]
+          | Some (JSON.Array xs) ->
+              List_.map
+                (function
+                  | JSON.String s -> spf "[%s](%s)" s s
+                  | non_string -> JSON.string_of_json non_string)
+                xs
+          | Some _
+          | None ->
+              []
+        in
+        let references_joined =
+          List_.map (fun s -> spf " - %s\n" s) (references @ other_references)
+        in
+        let references_markdown =
+          match references_joined with
+          | [] -> ""
+          | xs -> "\n\n<b>References:</b>\n" ^ String.concat "" xs
+        in
         `Assoc
           ([
              ("id", `String (Rule_ID.to_string rule_id));
@@ -111,10 +147,11 @@ let rules (hrules : Rule.hrules) =
              ( "help",
                `Assoc
                  [
-                   ("text", `String rule_help_text);
-                   (* missing text_suffix *)
-                   ("markdown", `String rule_help_text);
-                   (* missing: markdown_interstitial references_markdown *)
+                   ("text", `String (rule_help_text ^ text_suffix));
+                   ( "markdown",
+                     `String
+                       (rule_help_text ^ markdown_interstitial
+                      ^ references_markdown) );
                  ] );
              ("properties", `Assoc properties);
            ]
@@ -122,6 +159,63 @@ let rules (hrules : Rule.hrules) =
       rules
   in
   List.of_seq rules
+
+let sarif_fix (cli_match : OutT.cli_match) =
+  match cli_match.extra.fixed_lines with
+  | None -> []
+  | Some fixed_lines ->
+      let description_text =
+        spf "%s\n Autofix: Semgrep rule suggested fix" cli_match.extra.message
+      in
+      [
+        ( "fixes",
+          `List
+            [
+              `Assoc
+                [
+                  ("description", `Assoc [ ("text", `String description_text) ]);
+                  ( "artifactChanges",
+                    `List
+                      [
+                        `Assoc
+                          [
+                            ( "artifactLocation",
+                              `Assoc
+                                [
+                                  ( "uri",
+                                    `String (Fpath.to_string cli_match.path) );
+                                ] );
+                            ( "replacements",
+                              `List
+                                [
+                                  `Assoc
+                                    [
+                                      ( "deletedRegion",
+                                        `Assoc
+                                          [
+                                            ( "startLine",
+                                              `Int cli_match.start.line );
+                                            ( "startColumn",
+                                              `Int cli_match.start.col );
+                                            ("endLine", `Int cli_match.end_.line);
+                                            ( "endColumn",
+                                              `Int cli_match.end_.col );
+                                          ] );
+                                      ( "insertedContent",
+                                        `Assoc
+                                          [
+                                            ( "text",
+                                              `String
+                                                (String.concat "\n" fixed_lines)
+                                            );
+                                          ] );
+                                    ];
+                                ] );
+                          ];
+                      ] );
+                ];
+            ] );
+      ]
 
 let results (cli_output : OutT.cli_output) =
   let result (cli_match : OutT.cli_match) =
@@ -150,15 +244,28 @@ let results (cli_output : OutT.cli_output) =
               ] );
         ]
     in
+    let suppression =
+      match cli_match.extra.is_ignored with
+      | None
+      | Some false ->
+          []
+      | Some true ->
+          [
+            ("suppressions", `List [ `Assoc [ ("kind", `String "inSource") ] ]);
+          ]
+    in
+    let fix = sarif_fix cli_match in
     `Assoc
-      [
-        ("ruleId", `String (Rule_ID.to_string cli_match.check_id));
-        ("message", `Assoc [ ("text", `String cli_match.extra.message) ]);
-        ("locations", `List [ location ]);
-        ( "fingerprints",
-          `Assoc [ ("matchBasedId/v1", `String cli_match.extra.fingerprint) ] );
-        ("properties", `Assoc []);
-      ]
+      ([
+         ("ruleId", `String (Rule_ID.to_string cli_match.check_id));
+         ("message", `Assoc [ ("text", `String cli_match.extra.message) ]);
+         ("locations", `List [ location ]);
+         ( "fingerprints",
+           `Assoc [ ("matchBasedId/v1", `String cli_match.extra.fingerprint) ]
+         );
+         ("properties", `Assoc []);
+       ]
+      @ suppression @ fix)
   in
   List_.map result cli_output.results
 
@@ -192,7 +299,11 @@ let sarif_output hrules (cli_output : OutT.cli_output) =
     | Some `PRO -> "PRO"
   in
   let run =
-    let rules = rules hrules in
+    let hide_nudge =
+      (* TODO is_logged_in or is_pro or not is_using_registry *)
+      true
+    in
+    let rules = rules hide_nudge hrules in
     let tool =
       `Assoc
         [
