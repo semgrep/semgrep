@@ -547,10 +547,20 @@ and map_expr env x : G.expr =
   | New (v1, v2, v3, v4, v5) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
-      and _placementTODO =
-        map_of_option (map_paren env (map_of_list (map_argument env))) v3
+      and v3 = map_of_option (map_paren env (map_of_list (map_argument env))) v3
       and v4 = map_type_ env v4
       and v5 = map_of_option (map_obj_init env) v5 in
+      let v4 =
+        match v3 with
+        | Some (l, args, _r) ->
+            (* store the placement expression in the type attribute *)
+            {
+              v4 with
+              t_attrs =
+                OtherAttribute (("placement", l), [ Args args ]) :: v4.t_attrs;
+            }
+        | None -> v4
+      in
       let l, args, r =
         match v5 with
         | None -> Tok.unsafe_fake_bracket []

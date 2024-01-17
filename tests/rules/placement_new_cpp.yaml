@@ -1,0 +1,11 @@
+rules:
+  - id: placement-new
+    languages:
+      - cpp
+      - c
+    message: "'$STORAGE' '$TYPE'"
+    severity: WARNING
+    patterns:
+      - pattern: |
+          new ($STORAGE) $TYPE
+
