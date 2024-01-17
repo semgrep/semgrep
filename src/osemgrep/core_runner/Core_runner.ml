@@ -246,26 +246,22 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
 
 let prepare_config_for_core_scan (config : Core_scan_config.t)
     (lang_jobs : Lang_job.t list) =
-  let target_mappings_of_lang_job (x : Lang_job.t) :
+  let targets_and_rules_of_lang_job (x : Lang_job.t) :
       Input_to_core_t.target list * Rule.rules =
-    let target_mappings =
+    let targets =
       x.targets
       |> List_.map (fun (path : Fpath.t) : Input_to_core_t.target ->
              { path = !!path; analyzer = x.xlang; products = Product.all })
     in
-    (target_mappings, x.rules)
+    (targets, x.rules)
   in
-  let target_mappings, rules =
-    lang_jobs
-    |> List.fold_left
-         (fun (acc_mappings, acc_rules) lang_job ->
-           let mappings, rules = target_mappings_of_lang_job lang_job in
-           (mappings :: acc_mappings, List.rev rules :: acc_rules))
-         ([], [])
+  let targets, rules =
+    List_.fold_right
+      (fun lang_job (acc_targets, acc_rules) ->
+        let targets, rules = targets_and_rules_of_lang_job lang_job in
+        (List_.append targets acc_targets, List_.append rules acc_rules))
+      lang_jobs ([], [])
   in
-  let target_mappings = List.concat target_mappings in
-  let rules = rules |> List.rev |> List.concat in
-  let targets : Input_to_core_t.targets = target_mappings in
   {
     config with
     target_source = Some (Targets targets);
@@ -338,12 +334,15 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let rules_with_targets =
     List.concat_map (fun { Lang_job.rules; _ } -> rules) lang_jobs
-    |> List_.uniq_by Stdlib.( == )
+    |> (* TODO: if this is using physical equality on purpose, please explain why,
+          otherwise it looks like a bug. *)
+    List_.uniq_by Stdlib.( == )
   in
   Logs.app (fun m ->
       m "%a"
         (fun ppf () ->
-          (* TODO: validate if target is actually within a git repo and perhaps set respect_git_ignore to false otherwise *)
+          (* TODO: validate if target is actually within a git repo and
+             perhaps set respect_git_ignore to false otherwise *)
           Status_report.pp_status ~num_rules:(List.length all_rules)
             ~num_targets:(List.length all_targets) ~respect_git_ignore lang_jobs
             ppf)
