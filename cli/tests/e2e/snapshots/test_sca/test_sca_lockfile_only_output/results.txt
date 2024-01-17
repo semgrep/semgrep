@@ -1,8 +1,8 @@
 
 
-┌─────────────────────────────────────┐
-│ 2 Unreachable Supply Chain Findings │
-└─────────────────────────────────────┘
+┌────────────────────────────────────┐
+│ 1 Unreachable Supply Chain Finding │
+└────────────────────────────────────┘
 
     targets/dependency_aware/unreachable_multiple_copies/yarn.lock
     ❯❱ rules.dependency_aware.GHSA-p6mc-m468-83gw
@@ -15,6 +15,4 @@
           all objects and may lead to Denial of Service or Code Execution under specific circumstances.
 
             5┆ lodash@^1.0.0:
-            ⋮┆----------------------------------------
-           10┆ lodash@^1.0.1:
 
