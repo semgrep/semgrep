@@ -475,9 +475,9 @@ let get_targets_for_project conf (project_roots : project_roots) =
   in
   (selected_targets, skipped_targets)
 
-let setup_project_roots conf scanning_roots =
+(* for semgrep query console *)
+let clone_if_remote_project_root conf =
   match conf.project_root with
-  | Some (Filesystem _) -> scanning_roots
   | Some (Git_remote { url; checkout_path }) ->
       Logs.debug (fun m ->
           m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
@@ -488,19 +488,18 @@ let setup_project_roots conf scanning_roots =
             (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
                !!checkout_path msg));
       Git_wrapper.checkout ~cwd:checkout_path ();
-      Logs.debug (fun m -> m "Sparse cloning done");
-
-      (* all scanning targets must be in the repo or else this would
-         be really weird *)
-      scanning_roots
-  | None -> scanning_roots
+      Logs.debug (fun m -> m "Sparse cloning done")
+  | Some (Filesystem _)
+  | None ->
+      ()
 
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
 let get_targets conf scanning_roots =
-  scanning_roots |> setup_project_roots conf
+  clone_if_remote_project_root conf;
+  scanning_roots
   |> group_scanning_roots_by_project conf
   |> List_.map (get_targets_for_project conf)
   |> List.split
