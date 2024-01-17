@@ -44,7 +44,6 @@ def _etree_to_dict(t):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -60,7 +59,6 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -76,7 +74,6 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot)
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_output_highlighting__force_color_and_no_color(
     run_semgrep_in_tmp: RunSemgrep, snapshot
 ):
@@ -202,7 +199,6 @@ def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_long_rule_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/cli_test/long_rule_id/long_rule_id.yaml",
