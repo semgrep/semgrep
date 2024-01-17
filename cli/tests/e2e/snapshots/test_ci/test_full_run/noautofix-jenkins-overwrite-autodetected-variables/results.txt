@@ -14,7 +14,7 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -25,12 +25,12 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
             ⋮┆----------------------------------------
            11┆ y == y
 
-       eqeq-four
+   ❯❯❱ eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
 
-       taint-test
+    ❯❱ taint-test
           unsafe use of danger
 
            27┆ sink(d2)
@@ -41,7 +41,7 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
+   ❯❯❱ supply-chain1
           found a dependency
 
             2┆ name = "badlib"
@@ -52,7 +52,7 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)

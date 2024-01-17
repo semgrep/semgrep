@@ -89,7 +89,7 @@ let get_targets session root =
     User_settings.find_targets_conf_of_t session.user_settings
   in
   Find_targets.get_target_fpaths
-    { targets_conf with project_root = Some root }
+    { targets_conf with project_root = Some (Find_targets.Filesystem root) }
     [ root ]
   |> fst
 

@@ -2,7 +2,6 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -17,7 +16,6 @@ def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -32,7 +30,6 @@ def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_extract_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """

@@ -116,7 +116,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *It works best on Linux machines.
  *
  * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
- * `Common.map`, which is tail-recursive, instead of `List.map`.
+ * `List_.map`, which is tail-recursive, instead of `List.map`.
  *)
 
 (*****************************************************************************)

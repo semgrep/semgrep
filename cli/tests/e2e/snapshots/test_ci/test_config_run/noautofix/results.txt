@@ -14,7 +14,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -25,19 +25,19 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
             ⋮┆----------------------------------------
            11┆ y == y
 
-       eqeq-four
+   ❯❯❱ eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
 
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
            23┆ b == b # Triage ignored by syntactic_id
             ⋮┆----------------------------------------
            24┆ a == a # Triage ignored by match_based_id
 
-       taint-test
+    ❯❱ taint-test
           unsafe use of danger
 
            27┆ sink(d2)
@@ -48,7 +48,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
+   ❯❯❱ supply-chain1
           found a dependency
 
             2┆ name = "badlib"
@@ -59,7 +59,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)

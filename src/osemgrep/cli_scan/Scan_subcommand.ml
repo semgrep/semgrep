@@ -270,6 +270,19 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
             let roots = conf.target_roots in
             pro_scan_func roots ~diff_config conf.engine_type)
   in
+  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+    match conf.targeting_conf.project_root with
+    | Some (Find_targets.Git_remote git_remote) -> (
+        match !Core_runner.hook_pro_git_remote_scan_setup with
+        | None ->
+            failwith
+              "You have requested running semgrep with a setting that requires \
+               the pro engine, but do not have the pro engine. You may need to \
+               acquire a different binary."
+        | Some pro_git_remote_scan_setup ->
+            pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
+    | _ -> scan_func_for_osemgrep
+  in
   scan_func_for_osemgrep
     ~respect_git_ignore:conf.targeting_conf.respect_gitignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
@@ -578,7 +591,20 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        * skipped above too?
        *)
       let skipped =
-        Some (skipped @ List_.optlist_to_list res.core.paths.skipped)
+        let skipped = skipped @ List_.optlist_to_list res.core.paths.skipped in
+        let in_test =
+          !Semgrep_envvars.v.user_agent_append
+          |> Option.map (fun s -> String.equal s "pytest")
+          |> Option.value ~default:false
+        in
+        let skipped =
+          if in_test then
+            List_.map
+              (fun (x : OutJ.skipped_target) -> { x with OutJ.details = None })
+              skipped
+          else skipped
+        in
+        Some skipped
       in
       (* Add the targets that were semgrepignored or errorneous *)
       {
@@ -733,11 +759,18 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (caps :> < Cap.network >)
       conf.rules_source
   in
-
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
+  (* Change dir if project_root is a git_remote
+   * note: sorry cooper, we gotta do this because
+   * git sparse-checkout doesn't like absolute paths
+   *)
+  (match conf.targeting_conf.project_root with
+  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
+      Sys.chdir (Fpath.to_string checkout_path)
+  | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files
