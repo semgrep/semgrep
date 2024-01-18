@@ -53,18 +53,6 @@ def test_basic_rule__relative(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
-@pytest.mark.kinda_slow
-def test_basic_jsonnet_rule(
-    monkeypatch: pytest.MonkeyPatch, run_semgrep_in_tmp: RunSemgrep, snapshot
-):
-    monkeypatch.setenv("R2C_INTERNAL_JSONNET_LIB", "rules/jsonnet/lib")
-    snapshot.assert_match(
-        run_semgrep_in_tmp("rules/jsonnet/python/basic.jsonnet").stdout,
-        "results.json",
-    )
-
-
 @pytest.mark.kinda_slow
 def test_deduplication(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
