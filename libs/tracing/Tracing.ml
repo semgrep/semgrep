@@ -94,3 +94,9 @@ let with_setup f =
      having the top level time is a good default. *)
   Opentelemetry_client_ocurl.with_setup () @@ fun () ->
   run_with_span "All time" f
+
+(* Alt: using cohttp_lwt
+
+   Lwt_platform.run (let res = Opentelemetry_client_cohttp_lwt.with_setup ~config () @@ fun () ->
+   run_with_span "All time" f in
+     Lwt.bind (Lwt_platform.sleep 0.01) (fun () -> Lwt.return res)) *)
