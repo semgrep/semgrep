@@ -495,13 +495,6 @@ let rules_from_pattern pattern : rules_and_origin list =
   let fk = Tok.unsafe_fake_tok "" in
   let rules_and_origin_for_xlang xlang =
     let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-    (* force the parsing of the pattern to get the parse error if any *)
-    (match xpat.XP.pat with
-    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-    | XP.Spacegrep _
-    | XP.Aliengrep _
-    | XP.Regexp _ ->
-        ());
     let rule = Rule.rule_of_xpattern xlang xpat in
     let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
     { rules = [ rule ]; errors = []; origin = CLI_argument }

@@ -194,8 +194,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
   List.iter
     (fun { Xpattern.pat; _ } ->
       match pat with
-      | Sem (lazypat, _) ->
-          let any = Lazy.force lazypat in
+      | Sem (any, _) ->
           let v = Meta_AST.vof_any any in
           let s = dump_v_to_format v in
           UCommon.pr s

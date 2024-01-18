@@ -148,14 +148,13 @@ let parse_rule_xpattern env (str, tok) =
        * good error management and error recovery so the error should
        * find its way to the JSON error field anyway.
        *)
-      let lpat =
-        lazy
-          ((* we need to raise the right error *)
-           try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-               Parse_pattern.parse_pattern lang ~print_errors:false
-                 ~rule_options:env.options str))
+      let pat =
+        (* we need to raise the right error *)
+        try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
+            Parse_pattern.parse_pattern lang ~print_errors:false
+              ~rule_options:env.options str)
       in
-      XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
+      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
   | Xlang.LRegex ->
       XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
   | Xlang.LSpacegrep -> (

@@ -169,7 +169,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat
-                (Xpattern.Sem (lazy pattern, lang))
+                (Xpattern.Sem (pattern, lang))
                 (pattern_string, fk)
             in
             Rule.rule_of_xpattern xlang xpat)

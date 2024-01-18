@@ -222,7 +222,7 @@ let debug_semgrep config mini_rules file lang ast =
 
 let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
-    (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
+    (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
@@ -237,7 +237,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
         Common.with_time (fun () ->
             let mini_rules =
               patterns
-              |> List_.map (function (lazy pat), b, c, d ->
+              |> List_.map (function pat, b, c, d ->
                      mini_rule_of_pattern xlang rule (pat, b, c, d))
             in
 
@@ -268,7 +268,7 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 
 let selector_from_formula f =
   match f with
-  | R.P { Xpattern.pat = Sem ((lazy pattern), _); pid; pstr } -> (
+  | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
       match pattern with
       | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
           Some { mvar; pattern; pid; pstr }
@@ -324,7 +324,7 @@ let run_selector_on_ranges env selector_opt ranges =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
       in
-      let patterns = [ (lazy pattern, false, pid, fst pstr) ] in
+      let patterns = [ (pattern, false, pid, fst pstr) ] in
       let res =
         matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
           patterns
@@ -496,9 +496,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
     match xpat.pat with
     (* TODO: generalize to more patterns *)
     | Sem
-        ( (lazy
-            (G.Ss
-              [ s1; { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ }; s2 ])),
+        ( G.Ss [ s1; { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ }; s2 ],
           _lang ) ->
         let subs = [ G.S s1; G.S s2 ] in
         (* we could optimize and run matches_of_patterns() below once
@@ -513,7 +511,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
           |> List_.map (fun pat ->
                  let match_result =
                    matches_of_patterns env.rule env.xconf env.xtarget
-                     [ (lazy pat, false, xpat.pid, "TODO") ]
+                     [ (pat, false, xpat.pid, "TODO") ]
                  in
                  let matches = match_result.matches in
                  (* TODO: equivalent to an abstract_content, so not great *)
