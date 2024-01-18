@@ -233,11 +233,13 @@ let lookup_nonlocal_scope id scopes =
 
 let has_block_scope (lang : Lang.t) =
   match lang with
+  (* These languages don't have block scope *)
   | Ruby
   | Python
   | Php ->
       false
   | _js_ when Lang.is_js lang -> false
+  (* The rest do. *)
   | _else_ -> true
 
 (*****************************************************************************)

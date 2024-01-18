@@ -1,3 +1,22 @@
-Tainting has better support for if statements. In particular, for
+Naming has better support for if statements. In particular, for
 languages with block scope, shadowed variables inside if-else blocks
 that are tainted won't "leak" outside of those blocks.
+
+This helps with features related to naming, such as tainting.
+
+For example, previously in Go, the x in sink(x) will report
+that x is tainted, even though the x that is tainted is the
+one inside the scope of the if block.
+
+```go
+func f() {
+  x := "safe";
+  if (c) {
+    x := "tainted";
+  }
+  // x should not be tainted
+  sink(x);
+}
+```
+
+This is now fixed.
