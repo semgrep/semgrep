@@ -29,6 +29,7 @@ val is_exact : 'spec t -> bool
 (** An exact match, i.e. overlap 0.99. Typically useful for l-values. *)
 
 val sink_of_match : Rule.taint_sink t -> Taint.sink
+val _show : 'spec t -> string
 
 (** Any kind of spec-match (existential type). *)
 type any = Any : 'a t -> any
@@ -40,15 +41,15 @@ type any = Any : 'a t -> any
  * If one match is contained in another one, we only keep the _larges_ match.
  * For example, given `foo(...)` then `foo(x)` will be recorded as a top-level
  * match, whereas `foo` or `x` will not. *)
-module Top_matches : sig
+module Best_matches : sig
   type t
 
   val _debug : t -> string
 end
 
-val is_best_match : Top_matches.t -> 'spec t -> bool
+val is_best_match : Best_matches.t -> 'spec t -> bool
 (** Similar to 'is_exact' but based on "top matches". *)
 
-val top_level_matches_in_nodes :
-  matches_of_orig:(IL.orig -> any Seq.t) -> (IL.node, _) CFG.t -> Top_matches.t
+val best_matches_in_nodes :
+  matches_of_orig:(IL.orig -> any Seq.t) -> (IL.node, _) CFG.t -> Best_matches.t
 (** Collect the top-level matches in a CFG. *)

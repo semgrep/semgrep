@@ -1,0 +1,14 @@
+taint-mode: Improve inference of best matches for exact-sources, exact-sanitizers,
+and sinks. Now we also avoid FPs in cases such as:
+
+    dangerouslySetInnerHTML = {
+      // ok:
+      {__html: props ? DOMPurify.sanitize(props.text) : ''} // no more FPs!
+    }
+
+where `props` is tainted and the sink specification is:
+
+    patterns:
+      - pattern: |
+         <$Y ... dangerouslySetInnerHTML={{__html: $X}} />
+      - focus-metavariable: $X

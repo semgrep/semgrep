@@ -28,10 +28,11 @@ type 'spec t = {
 
 let is_exact x = x.overlap > 0.99
 let sink_of_match x = { Taint.pm = x.spec_pm; rule_sink = x.spec }
+let _show x = Range.content_at_range !!(x.spec_pm.file) x.range
 
 type any = Any : 'a t -> any
 
-(* NOTE "Top matches":
+(* NOTE "Best matches":
  * (See note "Taint-tracking via ranges" in 'Match_tainting_mode.ml' for context.)
  *
  * We use sub-range checks to determine whether a piece of code is a source/sink/etc,
@@ -50,22 +51,22 @@ type any = Any : 'a t -> any
  * the ';' is not part of the`iorig`.
  *
  * So, given a source/sink/etc specification, we check whether the spec matches
- * any of the top-level nodes in the CFG (see 'IL.node_kind'). Given two matches,
+ * any of the instructions or (sub)expressions in the CFG. Given two matches,
  * if one is contained inside the other, then we consider them the same match and
  * we take the larger one as the canonical. We store the canonical matches in a
- * 'Top_matches' data structure, and we use these "top matches" matches as a
+ * 'Best_matches' data structure, and we use these "best matches" matches as a
  * practical definition of what an "exact match" is.
  *
  * For example, if the sink specification is `echo ...;`, and the code we have is
  * `echo $_GET['foo'];`, then this method will determine that `echo $_GET['foo']`
  * is the best match we can get, and that becomes the definition of exact. Then,
  * when we check whether an expression or instruction is a sink, if its range is a
- * strict sub-range of one of these top matches, we simply disregard it (because it
- * is not an exact match). In our example above the top sink match will be
+ * strict sub-range of one of these best matches, we simply disregard it (because it
+ * is not an exact match). In our example above the best sink match will be
  * `sink(if tainted then ok1 else ok2)`, so we will disregard `tainted` as a sink
  * because we know there is a better match.
  *)
-module Top_matches = struct
+module Best_matches = struct
   (* For m, m' in S.t, not (m.range $<=$ m'.range) && not (m'.range $<=$ m.range) *)
   module S = Set.Make (struct
     type t = any
@@ -127,48 +128,32 @@ module Top_matches = struct
     | Some (Any m) -> m.range =*= m'.range
 end
 
-let is_best_match = Top_matches.is_best_match
+let is_best_match = Best_matches.is_best_match
 
-let top_level_matches_in_nodes ~matches_of_orig flow =
-  (* We traverse the CFG and we check whether the top-level expressions match
+let best_matches_in_nodes ~matches_of_orig flow =
+  let find_origs_visitor =
+    object (_self : 'self)
+      inherit [_] IL.iter as super
+
+      method! visit_instr acc i =
+        acc := Seq.cons i.iorig !acc;
+        super#visit_instr acc i
+
+      method! visit_exp acc e =
+        acc := Seq.cons e.eorig !acc;
+        super#visit_exp acc e
+    end
+  in
+  (* We traverse the CFG and we check whether the (sub)expressions match
    * any taint specification. Those that do match a spec are potential
-   * "top-level matches". *)
-  (* TODO: This handles the common cases that people have more often complained
-   * about, it doesn't yet handle e.g. a sink specification like `sink([$SINK, ...])`
-   * (with `focus-metavariable: $SINK`), and code like `sink([ok1 if tainted else ok2])`.
-   * For that, we would need to visit subexpressions. *)
+   * "best-fit matches". *)
   flow.CFG.reachable |> CFG.NodeiSet.to_seq
   |> Seq.concat_map (fun ni ->
-         let origs_of_args args =
-           Seq.map (fun a -> (IL_helpers.exp_of_arg a).eorig) (List.to_seq args)
-         in
          let node = flow.CFG.graph#nodes#assoc ni in
-         match node.IL.n with
-         | NInstr instr ->
-             let top_expr_origs : IL.orig Seq.t =
-               Seq.cons instr.iorig
-                 (match instr.i with
-                 | Call (_, c, args) -> Seq.cons c.eorig (origs_of_args args)
-                 | New (_, _, _, args) -> origs_of_args args
-                 | CallSpecial (_, _, args) -> origs_of_args args
-                 | Assign (_, e) -> List.to_seq [ e.eorig ]
-                 | AssignAnon _
-                 | FixmeInstr _ ->
-                     Seq.empty)
-             in
-             top_expr_origs |> Seq.concat_map (fun o -> matches_of_orig o)
-         | NCond (_, exp)
-         | NReturn (_, exp)
-         | NThrow (_, exp) ->
-             matches_of_orig exp.eorig
-         | Enter
-         | Exit
-         | TrueNode _
-         | FalseNode _
-         | Join
-         | NGoto _
-         | NLambda _
-         | NOther _
-         | NTodo _ ->
-             Seq.empty)
-  |> Seq.fold_left (fun s x -> Top_matches.add x s) Top_matches.empty
+         let all_origs : IL.orig Seq.t =
+           let origs = ref Seq.empty in
+           find_origs_visitor#visit_node origs node;
+           !origs
+         in
+         all_origs |> Seq.concat_map matches_of_orig)
+  |> Seq.fold_left (fun s x -> Best_matches.add x s) Best_matches.empty

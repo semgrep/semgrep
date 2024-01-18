@@ -150,6 +150,57 @@ let any_of_orig = function
   | NoOrig -> G.Anys []
 
 (*****************************************************************************)
+(* Arguments *)
+(*****************************************************************************)
+
+type 'a argument = Unnamed of 'a | Named of ident * 'a
+[@@deriving show { with_path = false }]
+
+(*****************************************************************************)
+(* Parent iterator *)
+(*****************************************************************************)
+
+class virtual ['self] iter_parent =
+  object (self : 'self)
+    method visit_tok _env _tok = ()
+    method visit_sid _env _sid = ()
+    method visit_ident _env _ident = ()
+    method visit_name _env _name = ()
+
+    method visit_bracket
+        : 'a. ('env -> 'a -> unit) -> 'env -> 'a bracket -> unit =
+      fun f env (left, x, right) ->
+        self#visit_tok env left;
+        f env x;
+        self#visit_tok env right
+
+    method visit_wrap : 'a. ('env -> 'a -> unit) -> 'env -> 'a wrap -> unit =
+      fun f env (x, tok) ->
+        f env x;
+        self#visit_tok env tok
+
+    method visit_orig _env _orig = ()
+
+    method visit_argument
+        : 'a. ('env -> 'a -> unit) -> 'env -> 'a argument -> unit =
+      fun f env arg ->
+        match arg with
+        | Unnamed x -> f env x
+        | Named (ident, x) ->
+            self#visit_ident env ident;
+            f env x
+
+    method visit_literal _env _literal = ()
+    method visit_operator _env _operator = ()
+    method visit_type_ _env _typ = ()
+    method visit_fixme_kind _env _fixme_kind = ()
+    method visit_any _env _any = ()
+    method visit_definition _env _def = ()
+    method visit_class_definition _env _class_def = ()
+    method visit_directive _env _directive = ()
+  end
+
+(*****************************************************************************)
 (* Lvalue *)
 (*****************************************************************************)
 
@@ -248,9 +299,6 @@ and composite_kind =
   | Constructor of name (* OCaml *)
   | Regexp
 
-and 'a argument = Unnamed of 'a | Named of ident * 'a
-[@@deriving show { with_path = false }]
-
 (*****************************************************************************)
 (* Instruction *)
 (*****************************************************************************)
@@ -258,7 +306,7 @@ and 'a argument = Unnamed of 'a | Named of ident * 'a
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split into  instr vs exp vs lval.
  *)
-type instr = { i : instr_kind; iorig : orig }
+and instr = { i : instr_kind; iorig : orig }
 
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
@@ -278,7 +326,7 @@ and call_special =
   | Sizeof
   (* old: better in exp: | Operator of G.arithmetic_operator *)
   | Concat (* THINK: Normalize as a Operator G.Concat ? *)
-  | Spread
+  | SpreadFn
   | Yield
   | Await
   (* C++ *)
@@ -347,14 +395,13 @@ and function_definition = {
   frettype : G.type_ option;
   fbody : stmt list;
 }
-[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)
 (*****************************************************************************)
 (* Similar to controlflow.ml, but with a simpler node_kind.
  * See controlflow.ml for more information. *)
-type node = {
+and node = {
   n : node_kind;
       (* old: there are tok in the nodes anyway
        * t: Parse_info.t option;
@@ -378,7 +425,9 @@ and node_kind =
   | NLambda of name list (* just the params, the body nodes follow this one *)
   | NOther of other_stmt
   | NTodo of stmt
-[@@deriving show { with_path = false }]
+[@@deriving
+  show { with_path = false },
+    visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
