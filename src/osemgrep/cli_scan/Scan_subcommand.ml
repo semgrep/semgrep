@@ -575,20 +575,7 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
       let keep_ignored =
         (not conf.core_runner_conf.nosem)
         (* --disable-nosem *)
-        ||
-        match output_format with
-        | Sarif -> true
-        | Text
-        | Json
-        | Emacs
-        | Vim
-        | Gitlab_sast
-        | Gitlab_secrets
-        | Junit_xml
-        | TextIncremental ->
-            false
-        (* TODO(reynir): sarif wants to keep ignored results. we should
-           probably not hide this knowledge deep in here *)
+        || Output_format.keep_ignores output_format
       in
       let filtered_matches =
         Nosemgrep.filter_ignored ~keep_ignored res.core.results
