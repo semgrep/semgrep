@@ -2816,7 +2816,7 @@ and m_pattern a b =
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1
   | G.PatKeyVal (a1, a2), B.PatKeyVal (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_pattern a2 b2
-  | G.PatUnderscore a1, B.PatUnderscore b1 -> m_tok a1 b1
+  | G.PatWildcard a1, B.PatWildcard b1 -> m_tok a1 b1
   | G.PatDisj (a1, a2), B.PatDisj (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_pattern a2 b2
   | G.PatAs (a1, (a2, a3)), B.PatAs (b1, (b2, b3)) ->
@@ -2834,7 +2834,7 @@ and m_pattern a b =
   | G.PatList _, _
   | G.PatRecord _, _
   | G.PatKeyVal _, _
-  | G.PatUnderscore _, _
+  | G.PatWildcard _, _
   | G.PatDisj _, _
   | G.PatWhen _, _
   | G.PatAs _, _

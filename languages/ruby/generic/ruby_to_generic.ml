@@ -177,7 +177,7 @@ let rec expr e =
         G.Try
           ( t,
             G.exprstmt e1,
-            [ (t, CatchPattern (PatUnderscore t), G.exprstmt e2) ],
+            [ (t, CatchPattern (PatWildcard t), G.exprstmt e2) ],
             None,
             None )
         |> G.s
@@ -195,7 +195,7 @@ let rec expr e =
       let f = G.N (Id (("false", G.fake "false"), G.empty_id_info ())) |> G.e in
       let case = G.case_of_pat_and_expr ~tok:(Some tk) (pattern p, t) in
       let uncase =
-        G.CasesAndBody ([ Case (tk, PatUnderscore tk) ], G.exprstmt f)
+        G.CasesAndBody ([ Case (tk, PatWildcard tk) ], G.exprstmt f)
       in
       G.StmtExpr (Switch (tk, Some (Cond (expr e)), [ case; uncase ]) |> G.s)
   | S x ->
@@ -745,7 +745,7 @@ and patlist_arg = function
       let p2 =
         match p2 with
         | Some p2 -> pattern p2
-        | None -> PatUnderscore tk
+        | None -> PatWildcard tk
       in
       G.PatKeyVal (pattern p1, p2)
   | PArgPat p -> pattern p
@@ -879,7 +879,7 @@ and rescue_clause (t, exns, exnvaropt, sts) : G.catch =
   let st = list_stmt1 sts in
   let exns = list exception_ exns in
   match (exns, exnvaropt) with
-  | [], None -> (t, G.CatchPattern (G.PatUnderscore t), st)
+  | [], None -> (t, G.CatchPattern (G.PatWildcard t), st)
   | [], Some (t, lhs) ->
       let e = expr lhs in
       (t, G.CatchPattern (G.OtherPat (("Rescue", t), [ G.E e ])), st)

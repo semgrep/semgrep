@@ -147,7 +147,7 @@ and map_modifiers (env : env) (x : CST.modifier list) =
 and map_pattern (env : env) (x : CST.pattern) : G.pattern =
   let map_pattern_var (x : CST.pattern_var) : G.pattern =
     match x with
-    | `Wild x -> G.PatUnderscore (token env x)
+    | `Wild x -> G.PatWildcard (token env x)
     | `Choice_pat_7fdeb71 x -> G.PatId (map_name env x, G.empty_id_info ())
   in
 

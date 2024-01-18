@@ -2223,7 +2223,7 @@ and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
           v2
           |> List.fold_left (fun acc (t, e) -> G.opcall (And, t) [ acc; e ]) v1
         in
-        Case (fake "case", PatWhen (PatUnderscore (fake "_"), cond))
+        Case (fake "case", PatWhen (PatWildcard (fake "_"), cond))
     | `Else tok -> Default (token env tok)
     (* "else" *)
   in

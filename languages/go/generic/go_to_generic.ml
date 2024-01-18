@@ -553,7 +553,7 @@ let top_func () =
         and v3 = expr v3 in
         match opt with
         | None ->
-            let pattern = G.PatUnderscore (fake v2 "_") in
+            let pattern = G.PatWildcard (fake v2 "_") in
             G.ForEach (pattern, v2, v3)
         | Some (xs, _tokEqOrColonEqTODO) ->
             let pattern =

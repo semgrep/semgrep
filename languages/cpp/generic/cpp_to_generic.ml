@@ -40,15 +40,24 @@ let recover_when_partial_error = ref true
 (*****************************************************************************)
 
 type scope = InFunction | InClass | TopLevel
+type mode = Pattern | Target
 type cpp_parsing_option = [ `AsFunDef | `AsVarDefWithCtor ]
 
 type env = {
   mutable defs_toadd : G.definition list;
   mutable in_scope : scope;
+  mutable in_mode : mode;
   mutable parsing_pref : cpp_parsing_option option;
 }
 
-let empty_env () = { defs_toadd = []; in_scope = TopLevel; parsing_pref = None }
+let empty_env () =
+  {
+    defs_toadd = [];
+    in_scope = TopLevel;
+    in_mode = Target;
+    parsing_pref = None;
+  }
+
 let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
@@ -1243,9 +1252,15 @@ and map_exception_declaration tok env x : G.catch_exn =
   match x with
   | ExnDecl v1 -> (
       let v1 = map_parameter env v1 in
-      match H.parameter_to_catch_exn_opt v1 with
-      | Some x -> x
-      | None ->
+      match (H.parameter_to_catch_exn_opt v1, env.in_mode) with
+      (* `PatEllipsis` is not allowed in SAST transformation so we use
+         `PatWildcard` instead when parsing the target file *)
+      | Some (CatchPattern (PatEllipsis t)), Target ->
+          CatchPattern (PatWildcard t)
+      | Some (CatchPattern (PatEllipsis t)), Pattern ->
+          CatchPattern (PatEllipsis t)
+      | Some x, _ -> x
+      | None, _ ->
           error tok "could not convert a parameter into a catch exn handler")
 
 and map_stmt_or_decl env x : G.stmt list =
@@ -2225,7 +2240,7 @@ let map_any env x : G.any =
 (*****************************************************************************)
 let any ?(parsing_opt = None) x =
   let env = empty_env () in
-  let env = { env with parsing_pref = parsing_opt } in
+  let env = { env with parsing_pref = parsing_opt; in_mode = Pattern } in
   map_any env x
 
 let program cst =
