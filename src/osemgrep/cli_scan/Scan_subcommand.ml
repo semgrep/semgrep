@@ -573,9 +573,9 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
       let res = Core_runner.create_core_result filtered_rules exn_and_matches in
       (* step 3'': filter via nosemgrep *)
       let keep_ignored =
-        (not conf.core_runner_conf.nosem) (* --disable-nosem *) || false
-        (* TODO(dinosaure): [false] depends on the output formatter. Currently,
-           we just have the JSON output. *)
+        (not conf.core_runner_conf.nosem)
+        (* --disable-nosem *)
+        || Output_format.keep_ignores output_format
       in
       let filtered_matches =
         Nosemgrep.filter_ignored ~keep_ignored res.core.results
