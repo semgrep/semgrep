@@ -6,6 +6,81 @@
 
 <!-- insertion point -->
 
+## [1.57.0](https://github.com/returntocorp/semgrep/releases/tag/v1.57.0) - 2024-01-18
+
+
+### Added
+
+
+- Added a severity icon (e.g. "❯❯❱") and corresponding color to our CLI text output
+  for findings of known severity. (grow-97)
+- Naming has better support for if statements. In particular, for
+  languages with block scope, shadowed variables inside if-else blocks
+  that are tainted won't "leak" outside of those blocks.
+
+  This helps with features related to naming, such as tainting.
+
+  For example, previously in Go, the x in sink(x) will report
+  that x is tainted, even though the x that is tainted is the
+  one inside the scope of the if block.
+
+  ```go
+  func f() {
+    x := "safe";
+    if (c) {
+      x := "tainted";
+    }
+    // x should not be tainted
+    sink(x);
+  }
+  ```
+
+  This is now fixed. (pa-3185)
+- OSemgrep can now scan remote git repositories. Pass `--experimental --pro --remote http[s]://<website>/.../<repo>.git` to use this feature (pa-remote)
+
+
+### Changed
+
+
+- Rules stored under an "hidden" directory (e.g., dir/.hidden/myrule.yml)
+  are now processed when using --config <dir>.
+  We used to skip dot files under dir, but keeping rules/.semgrep.yml,
+  but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
+  but not ./.pre-commit-config.yaml, ... This was mainly because
+  we used to fetch rules from ~/.semgrep/ implicitely when --config
+  was not given, but this feature was removed, so now we can keep it simple. (hidden_rules)
+- The primitive object construct expression will no longer match the new
+  expression pattern. For example, the pattern `new $TYPE` will now only match
+  `new int`, not `int()`. (pa-3336)
+- The placement new expression will no longer match the new expression without
+  placement. For instance, the pattern `new ($STORAGE) $TYPE` will now only match
+  `new (storage) int` and not `new int`. (pa-3338)
+
+
+### Fixed
+
+
+- Java: You can now use metavariable ellipses properly in
+  function arguments, as statements, and as expressions.
+
+  For instance, you may write the pattern
+  ```
+  public $F($...ARGS) { ... }
+  ``` (gh-9260)
+- Fixed bugs in gitignore/semgrepignore globbing implementation affecting `--experimental`. (gh-9544)
+- Fixed rule IDs, descriptions, findings, and autofix text not wrapping as expected.
+  Use newline instead of horiziontal separator for findings with a shared file
+  but for different rules per design spec. (grow-97)
+- Keep track of the origin of `return;` statements in the dataflow IL so that
+  recently added (Pro-only) `at-exit: true` sinks work properly on them. (pa-3337)
+- C++: Improve translation of `delete` expressions to the dataflow IL so that
+  recently added (Pro-only) `at-exit: true` sinks work on them. Previously
+  `delete` expression at "exit" positions were not being properly recognized
+  as such. (pa-3339)
+- Fixed a bug where Gemfile.lock files with multiple GEM sections
+  would not be parsed correctly. (sc-1230)
+
+
 ## [1.56.0](https://github.com/returntocorp/semgrep/releases/tag/v1.56.0) - 2024-01-10
 
 
