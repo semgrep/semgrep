@@ -1,4 +1,0 @@
-C++: Improve translation of `delete` expressions to the dataflow IL so that
-recently added (Pro-only) `at-exit: true` sinks work on them. Previously
-`delete` expression at "exit" positions were not being properly recognized
-as such.
