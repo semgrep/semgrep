@@ -328,7 +328,7 @@ and name env = function
  * `LetPattern`s. *)
 and pattern env pat =
   match pat with
-  | G.PatUnderscore tok ->
+  | G.PatWildcard tok ->
       let lval = fresh_lval env tok in
       (lval, [])
   | G.PatId (id, id_info) ->
@@ -850,10 +850,10 @@ and expr env ?void e_gen =
   try expr_aux env ?void e_gen with
   | Fixme (kind, any_generic) -> fixme_exp kind any_generic (related_exp e_gen)
 
-and expr_opt env = function
+and expr_opt env tok = function
   | None ->
-      let void = G.Unit (G.fake "void") in
-      mk_e (Literal void) NoOrig
+      let void = G.Unit tok in
+      mk_e (Literal void) (related_tok tok)
   | Some e -> expr env e
 
 and expr_lazy_op env op tok arg0 args eorig =
@@ -1061,8 +1061,18 @@ and stmt_expr env ?e_gen st =
       let e = expr env eorig in
       if eorig.is_implicit_return then (
         mk_s (Return (tok, e)) |> add_stmt env;
-        expr_opt env None)
+        expr_opt env tok None)
       else e
+  | G.OtherStmt
+      ( OS_Delete,
+        ( [ (G.Tk tok as atok); G.E eorig ]
+        | [ (G.Tk tok as atok); G.Tk _; G.Tk _; G.E eorig ] (* delete[] *) ) )
+    ->
+      let e = expr env eorig in
+      let special = (Delete, tok) in
+      add_instr env
+        (mk_i (CallSpecial (None, special, [ Unnamed e ])) (Related atok));
+      mk_unit tok (Related atok)
   | G.If (tok, cond, st1, opt_st2) ->
       (* if cond then e1 else e2
        * -->
@@ -1108,8 +1118,8 @@ and stmt_expr env ?e_gen st =
           stmt_expr env st
       | __else__ -> todo ())
   | G.Return (t, eorig, _) ->
-      mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
-      expr_opt env None
+      mk_s (Return (t, expr_opt env t eorig)) |> add_stmt env;
+      expr_opt env t None
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty })
     when def_expr_evaluates_to_value env.lang ->
       type_opt env opt_ty;
@@ -1182,9 +1192,9 @@ and arg_with_pre_stmts env arg =
 and args_with_pre_stmts env args =
   with_pre_stmts env (fun env -> arguments env args)
 
-and expr_with_pre_stmts_opt env eopt =
+and expr_with_pre_stmts_opt env tok eopt =
   match eopt with
-  | None -> ([], expr_opt env None)
+  | None -> ([], expr_opt env tok None)
   | Some e -> expr_with_pre_stmts env e
 
 and for_var_or_expr_list env xs =
@@ -1515,7 +1525,7 @@ and stmt_aux env st =
       let lbl = lookup_label env lbl in
       [ mk_s (Goto (tok, lbl)) ]
   | G.Return (tok, eopt, _) ->
-      let ss, e = expr_with_pre_stmts_opt env eopt in
+      let ss, e = expr_with_pre_stmts_opt env tok eopt in
       ss @ [ mk_s (Return (tok, e)) ]
   | G.Assert (tok, args, _) ->
       let ss, args = args_with_pre_stmts env (Tok.unbracket args) in

@@ -40,15 +40,24 @@ let recover_when_partial_error = ref true
 (*****************************************************************************)
 
 type scope = InFunction | InClass | TopLevel
+type mode = Pattern | Target
 type cpp_parsing_option = [ `AsFunDef | `AsVarDefWithCtor ]
 
 type env = {
   mutable defs_toadd : G.definition list;
   mutable in_scope : scope;
+  mutable in_mode : mode;
   mutable parsing_pref : cpp_parsing_option option;
 }
 
-let empty_env () = { defs_toadd = []; in_scope = TopLevel; parsing_pref = None }
+let empty_env () =
+  {
+    defs_toadd = [];
+    in_scope = TopLevel;
+    in_mode = Target;
+    parsing_pref = None;
+  }
+
 let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
@@ -547,27 +556,40 @@ and map_expr env x : G.expr =
   | New (v1, v2, v3, v4, v5) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
-      and _placementTODO =
-        map_of_option (map_paren env (map_of_list (map_argument env))) v3
+      and v3 = map_of_option (map_paren env (map_of_list (map_argument env))) v3
       and v4 = map_type_ env v4
       and v5 = map_of_option (map_obj_init env) v5 in
+      let v4 =
+        match v3 with
+        | Some (l, args, _r) ->
+            (* store the placement expression in the type attribute *)
+            {
+              v4 with
+              t_attrs =
+                OtherAttribute (("placement", l), [ Args args ]) :: v4.t_attrs;
+            }
+        | None -> v4
+      in
       let l, args, r =
         match v5 with
         | None -> Tok.unsafe_fake_bracket []
         | Some (l, args, r) -> (l, args, r)
       in
       G.New (v2, v4, G.empty_id_info (), (l, args, r)) |> G.e
-  | Delete (v1, v2, v3, v4) ->
+  | Delete (v1, v2, v3, v4) -> (
       let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
       and v3 = map_of_option (map_bracket env map_of_unit) v3
       and v4 = map_expr env v4 in
-      let categ =
-        match v3 with
-        | None -> ("Delete", v2)
-        | Some (_l, (), _r) -> ("Delete[]", v2)
-      in
-      G.OtherExpr (categ, [ G.E v4 ]) |> G.e
+      match v3 with
+      | None ->
+          (* delete <expr> *)
+          G.OtherStmt (OS_Delete, [ G.Tk v2; G.E v4 ]) |> G.s |> G.stmt_to_expr
+      | Some (l, (), r) ->
+          (* delete[] <expr>  *)
+          (* THINK: Add a parameter to `OS_Delete` instead ? *)
+          G.OtherStmt (OS_Delete, [ G.Tk v2; G.Tk l; G.Tk r; G.E v4 ])
+          |> G.s |> G.stmt_to_expr)
   | Throw (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = expr_option v1 (map_of_option (map_expr env) v2) in
@@ -1230,9 +1252,15 @@ and map_exception_declaration tok env x : G.catch_exn =
   match x with
   | ExnDecl v1 -> (
       let v1 = map_parameter env v1 in
-      match H.parameter_to_catch_exn_opt v1 with
-      | Some x -> x
-      | None ->
+      match (H.parameter_to_catch_exn_opt v1, env.in_mode) with
+      (* `PatEllipsis` is not allowed in SAST transformation so we use
+         `PatWildcard` instead when parsing the target file *)
+      | Some (CatchPattern (PatEllipsis t)), Target ->
+          CatchPattern (PatWildcard t)
+      | Some (CatchPattern (PatEllipsis t)), Pattern ->
+          CatchPattern (PatEllipsis t)
+      | Some x, _ -> x
+      | None, _ ->
           error tok "could not convert a parameter into a catch exn handler")
 
 and map_stmt_or_decl env x : G.stmt list =
@@ -2212,7 +2240,7 @@ let map_any env x : G.any =
 (*****************************************************************************)
 let any ?(parsing_opt = None) x =
   let env = empty_env () in
-  let env = { env with parsing_pref = parsing_opt } in
+  let env = { env with parsing_pref = parsing_opt; in_mode = Pattern } in
   map_any env x
 
 let program cst =

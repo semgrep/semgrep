@@ -29,32 +29,6 @@
 ; Opam packages
 
 (package
-  (name alcotest_ext)
-  (synopsis "Extension of the Alcotest library")
-  (description "\
-Alcotest_ext extends the functionality of the Alcotest library by providing
-new subcommands for capturing, checking, and approving the output of tests.")
-  (depends
-    (ocaml (>= 4.08.0))
-    alcotest
-    cmdliner
-    re
-  )
-)
-
-(package
-  (name alcotest_ext_lwt)
-  (synopsis "Extension of the Alcotest library for Lwt")
-  (description "\
-Use this if the tests return Lwt promises and you can't make them synchronous
-by wrapping them in 'Lwt_main.run'.")
-  (depends
-    (ocaml (>= 4.08.0))
-    alcotest_ext
-  )
-)
-
-(package
   (name aliengrep)
   (synopsis "Generic Semgrep-like pattern search backed by PCRE")
   (description "Generic Semgrep-like pattern search backed by PCRE")

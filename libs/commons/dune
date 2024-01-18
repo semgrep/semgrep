@@ -16,7 +16,7 @@
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
-   alcotest_ext
+   testo
    cmdliner
    bos
    re

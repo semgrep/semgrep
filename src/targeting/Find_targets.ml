@@ -42,6 +42,12 @@ module Fppath_set = Set.Make (Fppath)
          gitignore or semgrepignore exclusions (will be needed for Secrets)
          and have the exclusions apply only to the files that aren't tracked.
 *)
+
+type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
+
+type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+[@@deriving show]
+
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
@@ -64,7 +70,7 @@ type conf = {
   (* TODO: use *)
   scan_unknown_extensions : bool;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : Fpath.t option;
+  project_root : project_root option;
 }
 [@@deriving show]
 
@@ -112,7 +118,9 @@ type filter_result =
   | Ignore_silently (* ignore and don't report this file *)
 
 let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
-  let { fpath; ppath } : Fppath.t = fppath in
+  let { Fppath.fpath; ppath } (* TODO(tree-sitter-ocaml fail) : Fppath.t *) =
+    fppath
+  in
   let status, selection_events = Semgrepignore.select ign ppath in
   match status with
   | Ignored ->
@@ -136,6 +144,8 @@ let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
       | { Unix.st_kind = S_REG; _ } -> Keep
       | { Unix.st_kind = S_DIR; _ } -> Dir
       | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> Ignore_silently
+      (* This is handled in the Core_scan_function already *)
+      | exception Unix.Unix_error (ENOENT, _fun, _info) -> Keep
       (* ignore for now errors. TODO? return a skip? *)
       | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
 
@@ -237,8 +247,14 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
    Get the list of files being tracked by git. Return a list of paths
    relative to the project root in addition to their system path
    so that we can filter them with semgrepignore.
+
+   exclude_standard is the --exclude-standard flag to 'git ls-files'
+   and requests filtering based on gitignore rules. We don't want it when
+   obtaining the list of tracked files because some files can be tracked
+   despite being excluded by gitignore.
 *)
-let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
+let git_list_files ~exclude_standard
+    (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : project_roots) : Fppath_set.t option =
   let project = project_roots.project in
   match project.kind with
@@ -246,12 +262,18 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               Git_wrapper.ls_files ~kinds:file_kinds [ sc_root.fpath ]
+               let cwd = Rpath.to_fpath project.path in
+               Git_wrapper.ls_files ~cwd ~exclude_standard ~kinds:file_kinds
+                 [ sc_root.fpath ]
                |> List_.map (fun fpath ->
                       let fpath_relative_to_scan_root =
                         match Fpath.relativize ~root:sc_root.fpath fpath with
                         | Some x -> x
-                        | None -> assert false
+                        | None ->
+                            failwith
+                              "Impossible: git ls-files somehow not relative \
+                               to the scan root, even though we passed it as \
+                               an argument"
                       in
                       let ppath =
                         Ppath.append_fpath sc_root.ppath
@@ -280,7 +302,7 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
 *)
 let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
     =
-  git_list_files [ Cached ] project_roots
+  git_list_files ~exclude_standard:false [ Cached ] project_roots
 
 (*
    List all the files that are not being tracked by git except those in
@@ -290,7 +312,7 @@ let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
 *)
 let git_list_untracked_files (project_roots : project_roots) :
     Fppath_set.t option =
-  git_list_files [ Others ] project_roots
+  git_list_files ~exclude_standard:true [ Others ] project_roots
 
 (*************************************************************************)
 (* Grouping *)
@@ -307,10 +329,18 @@ let git_list_untracked_files (project_roots : project_roots) :
 *)
 let group_scanning_roots_by_project (conf : conf)
     (scanning_roots : Fpath.t list) : project_roots list =
+  (* Force root relativizes scan roots to project roots.
+   * I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
+   * it would make the scanning root /foo. So it doesn't make sense to combine this
+   * with the git remote unless we wanted to make it so git remotes could be
+   * further specified (say github.com/semgrep/semgrep.git:/src/foo).
+   *)
   let force_root =
     match conf.project_root with
+    | Some (Git_remote { checkout_path; _ }) ->
+        Some (Project.Git_project, checkout_path)
     | None -> None
-    | Some proj_root -> Some (Project.Gitignore_project, proj_root)
+    | Some (Filesystem proj_root) -> Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
   |> List_.map (fun scanning_root ->
@@ -324,7 +354,7 @@ let group_scanning_roots_by_project (conf : conf)
      correctly even if the scanning_roots went through different symlink paths.
   *)
   |> Assoc.group_by fst
-  |> List.map (fun (project, xs) ->
+  |> List_.map (fun (project, xs) ->
          { project; scanning_roots = xs |> List_.map snd })
 
 (*************************************************************************)
@@ -433,6 +463,10 @@ let get_targets_for_project conf (project_roots : project_roots) =
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
     | Some tracked, Some untracked ->
+        Logs.debug (fun m ->
+            m "target file candidates from git: tracked: %i, untracked: %i"
+              (Fppath_set.cardinal tracked)
+              (Fppath_set.cardinal untracked));
         let all_files = Fppath_set.union tracked untracked in
         all_files |> Fppath_set.elements |> filter_targets conf project_roots
     | None, _
@@ -441,11 +475,30 @@ let get_targets_for_project conf (project_roots : project_roots) =
   in
   (selected_targets, skipped_targets)
 
+(* for semgrep query console *)
+let clone_if_remote_project_root conf =
+  match conf.project_root with
+  | Some (Git_remote { url; checkout_path }) ->
+      Logs.debug (fun m ->
+          m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
+      (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
+      | Ok () -> ()
+      | Error msg ->
+          failwith
+            (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
+               !!checkout_path msg));
+      Git_wrapper.checkout ~cwd:checkout_path ();
+      Logs.debug (fun m -> m "Sparse cloning done")
+  | Some (Filesystem _)
+  | None ->
+      ()
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
 let get_targets conf scanning_roots =
+  clone_if_remote_project_root conf;
   scanning_roots
   |> group_scanning_roots_by_project conf
   |> List_.map (get_targets_for_project conf)

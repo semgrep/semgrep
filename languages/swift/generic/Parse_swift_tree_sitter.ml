@@ -1203,7 +1203,7 @@ and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
   let pat =
     match (v2, v3) with
     (* Similar to how Python does it: *)
-    | None, None -> G.PatUnderscore (Tok.fake_tok catch_tok "_")
+    | None, None -> G.PatWildcard (Tok.fake_tok catch_tok "_")
     | Some v2, None -> map_binding_pattern_no_expr env v2
     (* This is impossible according to the Swift grammar - you can't have a `where`
        on the caught thing unless there was a pattern to modify in the first place.
@@ -2310,7 +2310,7 @@ and map_binding_pattern_no_expr (env : env)
 and map_universally_allowed_pattern (env : env)
     (x : CST.universally_allowed_pattern) : G.pattern =
   match x with
-  | `Wild_pat tok -> (* "_" *) G.PatUnderscore (token env tok)
+  | `Wild_pat tok -> (* "_" *) G.PatWildcard (token env tok)
   | `Tuple_pat x -> G.PatTuple (map_tuple_pattern env x)
   | `Type_cast_pat x -> map_type_casting_pattern env x
   | `Case_pat (_v1TODO, v2, v3, v4, v5) ->

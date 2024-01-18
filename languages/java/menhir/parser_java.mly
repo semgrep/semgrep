@@ -266,6 +266,12 @@ let mk_stmt_or_stmts = function
 %token <Tok.t> DEFAULT_COLON		(* default :  *)
 %token <Tok.t> LP_PARAM		(* ( ) { }  *)
 
+(*-----------------------------------------*)
+(* semgrep-ext: *)
+(*-----------------------------------------*)
+
+%token <(string * Tok.t)> METAVAR_ELLIPSIS
+
 (*************************************************************************)
 (* Priorities *)
 (*************************************************************************)
@@ -536,6 +542,7 @@ primary_no_new_array:
  | array_access                       { $1 }
  (* sgrep-ext: *)
  | typed_metavar       { $1 }
+ | METAVAR_ELLIPSIS { NameId ($1) }
  (* just can use some reserved identifiers as field now? *)
  | name "." THIS       { Dot (name $1, $2, ("this", $3)) }
  (* javaext: ? *)
@@ -1303,8 +1310,10 @@ formal_parameter:
   { ParamSpread ($3, canon_var $1 (Some $2) $4) }
  (* sgrep-ext: *)
  | "..." { ParamEllipsis $1 }
- (* less: we could also restrict to AST_generic_.is_metavar_ellipsis *)
  | IDENTIFIER
+   { Flag_parsing.sgrep_guard
+       (ParamClassic { name = $1; mods = []; type_ = None }) }
+ | METAVAR_ELLIPSIS
    { Flag_parsing.sgrep_guard
        (ParamClassic { name = $1; mods = []; type_ = None }) }
 

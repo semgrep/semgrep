@@ -418,23 +418,13 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
             ~origin:(Local_file path) caps path;
         ]
   | C.Dir dir ->
+      (* We used to skip dot files under [dir], but keeping rules/.semgrep.yml,
+       * but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
+       * but not ./.pre-commit-config.yaml, ... This was mainly because
+       * we used to fetch rules from ~/.semgrep/ implicitely when --config
+       * was not given, but this feature was removed, so now we can KISS.
+       *)
       List_files.list dir
-      (* TOPORT:
-         and not _is_hidden_config(l.relative_to(loc))
-         ...
-         def _is_hidden_config(loc: Path) -> bool:
-         """
-         Want to keep rules/.semgrep.yml but not path/.github/foo.yml
-         Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
-         """
-         return any(
-           part != os.curdir
-           and part != os.pardir
-           and part.startswith(".")
-           and DEFAULT_SEMGREP_CONFIG_NAME not in part
-           for part in loc.parts
-         )
-      *)
       |> List.filter Parse_rule.is_valid_rule_filename
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)

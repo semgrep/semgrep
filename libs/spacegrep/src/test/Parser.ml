@@ -4,6 +4,8 @@
 
 open Spacegrep
 
+let t = Testo.create
+
 let run_debug input expected_output =
   let output =
     input |> Src_file.of_string
@@ -118,11 +120,11 @@ let test =
   let suite =
     List_.map
       (fun (name, input, expected_output) ->
-        (name, fun () -> run_debug input expected_output))
+        t name (fun () -> run_debug input expected_output))
       debug_corpus
     @ List_.map
         (fun (name, input, expected_output) ->
-          (name, fun () -> run_pretty input expected_output))
+          t name (fun () -> run_pretty input expected_output))
         pretty_corpus
   in
-  Alcotest_ext.pack_tests "Parser" suite
+  Testo.categorize "Parser" suite

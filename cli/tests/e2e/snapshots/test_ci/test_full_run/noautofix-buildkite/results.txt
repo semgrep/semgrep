@@ -14,7 +14,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 └──────────────────────────┘
 
     foo.py
-       eqeq-bad
+   ❯❯❱ eqeq-bad
           useless comparison
 
             4┆ a == a
@@ -24,13 +24,13 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four
+
+   ❯❯❱ eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
+
+    ❯❱ taint-test
           unsafe use of danger
 
            27┆ sink(d2)
@@ -41,7 +41,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 └──────────────────────────────────┘
 
     poetry.lock
-       supply-chain1
+   ❯❯❱ supply-chain1
           found a dependency
 
             2┆ name = "badlib"
@@ -52,7 +52,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 └─────────────────────────────┘
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
@@ -75,8 +75,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment buildkite, triggering event is
-                pull_request
+  environment - running in environment buildkite, triggering event is pull_request
 
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)

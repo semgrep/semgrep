@@ -4,6 +4,13 @@
 
 exception Error of string
 
+val remote_repo_name : string -> string option
+(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
+
+val temporary_remote_checkout_path : string -> Fpath.t
+(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"] will return
+    [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid remote repo name *)
+
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
@@ -34,7 +41,11 @@ type ls_files_kind =
    This returns a list of paths relative to cwd.
 *)
 val ls_files :
-  ?cwd:Fpath.t -> ?kinds:ls_files_kind list -> Fpath.t list -> Fpath.t list
+  ?cwd:Fpath.t ->
+  ?exclude_standard:bool ->
+  ?kinds:ls_files_kind list ->
+  Fpath.t list ->
+  Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string
@@ -88,6 +99,19 @@ val is_git_repo : ?cwd:Fpath.t -> unit -> bool
    The result may be a submodule of another git repo. *)
 val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
 
+val checkout : ?cwd:Fpath.t -> ?git_ref:string -> unit -> unit
+(** Checkout the given optional ref *)
+
+val sparse_shallow_filtered_checkout : Uri.t -> Fpath.t -> (unit, string) result
+(** Checkout the given commit in the given directory, but only
+    the files that are tracked by git and that are not in the
+    sparse-checkout config.
+    This is useful to avoid checking out the whole repo when
+    we only need a few files. *)
+
+val sparse_checkout_add : ?cwd:Fpath.t -> Fpath.t list -> (unit, string) result
+(** Add the given files to the sparse-checkout config *)
+
 (* Find the root of the git project containing 'cwd', if any.
    The result is not a submodule of another git repo. *)
 val get_superproject_root : ?cwd:Fpath.t -> unit -> Fpath.t option
@@ -114,7 +138,7 @@ val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
     on the git version.
 *)
 
-val add : ?cwd:Fpath.t -> Fpath.t list -> unit
+val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
 (** Add the given files to the git repo *)
 
 val commit : ?cwd:Fpath.t -> string -> unit

@@ -39,7 +39,6 @@ jobs:
         \         echo \"docker-tag=develop\" >> \"$GITHUB_OUTPUT\"\n          echo
         \"Setting dry-run to develop\"\n        fi\n      "
   test-semgrep-pro:
-    name: Test Semgrep Pro Engine
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
@@ -48,12 +47,10 @@ jobs:
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
       with:
         submodules: true
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+    - uses: docker/setup-buildx-action@v2
     - name: Download artifact
       uses: actions/download-artifact@v3
       with:
@@ -61,7 +58,7 @@ jobs:
         path: /tmp
     - name: Load image
       run: docker load --input /tmp/image.tar
-    - name: Configure AWS credentials
+    - name: Configure AWS credentials for returntocorp-semgrep-deploy-role
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role

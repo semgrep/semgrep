@@ -874,7 +874,7 @@ and excepthandler env = function
                      (H.expr_to_type
                         (G.Container (G.Tuple, Tok.unsafe_fake_bracket [ e ])
                         |> G.e))))
-        | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
+        | None, None -> G.CatchPattern (G.PatWildcard (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
             G.CatchParam (G.param_of_type (H.expr_to_type e) ~pname:(Some n))

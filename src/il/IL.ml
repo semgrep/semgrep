@@ -281,6 +281,8 @@ and call_special =
   | Spread
   | Yield
   | Await
+  (* C++ *)
+  | Delete
   (* was in stmt before, but with a new clean 'instr' type, better here *)
   | Assert
   (* was in expr before (only in C/PHP) *)

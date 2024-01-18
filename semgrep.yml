@@ -77,8 +77,8 @@ rules:
     pattern: List.map2
     message: >-
       `List.map2` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.map2` instead.
-    fix: Common.map2
+      stack overflow. Use `List_.map2` instead.
+    fix: List_.map2
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -95,8 +95,8 @@ rules:
     pattern: List.map
     message: >-
       `List.map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.map` instead.
-    fix: Common.map
+      stack overflow. Use `List_.map` instead.
+    fix: List_.map
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -113,8 +113,8 @@ rules:
     pattern: List.filter_map
     message: >-
       `List.filter_map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.map_filter` instead.
-    fix: Common.map_filter
+      stack overflow. Use `List_.map_filter` instead.
+    fix: List_.map_filter
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -131,8 +131,8 @@ rules:
     pattern: List.mapi
     message: >-
       `List.mapi` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.mapi` instead.
-    fix: Common.mapi
+      stack overflow. Use `List_.mapi` instead.
+    fix: List_.mapi
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -148,17 +148,17 @@ rules:
   - id: use-concat-map
     pattern-either:
       - pattern: List.map ... |> List.flatten
-      - pattern: Common.map ... |> List.flatten
+      - pattern: List_.map ... |> List.flatten
       - pattern: List.map ... |> List.concat
-      - pattern: Common.map ... |> List.concat
+      - pattern: List_.map ... |> List.concat
       - pattern: ... |> List.map ... |> List.flatten
-      - pattern: ... |> Common.map ... |> List.flatten
+      - pattern: ... |> List_.map ... |> List.flatten
       - pattern: ... |> List.map ... |> List.concat
-      - pattern: ... |> Common.map ... |> List.concat
+      - pattern: ... |> List_.map ... |> List.concat
       - pattern: List.flatten ( List.map ... )
-      - pattern: List.flatten ( Common.map ... )
+      - pattern: List.flatten ( List_.map ... )
       - pattern: List.concat ( List.map ... )
-      - pattern: List.concat ( Common.map ... )
+      - pattern: List.concat ( List_.map ... )
     message: >-
       `List.concat_map` is more efficient and more readable than a `map` followed
       by `concat`.
@@ -325,7 +325,7 @@ rules:
       Don't use 'List.hd' because it raises an unhelpful exception if its
       argument is an empty list. Prefer a match-with, possibly combined with
       'assert false' e.g. 'match xs with [] -> assert false | x :: _ -> ...'.
-    fix: Common.hd_exn "unexpected empty list"
+    fix: List_.hd_exn "unexpected empty list"
     languages: [ocaml]
     severity: WARNING
 
@@ -335,7 +335,7 @@ rules:
       Don't use 'List.tl' because it raises an unhelpful exception if its
       argument is an empty list. Prefer a match-with, possibly combined with
       'assert false' e.g. 'match xs with [] -> assert false | _ :: xs -> ...'.
-    fix: Common.tl_exn "unexpected empty list"
+    fix: List_.tl_exn "unexpected empty list"
     languages: [ocaml]
     severity: WARNING
 

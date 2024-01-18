@@ -26,7 +26,6 @@ def test_aliengrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     )
 
 
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",

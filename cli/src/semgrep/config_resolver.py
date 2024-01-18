@@ -30,7 +30,6 @@ from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import MISSED_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -407,11 +406,8 @@ def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFi
 def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
     configs = []
     for l in loc.rglob("*"):
-        # Allow manually specified paths with ".", but don't auto-expand them
-        correct_suffix = is_config_suffix(l)
-        if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
-            if l.is_file():
-                configs.append(read_config_at_path(l, loc if relative else None))
+        if is_config_suffix(l) and l.is_file():
+            configs.append(read_config_at_path(l, loc if relative else None))
     return configs
 
 
@@ -881,20 +877,6 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
     return {config_id: data}
-
-
-def _is_hidden_config(loc: Path) -> bool:
-    """
-    Want to keep rules/.semgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
-    """
-    return any(
-        part != os.curdir
-        and part != os.pardir
-        and part.startswith(".")
-        and DEFAULT_SEMGREP_CONFIG_NAME not in part
-        for part in loc.parts
-    )
 
 
 def is_registry_id(config_str: str) -> bool:

@@ -97,8 +97,11 @@ let group_by_project_root func paths =
 let group_roots_by_project conf paths =
   let force_root =
     match conf.project_root with
-    | None -> None
-    | Some proj_root -> Some (Project.Git_project, proj_root)
+    | Some (Find_targets.Git_remote _)
+    | None ->
+        None
+    | Some (Find_targets.Filesystem proj_root) ->
+        Some (Project.Git_project, proj_root)
   in
   if conf.respect_gitignore then
     paths

@@ -1,3 +1,9 @@
+// ???
+
+local gha = import 'libs/gha.libsonnet';
+local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
+
 // ----------------------------------------------------------------------------
 // The inputs
 // ----------------------------------------------------------------------------
@@ -44,7 +50,6 @@ local setup_docker_tag_job = {
 };
 
 local test_semgrep_pro_job = {
-  name: 'Test Semgrep Pro Engine',
   'runs-on': 'ubuntu-22.04',
   permissions: {
     'id-token': 'write',
@@ -55,15 +60,8 @@ local test_semgrep_pro_job = {
     SEMGREP_APP_TOKEN: '${{ secrets.SEMGREP_APP_TOKEN }}',
   },
   steps: [
+    actions.checkout_with_submodules(),
     {
-      name: 'Checkout',
-      uses: 'actions/checkout@v3',
-      with: {
-        submodules: true,
-      },
-    },
-    {
-      name: 'Set up Docker Buildx',
       uses: 'docker/setup-buildx-action@v2',
     },
     {
@@ -78,18 +76,12 @@ local test_semgrep_pro_job = {
       name: 'Load image',
       run: 'docker load --input /tmp/image.tar',
     },
-    {
-      name: 'Configure AWS credentials',
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        'role-to-assume': 'arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role',
-        'role-duration-seconds': 900,
-        'role-session-name': 'semgrep-deploy',
-        'aws-region': 'us-west-2',
-      },
-    },
-    // This is the `develop` binary, so this is truly the most recent version of
-    // `semgrep-proprietary` from that repository's `develop` branch.
+    semgrep.aws_credentials_step(
+       role='returntocorp-semgrep-deploy-role',
+       session_name='semgrep-deploy'
+     ),
+    // This is the `develop` binary, so this is truly the most recent version
+    // of `semgrep-proprietary` from that repository's `develop` branch.
     // We test with this so that we know whether any changes we make on this PR
     // are breaking with the `develop` branch of `pro`.
     {

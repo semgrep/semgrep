@@ -55,7 +55,7 @@ class ['self] pat_id_visitor =
       | PatTuple _
       | PatList _
       | PatKeyVal _
-      | PatUnderscore _
+      | PatWildcard _
       | PatDisj _
       | PatTyped _
       | PatWhen _

@@ -15,8 +15,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is
-                pull_request
+  environment - running in environment github-actions, triggering event is pull_request
 Fixing git state for github action pull request
 Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
 
@@ -51,14 +50,14 @@ Creating git worktree from 'b903231925961ac9d787ae53ee0bd15ec156e689' to scan ba
 └──────────────────────────────┘
 
     bar.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (bar == 2)
             1┆ bar == 5
 
     foo.py
-       eqeq-five
+   ❯❯❱ eqeq-five
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (foo == 2)

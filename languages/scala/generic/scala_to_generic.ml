@@ -573,7 +573,7 @@ and v_type_case_clause v : G.case_and_body =
       let icase, l_ty, r_ty = v_type_case_clause_classic x in
       let pat =
         match l_ty with
-        | Either.Left tok -> G.PatUnderscore tok
+        | Either.Left tok -> G.PatWildcard tok
         | Either.Right ty -> PatType ty
       in
       G.CasesAndBody
@@ -761,7 +761,7 @@ and v_catch_clause (v1, v2) : G.catch list =
                (ii, G.CatchPattern (G.PatEllipsis ii), st))
   | CatchExpr e ->
       let e = v_expr e in
-      let pat = G.PatUnderscore v1 in
+      let pat = G.PatWildcard v1 in
       [ (v1, G.CatchPattern pat, G.exprstmt e) ]
 
 and v_finally_clause (v1, v2) =

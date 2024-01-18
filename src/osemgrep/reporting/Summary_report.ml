@@ -22,6 +22,7 @@ let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
     include_ = include_ignored;
     exclude = exclude_ignored;
     size = file_size_ignored;
+    always = _always_ignored;
     other = other_ignored;
     errors;
   } =

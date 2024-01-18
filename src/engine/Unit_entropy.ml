@@ -4,6 +4,7 @@
 
 open Printf
 
+let t = Testo.create
 let entropy_threshold = 64.
 let density_threshold = 0.6
 let low_entropy_strings = [ ""; "a"; "ab"; "!@"; "change"; "1234" ]
@@ -195,13 +196,12 @@ let test_high_score () =
                 s x))
 
 let tests =
-  Alcotest_ext.simple_tests
-    [
-      ("information density", test_information_density);
-      ("low entropy", test_low_entropy);
-      ("high entropy", test_high_entropy);
-      ("low density", test_low_entropy);
-      ("high density", test_high_entropy);
-      ("low score", test_low_score);
-      ("high score", test_high_score);
-    ]
+  [
+    t "information density" test_information_density;
+    t "low entropy" test_low_entropy;
+    t "high entropy" test_high_entropy;
+    t "low density" test_low_entropy;
+    t "high density" test_high_entropy;
+    t "low score" test_low_score;
+    t "high score" test_high_score;
+  ]

@@ -287,16 +287,11 @@ def test_hidden_rule__explicit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+# we use to throw an error for such test because we would not explore
+# dot files under the config, but we don't anymore to simplify things.
 @pytest.mark.kinda_slow
 def test_hidden_rule__implicit(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    stdout, _ = run_semgrep_in_tmp("rules/hidden", assert_exit_code=7)
-    snapshot.assert_match(_clean_stdout(stdout), "error.json")
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/hidden", output_format=OutputFormat.TEXT, assert_exit_code=7
-    )
-    snapshot.assert_match(stderr, "error.txt")
+    snapshot.assert_match(run_semgrep_in_tmp("rules/hidden/").stdout, "results.json")
 
 
 @pytest.mark.kinda_slow
@@ -695,7 +690,6 @@ def test_metavariable_propagation_comparison(run_semgrep_in_tmp: RunSemgrep, sna
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_taint_mode(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(

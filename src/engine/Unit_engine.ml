@@ -1,6 +1,5 @@
 open Common
 open Fpath_.Operators
-open Alcotest_ext
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
@@ -8,6 +7,7 @@ module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
+let t = Testo.create
 
 (*****************************************************************************)
 (* Purpose *)
@@ -83,8 +83,6 @@ let full_lang_info =
 (* Helpers *)
 (*****************************************************************************)
 
-let pack_tests_with_label label lang_tests = pack_suites label lang_tests
-
 (* lang_test_fn should:
    Generate a test suite for a list of languages.
    Two main folders are expected:
@@ -107,9 +105,8 @@ let pack_tests_for_lang
        polyglot_pattern_path:Fpath.t ->
        Fpath.t list ->
        Language.t ->
-       Alcotest_ext.test list) ~test_pattern_path ~polyglot_pattern_path lang
-    dir ext =
-  pack_tests_pro
+       Testo.test list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
+  Testo.categorize
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
      let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
@@ -236,7 +233,7 @@ let language_exceptions =
 (* TODO: infer dir and ext from lang using Lang helper functions *)
 let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
     =
-  pack_tests_pro
+  Testo.categorize
     (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
     (let dir = tests_path_patterns / dir in
      let features = assoc_maturity_level |> List.assoc maturity in
@@ -254,8 +251,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
      let features = Common2.minus_set features exns in
      features
      |> List_.map (fun base ->
-            Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang) base
-              (fun () ->
+            Testo.create ~tags:(Test_tags.tags_of_lang lang) base (fun () ->
                 let path = dir / (base ^ ext) in
                 (* if it's a does-not-apply (NA) case, consider adding it
                  * to language_exceptions above
@@ -267,7 +263,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
 
 let maturity_tests () =
   (* coupling: https://semgrep.dev/docs/language-support/ *)
-  pack_suites "Maturity level testing"
+  Testo.categorize_suites "Maturity level testing"
     [
       (* GA *)
       make_maturity_tests Lang.Csharp "csharp" ".cs" GA;
@@ -374,8 +370,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
-           (Fpath.basename file) (fun () ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
+           (fun () ->
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -417,7 +413,7 @@ let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
-  pack_tests_with_label "lang testing" lang_tests
+  Testo.categorize_suites "lang testing" lang_tests
 
 let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
@@ -429,7 +425,7 @@ let lang_regression_tests ~polyglot_pattern_path =
   in
   let irregular_tests =
     [
-      pack_tests_pro "semgrep Typescript on Javascript (no JSX)"
+      Testo.categorize "semgrep Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
@@ -439,7 +435,7 @@ let lang_regression_tests ~polyglot_pattern_path =
 
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
-      pack_tests_pro "semgrep C++ on C tests"
+      Testo.categorize "semgrep C++ on C tests"
         (let dir = test_pattern_path / "c" in
          let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
 
@@ -447,7 +443,7 @@ let lang_regression_tests ~polyglot_pattern_path =
          regression_tests_for_lang ~polyglot_pattern_path files lang);
     ]
   in
-  pack_tests_with_label "lang testing" (regular_tests @ irregular_tests)
+  Testo.categorize_suites "lang testing" (regular_tests @ irregular_tests)
 
 (*****************************************************************************)
 (* Autofix tests *)
@@ -493,8 +489,8 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
-           (Fpath.basename file) (fun () ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
+           (fun () ->
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -559,28 +555,26 @@ let lang_autofix_tests ~polyglot_pattern_path =
            pack_tests_for_lang ~lang_test_fn:autofix_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
-  pack_tests_with_label "autofix testing" lang_tests
+  Testo.categorize_suites "autofix testing" lang_tests
 
 (*****************************************************************************)
 (* Eval_generic tests *)
 (*****************************************************************************)
 
 let eval_regression_tests () =
-  Alcotest_ext.simple_tests
-    [
-      ( "eval regression testing",
-        fun () ->
-          let dir = tests_path / "eval" in
-          let files = Common2.glob (spf "%s/*.json" !!dir) in
-          files
-          |> List.iter (fun file ->
-                 let env, code = Eval_generic.parse_json file in
-                 let res = Eval_generic.eval env code in
-                 Alcotest.(check bool)
-                   (spf "%s should evaluate to true" file)
-                   true
-                   (Eval_generic.Bool true =*= res)) );
-    ]
+  [
+    t "eval regression testing" (fun () ->
+        let dir = tests_path / "eval" in
+        let files = Common2.glob (spf "%s/*.json" !!dir) in
+        files
+        |> List.iter (fun file ->
+               let env, code = Eval_generic.parse_json file in
+               let res = Eval_generic.eval env code in
+               Alcotest.(check bool)
+                 (spf "%s should evaluate to true" file)
+                 true
+                 (Eval_generic.Bool true =*= res)));
+  ]
 
 (*****************************************************************************)
 (* Analyze_rule (filter irrelevant rules) tests *)
@@ -606,8 +600,7 @@ let test_irrelevant_rule rule_file target_file =
                     s))
 
 let test_irrelevant_rule_file target_file =
-  ( Fpath.basename target_file,
-    fun () ->
+  t (Fpath.basename target_file) (fun () ->
       let rules_file =
         let d, b, _e = Filename_.dbe_of_filename !!target_file in
         let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
@@ -617,7 +610,7 @@ let test_irrelevant_rule_file target_file =
             (spf "could not find target file for irrelevant rule %s"
                !!target_file)
       in
-      test_irrelevant_rule rules_file target_file )
+      test_irrelevant_rule rules_file target_file)
 
 (* These tests test that semgrep with filter_irrelevant_rules correctly
    does not run files when they lack necessary strings.
@@ -627,7 +620,7 @@ let test_irrelevant_rule_file target_file =
    in a comment that the test targets filter_irrelevant_rules to help
    future debuggers. *)
 let filter_irrelevant_rules_tests () =
-  pack_tests "filter irrelevant rules testing"
+  Testo.categorize "filter irrelevant rules testing"
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" !!dir)
@@ -661,7 +654,7 @@ let get_extract_source_lang file rules =
 
 let extract_tests () =
   let path = tests_path / "extract" in
-  pack_tests_pro "extract mode"
+  Testo.categorize "extract mode"
     (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
 
 (*****************************************************************************)
@@ -742,8 +735,8 @@ let tainting_test lang rules_file file =
 let tainting_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
-           (Fpath.basename file) (fun () ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
+           (fun () ->
              let rules_file =
                let d, b, _e = Filename_.dbe_of_filename !!file in
                let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
@@ -756,27 +749,27 @@ let tainting_tests_for_lang files lang =
 
 let lang_tainting_tests () =
   let taint_tests_path = tests_path / "tainting_rules" in
-  pack_suites "lang tainting rules testing"
+  Testo.categorize_suites "lang tainting rules testing"
     [
-      pack_tests_pro "tainting Go"
+      Testo.categorize "tainting Go"
         (let dir = taint_tests_path / "go" in
          let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting PHP"
+      Testo.categorize "tainting PHP"
         (let dir = taint_tests_path / "php" in
          let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Python"
+      Testo.categorize "tainting Python"
         (let dir = taint_tests_path / "python" in
          let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Java"
+      Testo.categorize "tainting Java"
         (let dir = taint_tests_path / "java" in
          let files =
            Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
@@ -784,25 +777,25 @@ let lang_tainting_tests () =
 
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Javascript"
+      Testo.categorize "tainting Javascript"
         (let dir = taint_tests_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Ruby"
+      Testo.categorize "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
          let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Typescript"
+      Testo.categorize "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
          let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
-      pack_tests_pro "tainting Scala"
+      Testo.categorize "tainting Scala"
         (let dir = taint_tests_path / "scala" in
          let files =
            Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
@@ -824,7 +817,7 @@ let full_rule_regression_tests () =
   let tests = tests1 @ tests2 in
   let groups =
     tests
-    |> List_.map (fun (test : Alcotest_ext.test) ->
+    |> List_.map (fun (test : Testo.test) ->
            let group =
              match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
@@ -834,8 +827,8 @@ let full_rule_regression_tests () =
     |> Assoc.group_assoc_bykey_eff
   in
 
-  pack_suites "full rule"
-    (groups |> List_.map (fun (group, tests) -> pack_tests_pro group tests))
+  Testo.categorize_suites "full rule"
+    (groups |> List_.map (fun (group, tests) -> Testo.categorize group tests))
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -848,19 +841,19 @@ let full_rule_regression_tests () =
  *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
-  pack_tests_pro "taint maturity" (Test_engine.make_tests [ path ])
+  Testo.categorize "taint maturity" (Test_engine.make_tests [ path ])
 
 (*
    Special exclusions for Semgrep JS
 *)
-let mark_todo_js test =
+let mark_todo_js (test : Testo.test) =
   match test.name with
   | s
     when (* The target file has an unsupported .erb extension, making it excluded
             correctly by the OCaml test suite but not by the JS test suite
             (or something close to this). *)
          s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml" ->
-      Alcotest_ext.update test ~tags:(Test_tags.todo_js :: test.tags)
+      Testo.update test ~tags:(Test_tags.todo_js :: test.tags)
   | _ -> test
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
@@ -874,7 +867,7 @@ let full_rule_semgrep_rules_regression_tests () =
   let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
-    |> List_.map_filter (fun (test : Alcotest_ext.test) ->
+    |> List_.map_filter (fun (test : Testo.test) ->
            let test = mark_todo_js test in
            let group_opt =
              match test.name with
@@ -909,6 +902,23 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/unicode/security/bidi.yml"
                     || s
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
+                    (* Apex requires Pro *)
+                    || s =~ ".*/apex/lang/.*"
+                       (* but the following are generic rules ... *)
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoqlInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoslInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml"
+                       && s
+                          <> "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml"
+                    (* Elixir requires Pro *)
+                    || s =~ ".*/elixir/lang/.*"
                     (* ?? *)
                     || s =~ ".*/yaml/semgrep/consistency/.*" ->
                  Some "XFAIL"
@@ -934,22 +944,22 @@ let full_rule_semgrep_rules_regression_tests () =
     |> Assoc.group_assoc_bykey_eff
   in
 
-  pack_suites "full semgrep rule"
+  Testo.categorize_suites "full semgrep rule"
     (groups
     |> List_.map (fun (group, tests) ->
            tests
-           |> List_.map (fun (test : Alcotest_ext.test) ->
+           |> List_.map (fun (test : Testo.test) ->
                   match group with
                   | "XFAIL" ->
                       (* TODO: populate the excuse below with the exact reason
                          found in the comments above *)
-                      Alcotest_ext.update test
+                      Testo.update test
                         ~expected_outcome:
                           (Should_fail
                              "excluded semgrep-rule (see OCaml source file for \
                               details)")
                   | _ -> test)
-           |> pack_tests_pro group))
+           |> Testo.categorize group))
 
 (*****************************************************************************)
 (* All tests *)

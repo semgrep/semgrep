@@ -1,2 +1,2 @@
-val tests : Alcotest_ext.test list
-val lwt_tests : Alcotest_ext_lwt.test list
+val tests : Testo.test list
+val lwt_tests : Testo_lwt.test list

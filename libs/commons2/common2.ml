@@ -72,7 +72,7 @@ let rec take n xs =
 let exclude p xs = List.filter (fun x -> not (p x)) xs
 let last_n n l = List.rev (take n (List.rev l))
 
-(*let last l = Common.hd_exn "unexpected empty list" (last_n 1 l) *)
+(*let last l = List_.hd_exn "unexpected empty list" (last_n 1 l) *)
 let rec list_last = function
   | [] -> raise Not_found
   | [ x ] -> x
@@ -3000,7 +3000,7 @@ let rec list_init = function
 (* pixel *)
 (* now in prelude
  *   let last_n n l = List.rev (take n (List.rev l))
- *   let last l = Common.hd_exn "unexpected empty list" (last_n 1 l)
+ *   let last l = List_.hd_exn "unexpected empty list" (last_n 1 l)
  *)
 
 (* todo: foldl, foldr (a more consistent foldr) *)

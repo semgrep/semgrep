@@ -101,8 +101,8 @@ exception Error of string
  * We use a named capture group for the lines, and then split on the comma if
  * it's a multiline diff
  *)
-let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
+let git_diff_lines_re = Pcre_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
+let remote_repo_name_re = Pcre_.regexp {|^http.*\/(.*)\.git$|}
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -123,6 +123,21 @@ let opt (o : string option) : string list =
   match o with
   | None -> []
   | Some str -> [ str ]
+
+(*
+   Add an optional flag to the command line by returning a list of arguments
+   to add to the current arguments.
+
+   Usage:
+
+   let do_something ?(foo = false) () =
+     let cmd = (git, [ "do-something" ] @ flag "--foo" foo) in
+     ...
+*)
+let flag name (is_set : bool) : string list =
+  match is_set with
+  | true -> [ name ]
+  | false -> []
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
@@ -153,6 +168,21 @@ let range_of_git_diff lines =
         ranges
   | Error _ -> [||]
 
+let remote_repo_name url =
+  match Pcre_.exec ~rex:remote_repo_name_re url with
+  | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
+  | _ -> None
+
+let temporary_remote_checkout_path url =
+  let name =
+    match remote_repo_name url with
+    | Some name -> name
+    | None -> failwith "Could not get remote repo name"
+  in
+  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
+  let name = rand_prefix ^ "_" ^ name in
+  let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
+  Fpath.add_seg tmp_dir name
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -186,10 +216,17 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Cached -> "--cached"
   | Others -> "--others"
 
-let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
+let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
+    root_paths =
   let roots = root_paths |> List_.map Fpath.to_string in
   let kinds = kinds |> List_.map string_of_ls_files_kind in
-  let cmd = (git, [ "-C"; !!cwd; "ls-files" ] @ kinds @ roots) in
+  let cmd =
+    ( git,
+      [ "-C"; !!cwd; "ls-files" ]
+      @ kinds
+      @ flag "--exclude-standard" exclude_standard
+      @ roots )
+  in
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with
@@ -217,6 +254,62 @@ let get_project_root_exn () =
   match get_project_root () with
   | Some path -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
+
+let checkout ?cwd ?git_ref () =
+  let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Could not checkout git ref")
+
+(* Why these options?
+ * --depth=1: only get the most recent commit
+ *  --filter=blob:none: don't get any blobs (file contents) from the repo
+ *  --sparse: only get the files we need
+ *  --no-checkout: don't checkout the files, we'll do that later
+ * See https://github.blog/2020-01-17-bring-your-monorepo-down-to-size-with-sparse-checkout/#sparse-checkout-and-partial-clones
+ * for a better explanation
+ *
+ * The following benchmarks were run scanning the django repo
+ * for a bash rule
+ * Mini benchmarks:
+ * clone then scan repo for : 32.9s
+ * depth=1 then scan repo for a bash rule: 4.8s
+ * using sparse shallow checkout + sparse checkout adding files
+ * determined during the targeting step: 1.09s
+ *)
+let sparse_shallow_filtered_checkout (url : Uri.t) path =
+  let path = Fpath.to_string path in
+  let cmd =
+    ( git,
+      [
+        "clone";
+        "--depth=1";
+        "--filter=blob:none";
+        "--sparse";
+        "--no-checkout";
+        Uri.to_string url;
+        path;
+      ] )
+  in
+  match UCmd.status_of_run ~quiet:true cmd with
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not clone git repo"
+
+(* To be used in combination with [sparse_shallow_filtered_checkout]
+   This function will add the files we want to actually pull the blobs for
+   and checkout the files we want.
+*)
+let sparse_checkout_add ?cwd folders =
+  let folders = List_.map Fpath.to_string folders in
+  let cmd =
+    ( git,
+      cd cwd
+      @ [ "sparse-checkout"; "add"; "--sparse-index"; "--cone" ]
+      @ folders )
+  in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not add sparse checkout"
 
 let get_merge_base commit =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in
@@ -415,9 +508,9 @@ let init ?cwd ?(branch = "main") () =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
-let add ?cwd files =
+let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
-  let cmd = (git, cd cwd @ [ "add" ] @ files) in
+  let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")
