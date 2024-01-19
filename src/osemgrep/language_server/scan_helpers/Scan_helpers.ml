@@ -34,7 +34,8 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
     This means like some matches, such as those that appear in committed
     files/lines, will be filtered out*)
 
-(** This is the entry point for scanning, returns /relevant/ matches, and all files scanned*)
+(* This is the entry point for scanning, returns /relevant/ matches,
+   and all files scanned. *)
 let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     ({ session; _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
@@ -90,8 +91,8 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
         in
 
         let res =
-          scan_func ~respect_git_ignore:true ~file_match_results_hook:None
-            runner_conf rules [] targets
+          scan_func.run ~file_match_results_hook:None runner_conf
+            Find_targets.default_conf rules [] targets
         in
         Core_runner.create_core_result rules res
       in

@@ -14,8 +14,14 @@
  *)
 open Common
 
+let append a b = List.rev_append (List.rev a) b
+let ( @ ) = append
+
+let fold_right func xs acc =
+  List.fold_left (fun acc x -> func x acc) acc (List.rev xs)
+
 (*****************************************************************************)
-(* Faster List.map *)
+(* Faster and stack-safe List.map *)
 (*****************************************************************************)
 
 (*
