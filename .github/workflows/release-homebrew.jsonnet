@@ -31,7 +31,7 @@ local input = {
     version: {
       type: 'string',
       description: |||
-        The version of Semgrep to release on Homebrew (e.g., 1.55.2)
+        The version of Semgrep to release on Homebrew (e.g., 1.22.0)
       |||,
       required: true,
     },
@@ -70,7 +70,7 @@ local homebrew_core_pr_job(version) = {
     // seems currently broken hence the ugly fix below
     {
       name: 'ugly: fix the python path for brew bump-formula-pr',
-      run: 'cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7'
+      run: 'cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7; python --version'
     },
     {
       name: 'Dry Run bump semgrep.rb',
@@ -84,6 +84,7 @@ local homebrew_core_pr_job(version) = {
       // this is run only in dry-mode
       if: "${{ inputs.dry-run }}",
       run: |||
+        python --version
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep 99.99.99" \
           --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
