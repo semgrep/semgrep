@@ -18,7 +18,7 @@
 # of time to deal with issues caused by bumping Python dependencies, unless it is
 # truly needed.
 
-exclude: "^tests|^cli/tests/e2e*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/semgrep/external|^cli/src/semdep/external|^cli/bin|\\binvalid\\b|TOPORT"
+exclude: "^tests|^cli/tests/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b"
 default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
