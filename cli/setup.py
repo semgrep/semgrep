@@ -128,7 +128,6 @@ install_requires = [
     "wcmatch~=8.3",
 ]
 
-extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
@@ -138,7 +137,6 @@ setuptools.setup(
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,
-    extras_require=extras_require,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
