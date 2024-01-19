@@ -374,6 +374,10 @@ end)
 
 type signature = Findings.t
 
+let _show_signature s =
+  s |> Findings.to_seq |> List.of_seq |> List_.map _show_finding
+  |> [%show: string list]
+
 (*****************************************************************************)
 (* Taint sets *)
 (*****************************************************************************)
