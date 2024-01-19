@@ -134,7 +134,8 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
           Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
         in
         let result_and_exn =
-          scan_func conf.core_runner_conf metarules [] targets
+          scan_func.run conf.core_runner_conf Find_targets.default_conf
+            metarules [] targets
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
         (* TODO? sanity check errors below too? *)

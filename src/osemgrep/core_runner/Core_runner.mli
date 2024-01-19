@@ -24,16 +24,18 @@ type result = {
 }
 
 (* similar to Core_scan.core_scan_func *)
-type scan_func_for_osemgrep =
-  ?respect_git_ignore:bool ->
-  ?file_match_results_hook:
-    (Fpath.t -> Core_result.matches_single_file -> unit) option ->
-  conf ->
-  (* LATER? use Config_resolve.rules_and_origin instead? *)
-  Rule.rules ->
-  Rule.invalid_rule_error list ->
-  Fpath.t list ->
-  Core_result.result_or_exn
+type scan_func_for_osemgrep = {
+  run :
+    ?file_match_results_hook:
+      (Fpath.t -> Core_result.matches_single_file -> unit) option ->
+    conf ->
+    Find_targets.conf ->
+    (* LATER? use Config_resolve.rules_and_origin instead? *)
+    Rule.rules ->
+    Rule.invalid_rule_error list ->
+    Fpath.t list ->
+    Core_result.result_or_exn;
+}
 
 (* Semgrep Pro hook for osemgrep *)
 val hook_pro_scan_func_for_osemgrep :
@@ -70,4 +72,5 @@ val mk_scan_func_for_osemgrep :
 val core_scan_config_of_conf : conf -> Core_scan_config.t
 
 (* reused in semgrep-server *)
-val split_jobs_by_language : Rule.t list -> Fpath.t list -> Lang_job.t list
+val split_jobs_by_language :
+  Find_targets.conf -> Rule.t list -> Fpath.t list -> Lang_job.t list
