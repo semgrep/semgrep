@@ -1,3 +1,5 @@
+# Testing the fixtest feature.
+# See https://semgrep.dev/docs/writing-rules/testing-rules/#testing-autofix
 import re
 
 import pytest

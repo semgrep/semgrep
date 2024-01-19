@@ -1,3 +1,6 @@
+# Tests for 'semgrep test' (accessibly also as 'semgrep scan --test').
+# See https://semgrep.dev/docs/writing-rules/testing-rules/
+# See also test_fixtest.py for the autofix + 'semgrep test' tests.
 import os
 import re
 import subprocess
