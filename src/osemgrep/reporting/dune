@@ -8,6 +8,7 @@
    fmt
    terminal_size
    digestif
+   xmlm
 
   osemgrep_configuring
    osemgrep_core
