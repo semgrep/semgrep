@@ -288,7 +288,7 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     filename = snapshot.snapshot_dir / "results.xml"
     expected = _etree_to_dict(cElementTree.XML(filename.read_text()))
 
-    assert expected == result
+    assert result == expected
 
 
 @pytest.mark.kinda_slow
