@@ -410,7 +410,7 @@ def dataflow_trace_to_lines(
             yield Text.assemble("")
 
         if source and show_separator:
-            seperator_fill_count = max(10, min(40, FINDINGS_TEXT_WIDTH - 1))
+            seperator_fill_count = safe_width(min(40, FINDINGS_TEXT_WIDTH - 1))
             yield Text.assemble(
                 f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * seperator_fill_count
             )
