@@ -6,30 +6,14 @@ from pathlib import Path
 
 import pytest
 from tests.conftest import _clean_stdout
+from tests.conftest import mask_floats
+from tests.conftest import mask_times
 from tests.conftest import mask_variable_text
 from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND_STR
 
 from semgrep.constants import OutputFormat
-
-
-def _mask_times(result_json: str) -> str:
-    result = json.loads(result_json)
-
-    def zero_times(value):
-        if type(value) == float:
-            return 2.022
-        elif type(value) == list:
-            return [zero_times(val) for val in value]
-        elif type(value) == dict:
-            return {k: zero_times(v) for k, v in value.items()}
-        else:
-            return value
-
-    if "time" in result:
-        result["time"] = zero_times(result["time"])
-    return json.dumps(result, indent=2, sort_keys=True)
 
 
 GITHUB_TEST_GIST_URL = (
@@ -50,6 +34,55 @@ def test_basic_rule__relative(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/../rules/eqeq.yaml").stdout,
         "results.json",
+    )
+
+
+# TODO: I don't understand why this pass
+@pytest.mark.kinda_slow
+def test_cli_test_verbose(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        options=["--verbose"],
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+    )
+
+    snapshot.assert_match(
+        mask_floats(results),
+        "results.txt",
+    )
+
+
+@pytest.mark.osemfail
+@pytest.mark.kinda_slow
+def test_cli_test_time(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        options=["--time"],
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+    )
+
+    snapshot.assert_match(
+        mask_floats(results),
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_cli_test_show_supported_languages(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        options=["--show-supported-languages"],
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+    )
+
+    snapshot.assert_match(
+        results,
+        "results.txt",
     )
 
 
@@ -519,7 +552,7 @@ def test_max_memory(run_semgrep_in_tmp: RunSemgrep, snapshot):
         target_name="equivalence",
         strict=False,
     )
-    snapshot.assert_match(_mask_times(stdout), "results.json")
+    snapshot.assert_match(mask_times(stdout), "results.json")
     snapshot.assert_match(stderr, "error.txt")
 
 
@@ -575,7 +608,7 @@ def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, snapshot):
         strict=False,
     ).stdout
     snapshot.assert_match(
-        _mask_times(results),
+        mask_times(results),
         "results.json",
     )
 
