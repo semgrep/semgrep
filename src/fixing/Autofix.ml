@@ -58,11 +58,12 @@ let capture_group_regex = "\\\\([0-9]+)"
 
    But, when replacing text which may appear in an arbitrary file, we might
    want to ensure that all the fix lines are aligned with respect to each
-   other.
+   other. This is only all lines but the first, however, because we assume
+   that the start column should be where the first line starts.
 
    This code just goes and does that.
 *)
-let align_text_at_column ~start_column text =
+let align_nonfirst_lines_at_column ~start_column text =
   let replacement_lines =
     match String.split_on_char '\n' text with
     | [] -> []
@@ -72,9 +73,14 @@ let align_text_at_column ~start_column text =
   in
   String.concat "\n" replacement_lines
 
-let%test _ = align_text_at_column ~start_column:0 "foo\nbar" =*= "foo\nbar"
-let%test _ = align_text_at_column ~start_column:1 "foo\nbar" =*= "foo\n bar"
-let%test _ = align_text_at_column ~start_column:1 " foo\nbar" =*= " foo\n bar"
+let%test _ =
+  align_nonfirst_lines_at_column ~start_column:0 "foo\nbar" =*= "foo\nbar"
+
+let%test _ =
+  align_nonfirst_lines_at_column ~start_column:1 "foo\nbar" =*= "foo\n bar"
+
+let%test _ =
+  align_nonfirst_lines_at_column ~start_column:1 " foo\nbar" =*= " foo\n bar"
 
 (*****************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
@@ -230,7 +236,8 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
           ~fix_pattern_ast ~fix_pattern fixed_pattern_ast
       in
       let text =
-        align_text_at_column ~start_column:(fst pm.range_loc).pos.column text
+        align_nonfirst_lines_at_column
+          ~start_column:(fst pm.range_loc).pos.column text
       in
 
       let edit =
@@ -264,7 +271,7 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
   let replacement_text =
     Metavar_replacement.interpolate_metavars fix
       (Metavar_replacement.of_bindings pm.env)
-    |> align_text_at_column ~start_column
+    |> align_nonfirst_lines_at_column ~start_column
   in
   let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit
