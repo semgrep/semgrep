@@ -283,9 +283,8 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
             pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
     | _ -> scan_func_for_osemgrep
   in
-  scan_func_for_osemgrep
-    ~respect_git_ignore:conf.targeting_conf.respect_gitignore
-    ~file_match_results_hook conf.core_runner_conf rules errors targets
+  scan_func_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
+    conf.targeting_conf rules errors targets
 
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
     rules_source =
@@ -535,9 +534,14 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
             Some (file_match_results_hook conf filtered_rules) )
       | { output_conf; _ } -> (output_conf.output_format, None)
     in
+    (* TODO: What is this wrapping for? It makes things really hard to
+       follow. *)
     let scan_func = mk_scan_func conf file_match_results_hook errors in
     (* step 3': call the engine! *)
     let exn_and_matches =
+      (* TODO: this long code block should not be here!
+         Please create and use a function with a descriptive name and
+         arguments. *)
       match conf.targeting_conf.baseline_commit with
       | None ->
           Profiler.record profiler ~name:"core_time"

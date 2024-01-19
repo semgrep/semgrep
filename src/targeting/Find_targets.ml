@@ -36,6 +36,28 @@ module Out = Semgrep_output_v1_t
 
 module Fppath_set = Set.Make (Fppath)
 
+module Explicit_targets = struct
+  type t = {
+    tbl : (Fpath.t, unit) Hashtbl.t;
+        [@printer fun fmt _tbl -> fprintf fmt "<hashtbl>"]
+    (* Elements in their original order *)
+    list : Fpath.t list;
+  }
+  [@@deriving show]
+
+  let empty = { tbl = Hashtbl.create 0; list = [] }
+
+  let of_list paths =
+    let tbl = Hashtbl.create (2 * List.length paths) in
+    List.iter (fun path -> Hashtbl.replace tbl path ()) paths;
+    { tbl; list = paths }
+
+  let to_list x = x.list
+
+  (* Fast O(1) operation *)
+  let mem x path = Hashtbl.mem x.tbl path
+end
+
 (* TODO? process also user's gitignore file like ripgrep does?
    TODO? use Glob.Pattern.t below instead of string for exclude and include_?
    TODO: add an option to select all git-tracked files regardless of
@@ -67,8 +89,8 @@ type conf = {
   (* TODO? use, and better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   diff_depth : int;
-  (* TODO: use *)
-  scan_unknown_extensions : bool;
+  always_select_explicit_targets : bool;
+  explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
   project_root : project_root option;
 }
@@ -80,6 +102,24 @@ type project_roots = {
   (* scanning roots that belong to the project *)
   scanning_roots : Fppath.t list;
 }
+
+let default_conf : conf =
+  {
+    (* the project root is inferred from the presence of .git, otherwise
+       falls back to the current directory. Should it be offered as
+       a command-line option? In osemgrep, a .semgrepignore at the
+       git project root will be honored unlike in legacy semgrep
+       if we're in a subfolder. *)
+    project_root = None;
+    exclude = [];
+    include_ = None;
+    baseline_commit = None;
+    diff_depth = 2;
+    max_target_bytes = 1_000_000 (* 1 MB *);
+    respect_gitignore = true;
+    always_select_explicit_targets = false;
+    explicit_targets = Explicit_targets.empty;
+  }
 
 (*************************************************************************)
 (* Diagnostic *)
