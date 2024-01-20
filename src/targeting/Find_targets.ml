@@ -209,7 +209,7 @@ let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
          | Ignore_silently -> ());
   (Fppath_set.of_list !selected_paths, !skipped)
 
-(* We used to call 'git ls-files' when conf.respect_git_ignore was true,
+(* We used to call 'git ls-files' when conf.respect_gitignore was true,
  * which could potentially speedup things because git may rely on
  * internal data-structures to answer the question instead of walking
  * the filesystem and read the potentially many .gitignore files.
@@ -302,6 +302,8 @@ let git_list_files ~exclude_standard
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
+               (* TODO: this is incorrect. We want to list targets relative to
+                  the current folder, not to the project root. *)
                let cwd = Rpath.to_fpath project.path in
                Git_wrapper.ls_files ~cwd ~exclude_standard ~kinds:file_kinds
                  [ sc_root.fpath ]
