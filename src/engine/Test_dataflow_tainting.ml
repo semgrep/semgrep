@@ -18,7 +18,7 @@ let pr2_ranges file rwms =
          let line_str =
            let pm = rwm.RM.origin in
            let loc1, _ = pm.Pattern_match.range_loc in
-           string_of_int loc1.Tok.pos.line
+           string_of_int loc1.Tok.line
          in
          UCommon.pr2 (code_text ^ " @l." ^ line_str))
 

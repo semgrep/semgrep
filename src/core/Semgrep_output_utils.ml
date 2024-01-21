@@ -68,24 +68,24 @@ let adjust_column x = x + 1
 
 let position_of_token_location loc =
   {
-    line = loc.Tok.pos.line;
-    col = adjust_column loc.Tok.pos.column;
-    offset = loc.Tok.pos.bytepos;
+    line = loc.Tok.line;
+    col = adjust_column loc.Tok.column;
+    offset = loc.Tok.bytepos;
   }
 
 let position_range min_loc max_loc =
   let end_line, end_col, end_charpos = Tok.end_pos_of_loc max_loc in
   (* alt: could call position_of_token_location but more symetric like that*)
   ( {
-      line = min_loc.Tok.pos.line;
-      col = adjust_column min_loc.Tok.pos.column;
-      offset = min_loc.Tok.pos.bytepos;
+      line = min_loc.Tok.line;
+      col = adjust_column min_loc.Tok.column;
+      offset = min_loc.Tok.bytepos;
     },
     { line = end_line; col = adjust_column end_col; offset = end_charpos } )
 
 let location_of_token_location loc =
   let start, end_ = position_range loc loc in
-  { path = Fpath.v loc.Tok.pos.file; start; end_ }
+  { path = Fpath.v loc.Tok.file; start; end_ }
 
 (* None if pi has no location information. Fake tokens should have been
  * filtered out earlier, but in case one slipped through we handle this case.

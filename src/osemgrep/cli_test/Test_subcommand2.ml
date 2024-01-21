@@ -204,7 +204,7 @@ let get_expected_and_reported_lines result test_files =
          (fun reported_lines { Core_result.pm = result; _ } ->
            let path = Unix.realpath !!(result.Pattern_match.file)
            and check_id = Rule_ID.to_string result.rule_id.id
-           and start_line = (fst result.range_loc).pos.line in
+           and start_line = (fst result.range_loc).line in
            let path_map =
              try Map_.find path reported_lines with
              | Not_found -> Map_.empty

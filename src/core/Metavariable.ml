@@ -199,7 +199,7 @@ let range_of_mvalue mval =
   in
   (* We must return both the range *and* the file, due to metavariable-pattern
    * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
-  Some (tok_start.pos.file, Range.range_of_token_locations tok_start tok_end)
+  Some (tok_start.file, Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> AST_generic_helpers.ii_of_any
 let str_of_mval x = show_mvalue x

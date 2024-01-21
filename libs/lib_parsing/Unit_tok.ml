@@ -9,7 +9,7 @@ let test_end_pos_of_loc () =
     let line, column, bytepos = start in
     let expected_line, expected_col, expected_charpos = expected in
     let loc : Tok.location =
-      { str; pos = { bytepos; line; column; file = "test.txt" } }
+      { str; bytepos; line; column; file = "test.txt" }
     in
     let line, col, charpos = Tok.end_pos_of_loc loc in
     assert (line = expected_line);

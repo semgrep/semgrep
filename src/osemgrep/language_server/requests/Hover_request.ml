@@ -74,8 +74,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
                     (* Subtract one for each line, because we want to switch to
                         0-indexing
                     *)
-                    start =
-                      { character = t1.pos.column; line = t1.pos.line - 1 };
+                    start = { character = t1.column; line = t1.line - 1 };
                     end_ = { character = end_col; line = end_line - 1 };
                   };
             }

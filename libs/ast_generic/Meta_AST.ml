@@ -20,14 +20,10 @@ let vof_filename v = OCaml.vof_string v
 let vof_token_location
     {
       Tok.str = v_str;
-      pos =
-        {
-          bytepos = v_charpos;
-          line = v_line;
-          column = v_column;
-          file = v_file;
-          _;
-        };
+      bytepos = v_charpos;
+      line = v_line;
+      column = v_column;
+      file = v_file;
     } =
   let bnds = [] in
   let arg = vof_filename v_file in

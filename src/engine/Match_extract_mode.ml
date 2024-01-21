@@ -79,12 +79,12 @@ let offsets_of_mval extract_mvalue =
   |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
          let end_len = String.length end_loc.Tok.str in
          {
-           start_pos = start_loc.pos.bytepos;
+           start_pos = start_loc.bytepos;
            (* subtract 1 because lines are 1-indexed, so the
                offset is one less than the current line *)
-           start_line = start_loc.pos.line - 1;
-           start_col = start_loc.pos.column;
-           end_pos = end_loc.pos.bytepos + end_len;
+           start_line = start_loc.line - 1;
+           start_col = start_loc.column;
+           end_pos = end_loc.bytepos + end_len;
          })
 
 let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
@@ -134,13 +134,13 @@ let report_no_source_range erule =
 
 let map_loc bytepos line col file (loc : Tok.location) =
   (* this _shouldn't_ be a fake location *)
-  let pos = loc.pos in
-  let pos =
-    Pos.make ~file ~line:(pos.line + line)
-      ~column:(if pos.line =|= 1 then pos.column + col else pos.column)
-      (pos.bytepos + bytepos)
-  in
-  { loc with pos }
+  {
+    loc with
+    file;
+    line = loc.line + line;
+    column = (if loc.line =|= 1 then loc.column + col else loc.column);
+    bytepos = loc.bytepos + bytepos;
+  }
 
 let map_taint_trace map_loc traces =
   let lift_map_loc f x =
@@ -329,7 +329,7 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
                      start at the correct start location, but the length with
                      dictate the end, so it may not exactly correspond.
                   *)
-                  fun ({ Tok.pos = { bytepos; _ }; _ } as loc) ->
+                  fun ({ Tok.bytepos; _ } as loc) ->
                     if bytepos < consumed_loc.start_pos then map_contents loc
                     else
                       (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
@@ -338,22 +338,18 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
                         let (`Extract { Rule.transform; _ }) = r.Rule.mode in
                         match transform with
                         | ConcatJsonArray ->
-                            loc.pos.line - consumed_loc.start_line - 1
-                        | __else__ -> loc.pos.line - consumed_loc.start_line
+                            loc.line - consumed_loc.start_line - 1
+                        | __else__ -> loc.line - consumed_loc.start_line
                       in
                       map_snippet
                         {
                           loc with
-                          pos =
-                            {
-                              loc.pos with
-                              bytepos = loc.pos.bytepos - consumed_loc.start_pos;
-                              line;
-                              column =
-                                (if line =|= 1 then
-                                   loc.pos.column - consumed_loc.start_col
-                                 else loc.pos.column);
-                            };
+                          bytepos = loc.bytepos - consumed_loc.start_pos;
+                          line;
+                          column =
+                            (if line =|= 1 then
+                               loc.column - consumed_loc.start_col
+                             else loc.column);
                         } ))
               ( { start_pos = 0; end_pos = 0; start_line = 0; start_col = 0 },
                 Buffer.create 0,

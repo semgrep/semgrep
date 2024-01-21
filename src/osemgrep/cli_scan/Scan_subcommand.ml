@@ -329,7 +329,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     let start_range, end_range = m.Pattern_match.range_loc in
     let syntactic_ctx =
       UFile.lines_of_file
-        (start_range.pos.line, end_range.pos.line)
+        (start_range.line, end_range.line)
         m.Pattern_match.file
     in
     (rule_id, path, syntactic_ctx)
@@ -360,10 +360,10 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
              let x_start_range, x_end_range = x.Pattern_match.range_loc in
              let y_start_range, y_end_range = y.Pattern_match.range_loc in
              let start_compare =
-               x_start_range.pos.bytepos - y_start_range.pos.bytepos
+               x_start_range.bytepos - y_start_range.bytepos
              in
              if start_compare <> 0 then start_compare
-             else x_end_range.pos.bytepos - y_end_range.pos.bytepos))
+             else x_end_range.bytepos - y_end_range.bytepos))
   in
   Logs.app (fun m ->
       m "Removed %s that were in baseline scan"

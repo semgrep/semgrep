@@ -266,7 +266,7 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
   let range =
     let start, end_ = pm.Pattern_match.range_loc in
     let _, _, end_charpos = Tok.end_pos_of_loc end_ in
-    (start.Tok.pos.bytepos, end_charpos)
+    (start.Tok.bytepos, end_charpos)
   in
   match (fix, fix_regex) with
   | None, None -> None

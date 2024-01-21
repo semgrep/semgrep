@@ -158,7 +158,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                        matches
                        |> List_.map (fun (pm : Pattern_match.t) ->
                               pm.range_loc |> fst |> fun (loc : Loc.t) ->
-                              loc.pos.line)
+                              loc.line)
                      in
                      let expected_lines = reported_lines in
                      let (rule_result : OutJ.rule_result) =

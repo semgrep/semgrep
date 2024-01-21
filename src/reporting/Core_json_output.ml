@@ -231,9 +231,9 @@ let unsafe_match_to_match
   *)
   let file =
     if
-      (!!(x.file) <> min_loc.pos.file || !!(x.file) <> max_loc.pos.file)
-      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
-    then min_loc.pos.file
+      (!!(x.file) <> min_loc.file || !!(x.file) <> max_loc.file)
+      && min_loc.file <> "FAKE TOKEN LOCATION"
+    then min_loc.file
     else !!(x.file)
   in
   {
@@ -281,7 +281,7 @@ let match_to_match (x : Core_result.processed_match) :
  * so we would not need those conversions
  *)
 let error_to_error (err : Core_error.t) : OutJ.core_error =
-  let file = err.loc.pos.file in
+  let file = err.loc.file in
   let startp, endp = OutUtils.position_range err.loc err.loc in
   let rule_id = err.rule_id in
   let error_type = err.typ in

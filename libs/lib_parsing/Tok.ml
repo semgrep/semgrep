@@ -56,15 +56,15 @@ open Sexplib.Std
 type location = {
   (* the content of the "token" *)
   str : string;
-  (* TODO? the content of Pos.t used to be inlined in this location type.
-   * It is cleaner to factorize things in Pos.t, but this introduces
-   * an extra pointer which actually can have real performance implication
-   * in Semgrep on huge monorepos. It might be worth inlining it back
-   * (and also reduce its number of fields).
-   *)
-  pos : Pos.t;
+  bytepos : int; (* 0-based *)
+  line : int; (* 1-based *)
+  column : int; (* 0-based *)
+  file : string;
 }
 [@@deriving show { with_path = false }, eq, ord, sexp]
+
+let pos_of_loc { str = _; bytepos; line; column; file } =
+  { Pos.bytepos; line; column; file }
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
@@ -164,7 +164,8 @@ let is_origintok ii =
   | OriginTok _ -> true
   | _ -> false
 
-let fake_location = { str = ""; pos = Pos.fake_pos }
+let fake_location =
+  { str = ""; bytepos = -1; line = -1; column = -1; file = "NO FILE INFO YET" }
 
 (* Synthesize a fake token *)
 let unsafe_fake_tok str : t = FakeTok (str, None)
@@ -211,7 +212,7 @@ let unsafe_fake_bracket x = (unsafe_fake_tok "(", x, unsafe_fake_tok ")")
 
 let stringpos_of_tok (x : t) : string =
   match loc_of_tok x with
-  | Ok loc -> Pos.string_of_pos loc.pos
+  | Ok loc -> Pos.string_of_pos (loc |> pos_of_loc)
   | Error msg -> spf "unknown location (%s)" msg
 
 let unsafe_loc_of_tok ii =
@@ -219,12 +220,12 @@ let unsafe_loc_of_tok ii =
   | Ok pinfo -> pinfo
   | Error msg -> raise (NoTokenLocation msg)
 
-let line_of_tok ii = (unsafe_loc_of_tok ii).pos.line
-let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
+let line_of_tok ii = (unsafe_loc_of_tok ii).line
+let col_of_tok ii = (unsafe_loc_of_tok ii).column
 
 (* todo: return a Real | Virt position ? *)
-let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.bytepos
-let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
+let bytepos_of_tok ii = (unsafe_loc_of_tok ii).bytepos
+let file_of_tok ii = (unsafe_loc_of_tok ii).file
 
 let content_of_tok ii =
   match ii with
@@ -257,7 +258,7 @@ let end_pos_of_loc loc =
         | '\n' -> (line, col, true)
         | _ when after_nl -> (line + 1, 1, false)
         | _ -> (line, col + 1, false))
-      (loc.pos.line, loc.pos.column, false)
+      (loc.line, loc.column, false)
       loc.str
   in
   let col =
@@ -265,7 +266,7 @@ let end_pos_of_loc loc =
      * is that the standard ? *)
     if trailing_nl then col + 1 else col
   in
-  (line, col, loc.pos.bytepos + String.length loc.str)
+  (line, col, loc.bytepos + String.length loc.str)
 
 (*****************************************************************************)
 (* Builders *)
@@ -278,7 +279,10 @@ let tok_of_str_and_bytepos str pos =
     {
       str;
       (* the pos will be filled in post-lexing phase, see complete_location *)
-      pos = Pos.make pos;
+      bytepos = pos;
+      line = -1;
+      column = -1;
+      file = "NO FILE INFO YET";
     }
   in
   tok_of_loc loc
@@ -286,7 +290,9 @@ let tok_of_str_and_bytepos str pos =
 let tok_of_lexbuf lexbuf =
   tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
 
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+let first_loc_of_file file =
+  { str = ""; bytepos = 0; line = 1; column = 0; file }
+
 let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 
 let rewrap_str s ii =
@@ -319,13 +325,10 @@ let empty_tok_after tok : t =
       let prev_len = String.length loc.str in
       let loc =
         {
+          loc with
           str = "";
-          pos =
-            {
-              loc.pos with
-              bytepos = loc.pos.bytepos + prev_len;
-              column = loc.pos.column + prev_len;
-            };
+          bytepos = loc.bytepos + prev_len;
+          column = loc.column + prev_len;
         }
       in
       tok_of_loc loc
@@ -345,13 +348,10 @@ let split_tok_at_bytepos pos ii =
   let loc1 = { loc with str = loc1_str } in
   let loc2 =
     {
+      loc with
       str = loc2_str;
-      pos =
-        {
-          loc.pos with
-          bytepos = loc.pos.bytepos + pos;
-          column = loc.pos.column + pos;
-        };
+      bytepos = loc.bytepos + pos;
+      column = loc.column + pos;
     }
   in
   (tok_of_loc loc1, tok_of_loc loc2)
@@ -363,18 +363,13 @@ let split_tok_at_bytepos pos ii =
 (* TODO? move to Pos.ml and use Pos.t instead *)
 let adjust_loc_wrt_base base_loc loc =
   (* Note that bytepos and columns are 0-based, whereas lines are 1-based. *)
-  let base_pos = base_loc.pos in
-  let pos = loc.pos in
   {
     loc with
-    pos =
-      {
-        bytepos = base_pos.bytepos + pos.bytepos;
-        line = base_pos.line + pos.line - 1;
-        column =
-          (if pos.line =|= 1 then base_pos.column + pos.column else pos.column);
-        file = base_pos.file;
-      };
+    bytepos = base_loc.bytepos + loc.bytepos;
+    line = base_loc.line + loc.line - 1;
+    column =
+      (if loc.line =|= 1 then base_loc.column + loc.column else loc.column);
+    file = base_loc.file;
   }
 
 let fix_location fix ii =
@@ -387,14 +382,19 @@ let fix_location fix ii =
 let adjust_tok_wrt_base base_loc ii =
   fix_location (adjust_loc_wrt_base base_loc) ii
 
-let fix_pos fix loc = { loc with pos = fix loc.pos }
-
 (*****************************************************************************)
 (* Adjust line x col *)
 (*****************************************************************************)
 
 let complete_location filename table (x : location) =
-  { x with pos = Pos.complete_position filename table x.pos }
+  let pos' = Pos.complete_position filename table (pos_of_loc x) in
+  {
+    x with
+    bytepos = pos'.bytepos;
+    line = pos'.line;
+    column = pos'.column;
+    file = pos'.file;
+  }
 
 (*
 I used to have:
@@ -483,14 +483,14 @@ let compare_pos ii1 ii2 =
   let pos1 = get_pos ii1 in
   let pos2 = get_pos ii2 in
   match (pos1, pos2) with
-  | Real p1, Real p2 -> Int.compare p1.pos.bytepos p2.pos.bytepos
+  | Real p1, Real p2 -> Int.compare p1.bytepos p2.bytepos
   | Virt (p1, _), Real p2 ->
-      if Int.compare p1.pos.bytepos p2.pos.bytepos =|= -1 then -1 else 1
+      if Int.compare p1.bytepos p2.bytepos =|= -1 then -1 else 1
   | Real p1, Virt (p2, _) ->
-      if Int.compare p1.pos.bytepos p2.pos.bytepos =|= 1 then 1 else -1
+      if Int.compare p1.bytepos p2.bytepos =|= 1 then 1 else -1
   | Virt (p1, o1), Virt (p2, o2) -> (
-      let poi1 = p1.pos.bytepos in
-      let poi2 = p2.pos.bytepos in
+      let poi1 = p1.bytepos in
+      let poi2 = p2.bytepos in
       match Int.compare poi1 poi2 with
       | -1 -> -1
       | 0 -> Int.compare o1 o2

@@ -87,8 +87,8 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   let lines =
     (* Minus one, because we need the preceding line. *)
     let start, end_ = pm.range_loc in
-    let start_line = max 0 (start.pos.line - 1) in
-    UFile.lines_of_file (start_line, end_.pos.line) pm.file
+    let start_line = max 0 (start.line - 1) in
+    UFile.lines_of_file (start_line, end_.line) pm.file
     |> List_.mapi (fun idx x -> (start_line + idx, x))
   in
 
@@ -99,7 +99,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
 
   let previous_line, line =
     match lines with
-    | line0 :: line1 :: _ when (fst pm.range_loc).pos.line > 0 ->
+    | line0 :: line1 :: _ when (fst pm.range_loc).line > 0 ->
         (Some line0, Some line1)
     | line :: _ -> (None, Some line)
     | [] (* XXX(dinosaure): is it possible? *) -> (None, None)
@@ -160,14 +160,10 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
             Tok.
               {
                 str = id;
-                pos =
-                  Pos.
-                    {
-                      bytepos = linecol_to_bytepos_fun (line_num, col);
-                      line = line_num;
-                      column = col;
-                      file = !!path;
-                    };
+                bytepos = linecol_to_bytepos_fun (line_num, col);
+                line = line_num;
+                column = col;
+                file = !!path;
               }
           in
           let errors =
