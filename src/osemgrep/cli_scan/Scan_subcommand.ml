@@ -580,7 +580,15 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
         || Output_format.keep_ignores output_format
       in
       let filtered_matches =
-        Nosemgrep.filter_ignored ~keep_ignored res.core.results
+        let results =
+          List_.map
+            (fun (r : OutJ.core_match) ->
+              let fix = Option.map String.trim r.OutJ.extra.fix in
+              let extra = { r.extra with fix } in
+              { r with extra })
+            res.core.results
+        in
+        Nosemgrep.filter_ignored ~keep_ignored results
       in
       { res with core = { res.core with results = filtered_matches } }
     in
