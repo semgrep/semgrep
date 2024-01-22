@@ -58,7 +58,7 @@ val rules_from_rules_source :
   strict:bool ->
   < Cap.network > ->
   Rules_source.t ->
-  rules_and_origin list * Rule.error list
+  rules_and_origin list
 
 (* TODO: make cap network an option (with token) *)
 val rules_from_rules_source_async :
@@ -68,7 +68,7 @@ val rules_from_rules_source_async :
   strict:bool ->
   < Cap.network > ->
   Rules_source.t ->
-  (rules_and_origin list * Rule.error list) Lwt.t
+  rules_and_origin list Lwt.t
 
 (* internals *)
 

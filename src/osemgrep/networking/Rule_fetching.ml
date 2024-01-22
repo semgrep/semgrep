@@ -547,8 +547,7 @@ let rules_from_pattern pattern : rules_and_origin list =
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
-    ~strict caps (src : Rules_source.t) :
-    (rules_and_origin list * Rule.error list) Lwt.t =
+    ~strict caps (src : Rules_source.t) : rules_and_origin list Lwt.t =
   let%lwt rules_and_origins, errors =
     match src with
     | Configs xs ->
@@ -603,15 +602,15 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
              (String_.unit_str (List.length errors) "error"),
            Some Exit_code.missing_config ));
 
-  Lwt.return (rules_and_origins, errors)
+  (* errors should be empty here, because patterns cannot yet return errors *)
+  Lwt.return rules_and_origins
 
 (* You should probably avoid using directly this function and prefer
  * to use the _async variant above mixed with a spinner as in
  * Scan_subcommand.rules_from_rules_source()
  *)
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
-    ~strict caps (src : Rules_source.t) :
-    rules_and_origin list * Rule.error list =
+    ~strict caps (src : Rules_source.t) : rules_and_origin list =
   Lwt_platform.run
     (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
        ~registry_caching ~strict caps src)

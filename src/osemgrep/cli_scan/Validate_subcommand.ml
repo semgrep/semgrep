@@ -74,7 +74,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
    * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
    * in Config_resolver.errors.
    *)
-  let rules_and_origin, _errors =
+  let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
       ~registry_caching:false ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network >)
