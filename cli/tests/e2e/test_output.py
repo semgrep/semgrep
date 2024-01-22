@@ -278,7 +278,6 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
