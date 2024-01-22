@@ -39,28 +39,21 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
   let rule_file = Fpath.to_string rule_file in
   (* THINK: is this the same as get_config(...).get_rules()? *)
   let rules, errors =
-    try
-      let rules, errors =
-        let rules_and_origins, _errors =
-          Rule_fetching.rules_from_rules_source ~token_opt:(Some caps#token)
-            ~rewrite_rule_ids:true ~registry_caching:false ~strict:false
-            (caps :> < Cap.network >)
-            (Rules_source.Configs [ rule_file ])
-        in
-        Rule_fetching.partition_rules_and_errors rules_and_origins
+    let (rules, invalid_rule_errors), errors =
+      let rules_and_origins, errors =
+        Rule_fetching.rules_from_rules_source ~token_opt:(Some caps#token)
+          ~rewrite_rule_ids:true ~registry_caching:false ~strict:false
+          (caps :> < Cap.network >)
+          (Rules_source.Configs [ rule_file ])
       in
-      ( rules,
-        List_.map
-          (fun ((_, rule_id, _) as err) ->
-            Rule.{ rule_id = Some rule_id; kind = InvalidRule err })
-          errors )
-    with
-    (* TODO: Why is this needed? This exception should have been handled and
-       converted at `Parse_rule` time...
-    *)
-    | Parsing_error.Other_error (s, t) ->
-        ([], [ { rule_id = None; kind = InvalidYaml (s, t) } ])
-    | Rule.Error error -> ([], [ error ])
+      (Rule_fetching.partition_rules_and_errors rules_and_origins, errors)
+    in
+    ( rules,
+      List_.map
+        (fun ((_, rule_id, _) as err) ->
+          Rule.{ rule_id = Some rule_id; kind = InvalidRule err })
+        invalid_rule_errors
+      @ errors )
   in
 
   match (errors, rules) with
