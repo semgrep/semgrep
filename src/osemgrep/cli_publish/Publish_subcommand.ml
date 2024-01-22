@@ -41,11 +41,13 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
   let rules, errors =
     try
       let rules, errors =
-        Rule_fetching.rules_from_rules_source ~token_opt:(Some caps#token)
-          ~rewrite_rule_ids:true ~registry_caching:false
-          (caps :> < Cap.network >)
-          (Rules_source.Configs [ rule_file ])
-        |> Rule_fetching.partition_rules_and_errors
+        let rules_and_origins, _errors =
+          Rule_fetching.rules_from_rules_source ~token_opt:(Some caps#token)
+            ~rewrite_rule_ids:true ~registry_caching:false ~strict:false
+            (caps :> < Cap.network >)
+            (Rules_source.Configs [ rule_file ])
+        in
+        Rule_fetching.partition_rules_and_errors rules_and_origins
       in
       ( rules,
         List_.map

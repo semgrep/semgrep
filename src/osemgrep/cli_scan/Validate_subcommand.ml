@@ -74,9 +74,9 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
    * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
    * in Config_resolver.errors.
    *)
-  let rules_and_origin =
+  let rules_and_origin, _errors =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false
+      ~registry_caching:false ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network >)
       conf.rules_source
   in
@@ -117,7 +117,8 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         let (config : Rules_config.t) =
           Rules_config.parse_config_string ~in_docker metarules_pack
         in
-        let metarules_and_origin =
+        (* There should not be any errors, because we got these rules online. *)
+        let metarules_and_origin, _errors =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
             ~registry_caching:false

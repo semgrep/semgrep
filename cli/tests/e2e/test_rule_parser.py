@@ -118,7 +118,6 @@ def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp: RunSemgrep, sna
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_rule_parser_error_invalid_key_name_text(
     run_semgrep_in_tmp: RunSemgrep, snapshot
 ):
