@@ -104,7 +104,9 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
-    |> List_.map (Cli_json_output.cli_match_of_core_match hrules)
+    |> List_.map
+         (Cli_json_output.cli_match_of_core_match
+            ~dryrun:conf.output_conf.dryrun hrules)
     |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =

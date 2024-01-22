@@ -1,5 +1,6 @@
 (* entry point *)
 val cli_output_of_core_results :
+  dryrun:bool ->
   logging_level:Logs.level option ->
   (* essentially Core_runner.result *)
   Semgrep_output_v1_t.core_output ->
@@ -12,7 +13,10 @@ val exit_code_of_error_type : Semgrep_output_v1_t.error_type -> Exit_code.t
 
 (* internals used also for incremental display of matches *)
 val cli_match_of_core_match :
-  Rule.hrules -> Semgrep_output_v1_t.core_match -> Semgrep_output_v1_t.cli_match
+  dryrun:bool ->
+  Rule.hrules ->
+  Semgrep_output_v1_t.core_match ->
+  Semgrep_output_v1_t.cli_match
 
 val index_match_based_ids :
   Semgrep_output_v1_t.cli_match list -> Semgrep_output_v1_t.cli_match list
