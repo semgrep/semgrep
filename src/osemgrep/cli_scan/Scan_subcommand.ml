@@ -752,7 +752,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * possible *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
-  let rules_and_origins, eerrors =
+  let rules_and_origins, _errors =
     rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching

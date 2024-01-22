@@ -578,7 +578,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
         (* NOTE: We should default to config auto if no config was passed in an earlier step,
            but if we reach this step without a config, we emit the error below.
         *)
-        if rules_and_origins <> [] then
+        if rules_and_origins =*= [] then
           raise
             (Error.Semgrep_error
                ( "No config given. Run with `--config auto` or see \
