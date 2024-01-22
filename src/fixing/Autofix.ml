@@ -296,11 +296,9 @@ let apply_fixes_to_file edits ~file =
            (List_.hd_exn "unexpected empty list" conflicting_edits)
              .replacement_text)
 
-let apply_fixes (edits : Textedit.t list) =
+let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
   (* TODO: *)
-  let modified_files, _failed_fixes =
-    Textedit.apply_edits ~dryrun:false edits
-  in
+  let modified_files, _failed_fixes = Textedit.apply_edits ~dryrun edits in
 
   if modified_files <> [] then
     Logs.info (fun m ->
@@ -308,7 +306,7 @@ let apply_fixes (edits : Textedit.t list) =
           (String_.unit_str (List.length modified_files) "file(s)"))
   else Logs.info (fun m -> m "no files modified.")
 
-let apply_fixes_of_core_matches (matches : OutJ.core_match list) =
+let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
   matches
   |> List_.map_filter (fun (m : OutJ.core_match) ->
          let* replacement_text = m.extra.fix in
@@ -317,4 +315,4 @@ let apply_fixes_of_core_matches (matches : OutJ.core_match list) =
          Some
            Textedit.
              { path = Fpath.to_string m.path; start; end_; replacement_text })
-  |> apply_fixes
+  |> apply_fixes ?dryrun
