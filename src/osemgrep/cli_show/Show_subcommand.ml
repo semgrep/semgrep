@@ -108,7 +108,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
           config
       in
 
-      if List.length errors > 0 then
+      if errors <> [] then
         raise
           (Error.Semgrep_error
              ( Common.spf "invalid configuration string found: %s" config_str,
