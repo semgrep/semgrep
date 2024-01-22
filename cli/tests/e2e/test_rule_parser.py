@@ -134,3 +134,16 @@ def test_rule_parser_error_invalid_key_name_text(run_semgrep_in_tmp: RunSemgrep)
     )
 
     assert "invalid configuration file found" in stderr
+
+
+@pytest.mark.kinda_slow
+def test_rule_parser_semgrep_test_invalid_rule(run_semgrep_in_tmp: RunSemgrep):
+    _, stderr = run_semgrep_in_tmp(
+        f"rules/syntax/invalid-patterns-key.yml",
+        subcommand="test",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        assert_exit_code=7,
+    )
+
+    assert "invalid configuration string found" in stderr

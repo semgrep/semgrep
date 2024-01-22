@@ -209,7 +209,7 @@ let fetch_rules session =
           ~token_opt:(auth_token ()) ~registry_caching:true caps config)
       rules_source
   in
-  (* TODO: what is the desired behavior here? *)
+
   let rules_and_origins, errors =
     let rules_and_origins_nested, errors_nested =
       Common2.unzip rules_and_errors
