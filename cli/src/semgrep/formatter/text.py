@@ -44,7 +44,16 @@ RULE_INDENT = 5  # NOTE: There are 2 leading spaces not included in this number
 BASE_INDENT = 8
 FINDINGS_INDENT_DEPTH = 14
 BASE_WIDTH = console.width
-MAX_TEXT_WIDTH = BASE_WIDTH - (FINDINGS_INDENT_DEPTH + 2)
+# NOTE: All text widths must be > 0 to avoid runtime value errors.
+#       As a preventative measure, we set a minimum width of 10
+#       for all text widths, with the wrapper function `safe_width`.
+MIN_TEXT_WIDTH = 10
+FINDINGS_TEXT_WIDTH = BASE_WIDTH - (FINDINGS_INDENT_DEPTH + 2)
+RULE_TEXT_WIDTH = BASE_WIDTH - (RULE_INDENT + 4)
+DESC_TEXT_WIDTH = BASE_WIDTH - (BASE_INDENT + 4)
+AUTOFIX_TEXT_WIDTH = BASE_WIDTH - (
+    BASE_INDENT + 4 + 13
+)  # 4 for line number, 13 for autofix tag
 
 
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
@@ -74,6 +83,14 @@ SEVERITY_MAP_STYLED = {
     out.Warning.to_json(): ("magenta", " ❯❱"),
     out.Info.to_json(): ("green", "  ❱"),
 }
+
+
+def safe_width(width: int) -> int:
+    """
+    Return a width that is at least MIN_TEXT_WIDTH to avoid
+    runtime value errors.
+    """
+    return max(MIN_TEXT_WIDTH, width)
 
 
 def to_severity_indicator(
@@ -118,7 +135,7 @@ def format_finding_line(
     mid_styled = mid or "" if not color else f"▶{mid}◀"
     wrapped_text = textwrap.fill(
         f"{line_number_str}{line[:start]}{mid_styled}{line[end:]}",
-        width=per_line_max_chars_limit,
+        width=safe_width(per_line_max_chars_limit),
         initial_indent=(FINDINGS_INDENT_DEPTH - 6) * " ",
         subsequent_indent=(FINDINGS_INDENT_DEPTH - 1) * " ",
     )
@@ -148,8 +165,8 @@ def format_lines(
         lines = lines[:per_finding_max_lines_limit]
 
     per_line_max_chars_limit = min(
-        per_line_max_chars_limit or MAX_TEXT_WIDTH,
-        MAX_TEXT_WIDTH,
+        per_line_max_chars_limit or FINDINGS_TEXT_WIDTH,
+        FINDINGS_TEXT_WIDTH,
     )
     # we remove indentation at the start of the snippet to avoid wasting space
     dedented_lines = textwrap.dedent("".join(lines)).splitlines()
@@ -393,7 +410,7 @@ def dataflow_trace_to_lines(
             yield Text.assemble("")
 
         if source and show_separator:
-            seperator_fill_count = min(40, MAX_TEXT_WIDTH - 1)
+            seperator_fill_count = safe_width(min(40, FINDINGS_TEXT_WIDTH - 1))
             yield Text.assemble(
                 f" " * (FINDINGS_INDENT_DEPTH - 4) + f"⋮┆" + f"-" * seperator_fill_count
             )
@@ -612,7 +629,7 @@ def print_text_output(
             )  # Title of the rule that we need to bold later
             wrapped_text = textwrap.fill(
                 rule_title,
-                width=BASE_WIDTH - (RULE_INDENT + 4),
+                width=safe_width(RULE_TEXT_WIDTH),
                 initial_indent="",
                 subsequent_indent=RULE_INDENT * " ",
             )
@@ -640,7 +657,7 @@ def print_text_output(
             )
             message_text = click.wrap_text(
                 f"{message}",
-                width=BASE_WIDTH - (BASE_INDENT + 4),
+                width=safe_width(DESC_TEXT_WIDTH),
                 initial_indent=BASE_INDENT * " ",
                 subsequent_indent=BASE_INDENT * " ",
                 preserve_paragraphs=True,
@@ -656,8 +673,7 @@ def print_text_output(
                     textwrap.dedent(
                         "".join(l.strip() for l in fix.splitlines(keepends=True))
                     ),
-                    width=BASE_WIDTH
-                    - (BASE_INDENT + 4 + 13),  # 4 for line number, 13 for autofix tag
+                    width=safe_width(AUTOFIX_TEXT_WIDTH),
                     initial_indent="",
                     subsequent_indent=(BASE_INDENT + 4) * " ",  # 4 for line number
                 )
