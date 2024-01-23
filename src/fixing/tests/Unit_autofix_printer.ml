@@ -7,6 +7,8 @@ type autofix_printer_test_case = {
   expected : string;
 }
 
+let t = Testo.create
+
 (* Test suite for the autofix printers.
  *
  * This runs Semgrep to get a pattern match, then renders the fix. However, it
@@ -32,13 +34,13 @@ type autofix_printer_test_case = {
  * fixes tested there are correct.
  *)
 let check lang { target; pattern; fix_pattern; expected } =
-  let ext = Common.hd_exn "unexpected empty list" (Lang.ext_of_lang lang) in
+  let ext = List_.hd_exn "unexpected empty list" (Lang.ext_of_lang lang) in
   Common2.with_tmp_file ~str:target ~ext (fun target_file ->
       let target_file = Fpath.v target_file in
       let matches =
         Unit_engine.match_pattern ~lang
           ~hook:(fun _ -> ())
-          ~file:target_file ~pattern ~fix_pattern:(Some fix_pattern)
+          ~file:target_file ~pattern ~fix:(Fix fix_pattern)
       in
       (* To keep it simple, we make sure that each example here has only a
        * single match. *)
@@ -150,8 +152,8 @@ let test_python_autofix_printer () =
 let test_js_autofix_printer () = List.iter (check Lang.Js) polyglot_test_cases
 
 let tests =
-  Testutil.pack_tests "autofix printer"
+  Testo.categorize "autofix printer"
     [
-      ("test python autofix printer", test_python_autofix_printer);
-      ("test js autofix printer", test_js_autofix_printer);
+      t "test python autofix printer" test_python_autofix_printer;
+      t "test js autofix printer" test_js_autofix_printer;
     ]

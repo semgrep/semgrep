@@ -118,7 +118,8 @@ class AppSession(requests.Session):
     The following features are added over the base Session class:
     - A default retrying policy is added to each request
     - A User-Agent is automatically added to each request
-    - A default timeout of 30 seconds is added to each request
+    - Request IDs are automatically added to each request
+    - A default timeout of 70 seconds is added to each request
     - If a token is available, it is added to the request as an Authorization header
 
     Normal usage:
@@ -177,13 +178,17 @@ class AppSession(requests.Session):
             "timeout", 70
         )  # most backend endpoints are 60s, ideally we have the backend time out before the client
         kwargs.setdefault("headers", {})
+
+        from semgrep.state import get_state  # avoid circular imports
+
+        state = get_state()
+
         kwargs["headers"].setdefault("User-Agent", str(self.user_agent))
+        kwargs["headers"].setdefault("X-Semgrep-Scan-ID", str(state.local_scan_id))
         if self.token:
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")
 
-        from semgrep.state import get_state
-
-        error_handler = get_state().error_handler
+        error_handler = state.error_handler
         method, url = args
         error_handler.push_request(method, url, **kwargs)
         try:

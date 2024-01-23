@@ -93,8 +93,8 @@ let vof_info_adjustable_precision x =
   else if !_current_precision.token_info then
     OCaml.VDict
       [
-        ("line", OCaml.VInt (Tok.line_of_tok x));
-        ("col", OCaml.VInt (Tok.col_of_tok x));
+        ("line", OCaml.vof_int (Tok.line_of_tok x));
+        ("col", OCaml.vof_int (Tok.col_of_tok x));
       ]
   else OCaml.VUnit
 
@@ -441,8 +441,8 @@ and vof_literal = function
   | Bool v1 ->
       let v1 = vof_wrap OCaml.vof_bool v1 in
       OCaml.VSum ("Bool", [ v1 ])
-  | Int v1 ->
-      let v1 = vof_wrap (OCaml.vof_option OCaml.vof_int) v1 in
+  | Int (opt, tk) ->
+      let v1 = vof_wrap (OCaml.vof_option OCaml.vof_int64) (opt, tk) in
       OCaml.VSum ("Int", [ v1 ])
   | Float v1 ->
       let v1 = vof_wrap (OCaml.vof_option OCaml.vof_float) v1 in
@@ -1072,9 +1072,9 @@ and vof_pattern = function
   | PatKeyVal (v1, v2) ->
       let v1 = vof_pattern v1 and v2 = vof_pattern v2 in
       OCaml.VSum ("PatKeyVal", [ v1; v2 ])
-  | PatUnderscore v1 ->
+  | PatWildcard v1 ->
       let v1 = vof_tok v1 in
-      OCaml.VSum ("PatUnderscore", [ v1 ])
+      OCaml.VSum ("PatWildcard", [ v1 ])
   | PatDisj (v1, v2) ->
       let v1 = vof_pattern v1 and v2 = vof_pattern v2 in
       OCaml.VSum ("PatDisj", [ v1; v2 ])

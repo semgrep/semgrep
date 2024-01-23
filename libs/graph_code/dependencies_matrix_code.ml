@@ -115,7 +115,7 @@ let verbose = ref false
 let rec final_nodes_of_tree tree =
   match tree with
   | Node (n, xs) ->
-      if null xs then [ n ] else List.concat_map final_nodes_of_tree xs
+      if List_.null xs then [ n ] else List.concat_map final_nodes_of_tree xs
 
 let hashtbl_find_node h n =
   try Hashtbl.find h n with
@@ -130,7 +130,7 @@ let hashtbl_find_node h n =
 
 (* poor's man DSM visualizer (use codegraph for a real visualization) *)
 let display dm =
-  pr2_gen dm;
+  UCommon.pr2_gen dm;
   ()
 
 (*****************************************************************************)
@@ -168,7 +168,7 @@ let explain_cell_list_use_edges (i, j) dm gopti =
          |> List.iter (fun j2 ->
                 let parent_j2 = projected_parent_of_igopti.(j2) in
                 if parent_i2 =|= i && parent_j2 =|= j then
-                  Common.push
+                  Stack_.push
                     (gopti.G2.i_to_name.(i2), gopti.G2.i_to_name.(j2))
                     res));
   (*
@@ -242,7 +242,7 @@ let focus_on_node n deps_style tree dm =
     (* we do || i = j because we want the node under focus in too, in the
      * right order
      *)
-    if to_include || i =|= j then Common.push j deps
+    if to_include || i =|= j then Stack_.push j deps
   done;
   (* old: this was not keeping the hierarchy (which can be a feature)
    *  Node (G.root, !deps +> List.rev +> List.map (fun i ->
@@ -255,8 +255,8 @@ let focus_on_node n deps_style tree dm =
         let j = hashtbl_find_node dm.name_to_i n2 in
         if i =|= j || List.mem j !deps then Some (Node (n2, [])) else None
     | Node (n2, xs) ->
-        let xs = xs |> Common.map_filter aux in
-        if null xs then None else Some (Node (n2, xs))
+        let xs = xs |> List_.map_filter aux in
+        if List_.null xs then None else Some (Node (n2, xs))
   in
   (* should be a Some cos at least we have 'n' in the tree *)
   Common2.some (aux tree)
@@ -276,7 +276,7 @@ let string_of_config_path_elem = function
         (G.string_of_node n)
 
 let string_of_config_path xs =
-  xs |> List.map string_of_config_path_elem |> Common.join "/"
+  xs |> List.map string_of_config_path_elem |> String.concat "/"
 
 (*****************************************************************************)
 (* Matrix analysis *)
@@ -389,7 +389,7 @@ let score_upper_triangle_cells dm =
   let res = ref [] in
   for i = 0 to Array.length dm.matrix - 1 do
     for j = i + 1 to Array.length dm.matrix - 1 do
-      Common.push ((i, j), dm.matrix.(i).(j)) res
+      Stack_.push ((i, j), dm.matrix.(i).(j)) res
     done
   done;
   !res

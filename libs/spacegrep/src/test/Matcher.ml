@@ -5,6 +5,7 @@
 open Printf
 open Spacegrep
 
+let t = Testo.create
 let word s = Pattern_AST.(Atom (Loc.dummy, Word s))
 let punct c = Pattern_AST.(Atom (Loc.dummy, Punct c))
 let byte c = Pattern_AST.(Atom (Loc.dummy, Byte c))
@@ -45,7 +46,7 @@ let doc_eq doc1_str doc2_str =
 
 let matches_eq expected_doc_strings matches =
   let doc_strings =
-    Common.map (fun (x : Match.match_) -> x.capture.value) matches
+    List_.map (fun (x : Match.match_) -> x.capture.value) matches
   in
   printf "=== expected matches ===\n";
   List.iter (fun s -> printf "%s\n--\n" s) expected_doc_strings;
@@ -123,7 +124,7 @@ let matcher_corpus =
       Count 0,
       "0 ... 12",
       "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n\n12" );
-    ( "double dots",
+    ( "consecutive dots",
       Count 1,
       "0 ... ... 11",
       "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11" );
@@ -152,7 +153,10 @@ let matcher_corpus =
        19\n\
        20\n\
        21" );
-    ("trailing dots", Matches [ "0 1 2 3 4 5" ], "0 ...", "0\n1\n2\n3\n4\n5\n");
+    ( "trailing dots extravaganza",
+      Matches [ "0 1 2 3 4 5" ],
+      "0 ...",
+      "0\n1\n2\n3\n4\n5\n" );
     ( "trailing dots limit",
       Matches [ "0 1 2 3 4 5 6 7 8 9 10" ],
       "0 ...",
@@ -214,9 +218,10 @@ let matcher_corpus_two_line_ellipsis =
   [ ("two-line ellipsis", Matches [ "a b\nc" ], "a ...", "x\ny a b\nc\nd") ]
 
 let create_matcher_suite param matcher_corpus =
-  Common.map
+  List_.map
     (fun (name, expectation, pat_str, doc_str) ->
-      (name, `Quick, fun () -> check_matching param pat_str doc_str expectation))
+      Testo.create name (fun () ->
+          check_matching param pat_str doc_str expectation))
     matcher_corpus
 
 let matcher_suite =
@@ -236,7 +241,7 @@ let matcher_suite_two_line_ellipsis =
   create_matcher_suite param matcher_corpus_two_line_ellipsis
 
 let test =
-  ( "Matcher",
-    [ ("pattern parser", `Quick, test_pattern_parser) ]
+  Testo.categorize "Matcher"
+    ([ t "pattern parser" test_pattern_parser ]
     @ matcher_suite @ matcher_suite_case_insensitive
-    @ matcher_suite_same_line_ellipsis @ matcher_suite_two_line_ellipsis )
+    @ matcher_suite_same_line_ellipsis @ matcher_suite_two_line_ellipsis)

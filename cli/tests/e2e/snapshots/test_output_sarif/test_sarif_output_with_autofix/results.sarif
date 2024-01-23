@@ -1,0 +1,157 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "4a33397409b7b2d0e677e2e515c526be5568d00a2bf740196e13536ad2b2dfa554167db90394ec8e9779a89eb3ca6e98d86d690f9cc9625fca1fc18be633b1ac_0"
+          },
+          "fixes": [
+            {
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "targets/autofix/autofix.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "endColumn": 12,
+                        "endLine": 5,
+                        "startColumn": 3,
+                        "startLine": 5
+                      },
+                      "insertedContent": {
+                        "text": "  inputs.get(x) = 1"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "description": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/autofix/autofix.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 12,
+                  "endLine": 5,
+                  "snippet": {
+                    "text": "  inputs[x] = 1"
+                  },
+                  "startColumn": 3,
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Use `.get()` method to avoid a KeyNotFound error"
+          },
+          "properties": {},
+          "ruleId": "rules.autofix.use-dict-get"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "592b33f0145ca2899616e587fca10aed02dc2cb1261f5e39597f7b66464e2c89cacb4a318c010006c6126e6a0de0a764a2b281dbad87315460dbbbd9a44cd412_0"
+          },
+          "fixes": [
+            {
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "targets/autofix/autofix.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "endColumn": 19,
+                        "endLine": 6,
+                        "startColumn": 6,
+                        "startLine": 6
+                      },
+                      "insertedContent": {
+                        "text": "  if inputs.get((x + 1)) == True:"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "description": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/autofix/autofix.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 19,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": "  if inputs[x + 1] == True:"
+                  },
+                  "startColumn": 6,
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Use `.get()` method to avoid a KeyNotFound error"
+          },
+          "properties": {},
+          "ruleId": "rules.autofix.use-dict-get"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error"
+              },
+              "help": {
+                "markdown": "Use `.get()` method to avoid a KeyNotFound error",
+                "text": "Use `.get()` method to avoid a KeyNotFound error"
+              },
+              "id": "rules.autofix.use-dict-get",
+              "name": "rules.autofix.use-dict-get",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.autofix.use-dict-get"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

@@ -1,6 +1,6 @@
 open Common
-open File.Operators
-module Out = Semgrep_output_v1_j
+open Fpath_.Operators
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,84 +24,11 @@ module Out = Semgrep_output_v1_j
  *)
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-(* LATER: use Metavariable.bindings directly ! *)
-type metavars = (string * Out.metavar_value) list
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(* Substitute the metavariables mentioned in a message to their
- * matched content.
- *
- * We could either:
- *  (1) go through all the metavars and textually substitute them in the text
- *  (2) go through the text and find each metavariable regexp occurence
- *    and replace them with their content
- * python: the original code did (1) so we're doing the same for now,
- * however (2) seems more logical to me and wasting less CPUs since
- * you only substitute metavars that are actually mentioned in the message.
- *
- * TODO: expose this function so it can be used in language_server
- *)
-let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
-    : string =
-  (* sort by metavariable length to avoid name collisions
-   * (eg. $X2 must be handled before $X)
-   *)
-  let mvars =
-    metavars
-    |> List.sort (fun (a, _) (b, _) ->
-           compare (String.length b) (String.length a))
-  in
-  mvars
-  |> List.fold_left
-       (fun text (mvar, mval) ->
-         (* necessary typing to help the type check disambiguate fields,
-          * because of the use of multiple fields with the same
-          * name in semgrep_output_v1.atd *)
-         let (v : Out.metavar_value) = mval in
-         let content =
-           lazy
-             (Semgrep_output_utils.content_of_file_at_range (v.start, v.end_)
-                (Fpath.v file))
-         in
-         text
-         (* first value($X), and then $X *)
-         |> Str.global_substitute
-              (Str.regexp_string (spf "value(%s)" mvar))
-              (fun _whole_str ->
-                match v.propagated_value with
-                | Some x ->
-                    x.svalue_abstract_content (* default to the matched value *)
-                | None -> Lazy.force content)
-         |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
-                Lazy.force content))
-       text
-
-(* TODO: expose this function so it can be used in language_server *)
-let render_fix (hrules : Rule.hrules) (x : Out.core_match) : string option =
-  match x with
-  | { check_id = rule_id; path; extra = { metavars; rendered_fix; _ }; _ } -> (
-      let rule =
-        try Hashtbl.find hrules rule_id with
-        | Not_found -> raise Impossible
-      in
-      (* TOPORT: debug logging which indicates the source of the fix *)
-      match (rendered_fix, rule.fix) with
-      | Some fix, _ -> Some fix
-      | None, Some fix -> Some (interpolate_metavars fix metavars !!path)
-      | None, None -> None)
-
-(*****************************************************************************)
 (* Core error to cli error *)
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let core_location_to_error_span (loc : Out.location) : Out.error_span =
+let core_location_to_error_span (loc : OutJ.location) : OutJ.error_span =
   {
     file = loc.path;
     start = loc.start;
@@ -115,8 +42,8 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
   }
 
 (* Generate error message exposed to user *)
-let error_message ~rule_id ~(location : Out.location)
-    ~(error_type : Out.error_type) ~core_message : string =
+let error_message ~rule_id ~(location : OutJ.location)
+    ~(error_type : OutJ.error_type) ~core_message : string =
   let path = location.path in
   let rule_id_str_opt = Option.map Rule_ID.to_string rule_id in
   let error_context =
@@ -138,7 +65,7 @@ let error_message ~rule_id ~(location : Out.location)
     (Error.string_of_error_type error_type)
     error_context core_message
 
-let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
+let error_spans ~(error_type : OutJ.error_type) ~(location : OutJ.location) =
   match error_type with
   | PatternParseError _yaml_pathTODO ->
       (* TOPORT
@@ -162,13 +89,13 @@ let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
         }
       in
       Some [ span ]
-  | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
+  | PartialParsing locs -> Some (locs |> List_.map core_location_to_error_span)
   | _else_ -> None
 
 (* # TODO benchmarking code relies on error code value right now
    * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
 *)
-let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
+let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   match error_type with
   | ParseError
   | LexicalError
@@ -188,6 +115,8 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | OutOfMemory
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile
+  (* TODO? really? fatal for SemgrepWarning? *)
+  | SemgrepWarning
   | SemgrepError ->
       Exit_code.fatal
   | InvalidRuleSchemaError -> Exit_code.invalid_pattern
@@ -201,7 +130,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
  * TODO: should we return an Error.Semgrep_core_error instead? like we
  * do in python? and then generate an Out.cli_error out of it?
  *)
-let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
+let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
   match x with
   | {
    error_type;
@@ -218,6 +147,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | ParseError
         | LexicalError
         | PartialParsing _
+        | SemgrepWarning
         | SemgrepError
         | InvalidRuleSchemaError ->
             None
@@ -264,6 +194,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | OutOfMemory
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
+        | SemgrepWarning
         | SemgrepError
         | IncompatibleRule _
         | IncompatibleRule0
@@ -333,17 +264,22 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
   let xpats = Rule.xpatterns_of_rule rule in
   let xpat_strs =
-    xpats |> Common.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
+    xpats |> List_.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
   in
   let sorted_xpat_strs = List.sort String.compare xpat_strs in
   let xpat_str = String.concat " " sorted_xpat_strs in
   let metavars = Option.value ~default:[] metavars in
   let xpat_str_interp =
-    interpolate_metavars xpat_str metavars path |> String.escaped
+    Metavar_replacement.interpolate_metavars xpat_str
+      (Metavar_replacement.of_out metavars)
+    |> String.escaped
   in
   (* Python doesn't escape the double quote character, but ocaml does :/ so we need this monstrosity *)
   let py_esc_reg = Str.regexp "\\\\\\\"" in
+  (* On the other hand Python escapes single quote character, but OCaml does not *)
+  let py_esc_reg' = Str.regexp "'" in
   let xpat_str_interp = Str.global_replace py_esc_reg "\"" xpat_str_interp in
+  let xpat_str_interp = Str.global_replace py_esc_reg' "\\'" xpat_str_interp in
   (* We have been hashing w/ this PosixPath thing in python so we must recreate it here  *)
   (* We also have been hashing a tuple formatted as below *)
   let string =
@@ -353,8 +289,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
 
-let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
-    Out.cli_match =
+let cli_match_of_core_match ~dryrun (hrules : Rule.hrules) (m : OutJ.core_match)
+    : OutJ.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -370,10 +306,9 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
        engine_kind;
        extra_extra;
        validation_state;
-       (* used now in render_fix instead *)
-       rendered_fix = _;
-       (* LATER *)
-       dataflow_trace = _;
+       fix;
+       is_ignored;
+       dataflow_trace;
      };
   } ->
       let rule =
@@ -388,10 +323,6 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
         | None ->
             rule_message
       in
-      (* message where the metavars have been interpolated *)
-      (* TODO(secrets): apply masking logic here *)
-      let message = interpolate_metavars message metavars !!path in
-      let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
       (* LATER: this should be a variant in semgrep_output_v1.atd
@@ -411,8 +342,26 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
        * we concatenate the lines after? *)
       let lines =
         Semgrep_output_utils.lines_of_file_at_range (start, end_) path
-        |> String.concat "\n"
       in
+      let fixed_lines =
+        if dryrun then
+          Option.map
+            (fun fix ->
+              match (lines, List.rev lines) with
+              | line :: _, last_line :: _ ->
+                  let first_line_part = Str.first_chars line (start.col - 1)
+                  and last_line_part =
+                    Str.string_after last_line (end_.col - 1)
+                  in
+                  String.split_on_char '\n'
+                    (first_line_part ^ fix ^ last_line_part)
+              | [], _
+              | _, [] ->
+                  [])
+            fix
+        else None
+      in
+      let lines = lines |> String.concat "\n" in
       {
         check_id;
         path;
@@ -427,14 +376,12 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             severity;
             metadata;
             fix;
-            (* TODO: other fields derived from the rule *)
-            fix_regex = None;
+            is_ignored = Some is_ignored;
             (* TODO: extra fields *)
-            is_ignored = Some false;
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
-            fixed_lines = None;
-            dataflow_trace = None;
+            fixed_lines;
+            dataflow_trace;
             (* It's optional in the CLI output, but not in the core match results!
              *)
             engine_kind = Some engine_kind;
@@ -443,22 +390,90 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
           };
       }
 
+let cli_unique_key (c : OutJ.cli_match) =
+  (* type-wise this is a tuple of string * string * int * int * string * string option *)
+  (* # NOTE: We include the previous scan's rules in the config for
+     # consistent fixed status work. For unique hashing/grouping,
+     # previous and current scan rules must have distinct check IDs.
+     # Hence, previous scan rules are annotated with a unique check ID,
+     # while the original ID is kept in metadata. As check_id is used
+     # for cli_unique_key, this patch fetches the check ID from metadata
+     # for previous scan findings.
+     # TODO: Once the fixed status work is stable, all findings should
+     # fetch the check ID from metadata. This fallback prevents breaking
+     # current scan results if an issue arises.
+     self.annotated_rule_name if self.from_transient_scan else self.rule_id,
+     str(self.path),
+     self.start.offset,
+     self.end.offset,
+     self.message,
+     # TODO: Bring this back.
+     # This is necessary so we don't deduplicate taint findings which
+     # have different sources.
+     #
+     # self.match.extra.dataflow_trace.to_json_string
+     # if self.match.extra.dataflow_trace
+     # else None,
+     None,
+     # NOTE: previously, we considered self.match.extra.validation_state
+     # here, but since in some cases (e.g., with `anywhere`) we generate
+     # many matches in certain cases, we want to consider secrets
+     # matches unique under the above set of things, but with a priority
+     # associated with the validation state; i.e., a match with a
+     # confirmed valid state should replace all matches equal under the
+     # above key. We can't do that just by not considering validation
+     # state since we would pick one arbitrarily, and if we added it
+     # below then we would report _both_ valid and invalid (but we only
+     # want to report valid, if a valid one is present and unique per
+     # above fields). See also `should_report_instead`.
+  *)
+  let name =
+    let transient =
+      match JSON.member "semgrep.dev" (JSON.from_yojson c.extra.metadata) with
+      | Some dev -> (
+          match JSON.member "src" dev with
+          | Some (JSON.String x) -> String.equal x "previous_scan"
+          | Some _
+          | None ->
+              false)
+      | None -> false
+    in
+    let default = Rule_ID.to_string c.check_id in
+    if transient then
+      match JSON.member "semgrep.dev" (JSON.from_yojson c.extra.metadata) with
+      | Some dev -> (
+          match JSON.member "rule" dev with
+          | Some rule -> (
+              match JSON.member "rule_name" rule with
+              | Some (JSON.String rule) -> rule
+              | Some _
+              | None ->
+                  default)
+          | None -> default)
+      | None -> default
+    else Rule_ID.to_string c.check_id
+  in
+  ( name,
+    Fpath.to_string c.path,
+    c.start.offset,
+    c.end_.offset,
+    c.extra.message,
+    None )
+
 (*
  # Sort results so as to guarantee the same results across different
  # runs. Results may arrive in a different order due to parallelism
  # (-j option).
- TOPORT: return {rule: sorted(matches) for rule, matches in findings.items()}
 *)
-let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
+let dedup_and_sort (xs : OutJ.cli_match list) : OutJ.cli_match list =
   let seen = Hashtbl.create 101 in
   xs
   |> List.filter (fun x ->
-         if Hashtbl.mem seen x then false
-         else
-           (* TOPORT: use rule_match.cli_unique_key to dedup (not the whole x) *)
-           let key = x in
+         let key = cli_unique_key x in
+         if Hashtbl.mem seen key then false
+         else (
            Hashtbl.replace seen key true;
-           true)
+           true))
   |> Semgrep_output_utils.sort_cli_matches
 
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
@@ -473,24 +488,27 @@ bad_function() # 2nd call
  * will be different. So the first will be <match_based_id>_0 and the second
  * will be <match_based_id>_1.
  *)
-let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
+let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
+    =
   matches
   (* preserve order *)
-  |> Common.mapi (fun i x -> (i, x))
+  |> List_.mapi (fun i x -> (i, x))
   (* Group by rule and path *)
-  |> Common.group_by (fun (_, (x : Out.cli_match)) -> (x.path, x.check_id))
+  (* XXX: can we do with grouping by fingerprint only? *)
+  |> Assoc.group_by (fun (_, (x : OutJ.cli_match)) ->
+         (x.path, x.check_id, x.extra.fingerprint))
   (* Sort by start line *)
-  |> Common.map (fun (path_and_rule_id, matches) ->
+  |> List_.map (fun (path_and_rule_id, matches) ->
          ( path_and_rule_id,
            List.sort
-             (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
+             (fun (_, (a : OutJ.cli_match)) (_, (b : OutJ.cli_match)) ->
                compare a.start.offset b.start.offset)
              matches ))
   (* Index per file *)
-  |> Common.map (fun (path_and_rule_id, matches) ->
+  |> List_.map (fun (path_and_rule_id, matches) ->
          let matches =
-           Common.mapi
-             (fun i (i', (x : Out.cli_match)) ->
+           List_.mapi
+             (fun i (i', (x : OutJ.cli_match)) ->
                ( i',
                  {
                    x with
@@ -506,7 +524,7 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   (* Flatten *)
   |> List.concat_map snd
   |> List.sort (fun (a, _) (b, _) -> a - b)
-  |> Common.map snd
+  |> List_.map snd
 
 (*****************************************************************************)
 (* Entry point *)
@@ -516,8 +534,8 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
  * alt: we could move Core_runner.result type in core/
  *)
-let cli_output_of_core_results ~logging_level (core : Out.core_output)
-    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
+let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
+    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : OutJ.cli_output =
   match core with
   | {
    version;
@@ -535,11 +553,12 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
    time = _;
    rules_by_engine = _;
    engine_requested = _;
+   interfile_languages_used;
   } ->
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches
-        |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
+        |> List.sort (fun (a : OutJ.core_match) (b : OutJ.core_match) ->
                compare a.check_id b.check_id)
       in
       (* TODO: not sure how it's sorted, but Set_.elements return
@@ -547,7 +566,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
       let scanned = scanned |> Set_.elements in
-      let (paths : Out.scanned_and_skipped) =
+      let (paths : OutJ.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
             (* Skipping the python intermediate FileTargetingLog for now.
@@ -585,12 +604,13 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
          *)
         results =
           matches
-          |> Common.map (cli_match_of_core_match hrules)
+          |> List_.map (cli_match_of_core_match ~dryrun hrules)
           |> dedup_and_sort;
-        errors = errors |> Common.map cli_error_of_core_error;
+        errors = errors |> List_.map cli_error_of_core_error;
         paths;
         skipped_rules;
         explanations;
+        interfile_languages_used;
         (* LATER *)
         time = None;
         rules_by_engine = None;

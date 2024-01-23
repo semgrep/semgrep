@@ -192,7 +192,7 @@ def match_on_conditions(  # type: ignore
 
     # join them together
     joined: ModelSelect = reduce(  # type: ignore
-        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models  # type: ignore
+        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models
     )
 
     # evaluate conjoined conditions
@@ -375,6 +375,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         engine_kind=cli_match_extra.engine_kind
         if cli_match_extra.engine_kind
         else out.EngineKind(out.OSS()),
+        is_ignored=False,
     )
     return RuleMatch(
         message=join_rule.get(
@@ -394,7 +395,6 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         # still needed?
         extra=match.get("extra", {}),
         fix=None,
-        fix_regex=None,
     )
 
 

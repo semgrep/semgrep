@@ -4,6 +4,7 @@
 
 open Spacegrep
 
+let t = Testo.create
 let highlight s = "[" ^ s ^ "]"
 
 let test_highlight input start end_ expected_output =
@@ -59,17 +60,17 @@ let lines_of_range_corpus =
   ]
 
 let test =
-  let suite =
-    Common.map
-      (fun (name, input, start, end_, expected_output) ->
-        (name, `Quick, fun () -> test_highlight input start end_ expected_output))
-      highlight_corpus
-    @ Common.map
-        (fun (name, input, start_word, end_word, expected_output) ->
-          ( name,
-            `Quick,
-            fun () ->
-              test_lines_of_range input start_word end_word expected_output ))
-        lines_of_range_corpus
-  in
-  ("Src_file", suite)
+  Testo.categorize_suites "Src_file"
+    [
+      Testo.categorize "highlight"
+        (List_.map
+           (fun (name, input, start, end_, expected_output) ->
+             t name (fun () -> test_highlight input start end_ expected_output))
+           highlight_corpus);
+      Testo.categorize "lines_of_range"
+        (List_.map
+           (fun (name, input, start_word, end_word, expected_output) ->
+             t name (fun () ->
+                 test_lines_of_range input start_word end_word expected_output))
+           lines_of_range_corpus);
+    ]

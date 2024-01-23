@@ -93,7 +93,7 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
               ~regexp:re_str ~file str
           with
           | [] -> None
-          | matches -> Some (Common.map snd matches))
+          | matches -> Some (List_.map snd matches))
       | _ ->
           logger#error
             "Somehow got a non-string or exn from str(%s) in generic evaluation"

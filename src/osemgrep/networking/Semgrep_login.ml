@@ -39,25 +39,26 @@ let make_login_url () =
           ("gha", if !Semgrep_envvars.v.in_gh_action then "True" else "False");
         ]) )
 
-let save_token_async ?(ident = None) token =
+let save_token_async ?(ident = None) caps =
   Option.iter
     (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
     ident;
   let settings = Semgrep_settings.load () in
-  Semgrep_App.get_deployment_from_token_async token
+  Semgrep_App.get_deployment_from_token_async caps
   |> Lwt.map (function
        | None -> Error "Login token is not valid. Please try again."
        | Some deployment_config
          when Semgrep_settings.save
-                Semgrep_settings.{ settings with api_token = Some token } ->
+                Semgrep_settings.{ settings with api_token = Some caps#token }
+         ->
            Ok deployment_config
        | _ -> Error "Failed to save token. Please try again.")
 
-let save_token ?(ident = None) token =
-  Lwt_platform.run (save_token_async ~ident token)
+let save_token ?(ident = None) caps =
+  Lwt_platform.run (save_token_async ~ident caps)
 
 let verify_token_async token =
-  let%lwt resopt = Semgrep_App.get_deployment_from_token_async ~token in
+  let%lwt resopt = Semgrep_App.get_deployment_from_token_async token in
   Lwt.return (Option.is_some resopt)
 
 let verify_token token = Lwt_platform.run (verify_token_async token)
@@ -67,7 +68,7 @@ let is_logged_in () =
   Option.is_some settings.api_token
 
 let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
-    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) shared_secret =
+    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) caps shared_secret =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -98,21 +99,25 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
              Semgrep servers. Please check your internet connection and try \
              again. If this issue persists, please reach out to Semgrep \
              support at @{<cyan;ul>%s@}"
-            (Logs_helpers.err_tag ()) support_url
+            (Logs_.err_tag ()) support_url
         in
         Lwt.return (Error msg)
     | n -> (
-        let%lwt resp = Http_helpers.post_async ~body ~headers url in
+        let%lwt resp =
+          Http_helpers.post_async ~body ~headers caps#network url
+        in
         match resp with
         | Ok body -> (
             try
               let json = Yojson.Basic.from_string body in
               let open Yojson.Basic.Util in
               match json |> member "token" with
-              | `String token ->
+              | `String str_token ->
                   (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
                   let ident = json |> member "user_name" |> to_string in
-                  let%lwt result = save_token_async ~ident:(Some ident) token in
+                  let token = Auth.unsafe_token_of_string str_token in
+                  let caps = Auth.cap_token_and_network token caps in
+                  let%lwt result = save_token_async ~ident:(Some ident) caps in
                   Result.bind result (fun _deployment_config ->
                       Ok (token, ident))
                   |> Lwt.return
@@ -137,7 +142,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                      code %d).\n\
                      Please try again or reach out to Semgrep support at \
                      @{<cyan;ul>%s@}"
-                    (Logs_helpers.err_tag ()) (Uri.to_string url) status_code
+                    (Logs_.err_tag ()) (Uri.to_string url) status_code
                     support_url
                 in
                 Logs.info (fun m -> m "HTTP error: %s" err);
@@ -146,7 +151,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
   fetch_token' next_wait_ms max_retries
 
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
-    ?(wait_hook = fun _delay_ms -> ()) shared_secret =
+    ?(wait_hook = fun _delay_ms -> ()) caps shared_secret =
   Lwt_platform.run
-    (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries ~wait_hook
+    (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries ~wait_hook caps
        shared_secret)

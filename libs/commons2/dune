@@ -1,0 +1,14 @@
+(library
+ (public_name commons2)
+ (wrapped false)
+ (flags (:standard -open TCB))
+ (libraries
+    TCB
+    commons
+ )
+ (preprocess
+   (pps
+     ppx_deriving.show
+   )
+ )
+)

@@ -1,7 +1,8 @@
 open Common
-open Testutil
-open File.Operators
+open Fpath_.Operators
 module E = Core_error
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Purpose *)
@@ -22,23 +23,23 @@ let tests_path_parsing = tests_path / "parsing"
 
 let parsing_tests_for_lang files lang =
   files
-  |> Common.map (fun file ->
-         ( Filename.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
              Parse_target.parse_and_resolve_name_fail_if_partial lang file
-             |> ignore ))
+             |> ignore))
 
 let partial_parsing_tests_for_lang files lang =
   files
-  |> Common.map (fun file ->
-         ( Filename.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
              let { Parsing_result2.skipped_tokens = errs; _ } =
                Parse_target.parse_and_resolve_name lang file
              in
              if errs =*= [] then
                Alcotest.fail
-                 "it should parse partially the file (with some errors)" ))
+                 "it should parse partially the file (with some errors)"))
 
 (*****************************************************************************)
 (* Tests *)
@@ -51,14 +52,14 @@ let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
-    pack_tests slang
+    Testo.categorize slang
       (let dir = tests_path_parsing / dir in
        let files = Common2.glob (spf "%s/*%s" !!dir ext) in
        if files =*= [] then
          failwith (spf "Empty set of parsing tests for %s" slang);
        parsing_tests_for_lang files lang)
   in
-  pack_suites "lang parsing testing"
+  Testo.categorize_suites "lang parsing testing"
     [
       (* languages with only a tree-sitter parser *)
       pack_parsing_tests_for_lang Lang.Bash "bash" ".bash";
@@ -88,7 +89,7 @@ let lang_parsing_tests () =
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
-      pack_tests "C++ partial parsing"
+      Testo.categorize "C++ partial parsing"
         (let dir = tests_path_parsing / "cpp" / "parsing_partial" in
          let files = Common2.glob (spf "%s/*.cpp" !!dir) in
          let lang = Lang.Cpp in
@@ -108,12 +109,11 @@ let lang_parsing_tests () =
  *)
 let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
-  pack_tests "Parsing error detection"
+  Testo.categorize "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" !!dir) in
-     tests |> File.Path.of_strings
-     |> Common.map (fun file ->
-            ( Fpath.basename file,
-              fun () ->
+     tests |> Fpath_.of_strings
+     |> List_.map (fun file ->
+            t (Fpath.basename file) (fun () ->
                 try
                   let lang = Lang.lang_of_filename_exn file in
                   let res = Parse_target.just_parse_with_lang lang !!file in
@@ -124,11 +124,11 @@ let parsing_error_tests () =
                 with
                 | Parsing_error.Lexical_error _
                 | Parsing_error.Syntax_error _ ->
-                    () )))
+                    ())))
 
 let parsing_rules_tests () =
   let dir = tests_path / "rule_formats" in
-  pack_tests "Parsing rules"
+  Testo.categorize "Parsing rules"
     (let tests =
        Common2.glob (spf "%s/*.yaml" !!dir)
        @ Common2.glob (spf "%s/*.json" !!dir)
@@ -136,9 +136,9 @@ let parsing_rules_tests () =
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
      in
-     tests |> File.Path.of_strings
-     |> Common.map (fun file ->
-            (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
+     tests |> Fpath_.of_strings
+     |> List_.map (fun file ->
+            t (Fpath.basename file) (fun () -> Parse_rule.parse file |> ignore)))
 
 let parsing_rules_with_atd_tests () =
   let dir = tests_path / "rules_v2" in
@@ -149,11 +149,11 @@ let parsing_rules_with_atd_tests () =
   let tests2 =
     Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
   in
-  pack_tests "Parsing rules with rule_schema_v2.atd"
-    (tests1 @ tests2 |> File.Path.of_strings
-    |> Common.map (fun file ->
-           (!!file, fun () -> Parse_rules_with_atd.parse_rules_v2 file |> ignore))
-    )
+  Testo.categorize "Parsing rules with rule_schema_v2.atd"
+    (tests1 @ tests2 |> Fpath_.of_strings
+    |> List_.map (fun file ->
+           t !!file (fun () ->
+               Parse_rules_with_atd.parse_rules_v2 file |> ignore)))
 
 (*****************************************************************************)
 (* Tests *)

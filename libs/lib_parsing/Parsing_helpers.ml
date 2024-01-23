@@ -52,7 +52,7 @@ type 'tok tokens_state = {
 let mk_tokens_state toks =
   {
     rest = toks;
-    current = Common.hd_exn "unexpected empty list" toks;
+    current = List_.hd_exn "unexpected empty list" toks;
     passed =
       []
       (* passed_clean = [];
@@ -100,7 +100,7 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
       | Parsing_error.Lexical_error (s, info) ->
           raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
-    if !Flag_parsing.debug_lexer then Common.pr2_gen tok;
+    if !Flag_parsing.debug_lexer then UCommon.pr2_gen tok;
     let tok = tok |> visitor_tok adjust_info in
     if is_eof tok then List.rev (tok :: acc) else tokens_aux (tok :: acc)
   in
@@ -110,15 +110,15 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
   match input_source with
   | Str str ->
       let lexbuf = Lexing.from_string str in
-      let table = Pos.full_charpos_to_pos_str str in
+      let table = Pos.full_converters_str str in
       (* TODO: don't pass "<file>" where an actual file is expected.
          This results in cryptic errors later when the file can't be opened. *)
       tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
   | File path ->
       let file = Fpath.to_string path in
-      Common.with_open_infile file (fun chan ->
+      UCommon.with_open_infile file (fun chan ->
           let lexbuf = Lexing.from_channel chan in
-          let table = Pos.full_charpos_to_pos_large file in
+          let table = Pos.full_converters_large file in
           tokenize_and_adjust_pos lexbuf table file tokenizer visitor_tok is_eof)
 
 (* Hacked lex. Ocamlyacc expects a function returning one token at a time
@@ -135,7 +135,7 @@ let mk_lexer_for_yacc toks is_comment =
   let rec lexer lexbuf =
     match tr.rest with
     | [] ->
-        Common.pr2 "LEXER: ALREADY AT END";
+        UCommon.pr2 "LEXER: ALREADY AT END";
         tr.current
     | v :: xs ->
         tr.rest <- xs;
@@ -154,7 +154,7 @@ let mk_lexer_for_yacc toks is_comment =
  * expensive so don't use it to get the line x col from every token in
  * a file. Instead use full_charpos_to_pos.
  *)
-let (info_from_charpos : int -> filename -> int * int * string) =
+let (info_from_charpos : int -> string (* filename *) -> int * int * string) =
  fun charpos filename ->
   (* Currently lexing.ml does not handle the line number position.
    * Even if there is some fields in the lexing structure, they are not
@@ -164,35 +164,35 @@ let (info_from_charpos : int -> filename -> int * int * string) =
    *      (pos.pos_cnum - pos.pos_bol) in
    * Hence this function to overcome the previous limitation.
    *)
-  let chan = open_in_bin filename in
-  let linen = ref 0 in
-  let posl = ref 0 in
-  let rec charpos_to_pos_aux last_valid =
-    let s =
-      try Some (input_line chan) with
-      | End_of_file when charpos =|= last_valid -> None
-    in
-    incr linen;
-    match s with
-    | Some s ->
-        let s = s ^ "\n" in
-        if !posl + String.length s > charpos then (
-          close_in chan;
-          (!linen, charpos - !posl, s))
-        else (
-          posl := !posl + String.length s;
-          charpos_to_pos_aux !posl)
-    | None -> (!linen, charpos - !posl, "\n")
-  in
-  let res = charpos_to_pos_aux 0 in
-  close_in chan;
-  res
+  UCommon.with_open_infile filename (fun chan ->
+      let linen = ref 0 in
+      let posl = ref 0 in
+      let rec charpos_to_pos_aux last_valid =
+        let s =
+          try Some (input_line chan) with
+          | End_of_file when charpos =|= last_valid -> None
+        in
+        incr linen;
+        match s with
+        | Some s ->
+            let s = s ^ "\n" in
+            if !posl + String.length s > charpos then (
+              (* ??? why closing early? *)
+              close_in chan;
+              (!linen, charpos - !posl, s))
+            else (
+              posl := !posl + String.length s;
+              charpos_to_pos_aux !posl)
+        | None -> (!linen, charpos - !posl, "\n")
+      in
+      charpos_to_pos_aux 0)
 [@@profiling]
 
 (* Decalage is here to handle stuff such as cpp which include file and who
  * can make shift.
  *)
-let (error_messagebis : filename -> string * int -> int -> string) =
+let (error_messagebis : string (* filename *) -> string * int -> int -> string)
+    =
  fun filename (lexeme, lexstart) decalage ->
   let charpos = lexstart + decalage in
   let tok = lexeme in
@@ -228,7 +228,7 @@ let error_message_info info =
   error_message_token_location loc
 
 let print_bad line_error (start_line, end_line) filelines =
-  pr2 ("badcount: " ^ i_to_s (end_line - start_line));
+  UCommon.pr2 ("badcount: " ^ i_to_s (end_line - start_line));
 
   for i = start_line to end_line do
     let s = filelines.(i) in
@@ -239,6 +239,6 @@ let print_bad line_error (start_line, end_line) filelines =
       else s
     in
 
-    if i =|= line_error then pr2 ("BAD:!!!!!" ^ " " ^ line)
-    else pr2 ("bad:" ^ " " ^ line)
+    if i =|= line_error then UCommon.pr2 ("BAD:!!!!!" ^ " " ^ line)
+    else UCommon.pr2 ("bad:" ^ " " ^ line)
   done

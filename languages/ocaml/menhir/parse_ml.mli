@@ -1,14 +1,14 @@
 (* This is the main function. See flag_parsing_ml for settings. *)
 val parse :
-  Common.filename -> (Ast_ml.program, Parser_ml.token) Parsing_result.t
+  string (* filename *) -> (AST_ocaml.program, Parser_ml.token) Parsing_result.t
 
-val parse_program : Common.filename -> Ast_ml.program
+val parse_program : string (* filename *) -> AST_ocaml.program
 
 (* for semgrep *)
-val any_of_string : string -> Ast_ml.any
+val any_of_string : string -> AST_ocaml.any
 
 (* for semgrep and LSP *)
-val type_of_string : string -> Ast_ml.type_
+val type_of_string : string -> AST_ocaml.type_
 
 (* internal *)
 val tokens : Parsing_helpers.input_source -> Parser_ml.token list

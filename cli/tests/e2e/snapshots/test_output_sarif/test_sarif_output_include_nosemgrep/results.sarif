@@ -1,0 +1,108 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "1ccfdeae9247f2f32c35443f3bf87d4fd67e4d58b25adfcdb7dd5fc74079c09713a2e45e39f1f46e12361f98aa492bfba2a4983d4e9f409c02dfcff1ba254f20_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/regex-nosemgrep.txt",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 30,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "aws_account_id = 123456789012  # nosemgrep"
+                  },
+                  "startColumn": 1,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "AWS Account ID detected"
+          },
+          "properties": {},
+          "ruleId": "rules.detected-aws-account-id",
+          "suppressions": [
+            {
+              "kind": "inSource"
+            }
+          ]
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "1ccfdeae9247f2f32c35443f3bf87d4fd67e4d58b25adfcdb7dd5fc74079c09713a2e45e39f1f46e12361f98aa492bfba2a4983d4e9f409c02dfcff1ba254f20_1"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/regex-nosemgrep.txt",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 28,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "aws_account_id:123456789012"
+                  },
+                  "startColumn": 1,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "AWS Account ID detected"
+          },
+          "properties": {},
+          "ruleId": "rules.detected-aws-account-id"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "AWS Account ID detected"
+              },
+              "help": {
+                "markdown": "AWS Account ID detected",
+                "text": "AWS Account ID detected"
+              },
+              "id": "rules.detected-aws-account-id",
+              "name": "rules.detected-aws-account-id",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.detected-aws-account-id"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

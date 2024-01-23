@@ -17,3 +17,15 @@ type t =
    *)
   | TextIncremental
 [@@deriving show]
+
+let keep_ignores = function
+  | Sarif -> true
+  | Text
+  | Json
+  | Emacs
+  | Vim
+  | Gitlab_sast
+  | Gitlab_secrets
+  | Junit_xml
+  | TextIncremental ->
+      false

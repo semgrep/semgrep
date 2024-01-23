@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module CST = Tree_sitter_jsonnet.CST
 module H = Parse_tree_sitter_helpers
 open AST_jsonnet
@@ -76,7 +76,7 @@ let map_h (env : env) (x : CST.h) : hidden wrap =
   | `COLONCOLONCOLON tok -> (ForcedVisible, (* ":::" *) token env tok)
 
 let map_str_single (env : env) (xs : CST.str_single) : string_content =
-  Common.map
+  List_.map
     (fun x ->
       match x with
       | `Imm_tok_prec_p1_pat_59587ce x -> map_imm_tok_prec_p1_pat_59587ce env x
@@ -84,7 +84,7 @@ let map_str_single (env : env) (xs : CST.str_single) : string_content =
     xs
 
 let map_str_double (env : env) (xs : CST.str_double) =
-  Common.map
+  List_.map
     (fun x ->
       match x with
       | `Imm_tok_prec_p1_pat_c7f65b4 x -> map_imm_tok_prec_p1_pat_c7f65b4 env x
@@ -144,14 +144,14 @@ let rec map_args (env : env) (x : CST.args) : argument list =
       let v1 = map_document env v1 in
       let v2 =
         v2
-        |> Common.map (fun (v1, v2) ->
+        |> List_.map (fun (v1, v2) ->
                let _v1 = (* "," *) token env v1 in
                let v2 = map_document env v2 in
                Arg v2)
       in
       let v3 =
         v3
-        |> Common.map (fun (v1, v2) ->
+        |> List_.map (fun (v1, v2) ->
                let _v1 = (* "," *) token env v1 in
                let v2 = map_named_argument env v2 in
                v2)
@@ -162,7 +162,7 @@ let rec map_args (env : env) (x : CST.args) : argument list =
       let v1 = map_named_argument env v1 in
       let v2 =
         v2
-        |> Common.map (fun (v1, v2) ->
+        |> List_.map (fun (v1, v2) ->
                let _v1 = (* "," *) token env v1 in
                let v2 = map_named_argument env v2 in
                v2)
@@ -203,7 +203,7 @@ and map_bind (env : env) (x : CST.bind) : bind =
       B (id, teq, Lambda def)
 
 and map_compspec (env : env) (xs : CST.compspec) : for_or_if_comp list =
-  Common.map
+  List_.map
     (fun x ->
       match x with
       | `Fors x ->
@@ -268,7 +268,7 @@ and map_expr_origin (env : env) x : expr =
         | Some (v1, v2, v3) ->
             let v1 = map_document env v1 in
             let v2 =
-              Common.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   let v2 = map_document env v2 in
@@ -354,7 +354,7 @@ and map_expr_origin (env : env) x : expr =
       let tlocal = (* "local" *) token env v1 in
       let bind = map_bind env v2 in
       let binds =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = map_bind env v2 in
@@ -606,7 +606,7 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
   | `Member_rep_COMMA_member_opt_COMMA (v1, v2, v3) ->
       let v1 = map_member env v1 in
       let v2 =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = map_member env v2 in
@@ -618,7 +618,7 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
   | `Rep_objl_COMMA_LBRACK_expr_RBRACK_COLON_expr_rep_COMMA_objl_opt_COMMA_fors_opt_comp
       (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let oc_locals1 =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let v1 = map_objlocal env v1 in
             let _v2 = (* "," *) token env v2 in
@@ -631,7 +631,7 @@ and map_objinside (env : env) (x : CST.objinside) : obj_inside =
       let tcolon = (* ":" *) token env v5 in
       let fldval = map_document env v6 in
       let oc_locals2 =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = map_objlocal env v2 in
@@ -675,7 +675,7 @@ and map_param (env : env) (x : CST.param) : parameter =
 and map_params (env : env) ((v1, v2, v3) : CST.params) : parameter list =
   let v1 = map_param env v1 in
   let v2 =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_param env v2 in
@@ -703,6 +703,6 @@ let parse_pattern str =
     (fun () -> Tree_sitter_jsonnet.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
       let e = map_document env cst in
       E e)

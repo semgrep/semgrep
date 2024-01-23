@@ -150,6 +150,57 @@ let any_of_orig = function
   | NoOrig -> G.Anys []
 
 (*****************************************************************************)
+(* Arguments *)
+(*****************************************************************************)
+
+type 'a argument = Unnamed of 'a | Named of ident * 'a
+[@@deriving show { with_path = false }]
+
+(*****************************************************************************)
+(* Parent iterator *)
+(*****************************************************************************)
+
+class virtual ['self] iter_parent =
+  object (self : 'self)
+    method visit_tok _env _tok = ()
+    method visit_sid _env _sid = ()
+    method visit_ident _env _ident = ()
+    method visit_name _env _name = ()
+
+    method visit_bracket
+        : 'a. ('env -> 'a -> unit) -> 'env -> 'a bracket -> unit =
+      fun f env (left, x, right) ->
+        self#visit_tok env left;
+        f env x;
+        self#visit_tok env right
+
+    method visit_wrap : 'a. ('env -> 'a -> unit) -> 'env -> 'a wrap -> unit =
+      fun f env (x, tok) ->
+        f env x;
+        self#visit_tok env tok
+
+    method visit_orig _env _orig = ()
+
+    method visit_argument
+        : 'a. ('env -> 'a -> unit) -> 'env -> 'a argument -> unit =
+      fun f env arg ->
+        match arg with
+        | Unnamed x -> f env x
+        | Named (ident, x) ->
+            self#visit_ident env ident;
+            f env x
+
+    method visit_literal _env _literal = ()
+    method visit_operator _env _operator = ()
+    method visit_type_ _env _typ = ()
+    method visit_fixme_kind _env _fixme_kind = ()
+    method visit_any _env _any = ()
+    method visit_definition _env _def = ()
+    method visit_class_definition _env _class_def = ()
+    method visit_directive _env _directive = ()
+  end
+
+(*****************************************************************************)
 (* Lvalue *)
 (*****************************************************************************)
 
@@ -248,25 +299,6 @@ and composite_kind =
   | Constructor of name (* OCaml *)
   | Regexp
 
-and 'a argument = Unnamed of 'a | Named of ident * 'a
-[@@deriving show { with_path = false }]
-
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-(* THINK: Types contain expressions that we want to check (see e.g. 'TyExpr'), but
- * right now we don't need/want to duplicate the type 'type_' just for this
- * (perhaps we could parameterize it?). *)
-type type_ = {
-  type_ : G.type_;
-  exps : exp list;
-      (* IL translation of the expressions in `type_`, we want to check them because
-       * these could be sinks! E.g. in PHP you can have `new $cons(args)` and the
-       * constructor $cons could be a sink. See 'tests/rules/misc_php_new_taint.php'. *)
-}
-[@@deriving show { with_path = false }]
-
 (*****************************************************************************)
 (* Instruction *)
 (*****************************************************************************)
@@ -274,7 +306,7 @@ type type_ = {
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split into  instr vs exp vs lval.
  *)
-type instr = { i : instr_kind; iorig : orig }
+and instr = { i : instr_kind; iorig : orig }
 
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
@@ -282,7 +314,7 @@ and instr_kind =
   | AssignAnon of lval * anonymous_entity
   | Call of lval option * exp (* less: enforce lval? *) * exp argument list
   | CallSpecial of lval option * call_special wrap * exp argument list
-  | New of lval * type_ * exp option (* constructor *) * exp argument list
+  | New of lval * G.type_ * exp option (* constructor *) * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
 
@@ -294,9 +326,11 @@ and call_special =
   | Sizeof
   (* old: better in exp: | Operator of G.arithmetic_operator *)
   | Concat (* THINK: Normalize as a Operator G.Concat ? *)
-  | Spread
+  | SpreadFn
   | Yield
   | Await
+  (* C++ *)
+  | Delete
   (* was in stmt before, but with a new clean 'instr' type, better here *)
   | Assert
   (* was in expr before (only in C/PHP) *)
@@ -361,18 +395,18 @@ and function_definition = {
   frettype : G.type_ option;
   fbody : stmt list;
 }
-[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)
 (*****************************************************************************)
 (* Similar to controlflow.ml, but with a simpler node_kind.
  * See controlflow.ml for more information. *)
-type node = {
+and node = {
   n : node_kind;
       (* old: there are tok in the nodes anyway
        * t: Parse_info.t option;
        *)
+  mutable at_exit : bool;
 }
 
 and node_kind =
@@ -391,7 +425,9 @@ and node_kind =
   | NLambda of name list (* just the params, the body nodes follow this one *)
   | NOther of other_stmt
   | NTodo of stmt
-[@@deriving show { with_path = false }]
+[@@deriving
+  show { with_path = false },
+    visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
@@ -401,6 +437,8 @@ type cfg = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei
+
+let mk_node n = { n; at_exit = false }
 
 (*****************************************************************************)
 (* Any *)

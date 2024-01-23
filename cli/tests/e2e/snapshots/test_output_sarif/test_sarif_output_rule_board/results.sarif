@@ -1,0 +1,134 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "1fa894f43c4fd60b1b0c5e2e9a50311b67b77a7b09f7c45001277b41e41accd87cd8e2931d57e0bf41a0e5086501be1fea611473dd02e1625c49204145464dba_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 26,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "    return a + b == a + b"
+                  },
+                  "startColumn": 12,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "this rule comes from the rule board!"
+          },
+          "properties": {},
+          "ruleId": "rules.rule-board-eqeq-five"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "79990521677dc96cec634491f9134e8528b49257440a27b8df47582e37668aaf5cb3343fe53b19476b12071b84f58db799c9f7f3d75b09dd3547f283b7036d38_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 11,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "    x == x"
+                  },
+                  "startColumn": 5,
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "this rule comes from the rule board!"
+          },
+          "properties": {},
+          "ruleId": "rules.rule-board-eqeq-five"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "79990521677dc96cec634491f9134e8528b49257440a27b8df47582e37668aaf5cb3343fe53b19476b12071b84f58db799c9f7f3d75b09dd3547f283b7036d38_1"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 18,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": "assertTrue(x == x)"
+                  },
+                  "startColumn": 12,
+                  "startLine": 12
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "this rule comes from the rule board!"
+          },
+          "properties": {},
+          "ruleId": "rules.rule-board-eqeq-five"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "this rule comes from the rule board!"
+              },
+              "help": {
+                "markdown": "this rule comes from the rule board!",
+                "text": "this rule comes from the rule board!"
+              },
+              "id": "rules.rule-board-eqeq-five",
+              "name": "rules.rule-board-eqeq-five",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "rule-board-block"
+                ]
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.rule-board-eqeq-five"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

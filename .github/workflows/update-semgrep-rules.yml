@@ -37,9 +37,9 @@ jobs:
     - run: git status
     - name: Creating the branch and commiting to it
       env:
-        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         BRANCHNAME: update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt
           }}
+        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       run: "\n        git checkout -b $BRANCHNAME\n        git config user.name \"GitHub
         Actions Bot\"\n        git config user.email \"<>\"\n        git commit -a
         -m\"update semgrep rules\"\n        git push origin $BRANCHNAME\n      "

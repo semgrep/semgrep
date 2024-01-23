@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -7,6 +7,12 @@ open File.Operators
 (* This is a command to install semgrep in CI for the current repo
  * or for a given repository.
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* TODO: FS too *)
+type caps = < Cap.random >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -86,12 +92,11 @@ let install_gh_cli () : unit =
   (* NOTE: This only supports mac users and we would need to direct users to
      their own platform-specific instructions at https://github.com/cli/cli#installation
   *)
-  let cmd = Bos.Cmd.(v "brew" % "install" % "github") in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "brew", [ "install"; "github" ]) in
+  match UCmd.status_of_run cmd with
   | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
   | _ ->
-      Logs.err (fun m ->
-          m "%s Github cli failed to install" (Logs_helpers.err_tag ()));
+      Logs.err (fun m -> m "%s Github cli failed to install" (Logs_.err_tag ()));
       (* TODO? we could instead just remove the last step of 'install-ci'
        * and let the user commit the workflow by himself?
        *)
@@ -106,8 +111,8 @@ let gh_cli_exists () : bool =
    * see https://askubuntu.com/questions/512770/what-is-the-bash-command-command
    * alt: run gh --version and check for exit code
    *)
-  let cmd = Bos.Cmd.(v "command" % "-v" % "gh") in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "command", [ "-v"; "gh" ]) in
+  match UCmd.status_of_run cmd with
   | Ok _ -> true
   | _ -> false
 
@@ -119,14 +124,14 @@ let install_gh_cli_if_needed () : unit =
     install_gh_cli ())
 
 let gh_authed () : bool =
-  let cmd = Bos.Cmd.(v "gh" % "auth" % "status") in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "gh", [ "auth"; "status" ]) in
+  match UCmd.status_of_run cmd with
   | Ok _ -> true
   | _ -> false
 
 let prompt_gh_auth () : unit =
-  let cmd = Bos.Cmd.(v "gh" % "auth" % "login" % "--web") in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "gh", [ "auth"; "login"; "--web" ]) in
+  match UCmd.status_of_run cmd with
   | _ -> ()
 
 let prompt_gh_auth_if_needed () : unit =
@@ -140,11 +145,10 @@ let prompt_gh_auth_if_needed () : unit =
 (* TODO: handle GitHub Enterprise *)
 let set_ssh_as_default () : unit =
   let cmd =
-    Bos.Cmd.(
-      v "gh" % "config" % "set" % "git_protocol" % "ssh" % "--host"
-      % "github.com")
+    ( Cmd.Name "gh",
+      [ "config"; "set"; "git_protocol"; "ssh"; "--host"; "github.com" ] )
   in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  match UCmd.status_of_run cmd with
   | Ok _ -> ()
   | _ -> Error.abort "failed to set git_protocol as ssh"
 
@@ -158,10 +162,8 @@ let set_ssh_as_default () : unit =
    to clone the repo.
 *)
 let clone_repo ~repo : unit =
-  let cmd =
-    Bos.Cmd.(v "gh" % "repo" % "clone" % repo % "--" % "--depth" % "1")
-  in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "gh", [ "repo"; "clone"; repo; "--"; "--depth"; "1" ]) in
+  match UCmd.status_of_run cmd with
   | Ok _ -> ()
   | _ -> Error.abort (Printf.sprintf "failed to clone remote repo: %s" repo)
 
@@ -173,42 +175,57 @@ let clone_repo_to ~repo ~dst : unit =
 let create_pr ~default_branch:branch : unit =
   let branch = chop_origin_if_needed branch in
   let cmd =
-    Bos.Cmd.(
-      v "gh" % "pr" % "create" % "--title" % "Add Semgrep workflow" % "--body"
-      % {|
+    ( Cmd.Name "gh",
+      [
+        "pr";
+        "create";
+        "--title";
+        "Add Semgrep workflow";
+        "--body";
+        {|
 ## Description
 This PR enables Semgrep scans with your repository.
-|}
-      % "--base" % branch % "--head" % get_new_branch ())
+|};
+        "--base";
+        branch;
+        "--head";
+        get_new_branch ();
+      ] )
   in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-  | Ok out -> Logs.app (fun m -> m "Created PR: %s" out)
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (out, _status) -> Logs.app (fun m -> m "Created PR: %s" out)
   | _ ->
       Logs.warn (fun m -> m "Failed to create PR!");
       Error.abort "Failed to create PR. Please create manually"
 
 let merge_pr () : unit =
   let cmd =
-    Bos.Cmd.(
-      v "gh" % "pr" % "merge" % "--merge" % "--subject" % "Add Semgrep workflow"
-      % "--body" % "Enabling scans with Semgrep" % get_new_branch ())
+    ( Cmd.Name "gh",
+      [
+        "pr";
+        "merge";
+        "--merge";
+        "--subject";
+        "Add Semgrep workflow";
+        "--body";
+        "Enabling scans with Semgrep";
+        get_new_branch ();
+      ] )
   in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-  | Ok out -> Logs.app (fun m -> m "Merged PR: %s" out)
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (out, _status) -> Logs.app (fun m -> m "Merged PR: %s" out)
   | _ ->
       Logs.warn (fun m -> m "Failed to merge PR!");
       Error.abort "Failed to merge PR. Please merge manually"
 
 let semgrep_app_token_secret_exists ~git_dir:dir : bool =
-  let cmd = Bos.Cmd.(v "gh" % "secret" % "list" % "-a" % "actions") in
+  let cmd = (Cmd.Name "gh", [ "secret"; "list"; "-a"; "actions" ]) in
   match
     Bos.OS.Dir.with_current dir
       (fun () ->
-        match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_lines with
-        | Ok lines ->
-            List.exists
-              (fun line -> String.starts_with ~prefix:"SEMGREP_APP_TOKEN" line)
-              lines
+        match UCmd.lines_of_run ~trim:true cmd with
+        | Ok (lines, _status) ->
+            List.exists (String.starts_with ~prefix:"SEMGREP_APP_TOKEN") lines
         | _ ->
             Logs.warn (fun m -> m "Failed to list secrets for %s" !!dir);
             Error.abort
@@ -219,16 +236,24 @@ let semgrep_app_token_secret_exists ~git_dir:dir : bool =
   | Ok b -> b
   | _ -> false
 
-let add_semgrep_gh_secret ~git_dir:dir ~token : unit =
+let add_semgrep_gh_secret ~git_dir:dir ~(token : Auth.token) : unit =
+  let str_token = Auth.string_of_token token in
   let cmd =
-    Bos.Cmd.(
-      v "gh" % "secret" % "set" % "SEMGREP_APP_TOKEN" % "-a" % "actions"
-      % "--body" % token)
+    ( Cmd.Name "gh",
+      [
+        "secret";
+        "set";
+        "SEMGREP_APP_TOKEN";
+        "-a";
+        "actions";
+        "--body";
+        str_token;
+      ] )
   in
   Bos.OS.Dir.with_current dir
     (fun () ->
-      match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-      | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" token)
+      match UCmd.status_of_run cmd with
+      | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" str_token)
       | _ ->
           Logs.warn (fun m -> m "Failed to set SEMGREP_APP_TOKEN for %s" !!dir);
           Error.abort "Failed to set SEMGREP_APP_TOKEN. Please add it manually")
@@ -242,10 +267,10 @@ let add_semgrep_gh_secret ~git_dir:dir ~token : unit =
 
 let get_default_branch () : string =
   let cmd =
-    Bos.Cmd.(v "git" % "symbolic-ref" % "refs/remotes/origin/HEAD" % "--short")
+    (Cmd.Name "git", [ "symbolic-ref"; "refs/remotes/origin/HEAD"; "--short" ])
   in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-  | Ok s -> s
+  match UCmd.string_of_run ~trim:true cmd with
+  | Ok (s, _status) -> s
   | _ ->
       Logs.warn (fun m -> m "Failed to get default branch");
       "origin/main"
@@ -261,15 +286,15 @@ let get_default_branch_in ~dst : string =
       default
 
 let add_all_to_git () : unit =
-  let cmd = Bos.Cmd.(v "git" % "add" % ".") in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "git", [ "add"; "." ]) in
+  match UCmd.status_of_run cmd with
   | Ok _ -> ()
   | _ -> Error.abort "Failed to add files to git"
 
 let git_push () : unit =
   let branch = get_new_branch () in
-  let cmd = Bos.Cmd.(v "git" % "push" % "--set-upstream" % "origin" % branch) in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  let cmd = (Cmd.Name "git", [ "push"; "--set-upstream"; "origin"; branch ]) in
+  match UCmd.status_of_run cmd with
   | Ok _ -> ()
   | _ ->
       Logs.warn (fun m -> m "Failed to push to branch %s" branch);
@@ -279,11 +304,15 @@ let git_push () : unit =
 
 let git_commit () : unit =
   let cmd =
-    Bos.Cmd.(
-      v "git" % "commit" % "-m" % "Add semgrep workflow"
-      % "--author=\"Semgrep CI Installer <support@semgrep.com>\"")
+    ( Cmd.Name "git",
+      [
+        "commit";
+        "-m";
+        "Add semgrep workflow";
+        "--author=\"Semgrep CI Installer <support@semgrep.com>\"";
+      ] )
   in
-  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  match UCmd.status_of_run cmd with
   | Ok _ -> ()
   | _ ->
       Logs.warn (fun m -> m "Failed to commit changes to current branch!");
@@ -299,20 +328,16 @@ let git_commit () : unit =
  *)
 let semgrep_workflow_exists ~repo : bool =
   let dir, cmd =
-    if Common2.dir_exists repo then
-      ( Fpath.to_dir_path Fpath.(v repo),
-        Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml") )
+    if UFile.dir_exists (Fpath.v repo) then
+      ( Fpath.to_dir_path (Fpath.v repo),
+        (Cmd.Name "gh", [ "workflow"; "view"; "semgrep.yml" ]) )
     else
       ( Bos.OS.Dir.current () |> Rresult.R.get_ok,
-        Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml" % "--repo" % repo)
+        (Cmd.Name "gh", [ "workflow"; "view"; "semgrep.yml"; "--repo"; repo ])
       )
   in
   Logs.debug (fun m -> m "Checking for semgrep workflow from %s" !!dir);
-  let res =
-    Bos.OS.Dir.with_current dir
-      (fun () -> Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string)
-      ()
-  in
+  let res = Bos.OS.Dir.with_current dir (fun () -> UCmd.status_of_run cmd) () in
   match res with
   | Ok (Ok _) -> true
   | _else_ -> false
@@ -321,13 +346,14 @@ let semgrep_workflow_exists ~repo : bool =
    we first clone the repo to a temporary directory,
    and then return the path to the cloned repo.
 *)
-let prep_repo (repo : string) : Fpath.t =
-  if Common2.dir_exists repo then Fpath.v repo
+let prep_repo (caps : caps) (repo : string) : Fpath.t =
+  if UFile.dir_exists (Fpath.v repo) then Fpath.v repo
   else
     let tmp_dir =
       Filename.concat
         (Filename.get_temp_dir_name ())
-        (Printf.sprintf "semgrep_install_ci_%6X" (Random.int 0xFFFFFF))
+        (Printf.sprintf "semgrep_install_ci_%6X"
+           (CapRandom.int caps#random 0xFFFFFF))
     in
     mkdir_if_needed tmp_dir;
     clone_repo_to ~repo ~dst:(Fpath.v tmp_dir);
@@ -380,7 +406,8 @@ let write_workflow_file ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
+let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
+    unit =
   let (repo : string) =
     match conf.repo with
     | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
@@ -393,7 +420,7 @@ let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
       Logs.info (fun m -> m "Semgrep workflow already present, skipping")
   | _else_ ->
       Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
-      let dir = prep_repo repo in
+      let dir = prep_repo caps repo in
       write_workflow_file ~git_dir:dir;
       if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
         Logs.info (fun m -> m "Semgrep secret already present, skipping")
@@ -404,7 +431,7 @@ let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
 (* Main logic *)
 (*****************************************************************************)
 
-let run (conf : Install_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
@@ -422,7 +449,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
-            (Logs_helpers.err_tag ()));
+            (Logs_.err_tag ()));
       Exit_code.fatal
   | Some token ->
       (* setup gh *)
@@ -430,15 +457,15 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       prompt_gh_auth_if_needed ();
       set_ssh_as_default ();
       (* let's go! this may raise some errors (catched in CLI.safe_run()) *)
-      add_semgrep_workflow ~token conf;
+      add_semgrep_workflow caps ~token conf;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
-            (Logs_helpers.success_tag ()));
+            (Logs_.success_tag ()));
       Exit_code.ok
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Install_CLI.parse_argv argv in
-  run conf
+  run_conf caps conf

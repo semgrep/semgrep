@@ -4,6 +4,8 @@
 
 open Printf
 
+let t = Testo.create
+
 let escaped_strings =
   [
     (* input, expected output *)
@@ -183,7 +185,7 @@ let test_vulnerability_prediction () =
 
 let tests =
   [
-    ("unescape", test_unescape);
-    ("pcre pattern explosion", test_pcre_pattern_explosions);
-    ("vulnerability prediction", test_vulnerability_prediction);
+    t "unescape" test_unescape;
+    t "pcre pattern explosion" test_pcre_pattern_explosions;
+    t "vulnerability prediction" test_vulnerability_prediction;
   ]

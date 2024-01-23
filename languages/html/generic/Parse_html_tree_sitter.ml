@@ -106,14 +106,14 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* script_start_tag_name *) in
-  let v3 = Common.map (map_attribute env) v3 in
+  let v3 = List_.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* style_start_tag_name *) in
-  let v3 = Common.map (map_attribute env) v3 in
+  let v3 = List_.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -123,7 +123,7 @@ let map_start_tag (env : env) (x : CST.start_tag) =
   | `LT_start_tag_name_rep_attr_GT (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "<" *) in
       let v2 = str env v2 (* start_tag_name *) in
-      let v3 = Common.map (map_attribute env) v3 in
+      let v3 = List_.map (map_attribute env) v3 in
       let v4 = token env v4 (* ">" *) in
       (v1, v2, v3, v4)
 
@@ -131,7 +131,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
   match x with
   | `Start_tag_rep_node_choice_end_tag (v1, v2, v3) ->
       let l, id, attrs, r = map_start_tag env v1 in
-      let v2 = Common.map (map_node env) v2 in
+      let v2 = List_.map (map_node env) v2 in
       let v3 =
         match v3 with
         | `End_tag x -> map_end_tag env x
@@ -142,7 +142,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
   | `Self_clos_tag (v1, v2, v3, v4) ->
       let l = token env v1 (* "<" *) in
       let id = str env v2 (* start_tag_name *) in
-      let attrs = Common.map (map_attribute env) v3 in
+      let attrs = List_.map (map_attribute env) v3 in
       let r = token env v4 (* "/>" *) in
       { xml_kind = XmlSingleton (l, id, r); xml_attrs = attrs; xml_body = [] }
 
@@ -214,7 +214,7 @@ let map_toplevel_node (env : env) (x : CST.toplevel_node) : xml_body =
   match x with
   | `Xmld (v1, v2, v3) ->
       let l = (* "<?xml" *) token env v1 in
-      let xml_attrs = Common.map (map_attribute env) v2 in
+      let xml_attrs = List_.map (map_attribute env) v2 in
       let r = (* "?>" *) token env v3 in
       let xml =
         { xml_kind = XmlSingleton (l, ("xml", l), r); xml_attrs; xml_body = [] }
@@ -227,10 +227,10 @@ let map_toplevel_node (env : env) (x : CST.toplevel_node) : xml_body =
   | `Errons_end_tag (v1, v2, v3) -> map_node env (`Errons_end_tag (v1, v2, v3))
 
 let map_fragment (env : env) (x : CST.fragment) :
-    (xml_body list, xml_attribute) Common.either =
+    (xml_body list, xml_attribute) Either.t =
   match x with
   | `Rep_topl_node v1 ->
-      let xml_bodys = Common.map (map_toplevel_node env) v1 in
+      let xml_bodys = List_.map (map_toplevel_node env) v1 in
       Left xml_bodys
   | `Topl_attr (v1, v2, v3) ->
       let id = str env v1 (* pattern "[^<>\"'/=\\s]+" *) in
@@ -277,7 +277,7 @@ let parse_pattern str =
     (fun () -> Tree_sitter_html.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
 
       match map_fragment env cst with
       | Left xs -> (

@@ -24,7 +24,7 @@ class ['self] pat_id_visitor =
       | PatAs (_, (id, id_info))
       | PatId (id, id_info) ->
           super#visit_pattern store pat;
-          Common.push (id, id_info) store
+          Stack_.push (id, id_info) store
       | G.OtherPat (_, [ G.E { e = G.Record (_b1, fields, _b2); _ } ]) ->
           (* JS allows object destructuring in the parameter list. *)
           (* TODO Handle array destructuring *)
@@ -46,7 +46,7 @@ class ['self] pat_id_visitor =
                             } );
                     _;
                   } ->
-                  Common.push (local_id, local_idinfo) store
+                  Stack_.push (local_id, local_idinfo) store
               | _else_ -> ())
             fields
       | PatRecord _
@@ -55,7 +55,7 @@ class ['self] pat_id_visitor =
       | PatTuple _
       | PatList _
       | PatKeyVal _
-      | PatUnderscore _
+      | PatWildcard _
       | PatDisj _
       | PatTyped _
       | PatWhen _

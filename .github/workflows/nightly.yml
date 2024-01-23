@@ -6,7 +6,7 @@ name: nightly
   - cron: 26 9 * * *
 jobs:
   brew-build:
-    name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
+    name: Build Semgrep via Brew from HEAD
     runs-on: macos-12
     steps:
     - run: brew update --debug --verbose
@@ -14,8 +14,8 @@ jobs:
         HOMEBREW_NO_INSTALL_FROM_API: 1
     - run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       env:
-        NONINTERACTIVE: 1
         HOMEBREW_NO_INSTALL_FROM_API: 1
+        NONINTERACTIVE: 1
     - name: Check installed correctly
       run: brew test semgrep --HEAD
       env:
@@ -33,9 +33,8 @@ jobs:
     runs-on: ubuntu-20.04
     if: failure()
     steps:
-    - name: Notify Failure
-      run: "\n        curl --request POST \\\n        --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL
+    - run: "\n        curl --request POST \\\n        --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL
         }} \\\n        --header 'content-type: application/json' \\\n        --data
         '{\n          \"commit_sha\": \"${{ github.sha }}\",\n          \"workflow_url\":
         \"https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}\"\n
-        \       }'\n      "
+        \       }'\n"

@@ -1,4 +1,3 @@
-open Common
 open Oassocb
 open Osetb
 
@@ -189,7 +188,7 @@ let dfs_iter xi f g =
              Hashtbl.add already xi true;
              f xi;
              let succ = g#successors xi in
-             aux_dfs (succ#tolist |> Common.map fst)))
+             aux_dfs (succ#tolist |> List_.map fst)))
   in
   aux_dfs [ xi ]
 
@@ -201,113 +200,7 @@ let dfs_iter_with_path xi f g =
       Hashtbl.add already xi true;
       f xi path;
       let succ = g#successors xi in
-      let succ' = succ#tolist |> Common.map fst in
+      let succ' = succ#tolist |> List_.map fst in
       succ' |> List.iter (fun yi -> aux_dfs (xi :: path) yi))
   in
   aux_dfs [] xi
-
-let generate_ograph_generic g label fnode filename =
-  Common.with_open_outfile filename (fun (pr, _) ->
-      pr "digraph misc {\n";
-      pr "size = \"10,10\";\n";
-      (match label with
-      | None -> ()
-      | Some x -> pr (Printf.sprintf "label = \"%s\";\n" x));
-
-      let nodes = g#nodes in
-      nodes#iter (fun (k, node) ->
-          let str, border_color, inner_color = fnode (k, node) in
-          let color =
-            match inner_color with
-            | None -> (
-                match border_color with
-                | None -> ""
-                | Some x ->
-                    Printf.sprintf ", style=\"setlinewidth(3)\", color = %s" x)
-            | Some x -> (
-                match border_color with
-                | None ->
-                    Printf.sprintf
-                      ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
-                | Some x' ->
-                    Printf.sprintf
-                      ", style=\"setlinewidth(3),filled\", fillcolor = %s, \
-                       color = %s"
-                      x x')
-          in
-          (* so can see if nodes without arcs were created *)
-          pr (spf "%d [label=\"%s   [%d]\"%s];\n" k str k color));
-
-      nodes#iter (fun (k, _node) ->
-          let succ = g#successors k in
-          succ#iter (fun (j, _edge) -> pr (spf "%d -> %d;\n" k j)));
-      pr "}\n");
-  ()
-
-let generate_ograph_xxx g filename =
-  with_open_outfile filename (fun (pr, _) ->
-      pr "digraph misc {\n";
-      pr "size = \"10,10\";\n";
-
-      let nodes = g#nodes in
-      nodes#iter (fun (k, (_node, s)) ->
-          (* so can see if nodes without arcs were created *)
-          pr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
-
-      nodes#iter (fun (k, _node) ->
-          let succ = g#successors k in
-          succ#iter (fun (j, _edge) -> pr (spf "%d -> %d;\n" k j)));
-      pr "}\n");
-  ()
-
-let get_os =
-  let os =
-    lazy
-      (let ic = Unix.open_process_in "uname" in
-       Common.protect
-         (fun () ->
-           let uname = input_line ic in
-           match uname with
-           | "Darwin" -> `MacOs
-           | "Linux" -> `Linux
-           | _else_ -> `Unknown)
-         ~finally:(fun () -> ignore (Unix.close_process_in ic)))
-  in
-  fun () -> Lazy.force os
-
-let launch_png_cmd filename =
-  let _status =
-    Unix.system (Printf.sprintf "dot -Tpng %s -o %s.png" filename filename)
-  in
-  let _status = Unix.system (Printf.sprintf "open %s.png" filename) in
-  ()
-
-let launch_gv_cmd filename =
-  let _status =
-    Unix.system ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
-  in
-  let _status = Unix.system ("gv " ^ filename ^ ".ps") in
-  (* zarb: I needed this when I launch the program with '&' via eshell,
-   * otherwise gv did not get the chance to be launched
-   * Unix.sleep 1;
-   *)
-  ()
-
-let display_graph_cmd filename =
-  match get_os () with
-  | `MacOs -> launch_png_cmd filename
-  | `Linux -> launch_gv_cmd filename
-  | `Unknown -> ()
-
-let print_ograph_extended g filename display_graph =
-  generate_ograph_xxx g filename;
-  if display_graph then display_graph_cmd filename
-
-let print_ograph_mutable g filename display_graph =
-  generate_ograph_xxx g filename;
-  if display_graph then display_graph_cmd filename
-
-let print_ograph_mutable_generic ?(title = None) ?(display_graph = true)
-    ?(output_file = "/tmp/ograph.dot") ~s_of_node g =
-  generate_ograph_generic g title s_of_node output_file;
-  if display_graph then display_graph_cmd output_file

@@ -8,6 +8,8 @@ module Flag = Flag_parsing
 (* Helpers *)
 (*****************************************************************************)
 
+let t = Testo.create
+
 (* old:
  * Back when the PHP parser was quite fragile we used to do some error
  * recovery in case of a parse error, and instead of failing hard we
@@ -29,22 +31,20 @@ module Flag = Flag_parsing
 let tests_path = "tests"
 
 let tests =
-  Testutil.pack_tests "parsing_php"
+  Testo.categorize "parsing_php"
     [
       (*-----------------------------------------------------------------------*)
       (* Lexing *)
       (*-----------------------------------------------------------------------*)
-      ( "lexing regular code",
-        fun () ->
+      t "lexing regular code" (fun () ->
           let toks = Parse_php.tokens_of_string "echo 1+2;" in
           Alcotest.(check bool)
             "it should have a Echo token" true
             (toks
             |> List.exists (function
                  | Parser_php.T_ECHO _ -> true
-                 | _ -> false)) );
-      ( "lexing and case sensitivity",
-        fun () ->
+                 | _ -> false)));
+      t "lexing and case sensitivity" (fun () ->
           let toks =
             Parse_php.tokens_of_string "function foo() { echo __function__; }"
           in
@@ -53,40 +53,36 @@ let tests =
             (toks
             |> List.exists (function
                  | Parser_php.T_FUNC_C _ -> true
-                 | _ -> false)) );
+                 | _ -> false)));
       (*-----------------------------------------------------------------------*)
       (* Parsing *)
       (*-----------------------------------------------------------------------*)
-      ( "parsing regular code",
-        fun () ->
+      t "parsing regular code" (fun () ->
           let _ast = Parse_php.program_of_string "echo 1+2;" in
-          () );
+          ());
       (* had such a bug one day ... *)
-      ( "parsing empty comments",
-        fun () ->
+      t "parsing empty comments" (fun () ->
           let _ast = Parse_php.program_of_string "$a/**/ =1;" in
-          () );
-      ( "rejecting bad code",
-        fun () ->
+          ());
+      t "rejecting bad code" (fun () ->
           Flag.show_parsing_error := false;
           try
             let _ = Parse_php.program_of_string "echo 1+" in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
           | Parsing_error.Syntax_error _ -> ()
-        (* old:
-         * The PHP parser does not return an exception when a PHP file contains
-         * an error, to allow some form of error recovery by not stopping
-         * at the first mistake. Instead it returns a NotParsedCorrectly
-         * AST toplevel element for parts of the code that were not parsed.
-         * Here we check that correctly formed code do not contain such
-         * NotParsedCorrectly element.
-         *
-         *  assert_bool "bad: should have a NotParsedCorrectly"
-         * (List.exists (function NotParsedCorrectly _ -> true | _ -> false) ast)
-         *) );
-      ( "rejecting variadic param with default",
-        fun () ->
+          (* old:
+           * The PHP parser does not return an exception when a PHP file contains
+           * an error, to allow some form of error recovery by not stopping
+           * at the first mistake. Instead it returns a NotParsedCorrectly
+           * AST toplevel element for parts of the code that were not parsed.
+           * Here we check that correctly formed code do not contain such
+           * NotParsedCorrectly element.
+           *
+           *  assert_bool "bad: should have a NotParsedCorrectly"
+           * (List.exists (function NotParsedCorrectly _ -> true | _ -> false) ast)
+           *));
+      t "rejecting variadic param with default" (fun () ->
           Flag.show_parsing_error := false;
           try
             let _ =
@@ -94,9 +90,8 @@ let tests =
             in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parsing_error.Syntax_error _ -> () );
-      ( "rejecting multiple variadic params",
-        fun () ->
+          | Parsing_error.Syntax_error _ -> ());
+      t "rejecting multiple variadic params" (fun () ->
           Flag.show_parsing_error := false;
           try
             let _ =
@@ -105,9 +100,8 @@ let tests =
             in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parsing_error.Syntax_error _ -> () );
-      ( "rejecting non-tail variadic param without variable name",
-        fun () ->
+          | Parsing_error.Syntax_error _ -> ());
+      t "rejecting non-tail variadic param without variable name" (fun () ->
           Flag.show_parsing_error := false;
           try
             let _ =
@@ -115,17 +109,15 @@ let tests =
             in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parsing_error.Syntax_error _ -> () );
-      ( "rejecting ellipsis with optional constructs",
-        fun () ->
+          | Parsing_error.Syntax_error _ -> ());
+      t "rejecting ellipsis with optional constructs" (fun () ->
           Flag.show_parsing_error := false;
           try
             let _ = Parse_php.program_of_string "function foo(int ...) {}" in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parsing_error.Syntax_error _ -> () );
-      ( "regression files",
-        fun () ->
+          | Parsing_error.Syntax_error _ -> ());
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "php/parsing" in
           let files = Common2.glob (spf "%s/*.php" dir) in
           files
@@ -135,12 +127,11 @@ let tests =
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file) );
+                     Alcotest.failf "it should correctly parse %s" file));
       (*-----------------------------------------------------------------------*)
       (* Types *)
       (*-----------------------------------------------------------------------*)
-      ( "sphp",
-        fun () ->
+      t "sphp" (fun () ->
           let t x =
             try
               let _ = Parse_php.program_of_string x in
@@ -171,7 +162,7 @@ let tests =
           t "class A { const ?A<T1, T2> X = 0; }";
           t "$x = function(): ?int { return null; };";
           t "function foo(A<A<int>> $x): ?int { return null; };";
-          t "class A { public static function foo<T>(): ?int { } }" );
+          t "class A { public static function foo<T>(): ?int { } }");
       (*-----------------------------------------------------------------------*)
       (* Misc *)
       (*-----------------------------------------------------------------------*)
@@ -200,8 +191,7 @@ let tests =
       assert_equal 4 !cnt ;
     );
        *)
-      ( "checking column numbers",
-        fun () ->
+      t "checking column numbers" (fun () ->
           (* See bug reported by dreiss, because the lexer had a few todos
            * regarding objects. *)
           let e = Parse_php.expr_of_string "$o->foo" in
@@ -209,7 +199,7 @@ let tests =
           | ObjGet (_v, _tok, Id name) ->
               let info = Ast.info_of_name name in
               Alcotest.(check int) "same values" 4 (Tok.col_of_tok info)
-          | _ -> Alcotest.fail "not good AST" )
+          | _ -> Alcotest.fail "not good AST")
       (*-----------------------------------------------------------------------*)
       (* Sgrep *)
       (*-----------------------------------------------------------------------*)

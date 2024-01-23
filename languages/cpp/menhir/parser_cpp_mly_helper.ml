@@ -1,5 +1,6 @@
 open Common
 open Ast_cpp
+open Either_
 module Ast = Ast_cpp
 module Flag = Flag_parsing
 
@@ -318,8 +319,9 @@ let fixFieldOrMethodDecl (xs, semicolon) : class_member =
       let fbody =
         match v_init with
         | None -> FBDecl semicolon
-        | Some (EqInit (tokeq, InitExpr (C (Int (Some 0, iizero))))) ->
-            FBZero (tokeq, iizero, semicolon)
+        | Some (EqInit (tokeq, InitExpr (C (Int ((_, tk) as pi)))))
+          when Parsed_int.eq_const pi 0 ->
+            FBZero (tokeq, tk, semicolon)
         | _ -> error "can't assign expression to method decl" semicolon
       in
       let def = { f_type = ft; f_body = fbody; f_specs = [] } in
@@ -334,7 +336,7 @@ let mk_e e = e
 let mk_funcall e1 args = Call (e1, args)
 
 let mk_constructor specs id (lp, params, rp) cp =
-  let params = Common.optlist_to_list params in
+  let params = List_.optlist_to_list params in
   let ftyp =
     {
       ft_ret = (nQ, TPrimitive (TVoid, snd id));

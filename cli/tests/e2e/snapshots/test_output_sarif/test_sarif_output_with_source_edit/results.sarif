@@ -1,0 +1,179 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "62b4a09c4569768898c43c09fa0a5b95b7e93257ef3a0911a5c379b6265b4d49fa4aecd5782461632e9aef4779af02d7cad4405b9a5318a0e5ffe9a5bd8daeae_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 26,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "    return a + b == a + b"
+                  },
+                  "startColumn": 12,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
+          },
+          "properties": {},
+          "ruleId": "rules.eqeq-is-bad"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "33c7ad418bcb7f83d9dcec68b2a8aa78ace93efbc20a12297ea7e15594ce23f5bca80b0958952b14dad3e874370c9ca7f991d2e1414adc33d243f133b1ff2811_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 19,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "console.log(x == x)"
+                  },
+                  "startColumn": 13,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison"
+          },
+          "properties": {},
+          "ruleId": "rules.javascript-basic-eqeq-bad"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "help": {
+                "markdown": "some help text",
+                "text": "some help text"
+              },
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+              },
+              "help": {
+                "markdown": "some help text",
+                "text": "some help text"
+              },
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison"
+              },
+              "help": {
+                "markdown": "some help text",
+                "text": "some help text"
+              },
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "cwe te",
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "markdown": "some help text",
+                "text": "some help text"
+              },
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

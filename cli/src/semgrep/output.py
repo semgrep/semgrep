@@ -1,4 +1,5 @@
 import dataclasses
+import os
 import pathlib
 import sys
 from collections import defaultdict
@@ -308,7 +309,7 @@ class OutputHandler:
         else:
             # ignore log was not created, so the run failed before it even started
             # create a fake log to track the errors
-            self.ignore_log = FileTargetingLog(TargetManager(["."]))
+            self.ignore_log = FileTargetingLog(TargetManager(frozenset([Path(".")])))
 
         if extra:
             self.extra = extra
@@ -465,8 +466,9 @@ class OutputHandler:
             extra["verbose_errors"] = True
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
-                self.settings.output_destination is None and sys.stdout.isatty(),
-            )
+                (self.settings.output_destination is None and sys.stdout.isatty())
+                or os.environ.get("SEMGREP_FORCE_COLOR")
+            ) and not os.environ.get("NO_COLOR")
             extra[
                 "per_finding_max_lines_limit"
             ] = self.settings.output_per_finding_max_lines_limit
@@ -476,6 +478,13 @@ class OutputHandler:
             extra["dataflow_traces"] = self.settings.dataflow_traces
         if self.settings.output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
+
+        state = get_state()
+        # If users are not using our registry, we will not nudge them to login
+        extra["is_using_registry"] = (
+            state.metrics.is_using_registry or state.env.mock_using_registry
+        )
+        extra["is_logged_in"] = state.app_session.token is not None
 
         # as opposed to below, we need to distinguish the various kinds of pro engine
         extra["engine_requested"] = self.engine_type
@@ -502,6 +511,9 @@ class OutputHandler:
                 rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
+                interfile_languages_used=self.extra.core.interfile_languages_used
+                if self.extra
+                else None,
                 # TODO, should just be self.extra.core.skipped_rules
                 skipped_rules=[],
             ),

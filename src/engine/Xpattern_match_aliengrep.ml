@@ -37,13 +37,13 @@ let convert_capture ~file
 (* Convert locations to the file/line/column format etc. *)
 let convert_match ~file (match_ : Aliengrep.Match.match_) =
   let loc = convert_loc ~file match_.match_loc in
-  let env = Common.map (convert_capture ~file) match_.captures in
+  let env = List_.map (convert_capture ~file) match_.captures in
   (loc, env)
 
 let aliengrep_matcher target_str file pat =
-  Aliengrep.Match.search pat target_str |> Common.map (convert_match ~file)
+  Aliengrep.Match.search pat target_str |> List_.map (convert_match ~file)
 
-let matches_of_aliengrep patterns lazy_contents file =
+let matches_of_aliengrep patterns lazy_contents (file : string) =
   let init _ =
     (* TODO: ignore binary files like spacegrep? *)
     (* TODO: preprocess and remove comments like spacegrep does *)
@@ -51,4 +51,4 @@ let matches_of_aliengrep patterns lazy_contents file =
   in
   Xpattern_matcher.matches_of_matcher patterns
     { init; matcher = aliengrep_matcher }
-    file
+    (Fpath.v file)

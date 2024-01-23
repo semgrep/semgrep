@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,11 +36,11 @@ open File.Operators
 let parse_rules_v2 file =
   match File_type.file_type_of_file file with
   | Config Json ->
-      let json_str = File.read_file file in
+      let json_str = UFile.read_file file in
       let rules = Rule_schema_v2_j.rules_of_string json_str in
       rules
   | Config Yaml ->
-      let str = File.read_file file in
+      let str = UFile.read_file file in
       let ezjsonm = Yaml.of_string_exn str in
       let yojson = JSON.ezjsonm_to_yojson ezjsonm in
       let json_str = Yojson.Basic.to_string ~std:true yojson in

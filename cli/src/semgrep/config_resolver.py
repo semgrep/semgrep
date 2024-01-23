@@ -19,7 +19,6 @@ from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
 import requests
-import ruamel.yaml
 from rich import progress
 from ruamel.yaml import YAMLError
 
@@ -30,11 +29,11 @@ from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import MISSED_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
@@ -53,6 +52,7 @@ from semgrep.util import is_rules
 from semgrep.util import is_url
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -86,6 +86,7 @@ class ConfigFile(NamedTuple):
 
 class ConfigType(Enum):
     REGISTRY = auto()
+    SEMGREP_CLOUD_PLATFORM = auto()
     LOCAL = auto()
 
 
@@ -98,7 +99,6 @@ class ConfigLoader:
         self,
         config_str: str,
         project_url: Optional[str] = None,
-        config_str_for_jsonnet: Optional[str] = None,
     ) -> None:
         """
         Mutates Metrics state!
@@ -116,13 +116,10 @@ class ConfigLoader:
         elif is_url(config_str):
             state.metrics.add_feature("config", "url")
             self._config_path = config_str
-        elif is_policy_id(config_str):
-            state.metrics.add_feature("config", "policy")
-            self._config_path = url_for_policy()
-            self._supports_fallback_config = True
-        elif is_supply_chain(config_str):
-            state.metrics.add_feature("config", "sca")
-            self._config_path = url_for_supply_chain()
+        elif is_product_names(config_str):
+            self._origin = ConfigType.SEMGREP_CLOUD_PLATFORM
+            add_metrics_for_products(config_str)
+            self._config_path = config_str
             self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
@@ -133,11 +130,6 @@ class ConfigLoader:
         else:
             state.metrics.add_feature("config", "local")
             self._origin = ConfigType.LOCAL
-            # For local imports, use the jsonnet config str
-            # if it exists
-            config_str = (
-                config_str_for_jsonnet if config_str_for_jsonnet else config_str
-            )
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
@@ -153,6 +145,8 @@ class ConfigLoader:
         """
         if self._origin == ConfigType.REGISTRY:
             return [self._download_config()]
+        elif self._origin == ConfigType.SEMGREP_CLOUD_PLATFORM:
+            return [self._fetch_semgrep_cloud_platform_scan_config()]
         else:
             return self._load_config_from_local_path()
 
@@ -250,6 +244,146 @@ class ConfigLoader:
     def is_registry_url(self) -> bool:
         return self._origin == ConfigType.REGISTRY
 
+    def _project_metadata_for_standalone_scan(
+        self, require_repo_name: bool
+    ) -> out.ProjectMetadata:
+        repo_name = os.environ.get("SEMGREP_REPO_NAME")
+
+        if repo_name is None:
+            if require_repo_name:
+                raise SemgrepError(
+                    f"Need to set env var SEMGREP_REPO_NAME to use `--config {self._config_path}`"
+                )
+            else:
+                repo_name = "unknown"
+
+        return out.ProjectMetadata(
+            semgrep_version=out.Version(__VERSION__),
+            scan_environment="semgrep-scan",
+            repository=repo_name,
+            repo_url=None,
+            branch=None,
+            commit=None,
+            commit_title=None,
+            commit_author_email=None,
+            commit_author_name=None,
+            commit_author_username=None,
+            commit_author_image_url=None,
+            ci_job_url=None,
+            on="unknown",
+            pull_request_author_username=None,
+            pull_request_author_image_url=None,
+            pull_request_id=None,
+            pull_request_title=None,
+            is_full_scan=True,  # always true for standalone scan
+        )
+
+    def _fetch_semgrep_cloud_platform_scan_config(self) -> ConfigFile:
+        """
+        Download a configuration from semgrep.dev using new /api/cli/scans endpoint
+        """
+        state = get_state()
+
+        products = [
+            out.Product.from_json(PRODUCT_NAMES[p])
+            for p in self._config_path.split(",")
+        ]
+
+        # Require SEMGREP_REPO_NAME env var if SAST or Secrets are requested
+        require_repo_name = any(
+            p.value in [out.SAST(), out.Secrets()] for p in products
+        )
+
+        request = out.ScanRequest(
+            meta=out.RawJson({}),  # required for now, but we won't populate it
+            scan_metadata=out.ScanMetadata(
+                cli_version=out.Version(__VERSION__),
+                unique_id=out.Uuid(str(state.local_scan_id)),
+                requested_products=products,
+                dry_run=True,  # semgrep scan never submits findings, so always a dry run
+            ),
+            project_metadata=self._project_metadata_for_standalone_scan(
+                require_repo_name
+            ),
+        )
+
+        try:
+            return self._download_semgrep_cloud_platform_scan_config(request)
+        except Exception:
+            if self._supports_fallback_config:
+                try:
+                    return self._download_semgrep_cloud_platform_fallback_scan_config()
+                except Exception:
+                    pass
+
+            raise  # error from first fetch
+
+    def _download_semgrep_cloud_platform_scan_config(
+        self, request: out.ScanRequest
+    ) -> ConfigFile:
+        state = get_state()
+        url = f"{state.env.semgrep_url}/api/cli/scans"
+        logger.debug("Downloading config from %s", url)
+        error = f"Failed to download configuration from {url}"
+        try:
+            response = state.app_session.post(
+                f"{state.env.semgrep_url}/api/cli/scans",
+                json=request.to_json(),
+            )
+
+            if response.status_code == requests.codes.unauthorized:
+                raise SemgrepError(
+                    "Invalid API Key. Run `semgrep logout` and `semgrep login` again.",
+                    code=INVALID_API_KEY_EXIT_CODE,
+                )
+
+            try:
+                response.raise_for_status()
+            except requests.RequestException:
+                raise Exception(
+                    f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+                )
+
+            scan_response = out.ScanResponse.from_json(response.json())
+            return ConfigFile(None, scan_response.config.rules.to_json_string(), url)
+
+        except requests.exceptions.RetryError as ex:
+            error += f" Failed after multiple attempts ({ex.args[0].reason})"
+
+            logger.debug(
+                error
+            )  # since the raised exception may be caught and suppressed
+
+            raise SemgrepError(error)
+
+    def _download_semgrep_cloud_platform_fallback_scan_config(self) -> ConfigFile:
+        """
+        This function decides what fallback url to call if the semgrep cloud platform
+        scan config endpoint fails
+
+        ! This will manually rebuild the url until we have a better solution
+        """
+        fallback_url = None
+
+        if is_code(self._config_path):
+            fallback_url = url_for_code()
+        elif is_supply_chain(self._config_path):
+            fallback_url = url_for_supply_chain()
+        elif is_secrets(self._config_path):
+            fallback_url = url_for_secrets()
+        elif is_policy_id(self._config_path):
+            fallback_url = url_for_policy()
+        else:
+            raise
+
+        fallback_url = re.sub(
+            r"^[^?]*",  # replace everything but query params
+            f"{get_state().env.fail_open_url}/config",
+            fallback_url,
+        )
+
+        return self._download_config_from_url(fallback_url)
+
 
 def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
     """
@@ -265,11 +399,8 @@ def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFi
 def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
     configs = []
     for l in loc.rglob("*"):
-        # Allow manually specified paths with ".", but don't auto-expand them
-        correct_suffix = is_config_suffix(l)
-        if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
-            if l.is_file():
-                configs.append(read_config_at_path(l, loc if relative else None))
+        if is_config_suffix(l) and l.is_file():
+            configs.append(read_config_at_path(l, loc if relative else None))
     return configs
 
 
@@ -349,6 +480,7 @@ class Config:
         # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
         with_code_rules: bool = False,
         with_supply_chain: bool = False,
+        with_secrets: bool = False,
         missed_rule_count: int = 0,
     ) -> None:
         """
@@ -358,6 +490,7 @@ class Config:
         self.valid = valid_configs
         self.with_code_rules = with_code_rules
         self.with_supply_chain = with_supply_chain
+        self.with_secrets = with_secrets
         self.missed_rule_count = missed_rule_count
 
     @classmethod
@@ -399,6 +532,7 @@ class Config:
         errors: List[SemgrepError] = []
         with_supply_chain = False
         with_code_rules = False
+        with_secrets = False
 
         for i, config in enumerate(configs):
             try:
@@ -410,6 +544,7 @@ class Config:
 
                 with_code_rules = with_code_rules or not is_supply_chain(config)
                 with_supply_chain = with_supply_chain or is_supply_chain(config)
+                with_secrets = with_secrets or is_secrets(config)
 
                 for (
                     resolved_config_key,
@@ -431,6 +566,7 @@ class Config:
                 valid,
                 with_code_rules=with_code_rules,
                 with_supply_chain=with_supply_chain,
+                with_secrets=with_secrets,
                 missed_rule_count=missed_rule_count,
             ),
             errors,
@@ -540,8 +676,10 @@ class Config:
                 else:
                     if (
                         isinstance(rule.product.value, out.Secrets)
-                        and config_id != REGISTRY_CONFIG_ID
-                        and config_id != CLOUD_PLATFORM_CONFIG_ID
+                        # In some instances we might append config_id with `_{i}` where
+                        # i is an integer
+                        and not config_id.startswith(REGISTRY_CONFIG_ID)
+                        and not config_id.startswith(CLOUD_PLATFORM_CONFIG_ID)
                     ):
                         # SECURITY: Set metadata from non-registry secrets
                         # rules so that postprocessors are not run. The default
@@ -620,95 +758,12 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def import_callback(base: str, path: str) -> Tuple[str, bytes]:
-    """
-    Instructions to jsonnet for how to resolve
-    import expressions (`local $NAME = $PATH`).
-    The base is the directory of the file and the
-    path is $PATH in the local expression. We will
-    later pass this function to jsonnet, which will
-    use it when resolving imports. By implementing
-    this callback, we support yaml files (jsonnet
-    can otherwise only build against json files)
-    and config specifiers like `p/python`. We also
-    support a library path
-    """
-
-    # If the library path is absolute, assume that's
-    # the intended path. But if it's relative, assume
-    # it's relative to the path semgrep was called from.
-    # This follows the semantics of `jsonnet -J`
-    library_path = os.environ.get("R2C_INTERNAL_JSONNET_LIB")
-
-    if library_path and not os.path.isabs(library_path):
-        library_path = os.path.join(os.curdir, library_path)
-
-    # Assume the path is the library path if it exists,
-    # otherwise try it without the library. This way,
-    # jsonnet will give an error for the path the user
-    # likely expects
-    # TODO throw an error if neither exists?
-    if library_path and os.path.exists(os.path.join(library_path, path)):
-        final_path = os.path.join(library_path, path)
-    else:
-        final_path = os.path.join(base, path)
-    logger.debug(f"import_callback for {path}, base = {base}, final = {final_path}")
-
-    # On the fly conversion from yaml to json.
-    # We can now do 'local x = import "foo.yml";'
-    # TODO: Make this check less jank
-    if final_path and (
-        final_path.split(".")[-1] == "yml" or final_path.split(".")[-1] == "yaml"
-    ):
-        logger.debug(f"loading yaml file {final_path}, converting to JSON on the fly")
-        yaml = ruamel.yaml.YAML(typ="safe")
-        with open(final_path) as fpi:
-            data = yaml.load(fpi)
-        contents = json.dumps(data)
-        filename = final_path
-        return filename, contents.encode()
-
-    logger.debug(f"defaulting to the config resolver for {path}")
-    # Registry-aware import!
-    # Can now do 'local x = import "p/python";'!!
-    # Will also handle `.jsonnet` and `.libsonnet` files
-    # implicitly, since they will be resolved as local files
-    config_infos = ConfigLoader(path, None, final_path).load_config()
-    if len(config_infos) == 0:
-        raise SemgrepError(f"No valid configs imported")
-    elif len(config_infos) > 1:
-        raise SemgrepError(f"Currently configs cannot be imported from a directory")
-    else:
-        (_config_id, contents, config_path) = config_infos[0]
-        return config_path, contents.encode()
-
-
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str]
 ) -> Dict[str, YamlTree]:
     if not contents:
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
-        )
-
-    # TODO: Make this check less jank
-    if filename and filename.split(".")[-1] == "jsonnet":
-        logger.error(
-            "Support for Jsonnet rules is experimental and currently meant for internal use only. The syntax may change or be removed at any point."
-        )
-
-        # Importing jsonnet here so that people who aren't using
-        # jsonnet rules don't need to deal with jsonnet as a
-        # dependency, especially while this is internal.
-        try:
-            import _jsonnet  # type: ignore
-        except ImportError:
-            logger.error(
-                "Running jsonnet rules requires the python jsonnet library. Please run `pip install jsonnet` and try again."
-            )
-
-        contents = _jsonnet.evaluate_snippet(
-            filename, contents, import_callback=import_callback
         )
 
     # Should we guard this code and checks whether filename ends with .json?
@@ -732,20 +787,6 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
     return {config_id: data}
-
-
-def _is_hidden_config(loc: Path) -> bool:
-    """
-    Want to keep rules/.semgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
-    """
-    return any(
-        part != os.curdir
-        and part != os.pardir
-        and part.startswith(".")
-        and DEFAULT_SEMGREP_CONFIG_NAME not in part
-        for part in loc.parts
-    )
 
 
 def is_registry_id(config_str: str) -> bool:
@@ -786,6 +827,7 @@ def url_for_policy() -> str:
     # The app considers anything that will not POST back to it to be a dry_run
     params = {
         "sca": False,
+        "is_secrets_scan": False,
         "dry_run": True,
         "full_scan": True,
         "repo_name": repo_name,
@@ -795,20 +837,51 @@ def url_for_policy() -> str:
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
+PRODUCT_NAMES = {
+    "code": "sast",
+    "policy": "sast",  # although policy isn't a product, it's effectively an alias for code
+    "secrets": "secrets",
+    "supply-chain": "sca",
+}
+
+
+def is_product_names(config_str: str) -> bool:
+    allowed = set(PRODUCT_NAMES.keys())
+    names = set(config_str.split(","))
+    return names <= allowed
+
+
+def add_metrics_for_products(config_str: str) -> None:
+    state = get_state()
+    for product_name in config_str.split(","):
+        if is_policy_id(product_name):
+            state.metrics.add_feature("config", "policy")
+        else:
+            state.metrics.add_feature("config", PRODUCT_NAMES[product_name])
+
+
 def is_policy_id(config_str: str) -> bool:
     return config_str == "policy"
 
 
-def url_for_supply_chain() -> str:
+def legacy_url_for_scan(extra_params: Optional[dict] = None) -> str:
+    """
+    Generates a legacy scan url (api/agent/deployments/scans/config) to
+    fetch a scan configuration.
+    """
     env = get_state().env
 
-    # The app considers anything that will not POST back to it to be a dry_run
+    # Common parameters for all scans
+    # - The app considers anything that will not POST back to it to be a dry_run
     params = {
-        "sca": True,
         "dry_run": True,
         "full_scan": True,
         "semgrep_version": __VERSION__,
     }
+
+    if extra_params:
+        params.update(extra_params)
+
     if "SEMGREP_REPO_NAME" in os.environ:
         params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
 
@@ -816,8 +889,28 @@ def url_for_supply_chain() -> str:
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
+def url_for_code() -> str:
+    return legacy_url_for_scan()
+
+
+def url_for_supply_chain() -> str:
+    return legacy_url_for_scan({"sca": True})
+
+
+def url_for_secrets() -> str:
+    return legacy_url_for_scan({"is_secrets_scan": True})
+
+
+def is_code(config_str: str) -> bool:
+    return config_str == "code"
+
+
 def is_supply_chain(config_str: str) -> bool:
     return config_str == "supply-chain"
+
+
+def is_secrets(config_str: str) -> bool:
+    return config_str == "secrets"
 
 
 def is_pack_id(config_str: str) -> bool:

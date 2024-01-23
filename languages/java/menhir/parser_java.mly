@@ -37,6 +37,7 @@
  *)
 %{
 open Common
+open Either_
 open AST_generic (* for the arithmetic operator *)
 open Ast_java
 
@@ -143,8 +144,8 @@ let expr_to_typename expr =
     | NameId id -> [id]
     | Dot (e, _, id) -> aux e @ [id]
     | _ ->
-        pr2 "cast_expression pb";
-        pr2_gen expr;
+        UCommon.pr2 "cast_expression pb";
+        UCommon.pr2_gen expr;
         raise Todo
    in
    let xs = aux expr in
@@ -180,7 +181,7 @@ let mk_stmt_or_stmts = function
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <int option * Tok.t> TInt
+%token <Parsed_int.t> TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t> TChar TString
 
@@ -264,6 +265,12 @@ let mk_stmt_or_stmts = function
 %token <Tok.t> LP_LAMBDA		(* ( ... ) ->  *)
 %token <Tok.t> DEFAULT_COLON		(* default :  *)
 %token <Tok.t> LP_PARAM		(* ( ) { }  *)
+
+(*-----------------------------------------*)
+(* semgrep-ext: *)
+(*-----------------------------------------*)
+
+%token <(string * Tok.t)> METAVAR_ELLIPSIS
 
 (*************************************************************************)
 (* Priorities *)
@@ -535,6 +542,7 @@ primary_no_new_array:
  | array_access                       { $1 }
  (* sgrep-ext: *)
  | typed_metavar       { $1 }
+ | METAVAR_ELLIPSIS { NameId ($1) }
  (* just can use some reserved identifiers as field now? *)
  | name "." THIS       { Dot (name $1, $2, ("this", $3)) }
  (* javaext: ? *)
@@ -623,8 +631,8 @@ method_invocation:
               | _ -> Call (Dot (Name (name (List.rev xs)),tok,x),($2,$3,$4))
               )
           | _ ->
-              pr2 "method_invocation pb";
-              pr2_gen $1;
+              UCommon.pr2 "method_invocation pb";
+              UCommon.pr2_gen $1;
               raise Impossible
          *)
         }
@@ -1034,7 +1042,7 @@ catch_formal_parameter:
   | "..." { CatchEllipsis $1 }
 
 (* javaext: ? *)
-catch_type: list_sep(type_, OR) { Common.hd_exn "unexpected empty list" $1, Common.tl_exn "unexpected empty list" $1 }
+catch_type: list_sep(type_, OR) { List_.hd_exn "unexpected empty list" $1, List_.tl_exn "unexpected empty list" $1 }
 
 (* javaext: ? *)
 resource_specification: "(" list_sep(resource, ";") ";"? ")"
@@ -1302,8 +1310,10 @@ formal_parameter:
   { ParamSpread ($3, canon_var $1 (Some $2) $4) }
  (* sgrep-ext: *)
  | "..." { ParamEllipsis $1 }
- (* less: we could also restrict to AST_generic_.is_metavar_ellipsis *)
  | IDENTIFIER
+   { Flag_parsing.sgrep_guard
+       (ParamClassic { name = $1; mods = []; type_ = None }) }
+ | METAVAR_ELLIPSIS
    { Flag_parsing.sgrep_guard
        (ParamClassic { name = $1; mods = []; type_ = None }) }
 

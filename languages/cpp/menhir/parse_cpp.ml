@@ -13,7 +13,7 @@
  *
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 module PS = Parsing_stat
 module FT = File_type
@@ -47,7 +47,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 let commentized xs =
   xs
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | T.TComment_Pp (cppkind, ii) ->
            if !Flag_cpp.filter_classic_passed then
              match cppkind with
@@ -127,14 +127,14 @@ and multi_grouped_list_comma xs =
   let rec aux acc xs =
     match xs with
     | [] ->
-        if null acc then []
-        else [ Left (acc |> List.rev |> multi_grouped_list) ]
+        if List_.null acc then []
+        else [ Either.Left (acc |> List.rev |> multi_grouped_list) ]
     | x :: xs -> (
         match x with
         | Token_views_cpp.Tok tok when Tok.content_of_tok (tokext tok) = "," ->
             let before = acc |> List.rev |> multi_grouped_list in
-            if null before then aux [] xs
-            else Left before :: Right (tokext tok) :: aux [] xs
+            if List_.null before then aux [] xs
+            else Either.Left before :: Either.Right (tokext tok) :: aux [] xs
         | _ -> aux (x :: acc) xs)
   in
   aux [] xs
@@ -150,7 +150,7 @@ let parse_fuzzy file =
       let toks_orig = tokens (Parsing_helpers.file !!file) in
       let toks =
         toks_orig
-        |> Common.exclude (fun x ->
+        |> List_.exclude (fun x ->
                Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
       in
       let extended = toks |> List.map Token_views_cpp.mk_token_extended in
@@ -232,13 +232,13 @@ let rec lexer_function tr lexbuf =
       tr.current <- v;
       tr.passed <- v :: tr.passed;
 
-      if !Flag.debug_lexer then pr2_gen v;
+      if !Flag.debug_lexer then UCommon.pr2_gen v;
 
       if TH.is_comment v then lexer_function (*~pass*) tr lexbuf else v
 
 (* was a define ? *)
 let passed_a_define tr =
-  let xs = tr.passed |> List.rev |> Common.exclude TH.is_comment in
+  let xs = tr.passed |> List.rev |> List_.exclude TH.is_comment in
   if List.length xs >= 2 then
     match Common2.head_middle_tail xs with
     | T.TDefine _, _, T.TCommentNewline_DefineEndOfMacro _ -> true
@@ -261,7 +261,7 @@ let passed_a_define tr =
 let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     (Ast.program, T.token) Parsing_result.t =
   let stat = Parsing_stat.default_stat !!file in
-  let filelines = Common2.cat_array !!file in
+  let filelines = UFile.cat_array file in
 
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)
@@ -323,11 +323,11 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
              | Parsing.Parse_error
              (* menhir *)
              | Parser_cpp.Error ->
-                 pr2
+                 UCommon.pr2
                    ("parse error \n = "
                    ^ error_msg_tok tr.Parsing_helpers.current)
              | Parsing_error.Other_error (s, _i) ->
-                 pr2
+                 UCommon.pr2
                    ("semantic error " ^ s ^ "\n ="
                    ^ error_msg_tok tr.Parsing_helpers.current)
              | _ -> Exception.reraise e);
@@ -355,7 +355,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.Parsing_helpers.passed <- passed';
 
           tr.Parsing_helpers.current <-
-            Common.hd_exn "can't be happening" passed';
+            List_.hd_exn "can't be happening" passed';
 
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in
@@ -370,7 +370,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           then
             Parsing_helpers.print_bad line_error (checkpoint, checkpoint2)
               filelines
-          else pr2 "PB: bad: but on tokens not from original file";
+          else UCommon.pr2 "PB: bad: but on tokens not from original file";
 
           let info_of_bads =
             Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed

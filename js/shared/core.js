@@ -13,13 +13,30 @@ function numcores() {
   return 1; // javascript, baby!
 }
 
+
+// js_of_ocaml assumes that if the platform is win32, then it returns Cygwin.
+// But we want it to be actual Windows.
+
+//Provides: os_type
+var os_type = (globalThis.process &&
+               globalThis.process.platform &&
+               globalThis.process.platform == "win32") ? "Win32" : "Unix";
+
+
+// override so we use the above os_type
+// Provides: caml_sys_get_config const
+//Requires: caml_string_of_jsbytes, os_type
+function caml_sys_get_config () {
+  return [0, caml_string_of_jsbytes(os_type), 32, 0];
+}
+
 //Provides: ocaml_terminal_size_get
 function ocaml_terminal_size_get() {
   return [80, 120];
 }
 
 //Provides: unix_open
-//Requires: caml_sys_fds, caml_list_of_js_array, caml_list_to_js_array, resolve_fs_device, MlFakeFd, MlFakeFile, caml_create_bytes, caml_raise_no_such_file, caml_raise_sys_error
+//Requires: caml_sys_fds, caml_list_of_js_array, caml_list_to_js_array, resolve_fs_device, MlNodeFd, MlNodeDevice, caml_create_bytes, caml_raise_no_such_file, caml_raise_sys_error
 function unix_open(path, flags, perm) {
   // Why is this needed?
   // There is a Unix.open_flag type, which is different than
@@ -33,6 +50,7 @@ function unix_open(path, flags, perm) {
     console.debug(`TODO: map unix flag ${flag} to stdlib flag`);
     return [];
   }
+
   function map_unix_flag_to_stdlib_flag(flag) {
     switch (flag) {
       // O_RDONLY
@@ -152,7 +170,6 @@ function unix_open(path, flags, perm) {
     }
     new_flags = new_flags[2];
   }
-  var root = resolve_fs_device(path);
 
   /* NOTE(bad-open):
     So far, by inlining, we have avoided one check for the conflicting flags.
@@ -171,8 +188,21 @@ function unix_open(path, flags, perm) {
     is_wronly = true;
   }
 
+  let file;
   /* inlined from caml_sys_open */
-  var file = root.device.open(root.rest, f);
+
+  // Node is weird and doesn't like opening NUL on Windows
+  // if its fs.openSync("NUL", "rs+") call, so we have to
+  // special case it and use \\\\.\\nul instead.
+  if (globalThis.process.platform === "win32" && path === "NUL") {
+    path = "\\\\.\\nul";
+    const device = new MlNodeDevice("");
+    const fd = device.fs.openSync(path, "rs+");
+    file = new MlNodeFd(fd, f);
+  }else{
+    var root = resolve_fs_device(path);
+    file = root.device.open(root.rest, f);
+  }
 
   /* see NOTE(bad-open) */
   if (is_wronly) {

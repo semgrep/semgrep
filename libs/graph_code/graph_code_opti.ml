@@ -46,7 +46,7 @@ type graph = {
 let hashtbl_find h n =
   try Hashtbl.find h n with
   | Not_found ->
-      pr2_gen ("PB:", n);
+      UCommon.pr2_gen ("PB:", n);
       raise Not_found
 
 (*****************************************************************************)
@@ -106,7 +106,7 @@ let children n g =
 let all_children n g =
   let rec aux i =
     let xs = g.has_children.(i) in
-    if null xs then [ i ]
+    if List_.null xs then [ i ]
     else i :: (xs |> List.map (fun i -> aux i) |> List.flatten)
   in
   aux (hashtbl_find g.name_to_i n) |> List.map (fun i -> g.i_to_name.(i))
@@ -138,9 +138,9 @@ let adjust_graph_pack_some_children_under_dotdotdot parent to_pack g =
   in
   Hashtbl.add new_g.name_to_i new_node new_idx;
   let idx_parent = hashtbl_find new_g.name_to_i parent in
-  let idx_packs = to_pack_idx |> Common.hashset_of_list in
+  let idx_packs = to_pack_idx |> Hashtbl_.hashset_of_list in
   new_g.has_children.(idx_parent) <-
     (* bugfix: don't forget to add new_idx *)
     new_idx :: new_g.has_children.(idx_parent)
-    |> Common.exclude (fun i -> Hashtbl.mem idx_packs i);
+    |> List_.exclude (fun i -> Hashtbl.mem idx_packs i);
   (new_g, new_node)

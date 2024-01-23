@@ -1,0 +1,19 @@
+rules:
+  - id: test
+    message:  Test
+    languages:
+      - javascript
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              function ...(..., $X, ...) { ... }
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - pattern: $S.sanitize(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              <$Y ... dangerouslySetInnerHTML={{__html: $X}} />
+          - focus-metavariable: $X

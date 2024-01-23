@@ -8,7 +8,14 @@ type language = C | Cplusplus
 (* macros *)
 (*****************************************************************************)
 
-let macros_h = ref (Fpath.v "/data/cpp_stdlib/macros.h")
+let macros_h =
+  ref
+    (Fpath.v
+       (match Sys.win32 with
+       (* Windows doesn't like paths that start with / *)
+       (* So provide a default path that may exist in windows *)
+       | true -> "C:/Program Files/LLVM/include/c++/v1/macros.h"
+       | false -> "/data/cpp_stdlib/macros.h"))
 
 let cmdline_flags_macrofile () =
   [

@@ -1,0 +1,19 @@
+rules:
+  - id: double-delete
+    languages:
+      - cpp
+      - c
+    message: "`$SINK_VAR` has previously been deleted which will trigger a
+      double-free vulnerability. This may lead to memory corruption."
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern: delete $SINK_VAR;
+          - focus-metavariable: $SINK_VAR
+    pattern-sources:
+      - by-side-effect: only
+        patterns:
+          - pattern: delete $VAR;
+          - focus-metavariable: $VAR
+    severity: ERROR
+

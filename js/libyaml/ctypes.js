@@ -377,22 +377,11 @@ function ctypes_memcpy(dst, src, size) {
   caml_failwith("ctypes: ctypes_memcpy not implemented");
 }
 
-//Provides: ctypes_string_of_array
-//Requires: caml_failwith
-function ctypes_string_of_array(ptr, len) {
-  caml_failwith("ctypes: ctypes_string_of_array not implemented");
-}
 
 //Provides: ctypes_use
 //Requires: caml_failwith
 function ctypes_use(x) {
   caml_failwith("ctypes: ctypes_use not implemented");
-}
-
-//Provides: ctypes_cstring_of_string
-//Requires: caml_failwith
-function ctypes_cstring_of_string(x) {
-  caml_failwith("ctypes: ctypes_cstring_of_string not implemented");
 }
 
 //Provides: integers_uintptr_t_size

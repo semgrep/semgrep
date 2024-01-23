@@ -1,0 +1,21 @@
+rules:
+  - id: test-symmetric-matching-enabled
+    languages:
+      - php
+    message: Working!
+    options:
+      symmetric_eq: true
+    pattern-either:
+      - pattern: foo1($stuff) == foo2($stuff)
+      - pattern: foo1($stuff) != foo2($stuff)
+    severity: WARNING
+  - id: test-symmetric-matching-disabled
+    languages:
+      - php
+    message: Working!
+    options:
+      symmetric_eq: false
+    pattern-either:
+      - pattern: bar1($stuff) == bar2($stuff)
+      - pattern: bar1($stuff) != bar2($stuff)
+    severity: WARNING

@@ -1,12 +1,15 @@
 (* this can be raised when timeout_threshold is set *)
-exception File_timeout
+exception File_timeout of Rule_ID.t list
 
-(*
-   Return matches, errors, match time.
-
-   This will run the search-mode and taint-mode rules.
-   This can raise File_timeout.
-*)
+(* Matches many rules against one target. This function is called from
+ * Test_engine.ml, Test_subcommand.ml, and of course Core_scan.ml
+ * (and also Match_extract_mode.ml now).
+ *
+ * Return matches, errors, and match time.
+ *
+ * This will run the search-mode and taint-mode rules.
+ * This can also raise File_timeout.
+ *)
 val check :
   match_hook:(string -> Pattern_match.t -> unit) ->
   timeout:float ->
@@ -14,7 +17,7 @@ val check :
   Match_env.xconfig ->
   (Rule.rule * Pattern_match.dependency_match list option) list ->
   Xtarget.t ->
-  Core_profiling.partial_profiling Core_result.match_result
+  Core_result.matches_single_file
 
 (* for osemgrep interactive *)
 val is_relevant_rule_for_xtarget :

@@ -127,11 +127,11 @@ let top_mode state =
   match !(state.mode) with
   | [] -> failwith "Lexer_python.top_mode: empty stack"
   | x::_ -> x
-let push_mode state mode = Common.push mode state.mode
-let pop_mode state = ignore(Common2.pop2 state.mode)
+let push_mode state mode = Stack_.push mode state.mode
+let pop_mode state = ignore(Stack_.pop state.mode)
 let set_mode state mode = begin pop_mode state; push_mode state mode end
 
-let pr_mode mode = pr2 (match mode with
+let pr_mode mode = UCommon.pr2 (match mode with
   | STATE_TOKEN -> "token"
   | STATE_OFFSET -> "offset"
   | STATE_UNDERSCORE_TOKEN -> "_token"
@@ -512,9 +512,9 @@ and _token python2 state = parse
 
   (* literals *)
   | integer as n longintpostfix
-      { LONGINT (int_of_string_opt n, tokinfo lexbuf) }
+      { LONGINT (Parsed_int.parse (n, tokinfo lexbuf)) }
   | integer as n
-      { INT (int_of_string_opt n, tokinfo lexbuf) }
+      { INT (Parsed_int.parse (n, tokinfo lexbuf)) }
 
   | floatnumber as n
       { FLOAT (float_of_string_opt n, tokinfo lexbuf) }

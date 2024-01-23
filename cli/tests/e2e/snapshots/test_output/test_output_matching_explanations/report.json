@@ -28,6 +28,7 @@
               },
               "extra": {
                 "engine_kind": "OSS",
+                "is_ignored": false,
                 "message": "useless comparison",
                 "metavars": {
                   "$X": {
@@ -96,6 +97,7 @@
           },
           "extra": {
             "engine_kind": "OSS",
+            "is_ignored": false,
             "message": "useless comparison",
             "metavars": {
               "$X": {
@@ -138,6 +140,7 @@
       "op": "And"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/stupid.js"

@@ -151,7 +151,7 @@ type scope_info = {
   enttype : type_ option;
 }
 
-type scope = (string, scope_info) assoc
+type scope = (string, scope_info) Assoc.t
 
 type scopes = {
   global : scope ref;
@@ -230,6 +230,17 @@ let lookup_nonlocal_scope id scopes =
   | [] ->
       let _ = error tok "no outerscope" in
       None
+
+let has_block_scope (lang : Lang.t) =
+  match lang with
+  (* These languages don't have block scope *)
+  | Ruby
+  | Python
+  | Php ->
+      false
+  | _js_ when Lang.is_js lang -> false
+  (* The rest do. *)
+  | _else_ -> true
 
 (*****************************************************************************)
 (* Environment *)
@@ -421,7 +432,7 @@ let resolved_name_kind env lang =
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =
   params |> Tok.unbracket
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in
            let resolved = { entname = (Parameter, sid); enttype = typ } in
@@ -439,7 +450,7 @@ let js_get_angular_constructor_args env attrs defs =
       attrs
   in
   defs
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | {
            s =
              DefStmt
@@ -518,7 +529,7 @@ let resolve lang prog =
                   if Lang.is_js lang then
                     let _, fields, _ = c.cbody in
                     js_get_angular_constructor_args env attrs
-                      (Common.map (fun (F x) -> x) fields)
+                      (List_.map (fun (F x) -> x) fields)
                   else []
                 in
                 (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
@@ -734,7 +745,7 @@ let resolve lang prog =
                      * uses also Filename in 'from ...conf import x'.
                      *)
                     let sid = SId.mk () in
-                    let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                    let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
                     let base = (b, tok) in
                     let canonical = dotted_to_canonical [ base; id ] in
                     let resolved =
@@ -745,7 +756,7 @@ let resolve lang prog =
                   when Lang.is_js lang && fst id <> Ast_js.default_entity ->
                     (* for JS *)
                     let sid = SId.mk () in
-                    let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                    let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
                     let base = (b, tok) in
                     let canonical = dotted_to_canonical [ base; id ] in
                     let resolved =
@@ -853,7 +864,7 @@ let resolve lang prog =
                 | Some { entname = ImportedEntity xs, _sidm; _ } ->
                     (* The entity is fully qualified, no need for sid *)
                     let sid = SId.unsafe_default in
-                    let rest_of_middle = Common.map fst rest_of_middle in
+                    let rest_of_middle = List_.map fst rest_of_middle in
                     let canonical =
                       xs @ dotted_to_canonical (rest_of_middle @ [ id ])
                     in
@@ -964,9 +975,20 @@ let resolve lang prog =
         else
           Common.save_excursion env.in_type true (fun () ->
               super#visit_type_ venv x)
-      (* TODO: we should intercept also V.kstmt and especially
-       * create new blocks for For, If with complex init_condition.
-       *)
+
+      (* TODO: support other types of statements that create block scopes. *)
+      method! visit_stmt venv x =
+        match x.s with
+        | If (tok, Cond e, s1, s2_opt) when has_block_scope lang ->
+            self#visit_tok venv tok;
+            self#visit_expr venv e;
+            with_new_block_scope env.names (fun () -> self#visit_stmt venv s1);
+            Option.iter
+              (fun s2 ->
+                with_new_block_scope env.names (fun () ->
+                    self#visit_stmt venv s2))
+              s2_opt
+        | _else_ -> super#visit_stmt venv x
     end
   in
   visitor#visit_program () prog;

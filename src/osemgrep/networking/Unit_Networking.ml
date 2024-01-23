@@ -16,61 +16,63 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+
 module Http_helpers = Http_helpers.Make (Lwt_platform)
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let get_and_check url =
+let get_and_check caps url =
   Logs.debug (fun m -> m "GET %s" url);
   let uri = Uri.of_string url in
-  let response = Http_helpers.get uri in
+  let response = Http_helpers.get caps#network uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> body
-  | Error e -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok (body, _) -> body
+  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
 
-let post_and_check url body =
+let post_and_check caps url body =
   Logs.debug (fun m -> m "POST %s" url);
   let uri = Uri.of_string url in
-  let response = Http_helpers.post ~body uri in
+  let response = Http_helpers.post ~body caps#network uri in
   (* Check OK Status *)
   match response with
   | Ok body -> body
   | Error (_, msg) -> failwith (Printf.sprintf "Error (%s): %s" url msg)
 
-let get_and_check_lwt url =
+let get_and_check_lwt caps url =
   Logs.debug (fun m -> m "(lwt) GET %s" url);
   let uri = Uri.of_string url in
-  let%lwt response = Http_helpers.get_async uri in
+  let%lwt response = Http_helpers.get_async caps#network uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> Lwt.return body
-  | Error e -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok (body, _) -> Lwt.return body
+  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
 
-let post_and_check_lwt url body =
+let post_and_check_lwt caps url body =
   Logs.debug (fun m -> m "(lwt) POST %s" url);
   let uri = Uri.of_string url in
-  let%lwt response = Http_helpers.post_async ~body uri in
+  let%lwt response = Http_helpers.post_async ~body caps#network uri in
   (* Check OK Status *)
   match response with
   | Ok body -> Lwt.return body
   | Error (_, msg) -> failwith (Printf.sprintf "Error (%s): %s" url msg)
 
-let get_and_check_multi urls (f : string -> unit) =
+let get_and_check_multi caps urls (f : string -> unit) =
   Logs.debug (fun m -> m "GET synchronously");
-  urls |> Common.map get_and_check |> List.iter f
+  urls |> List_.map (get_and_check caps) |> List.iter f
 
-let post_and_check_multi (url_body_pairs : (string * string) list)
+let post_and_check_multi caps (url_body_pairs : (string * string) list)
     (f : string -> unit) =
   Logs.debug (fun m -> m "POST synchronously");
   url_body_pairs
-  |> Common.map (fun (url, body) -> post_and_check url body)
+  |> List_.map (fun (url, body) -> post_and_check caps url body)
   |> List.iter f
 
-let get_and_check_multi_lwt ?(parallel = false) urls (f : string -> unit) =
+let get_and_check_multi_lwt ?(parallel = false) caps urls (f : string -> unit) =
   Logs.debug (fun m ->
       m "GET asynchronously (%s)"
         (if parallel then "parallel" else "sequential"));
@@ -78,10 +80,10 @@ let get_and_check_multi_lwt ?(parallel = false) urls (f : string -> unit) =
   Lwt_platform.run
     (urls
     |> iter_fn (fun url ->
-           let%lwt resp = get_and_check_lwt url in
+           let%lwt resp = get_and_check_lwt caps url in
            Lwt.return (f resp)))
 
-let post_and_check_multi_lwt ?(parallel = false)
+let post_and_check_multi_lwt ?(parallel = false) caps
     (url_body_pairs : (string * string) list) (f : string -> unit) =
   Logs.debug (fun m ->
       m "POST asynchronously (%s)"
@@ -90,34 +92,34 @@ let post_and_check_multi_lwt ?(parallel = false)
   Lwt_platform.run
     (url_body_pairs
     |> iter_fn (fun (url, body) ->
-           let%lwt resp = post_and_check_lwt url body in
+           let%lwt resp = post_and_check_lwt caps url body in
            Lwt.return (f resp)))
 
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
 
-let html_tests () =
+let html_tests caps =
   let urls =
     [ "https://www.google.com/"; "https://semgrep.dev/"; "https://github.com/" ]
   in
   let check_fn body =
     Alcotest.(check bool) "Body is not empty" true (String.length body <> 0)
   in
-  let get_sync () = get_and_check_multi urls check_fn in
+  let get_sync () = get_and_check_multi caps urls check_fn in
 
-  let get_async () = get_and_check_multi_lwt urls check_fn in
+  let get_async () = get_and_check_multi_lwt caps urls check_fn in
   let get_async_parallel () =
-    get_and_check_multi_lwt ~parallel:true urls check_fn
+    get_and_check_multi_lwt ~parallel:true caps urls check_fn
   in
-  pack_tests "Basic HTML"
+  Testo.categorize "Basic HTML"
     [
-      ("GET synchronously", get_sync);
-      ("GET asynchronously", get_async);
-      ("GET asynchronously (parallel)", get_async_parallel);
+      t "GET synchronously" get_sync;
+      t "GET asynchronously" get_async;
+      t "GET asynchronously (parallel)" get_async_parallel;
     ]
 
-let json_tests () =
+let json_tests caps =
   let urls =
     [
       "https://api.github.com/";
@@ -131,35 +133,35 @@ let json_tests () =
       (Yojson.Safe.from_string body
       |> Yojson.Safe.Util.to_assoc |> List.length > 0)
   in
-  let get_sync () = get_and_check_multi urls check_fn in
-  let get_async () = get_and_check_multi_lwt urls check_fn in
+  let get_sync () = get_and_check_multi caps urls check_fn in
+  let get_async () = get_and_check_multi_lwt caps urls check_fn in
   let get_async_parallel () =
-    get_and_check_multi_lwt ~parallel:true urls check_fn
+    get_and_check_multi_lwt ~parallel:true caps urls check_fn
   in
-  pack_tests "Basic JSON"
+  Testo.categorize "Basic JSON"
     [
-      ("GET synchronously", get_sync);
-      ("GET asynchronously", get_async);
-      ("GET asynchronously (parallel)", get_async_parallel);
+      t "GET synchronously" get_sync;
+      t "GET asynchronously" get_async;
+      t "GET asynchronously (parallel)" get_async_parallel;
     ]
 
-let post_tests () =
+let post_tests caps =
   let url_body_pairs = [ ("https://postman-echo.com/post", "") ] in
   let check_fn body =
     Alcotest.(check bool) "Body is not empty" true (String.length body <> 0)
   in
-  let post_sync () = post_and_check_multi url_body_pairs check_fn in
-  let post_async () = post_and_check_multi_lwt url_body_pairs check_fn in
+  let post_sync () = post_and_check_multi caps url_body_pairs check_fn in
+  let post_async () = post_and_check_multi_lwt caps url_body_pairs check_fn in
   let post_async_parallel () =
-    post_and_check_multi_lwt ~parallel:true url_body_pairs check_fn
+    post_and_check_multi_lwt ~parallel:true caps url_body_pairs check_fn
   in
-  pack_tests "Basic POST"
+  Testo.categorize "Basic POST"
     [
-      ("POST synchronously", post_sync);
-      ("POST asynchronously", post_async);
-      ("POST asynchronously (parallel)", post_async_parallel);
+      t "POST synchronously" post_sync;
+      t "POST asynchronously" post_async;
+      t "POST asynchronously (parallel)" post_async_parallel;
     ]
 
-let tests =
-  pack_suites "OSemgrep Networking"
-    [ html_tests (); json_tests (); post_tests () ]
+let tests caps =
+  Testo.categorize_suites "OSemgrep Networking"
+    [ html_tests caps; json_tests caps; post_tests caps ]

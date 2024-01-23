@@ -1,1 +1,1 @@
-val tests : Testutil.test list
+val tests : < Cap.network > -> Testo.test list

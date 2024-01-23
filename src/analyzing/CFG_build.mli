@@ -17,4 +17,5 @@ type fdef_cfg = { fparams : IL.name list; fcfg : IL.cfg }
  * implicit return, the returning expressions will be converted to
  * explicit return nodes in the CFG.
  *)
-val cfg_of_fdef : Lang.t -> AST_generic.function_definition -> fdef_cfg
+val cfg_of_fdef :
+  Lang.t -> ?ctx:AST_to_IL.ctx -> AST_generic.function_definition -> fdef_cfg

@@ -14,7 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module Ast = Ast_ml
+module Ast = AST_ocaml
 module Flag = Flag_parsing
 
 open Parser_ml
@@ -37,7 +37,7 @@ let error = Parsing_error.lexical_error
 (* Keywords *)
 (* ---------------------------------------------------------------------- *)
 (* src: http://caml.inria.fr/pub/docs/manual-ocaml/lex.html *)
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
 
   "fun", (fun ii -> Tfun ii);
   "function", (fun ii -> Tfunction ii);
@@ -340,7 +340,8 @@ rule token = parse
   | '-'? ("0b" | "0B")   ['0'-'1']
                        ( ['0'-'1'] | '_')*
    { let s = tok lexbuf in
-     TInt (int_of_string_opt s, tokinfo lexbuf)
+     let t = tokinfo lexbuf in
+     TInt (Parsed_int.parse (s, t))
    }
 
   | '-'?

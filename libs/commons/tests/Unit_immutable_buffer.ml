@@ -23,5 +23,5 @@ let test_immutable_buffer () =
     ]
 
 let tests =
-  Testutil.pack_tests "immutable buffer"
-    [ ("test immutable buffer", test_immutable_buffer) ]
+  Testo.categorize "immutable buffer"
+    [ Testo.create "test immutable buffer" test_immutable_buffer ]

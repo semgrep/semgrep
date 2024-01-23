@@ -34,10 +34,10 @@ let rexps_of_instr x =
       [ { e = Fetch { lval with rev_offset = [] }; eorig = NoOrig }; exp ]
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
-  | Call (_, e1, args) -> e1 :: Common.map exp_of_arg args
+  | Call (_, e1, args) -> e1 :: List_.map exp_of_arg args
   | New (_, _, _, args)
   | CallSpecial (_, _, args) ->
-      Common.map exp_of_arg args
+      List_.map exp_of_arg args
   | FixmeInstr _ -> []
 
 (* opti: could use a set *)
@@ -47,11 +47,11 @@ let rec lvals_of_exp e =
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
   | Composite (_, (_, xs, _)) -> lvals_of_exps xs
-  | Operator (_, xs) -> lvals_of_exps (Common.map exp_of_arg xs)
+  | Operator (_, xs) -> lvals_of_exps (List_.map exp_of_arg xs)
   | Record ys ->
       lvals_of_exps
         (ys
-        |> Common.map @@ function
+        |> List_.map @@ function
            | Field (_, e)
            | Spread e ->
                e)
@@ -162,3 +162,21 @@ module LvalOrdered = struct
             ro1 ro2
     | _, _ -> Stdlib.compare lval1 lval2
 end
+
+let orig_of_node = function
+  | Enter
+  | Exit ->
+      None
+  | TrueNode e
+  | FalseNode e
+  | NCond (_, e)
+  | NReturn (_, e)
+  | NThrow (_, e) ->
+      Some e.eorig
+  | NInstr i -> Some i.iorig
+  | NGoto _
+  | Join
+  | NLambda _
+  | NOther _
+  | NTodo _ ->
+      None

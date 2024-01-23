@@ -18,6 +18,7 @@ import os
 import shutil
 import sys
 import tempfile
+import traceback
 import uuid
 from itertools import product
 from pathlib import Path
@@ -301,11 +302,11 @@ def invoke_semgrep_multi(
 ) -> Tuple[Path, Optional[str], Any]:
     try:
         output = semgrep.run_scan.run_scan_and_return_json(config, targets, **kwargs)
-    except Exception as error:
+    except Exception:
         # We must get the string of the error because the multiprocessing library
         # will fail the marshal the error and hang
         # See: https://bugs.python.org/issue39751
-        return (config, str(error), {})
+        return (config, traceback.format_exc(), {})
     else:
         return (config, None, output)
 
@@ -479,12 +480,17 @@ def generate_test_results(
     # in a test context, we don't want to honor the paths: (include/exclude)
     # directive since the test target file, which must have the same
     # basename than the rule, may not match the paths: of the rule
+    respect_rule_paths = False
+    no_git_ignore = True
+    no_rewrite_rule_ids = True
+    # COUPLING: the arguments are the same as the second semgrep-core
+    # invocation later in this file (except for one)!
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
         engine_type=engine_type,
-        no_git_ignore=True,
-        respect_rule_paths=False,
-        no_rewrite_rule_ids=True,
+        no_git_ignore=no_git_ignore,
+        respect_rule_paths=respect_rule_paths,
+        no_rewrite_rule_ids=no_rewrite_rule_ids,
         strict=strict,
         optimizations=optimizations,
     )
@@ -569,14 +575,16 @@ def generate_test_results(
     ]
 
     # This is the invocation of semgrep for testing autofix.
-    #
-    # TODO: should 'engine' be set to 'engine=engine' or always 'engine=EngineType.OSS'?
+    # COUPLING: except for autofix, the arguments are the same as above
     invoke_semgrep_with_autofix_fn = functools.partial(
         invoke_semgrep_multi,
-        no_git_ignore=True,
-        no_rewrite_rule_ids=True,
+        engine_type=engine_type,
+        no_git_ignore=no_git_ignore,
+        respect_rule_paths=respect_rule_paths,
+        no_rewrite_rule_ids=no_rewrite_rule_ids,
         strict=strict,
         optimizations=optimizations,
+        # only option that differs from the earlier call to semgrep-core:
         autofix=True,
     )
 
@@ -657,7 +665,7 @@ def generate_test_results(
             "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
         )
     elif num_tests == num_tests_passed:
-        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed ")
+        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed")
     else:
         print(
             f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
@@ -668,7 +676,7 @@ def generate_test_results(
     if num_fixtests == 0:
         print("No tests for fixes found.")
     elif num_fixtests == num_fixtests_passed:
-        print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed ")
+        print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed")
     else:
         print(
             f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: "

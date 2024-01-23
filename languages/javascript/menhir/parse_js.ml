@@ -42,7 +42,7 @@ let extract_info_visitor recursor =
   let hooks =
     {
       V.default_visitor with
-      V.kinfo = (fun (_k, _) i -> Common.push i globals);
+      V.kinfo = (fun (_k, _) i -> Stack_.push i globals);
     }
   in
   let vout = V.mk_visitor hooks in
@@ -95,7 +95,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
         logger#debug "putting back lookahead token %s" (Dumper.dump current);
         tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
         tr.Parsing_helpers.passed <-
-          Common.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
+          List_.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
 
 (*****************************************************************************)
 (* ASI (Automatic Semicolon Insertion) part 2 *)
@@ -156,7 +156,7 @@ let asi_insert charpos last_charpos_error tr
   in
   (* like in Parse_info.mk_tokens_state *)
   tr.Parsing_helpers.rest <- toks;
-  tr.Parsing_helpers.current <- Common.hd_exn "impossible empty list" toks;
+  tr.Parsing_helpers.current <- List_.hd_exn "impossible empty list" toks;
   tr.Parsing_helpers.passed <- [];
   (* try again!
    * This significantly slow-down parsing, especially on minimized
@@ -222,7 +222,7 @@ let parse2 opt_timeout filename =
       (* this seems optional *)
       Parsing.clear_parser ();
       put_back_lookahead_token_if_needed tr item;
-      Left item
+      Either.Left item
     with
     | Parsing.Parse_error -> (
         (* coupling: update also any_of_string if you modify the code below *)
@@ -234,7 +234,7 @@ let parse2 opt_timeout filename =
         match asi_opportunity charpos last_charpos_error cur tr with
         | None ->
             if !Flag.show_parsing_error then
-              pr2 ("parse error \n = " ^ error_msg_tok cur);
+              UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
             Right cur
         | Some (passed_before, passed_offending, passed_after) ->
             asi_insert charpos last_charpos_error tr
@@ -258,16 +258,16 @@ let parse2 opt_timeout filename =
 *)
     match res with
     (* EOF *)
-    | Left None -> []
-    | Left (Some x) ->
+    | Either.Left None -> []
+    | Either.Left (Some x) ->
         logger#ldebug
           (lazy (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
 
         x :: aux tr
-    | Right err_tok ->
-        let max_line = Common.cat filename |> List.length in
+    | Either.Right err_tok ->
+        let max_line = UCommon.cat filename |> List.length in
         (if !Flag.show_parsing_error then
-           let filelines = Common2.cat_array filename in
+           let filelines = UFile.cat_array (Fpath.v filename) in
            let cur = tr.Parsing_helpers.current in
            let line_error = TH.line_of_tok cur in
            Parsing_helpers.print_bad line_error
@@ -288,7 +288,8 @@ let parse2 opt_timeout filename =
     with
     | Some res -> res
     | None ->
-        if !Flag.show_parsing_error then pr2 (spf "TIMEOUT on %s" filename);
+        if !Flag.show_parsing_error then
+          UCommon.pr2 (spf "TIMEOUT on %s" filename);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         stat.PS.have_timeout <- true;
         []

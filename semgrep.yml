@@ -1,5 +1,4 @@
-# This file contains Semgrep rules.
-# See https://semgrep.dev for more information.
+# This file contains Semgrep rules. See https://semgrep.dev for more info.
 #
 # You can use this file locally either with:
 #  - docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep:develop --config semgrep.yml
@@ -14,49 +13,36 @@
 
 rules:
   - id: no-print-in-semgrep
-    patterns:
-      - pattern-either:
-          - pattern: pr ...
-          - pattern: print_string ...
-      - pattern-not-inside: |
-          if !Flag.debug
-          then ...
-      - pattern-not-inside: |
-          let $F ... =
-             ...
-          [@@action]
+    match:
+      all:
+        - any:
+            - UCommon.pr ...
+            - pr ...
+            - print_string ...
+        - not:
+            inside: |
+              if !Flag.debug
+              then ...
+        - not:
+            inside: |
+              let $F ... =
+              ...
+              [@@action]
     message: you should not print anything on stdout as it may interfere with
       the JSON output we must return to the semgrep python wrapper.
+      Use Logs.debug() for debugging or Out.put() for actual valid output.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
-        - core_cli/*.ml
-        - cli/*.ml
-        - cli_*/*.ml
         - Test.ml
-        - Core_text_output.ml
-        - Matching_explanation.ml
+        - Check_*.ml
         - Unit_*.ml
         - Test_*.ml
-        - core_scan/*.ml
-        - experiments/*
-        - Check_*.ml
         - libs/*
         - languages/*
         - scripts/*
         - tools/*
-
-  - id: use-pytest-mock
-    pattern: import unittest.mock
-    message: >-
-      Instead of importing unittest.mock,
-      use the pytest-mock plugin by requesting the `mocker` fixture.
-    languages: [python]
-    severity: ERROR
-    paths:
-      include:
-        - tests/
 
   - id: use-state-for-global-settings
     pattern: global $VAR
@@ -79,20 +65,20 @@ rules:
           - pattern: Pcre.exec_all
           - pattern: Pcre.split
     message: >-
-      You should use one of the equivalent functions in SPcre, which
+      You should use one of the equivalent functions in Pcre_, which
       automatically sets some flags and handles exceptions.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
-        - SPcre.ml
+        - Pcre_.ml
 
   - id: no-list-map2
     pattern: List.map2
     message: >-
       `List.map2` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.map2` instead.
-    fix: Common.map2
+      stack overflow. Use `List_.map2` instead.
+    fix: List_.map2
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -109,8 +95,8 @@ rules:
     pattern: List.map
     message: >-
       `List.map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.map` instead.
-    fix: Common.map
+      stack overflow. Use `List_.map` instead.
+    fix: List_.map
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -127,8 +113,8 @@ rules:
     pattern: List.filter_map
     message: >-
       `List.filter_map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.map_filter` instead.
-    fix: Common.map_filter
+      stack overflow. Use `List_.map_filter` instead.
+    fix: List_.map_filter
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -145,8 +131,8 @@ rules:
     pattern: List.mapi
     message: >-
       `List.mapi` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `Common.mapi` instead.
-    fix: Common.mapi
+      stack overflow. Use `List_.mapi` instead.
+    fix: List_.mapi
     languages: [ocaml]
     severity: ERROR
     paths:
@@ -162,17 +148,17 @@ rules:
   - id: use-concat-map
     pattern-either:
       - pattern: List.map ... |> List.flatten
-      - pattern: Common.map ... |> List.flatten
+      - pattern: List_.map ... |> List.flatten
       - pattern: List.map ... |> List.concat
-      - pattern: Common.map ... |> List.concat
+      - pattern: List_.map ... |> List.concat
       - pattern: ... |> List.map ... |> List.flatten
-      - pattern: ... |> Common.map ... |> List.flatten
+      - pattern: ... |> List_.map ... |> List.flatten
       - pattern: ... |> List.map ... |> List.concat
-      - pattern: ... |> Common.map ... |> List.concat
+      - pattern: ... |> List_.map ... |> List.concat
       - pattern: List.flatten ( List.map ... )
-      - pattern: List.flatten ( Common.map ... )
+      - pattern: List.flatten ( List_.map ... )
       - pattern: List.concat ( List.map ... )
-      - pattern: List.concat ( Common.map ... )
+      - pattern: List.concat ( List_.map ... )
     message: >-
       `List.concat_map` is more efficient and more readable than a `map` followed
       by `concat`.
@@ -267,13 +253,6 @@ rules:
     paths:
       include:
         - cli/src/*
-  # not ready yet
-  #  - id: no-exit-in-semgrep
-  #    pattern: |
-  #      exit $X
-  #    message: do not use directly exit. raise instead UnixExit $X
-  #    languages: [ocaml]
-  #    severity: ERROR
 
   # Rules that used to be in pfff.yml and could be put in p/ocaml at some point
   - id: bad-pervasives
@@ -309,15 +288,8 @@ rules:
     #TODO: fix at some point
     paths:
       exclude:
-        - commons/common2.ml
-        - commons_wrappers/graph/graphe.ml
-        - h_visualization/plot_jgraph.ml
-        - lang_c/analyze/test_analyze_c.ml
-        - lang_cpp/parsing/test_parsing_cpp.ml
-        - lang_php/analyze/foundation/unit_foundation_php.ml
-        - lang_php/analyze/foundation/unit_prolog_php.ml
-        - main_db.ml
-        - tests/Test.ml
+        - libs/commons2/common2.ml
+
   - id: bad-changelog-extension
     pattern-regex: .*
     message: |
@@ -336,6 +308,7 @@ rules:
         - changelog.d/*.changed
         - changelog.d/*.fixed
         - changelog.d/*.infra
+
   - id: pass-console-to-rich-progress
     patterns:
       - pattern: rich.progress.track(...)
@@ -352,7 +325,7 @@ rules:
       Don't use 'List.hd' because it raises an unhelpful exception if its
       argument is an empty list. Prefer a match-with, possibly combined with
       'assert false' e.g. 'match xs with [] -> assert false | x :: _ -> ...'.
-    fix: Common.hd_exn "unexpected empty list"
+    fix: List_.hd_exn "unexpected empty list"
     languages: [ocaml]
     severity: WARNING
 
@@ -362,7 +335,7 @@ rules:
       Don't use 'List.tl' because it raises an unhelpful exception if its
       argument is an empty list. Prefer a match-with, possibly combined with
       'assert false' e.g. 'match xs with [] -> assert false | _ :: xs -> ...'.
-    fix: Common.tl_exn "unexpected empty list"
+    fix: List_.tl_exn "unexpected empty list"
     languages: [ocaml]
     severity: WARNING
 

@@ -77,11 +77,19 @@ type taint_trace_item = {
 
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 
+(* ! main type ! *)
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
-  (* location information: TODO Fpath.t *)
-  file : Common.filename;
+  (* Indicates whether this match was produced during a run
+   * of Semgrep PRO. This will be overrided later by the Pro engine, on any
+   * matches which are produced from a Pro run.
+   * TODO? do we want to consider the same match but with different engine
+   * as separate matches? or better make them equal for dedup purpose?
+   *)
+  engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
+  (* location info *)
+  file : Fpath.t;
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
@@ -105,14 +113,7 @@ type t = {
      in deduplication.
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
-  taint_trace : taint_trace Lazy.t option;
-  (* Indicates whether this match was produced during a run
-   * of Semgrep PRO. This will be overrided later by the Pro engine, on any
-   * matches which are produced from a Pro run.
-   * TODO? do we want to consider the same match but with different engine
-   * as separate matches? or better make them equal for dedup purpose?
-   *)
-  engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
+  taint_trace : taint_trace Lazy.t option; (* secrets stuff *)
   (* Indicates whether a postprocessor ran and validated this result. *)
   validation_state : Rule.validation_state;
   (* Indicates if the rule default severity should be modified to a different
@@ -156,6 +157,7 @@ and rule_id = {
    * mini_rule? *)
   message : string;
   fix : string option;
+  fix_regexp : Rule.fix_regexp option;
   (* ?? why we need that? *)
   langs : Lang.t list;
   (* used for debugging (could be removed at some point) *)
@@ -163,17 +165,24 @@ and rule_id = {
 }
 [@@deriving show, eq]
 
-let uniq pms =
+(*****************************************************************************)
+(* API *)
+(*****************************************************************************)
+
+(* Deduplicate matches *)
+let uniq (pms : t list) : t list =
   let eq = AST_generic_equals.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
   pms
-  |> List.iter (fun pm ->
-         let r = pm.range_loc in
-         let ys = Hashtbl.find_all tbl r in
-         match List.find_opt (fun y -> eq pm y) ys with
-         | Some _ -> ()
-         | None -> Hashtbl.add tbl r pm);
-  tbl |> Hashtbl.to_seq_values |> List.of_seq
+  |> List.iter (fun match_ ->
+         let loc = match_.range_loc in
+         let matches_at_loc = Hashtbl_.get_stack tbl loc in
+         match
+           List.find_opt (fun match2 -> eq match_ match2) matches_at_loc
+         with
+         | Some _equal_match_at_loc -> ()
+         | None -> Hashtbl_.push tbl loc match_);
+  Hashtbl.fold (fun _loc stack acc -> List.rev_append !stack acc) tbl []
 [@@profiling]
 
 let range pm =
@@ -208,27 +217,30 @@ let no_submatches pms =
 
 let to_proprietary pm = { pm with engine_kind = `PRO }
 
-(* This special Set is used in the dataflow tainting code,
-   which manipulates sets of matches associated to each variables.
-   We only care about the metavariable environment carried by the pattern
-   matches at the moment.
+(* DEAD ?
+
+   (* This special Set is used in the dataflow tainting code,
+      which manipulates sets of matches associated to each variables.
+      We only care about the metavariable environment carried by the pattern
+      matches at the moment.
+   *)
+   module Set = Set.Make (struct
+     type previous_t = t
+
+     (* alt: use type nonrec t = t, but this causes pad's codegraph to blowup *)
+     type t = previous_t
+
+     (* If the pattern matches are obviously different (have different ranges),
+        this is enough to compare them.
+        If their ranges are the same, compare their metavariable environments.
+        This is not robust to reordering metavariable environments.
+        [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This should
+        be ok but is potentially a source of duplicate findings in taint mode,
+        where these sets are used.
+     *)
+     let compare pm1 pm2 =
+       match compare pm1.range_loc pm2.range_loc with
+       | 0 -> compare pm1.env pm2.env
+       | c -> c
+   end)
 *)
-module Set = Set.Make (struct
-  type previous_t = t
-
-  (* alt: use type nonrec t = t, but this causes pad's codegraph to blowup *)
-  type t = previous_t
-
-  (* If the pattern matches are obviously different (have different ranges),
-     this is enough to compare them.
-     If their ranges are the same, compare their metavariable environments.
-     This is not robust to reordering metavariable environments.
-     [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This should
-     be ok but is potentially a source of duplicate findings in taint mode,
-     where these sets are used.
-  *)
-  let compare pm1 pm2 =
-    match compare pm1.range_loc pm2.range_loc with
-    | 0 -> compare pm1.env pm2.env
-    | c -> c
-end)

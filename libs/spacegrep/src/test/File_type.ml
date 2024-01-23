@@ -34,9 +34,9 @@ let run_one expected_class data =
 
 let test =
   let suite =
-    Common.map
+    List_.map
       (fun (name, expected_class, data) ->
-        (name, `Quick, fun () -> run_one expected_class data))
+        Testo.create name (fun () -> run_one expected_class data))
       corpus
   in
-  ("File_type", suite)
+  Testo.categorize "File_type" suite

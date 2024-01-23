@@ -64,7 +64,7 @@ type env = { lang : Lang.t; (* indentation level *) level : int }
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  pr2 (show_any any);
+  UCommon.pr2 (show_any any);
   "*TODO*"
 
 let rec indent = function
@@ -455,7 +455,7 @@ and for_stmt env (for_tok, hdr, s) =
         F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond)
           (opt_expr next)
     | ForEach (pat, tok, e) -> for_each (pat, tok, e)
-    | MultiForEach fors -> String.concat ";" (Common.map multi_for_each fors)
+    | MultiForEach fors -> String.concat ";" (List_.map multi_for_each fors)
     | ForEllipsis tok -> token ~d:"..." tok
   in
   let body_str = stmt { env with level = env.level + 1 } s in
@@ -608,7 +608,7 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   match name_middle with
   | Some (QDots dot_ids) ->
       (* TODO: do not do fst, look also at type qualification *)
-      F.sprintf "%s.%s" (dotted_access env (Common.map fst dot_ids)) (ident id)
+      F.sprintf "%s.%s" (dotted_access env (List_.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 
@@ -647,7 +647,7 @@ and literal _env l =
   match l with
   | Bool (true, t) -> token ~d:"true" t
   | Bool (false, t) -> token ~d:"false" t
-  | Int (_, t) -> token t
+  | Int (_, tok) -> token tok
   | Float (_, t) -> token t
   | Char (s, _) -> F.sprintf "'%s'" s
   (* TODO: once we will have string wrap bracket in AST_generic,

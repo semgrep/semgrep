@@ -87,11 +87,10 @@ class Env:
     in_gh_action: bool = field()
     in_agent: bool = field()
     with_new_cli_ux: bool = field()
+    mock_using_registry: bool = field()
     min_fetch_depth: int = field()
 
     upload_findings_timeout: int = field()
-
-    r2c_internal_jsonnet_lib: Path = field()
 
     @version_check_timeout.default
     def version_check_timeout_default(self) -> int:
@@ -154,19 +153,14 @@ class Env:
     def with_new_cli_default(self) -> bool:
         return os.environ.get("SEMGREP_NEW_CLI_UX", "0") == "1"
 
+    @mock_using_registry.default
+    def with_mock_using_registry(self) -> bool:
+        return "MOCK_USING_REGISTRY" in os.environ
+
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:
         value = os.getenv("SEMGREP_GHA_MIN_FETCH_DEPTH", "0")
         return int(value)
-
-    # R2C_INTERNAL_JSONNET
-    @r2c_internal_jsonnet_lib.default
-    def r2c_internal_jsonnet_lib_default(self) -> Path:
-        value = os.getenv("R2C_INTERNAL_JSONNET_LIB")
-        if value:
-            return Path(value)
-        # TODO what should the default path be?
-        return Path.home()
 
     @upload_findings_timeout.default
     def upload_findings_timeout_default(self) -> int:

@@ -93,14 +93,12 @@ exception CNF_exploded
 (* Helpers *)
 (*****************************************************************************)
 
-let ( let* ) = Common.( >>= )
-
 (* NOTE "AND vs OR and map_filter":
- * We cannot use `Common.map_filter` for `R.Or`, because it has the wrong
+ * We cannot use `List_.map_filter` for `R.Or`, because it has the wrong
  * semantics. We use `None` to say "we can't handle this", or in other words,
  * "we assume this pattern can match", or just "true"! So in an AND we can
  * remove those "true" terms, but in an OR we need to reduce the entire OR to
- * "true". Therefore, `Common.map_filter` works for AND-semantics, but for
+ * "true". Therefore, `List_.map_filter` works for AND-semantics, but for
  * OR-semantics we need `option_map`. *)
 let option_map f xs =
   List.fold_left
@@ -133,15 +131,15 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
   | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
-      let ys = Common.map_filter remove_not xs in
-      if null ys then (
+      let ys = List_.map_filter remove_not xs in
+      if List_.null ys then (
         logger#warning "null And after remove_not";
         None)
       else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
-      if null ys then (
+      if List_.null ys then (
         logger#warning "null Or after remove_not";
         None)
       else Some (R.Or (t, ys))
@@ -151,6 +149,10 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       (* double negation *)
       | R.Not (_, f) -> remove_not f
       (* todo? apply De Morgan's law? *)
+      (* TODO: These logs seem to be pretty noisy. Lower or remove?
+         Seems like they're just artifacts from prior stubs, so
+         failwith "Not Or" was just translated to below case, etc..
+      *)
       | R.Or (_, _xs) ->
           logger#warning "Not Or";
           None
@@ -159,10 +161,16 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
           None
       | R.Inside _ ->
           logger#warning "Not Inside";
+          None
+      | R.Anywhere _ ->
+          logger#warning "Not Anywhere";
           None)
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
       Some (R.Inside (t, formula))
+  | R.Anywhere (t, formula) ->
+      let* formula = remove_not formula in
+      Some (R.Anywhere (t, formula))
   | R.P pat -> Some (P pat)
 
 let remove_not_final f =
@@ -179,7 +187,7 @@ type cnf_step0 = step0 cnf [@@deriving show]
 (* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
  * TODO the current code triggers some Stack_overflow on
  * tests/rules/tainted-filename.yaml. I've replaced some List.map
- * by Common.map, but we still get some Stack_overflow because of the many
+ * by List_.map, but we still get some Stack_overflow because of the many
  * calls to @.
  *)
 let rec (cnf : Rule.formula -> cnf_step0) =
@@ -199,10 +207,12 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.Inside (_, formula) -> cnf formula
+  | R.Inside (_, formula)
+  | R.Anywhere (_, formula) ->
+      cnf formula
   | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
-      let ys = Common.map cnf xs in
-      let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
+      let ys = List_.map cnf xs in
+      let zs = List_.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> List.concat_map (function And ors -> ors))
   | R.Or (_, xs) ->
       let is_dangerously_large p q =
@@ -214,7 +224,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
         (* Divide rather than multiply to avoid integer overflow *)
         p_len > Int.div 50_000 q_len
       in
-      let ys = Common.map cnf xs in
+      let ys = List_.map cnf xs in
       List.fold_left
         (fun (And ps) (And qs) ->
           (* Abort before this starts consuming insane amounts of memory. *)
@@ -225,7 +235,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
             |> List.concat_map (fun pi ->
                    let ands =
                      qs
-                     |> Common.map (fun qi ->
+                     |> List_.map (fun qi ->
                             let (Or pi_ors) = pi in
                             let (Or qi_ors) = qi in
                             (* `ps` is the accumulator so we expect it to be larger *)
@@ -272,16 +282,16 @@ let id_mvars_of_formula f =
 (*
 let rec (and_step1: Rule.formula -> cnf_step1) = fun f ->
   match f with
-  | R.And xs -> And (xs |> Common.map_filter or_step1)
-  | _ -> And ([f] |> Common.map_filter or_step1)
+  | R.And xs -> And (xs |> List_.map_filter or_step1)
+  | _ -> And ([f] |> List_.map_filter or_step1)
 and or_step1 f =
   match f with
   | R.Or xs ->
-      let ys = (xs |> Common.map_filter leaf_step1) in
+      let ys = (xs |> List_.map_filter leaf_step1) in
       if null ys
       then None
       else (Some (Or ys))
-  | _ -> let ys = ([f] |> Common.map_filter leaf_step1) in
+  | _ -> let ys = ([f] |> List_.map_filter leaf_step1) in
       if null ys
       then None
       else (Some (Or ys))
@@ -299,15 +309,15 @@ and leaf_step1 f =
 let rec (and_step1 : is_id_mvar:is_id_mvar -> cnf_step0 -> cnf_step1) =
  fun ~is_id_mvar cnf ->
   match cnf with
-  | And xs -> And (xs |> Common.map_filter (or_step1 ~is_id_mvar))
+  | And xs -> And (xs |> List_.map_filter (or_step1 ~is_id_mvar))
 
 and or_step1 ~is_id_mvar cnf =
   match cnf with
   | Or xs ->
-      (* old: We had `Common.map_filter` here before, but that gives the wrong
+      (* old: We had `List_.map_filter` here before, but that gives the wrong
        * semantics. See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map (leaf_step1 ~is_id_mvar) xs in
-      if null ys then None else Some (Or ys)
+      if List_.null ys then None else Some (Or ys)
 
 and leaf_step1 ~is_id_mvar f =
   match f with
@@ -351,7 +361,7 @@ and metavarcond_step1 ~is_id_mvar x =
 let and_step1bis_filter_general (And xs) =
   let has_empty_idents, rest =
     xs
-    |> Common.partition_either (function Or xs ->
+    |> Either_.partition_either (function Or xs ->
            if
              xs
              |> List.exists (function
@@ -363,10 +373,10 @@ let and_step1bis_filter_general (And xs) =
   (* TODO: regression on vertx-sqli.yaml   *)
   let filtered =
     has_empty_idents
-    |> Common.map_filter (fun (Or xs) ->
+    |> List_.map_filter (fun (Or xs) ->
            let xs' =
              xs
-             |> Common.exclude (function
+             |> List_.exclude (function
                   | StringsAndMvars ([], mvars) ->
                       mvars
                       |> List.exists (fun mvar ->
@@ -381,7 +391,7 @@ let and_step1bis_filter_general (And xs) =
                                              mvar2 = mvar)))
                   | __else__ -> false)
            in
-           if null xs' then None else Some (Or xs'))
+           if List_.null xs' then None else Some (Or xs'))
   in
   And (filtered @ rest)
 [@@profiling]
@@ -396,7 +406,7 @@ type cnf_step2 = step2 cnf [@@deriving show]
 
 let or_step2 (Or xs) =
   let step1_to_step2 =
-    Common.map (function
+    List_.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
@@ -420,17 +430,17 @@ let or_step2 (Or xs) =
   | GeneralPattern -> None
 
 let and_step2 (And xs) =
-  let ys = xs |> Common.map_filter or_step2 in
-  if null ys then raise GeneralPattern;
+  let ys = xs |> List_.map_filter or_step2 in
+  if List_.null ys then raise GeneralPattern;
   And ys
 
 let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
   let xs' =
     xs
-    |> Common.map (fun (Or ys) ->
+    |> List_.map (fun (Or ys) ->
            let ys' =
              ys
-             |> Common.map (function
+             |> List_.map (function
                   | Idents xs -> `Pred (`Idents xs)
                   | Regexp2_search re ->
                       let re_str = Regexp_engine.show re in
@@ -463,7 +473,7 @@ type cnf_final = AndFinal of final_step list
 [@@deriving show]
 
 let or_final (Or xs) =
-  let ys = xs |> Common.map (function
+  let ys = xs |> List_.map (function
    | Idents [] -> raise Impossible
    (* take the first one *)
    | Idents (x::_) -> Re.matching_exact_string x
@@ -486,7 +496,7 @@ let or_final (Or xs) =
  * up the Idents in an AndFinal
  *)
 let and_final (And disjs) =
-  AndFinal (disjs |> Common.map_filter or_final)
+  AndFinal (disjs |> List_.map_filter or_final)
 
 (* todo: instead of running multiple times for the AndFinal, we could
  * do an or, look at the matched string and detect which parts of the
@@ -510,10 +520,10 @@ let _run_final (AndFinal xs) big_str =
 (*****************************************************************************)
 
 let eval_and p (And xs) =
-  if null xs then raise EmptyAnd;
+  if List_.null xs then raise EmptyAnd;
   xs
   |> List.for_all (function Or xs ->
-         if null xs then raise EmptyOr;
+         if List_.null xs then raise EmptyOr;
          xs |> List.exists (fun x -> p x) |> fun v ->
          (* Dumper.dump fails in js_of_ocaml. It's a printout so let's just
             ignore it *)
@@ -605,11 +615,11 @@ let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
     taint_spec.R.sources |> snd
-    |> Common.map (fun (src : R.taint_source) -> src.source_formula)
+    |> List_.map (fun (src : R.taint_source) -> src.source_formula)
   in
   let sinks =
     taint_spec.R.sinks |> snd
-    |> Common.map (fun (sink : R.taint_sink) -> sink.sink_formula)
+    |> List_.map (fun (sink : R.taint_sink) -> sink.sink_formula)
   in
   let f =
     (* Note that this formula would likely not yield any meaningful result

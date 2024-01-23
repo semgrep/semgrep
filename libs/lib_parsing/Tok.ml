@@ -122,7 +122,7 @@ type t =
 and virtual_location = location * int
 [@@deriving show { with_path = false }, eq, ord, sexp]
 
-type t_always_equal = t [@@deriving show]
+type t_always_equal = t [@@deriving show, sexp]
 
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
@@ -142,6 +142,13 @@ let pp_full_token_info = ref false
 
 (* for ppx_deriving *)
 let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
+
+(* not sure why we also need to define this one, but without this
+ * semgrep-core -diff_pfff_tree_sitter, which uses AST_generic.show_program,
+ * always display the full token info of the token
+ *)
+let pp_t_always_equal fmt t =
+  if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 
 (*****************************************************************************)
 (* Fake tokens (safe and unsafe) *)
@@ -325,7 +332,7 @@ let empty_tok_after tok : t =
   | Error _ -> rewrap_str "" tok
 
 let combine_bracket_contents (open_, xs, _close) =
-  let toks = Common.map snd xs in
+  let toks = List_.map snd xs in
   match toks with
   | x :: xs -> combine_toks x xs
   | [] -> empty_tok_after open_

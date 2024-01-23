@@ -84,11 +84,11 @@ let is_compatible ~require ~provide =
 
 let flatten x =
   match x with
-  | L (lang, langs) -> Common.map (fun x -> L (x, [])) (lang :: langs)
+  | L (lang, langs) -> List_.map (fun x -> L (x, [])) (lang :: langs)
   | (LRegex | LSpacegrep | LAliengrep) as x -> [ x ]
 
 let assoc : (string * t) list =
-  Common.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
+  List_.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
   @ [
       ("regex", LRegex);
       ("none", LRegex);
@@ -104,8 +104,8 @@ let assoc : (string * t) list =
        *);
     ]
 
-let map = Common.hash_of_list assoc
-let keys = Common2.hkeys map
+let map = Hashtbl_.hash_of_list assoc
+let keys = Hashtbl_.hkeys map
 let supported_xlangs : string = String.concat ", " keys
 
 let unsupported_xlang_message (xlang_s : string) =

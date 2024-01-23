@@ -120,7 +120,7 @@ let parse_doc_line tokens : Pattern_AST.node list =
 
 (* Interpret braces as regular punctuation. This is intended for patterns. *)
 let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
-  Common.map
+  List_.map
     (fun (token : Lexer.token) ->
       match token with
       | Atom (loc, atom) -> Atom (loc, atom)

@@ -1,0 +1,25 @@
+# extracted from Pro rule php.laravel.security.laravel-http-client-ssrf
+rules:
+- id: test
+  message: Test
+  severity: ERROR
+  languages:
+  - php
+  mode: taint
+  options:
+    taint_unify_mvars: true
+  pattern-sources:
+  - patterns:
+    - pattern: |
+        Route::$GET($ROUTE, function(...,$ARG,...) { ... })
+    - focus-metavariable: $ARG
+  pattern-sinks:
+  # This sink spec is not great... in one case we focus on
+  # the argument (`$X`) whereas in the other case we take
+  # the whole thing as the sink.
+  - patterns:
+    - pattern-either:
+      - patterns:
+        - pattern: Http->$ACTION(...)->...->post($X, ...)
+        - focus-metavariable: $X
+      - pattern: Http->$ACTION(...)->...->post($ARG, ...)

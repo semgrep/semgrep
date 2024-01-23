@@ -76,10 +76,14 @@ let on_request (type r) (request : r CR.t) server =
   | CR.CodeAction params ->
       Code_actions.on_request server params |> process_result
   | TextDocumentHover params -> Hover_request.on_request server params
+  | CR.ExecuteCommand { arguments; command; _ } ->
+      let args = Option.value arguments ~default:[] in
+      Execute_command.handle_execute_request server command args
   | CR.UnknownRequest { meth; params } ->
       handle_custom_request server meth params
   | CR.Shutdown ->
       Logs.debug (fun m -> m "Shutting down server");
+      Session.save_local_skipped_fingerprints server.session;
       (None, server)
   | CR.DebugEcho params -> process_result (params, server)
   | _ ->

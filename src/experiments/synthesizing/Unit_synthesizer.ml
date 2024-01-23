@@ -1,8 +1,10 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module G = AST_generic
 module PPG = Pretty_print_AST
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Semgrep Unit tests *)
@@ -177,8 +179,7 @@ let java_tests =
 
 let tests =
   [
-    ( "pattern inference features",
-      fun () ->
+    t "pattern inference features" (fun () ->
         let cases = [ (Lang.Python, python_tests); (Lang.Java, java_tests) ] in
         cases
         |> List.iter (fun (lang, tests) ->
@@ -227,9 +228,9 @@ let tests =
                                * but really should match the code in the given file at
                                * the given range *)
                               if matches_with_env =*= [] then (
-                                pr2 str;
-                                pr2 (AST_generic.show_any pattern);
-                                pr2 (AST_generic.show_any code));
+                                UCommon.pr2 str;
+                                UCommon.pr2 (AST_generic.show_any pattern);
+                                UCommon.pr2 (AST_generic.show_any code));
                               Alcotest.(check bool)
                                 (spf "pattern:|%s| should match |%s" pat
                                    (Pretty_print_pattern.pattern_to_string lang
@@ -251,5 +252,5 @@ let tests =
                       Alcotest.(check bool)
                         ("Patterns do not match solution, where inferred \
                           patterns are:\n" ^ pats_str)
-                        true (pats =*= sols))) );
+                        true (pats =*= sols))));
   ]

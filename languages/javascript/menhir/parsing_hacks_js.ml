@@ -115,8 +115,11 @@ let fix_tokens toks =
         toks
     in
     let horigin =
-      toks |> Common.map (fun t -> (TH.info_of_tok t, t)) |> Common.hash_of_list
+      toks
+      |> List_.map (fun t -> (TH.info_of_tok t, t))
+      |> Hashtbl_.hash_of_list
     in
+
     let retag_lparen_arrow = Hashtbl.create 101 in
     let retag_lparen_method = Hashtbl.create 101 in
     let retag_keywords = Hashtbl.create 101 in
@@ -155,7 +158,7 @@ let fix_tokens toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> Common.map (function
+    |> List_.map (function
          | T.T_LPAREN info when Hashtbl.mem retag_lparen_arrow info ->
              T.T_LPAREN_ARROW info
          | T.T_LPAREN info when Hashtbl.mem retag_lparen_method info ->
@@ -181,7 +184,7 @@ let fix_tokens_ASI xs =
     | [] -> ()
     | e :: l ->
         if TH.is_comment e then (
-          Common.push e res;
+          Stack_.push e res;
           aux prev f l)
         else (
           f prev e;
@@ -192,7 +195,7 @@ let fix_tokens_ASI xs =
     let info = TH.info_of_tok x in
     let fake = Ast.fakeInfoAttach info in
     logger#debug "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info);
-    Common.push (T.T_VIRTUAL_SEMICOLON fake) res
+    Stack_.push (T.T_VIRTUAL_SEMICOLON fake) res
   in
 
   let f prev x =
@@ -249,7 +252,7 @@ let fix_tokens_ASI xs =
      * -> push_sc_before_x x;
      *)
     | _ -> ());
-    Common.push x res
+    Stack_.push x res
   in
 
   (*

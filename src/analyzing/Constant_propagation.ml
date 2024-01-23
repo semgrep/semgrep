@@ -19,9 +19,6 @@ module H = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(* Deep Semgrep *)
-let hook_constant_propagation_and_evaluate_literal = ref None
-
 (* TODO: Remove duplication between the Generic-based and IL-based passes,
    ideally we should have a single pass, the IL-based. *)
 
@@ -222,11 +219,6 @@ let has_just_one_constructor stats cstr =
       logger#debug "No stats for %s" cstr;
       false
 
-let deep_constant_propagation_and_evaluate_literal x =
-  match !hook_constant_propagation_and_evaluate_literal with
-  | None -> None
-  | Some f -> f x
-
 (*****************************************************************************)
 (* Partial evaluation *)
 (*****************************************************************************)
@@ -250,28 +242,31 @@ let find_type_args args =
        | Some (Cst ctype) -> Some ctype
        | _arg -> None)
 
-let sign i = i asr (Sys.int_size - 1)
+let sign i = Int64.shift_right i (Sys.int_size - 1)
 
 let int_add n m =
-  let r = n + m in
-  if sign n = sign m && sign r <> sign n then None (* overflow *) else Some r
+  let r = Int64.add n m in
+  if Int64.equal (sign n) (sign m) && sign r <> sign n then None (* overflow *)
+  else Some r
 
 let int_mult i1 i2 =
   let overflow =
-    i1 <> 0 && i2 <> 0
-    && ((i1 < 0 && i2 = min_int) (* >max_int *)
-       || (i1 = min_int && i2 < 0) (* >max_int *)
-       ||
-       if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2) (* >max_int *)
-       else abs i1 > abs (min_int / i2) (* <min_int *))
+    Int64_.(
+      i1 <> 0L && i2 <> 0L
+      && ((i1 < 0L && i2 = min_int) (* >max_int *)
+         || (i1 = min_int && i2 < 0L) (* >max_int *)
+         ||
+         if sign i1 * sign i2 = 1L then abs i1 > abs (max_int / i2)
+           (* >max_int *)
+         else abs i1 > abs (min_int / i2) (* <min_int *)))
   in
-  if overflow then None else Some (i1 * i2)
+  if overflow then None else Some Int64_.(i1 * i2)
 
 let binop_int_cst op i1 i2 =
   match (i1, i2) with
-  | Some (Lit (Int (Some n, t1))), Some (Lit (Int (Some m, _))) ->
+  | Some (Lit (Int (Some n, _))), Some (Lit (Int (Some m, _))) ->
       let* r = op n m in
-      Some (Lit (Int (Some r, t1)))
+      Some (Lit (Int (Parsed_int.of_int64 r)))
   | Some (Lit (Int _)), Some (Cst Cint)
   | Some (Cst Cint), Some (Lit (Int _)) ->
       Some (Cst Cint)
@@ -290,10 +285,10 @@ let concat_string_cst env s1 s2 =
   match (s1, s2) with
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (String (_, (s2, _), _))) ->
       Some (Lit (String (l, (s1 ^ s2, t1), r)))
-  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some m, _)))
+  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some i, _)))
     when is_lang env Lang.Java || is_js env ->
       (* implicit int-to-string conversion *)
-      Some (Lit (String (l, (s1 ^ string_of_int m, t1), r)))
+      Some (Lit (String (l, (s1 ^ Int64.to_string i, t1), r)))
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
     when is_js env ->
       (* implicit float-to-string conversion *)
@@ -324,6 +319,12 @@ let rec eval env x : svalue option =
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
     when is_lang env Lang.Terraform ->
+      Some x
+  (* id_svalue is populated when used with the pro engine. *)
+  | DotAccess (_, _, FN (Id (_, { id_svalue = { contents = Some x }; _ }))) ->
+      Some x
+  | N (IdQualified { name_info = { id_svalue = { contents = Some x }; _ }; _ })
+    ->
       Some x
   (* ugly: dockerfile specific *)
   | Call
@@ -357,17 +358,15 @@ let rec eval env x : svalue option =
       eval env e
   | Call ({ e = IdSpecial special; _ }, args) -> eval_special env special args
   | Call ({ e = N name; _ }, args) -> eval_call env name args
-  | N name -> (
-      match find_name env name with
-      | Some svalue -> Some svalue
-      | None -> deep_constant_propagation_and_evaluate_literal x)
-  | _ ->
-      (* deep: *)
-      deep_constant_propagation_and_evaluate_literal x
+  | Call (({ e = DotAccess (_, _, FN (Id _)); _ } as e), args) ->
+      let* name = H.name_of_dot_access e in
+      eval_call env name args
+  | N name -> find_name env name
+  | _ -> None
 
 and eval_args env args =
   args |> Tok.unbracket
-  |> Common.map (function
+  |> List_.map (function
        | Arg e -> eval env e
        | _ -> None)
 
@@ -397,6 +396,25 @@ and eval_call env name args =
       Id ((("escapeshellarg" | "htmlspecialchars_decode"), _), _),
       [ Some (Lit (String _) | Cst Cstr) ] ) ->
       Some (Cst Cstr)
+  | ( Some Lang.Java,
+      IdQualified
+        {
+          name_last = ("format", _), _;
+          name_middle =
+            Some
+              (QDots
+                ( [ (("String", _), _) ]
+                | [ (("java", _), _); (("lang", _), _); (("String", _), _) ] ));
+          _;
+        },
+      _args ) ->
+      if
+        args
+        |> List.for_all (function
+             | Some (Lit _ | Cst _) -> true
+             | _ -> false)
+      then Some (Cst Cstr)
+      else None
   | _lang, _name, _args -> None
 
 let constant_propagation_and_evaluate_literal ?lang =
@@ -553,7 +571,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         },
         _ ) ->
       xs
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | F
                {
                  s =
@@ -584,7 +602,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         },
         _ ) ->
       xs
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | F
                {
                  s =
@@ -628,8 +646,8 @@ type propagate_basic_visitor_funcs = {
     env * Iter_with_context.context -> AST_generic.definition -> unit;
 }
 
-let propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref =
-  ref { visit_definition = (fun (_env, _ctx) _x -> ()) }
+let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref =
+  ref None
 
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
@@ -712,7 +730,8 @@ let propagate_basic lang prog =
               | None, _ -> ());
             super#visit_definition (env, ctx) x
         | _ ->
-            !propagate_basic_visitor_hook.visit_definition (env, ctx) x;
+            !hook_propagate_basic_visitor
+            |> Option.iter (fun v -> v.visit_definition (env, ctx) x);
             super#visit_definition (env, ctx) x
 
       (* the uses (and also defs for Python Assign) *)

@@ -3,7 +3,7 @@
 *)
 
 open Printf
-open Ast_ml
+open AST_ocaml
 
 (*****************************************************************************)
 (* Pretty-printing *)
@@ -63,7 +63,7 @@ let arg_names_of_list xs =
      "(v1, v2, v3)"
 *)
 let tuple_of_list ?(use_unit = true) ?(spaced = false) xs =
-  let vars = arg_names_of_list xs |> Common.map snd in
+  let vars = arg_names_of_list xs |> List_.map snd in
   let space = if spaced then " " else "" in
   match vars with
   | [] -> if use_unit then space ^ "()" else ""
@@ -83,7 +83,7 @@ let func_for_name (conf : Conf.t) (name : name) : string =
   match name with
   | [], id -> sprintf "%s%s" conf.fun_prefix (str_of_ident id)
   | qu, id ->
-      let prefix = qu |> Common.map str_of_ident |> String.concat "." in
+      let prefix = qu |> List_.map str_of_ident |> String.concat "." in
       sprintf "%s.%s%s" prefix conf.fun_prefix (str_of_ident id)
 
 (*
@@ -154,7 +154,7 @@ and gen_typedef (conf : Conf.t) is_first typedef : out list =
         match tbody with
         | AbstractType -> error "AbstractType not handled"
         | AlgebraicType ctors ->
-            let cases = Common.map (gen_case conf) ctors in
+            let cases = List_.map (gen_case conf) ctors in
             ("v", [ Line "match v with"; Inline cases ])
         | RecordType (_open, fields, _close) -> ("v", gen_record conf fields)
         | CoreType typ -> (
@@ -184,7 +184,7 @@ and gen_case conf (id, xs) =
     | Map ->
         let arg_handlers =
           xs
-          |> Common.map (fun (typ, var) ->
+          |> List_.map (fun (typ, var) ->
                  let def, call_str = func_for_type conf typ in
                  Inline
                    [
@@ -226,14 +226,14 @@ and gen_case conf (id, xs) =
 
 and gen_record conf fields =
   let field_names =
-    fields |> Common.map (fun ((name, _), _, _) -> name) |> String.concat "; "
+    fields |> List_.map (fun ((name, _), _, _) -> name) |> String.concat "; "
   in
   let result =
     match conf.format with
     | Map ->
         [
           Inline
-            (Common.map
+            (List_.map
                (fun ((name, _), type_, _mut) ->
                  let def, func = func_for_type conf type_ in
                  Inline
@@ -245,7 +245,7 @@ and gen_record conf fields =
           Line (sprintf "{%s}" field_names);
         ]
     | Visit ->
-        Common.map
+        List_.map
           (fun ((name, _), type_, _mut) ->
             let def, func = func_for_type conf type_ in
             Inline [ Inline def; Line (sprintf "%s env %s;" func name) ])
@@ -264,7 +264,7 @@ and gen_tuple conf types =
       [
         Inline
           (types
-          |> Common.map (fun (type_, var) ->
+          |> List_.map (fun (type_, var) ->
                  let def, call_str = func_for_type conf type_ in
                  Inline
                    [
@@ -296,7 +296,7 @@ let gen_typedef_group conf typedefs =
         true)
       else false
   in
-  (* Common.map would work but doesn't guarantee left-to-right evaluation :-( *)
+  (* List_.map would work but doesn't guarantee left-to-right evaluation :-( *)
   List.fold_left
     (fun acc x -> Inline (gen_typedef conf (is_first ()) x) :: acc)
     [] typedefs
@@ -306,7 +306,7 @@ let gen_typedef_group conf typedefs =
 let generate_boilerplate conf typedef_groups =
   let body =
     typedef_groups
-    |> Common.map (fun x ->
+    |> List_.map (fun x ->
            Inline (gen_typedef_group conf x |> insert_blank_lines))
     |> insert_blank_lines
   in

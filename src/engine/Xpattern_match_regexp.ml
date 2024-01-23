@@ -18,9 +18,9 @@ open Xpattern_matcher
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let regexp_matcher ?(base_offset = 0) big_str file regexp =
-  let subs = SPcre.exec_all_noerr ~rex:regexp big_str in
+  let subs = Pcre_.exec_all_noerr ~rex:regexp big_str in
   subs |> Array.to_list
-  |> Common.map (fun sub ->
+  |> List_.map (fun sub ->
          (* Below, we add `base_offset` to any instance of `bytepos`, because
             the `bytepos` we obtain is only within the range of the string
             being searched, which may itself be offset from a larger file.
@@ -52,8 +52,8 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
            | 1 -> []
            | _ when n <= 0 -> raise Impossible
            | n ->
-               Common2.enum 1 (n - 1)
-               |> Common.map_filter (fun n ->
+               List_.enum 1 (n - 1)
+               |> List_.map_filter (fun n ->
                       try
                         let bytepos, _ = Pcre.get_substring_ofs sub n in
                         let str = Pcre.get_substring sub n in
@@ -70,7 +70,7 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
          in
          let names_env =
            names
-           |> Common.map_filter (fun name ->
+           |> List_.map_filter (fun name ->
                   try
                     (* TODO: make exception-free versions of the missing
                        functions in SPcre. *)
@@ -92,11 +92,11 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
          in
          ((loc1, loc2), names_env @ numbers_env))
 
-let matches_of_regexs regexps lazy_content file =
+let matches_of_regexs regexps lazy_content (file : string) =
   matches_of_matcher regexps
     {
       init = (fun _ -> Some (Lazy.force lazy_content));
       matcher = regexp_matcher;
     }
-    file
+    (Fpath.v file)
 [@@profiling]

@@ -15,7 +15,7 @@ type t = {
   fail_open_url : Uri.t;
   (* $SEMGREP_METRICS_URL *)
   metrics_url : Uri.t;
-  app_token : string option;
+  app_token : Auth.token option;
   (* $SEMGREP_INTEGRATION_NAME *)
   integration_name : string option;
   (* $SEMGREP_VERSION_CHECK_URL *)
@@ -28,12 +28,17 @@ type t = {
   src_directory : Fpath.t;
   (* $SEMGREP_USER_AGENT_APPEND -> "(Docker)" *)
   user_agent_append : string option;
-  (* $XDG_CONFIG_HOME/.semgrep or ~/.semgrep *)
+  (* XDG_CONFIG_HOME on *nix, USERPROFILE on windows, or default to HOME or / *)
+  user_home_dir : Fpath.t;
+  (* user_home_dir/.semgrep *)
   user_dot_semgrep_dir : Fpath.t;
   (* $SEMGREP_LOG_FILE or ~/.semgrep/semgrep.log  *)
   user_log_file : Fpath.t;
   (* $SEMGREP_SETTINGS_FILE ~/.semgrep/settings.yml *)
   user_settings_file : Fpath.t;
+  (* TODO: Reconcile $SEMGREP_FORCE_COLOR via o_force_color *)
+  (* ($NO_COLOR | $SEMGREP_COLOR_NO_COLOR) *)
+  no_color : bool;
   is_ci : bool;
   in_docker : bool;
   (* $GITHUB_WORKSPACE *)
@@ -49,3 +54,12 @@ val v : t ref
   * during initialization. This is a reference to allow these settings to
   * be modified by tests.
   *)
+
+(* useful to work in cunjonction with with_envvars in testing context *)
+val of_current_sys_env : unit -> t
+
+(* [with_envvar envvar value f] temporarily modifies [v] above
+ * with a new envvar and run [f] in this new context. This is useful
+ * in tests.
+ *)
+val with_envvar : string -> string -> (unit -> 'a) -> 'a

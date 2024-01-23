@@ -12,6 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module Http_helpers_ = Http_helpers
+module Http_helpers = Http_helpers.Make (Lwt_platform)
+module Env = Semgrep_envvars
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,22 +27,27 @@
    Exceptions are caught and turned into an appropriate exit code
    (unless you used --debug).
 
-   We don't use Cmdliner to dispatch subcommands because it's too
-   complicated and anywant we want full control on main help message.
+   alt: we don't use Cmdliner to dispatch subcommands because it's too
+   complicated and anyway we want full control on the main help message.
 
    Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
-
-open Common
-module Http_helpers_ = Http_helpers
-module Http_helpers = Http_helpers.Make (Lwt_platform)
-module Env = Semgrep_envvars
 
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
 let default_subcommand = "scan"
+
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+(* alt: define our own Pro_CLI.ml in semgrep-pro
+ * old: was Interactive_subcommand.main
+ *)
+let hook_semgrep_interactive =
+  ref (fun _argv ->
+      failwith "semgrep interactive not available (requires --pro)")
 
 (*****************************************************************************)
 (* Helpers *)
@@ -58,11 +66,11 @@ let default_subcommand = "scan"
 (* Metrics start and end *)
 (*****************************************************************************)
 
-let metrics_init () : unit =
+let metrics_init (caps : < Cap.random >) : unit =
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
-  Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
+  Metrics_.init caps ~anonymous_user_id ~ci:!Env.v.is_ci;
   api_token
   |> Option.iter (fun (_token : Auth.token) ->
          Metrics_.g.payload.environment.isAuthenticated <- true);
@@ -73,7 +81,7 @@ let metrics_init () : unit =
 (* For debugging customer issues, we append the CLI flags for each subcommand,
    handling the logic in this base CLI entry point pre- subcommand dispatch.
 *)
-let log_cli_feature flag : unit =
+let log_cli_feature (flag : string) : unit =
   Metrics_.add_feature "cli-flag"
     (flag
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
@@ -82,26 +90,9 @@ let log_cli_feature flag : unit =
 (* CLI subcmds need to call Metrics_.configure conf.metrics
    otherwise metrics will not be send as Metrics.g.config default
    to Off
-   alt: we could implement send_metrics() in Metrics_.ml,
-   but we would need to add a dependency on Http_helpers.
 *)
-let send_metrics () : unit =
-  if Metrics_.is_enabled () then (
-    (* Populate the sent_at timestamp *)
-    Metrics_.prepare_to_send ();
-    let user_agent = Metrics_.string_of_user_agent () in
-    let metrics = Metrics_.string_of_metrics () in
-    let url = !Env.v.metrics_url in
-    let headers =
-      [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
-    in
-    Logs.debug (fun m -> m "Metrics: %s" metrics);
-    Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
-    match Http_helpers.post ~body:metrics ~headers url with
-    | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
-    | Error (status_code, err) ->
-        Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
-        ())
+let send_metrics (caps : < Cap.network ; .. >) : unit =
+  if Metrics_.is_enabled () then Semgrep_Metrics.send caps
   else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
 
 (*****************************************************************************)
@@ -123,18 +114,13 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "install-ci";
-    "interactive";
     "show";
+    "test";
+    (* pro-only and osemgrep-only *)
+    "interactive";
   ]
 
-(* Exit with a code that a proper semgrep implementation would never return.
-   Uncaught OCaml exception result in exit code 2.
-   This is to ensure that the tests that expect error status 2 fail. *)
-let missing_subcommand () =
-  Logs.err (fun m -> m "This semgrep subcommand is not implemented\n%!");
-  Exit_code.not_implemented_in_osemgrep
-
-let dispatch_subcommand argv =
+let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -143,7 +129,7 @@ let dispatch_subcommand argv =
    *)
   | [ _ ]
   | [ _; "--experimental" ] ->
-      Help.print_help ();
+      Help.print_help caps#stdout;
       Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
       Exit_code.ok
   | [ _; ("-h" | "--help") ]
@@ -154,7 +140,7 @@ let dispatch_subcommand argv =
    *)
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
-      Help.print_semgrep_dashdash_help ();
+      Help.print_semgrep_dashdash_help caps#stdout;
       Exit_code.ok
   | argv0 :: args -> (
       let subcmd, subcmd_args =
@@ -174,9 +160,9 @@ let dispatch_subcommand argv =
       let experimental = Array.mem "--experimental" argv in
       (* basic metrics on what was the command *)
       Metrics_.add_feature "subcommand" subcmd;
-      Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
+      Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
@@ -187,28 +173,51 @@ let dispatch_subcommand argv =
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
          * down when we know we don't handle certain kind of arguments).
          *)
-        | "install-semgrep-pro" when experimental -> missing_subcommand ()
-        | "publish" when experimental -> missing_subcommand ()
-        | "login" when experimental -> Login_subcommand.main subcmd_argv
-        | "logout" when experimental -> Logout_subcommand.main subcmd_argv
+        | "install-semgrep-pro" when experimental ->
+            Install_semgrep_pro_subcommand.main
+              (caps :> < Cap.network >)
+              subcmd_argv
+        | "publish" when experimental ->
+            Publish_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "login" when experimental ->
+            Login_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "logout" when experimental ->
+            Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "lsp" -> Lsp_subcommand.main subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
-        | "scan" -> Scan_subcommand.main subcmd_argv
-        | "ci" -> Ci_subcommand.main subcmd_argv
+        | "scan" ->
+            Scan_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "ci" ->
+            Ci_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network ; Cap.exec >)
+              subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
-        | "install-ci" -> Install_subcommand.main subcmd_argv
-        | "interactive" -> Interactive_subcommand.main subcmd_argv
-        | "show" -> Show_subcommand.main subcmd_argv
-        (* LATER: "test" *)
+        | "install-ci" ->
+            Install_subcommand.main (caps :> < Cap.random >) subcmd_argv
+        | "interactive" -> !hook_semgrep_interactive subcmd_argv
+        | "show" ->
+            Show_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "test" ->
+            Test_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
         | _else_ ->
             if experimental then
               (* this should never happen because we default to 'scan',
                * but better to be safe than sorry.
                *)
-              Error.abort (spf "unknown semgrep command: %s" subcmd)
+              Error.abort (Printf.sprintf "unknown semgrep command: %s" subcmd)
             else raise Pysemgrep.Fallback
       with
-      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
+      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep (caps :> < Cap.exec >) argv)
 [@@profiling]
 
 (*****************************************************************************)
@@ -250,7 +259,7 @@ let before_exit ~profile () : unit =
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.print_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)
-  Common.erase_temp_files ();
+  UCommon.erase_temp_files ();
   ()
 
 (*****************************************************************************)
@@ -258,7 +267,7 @@ let before_exit ~profile () : unit =
 (*****************************************************************************)
 
 (* called from ../../main/Main.ml *)
-let main argv : Exit_code.t =
+let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
@@ -284,7 +293,7 @@ let main argv : Exit_code.t =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+  if Sys.unix then CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
 
   (* TODO? We used to tune the garbage collector but from profiling
      we found that the effect was small. Meanwhile, the memory
@@ -303,7 +312,7 @@ let main argv : Exit_code.t =
    * even before we fully parse the command-line arguments.
    * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
-  Logs_helpers.enable_logging ();
+  Logs_.enable_logging ();
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;
@@ -311,13 +320,13 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
-  Http_helpers_.client_ref := Some (module Cohttp_lwt_unix.Client);
+  Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
 
-  metrics_init ();
+  metrics_init (caps :> < Cap.random >);
   (* TOPORT: maybe_set_git_safe_directories() *)
   (* TOADAPT? adapt more of Common.boilerplate? *)
-  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
+  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
   Metrics_.add_exit_code exit_code;
-  send_metrics ();
+  send_metrics (caps :> < Cap.network >);
   before_exit ~profile ();
   exit_code

@@ -393,3 +393,8 @@ function unix_read(fd, buf, ofs, len) {
     return bytesRead;
   }
 }
+
+//Provides: unix_rename
+function unix_rename(path1, path2) {
+  globalThis.fs.renameSync(path1, path2);
+}

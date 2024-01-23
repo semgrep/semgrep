@@ -1,8 +1,7 @@
 open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
-module Cmd = Cmdliner.Cmd
-module Http_helpers = Http_helpers.Make (Lwt_platform)
+module Cmdl = Cmdliner.Cmd
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,75 +45,73 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 let env : env Term.t =
   let github_event_path =
     let doc = "The GitHub event path." in
-    let env = Cmd.Env.info "GITHUB_EVENT_PATH" in
+    let env = Cmdl.Env.info "GITHUB_EVENT_PATH" in
     Arg.(
       value & opt Glom.cli Glom.default & info [ "github-event-path" ] ~env ~doc)
   in
   let github_sha =
     let doc = "The GitHub commit." in
-    let env = Cmd.Env.info "GITHUB_SHA" in
+    let env = Cmdl.Env.info "GITHUB_SHA" in
     Arg.(
-      value
-      & opt (some Cmdliner_helpers.sha1) None
-      & info [ "github-sha" ] ~env ~doc)
+      value & opt (some Cmdliner_.sha1) None & info [ "github-sha" ] ~env ~doc)
   in
   let gh_token =
     let doc = "The GitHub token." in
-    let env = Cmd.Env.info "GH_TOKEN" in
+    let env = Cmdl.Env.info "GH_TOKEN" in
     Arg.(value & opt (some string) None & info [ "gh-token" ] ~env ~doc)
   in
   let github_repository =
     let doc = "The GitHub repository." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY" in
+    let env = Cmdl.Env.info "GITHUB_REPOSITORY" in
     Arg.(
       value & opt (some string) None & info [ "github-repository" ] ~env ~doc)
   in
   let github_server_url =
     let doc = "The GitHub server URL." in
-    let env = Cmd.Env.info "GITHUB_SERVER_URL" in
+    let env = Cmdl.Env.info "GITHUB_SERVER_URL" in
     Arg.(
       value
-      & opt Cmdliner_helpers.uri (Uri.of_string "https://github.com")
+      & opt Cmdliner_.uri (Uri.of_string "https://github.com")
       & info [ "github-server-url" ] ~doc ~env)
   in
   let github_api_url =
     let doc = "The GitHub API URL." in
-    let env = Cmd.Env.info "GITHUB_API_URL" in
+    let env = Cmdl.Env.info "GITHUB_API_URL" in
     Arg.(
       value
-      & opt (some Cmdliner_helpers.uri) None
+      & opt (some Cmdliner_.uri) None
       & info [ "github-api-url" ] ~doc ~env)
   in
   let github_run_id =
     let doc = "The GitHub run ID." in
-    let env = Cmd.Env.info "GITHUB_RUN_ID" in
+    let env = Cmdl.Env.info "GITHUB_RUN_ID" in
     Arg.(value & opt (some string) None & info [ "github-run-id" ] ~doc ~env)
   in
   let github_event_name =
     let doc = "The GitHub event name." in
-    let env = Cmd.Env.info "GITHUB_EVENT_NAME" in
+    let env = Cmdl.Env.info "GITHUB_EVENT_NAME" in
     Arg.(
       value & opt (some string) None & info [ "github-event-name" ] ~doc ~env)
   in
   let github_ref =
     let doc = "The GitHub ref." in
-    let env = Cmd.Env.info "GITHUB_REF" in
+    let env = Cmdl.Env.info "GITHUB_REF" in
     Arg.(value & opt (some string) None & info [ "github-ref" ] ~doc ~env)
   in
   let github_head_ref =
     let doc = "The GitHub HEAD ref." in
-    let env = Cmd.Env.info "GITHUB_HEAD_REF" in
+    let env = Cmdl.Env.info "GITHUB_HEAD_REF" in
     Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
   in
   let github_repository_id =
     let doc = "The ID of the repository." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY_ID" in
+    let env = Cmdl.Env.info "GITHUB_REPOSITORY_ID" in
     Arg.(
       value & opt (some string) None & info [ "github-repository-id" ] ~doc ~env)
   in
   let github_repository_owner_id =
     let doc = "The repository owner's account ID." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY_OWNER_ID" in
+    let env = Cmdl.Env.info "GITHUB_REPOSITORY_OWNER_ID" in
     Arg.(
       value
       & opt (some string) None
@@ -150,13 +147,17 @@ let env : env Term.t =
 (*****************************************************************************)
 
 (* Split out shallow fetch so we can mock it away in tests. *)
-let shallow_fetch_branch branch_name =
+let shallow_fetch_branch caps branch_name =
   let _ =
-    Git_wrapper.git_check_output
-      Bos.Cmd.(
-        v "git" % "fetch" % "origin" % "--depth=1" % "--force"
-        % "--update-head-ok"
-        % Fmt.str "%s:%s" branch_name branch_name)
+    Git_wrapper.git_check_output caps#exec
+      [
+        "fetch";
+        "origin";
+        "--depth=1";
+        "--force";
+        "--update-head-ok";
+        Fmt.str "%s:%s" branch_name branch_name;
+      ]
   in
   ()
 
@@ -164,22 +165,26 @@ let shallow_fetch_branch branch_name =
 
    Different from _shallow_fetch_branch because it does not assign a local
    name to the commit. It just does the fetch. *)
-let shallow_fetch_commit commit_hash =
+let _shallow_fetch_commit caps commit_hash =
   let _ =
-    Git_wrapper.git_check_output
-      Bos.Cmd.(
-        v "git" % "fetch" % "origin" % "--depth=1" % "--force"
-        % "--update-head-ok"
-        % Digestif.SHA1.to_hex commit_hash)
+    Git_wrapper.git_check_output caps#exec
+      [
+        "fetch";
+        "origin";
+        "--depth=1";
+        "--force";
+        "--update-head-ok";
+        Digestif.SHA1.to_hex commit_hash;
+      ]
   in
   ()
 
 (* Return sha hash of latest commit in a given branch.
 
    Does a git fetch of given branch with depth = 1. *)
-let get_latest_commit_hash_in_branch branch_name =
-  shallow_fetch_branch branch_name;
-  Git_wrapper.git_check_output Bos.Cmd.(v "git" % "rev-parse" % branch_name)
+let get_latest_commit_hash_in_branch caps branch_name =
+  shallow_fetch_branch caps branch_name;
+  Git_wrapper.git_check_output caps#exec [ "rev-parse"; branch_name ]
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -192,7 +197,7 @@ let get_head_branch_ref env =
    This will also ensure that a fetch is done prior to returning.
 
    Assumes we are in PR context. *)
-let get_head_branch_hash env =
+let get_head_branch_hash caps (env : env) : Digestif.SHA1.t option =
   let commit =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
@@ -205,15 +210,19 @@ let get_head_branch_hash env =
           m "head branch %s has latest commit %a, fetching that commit now."
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
-        Git_wrapper.git_check_output
-          Bos.Cmd.(
-            v "git" % "fetch" % "origin" % "--force" % "--depth=1"
-            % Digestif.SHA1.to_hex commit)
+        Git_wrapper.git_check_output caps#exec
+          [
+            "fetch";
+            "origin";
+            "--force";
+            "--depth=1";
+            Digestif.SHA1.to_hex commit;
+          ]
       in
       Some commit
   | _ -> None
 
-let get_base_branch_ref env =
+let get_base_branch_ref (env : env) : string option =
   Glom.(
     get_and_coerce_opt string env._GITHUB_EVENT_JSON
       [ k "pull_request"; k "base"; k "ref" ])
@@ -221,9 +230,9 @@ let get_base_branch_ref env =
 (* Latest commit hash of the base branch of PR is being merged to.
 
    Assumes we are in PR context. *)
-let get_base_branch_hash env =
+let get_base_branch_hash caps (env : env) =
   let commit =
-    Option.map get_latest_commit_hash_in_branch (get_base_branch_ref env)
+    Option.map (get_latest_commit_hash_in_branch caps) (get_base_branch_ref env)
   in
   match (get_base_branch_ref env, commit) with
   | Some base_branch_name, Some commit ->
@@ -236,38 +245,43 @@ let get_base_branch_hash env =
         "We are not into a PR context (the GitHub pull_request event is \
          missing)"
 
-let find_branchoff_point_from_github_api repo_name env :
+(* from meta.py:
+   "By default, the GitHub Actions checkout action gives you a shallow
+   clone of the repository. In order to get the merge base, we need to
+   fetch the history of the head branch and the base branch, all the way
+   back to the point where the head branch diverged. In a large
+   repository, this can be a lot of commits, and this fetching can
+   dramatically impact performance.
+     To avoid this, on the first attempt to find the merge base, we try to
+   use the GitHub REST API instead of fetching enough history to compute
+   it locally. We only do this if the `GH_TOKEN` environment variable is
+   provided. GitHub Actions provides that token to workflows, but the
+   workflow needs to explicitly make it available to Semgrep via an
+   environment variable like this:
+     env:
+     GH_TOKEN: ${{ github.token }}
+     This will allow Semgrep to make this API request even for private
+   repositories."
+*)
+let find_branchoff_point_from_github_api caps repo_name env :
     Digestif.SHA1.t option Lwt.t =
-  let base_branch_hash = get_base_branch_hash env in
-  let head_branch_hash = get_head_branch_hash env in
+  let base_branch_hash = get_base_branch_hash caps env in
+  let head_branch_hash = get_head_branch_hash caps env in
 
   match (env._GH_TOKEN, env._GITHUB_API_URL, head_branch_hash) with
-  | Some gh_token, Some api_url, Some head_branch_hash -> (
-      let headers = [ ("Authorization", Fmt.str "Bearer %s" gh_token) ] in
-      let open Lwt.Infix in
-      Http_helpers.get_async ~headers
-        (Uri.of_string
-           (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
-              Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp
-              head_branch_hash))
-      >>= function
-      | Ok body ->
-          let body = body |> Yojson.Basic.from_string in
-          let commit =
-            Option.bind
-              Glom.(
-                get_and_coerce_opt string body
-                  [ k "merge_base_commit"; k "sha" ])
-              Digestif.SHA1.of_hex_opt
-          in
-          Option.iter shallow_fetch_commit commit;
-          Lwt.return commit
-      | __else__ -> Lwt.return_none)
+  | Some str_token, Some api_url, Some head_branch_hash ->
+      let gh_token = Auth.unsafe_token_of_string str_token in
+      Github_API.find_branchoff_point_async ~gh_token ~api_url ~repo_name
+        ~base_branch_hash caps head_branch_hash
   | __else__ -> Lwt.return_none
 
-let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
-  let base_branch_hash = get_base_branch_hash env
-  and head_branch_hash = Option.get (get_head_branch_hash env) in
+(* from meta.py:
+   "GithubActions is a shallow clone and the "base" that github sends
+   is not the merge base. We must fetch and get the merge-base ourselves"
+*)
+let rec find_branchoff_point caps ?(attempt_count = 0) repo_name env =
+  let base_branch_hash = get_base_branch_hash caps env
+  and head_branch_hash = Option.get (get_head_branch_hash caps env) in
 
   let base_branch_name = Option.get (get_base_branch_ref env)
   and head_branch_name = Option.get (get_head_branch_ref env) in
@@ -279,37 +293,53 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
       Float.to_int (2. ** 31.) - 1
     else fetch_depth
   in
-  if attempt_count =|= 0 then find_branchoff_point_from_github_api repo_name env
+  if attempt_count =|= 0 then
+    (* TODO let%lwt base = find_xxx in
+     * Option.iter shallow_fetch_commit base;
+     *)
+    find_branchoff_point_from_github_api caps repo_name env
   else
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
     let _ =
-      Git_wrapper.git_check_output
-        Bos.Cmd.(
-          v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
-          % "--depth" % string_of_int fetch_depth
-          % Fmt.str "%s:%s" base_branch_name base_branch_name)
+      Git_wrapper.git_check_output caps#exec
+        [
+          "fetch";
+          "origin";
+          "--force";
+          "--update-head-ok";
+          "--depth";
+          string_of_int fetch_depth;
+          Fmt.str "%s:%s" base_branch_name base_branch_name;
+        ]
     in
     let _ =
-      Git_wrapper.git_check_output
-        Bos.Cmd.(
-          v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
-          % "--depth" % string_of_int fetch_depth
-          % Digestif.SHA1.to_hex head_branch_hash)
+      Git_wrapper.git_check_output caps#exec
+        [
+          "fetch";
+          "origin";
+          "--force";
+          "--update-head-ok";
+          "--depth";
+          string_of_int fetch_depth;
+          Digestif.SHA1.to_hex head_branch_hash;
+        ]
     in
 
     let cmd =
-      Bos.Cmd.(
-        v "git" % "merge-base"
-        % Digestif.SHA1.to_hex base_branch_hash
-        % Digestif.SHA1.to_hex head_branch_hash)
+      ( Cmd.Name "git",
+        [
+          "merge-base";
+          Digestif.SHA1.to_hex base_branch_hash;
+          Digestif.SHA1.to_hex head_branch_hash;
+        ] )
     in
-    let out = Bos.OS.Cmd.run_out cmd in
-    match Bos.OS.Cmd.out_string ~trim:true out with
+    match UCmd.string_of_run ~trim:true cmd with
     | Ok (merge_base, (_, `Exited 0)) ->
         Lwt.return (Digestif.SHA1.of_hex_opt merge_base)
     | Ok (_, _) when attempt_count < _MAX_FETCH_ATTEMPT_COUNT ->
-        find_branchoff_point ~attempt_count:(succ attempt_count) repo_name env
+        find_branchoff_point caps ~attempt_count:(succ attempt_count) repo_name
+          env
     | Ok (_, _) ->
         Fmt.failwith
           "Could not find branch-off point between the baseline tip %s@%a and \
@@ -324,10 +354,11 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
 (* Entry point *)
 (*****************************************************************************)
 
-class meta ~baseline_ref env gha_env =
+class meta caps ~baseline_ref env gha_env =
   object (self)
     inherit
-      Git_metadata.meta ~scan_environment:"github-actions" ~baseline_ref env as super
+      Git_metadata.meta
+        caps ~scan_environment:"github-actions" ~baseline_ref env as super
 
     method! project_metadata =
       {

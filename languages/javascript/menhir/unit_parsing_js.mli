@@ -1,2 +1,2 @@
 (* Test suite for this folder. *)
-val tests : Testutil.test list
+val tests : Testo.test list

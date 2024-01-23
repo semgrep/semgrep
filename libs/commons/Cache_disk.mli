@@ -35,6 +35,13 @@ val cache :
   'input ->
   'value
 
+(* Need unit to avoid value restriction in impl. would be nice to not need somehow? *)
+val cache_lwt :
+  ('input -> 'value Lwt.t) ->
+  ('input, 'value, 'extra) cache_methods ->
+  'input ->
+  'value Lwt.t
+
 (* deprecated old functions, less flexible than cache() above. *)
 
 (* take file from which computation is done, an extension, and the function
@@ -43,7 +50,7 @@ val cache :
  *)
 val cache_computation :
   ?use_cache:bool ->
-  Common.filename ->
+  string (* filename *) ->
   string (* extension *) ->
   (unit -> 'a) ->
   'a
@@ -52,9 +59,9 @@ val cache_computation :
  * computation so it will relaunch the computation in 'f' if needed.
  *)
 val cache_computation_robust :
-  Common.filename ->
+  string (* filename *) ->
   string (* extension for marshalled object *) ->
-  Common.filename list * 'x ->
+  string (* filename *) list * 'x ->
   string (* extension for marshalled dependencies *) ->
   (unit -> 'a) ->
   'a

@@ -4,6 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+
 # Run command and propagate errors
 def cmd(*args: str) -> None:
     subprocess.run(args, check=True)  # nosem

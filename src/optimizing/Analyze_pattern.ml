@@ -52,9 +52,9 @@ let extract_strings_and_mvars ?lang any =
 
       method! visit_ident _env (str, _tok) =
         match () with
-        | _ when Metavariable.is_metavar_name str -> Common.push str mvars
+        | _ when Metavariable.is_metavar_name str -> Stack_.push str mvars
         | _ when not (Pattern.is_special_identifier ?lang str) ->
-            Common.push str strings
+            Stack_.push str strings
         | _ -> ()
 
       method! visit_name env x =
@@ -77,8 +77,8 @@ let extract_strings_and_mvars ?lang any =
             (* Semgrep can match "foo" against "foo/bar", so we just
              * overapproximate taking the sub-strings, see
              * Generic_vs_generic.m_module_name_prefix. *)
-            Common.split {|/\|\\|} str
-            |> List.iter (fun s -> Common.push s strings);
+            String_.split ~sep:{|/\|\\|} str
+            |> List.iter (fun s -> Stack_.push s strings);
             super#visit_directive env x
         | _ -> super#visit_directive env x
 
@@ -99,10 +99,10 @@ let extract_strings_and_mvars ?lang any =
             ( { e = IdSpecial (Require, _); _ },
               (_, [ Arg { e = L (String (_, (str, _tok), _)); _ } ], _) ) ->
             if not (Pattern.is_special_string_literal str) then
-              Common.push str strings
+              Stack_.push str strings
         | IdSpecial (Eval, t) ->
             if Tok.is_origintok t then
-              Common.push (Tok.content_of_tok t) strings
+              Stack_.push (Tok.content_of_tok t) strings
         | TypedMetavar (_, _, type_) -> (
             match type_ with
             | { t = TyN (IdQualified _ as name); _ } ->

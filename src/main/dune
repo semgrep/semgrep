@@ -1,22 +1,34 @@
 (executables
  (names Main)
+ (flags
+   (:include flags.sexp)
+;   (:standard -open TCB -open Commons_TCB)
+   )
  (libraries
+    TCB
     semgrep_core_cli
     osemgrep_cli
     lwt_platform.unix
  )
  (preprocess (pps ppx_profiling))
- ; for ocamldebug
- (modes native byte)
- (flags (:include flags.sexp))
+  ; for ocamldebug
+  (modes native byte)
 )
 
 
 ; use cli/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
+ (enabled_if (<> %{os_type} Win32))
  (action (run %{workspace_root}/src/main/flags.sh)))
 
+; flags.sh won't run properly in Windows, so simply hardcode to ( :standard )
+; todo: is there an easy way to do static compilation in Windows?
+; todo: is there a way we could make flags.sh more portable?
+(rule
+ (targets flags.sexp)
+ (enabled_if (= %{os_type} Win32))
+ (action (write-file %{targets} "( :standard )")))
 
 (install
  (package semgrep)
@@ -25,5 +37,6 @@
  (files
   (Main.exe as semgrep-core)
   (Main.bc as semgrep-core.bc)
+  (Main.bc as osemgrep.bc)
  )
 )

@@ -197,6 +197,10 @@ let version = "1.35.0"
  *    in Match_tainting_mode.Formula_tbl
  * - 'deriving visitors' to generator visitor and mapper boilerplate code
  *    automatically
+ * - 'deriving sexp' because the Type.t type uses `alternate_name`, and itself
+ *    derives sexp because it is used by semgrep-pro's SIG.type_.
+ *    Since Type.t only uses `alternate_name`, we only need to derive sexp for
+ *    that and related types, and not others like expr, stmt
  *)
 
 (* Provide hash_* for the core ocaml types *)
@@ -450,6 +454,14 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
+
+    method visit_parsed_int env pi =
+      Parsed_int.visit
+        (fun tok ->
+          self#visit_tok env tok;
+          tok)
+        pi
+      |> ignore
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -515,6 +527,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
+    method visit_parsed_int env pi = Parsed_int.map_tok (self#visit_tok env) pi
   end
 
 (*****************************************************************************)
@@ -803,7 +816,9 @@ and literal =
    * may not be able to represent all numbers. For example, OCaml integers
    * are limited to 63 bits, but C integers can use 64 bits.
    *)
-  | Int of int option wrap
+  (* See explanation for @name where the visitors are generated at the end of
+     * this long recursive type. *)
+  | Int of (Parsed_int.t[@name "parsed_int"])
   | Float of float option wrap
   | Char of string wrap
   (* String literals:
@@ -1228,7 +1243,7 @@ and condition =
 
 (* newscope: *)
 (* less: could merge even more with pattern
- * list = PatDisj and Default = PatUnderscore,
+ * list = PatDisj and Default = PatWildcard,
  * so case_and_body of Switch <=> action of MatchPattern
  *)
 and case_and_body =
@@ -1241,7 +1256,7 @@ and case_and_body =
  *)
 and case =
   | Case of tok * pattern
-  (* less: could unsugar as Case (PatUnderscore _) *)
+  (* less: could unsugar as Case (PatWildcard _) *)
   | Default of tok
   (* For Go, expr can contain some Assign bindings.
    * todo? could merge with regular Case? can 'case x := <-chan' be
@@ -1308,7 +1323,8 @@ and multi_for_each =
 and for_var_or_expr =
   (* newvar: *)
   | ForInitVar of entity * variable_definition
-  (* less: should rename ForInitAssign really *)
+  (* Note that the expr can contain Ellipsis
+   * less: should rename ForInitAssign really *)
   | ForInitExpr of expr
 
 and other_stmt_with_stmt_operator =
@@ -1329,7 +1345,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_Todo
 
 and other_stmt_operator =
-  (* Python *)
+  (* Python, C++ *)
   | OS_Delete
   (* todo: reduce? transpile? *)
   | OS_ForOrElse
@@ -1339,6 +1355,9 @@ and other_stmt_operator =
   | OS_ThrowNothing
   | OS_ThrowArgsLocation
   | OS_Pass
+  (* TODO: OS_Async should be a 'other_stmt_with_stmt_operator' !
+   * See comment attached to 'OtherStmt' re 'stmt's not being allowed
+   * in the arguments. *)
   | OS_Async
   (* C/C++ *)
   | OS_Asm
@@ -1382,8 +1401,8 @@ and pattern =
   (* less: generalize to other container_operator? *)
   | PatList of pattern list bracket
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
-  (* special case of PatId, TODO: name PatAny *)
-  | PatUnderscore of tok
+  (* special case of PatId e.g. `_` in OCaml and Scala, `...` in C++ *)
+  | PatWildcard of tok
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
   | PatTyped of pattern * type_
@@ -1893,7 +1912,7 @@ and class_kind =
   | Class (* or Struct for C/Solidity *)
   | Interface (* abused for Contract in Solidity *)
   | Trait
-  (* Kotlin/Scala *)
+  (* Kotlin/Scala/OCaml *)
   | Object
 
 (* A parent can have arguments in Scala/Java/Kotlin (because constructors
@@ -2180,8 +2199,8 @@ let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
-let dotted_to_canonical xs = Common.map fst xs
-let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
+let dotted_to_canonical xs = List_.map fst xs
+let canonical_to_dotted tid xs = xs |> List_.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
@@ -2203,17 +2222,16 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> Common.map arg))
-  |> e
+  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> List_.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
 let string_ (lquote, xs, rquote) : string wrap bracket =
-  let s = xs |> Common.map fst |> String.concat "" in
+  let s = xs |> List_.map fst |> String.concat "" in
   let t =
     match xs with
     | [] -> Tok.fake_tok lquote ""
-    | (_, t) :: ys -> Tok.combine_toks t (Common.map snd ys)
+    | (_, t) :: ys -> Tok.combine_toks t (List_.map snd ys)
   in
   (lquote, (s, t), rquote)
 
@@ -2222,7 +2240,7 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
  *)
 let interpolated (lquote, xs, rquote) =
   match xs with
-  | [ Common.Left3 (str, tstr) ] ->
+  | [ Either_.Left3 (str, tstr) ] ->
       L (String (lquote, (str, tstr), rquote)) |> e
   | __else__ ->
       let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
@@ -2230,16 +2248,16 @@ let interpolated (lquote, xs, rquote) =
         ( special,
           ( lquote,
             xs
-            |> Common.map (function
-                 | Common.Left3 x ->
+            |> List_.map (function
+                 | Either_.Left3 x ->
                      Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
-                 | Common.Right3 (lbrace, eopt, rbrace) ->
+                 | Either_.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
                      in
-                     let args = eopt |> Option.to_list |> Common.map arg in
+                     let args = eopt |> Option.to_list |> List_.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
-                 | Common.Middle3 e -> Arg e),
+                 | Either_.Middle3 e -> Arg e),
             rquote ) )
       |> e
 

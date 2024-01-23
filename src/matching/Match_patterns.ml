@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
- * Copyright (C) 2019-2023 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,6 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 open AST_generic
 module MR = Mini_rule
 module Eq = Equivalence
@@ -32,10 +33,6 @@ let profile_mini_rules = ref false
 (* Main matching engine behind semgrep. This module implements mainly
  * the expr/stmt/... visitor, while generic_vs_generic does the matching.
  *)
-
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Debugging *)
@@ -138,6 +135,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     message = mr.message;
     pattern_string = mr.pattern_string;
     fix = mr.fix;
+    fix_regexp = mr.fix_regexp;
     langs = mr.langs;
   }
 
@@ -180,7 +178,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           dependency_match = None;
                         }
                       in
-                      Common.push pm matches;
+                      Stack_.push pm matches;
                       hook pm));
   (* try the rules on substatements and subexpressions *)
   k x
@@ -195,23 +193,24 @@ let list_original_tokens_stmts stmts =
 (* Main entry point *)
 (*****************************************************************************)
 
-(* [range_filter] is a predicate that defines "regions of interest" when matching
- *   expressions, this is e.g. used for optimizing `pattern: $X`. Note that
- *   traversing the Generic AST is generally fairly cheap, what could be more
- *   expensive is to do the matching (due to combinatorics) and all the allocations
- *   associatiated, especially when the pattern causaes a lot of matches. This
- *   filter allows us to avoid all that expensive stuff when matching expressions
- *   unless they fall in specific regions of the code.
- *   See also docs for {!check} in Match_pattern.mli. *)
-let check2 ~hook mvar_context range_filter (config, equivs) rules
-    (file, lang, ast) =
-  logger#trace "checking %s with %d mini rules" file (List.length rules);
+(* [range_filter] is a predicate that defines "regions of interest" when
+ * matching expressions, this is e.g. used for optimizing `pattern: $X`.
+ * Note that traversing the Generic AST is generally fairly cheap, what could
+ * be more expensive is to do the matching (due to combinatorics) and all the
+ * allocations associatiated, especially when the pattern causaes a lot of
+ * matches. This filter allows us to avoid all that expensive stuff when
+ * matching expressions unless they fall in specific regions of the code.
+ * See also docs for {!check} in Match_pattern.mli.
+ *)
+let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
+    (config, equivs) rules (file, lang, ast) =
+  logger#trace "checking %s with %d mini rules" !!file (List.length rules);
 
   let rules =
     (* simple opti using regexps *)
     if !Flag.filter_irrelevant_patterns then
       Mini_rules_filter.filter_mini_rules_relevant_to_file_using_regexp rules
-        lang file
+        lang !!file
     else rules
   in
   if rules = [] then []
@@ -254,21 +253,21 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            let any = Apply_equivalences.apply equivs lang any in
            (* Annotate exp, stmt, stmts patterns with the rule strings *)
            let push_with_annotation _any pattern rules =
-             Common.push (pattern, rule) rules
+             Stack_.push (pattern, rule) rules
            in
            match any with
            | E pattern -> push_with_annotation any pattern expr_rules
            | S pattern -> push_with_annotation any pattern stmt_rules
            | Ss pattern -> push_with_annotation any pattern stmts_rules
-           | T pattern -> Common.push (pattern, rule) type_rules
-           | P pattern -> Common.push (pattern, rule) pattern_rules
-           | At pattern -> Common.push (pattern, rule) attribute_rules
-           | Fld pattern -> Common.push (pattern, rule) fld_rules
-           | Flds pattern -> Common.push (pattern, rule) flds_rules
-           | Partial pattern -> Common.push (pattern, rule) partial_rules
-           | Name pattern -> Common.push (pattern, rule) name_rules
-           | Raw pattern -> Common.push (pattern, rule) raw_rules
-           | XmlAt pattern -> Common.push (pattern, rule) xml_attribute_rules
+           | T pattern -> Stack_.push (pattern, rule) type_rules
+           | P pattern -> Stack_.push (pattern, rule) pattern_rules
+           | At pattern -> Stack_.push (pattern, rule) attribute_rules
+           | Fld pattern -> Stack_.push (pattern, rule) fld_rules
+           | Flds pattern -> Stack_.push (pattern, rule) flds_rules
+           | Partial pattern -> Stack_.push (pattern, rule) partial_rules
+           | Name pattern -> Stack_.push (pattern, rule) name_rules
+           | Raw pattern -> Stack_.push (pattern, rule) raw_rules
+           | XmlAt pattern -> Stack_.push (pattern, rule) xml_attribute_rules
            | Args _
            | Params _
            | Xmls _
@@ -309,7 +308,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
           |> List.iter (fun (pattern, rule) ->
                  match AST_generic_helpers.range_of_any_opt (E x) with
                  | None ->
-                     logger#error "Skipping because we lack range info: %s"
+                     logger#debug "Skipping because we lack range info: %s"
                        (show_expr_kind x.e);
                      ()
                  | Some range_loc when range_filter range_loc ->
@@ -347,7 +346,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   dependency_match = None;
                                 }
                               in
-                              Common.push pm matches;
+                              Stack_.push pm matches;
                               hook pm)
                  | Some (start_loc, end_loc) ->
                      logger#info
@@ -409,7 +408,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     dependency_match = None;
                                   }
                                 in
-                                Common.push pm matches;
+                                Stack_.push pm matches;
                                 hook pm));
             super#visit_stmt env x
           in
@@ -459,7 +458,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       dependency_match = None;
                                     }
                                   in
-                                  Common.push pm matches;
+                                  Stack_.push pm matches;
                                   hook pm)));
           super#v_stmts env x
 
@@ -523,7 +522,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
           !stmts_rules
           |> List.iter (fun (pattern, rule) ->
                  Profiling.profile_code "Semgrep_generic.kfields" (fun () ->
-                     let x = Common.map (fun (F x) -> x) x in
+                     let x = List_.map (fun (F x) -> x) x in
                      let matches_with_env =
                        match_sts_sts rule pattern x m_env
                      in
@@ -555,7 +554,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       dependency_match = None;
                                     }
                                   in
-                                  Common.push pm matches;
+                                  Stack_.push pm matches;
                                   hook pm)));
           match_rules_and_recurse m_env (file, hook, matches) !flds_rules
             match_flds_flds (super#v_fields env)
@@ -607,9 +606,4 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
      * See tests/rules/regression_uniq_or_ellipsis.go but it's fixed now.
      *)
     |> PM.uniq
-
-(* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true) config a
-    b =
-  Profiling.profile_code "Match_patterns.check" (fun () ->
-      check2 ~hook mvar_context range_filter config a b)
+[@@profiling]

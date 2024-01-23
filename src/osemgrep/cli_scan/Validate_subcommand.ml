@@ -1,6 +1,6 @@
 open Common
-open File.Operators
-module Out = Semgrep_output_v1_t
+open Fpath_.Operators
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,6 +38,9 @@ module Out = Semgrep_output_v1_t
 (* Types and constants *)
 (*****************************************************************************)
 
+(* TODO: should use stdout, right now we abuse Logs.app *)
+type caps = < Cap.stdout ; Cap.network >
+
 (* a slice of Scan_CLI.conf *)
 type conf = {
   (* Right now we use --config to get the list of rules for validate, but
@@ -60,29 +63,10 @@ type conf = {
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
-(* Experiment *)
-(*****************************************************************************)
-
-let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
-  let rules = Parse_rules_with_atd.parse_rules_v2 file in
-  pr2 (Rule_schema_v2_t.show_rules rules);
-  exit 0
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let run (conf : conf) : Exit_code.t =
-  (* small experiment *)
-  (match conf with
-  | {
-   common = { maturity = Maturity.Develop; _ };
-   rules_source = Rules_source.Configs [ file ];
-   _;
-  } ->
-      parse_rule_with_atd_experiment_and_exit (Fpath.v file)
-  | _else_ -> ());
-
+let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
@@ -92,7 +76,9 @@ let run (conf : conf) : Exit_code.t =
    *)
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false conf.rules_source
+      ~registry_caching:false
+      (caps :> < Cap.network >)
+      conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -105,13 +91,26 @@ let run (conf : conf) : Exit_code.t =
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)
+        (* TODO(cooper): don't understand motivation of this map_filter. Not
+         * sure why we wouldn't do this on non-local files (understand for
+         * registry)
+         *
+         * Seems to be because we can't easily get the tmpfile and we are still
+         * entirely file-oriented rather than being able to scan buffers.
+         *)
         let targets =
           rules_and_origin
-          |> Common.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
+          |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
                  match x.origin with
                  | Local_file path -> Some path
-                 | Other_origin ->
-                     (* TODO: stricter: warn if no origin (meaning URL or registry) *)
+                 | CLI_argument
+                 | Registry
+                 | App
+                 | Untrusted_remote _ ->
+                     (* TODO: stricter: warn if we didn't validate since it
+                      * wasn't in a local file already (e.g., registry or other
+                      * remote URI)
+                      *)
                      None)
         in
         let in_docker = !Semgrep_envvars.v.in_docker in
@@ -121,7 +120,9 @@ let run (conf : conf) : Exit_code.t =
         let metarules_and_origin =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            ~registry_caching:false config
+            ~registry_caching:false
+            (caps :> < Cap.network >)
+            config
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin
@@ -137,8 +138,8 @@ let run (conf : conf) : Exit_code.t =
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
         (* TODO? sanity check errors below too? *)
-        let { Out.results; errors = _; _ } =
-          Cli_json_output.cli_output_of_core_results
+        let OutJ.{ results; errors = _; _ } =
+          Cli_json_output.cli_output_of_core_results ~dryrun:true
             ~logging_level:conf.common.logging_level res.core res.hrules
             res.scanned
         in
@@ -178,7 +179,7 @@ let run (conf : conf) : Exit_code.t =
         num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
-  |> List.iter (fun (x : Out.cli_match) ->
+  |> List.iter (fun (x : OutJ.cli_match) ->
          Logs.err (fun m ->
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));

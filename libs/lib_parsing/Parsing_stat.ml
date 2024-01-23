@@ -29,7 +29,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type ast_stat = { total_node_count : int; untranslated_node_count : int }
 
 type t = {
-  filename : Common.filename;
+  filename : string;
   total_line_count : int;
   mutable error_line_count : int;
   mutable have_timeout : bool;
@@ -112,8 +112,9 @@ let print_parsing_stat_list ?(verbose = false) statxs =
   in
 
   if verbose then (
-    pr "\n\n\n---------------------------------------------------------------";
-    pr "pbs with files:";
+    UCommon.pr
+      "\n\n\n---------------------------------------------------------------";
+    UCommon.pr "pbs with files:";
     statxs
     |> List.filter (function
          | { have_timeout = true; _ } -> true
@@ -126,19 +127,20 @@ let print_parsing_stat_list ?(verbose = false) statxs =
                error_line_count = n;
                _;
              }
-           -> pr (file ^ "  " ^ if timeout then "TIMEOUT" else i_to_s n));
+           ->
+           UCommon.pr (file ^ "  " ^ if timeout then "TIMEOUT" else i_to_s n));
 
-    pr "\n\n\n";
-    pr "files with lots of tokens passed/commentized:";
+    UCommon.pr "\n\n\n";
+    UCommon.pr "files with lots of tokens passed/commentized:";
     let threshold_passed = 100 in
     statxs
     |> List.filter (function
          | { commentized = n; _ } when n > threshold_passed -> true
          | _ -> false)
     |> List.iter (function { filename = file; commentized = n; _ } ->
-           pr (file ^ "  " ^ i_to_s n));
+           UCommon.pr (file ^ "  " ^ i_to_s n));
 
-    pr "\n\n\n");
+    UCommon.pr "\n\n\n");
 
   let total_lines =
     statxs |> List.fold_left (fun acc { total_line_count = x; _ } -> acc + x) 0
@@ -151,8 +153,8 @@ let print_parsing_stat_list ?(verbose = false) statxs =
   in
   let good = total_lines - bad in
 
-  pr "---------------------------------------------------------------";
-  pr
+  UCommon.pr "---------------------------------------------------------------";
+  UCommon.pr
     (spf "NB total files = %d; " total
     ^ spf "NB total lines = %d; " total_lines
     ^ spf "perfect = %d; " perfect
@@ -172,11 +174,11 @@ let print_parsing_stat_list ?(verbose = false) statxs =
     ^ "%");
   let gf, badf = (float_of_int good, float_of_int bad) in
   let passedf = float_of_int passed in
-  pr
+  UCommon.pr
     (spf "nb good = %d,  nb passed = %d " good passed
     ^ spf "=========> %f" (100.0 *. (passedf /. gf))
     ^ "%");
-  pr
+  UCommon.pr
     (spf "nb good = %d,  nb bad = %d " good bad
     ^ spf "=========> %f" (100.0 *. (gf /. (gf +. badf)))
     ^ "%")
@@ -186,10 +188,10 @@ let print_parsing_stat_list ?(verbose = false) statxs =
 (*****************************************************************************)
 
 let print_regression_information ~ext xs newscore =
-  let xs = File.Path.to_strings xs in
+  let xs = Fpath_.to_strings xs in
   let dirname_opt =
     match xs with
-    | [ x ] when Common2.is_directory x -> Some (Common.fullpath x)
+    | [ x ] when UFile.is_directory (Fpath.v x) -> Some (UCommon.fullpath x)
     | _ -> None
   in
   (* nosemgrep *)
@@ -197,9 +199,9 @@ let print_regression_information ~ext xs newscore =
   if Sys.file_exists score_path then
     dirname_opt
     |> Option.iter (fun dirname ->
-           pr2 "------------------------------";
-           pr2 "regression testing information";
-           pr2 "------------------------------";
+           UCommon.pr2 "------------------------------";
+           UCommon.pr2 "regression testing information";
+           UCommon.pr2 "------------------------------";
            let str = Str.global_replace (Str.regexp "/") "__" dirname in
            let file =
              Filename.concat score_path
@@ -207,7 +209,9 @@ let print_regression_information ~ext xs newscore =
            in
            logger#debug "saving regression info in %s" file;
            Common2.regression_testing newscore file)
-  else pr2 (spf "no regression info available: %s does not exist" score_path)
+  else
+    UCommon.pr2
+      (spf "no regression info available: %s does not exist" score_path)
 
 (*****************************************************************************)
 (* Most problematic tokens *)
@@ -215,14 +219,14 @@ let print_regression_information ~ext xs newscore =
 
 (* inspired by a comment by a reviewer of my CC'09 paper *)
 let lines_around_error_line ~context (file, line) =
-  let arr = Common2.cat_array file in
+  let arr = UFile.cat_array (Fpath.v file) in
 
   let startl = max 0 (line - context) in
   let endl = min (Array.length arr) (line + context) in
   let res = ref [] in
 
   for i = startl to endl - 1 do
-    Common.push arr.(i) res
+    Stack_.push arr.(i) res
   done;
   List.rev !res
 
@@ -240,15 +244,15 @@ let print_recurring_problematic_tokens xs =
                          (fun () -> (0, (file, line_error)))
                          h)));
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  pr2 "maybe 10 most problematic tokens";
+  UCommon.pr2 "maybe 10 most problematic tokens";
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  Common.hash_to_list h
+  Hashtbl_.hash_to_list h
   |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
-  |> Common.take_safe 10
+  |> List_.take_safe 10
   |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
-         pr2 (spf "%s: present in %d parsing errors" k i);
-         pr2 "example: ";
+         UCommon.pr2 (spf "%s: present in %d parsing errors" k i);
+         UCommon.pr2 "example: ";
          let lines = lines_around_error_line ~context:2 (file_ex, line_ex) in
-         lines |> List.iter (fun s -> pr2 ("       " ^ s)));
+         lines |> List.iter (fun s -> UCommon.pr2 ("       " ^ s)));
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
   ()

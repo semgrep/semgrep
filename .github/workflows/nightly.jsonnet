@@ -1,56 +1,27 @@
-// Cron to verify that the Homebrew Core Formula Works.
-// This formula is stored in https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/s/semgrep.rb
-// and "bumped" in release.yml by dawidd6/action-homebrew-bump-formula@v3
-//
-// This formula is created by our release process with the PR to homebrew/homebrew-core.
-// What this workflow does is uses the latest version of the formula at that repo, but
-// 'develop' branch source code from our PR. This serves two purposes:
-//  - verifies that our changes don't break Brew
-//  - gives us time before release to fix these issues and adjust our homebrew formula
-//    if needed.
+// Cron to verify that the release is still working (at least in dry-mode),
+// and that the Semgrep Homebrew formula still work.
+
+local release_homebrew = import 'release-homebrew.jsonnet';
 
 // ----------------------------------------------------------------------------
-// The main job
+// Helpers
 // ----------------------------------------------------------------------------
-
-local env = {
-  // We've had issues with this workflow in the past, and needed to ensure that
-  // homebrew wouldn't use the API.
-  // See: https://github.com/orgs/Homebrew/discussions/4150, and
-  // https://github.com/orgs/Homebrew/discussions/4136
-  // There's also much other discussion on this topic available on GH and in the
-  // brew discussions.
-  HOMEBREW_NO_INSTALL_FROM_API: 1,
-};
-
-local brew_build_job = {
-  name: 'Build Semgrep via Brew from `returntocorp/semgrep:develop`',
-  'runs-on': 'macos-12',
-  steps: [
-    {
-      run: 'brew update --debug --verbose',
-      env: env,
-    },
-    {
-      // See https://github.com/Homebrew/brew/issues/1742 for context on the brew link step.
-      run: 'brew install semgrep --HEAD --debug || brew link --overwrite semgrep',
-      env: env + {
-        NONINTERACTIVE: 1,
-      },
-    },
-    {
-      name: 'Check installed correctly',
-      run: 'brew test semgrep --HEAD',
-      env: env,
-    },
-  ],
-};
+// This will post on Slack on #logs-semgrep-release
+// TODO: factorize with test-e2e-semgrep-ci.jsonnet using slack-github action
+local curl_notify() = |||
+        curl --request POST \
+        --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
+        --header 'content-type: application/json' \
+        --data '{
+          "commit_sha": "${{ github.sha }}",
+          "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+        }'
+|||;
 
 // ----------------------------------------------------------------------------
 // Failure notification
 // ----------------------------------------------------------------------------
 
-// TODO: factorize with test-e2e-semgrep-ci.jsonnet using slack-github action
 local notify_failure_job = {
   needs: [
     'brew-build',
@@ -61,16 +32,7 @@ local notify_failure_job = {
   'if': 'failure()',
   steps: [
     {
-      name: 'Notify Failure',
-      run: |||
-        curl --request POST \
-        --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
-        --header 'content-type: application/json' \
-        --data '{
-          "commit_sha": "${{ github.sha }}",
-          "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
-        }'
-      |||,
+      run: curl_notify(),
     },
   ],
 };
@@ -78,7 +40,6 @@ local notify_failure_job = {
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'nightly',
   on: {
@@ -91,7 +52,7 @@ local notify_failure_job = {
     ],
   },
   jobs: {
-    'brew-build': brew_build_job,
+    'brew-build': release_homebrew.export.brew_build,
     'release-dry-run': {
       uses: './.github/workflows/release.yml',
       secrets: 'inherit',

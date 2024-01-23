@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -55,7 +55,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * symlinks.
  *)
 type ast_cached_value =
-  ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
+  ( (AST_generic.program * Tok.location list, Exception.t) Either.t,
     string (* AST_generic.version *)
     * Lang.t
     * Rpath.t (* original file *)
@@ -73,7 +73,7 @@ let ast_or_exn_of_file (lang, file) =
     let { Parsing_result2.ast; skipped_tokens; _ } =
       Parse_target.parse_and_resolve_name lang !!file
     in
-    Left (ast, skipped_tokens)
+    Either.Left (ast, skipped_tokens)
   with
   (* We store also in the cache whether we had an exception on this file,
    * especially Timeout. This avoids trying to parse the same file
@@ -86,11 +86,11 @@ let ast_or_exn_of_file (lang, file) =
    *)
   | Time_limit.Timeout _ as exn ->
       let e = Exception.catch exn in
-      Right e
+      Either.Right e
 
 (* Cache_disk methods reused in a few places *)
 let cache_extra_for_input version (lang, file) =
-  (version, lang, Rpath.of_fpath file, File.filemtime file)
+  (version, lang, Rpath.of_fpath file, UFile.filemtime file)
 
 (* this is used for semgrep-core -generate_ast_binary done for Snowflake *)
 let binary_suffix : Fpath.ext = ".ast.binary"
@@ -127,8 +127,8 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
     if version <> version2 then
       failwith (spf "Version mismatch! Clean the cache file %s" !!file);
     match either with
-    | Left v -> v
-    | Right exn -> Exception.reraise exn)
+    | Either.Left v -> v
+    | Either.Right exn -> Exception.reraise exn)
   else
     match parsing_cache_dir with
     | None ->
@@ -175,7 +175,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                 version = version2
                 && Rpath.equal (Rpath.of_fpath file) file2
                 && Lang.equal lang lang2
-                && File.filemtime file =*= mtime2);
+                && UFile.filemtime file =*= mtime2);
             input_to_string =
               (fun (lang, file) ->
                 spf "Lang = %s, target = %s" (Lang.show lang) !!file);
@@ -185,6 +185,6 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
           Cache_disk.cache ast_or_exn_of_file cache_methods (lang, file)
         in
         match either with
-        | Left x -> x
-        | Right exn -> Exception.reraise exn)
+        | Either.Left x -> x
+        | Either.Right exn -> Exception.reraise exn)
 [@@profiling]

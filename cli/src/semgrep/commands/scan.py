@@ -365,6 +365,11 @@ def scan_options(func: Callable) -> Callable:
     default=False,
 )
 @optgroup.option("--version", is_flag=True, default=False)
+@optgroup.option(
+    "--x-ls",
+    is_flag=True,
+    default=False,
+)
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
@@ -445,8 +450,8 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
+    x_ls: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
-
     if version:
         print(__VERSION__)
         if enable_version_check:
@@ -454,6 +459,15 @@ def scan(
 
             version_check()
         return None
+
+    # I wish there was an easy way to leverage the engine_params from the
+    # new GET /api/cli/scans endpoint here but that info is not available
+    # until we fetch the rules which happens further along when processing
+    # the config.
+    if config and "secrets" in config:
+        # If the user has specified --config secrets, we should enable secrets
+        # so the engine is properly chosen.
+        run_secrets_flag = True
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
@@ -653,6 +667,7 @@ def scan(
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
+                    x_ls=x_ls,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])

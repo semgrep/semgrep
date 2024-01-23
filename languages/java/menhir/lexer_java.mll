@@ -45,7 +45,7 @@ let error = Parsing_error.lexical_error
 (* ---------------------------------------------------------------------- *)
 let primitive_type t = (t, (fun ii -> PRIMITIVE_TYPE (t, ii)))
 
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
   "if", (fun ii -> IF ii);
   "else", (fun ii -> ELSE ii);
 
@@ -334,9 +334,9 @@ rule token = parse
   (* this is also part of IntegerLiteral, but we specialize it here to use the
    * right int_of_string *)
   | "0" (OctalDigits | Underscores OctalDigits) as n
-     { TInt (int_of_string_opt( "0o" ^ n), tokinfo lexbuf) }
+     { TInt (Parsed_int.parse ( "0o" ^ n, tokinfo lexbuf)) }
 
-  | IntegerLiteral as n       { TInt (int_of_string_opt n, tokinfo lexbuf) }
+  | IntegerLiteral as n       { TInt (Parsed_int.parse (n, tokinfo lexbuf)) }
   | FloatingPointLiteral as n { TFloat (float_of_string_opt n, tokinfo lexbuf) }
   | CharacterLiteral     { TChar (tok lexbuf, tokinfo lexbuf) }
   | '"' ( (StringCharacter | EscapeSequence)* as s) '"'
@@ -368,7 +368,7 @@ rule token = parse
     }
   (* sgrep-ext: *)
   | '$' "..." ['A'-'Z''_']['A'-'Z''_''0'-'9']*
-     { Flag.sgrep_guard (IDENTIFIER (tok lexbuf, tokinfo lexbuf)) }
+     { Flag.sgrep_guard (METAVAR_ELLIPSIS (tok lexbuf, tokinfo lexbuf)) }
 
   (* ----------------------------------------------------------------------- *)
   (* Symbols *)

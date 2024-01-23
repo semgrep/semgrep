@@ -21,6 +21,7 @@ from attr import field
 from attr import frozen
 from boltons.iterutils import get_path
 from rich import box
+from rich.style import Style
 from rich.table import Table
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -31,6 +32,7 @@ from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
 
 ##############################################################################
 # Helpers
@@ -189,11 +191,17 @@ class Plan:
                     rule_nums.add(rule_num)
         return len(rule_nums)
 
-    def table_by_language(self, with_tables_for: Optional[out.Product] = None) -> Table:
+    def table_by_language(
+        self, with_tables_for: Optional[out.Product] = None, use_color: bool = True
+    ) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Language")
-        table.add_column("Rules", justify="right")
-        table.add_column("Files", justify="right")
+        table.add_column("Language", header_style=Style(color=None, bold=use_color))
+        table.add_column(
+            "Rules", justify="right", header_style=Style(color=None, bold=use_color)
+        )
+        table.add_column(
+            "Files", justify="right", header_style=Style(color=None, bold=use_color)
+        )
 
         plans_by_language = sorted(
             self.split_by_lang_label_for_product(with_tables_for).items(),
@@ -237,10 +245,14 @@ class Plan:
 
         return table
 
-    def table_by_origin(self, with_tables_for: Optional[out.Product] = None) -> Table:
+    def table_by_origin(
+        self, with_tables_for: Optional[out.Product] = None, use_color: bool = True
+    ) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Origin")
-        table.add_column("Rules", justify="right")
+        table.add_column("Origin", header_style=Style(color=None, bold=use_color))
+        table.add_column(
+            "Rules", justify="right", header_style=Style(color=None, bold=use_color)
+        )
 
         origin_counts = collections.Counter(
             get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")

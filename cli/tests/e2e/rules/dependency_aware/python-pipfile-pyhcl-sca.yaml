@@ -1,0 +1,10 @@
+rules:
+  - id: python-pipfile-pyhcl-sca
+    pattern: bad_pyhcl()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: pyhcl
+      version: <= 1.8.2
+    message: oh no
+    languages: [python]
+    severity: WARNING

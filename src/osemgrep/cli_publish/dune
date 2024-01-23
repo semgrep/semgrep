@@ -1,0 +1,35 @@
+; OCaml implementation of the 'semgrep scan' subcommand.
+;
+(library
+  (public_name semgrep.osemgrep_cli_publish)
+  (name osemgrep_cli_publish)
+  (wrapped false)
+  (libraries
+    cmdliner
+    logs
+    bos
+    commons
+
+    semgrep_core
+    semgrep_core_cli
+    semgrep_targeting
+
+    osemgrep_networking
+    osemgrep_core
+    osemgrep_configuring
+    osemgrep_reporting
+    osemgrep_cli_login
+
+    ; ugly, should not depend at some point when --dump, --validate are deprecated
+    osemgrep_cli_show
+    osemgrep_cli_test
+  )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
+)

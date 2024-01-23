@@ -230,7 +230,6 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     with open(lockfile_path) as f:
         lockfile_text = f.read()
     yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2

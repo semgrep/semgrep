@@ -1,6 +1,20 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
-module E = Core_error
 open Core_profiling
+module E = Core_error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -48,8 +62,43 @@ type 'a match_result = {
 }
 [@@deriving show]
 
+(* shortcut *)
+type matches_single_file = Core_profiling.partial_profiling match_result
+
+(* What is postprocessing information?
+   These are just match-specific information that we "after" a core scan has
+   occurred. This information is initially set to a nullary value, but will be
+   filled in by Pre_post_core_scan.
+
+   When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
+   to associate each match to a (potential) edit or ignored status.
+   We will choose to embed the fix information in `Core_result.t`, as
+   autofixing and nosemgrep are now valid functions of the core engine, and
+   thus the produced fixes are related to its produced results.
+   These edits start as all None, but will be filled in by
+   `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+
+   alt: we could have added this to `Pattern_match.t`, but that felt a bit early.
+   alt: we could have produced this information when going from Core_result.t to
+   Out.core_output, but this would require us to do autofixing and ignoring at
+   the same time as output, which conflates process of producing output and
+   side-effectively applying autofixes / filtering. In addition, the `Autofix`
+   and `Nosemgrep` modules are not available from that directory.
+*)
+type processed_match = {
+  pm : Pattern_match.t;
+  is_ignored : bool;
+  autofix_edit : Textedit.t option;
+}
+[@@deriving show]
+
 type t = {
-  matches : Pattern_match.t list;
+  (* old: matches : Pattern_match.t list
+     Why did we add `postprocessing_info` here?
+
+     See the `postprocessing_info` type for more.
+  *)
+  processed_matches : processed_match list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -57,6 +106,7 @@ type t = {
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
+  interfile_languages_used : Xlang.t list;
   scanned : Fpath.t list;
 }
 [@@deriving show]
@@ -71,6 +121,7 @@ type result_or_exn = (t, Exception.t * Core_error.t option) result
 (* Builders *)
 (*****************************************************************************)
 
+let mk_processed_match pm = { pm; is_ignored = false; autofix_edit = None }
 let empty_times_profiling = { parse_time = 0.0; match_time = 0.0 }
 
 (* TODO: should get rid of that *)
@@ -89,12 +140,13 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
   {
     errors;
     (* default values *)
-    matches = [];
+    processed_matches = [];
     rules_with_targets = [];
     skipped_rules = [];
     extra = No_info;
     explanations = None;
     rules_by_engine = [];
+    interfile_languages_used = [];
     scanned = [];
   }
 
@@ -259,10 +311,15 @@ let make_final_result
     (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
-    ~rules_parse_time =
+    (interfile_languages_used : Xlang.t list) ~rules_parse_time =
   (* contenating information from the match_result list *)
-  let matches =
-    results |> List.concat_map (fun (x : _ match_result) -> x.matches)
+  let unprocessed_matches =
+    results
+    |> List.concat_map (fun (x : _ match_result) -> x.matches)
+    (* These fixes and ignores are initially all unset, and will be populated
+       after we run our Pre_post_core_scan
+    *)
+    |> List_.map mk_processed_match
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
@@ -292,9 +349,9 @@ let make_final_result
   in
   let extra =
     let mk_profiling () =
-      let file_times = results |> Common.map get_profiling in
+      let file_times = results |> List_.map get_profiling in
       {
-        rules = Common.map fst rules_with_engine;
+        rules = List_.map fst rules_with_engine;
         rules_parse_time;
         file_times;
         (* Notably, using the `top_heap_words` does not measure cumulative
@@ -315,13 +372,14 @@ let make_final_result
     | MNo_info -> No_info
   in
   {
-    matches;
+    processed_matches = unprocessed_matches;
     errors;
     extra;
     skipped_rules;
     rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
-      rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));
+      rules_with_engine |> List_.map (fun (r, ek) -> (fst r.Rule.id, ek));
+    interfile_languages_used;
     scanned;
   }

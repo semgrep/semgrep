@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Common
 module G = AST_generic
 module A = AST_jsonnet
 module E = Eval_jsonnet_envir
@@ -35,6 +35,9 @@ let fb = Tok.unsafe_fake_bracket
 (* Entry point *)
 (*****************************************************************************)
 
+(* Mostly a copy of Eval_jsonnet_envir.manifest_value, but
+ * converting to AST_generic instead of JSON
+ *)
 let rec value_to_expr (v : V.t) : G.expr =
   match v with
   | V.Primitive x ->
@@ -46,31 +49,40 @@ let rec value_to_expr (v : V.t) : G.expr =
         | Str (s, tk) -> G.String (fb (s, tk))
       in
       G.L literal |> G.e
-  | Lambda { f_tok = tk; _ } -> error tk "Lambda value"
+  | Lambda ({ f_tok = tk; _ }, _locals) -> error tk "Lambda value"
   | Array (l, arr, r) ->
       let xs =
         arr |> Array.to_list
-        |> Common.map (fun (entry : V.lazy_value) ->
+        |> List_.map (fun (entry : V.lazy_value) ->
                value_to_expr
-                 (match entry.value with
+                 (match entry.lv with
+                 | Closure (env, e) ->
+                     let finalv = E.eval_program_with_env env e in
+                     entry.lv <- Val finalv;
+                     finalv
+                 (* impossible too? *)
                  | Val v -> v
-                 | Unevaluated e -> E.eval_program_with_env entry.env e))
+                 | Unevaluated _ -> raise Impossible))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
   | Object (l, (_assertsTODO, fields), r) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
-        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
                match fst fld_hidden with
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   (*let v = Lazy.force fld_value.v *)
                    let v =
-                     match fld_value.value with
+                     match fld_value.lv with
+                     | Closure (env, e) ->
+                         let finalv = E.eval_program_with_env env e in
+                         fld_value.lv <- Val finalv;
+                         finalv
                      | Val v -> v
-                     | Unevaluated e -> E.eval_program_with_env fld_value.env e
+                     (* impossible? *)
+                     | Unevaluated _ -> raise Impossible
                    in
                    let e = value_to_expr v in
                    let k = G.L (G.String (fb fld_name)) |> G.e in

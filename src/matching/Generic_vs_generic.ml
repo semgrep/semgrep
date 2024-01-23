@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -88,7 +88,7 @@ let has_ellipsis_and_filter_ellipsis_gen f xs =
   let has_ellipsis = ref false in
   let ys =
     xs
-    |> Common.exclude (fun x ->
+    |> List_.exclude (fun x ->
            let res = f x in
            if res then has_ellipsis := true;
            res)
@@ -135,7 +135,7 @@ let _ =
 
 (* copy paste of module_ml.ml *)
 let module_name_of_filename file =
-  let _d, b, _e = Common2.dbe_of_filename file in
+  let _d, b, _e = Filename_.dbe_of_filename file in
   let module_name = String.capitalize_ascii b in
   module_name
 
@@ -469,7 +469,7 @@ let rec m_name_inner a b =
         let new_qualifier =
           match List.rev dotted with
           | [] -> raise Impossible
-          | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
+          | _x :: xs -> List.rev xs |> List_.map (fun id -> (id, None))
         in
         m_name a
           (B.IdQualified
@@ -488,7 +488,7 @@ let rec m_name_inner a b =
       | Some file ->
           let m = module_name_of_filename file in
           let t = snd idb in
-          pr2_gen m;
+          UCommon.pr2_gen m;
           let _n = H.name_of_ids [ (m, t); idb ] in
           (* retry with qualified target *)
           (* m_name a n *)
@@ -591,7 +591,7 @@ and m_name a b =
              that the location data of the imports we are inserting should not matter.
           *)
           let import_with_fake_location =
-            Common.map (fun (s, _) -> (s, G.fake "")) import
+            List_.map (fun (s, _) -> (s, G.fake "")) import
           in
           let b_ids = import_with_fake_location @ dotted_b in
           m_name_inner a (H.name_of_ids b_ids))
@@ -616,7 +616,7 @@ and m_qualifier a b =
   match (a, b) with
   (* Like for m_dotted_name, [$X] should match anything *)
   | G.QDots [ ((str, t), _) ], B.QDots b when MV.is_metavar_name str ->
-      envf (str, t) (MV.E (make_dotted (Common.map fst b)))
+      envf (str, t) (MV.E (make_dotted (List_.map fst b)))
   | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
@@ -851,7 +851,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
-      let full = (names |> Common.map fst) @ [ alabel ] in
+      let full = (names |> List_.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -986,7 +986,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
         when List.length vars =|= List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
-          let mult_assigns = Common.map2 create_assigns vars vals in
+          let mult_assigns = List_.map2 create_assigns vars vals in
           let rec aux xs =
             match xs with
             | [] -> fail ()
@@ -1241,12 +1241,12 @@ and m_literal a b =
            sides of the trees.
         *)
         match (a, b) with
-        | G.Int (a1, a2), B.String (_, (b1, b2), _) ->
-            let i = Option.map Int.to_string a1 in
-            m_wrap_m_string_opt (i, a2) (Some b1, b2)
-        | G.String (_, (a1, a2), _), B.Int (b1, b2) ->
-            let i = Option.map Int.to_string b1 in
-            m_wrap_m_string_opt (Some a1, a2) (i, b2)
+        | G.Int (opt, t), B.String (_, (b1, b2), _) ->
+            let i = Option.map Int64.to_string opt in
+            m_wrap_m_string_opt (i, t) (Some b1, b2)
+        | G.String (_, (a1, a2), _), G.Int (opt, t) ->
+            let i = Option.map Int64.to_string opt in
+            m_wrap_m_string_opt (Some a1, a2) (i, t)
         | G.Bool (a1, a2), B.String (_, (b1, b2), _) ->
             let b = Bool.to_string a1 in
             m_wrap m_string (b, a2) (b1, b2)
@@ -1285,7 +1285,7 @@ and m_literal_inner a b =
   (* boilerplate *)
   | G.Unit a1, B.Unit b1 -> m_tok a1 b1
   | G.Bool a1, B.Bool b1 -> (m_wrap m_bool) a1 b1
-  | G.Int a1, B.Int b1 -> m_wrap_m_int_opt a1 b1
+  | G.Int a1, B.Int b1 -> m_parsed_int a1 b1
   | G.Float a1, B.Float b1 -> m_wrap_m_float_opt a1 b1
   | G.Imag a1, B.Imag b1 -> (m_wrap m_string) a1 b1
   | G.Ratio a1, B.Ratio b1 -> (m_wrap m_string) a1 b1
@@ -1306,10 +1306,10 @@ and m_literal_inner a b =
   | G.Atom _, _ ->
       fail ()
 
-and m_wrap_m_int_opt (a1, a2) (b1, b2) =
+and m_parsed_int (a1, a2) (b1, b2) =
   match (a1, b1) with
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
-  | Some i1, Some i2 -> if i1 =|= i2 then return () else fail ()
+  | Some i1, Some i2 -> if Int64.equal i1 i2 then return () else fail ()
   (* if the integers (or floats) were too large or were using
    * a syntax OCaml int_of_string could not parse,
    * we default to a string comparison *)
@@ -1797,7 +1797,11 @@ and m_call_op aop toka aargs bop tokb bargs tin =
         tin.config.commutative_boolop
     | G.Eq
     | G.NotEq ->
-        tin.config.commutative_compop
+        if tin.config.commutative_compop then
+          logger#error
+            "`commutative_compop` rule option has been deprecated. Please use \
+             `symmetric_eq` instead.";
+        tin.config.commutative_compop || tin.config.symmetric_eq
     | __else__ -> false
   in
   let m_op_default aargs bargs =
@@ -1988,8 +1992,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
           in
           let tout =
             m_list__m_argument
-              (Common.map G.arg avars_dots)
-              (Common.map B.arg bs') tin
+              (List_.map G.arg avars_dots)
+              (List_.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten
@@ -2184,9 +2188,9 @@ and m_generic_type_vs_type_t lang tok a b =
   | G.TyArray ((_l, None, _r), t1), Type.Array (_size, t2) ->
       (* THINK: Should be an invariant match rather than covariant? *)
       m_generic_type_vs_type_t lang tok t1 t2
-  | ( G.TyArray ((_l, Some { e = G.L (G.Int (Some size1, _)); _ }, _r), t1),
-      Type.Array (Some size2, t2) ) ->
-      let* () = m_int size1 size2 in
+  | ( G.TyArray ((_l, Some { e = G.L (G.Int pi1); _ }, _r), t1),
+      Type.Array (Some pi2, t2) ) ->
+      let* () = m_parsed_int pi1 pi2 in
       (* THINK: Should be an invariant match rather than covariant? *)
       m_generic_type_vs_type_t lang tok t1 t2
   | G.TyFun (params1, tret1), Type.Function (params2, tret2) ->
@@ -2590,7 +2594,7 @@ and m_stmt a b =
   | G.Try (a0, a1, a2, a3, a4), B.Try (b0, b1, b2, b3, b4) ->
       let* () = m_tok a0 b0 in
       let* () = m_stmt a1 b1 in
-      let* () = (m_list m_catch) a2 b2 in
+      let* () = (m_list_in_any_order ~less_is_ok:true m_catch) a2 b2 in
       let* () = (m_option m_try_else) a3 b3 in
       (m_option m_finally) a4 b4
   | G.Assert (a0, aargs, asc), B.Assert (b0, bargs, bsc) ->
@@ -2694,6 +2698,8 @@ and m_block a b =
 
 and m_for_var_or_expr a b =
   match (a, b) with
+  (* dots: *)
+  | G.ForInitExpr { e = G.Ellipsis _; _ }, _ -> return ()
   | G.ForInitVar (a1, a2), B.ForInitVar (b1, b2) ->
       m_entity a1 b1 >>= fun () -> m_variable_definition a2 b2
   | G.ForInitExpr a1, B.ForInitExpr b1 -> m_expr a1 b1
@@ -2810,7 +2816,7 @@ and m_pattern a b =
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1
   | G.PatKeyVal (a1, a2), B.PatKeyVal (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_pattern a2 b2
-  | G.PatUnderscore a1, B.PatUnderscore b1 -> m_tok a1 b1
+  | G.PatWildcard a1, B.PatWildcard b1 -> m_tok a1 b1
   | G.PatDisj (a1, a2), B.PatDisj (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_pattern a2 b2
   | G.PatAs (a1, (a2, a3)), B.PatAs (b1, (b2, b3)) ->
@@ -2828,7 +2834,7 @@ and m_pattern a b =
   | G.PatList _, _
   | G.PatRecord _, _
   | G.PatKeyVal _, _
-  | G.PatUnderscore _, _
+  | G.PatWildcard _, _
   | G.PatDisj _, _
   | G.PatWhen _, _
   | G.PatAs _, _
@@ -3143,7 +3149,7 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
   let xsa =
     (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
-    |> Common.exclude (function
+    |> List_.exclude (function
          | G.F { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
              has_ellipsis := true;
              true

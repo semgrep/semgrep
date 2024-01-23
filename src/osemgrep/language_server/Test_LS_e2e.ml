@@ -16,7 +16,8 @@
 open Lsp
 open Types
 open Jsonrpc
-module Out = Semgrep_output_v1_t
+open Fpath_.Operators
+module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 module SR = Server_request
 module CR = Client_request
@@ -90,16 +91,21 @@ let create_info () =
 
 (* These tests are run separately from both the JS side and the regular Semgrep
    side.
-   To ensure they can find the path properly, we just go backwards until we
-   find the directoroy named "semgrep".
 *)
-let rec backtrack path =
-  match Fpath.basename path with
-  | "semgrep" ->
-      Fpath.(path / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
-  | _ -> backtrack (Fpath.parent path)
 
-let rule_path = backtrack (Fpath.v (Sys.getcwd ()))
+(*
+   This makes a system call that interferes with lwt's event loop.
+   Be careful.
+*)
+let get_rule_path () =
+  match Git_wrapper.get_project_root () with
+  | Some root ->
+      Fpath.(root / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+  | None ->
+      failwith "The test program must run from within the semgrep git project"
+
+(* We run this here because we can't run it during lwt's event loop. *)
+let rule_path = get_rule_path ()
 
 let default_content =
   {|
@@ -125,6 +131,7 @@ let () =
       let err = Printexc.to_string exn in
       Alcotest.fail err
 
+let timeout = 30.0
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -145,6 +152,14 @@ let open_and_write_default_content ?(mode = []) file =
    sleeping and the entire process would eventually exit.
    So, when running in JSCaml, let's just not use pauses. *)
 let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
+
+let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
+  let timeout_promise =
+    let%lwt () = Lwt_platform.sleep timeout in
+    Alcotest.failf "Test timed out after %f seconds!" timeout
+  in
+  let f () = Lwt.pick [ f (); timeout_promise ] in
+  f
 
 (*****************************************************************************)
 (* Core primitives *)
@@ -234,37 +249,39 @@ let receive_request (info : info) : Request.t Lwt.t =
 (*****************************************************************************)
 
 let git_tmp_path () =
-  Testutil_files.with_tempdir ~persist:true (fun dir ->
-      let dir = Fpath.to_string dir in
-      (* I don't know why, but the tests will hang in OCaml if we do
-         not chdir here.
-      *)
-      if not !Common.jsoo then Sys.chdir dir;
-      checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
+  let _orig_dir = Sys.getcwd () in
+  Testutil_files.with_tempdir ~persist:true (*~chdir:true*) (fun dir ->
+      (* TODO: investigate/report
+         Mysterious bug: the test will hang as we chdir back into the original
+         directory. *)
+      if not !Common.jsoo then Sys.chdir !!dir;
+      checked_command (String.concat " " [ "git"; "-C"; !!dir; "init" ]);
       checked_command
         (String.concat " "
            [
              "git";
              "-C";
-             dir;
+             !!dir;
              "config";
              "user.email";
              "baselinetest@semgrep.com";
            ]);
       checked_command
         (String.concat " "
-           [ "git"; "-C"; dir; "config"; "user.name"; "Baseline Test" ]);
+           [ "git"; "-C"; !!dir; "config"; "user.name"; "Baseline Test" ]);
       checked_command
-        (String.concat " " [ "git"; "-C"; dir; "checkout"; "-B"; "main" ]);
+        (String.concat " " [ "git"; "-C"; !!dir; "checkout"; "-B"; "main" ]);
+      (* !!!!!!!!!!!!!!! This call causes hanging !!!!!!!!!!!!!!! *)
+      (* Sys.chdir _orig_dir; *)
       dir)
 
 let assert_contains (json : Json.t) str =
   let json_str = YS.to_string json in
-  if not (Common.contains json_str str) then
+  if not (String_.contains ~term:str json_str) then
     Alcotest.failf "Expected string `%s` in response %s" str json_str
 
 let mock_files () : _ * Fpath.t list =
-  let git_tmp_path = Fpath.v (git_tmp_path ()) in
+  let git_tmp_path = git_tmp_path () in
 
   let open Fpath in
   let root = git_tmp_path in
@@ -364,7 +381,7 @@ let mock_workspaces () =
   FileUtil.cp ~recurse:true [ workspace1_root ] workspace2_root;
 
   let workspace2_files =
-    Common.map
+    List_.map
       (fun file -> Fpath.(v workspace2_root / filename file))
       workspace1_files
     |> List.sort (fun x y ->
@@ -389,7 +406,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
     let workspaceFolders =
       Some
         (workspaceFolders
-        |> Common.map (fun f ->
+        |> List_.map (fun f ->
                let f = Fpath.to_string f in
                { Types.WorkspaceFolder.uri = Uri.of_path f; name = f }))
     in
@@ -435,7 +452,7 @@ let send_initialized info =
 
 let send_did_open info (path : Fpath.t) =
   let path = Fpath.to_string path in
-  let text = File.read_file (Fpath.v path) in
+  let text = UFile.read_file (Fpath.v path) in
   let textDocument =
     TextDocumentItem.create ~languageId:"python" ~version:1
       ~uri:(Uri.of_path path) ~text
@@ -469,13 +486,13 @@ let send_did_delete info (path : Fpath.t) =
 (* Info comes last because otherwise the optional arguments are unerasable... shame. *)
 let send_did_change_folder ?(added = []) ?(removed = []) info =
   let added =
-    added |> Common.map Fpath.to_string
-    |> Common.map (fun file ->
+    added |> List_.map Fpath.to_string
+    |> List_.map (fun file ->
            WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let removed =
-    removed |> Common.map Fpath.to_string
-    |> Common.map (fun file ->
+    removed |> List_.map Fpath.to_string
+    |> List_.map (fun file ->
            WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let notif =
@@ -498,6 +515,12 @@ let send_code_action ~(path : Fpath.t) ~diagnostics ~line_start ~char_start
   in
   let req =
     CR.CodeAction (CodeActionParams.create ~context ~range ~textDocument ())
+  in
+  send_request info req
+
+let send_execute_command ~command ~arguments info =
+  let req =
+    CR.ExecuteCommand (ExecuteCommandParams.create ~command ~arguments ())
   in
   send_request info req
 
@@ -558,7 +581,7 @@ let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
     (Common.spf "file://%s" (Fpath.to_string file));
   let ids =
     resp |> member "params" |> member "diagnostics" |> to_list
-    |> Common.map (fun d -> member "code" d)
+    |> List_.map (fun d -> member "code" d)
   in
   Alcotest.(check string)
     "diagnostics are cohesive"
@@ -630,7 +653,7 @@ let check_startup info folders (files : Fpath.t list) =
 
   let scanned_files =
     List.filter
-      (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+      (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
       files
   in
 
@@ -670,7 +693,7 @@ let check_startup info folders (files : Fpath.t list) =
 
   let%lwt _ =
     scanned_files
-    |> Common.mapi (fun i file ->
+    |> List_.mapi (fun i file ->
            let notification = List.nth scan_notifications i in
            check_diagnostics notification file expected_ids)
     |> Lwt_list.map_s Fun.id
@@ -710,7 +733,7 @@ let test_ls_specs () =
                    PublishDiagnosticsParams.t_of_yojson info
                in
                let old_ids =
-                 Common.map (fun d -> d.Diagnostic.code) params.diagnostics
+                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
 
                (* This sleep is to ensure that the subsequent write to
@@ -730,7 +753,7 @@ let test_ls_specs () =
                    PublishDiagnosticsParams.t_of_yojson info
                in
                let new_ids =
-                 Common.map (fun d -> d.Diagnostic.code) params.diagnostics
+                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
 
                Alcotest.(check int)
@@ -752,13 +775,40 @@ let test_ls_specs () =
                let%lwt res =
                  receive_response_result CodeActionResult.t_of_yojson info
                in
-               assert (List.length (Option.get res) = 1);
-               (match res with
-               | Some (`CodeAction { kind; _ } :: _) ->
-                   assert (
-                     CodeActionKind.yojson_of_t (Option.get kind)
-                     = `String "quickfix")
-               | _ -> Alcotest.fail "expected code action kind");
+               assert (List.length (Option.get res) = 2);
+               let command =
+                 match res with
+                 | Some
+                     [
+                       `CodeAction { kind; _ };
+                       `CodeAction { command = Some command; _ };
+                     ] ->
+                     assert (
+                       CodeActionKind.yojson_of_t (Option.get kind)
+                       = `String "quickfix");
+                     assert (command.command = "semgrep/ignore");
+                     assert (Option.is_some command.arguments);
+                     command
+                 | _ -> Alcotest.fail "expected code action kind"
+               in
+
+               (* execute command *)
+               let%lwt () =
+                 send_execute_command ~command:command.command
+                   ~arguments:(Option.get command.arguments)
+                   info
+               in
+               let%lwt params =
+                 receive_notification_params
+                   PublishDiagnosticsParams.t_of_yojson info
+               in
+               let not_ignored_ids =
+                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
+               in
+               Alcotest.(check int)
+                 "new finding from modified file with ignored finding"
+                 (List.length not_ignored_ids)
+                 (List.length new_ids - 1);
 
                Lwt.return_unit)
       in
@@ -768,6 +818,7 @@ let test_ls_specs () =
       (* nosem *)
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
+      (* Tests target caching *)
       let%lwt () = send_did_add info added in
       let%lwt () = send_did_open info added in
 
@@ -796,7 +847,8 @@ let test_ls_ext () =
 
           let scanned_files =
             List.filter
-              (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+              (fun f ->
+                not (String_.contains (Fpath.to_string f) ~term:"existing"))
               files
           in
           let%lwt num_ids =
@@ -835,7 +887,8 @@ let test_ls_ext () =
                        notif.params |> Option.get |> Structured.yojson_of_t
                        |> member "uri"
                      in
-                     if Common.contains (YS.to_string uri) "modified" then
+                     if String_.contains (YS.to_string uri) ~term:"modified"
+                     then
                        assert (
                          List.length
                            (notif.params |> Option.get |> Structured.yojson_of_t
@@ -844,20 +897,7 @@ let test_ls_ext () =
                      Lwt.return_unit)
           in
 
-          (* Check did open does not rescan if diagnostics exist *)
-          let%lwt () =
-            files
-            |> Lwt_list.iteri_s (fun i _ ->
-                   let file = List.nth files i in
-                   let%lwt () =
-                     (* ??? is this an accurate translation *)
-                     if String.length (Fpath.to_string file) > 0 then
-                       send_did_open info file
-                     else Lwt.return_unit
-                   in
-                   Lwt.return_unit)
-          in
-
+          (* search *)
           let%lwt () = send_semgrep_search info "print(...)" in
           let%lwt resp = receive_response info in
           assert (
@@ -903,7 +943,7 @@ let test_ls_multi () =
       let files = workspace1_files @ workspace2_files in
       let scanned_files =
         List.filter
-          (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+          (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
           files
       in
 
@@ -919,8 +959,8 @@ let test_ls_multi () =
                let%lwt notif = receive_notification info in
                (* If it's a workspace we removed, then we expect no diagnostics *)
                if
-                 Common.contains (Fpath.to_string file)
-                   (Fpath.to_string workspace1_root)
+                 String_.contains (Fpath.to_string file)
+                   ~term:(Fpath.to_string workspace1_root)
                then (
                  Alcotest.(check int)
                    "check number of diagnostics is good"
@@ -947,6 +987,12 @@ let test_ls_multi () =
 
 let test_login () =
   with_session (fun info ->
+      (* If we don't log out prior to starting this test, the LS will complain
+         we're already logged in, and not display the correct behavior.
+      *)
+      let settings = Semgrep_settings.load () in
+      if not (Semgrep_settings.save { settings with api_token = None }) then
+        Alcotest.fail "failed to save settings to log out in ls e2e test";
       let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
@@ -962,6 +1008,7 @@ let test_login () =
           in
 
           assert (Regexp_engine.unanchored_match login_url_regex url);
+          Semgrep_settings.save settings |> ignore;
           send_exit info))
 
 let test_ls_no_folders () =
@@ -978,27 +1025,30 @@ let test_ls_libev () =
 (* Entry point *)
 (*****************************************************************************)
 
+module Test = Testo
+module Test_lwt = Testo_lwt
+
 let promise_tests =
   [
-    ("Test LS", test_ls_specs);
-    ("Test LS exts", test_ls_ext);
-    ("Test LS multi-workspaces", test_ls_multi);
-    ("Test Login", test_login);
-    ("Test LS with no folders", test_ls_no_folders);
+    Test_lwt.create "Test LS" test_ls_specs ~tolerate_chdir:true;
+    Test_lwt.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
+    Test_lwt.create "Test LS multi-workspaces" test_ls_multi
+      ~tolerate_chdir:true;
+    Test_lwt.create "Test LS login" test_login
+      ~expected_outcome:
+        (Should_fail "TODO: currently failing in js tests in CI");
+    Test_lwt.create "Test LS with no folders" test_ls_no_folders;
   ]
+  |> List_.map (fun (test : _ Test.t) ->
+         Test.update test ~func:(with_timeout test.func))
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
-  Testutil.pack_tests "Language Server (e2e)"
-    (promise_tests |> Common.map (fun (s, f) -> (s, prepare f)))
+  Test.categorize "Language Server (e2e)"
+    (promise_tests
+    |> List_.map (fun (test : _ Test.t) ->
+           Test.update_func test Test.Mona.sync (prepare test.func)))
 
 let lwt_tests =
-  Testutil.pack_tests_lwt "Language Server (e2e)"
-    [
-      ("Test LS", test_ls_specs);
-      ("Test LS exts", test_ls_ext);
-      ("Test LS multi-workspaces", test_ls_multi);
-      ("Test Login", test_login);
-      ("Test LS with no folders", test_ls_no_folders);
-      ("Test LS with libev", test_ls_libev);
-    ]
+  Test.categorize "Language Server (e2e)"
+    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests)

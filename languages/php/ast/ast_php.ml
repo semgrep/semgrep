@@ -140,7 +140,7 @@ type expr =
      non-0 is cast to true *)
   (* https://www.php.net/manual/en/language.types.boolean.php *)
   | Bool of bool wrap
-  | Int of int option wrap
+  | Int of Parsed_int.t
   | Double of float option wrap
   (* PHP has no first-class functions so entities are sometimes passed
    * as strings so the string wrap below can actually correspond to a
@@ -482,7 +482,7 @@ let special x = "__special__" ^ x
 let has_modifier cv = List.length cv.cv_modifiers > 0
 let is_static modifiers = List.mem Static (List.map unwrap modifiers)
 let is_private modifiers = List.mem Private (List.map unwrap modifiers)
-let string_of_xhp_tag xs = ":" ^ Common.join ":" xs
+let string_of_xhp_tag xs = ":" ^ String.concat ":" xs
 let str_of_ident (s, _) = s
 let tok_of_ident (_, x) = x
 

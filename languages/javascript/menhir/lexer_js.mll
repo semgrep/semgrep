@@ -53,7 +53,7 @@ let hexa_to_int = function
 (* ---------------------------------------------------------------------- *)
 (* Keywords *)
 (* ---------------------------------------------------------------------- *)
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
 
   "if",         (fun ii -> T_IF ii);
   "else",       (fun ii -> T_ELSE ii);
@@ -192,12 +192,12 @@ let rec current_mode () =
   match !_mode_stack with
   | top :: _ -> top
   | [] ->
-      pr2("mode_stack is empty, defaulting to INITIAL");
+      UCommon.pr2("mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
 
-let push_mode mode = Common.push mode _mode_stack
-let pop_mode () = ignore(Common2.pop2 _mode_stack)
+let push_mode mode = Stack_.push mode _mode_stack
+let pop_mode () = ignore(Stack_.pop _mode_stack)
 let set_mode mode = begin pop_mode(); push_mode mode; end
 
 (* Here is an example of state transition. Given a js file like:

@@ -50,18 +50,16 @@ let fb = Tok.unsafe_fake_bracket
  * https://github.com/returntocorp/ocaml-tree-sitter-core/issues/5
  * is fixed.
  *)
-let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
+let str_if_wrong_content_temporary_fix ({ file; conv; _ } : env)
+    (tok : Tree_sitter_run.Token.t) =
   let loc, _wrong_str = tok in
-
-  let file = env.H.file in
-  let h = env.H.conv in
 
   let bytepos, line, column =
     let pos = loc.Tree_sitter_run.Loc.start in
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
     let column = pos.Tree_sitter_run.Loc.column in
-    try (Hashtbl.find h (line, column), line, column) with
+    try (conv (line, column), line, column) with
     | Not_found ->
         failwith (spf "could not find line:%d x col:%d in %s" line column file)
   in
@@ -70,7 +68,7 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
     let column = pos.Tree_sitter_run.Loc.column in
-    try Hashtbl.find h (line, column) with
+    try conv (line, column) with
     | Not_found ->
         failwith (spf "could not find line:%d x col:%d in %s" line column file)
   in
@@ -129,7 +127,7 @@ let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
       G.string_ (l, xs, r)
 
 let map_directive_modifiers (env : env) (xs : CST.directive_modifiers) =
-  Common.map
+  List_.map
     (fun (v1, v2) ->
       let v1 = token env v1 (* "." *) in
       let v2 = str env v2 (* pattern "[^<>\"'/=\\s.]+" *) in
@@ -151,7 +149,7 @@ let map_anon_choice_dire_arg_b33821e (env : env)
   match x with
   | `Dire_arg tok ->
       let id = str env tok (* pattern "[^<>\"'/=\\s.]+" *) in
-      Left id
+      Either.Left id
   | `Dire_dyna_arg (v1, v2, v3) ->
       let v1 = token env v1 (* "[" *) in
       let v2 =
@@ -160,7 +158,7 @@ let map_anon_choice_dire_arg_b33821e (env : env)
         | None -> None
       in
       let v3 = token env v3 (* "]" *) in
-      Right (v1, v2, v3)
+      Either.Right (v1, v2, v3)
 
 let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
     : xml_attribute =
@@ -224,7 +222,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
 let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* start_tag_name *) in
-  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -232,21 +230,21 @@ let map_template_start_tag (env : env)
     ((v1, v2, v3, v4) : CST.template_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* template_start_tag_name *) in
-  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* style_start_tag_name *) in
-  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* script_start_tag_name *) in
-  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -289,7 +287,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
   | `Self_clos_tag (v1, v2, v3, v4) ->
       let l = token env v1 (* "<" *) in
       let id = str env v2 (* start_tag_name *) in
-      let attrs = Common.map (map_anon_choice_attr_a1991da env) v3 in
+      let attrs = List_.map (map_anon_choice_attr_a1991da env) v3 in
       let r = token env v4 (* "/>" *) in
       { xml_kind = XmlSingleton (l, id, r); xml_attrs = attrs; xml_body = [] }
 

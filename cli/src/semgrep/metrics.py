@@ -27,22 +27,32 @@ from typing_extensions import LiteralString
 import semgrep.semgrep_interfaces.semgrep_metrics as met
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
+from semgrep.semgrep_interfaces.semgrep_metrics import AnalysisType
+from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Datetime
+from semgrep.semgrep_interfaces.semgrep_metrics import EngineConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Environment
 from semgrep.semgrep_interfaces.semgrep_metrics import Errors
 from semgrep.semgrep_interfaces.semgrep_metrics import Extension
 from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
+from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
+from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
+from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Misc
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
+from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
+from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
@@ -131,7 +141,7 @@ class Metrics:
             extension=Extension(),
             value=Misc(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
-            event_id=met.Uuid(str(uuid.uuid4())),
+            event_id=met.Uuid(str(get_frozen_id())),
             anonymous_user_id="",
             parse_rate=[],
             sent_at=Datetime(""),
@@ -156,12 +166,46 @@ class Metrics:
 
         self.metrics_state = metrics_state or MetricsState.AUTO
 
+    # TODO(cooper): It would really be best if EngineType included all of the
+    # information here, but I am a bit concerned about changing it, since it is
+    # currently an enum. Ideally it would be more like osemgrep's Engine_type.t,
+    # but that seems difficult to render here, and would seem to require
+    # threading much more information through that type. Since we only really
+    # care about the additional information being bundeled for metrics, we'll
+    # just take some additional parameters here. Currently this is just for
+    # secrets, but the same would apply for (supply chain)-related information.
     @suppress_errors
-    def add_engine_type(self, engineType: "EngineType") -> None:
+    def add_engine_config(
+        self,
+        engineType: "EngineType",
+        code: Optional[CodeConfig],
+        secrets: Optional[SecretsConfig],
+        supply_chain: Optional[SupplyChainConfig],
+    ) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
         self.payload.value.engineRequested = engineType.name
+        analysis_type = {
+            EngineType.OSS: AnalysisType(Intraprocedural()),
+            EngineType.PRO_LANG: AnalysisType(Intraprocedural()),
+            EngineType.PRO_INTRAFILE: AnalysisType(Interprocedural()),
+            EngineType.PRO_INTERFILE: AnalysisType(Interfile()),
+        }.get(engineType, AnalysisType(Intraprocedural()))
+        self.payload.value.engineConfig = EngineConfig(
+            analysis_type=analysis_type,
+            code_config=code,
+            secrets_config=secrets,
+            supply_chain_config=supply_chain,
+            pro_langs=True,
+        )
+
+    @suppress_errors
+    def add_interfile_languages_used(self, used_langs: List[str]) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        self.payload.value.interfileLanguagesUsed = used_langs
 
     @suppress_errors
     def add_diff_depth(self, diff_depth: int) -> None:
@@ -241,6 +285,10 @@ class Metrics:
                     bytesScanned=mock_int(_rule_bytes_scanned[rule.id2]),
                 )
                 for rule in rules
+                # We consider only rules with match times and bytes scanned
+                # greater than 0 to avoid making the metrics too bloated.
+                if _rule_match_times[rule.id2] > 0.0
+                and _rule_bytes_scanned[rule.id2] > 0
             ]
 
     @suppress_errors
@@ -250,11 +298,25 @@ class Metrics:
 
     @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:
+        # Rules with 0 findings don't carry a lot of information
+        # compared to rules that actually have findings. Rules with 0
+        # findings also increase the size of the metrics quite
+        # significantly, e.g., when the number of rules grows up to
+        # magnitudes of 10k. So we filter them out in the metrics.
         self.payload.value.ruleHashesWithFindings = [
-            (r.full_hash, len(f)) for r, f in findings.kept.items()
+            (r.full_hash, len(f)) for r, f in findings.kept.items() if len(f) > 0
         ]
         self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
+
+        # Breakdown # of findings per-product.
+        _num_findings_by_product: Dict[out.Product, int] = defaultdict(int)
+        for r, f in findings.kept.items():
+            _num_findings_by_product[r.product] += len(f)
+        self.payload.value.numFindingsByProduct = [
+            (USER_FRIENDLY_PRODUCT_NAMES[p], n_findings)
+            for p, n_findings in _num_findings_by_product.items()
+        ]
 
     @suppress_errors
     def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
@@ -419,13 +481,14 @@ class Metrics:
     # for it
     # TODO it's a bit unfortunate that our tests are going to post
     # metrics...
-    def _post_metrics(self, user_agent: str) -> None:
+    def _post_metrics(self, *, user_agent: str, local_scan_id: str) -> None:
         r = requests.post(
             METRICS_ENDPOINT,
             data=self.as_json(),
             headers={
                 "Content-Type": "application/json",
                 "User-Agent": user_agent,
+                "X-Semgrep-Scan-ID": local_scan_id,
             },
             timeout=3,
         )
@@ -438,9 +501,7 @@ class Metrics:
 
         Will if is_enabled is True
         """
-        from semgrep.state import get_state  # avoiding circular import
 
-        state = get_state()
         logger.verbose(
             f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"
         )
@@ -450,6 +511,13 @@ class Metrics:
 
         self.gather_click_params()
         self.payload.sent_at = Datetime(datetime.now().astimezone().isoformat())
+
+        from semgrep.state import get_state  # avoiding circular import
+
+        state = get_state()
         self.payload.anonymous_user_id = state.settings.get("anonymous_user_id")
 
-        self._post_metrics(str(state.app_session.user_agent))
+        self._post_metrics(
+            user_agent=str(state.app_session.user_agent),
+            local_scan_id=str(state.local_scan_id),
+        )

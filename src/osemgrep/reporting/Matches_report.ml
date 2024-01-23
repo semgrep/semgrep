@@ -1,5 +1,5 @@
-module Out = Semgrep_output_v1_t
-open File.Operators
+module OutJ = Semgrep_output_v1_t
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -13,22 +13,62 @@ open File.Operators
 (*****************************************************************************)
 
 let ellipsis_string = " ... "
-let base_indent = String.make 10 ' '
-let findings_indent_depth = String.make 12 ' '
+let rule_leading_indent_size = 3
+
+let rule_indent_size =
+  rule_leading_indent_size + 4 (* severity icon and 1 for space *)
+
+let detail_indent_size = 10
+let findings_indent_size = 12
+let rule_leading_indent = String.make rule_leading_indent_size ' '
+let detail_indent = String.make detail_indent_size ' '
+let findings_indent = String.make findings_indent_size ' '
 
 let text_width =
   let max_text_width = 120 in
   let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
-  (* TODO: what is this w - (w - 100) ? What if w <= 5? *)
-  if w <= 110 then w - 5 else w - (w - 100)
+  min w max_text_width
 
-let group_titles = function
+(* TODO: re-enable dynamic size in a separate PR to avoid too many test changes *)
+let fill_count = 40
+
+type report_group =
+  [ OutJ.validation_state
+  | `Unreachable
+  | `Undetermined
+  | `Reachable
+  | `Nonblocking
+  | `Blocking
+  | `Merged ]
+
+let group_titles : report_group -> string = function
   | `Unreachable -> "Unreachable Supply Chain Finding"
   | `Undetermined -> "Undetermined Supply Chain Finding"
   | `Reachable -> "Reachable Supply Chain Finding"
   | `Nonblocking -> "Non-blocking Code Finding"
   | `Blocking -> "Blocking Code Finding"
   | `Merged -> "Code Finding"
+  | `Confirmed_valid -> "Valid Secrets Finding"
+  | `Confirmed_invalid -> "Invalid Secrets Finding"
+  | `Validation_error -> "Secrets Validation Error"
+  | `No_validator -> "Unvalidated Secrets Finding"
+
+let sort_by_groups als =
+  (* This is the order that groups will be desplayed in. *)
+  let group_order : report_group -> int = function
+    | `Blocking -> 1
+    | `Reachable -> 2
+    | `Confirmed_valid -> 3
+    | `Undetermined -> 4
+    | `Validation_error -> 5
+    | `No_validator -> 6
+    | `Nonblocking -> 7
+    | `Unreachable -> 8
+    | `Confirmed_invalid -> 9
+    | `Merged -> 10
+  in
+  let compare_group x y = group_order x - group_order y in
+  als |> List.stable_sort (Common.on compare_group fst)
 
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
@@ -43,7 +83,7 @@ let ws_prefix s =
   let rec index_rec s lim i acc =
     if i >= lim then List.rev acc
     else
-      let c = String.unsafe_get s i in
+      let c = s.[i] in
       if c = ' ' then index_rec s lim (i + 1) (' ' :: acc)
       else if c = '\t' then index_rec s lim (i + 1) ('\t' :: acc)
       else List.rev acc
@@ -53,7 +93,7 @@ let ws_prefix s =
 let dedent_lines (lines : string list) =
   let ws_prefixes =
     List.sort compare
-      (Common.map_filter
+      (List_.map_filter
          (fun line ->
            if String.(length (trim line)) = 0 then None
            else Some (ws_prefix line))
@@ -79,7 +119,7 @@ let dedent_lines (lines : string list) =
     in
     eq hd tl (min (List.length hd) (List.length tl)) 0
   in
-  ( Common.map
+  ( List_.map
       (fun line ->
         if String.(length (trim line)) = 0 then line
         else Str.string_after line longest_prefix)
@@ -125,7 +165,7 @@ let cut s idx1 idx2 =
     Str.string_after s idx2 )
 
 let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-    ~show_separator ppf (m : Out.cli_match) =
+    ~show_separator ppf (m : OutJ.cli_match) =
   ignore color_output;
   let lines =
     Option.value
@@ -140,7 +180,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
     in
     let keep = min ll max_lines in
     if keep = ll then (lines, None)
-    else (Common.take keep lines, Some (ll - keep))
+    else (List_.take keep lines, Some (ll - keep))
   in
   let start_line = m.start.line in
   let stripped, _ =
@@ -167,7 +207,11 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
              else (line, 0, false)
            in
            let line_number_str = string_of_int line_number in
-           let pad = String.make (13 - String.length line_number_str) ' ' in
+           let pad =
+             String.make
+               (findings_indent_size + 1 - String.length line_number_str)
+               ' '
+           in
            let col c = max 0 (c - 1 - dedented - line_off) in
            let ellipsis_len p =
              if stripped' && p then String.length ellipsis_string else 0
@@ -188,13 +232,8 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
            in
            let a, b, c = cut line start_color end_color in
            (* TODO(secrets): Apply masking to b *)
-           (* The 24m is "no underline", and for python compatibility *)
-           let esc =
-             if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
-             else Fmt.any ""
-           in
            Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
-             Fmt.(styled `Bold (esc ++ string))
+             Fmt.(styled `Bold string)
              b c;
            (stripped' || stripped, succ line_number))
          (false, start_line)
@@ -203,20 +242,20 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
     Fmt.pf ppf
       "%s[shortened a long line from output, adjust with \
        --max-chars-per-line]@."
-      findings_indent_depth;
+      findings_indent;
   match trimmed with
   | Some num ->
       Fmt.pf ppf
         "%s [hid %d additional lines, adjust with --max-lines-per-finding]@."
-        findings_indent_depth num
+        findings_indent num
   | None ->
       if show_separator then
-        Fmt.pf ppf "%s⋮┆%s" findings_indent_depth (String.make 40 '-')
+        Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make fill_count '-')
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (matches : Out.cli_match list) =
-  let print_one (last : Out.cli_match option) (cur : Out.cli_match)
-      (next : Out.cli_match option) =
+    (matches : OutJ.cli_match list) =
+  let print_one (last : OutJ.cli_match option) (cur : OutJ.cli_match)
+      (next : OutJ.cli_match option) =
     let last_message =
       let print, msg =
         match last with
@@ -247,36 +286,67 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       | Some m -> m <> cur.extra.message
     in
     if print then (
-      (* The 24m is "no underline", and for python compatibility *)
-      let esc =
-        if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
-        else Fmt.any ""
+      let no_color = !Semgrep_envvars.v.no_color in
+      let pp_styled_severity = function
+        | `Error ->
+            Fmt.pf ppf "%s%a" rule_leading_indent
+              (if no_color then Fmt.(styled `None string)
+               else Fmt.(styled (`Fg `Red) string))
+              "❯❯❱"
+        (* No out-of-the-box support for Orange and we use here Magenta instead :/ *)
+        | `Warning ->
+            Fmt.pf ppf "%s%a" rule_leading_indent
+              (if no_color then Fmt.(styled `None string)
+               else Fmt.(styled (`Fg `Magenta) string))
+              " ❯❱"
+        | `Info ->
+            Fmt.pf ppf "%s%a" rule_leading_indent
+              (if no_color then Fmt.(styled `None string)
+               else Fmt.(styled (`Fg `Green) string))
+              "  ❱"
+        | _ -> Fmt.pf ppf "%s%s" rule_leading_indent "   "
       in
-      List.iter
-        (fun (sp, l) ->
-          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
-        (wrap ~indent:7 ~width:text_width (Rule_ID.to_string cur.check_id));
-      List.iter
-        (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
-        (wrap ~indent:10 ~width:text_width cur.extra.message);
-      (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
-      | `String s -> Fmt.pf ppf "%sDetails: %s@." base_indent s
-      | _else -> ());
-      Fmt.pf ppf "@.");
+      pp_styled_severity cur.extra.severity;
+      let lines =
+        wrap ~indent:rule_indent_size ~width:text_width
+          (Rule_ID.to_string cur.check_id)
+      in
+      match lines with
+      | [] -> ()
+      | (_, l) :: rest ->
+          (* Print indented severity with 1 trailing space and then first line *)
+          Fmt.pf ppf " %a@." Fmt.(styled `Bold string) l;
+          List.iter
+            (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold string) l)
+            rest;
+          List.iter
+            (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
+            (wrap ~indent:detail_indent_size
+               ~width:(text_width - detail_indent_size)
+               cur.extra.message);
+          (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
+          | `String s -> Fmt.pf ppf "%sDetails: %s@." detail_indent s
+          | _else -> ());
+          Fmt.pf ppf "@.");
     (* TODO autofix *)
     let same_file =
       match next with
       | None -> false
       | Some m -> m.path = cur.path
     in
+    let same_rule =
+      match next with
+      | None -> false
+      | Some m -> m.check_id = cur.check_id
+    in
     pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-      ~show_separator:same_file ppf cur;
+      ~show_separator:(same_file && same_rule) ppf cur;
     Fmt.pf ppf "@."
   in
   let last, cur =
     matches
     |> List.fold_left
-         (fun (last, cur) (next : Out.cli_match) ->
+         (fun (last, cur) (next : OutJ.cli_match) ->
            (match cur with
            | None -> ()
            | Some m -> print_one last m (Some next));
@@ -292,53 +362,53 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 (*****************************************************************************)
 
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (cli_output : Out.cli_output) =
-  let groups =
-    cli_output.results |> Semgrep_output_utils.sort_cli_matches
-    |> Common.group_by (fun (m : Out.cli_match) ->
-           (* TODO: python (text.py):
-              if match.product == RuleProduct.sast:
-                subgroup = "blocking" if match.is_blocking else "nonblocking"
-              else:
-                subgroup = match.exposure_type or "undetermined"
+    (cli_output : OutJ.cli_output) =
+  cli_output.results |> Semgrep_output_utils.sort_cli_matches
+  |> Assoc.group_by (fun (m : OutJ.cli_match) ->
+         match Product.of_cli_match m with
+         | `SCA ->
+             (* TO PORT:
+                                       subgroup = match.exposure_type or "undetermined"
 
-              figuring out the product, python uses (rule.py):
-                 RuleProduct.sca
-                 if "r2c-internal-project-depends-on" in self._raw
-                 else RuleProduct.sast
+                        figuring out the product, python uses (rule.py):
+                           RuleProduct.sca
+                           if "r2c-internal-project-depends-on" in self._raw
+                           else RuleProduct.sast
 
-              and exposure_type (rule_match.py):
-              if "sca_info" not in self.extra:
-                  return None
+                        and exposure_type (rule_match.py):
+                        if "sca_info" not in self.extra:
+                            return None
 
-              if self.metadata.get("sca-kind") == "upgrade-only":
-                  return "reachable"
-              elif self.metadata.get("sca-kind") == "legacy":
-                  return "undetermined"
-              else:
-                  return "reachable" if self.extra["sca_info"].reachable else "unreachable"
-           *)
-           if is_blocking m.Out.extra.Out.metadata then `Blocking
-           else `Nonblocking)
-  in
-  (* if not is_ci_invocation *)
-  let groups =
-    let merged =
-      (try List.assoc `Nonblocking groups with
-      | Not_found -> [])
-      @
-      try List.assoc `Blocking groups with
-      | Not_found -> []
-    in
-    (`Merged, merged)
-    :: List.filter
-         (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
-         groups
-  in
-  groups
+                        if self.metadata.get("sca-kind") == "upgrade-only":
+                            return "reachable"
+                        elif self.metadata.get("sca-kind") == "legacy":
+                            return "undetermined"
+                        else:
+                            return "reachable" if self.extra["sca_info"].reachable else "unreachable" *)
+             `Undetermined
+         | `SAST when is_blocking m.extra.metadata -> `Blocking
+         | `SAST -> `Nonblocking
+         | `Secrets ->
+             (Option.value ~default:`No_validator m.extra.validation_state
+               :> report_group))
+  |> (fun groups ->
+       (* TO PORT:
+          if not is_ci_invocation: *)
+       let merged =
+         (try List.assoc `Nonblocking groups with
+         | Not_found -> [])
+         @
+         try List.assoc `Blocking groups with
+         | Not_found -> []
+       in
+       (`Merged, merged)
+       :: List.filter
+            (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
+            groups)
+  |> sort_by_groups
   |> List.iter (fun (group, matches) ->
-         if not (Common.null matches) then
-           Fmt_helpers.pp_heading ppf
-             (String_utils.unit_str (List.length matches) (group_titles group));
+         if not (List_.null matches) then
+           Fmt_.pp_heading ppf
+             (String_.unit_str (List.length matches) (group_titles group));
          pp_text_outputs ~max_chars_per_line ~max_lines_per_finding
            ~color_output ppf matches)

@@ -183,7 +183,9 @@ Semgrep, Inc will:
 |             | Warnings                                | Array of Warning Classes (compile-time-constant)                              | Understand most common warnings users encounter                                            | `["TimeoutExceeded"]`                                                                                                                                                                 | WarningClass[] |
 |             |                                         |                                                                               |                                                                                            |                                                                                                                                                                                       |                |
 | Value       |                                         |                                                                               |                                                                                            |                                                                                                                                                                                       |                |
-|             | Engine requested                        | The engine requested by the user                                              | Understand which engines are being used; debug engine-specific problems                    | `"Interfile"`                                                                                                                                                                         | str            |
+|             | Engine requested                        | The engine type requested by the user                                         | Understand which engines are being used; debug engine-specific problems                    | `"OSS"`
+|             | Engine configuration                    | The specific engine configuration                                             | Understand which engines are being used; debug engine-specific problems                    | `{ analysis_type: "Interfile", pro_langs: true, code_config: {} }`                                                                                                                                                                         | str            |
+|             | Interfile languages used                | The languages for which the interfile engine was actually invoked             | Understand which interfile languages are being used; measure performance impact and errors | `["C#"]`                                                                                                                                                                              | str            |
 |             | [Features used](#feature-usage)         | List of strings that identify Semgrep features used                           | Understand what features users find valuable, and what we could deprecate                  | `["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`                                                                                           | Object         |
 |             | Rule hashes with findings               | Map of rule hashes to number of findings                                      | Understand which rules are providing value to the user; diagnose high false-positive rates | `{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}`                                                                                                             | Object         |
 |             | Total Findings                          | Count of all findings                                                         | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
@@ -193,8 +195,7 @@ Semgrep, Inc will:
 
 > `anonymous_user_id: "5f52484c-3f82-4779-9353-b29bbd3193b6"`
 
-Semgrep generates a new random UUID and saves the ID locally to a `~/.semgrep/settings.yml` file
-when the ID is not present to help improve Semgrep products.
+To help improve Semgrep products, the Semgrep CLI generates a Universally Unique Identifier (UUID) which is saved locally to a `~/.semgrep/settings.yml` file when the ID does not already exist.
 
 The Semgrep team uses this ID to help answer the following questions:
 
@@ -309,7 +310,8 @@ This is a sample blob of the aggregate metrics described above:
         "numFindings": 7,
         "numIgnored": 3,
         "features": ["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"],
-        "engineRequested": "OSS"
+        "engineRequested": "OSS",
+        "engineConfig": { analysis_type: "Intraprocedural", pro_langs: false }
     }
 }
 ```

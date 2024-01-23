@@ -1,7 +1,15 @@
 EMCC_DEFAULTS = \
    -sALLOW_MEMORY_GROWTH=1 \
-   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,lengthBytesUTF8,getValue,setValue,intArrayFromString,writeArrayToMemory \
-   -sMODULARIZE
+   --no-entry \
+   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,AsciiToString,lengthBytesUTF8,getValue,setValue,intArrayFromString,intArrayToString,writeArrayToMemory \
+   -sMODULARIZE \
+   -sSINGLE_FILE=1
+
+ESBUILD_DEFAULTS = \
+	--bundle \
+	--minify \
+	--platform=node \
+	--log-override:duplicate-case=silent
 
 include ../libyaml/Makefile.include
 include ../libpcre/Makefile.include
@@ -18,5 +26,5 @@ dist/semgrep-engine.js dist/semgrep-engine.wasm: ../libyaml/dist/libyaml.o ../li
 		-O3 \
 		$^ \
 		$(EMCC_DEFAULTS) \
-		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_METHODS),$(PCRE_EXPORTED_METHODS) \
+		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS),$(PCRE_EXPORTED_FUNCTIONS) \
 		-o $(word 1,$@)

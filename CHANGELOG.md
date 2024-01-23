@@ -6,6 +6,654 @@
 
 <!-- insertion point -->
 
+## [1.58.0](https://github.com/returntocorp/semgrep/releases/tag/v1.58.0) - 2024-01-23
+
+
+### Added
+
+
+- Added a severity icon (e.g. "❯❯❱") and corresponding color to our CLI text output
+  for findings of known severity. (grow-97)
+- Naming has better support for if statements. In particular, for
+  languages with block scope, shadowed variables inside if-else blocks
+  that are tainted won't "leak" outside of those blocks.
+
+  This helps with features related to naming, such as tainting.
+
+  For example, previously in Go, the x in sink(x) will report
+  that x is tainted, even though the x that is tainted is the
+  one inside the scope of the if block.
+
+  ```go
+  func f() {
+    x := "safe";
+    if (c) {
+      x := "tainted";
+    }
+    // x should not be tainted
+    sink(x);
+  }
+  ```
+
+  This is now fixed. (pa-3185)
+- OSemgrep can now scan remote git repositories. Pass `--experimental --pro --remote http[s]://<website>/.../<repo>.git` to use this feature (pa-remote)
+
+
+### Changed
+
+
+- Rules stored under an "hidden" directory (e.g., dir/.hidden/myrule.yml)
+  are now processed when using --config <dir>.
+  We used to skip dot files under dir, but keeping rules/.semgrep.yml,
+  but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
+  but not ./.pre-commit-config.yaml, ... This was mainly because
+  we used to fetch rules from ~/.semgrep/ implicitely when --config
+  was not given, but this feature was removed, so now we can keep it simple. (hidden_rules)
+- Removed support for writing rules using jsonnet. This feature
+  will be restored once we finish the port to OCaml of the semgrep CLI. (jsonnet)
+- The primitive object construct expression will no longer match the new
+  expression pattern. For example, the pattern `new $TYPE` will now only match
+  `new int`, not `int()`. (pa-3336)
+- The placement new expression will no longer match the new expression without
+  placement. For instance, the pattern `new ($STORAGE) $TYPE` will now only match
+  `new (storage) int` and not `new int`. (pa-3338)
+
+
+### Fixed
+
+
+- Java: You can now use metavariable ellipses properly in
+  function arguments, as statements, and as expressions.
+
+  For instance, you may write the pattern
+  ```
+  public $F($...ARGS) { ... }
+  ``` (gh-9260)
+- Nosemgrep: Fixed a bug where Semgrep would err upon reading a `nosemgrep`
+  comment with multiple rule IDs. (gh-9463)
+- Fixed bugs in gitignore/semgrepignore globbing implementation affecting `--experimental`. (gh-9544)
+- Fixed rule IDs, descriptions, findings, and autofix text not wrapping as expected.
+  Use newline instead of horiziontal separator for findings with a shared file
+  but for different rules per design spec. (grow-97)
+- Keep track of the origin of `return;` statements in the dataflow IL so that
+  recently added (Pro-only) `at-exit: true` sinks work properly on them. (pa-3337)
+- C++: Improve translation of `delete` expressions to the dataflow IL so that
+  recently added (Pro-only) `at-exit: true` sinks work on them. Previously
+  `delete` expression at "exit" positions were not being properly recognized
+  as such. (pa-3339)
+- cli: fix python runtime error with 0 width wrapped printing (pa-3366)
+- Fixed a bug where Gemfile.lock files with multiple GEM sections
+  would not be parsed correctly. (sc-1230)
+
+
+## [1.56.0](https://github.com/returntocorp/semgrep/releases/tag/v1.56.0) - 2024-01-10
+
+
+### Added
+
+
+- Added a new field that breaks down the number of findings per product
+  in the metrics that are sent out by the CLI. This will help Semgrep
+  understand users better. (pa-3312)
+
+
+## [1.55.2](https://github.com/returntocorp/semgrep/releases/tag/v1.55.2) - 2024-01-05
+
+
+### Fixed
+
+
+- taint-mode: Semgrep was missing some sources occurring inside type expressions,
+  for example:
+
+  ```cpp
+  char *p = new char[source(x)];
+  sink(x);
+  ```
+
+  Now, if `x` is tainted by side-effect, Semgrep will check `x` inside the type
+  expression `char[...]` and record it as tainting, and generate a finding for
+  `sink(x)`. (pa-3313)
+- taint-mode: C/C++: Sanitization by side-effect was not working correctly for
+  `ptr->fld` l-values. In particular, if `ptr` is tainted, and then `ptr->fld` is
+  sanitized, Semgrep will now correctly consider `ptr->fld` as clean. (pa-3328)
+
+
+## [1.55.1](https://github.com/returntocorp/semgrep/releases/tag/v1.55.1) - 2024-01-04
+
+
+### Fixed
+
+
+- Honor temporary folder specified via the TMPDIR environment variable (or
+  equivalent on Windows) in some instances where it used to be hardcoded as
+  `/tmp`. (gh-9534)
+- Fix pipfile manifest parser error (sc-1084)
+
+
+## [1.55.0](https://github.com/returntocorp/semgrep/releases/tag/v1.55.0) - 2024-01-02
+
+
+### Changed
+
+
+- The rule option `commutative_compop` has been renamed to `symmetric_eq`. It is
+  deprecated and will be removed after the 1.60.0 release. (gh-9496)
+
+
+## [1.54.3](https://github.com/returntocorp/semgrep/releases/tag/v1.54.3) - 2023-12-22
+
+
+### Added
+
+
+- Pro only: taint-mode: Added experimental `at-exit: true` option for sinks, that
+  makes a sink spec only apply on the "exit" instructions/statements of a function.
+  That is, the instructions after which the control-flow exits the function. This is
+  useful for writing rules to find "leaks", such as checking that file descriptors
+  are being closed within the same function where they were opened.
+
+  For example, given this taint rule:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: true
+      patterns:
+        - pattern: $FILE = open(...)
+        - focus-metavariable: $FILE
+  pattern-sanitizers:
+    - by-side-effect: true
+      patterns:
+        - pattern: $FILE.close(...)
+        - focus-metavariable: $FILE
+  pattern-sinks:
+    - at-exit: true
+      pattern: |
+        def $FUN(...):
+          ...
+  ```
+
+  Semgrep will report a finding in the code below since at `print(content)`, after
+  which the control flow reaches the exit of the function, the `file` has not yet
+  been closed:
+
+  ```python
+  def test():
+      file = open("test.txt")
+      content = file.read()
+      print(content) # FINDING
+  ``` (pa-3266)
+
+
+## [1.54.2](https://github.com/returntocorp/semgrep/releases/tag/v1.54.2) - 2023-12-21
+
+
+### Added
+
+
+- metrics: added more granular information about pro engine configurations to
+  help differentiate scans using different engine capabilities. For instance,
+  maintainers are now able to distinguish intraprocedural scans without secrets
+  validation from intraprocedural scans with secrets validation. This allows us
+  to have a better understanding of usage and more accurately identify
+  product-specific issues (e.g., to see if something only affects secrets scans). (ea-297)
+
+
+### Fixed
+
+
+- Revise error message when running `semgrep ci` without being logged in to clarify that `--config` is used with `semgrep scan`. (gh-9485)
+
+
+## [1.54.1](https://github.com/returntocorp/semgrep/releases/tag/v1.54.1) - 2023-12-20
+
+
+No significant changes.
+
+
+## [1.54.0](https://github.com/returntocorp/semgrep/releases/tag/v1.54.0) - 2023-12-19
+
+
+### Added
+
+
+- Pro only: taint-mode: In a function/method call, it is now possible to arbitrarily
+  propagate taint between arguments and the callee. For example in C, one can
+  propagate taint from the second argument of `strcat` to the first, that is,
+  `strcat($TO, $FROM)`. Another example, in C++ one can propagate taint from the
+  left operand of `>>` to the right one, that is, `$FROM >> $TO`. (pa-3131)
+- Semgrep IDE integrations will now cache workspace targets, so a full traversal of a workspace is no longer needed on every scan (pdx-148)
+
+
+### Changed
+
+
+- OCaml: switch to using the tree-sitter based parser instead of
+  the menhir parser, which has a more complete AST, especially
+  for objects and classes. (ocaml)
+
+
+### Fixed
+
+
+- solidity: support ellipsis in for loops header in the init part. (gh-9431)
+- taint-mode: Fixed recently added `by-side-effect: only` option for taint sources,
+  so that it does not incorrectly taint expressions that are not l-values, e.g.
+  given this taint source:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: delete $VAR;
+        - focus-metavariable: $VAR
+  ```
+
+  The `get(*from)` expression should not become tainted since it's not an l-value:
+
+  ```cpp
+  delete get(*from);
+  ``` (pa-2980)
+- In C++, the string literal now has a type of `char *`. It won't match with the
+  `string` type. For instance,
+
+  ```yaml
+  - metavariable-type:
+      metavariable: $EXPR
+      type: string
+  ```
+
+  will only match
+
+  ```cpp
+  string f;
+  // MATCH
+  int x = f.length();
+  ```
+
+  but not
+
+  ```cpp
+  const char *s;
+  // OK
+  s = "foo";
+  ``` (pa-3236)
+- taint-mode: Semgrep will now treat lambdas' parameters as fresh, so a taint rule
+  that finds double-delete's should not be triggered on the code below:
+
+  ```cpp
+  for (ListNode *node : list) {
+  	list.erase(node, [](ListNode *p) {
+  		delete p;
+  	});
+  }
+  ``` (pa-3298)
+- Fixed bug where empty tables in pyproject.toml files would fail to parse (sc-1196)
+
+
+## [1.53.0](https://github.com/returntocorp/semgrep/releases/tag/v1.53.0) - 2023-12-12
+
+
+### Added
+
+
+- Users can now ignore findings locally in Semgrep IDE Extensions, per workspace, and this will persist between restarts (pdx-154)
+- A new subcommand 'semgrep test', which is an alias for 'semgrep scan
+  --test'. This means that if you were running semgrep on a test
+  directory, you will now have to use 'semgrep scan test' otherwise it
+  will be interpreted as the new 'semgrep test' subcommand. (subcommand_test)
+
+
+### Changed
+
+
+- Handling qualified identifiers in constant propagation
+
+  We've added support for qualified identifiers in constant propagation. Notably,
+  this enables the following matches (with the pro engine):
+
+  ```yaml
+  rules:
+    - id: cpp-const-field
+      languages:
+        - cpp
+      message: testing
+      severity: INFO
+      pattern: std::cout<<1
+  ```
+
+  ```cpp
+  #include<iostream>
+  #include "a.h"
+
+  namespace B {
+  class Bar {
+      public:
+          static const int one = 1;
+  };
+  }
+
+  int main() {
+      // ruleid: cpp-const-field
+      std::cout<<1<<std::endl;
+
+      // ruleid: cpp-const-field
+      std::cout<<A::Foo::one<<std::endl;
+
+      // ruleid: cpp-const-field
+      std::cout<<B::Bar::one<<std::endl;
+  }
+  ``` (gh-9354)
+
+
+### Fixed
+
+
+- Updated the parser used for Rust. The largest change relates to how macros are
+  parsed. (rust)
+
+
+## [1.52.0](https://github.com/returntocorp/semgrep/releases/tag/v1.52.0) - 2023-12-05
+
+### Added
+
+- Java: Semgrep will now recognize `String.format(...)` expressions as constant
+  strings when all their arguments are constant, but it will still not know
+  what exact string it is. For example, code `String.format("Abc %s", "123")`
+  will match pattern `"..."` but it will _not_ match pattern `"Abc 123"`. (pa-3284)
+
+### Changed
+
+- Inter-file diff scan will be gradually introduced to a small percentage of
+  users through a slow rollout process. Users who enable the pro engine and
+  engage in differential PR scans on Github or Gitlab may experience the impact
+  of this update. (ea-268)
+- secrets: now performs more aggressive deduplication for instances where an
+  invalid and valid match are reported at the same range. Instead of reporting
+  both, we now report only the valid match when they are otherwise visually
+  identical. (scrt-271)
+
+### Fixed
+
+- In expression-based languages, definitions are also expressions.
+
+  This change allows dataflow to properly handle definition expressions.
+
+  For example, the pattern `0 == 0` will match `x == 0` in
+
+  ```elixir
+  def f(c) do
+    x = (y = 0)
+    x == 0
+  end
+  ```
+
+  because now dataflow is able to handle the expression `y = 0`. (pa-3262)
+
+- In version 1.14.0 (pa-2477) we made sink-matching more precise when the sink
+  specification was like:
+
+  ```yaml
+  pattern-sinks:
+    - patterns:
+        - pattern: sink($X, ...)
+        - focus-metavariable: $X
+  ```
+
+  Where the sink specification most likely has the intent to specify the first
+  argument of `sink` as a sink, and `sink(ok1 if tainted else ok2)` should _NOT_
+  produce a finding, because `tainted` is not really what is being passed to
+  the `sink` function.
+
+  But we only intercepted the most simple pattern above, and more complex sink
+  specifications that had the same intent were not properly recognized.
+
+  Now we have generalized that pattern to cover more complex cases like:
+
+  ````yaml
+  patterns:
+   - pattern-either:
+     - patterns:
+       - pattern-inside: |
+           def foo(...):
+             ...
+       - pattern: sink1($X)
+     - patterns:
+       - pattern: sink2($X)
+       - pattern-not: bar(...)
+   - focus-metavariable: $X
+  ``` (pa-3284)
+  ````
+
+- Updated the parser used for Rust (rust)
+
+## [1.51.0](https://github.com/returntocorp/semgrep/releases/tag/v1.51.0) - 2023-11-29
+
+### Added
+
+- taint-mode: Added experimental rule option `taint_match_on: source` that makes
+  Semgrep report taint findings on the taint source rather than on the sink. (pa-3272)
+
+### Changed
+
+- Elixir got moved to Pro. (elixir_pro)
+- The 'fix_regex' field has been removed from the semgrep JSON output. Instead,
+  the 'fix' field contains the content the result of the fix_regex. (fix_regex)
+- taint-mode: Tweaked experimental option `taint_only_propagate_through_assignments`
+  so that when it is enabled, `tainted.field` and `tainted(args)` will no longer
+  propagate taint. (pa-2193)
+
+### Fixed
+
+- Fixed Kotlin parse error.
+
+  Previously, code like this would throw a parse error
+
+  ```
+  fun f1(context : Context) {
+      Foo(context).elem = var1
+  }
+  ```
+
+  due to not recognizing `Foo(context).elem = ...` as valid.
+  Now calls are recognized as valid in the left hand of
+  assignments. (ea-104)
+
+- Python: `async` statements are now translated into the Dataflow IL so Semgrep
+  will be able to report findings e.g. inside `async with ...` statements. (gh-9182)
+- In gitlab output, use correct url attached to rule instead of generating it.
+  This fixes url for supply chain findings. (gitlab)
+- - The language server will no longer crash on startup for intellij (language-server)
+- - The language server no longer crashes when installed through pip on Mac platforms (language-server-macos)
+- taint-mode: When we encountered an assignment `lval := expr` where `expr` returned
+  no taints, we automatically cleaned `lval`. This was correct in the early days of
+  taint-mode, before we introduced taint by side-effect, but it is wrong now. The LHS
+  `lval` may be tainted by side-effect, in which case we cannot clean it just because
+  `expr` returns no taint. Now that we introduced `by-side-effect: only` it is also
+  possible for `expr` to taint `lval` by side-effect and return no immediate taint.
+
+  This kind of source should now work as expected:
+
+  ````yaml
+  - by-side-effect: true
+    patterns:
+      - pattern: |
+          $X = source()
+      - focus-metavariable: $X
+  ``` (pa-3164)
+  ````
+
+- taint-mode: Fixed a bug in the recently added `by-side-effect: only` option
+  causing that when matching l-values of the form `l.x` and `l[i]`, the `l`
+  occurence would unexpectedly become tainted too. This led to FPs in some
+  typestate rules like those checking for double-lock or double-free.
+
+  Now a source such as:
+
+  ```yaml
+  - by-side-effect: only
+    patterns:
+      - pattern: lock($L)
+      - focus-metavariable: $L
+  ```
+
+  will not produce FPs on code such as:
+
+  ````python
+  lock(obj.l)
+  unlock(obj.l)
+  lock(obj.l)
+  ``` (pa-3282)
+  ````
+
+- taint-mode: Removed a hack that made `lval = new ...` assignments to not clean
+  the `lval` despite the RHS was not tainted. This caused FPs in double-free rules.
+  For example, given this source:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: delete $VAR;
+        - focus-metavariable: $VAR
+  ```
+
+  And the code below:
+
+  ```cpp
+  while (nondet) {
+    int *v = new int;
+    delete v; // FP
+  }
+  ```
+
+  The `delete v` statement was reported as a double-free, because Semgrep did not
+  consider that `v = new int` would clean the taint in `v`. (pa-3283)
+
+## [1.50.0](https://github.com/returntocorp/semgrep/releases/tag/v1.50.0) - 2023-11-17
+
+No significant changes.
+
+## [1.49.0](https://github.com/returntocorp/semgrep/releases/tag/v1.49.0) - 2023-11-15
+
+### Added
+
+- Added support in Ruby, Julia, and Rust to match implicit return statement inside functions.
+
+  For example:
+
+  ```julia
+  return 0
+  ```
+
+  can now match 0 in
+
+  ```julia
+  function f()
+    0
+  end
+  ```
+
+  This matching is enabled by default and can be disabled with the rule option `implicit_return`. (gh-8408)
+
+- Pro engine supports constant propagation of numbers defined via macro in C++ (gh-9221)
+- taint-mode: The `by-side-effect` option for taint sources (only) now accepts a
+  third value `only` (besides `true` and `false`). Setting `by-side-effect: only`
+  will define a taint source that _only_ propagates by side effect. This option
+  should allow (ab)using taint-mode for writing some typestate rules.
+
+  For example, this taint rule:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: lock($L)
+        - focus-metavariable: $L
+  pattern-sanitizers:
+    - by-side-effect: true
+      patterns:
+        - pattern: unlock($L)
+        - focus-metavariable: $L
+  pattern-sinks:
+    - pattern: lock($L)
+  ```
+
+  will match the second `lock(x)` in this code:
+
+  ```python
+  lock(x) # no finding
+  lock(x) # finding
+  ```
+
+  The first `lock(x)` will not result in any finding, because the occurrence of `x` in
+  itself will not be tainted. Only after the function call we will record that `x` is
+  tainted (as a side-effect of `lock`). The second `lock(x)` will result in a finding
+  because the `x` has been tainted by the previous `lock(x)`. (pa-2980)
+
+### Changed
+
+- In the metrics sent we now record the languages for which we invoked the interfile engine.
+  This will enable us to measure the performance impact and error rates of new interfile
+  languages. (For scans which don't send metrics, there is no change.) See the PRIAVCY.md
+  for more information. (ea-251)
+- Removed support for named snippets (`org_name:rule_id`) from `semgrep scan` which were removed from semgrep.dev a few months ago. (gh-9203)
+- Added support for `--config <code|secrets>` to semgrep scan. When using
+  code or secrets, the environment variable `SEMGREP_REPO_NAME` must be set.
+
+  For example,
+
+  ```
+  $ SEMGREP_REPO_NAME=test_repo semgrep --config secrets
+  ```
+
+  Internally, `semgrep scan --config <product>` now uses the same endpoint as the
+  `semgrep ci` to fetch the scan configuration. (gh-9205)
+
+- Improved handling of unused lambdas to reduce false positives
+
+  Previously, we used to insert the CFGs of unused lambdas at the declaration
+  site. However, this approach triggered some false positives. For example,
+  consider the following code:
+
+  ```
+  void incorrect(int *p) {
+    auto f1 = [&p]() {
+      source(p);
+    };
+    auto f2 = [&p]() {
+      sink(p);
+    };
+  }
+  ```
+
+  In this code, there's no actual control flow between the source and sink, and
+  the lambdas are never even called. But when we inserted their CFGs at the
+  declaration site, it incorrectly indicated a taint finding. To prevent these
+  types of false positives while still scanning the body of unused lambdas, we
+  now insert their CFGs in parallel at the end of their parent function, right
+  after all other statements and just before the end node. (pa-3089)
+
+- Bumped timeout (per-rule and per-file) from 2s to 5s. Recently we lowered it
+  from 30s down to 2s, but based on what we have observed so far, we believe 5s
+  is a better timeout for the time being. (timeout)
+
+### Fixed
+
+- Fixed a bug where enabling the secret beta causes the default scan mode to be
+  set to OSS, even when the Pro flag is turned on in the web UI. (ea-248)
+- Semgrep does not stop a scan anymore for parsing errors due to
+  unconventional exceptions (e.g., Failure "not a program") in some
+  parsers. Instead, such errors are reported as "Other syntax error". (lang-13)
+- Fix regression for the unused lambda change in react-nextjs-router-push test
+
+  A lambda expression defined in a return expression is also treated as used at
+  the location of the return expression. (pa-3089)
+
+- Updated the Rust parser with miscellaneous improvements. In particular, Semgrep can now parse `yield` expressions in Rust. (rust)
+- taint-mode: If an expressions is tainted by multiple labels A and B, with B
+  requiring A, the expression will now get boths labels A and B. (taint-labels)
+
 ## [1.48.0](https://github.com/returntocorp/semgrep/releases/tag/v1.48.0) - 2023-11-06
 
 ### Added

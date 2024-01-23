@@ -62,35 +62,38 @@ let protected_to_private_candidates g =
              let privacy =
                try G.privacy_of_node node g with
                | Not_found ->
-                   pr2 (spf "No nodeinfo for %s" (G.string_of_node node));
+                   UCommon.pr2
+                     (spf "No nodeinfo for %s" (G.string_of_node node));
                    E.Private
              in
              match privacy with
              | E.Private ->
                  let users = G.pred node G.Use g in
-                 if null users then
-                   pr2 (spf "DEAD private field: %s" (G.string_of_node node))
+                 if List_.null users then
+                   UCommon.pr2
+                     (spf "DEAD private field: %s" (G.string_of_node node))
              | E.Protected ->
                  let parents = G.parents node g in
                  if List.length parents > 1 then (
-                   pr2_gen node;
-                   pr2_gen parents);
+                   UCommon.pr2_gen node;
+                   UCommon.pr2_gen parents);
                  let class_ = G.parent node g in
                  if class_ =*= G.dupe then
-                   pr2 (spf "Redefined field: %s" (G.string_of_node node))
+                   UCommon.pr2
+                     (spf "Redefined field: %s" (G.string_of_node node))
                  else
                    let classname = fst class_ in
 
                    let users = G.pred node G.Use g in
-                   if null users then
-                     pr2
+                   if List_.null users then
+                     UCommon.pr2
                        (spf "DEAD protected field: %s" (G.string_of_node node))
                    else if
                      users
                      |> List.for_all (fun (s, _kind) ->
                             s =~ spf "^%s\\." classname)
                    then
-                     pr2
+                     UCommon.pr2
                        (spf "Protected to private candidate: %s"
                           (G.string_of_node node))
                    else ()
@@ -137,7 +140,7 @@ let toplevel_methods g dag =
   let rec aux env n =
     let methods_here =
       G.children n g
-      |> Common.map_filter (fun n2 ->
+      |> List_.map_filter (fun n2 ->
              match snd n2 with
              | E.Method ->
                  let _, method_str = class_method_of_string (fst n2) in
@@ -155,7 +158,7 @@ let toplevel_methods g dag =
               * must be public methods.
               *)
              priv =*= E.Public
-           then Hashtbl.add htoplevels s n2
+           then Hashtbl_.push htoplevels s n2
            else ());
     let children_classes = Graphe.succ n dag in
     (* todo? what if public overriding a private? *)
@@ -179,7 +182,7 @@ let dispatched_methods g dag node =
   let rec aux (current_class, class_kind) =
     let node = (string_of_class_method (current_class, m), kind) in
     (* todo? need get public and protected there too *)
-    if G.has_node node g then Common.push node res;
+    if G.has_node node g then Stack_.push node res;
     let children = Graphe.succ (current_class, class_kind) dag in
     children |> List.iter aux
   in

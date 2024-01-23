@@ -29,3 +29,5 @@ module LvalOrdered : sig
 
   val compare : t -> t -> int
 end
+
+val orig_of_node : IL.node_kind -> IL.orig option

@@ -48,7 +48,7 @@ class ScanCompleteResult:
 class ScanHandler:
     def __init__(self, dry_run: bool = False) -> None:
         state = get_state()
-        self.local_id = str(state.request_id)
+        self.local_id = str(state.local_scan_id)
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
             unique_id=out.Uuid(self.local_id),
@@ -101,6 +101,15 @@ class ScanHandler:
         """
         if self.scan_response:
             return self.scan_response.engine_params.deepsemgrep
+        return False
+
+    @property
+    def generic_slow_rollout(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.generic_slow_rollout
         return False
 
     @property

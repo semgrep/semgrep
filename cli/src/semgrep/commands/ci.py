@@ -226,7 +226,9 @@ def ci(
     token = state.app_session.token
     if not token and not config:
         # Not logged in and no explicit config
-        logger.info("run `semgrep login` before using `semgrep ci` or set `--config`")
+        logger.info(
+            "run `semgrep login` before using `semgrep ci` or use `semgrep scan` and set `--config`"
+        )
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
@@ -356,6 +358,11 @@ def ci(
         traceback.print_exc()
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
+
+    # Enable beta features
+    if scan_handler and scan_handler.generic_slow_rollout:
+        # slow rollout for pro diff scan
+        diff_depth = 2
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:

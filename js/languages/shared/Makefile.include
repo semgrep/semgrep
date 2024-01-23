@@ -13,7 +13,8 @@ ESBUILD_DEFAULTS = \
 	--external:fs \
 	--external:constants \
 	--external:tty \
-	--external:child_process
+	--external:child_process \
+    --external:perf_hooks
 
 ifdef SEMGREP_JS_TEST_BUILD
 ESBUILD_DEFAULTS += \
@@ -87,7 +88,17 @@ distclean:
 	rm -rf dist node_modules
 
 ifndef NO_WASM
-dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
+dist/semgrep-parser.o: $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
+	mkdir -p dist
+	emcc \
+		$(EMCC_OPTIMIZATION) \
+		-I$(TREESITTER_SRCDIR) \
+		-I${TREESITTER_INCDIR} \
+		$^ \
+		-shared \
+		-o $@
+
+dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c dist/semgrep-parser.o $(EXTRA_PARSER_DEPS)
 	mkdir -p dist
 	emcc \
         $(EMCC_OPTIMIZATION) \

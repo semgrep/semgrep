@@ -1,33 +1,62 @@
 // Daily cron to check end-to-end (e2e) that the 'semgrep ci' subcommand,
-// ran from our docker 'develop' semgrep image, works correctly.
-// This is very important because 'semgrep ci' and our 'develop' docker image
-// are the main things the users of Semgrep WebApp are using in their CIs.
-// It also allows us to confirm "fail-open" behavior is still functioning as
-// expected, that is we aren't failing the CI check when we can't upload
-// findings because of networking errors (or for other reasons such as the failing
-// of 'git').
+// run from a returntocorp/semgrep:develop docker image, works correctly.
+// This is very important because 'semgrep ci' and our docker images
+// are the main things the users of our Semgrep WebApp are using in their CIs.
+// This cron also double checks that "fail-open" is working as expected, that is
+// we aren't failing the CI check when we can't upload findings because of
+// networking errors (or for other reasons such as a 'git' execution failure).
 
-local actions = import "libs/actions.libsonnet";
-local semgrep = import "libs/semgrep.libsonnet";
+local gha = import 'libs/gha.libsonnet';
+local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
+
+// ----------------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------------
+
+// This is computed by the get_inputs_job (example of value: "develop")
+// and can be referenced from other jobs.
+local docker_tag = "${{ needs.get-inputs.outputs.docker_tag }}";
+
+// This is computed by semgrep_ci_on_pr_job (example of value: "9543")
+// and can be referenced from other jobs
+local pr_number = '"${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"';
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+// This will post on Slack on #???
+// TODO: factorize with start-release.jsonnet and other workflows using Slack
+local curl_notify(message) = |||
+  curl --request POST \
+        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
+        --header 'content-type: application/json' \
+        --data '{
+          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
+          "docker_tag": %s,
+          "message": "%s"
+ ||| % [docker_tag, message];
 
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
-
 local docker_tag_input = {
-      inputs: {
-        docker_tag: {
-          description: 'Docker Tag to Run. Default: develop',
-          required: false,
-          //TODO? could propose choice with 'canary' also
-          default: 'develop',
-        },
-      }
+  inputs: {
+    docker_tag: {
+      description: 'Docker Tag to Run. Default: develop',
+      required: false,
+      //TODO? could propose choice with 'canary' also
+      default: 'develop',
+    },
+  },
 };
 
-// just validate and reexport the input in docker_tag_input above.
-// TODO? not sure we need this intermediate job ... we should
-// use directly inputs.docker_tag in the other jobs
+// This validates and reexport the input in docker_tag_input above.
+// Why this intermediate job? Can't we use directly inputs.docker_tag
+// in the other jobs? It's because this workflow can be called
+// interactively (workflow_dispatch), or via a cron, and for a cron
+// we don't have a way to say docker_tag should be 'develop', hence
+// this intermediate job.
 local get_inputs_job = {
   name: 'Get Inputs',
   'runs-on': 'ubuntu-22.04',
@@ -40,7 +69,7 @@ local get_inputs_job = {
       id: 'get-inputs',
       //TODO? why do we need that given we set a default value above?
       env: {
-	DOCKER_TAG: 'develop'
+        DOCKER_TAG: 'develop',
       },
       run: 'echo "docker_tag=${{ inputs.docker_tag || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT',
     },
@@ -51,23 +80,19 @@ local get_inputs_job = {
   ],
 };
 
-// to be used below once the job added needs: 'get-inputs'
-local needs_docker_tag = '${{ needs.get-inputs.outputs.docker_tag }}';
-
 // ----------------------------------------------------------------------------
-// Basic semgrep CI checks
+// Basic semgrep CI checks (on the semgrep repo itself)
 // ----------------------------------------------------------------------------
-
 local semgrep_ci_job = {
   'runs-on': 'ubuntu-22.04',
   env: {
-   // TODO: why not semgrep.secrets.SEMGREP_APP_TOKEN? Why a different token?
-   // We use a different ruleboard for that?
+    // TODO: why not semgrep.secrets.SEMGREP_APP_TOKEN? Why a different token?
+    // We use a different ruleboard for that?
     SEMGREP_APP_TOKEN: semgrep.secrets.E2E_APP_TOKEN,
   },
   needs: 'get-inputs',
   container: {
-    image: 'returntocorp/semgrep:' + needs_docker_tag,
+    image: 'returntocorp/semgrep:' + docker_tag,
   },
   steps: [
     actions.checkout(),
@@ -90,7 +115,7 @@ local semgrep_ci_fail_open_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'returntocorp/semgrep:' + needs_docker_tag,
+    image: 'returntocorp/semgrep:' + docker_tag,
   },
   steps: [
     actions.checkout(),
@@ -124,7 +149,7 @@ local semgrep_ci_fail_open_blocking_findings_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'returntocorp/semgrep:' + needs_docker_tag,
+    image: 'returntocorp/semgrep:' + docker_tag,
   },
   steps: [
     actions.checkout(),
@@ -170,76 +195,96 @@ local semgrep_ci_fail_open_blocking_findings_job = {
 };
 
 // ----------------------------------------------------------------------------
-// PR checks
+// PR check on another repo
 // ----------------------------------------------------------------------------
 
-// dependencies: semgrep-ci-on-pr -> pr-url -> wait-for-checks
+// The two jobs below work together and with the returntocorp/e2e repo
+// to check that 'semgrep ci' reports only new findings on PRs.
+// This 'e2e' repo contains:
+//  - a file-under-test.py with a '10 == 10' that
+//    should be reported by semgrep (by the '$X == $X' semgrep rule)
+//  - a .github/workflows/semgrep-ci-e2e.yml that runs 'semgrep ci'
+//    with the docker image specified in semgrep-docker-image-tag.txt
+//  - a scripts/change-version.sh that updates semgrep-docker-image-tag.txt
+//    and modifies a file that is not file-under-test.py
+//
+// Because semgrep ci reports only new findings, the goal of the jobs below is to
+// make sure no finding are reported since we don't modify file-under-test.py
 
-// ?? What does this test?
+// just open a PR on the returntocorp/e2e repo
 local semgrep_ci_on_pr_job = {
-  uses: './.github/workflows/open-bump-pr.yml',
-  secrets: 'inherit',
-  needs: 'get-inputs',
-  with: {
-    version: needs_docker_tag,
-    // ??
-    repository: 'returntocorp/e2e',
-    base_branch: 'develop',
-    new_branch_name: 'e2e-test-${{ github.run_id }}',
-    // ??
-    bump_script_path: 'scripts/change-version.sh',
-  },
-};
-
-// ??
-local pr_url_job = {
   'runs-on': 'ubuntu-22.04',
-  needs: 'semgrep-ci-on-pr',
-  steps: [
+  needs: 'get-inputs',
+  outputs: {
+    'pr-number': "${{ steps.open-pr.outputs.pr-number }}",
+  },
+  steps: semgrep.github_bot.get_token_steps + [
     {
-      run: 'echo ${{ needs.semgrep-ci-on-pr.outputs.pr-url }}',
+      uses: 'actions/checkout@v3',
+      with: {
+	repository: 'returntocorp/e2e',
+        ref: '${{ github.event.repository.default_branch }}',
+        token: semgrep.github_bot.token_ref,
+      },
     },
     {
-      run: 'echo ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}',
+      name: 'Prepare the PR',
+      run: |||
+	git checkout -b e2e-test-pr-${{ github.run_id }}
+        scripts/change-version.sh %s
+        %s
+        git add --all
+        git commit -m "chore: Bump version to %s"
+        git push --set-upstream origin e2e-test-pr-${{ github.run_id }}
+      ||| % [ docker_tag, gha.git_config_user, docker_tag],
+    },
+    {
+      name: 'Make the PR',
+      id: 'open-pr',
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+      run: |||
+          PR_URL=$(gh pr create --title "chore: fake PR for %s" --body "Fake PR" --base "develop" --head "e2e-test-pr-${{ github.run_id }}")
+          PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+      ||| % [docker_tag],
     },
   ],
 };
 
+
+// TODO: factorize with start-release.jsonnet
+local len_checks = "$(gh pr -R returntocorp/e2e view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
+
+// TODO: factorize with start-release.jsonnet
 local wait_for_checks_job = {
   'runs-on': 'ubuntu-22.04',
   needs: 'semgrep-ci-on-pr',
-  steps: [
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
+  steps: semgrep.github_bot.get_token_steps + [
     {
       name: 'Wait for checks to register',
-      env: semgrep.github_bot.github_token,
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
       run: |||
-        LEN_CHECKS=$(gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
-
-        # Immediately after creation, the PR doesn't have any checks attached
-        # yet, wait until this is not the case
-        # If you immediately start waiting for checks, then it just fails
-        # saying there's no checks.
+        LEN_CHECKS=%s;
         while [ ${LEN_CHECKS} = "0" ]; do
           echo "No checks available yet"
           sleep 30
-          LEN_CHECKS=$(gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=%s;
         done
         echo "checks are valid"
-
         echo ${LEN_CHECKS}
-
-        gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup
-      |||,
+        gh pr -R returntocorp/e2e view %s --json statusCheckRollup
+      ||| % [len_checks, len_checks, pr_number],
     },
     {
       name: 'Wait for checks to complete',
-      env: semgrep.github_bot.github_token,
-      run: |||
-        # Wait for PR checks to finish
-        gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
-      |||,
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+      run: 'gh pr -R returntocorp/e2e checks %s --interval 30 --watch' % pr_number,
     },
   ],
 };
@@ -247,15 +292,14 @@ local wait_for_checks_job = {
 // ----------------------------------------------------------------------------
 // Failure notification
 // ----------------------------------------------------------------------------
-
-#TODO: use instead the more direct:
-#        if: failure()
-#        uses: slackapi/slack-github-action@v1.23.0
-#        with:
-#          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
-#          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-#        env:
-#           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
+//TODO: use instead the more direct:
+//        if: failure()
+//        uses: slackapi/slack-github-action@v1.23.0
+//        with:
+//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
+//          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+//        env:
+//           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
 
 local notify_failure_job = {
   needs: [
@@ -266,22 +310,11 @@ local notify_failure_job = {
     'wait-for-checks',
     'get-inputs',
   ],
-  name: 'Notify of Failure',
   'runs-on': 'ubuntu-20.04',
   'if': 'failure()',
   steps: [
     {
-      name: 'Notify Failure',
-      run: |||
-        curl --request POST \
-        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-        --header 'content-type: application/json' \
-        --data '{
-          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-          "docker_tag": "${{ needs.get-inputs.outputs.docker_tag }}",
-          "message": "The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"
-         }
-      |||,
+      run: curl_notify("The PR in `returntocorp/e2e` that had the failure was %s" % pr_number),
     },
   ],
 };
@@ -289,7 +322,6 @@ local notify_failure_job = {
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'test-e2e-semgrep-ci',
   on: {
@@ -306,8 +338,8 @@ local notify_failure_job = {
     'semgrep-ci': semgrep_ci_job,
     'semgrep-ci-fail-open': semgrep_ci_fail_open_job,
     'semgrep-ci-fail-open-blocking-findings': semgrep_ci_fail_open_blocking_findings_job,
+    // the two jobs below work together
     'semgrep-ci-on-pr': semgrep_ci_on_pr_job,
-    'pr-url': pr_url_job,
     'wait-for-checks': wait_for_checks_job,
     'notify-failure': notify_failure_job,
   },

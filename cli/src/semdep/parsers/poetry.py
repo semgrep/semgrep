@@ -145,7 +145,7 @@ poetry_dep_extra = (string("[") >> upto("]") << string("]\n")).at_least(
 poetry = (
     string("\n").many()
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
-    .sep_by(new_lines)
+    .sep_by(new_lines.optional())
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()
 )
@@ -172,7 +172,7 @@ manifest_sections_extra = (
 manifest = (
     string("\n").many()
     >> (manifest_deps | manifest_sections_extra | poetry_source_extra)
-    .sep_by(new_lines)
+    .sep_by(new_lines.optional())
     .map(lambda xs: {y for x in xs if x for y in x})
     << string("\n").optional()
 )
@@ -181,7 +181,6 @@ manifest = (
 def parse_poetry(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
             lockfile_path,

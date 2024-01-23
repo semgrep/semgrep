@@ -31,6 +31,8 @@ type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
   log_to_file : Fpath.t option;
+  nosem : bool;
+  strict : bool;
   test : bool;
   debug : bool;
   profile : bool;
@@ -65,10 +67,7 @@ type t = {
    * in Run_semgrep, so the hook should not rely on shared memory!
    *)
   file_match_results_hook :
-    (Fpath.t ->
-    Core_profiling.partial_profiling Core_result.match_result ->
-    unit)
-    option;
+    (Fpath.t -> Core_result.matches_single_file -> unit) option;
   (* Flag used by pysemgrep *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
@@ -94,6 +93,8 @@ let default =
     (* Debugging/profiling/logging flags *)
     log_config_file = Fpath.v "log_config.json";
     log_to_file = None;
+    nosem = true;
+    strict = false;
     test = false;
     debug = false;
     profile = false;

@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module E = Core_error
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -38,8 +38,8 @@ let timeout_function file timeout f =
   | Some res -> res
   | None ->
       let loc = Tok.first_loc_of_file file in
-      let err = E.mk_error None loc "" Out.Timeout in
-      Common.push err E.g_errors
+      let err = E.mk_error None loc "" OutJ.Timeout in
+      Stack_.push err E.g_errors
 
 (* for -e/-f *)
 let parse_pattern lang_pattern str =
@@ -54,7 +54,7 @@ let parse_pattern lang_pattern str =
              Tok.unsafe_fake_tok "no loc" ))
 [@@profiling]
 
-let output_core_results (result_or_exn : Core_result.result_or_exn)
+let output_core_results caps (result_or_exn : Core_result.result_or_exn)
     (config : Core_scan_config.t) : unit =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
@@ -73,15 +73,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             in
             Core_result.mk_final_result_with_just_errors [ err ]
       in
-      let res =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) res
-      in
-      (* one-off experiment, delete it at some point (March 2023) *)
-      let res =
-        if !Flag_semgrep.raja then Raja_experiment.adjust_core_output res
-        else res
-      in
+      let res = Core_json_output.core_output_of_matches_and_errors res in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
@@ -89,11 +81,12 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = Out.string_of_core_output res in
+      let s = OutJ.string_of_core_output res in
       logger#info "size of returned JSON string: %d" (String.length s);
-      pr s;
+      Out.put s;
       match result_or_exn with
-      | Error (e, _) -> Core_exit_code.exit_semgrep (Unknown_exception e)
+      | Error (e, _) ->
+          Core_exit_code.exit_semgrep caps#exit (Unknown_exception e)
       | Ok _ -> ())
   | Text -> (
       match result_or_exn with
@@ -102,19 +95,22 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             res.explanations
             |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
-          if not (null res.errors) then (
-            pr "WARNING: some files were skipped or only partially analyzed:";
-            res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+          if not (List_.null res.errors) then (
+            (* TODO? Logs.warn? *)
+            Out.put
+              "WARNING: some files were skipped or only partially analyzed:";
+            (* TODO? Logs.err? *)
+            res.errors |> List.iter (fun err -> Out.put (E.string_of_error err)))
       | Error (exn, _) -> Exception.reraise exn)
 
 (*****************************************************************************)
 (* semgrep-core -rules *)
 (*****************************************************************************)
 
-let semgrep_core_with_rules_and_formatted_output (config : Core_scan_config.t) :
-    unit =
+let semgrep_core_with_rules_and_formatted_output caps
+    (config : Core_scan_config.t) : unit =
   let res = Core_scan.scan_with_exn_handler config in
-  output_core_results res config
+  output_core_results caps res config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)
@@ -130,6 +126,7 @@ let minirule_of_pattern lang pattern_string pattern =
     severity = `Error;
     langs = [ lang ];
     fix = None;
+    fix_regexp = None;
   }
 
 (* less: could be nice to generalize to rule_of_config, but we sometimes
@@ -141,7 +138,7 @@ let pattern_of_config lang (config : Core_scan_config.t) =
   | Some _s1, Some _s2 ->
       failwith "I need just one pattern; use -f OR -e (not both)"
   | Some file, None ->
-      let s = File.read_file file in
+      let s = UFile.read_file file in
       (parse_pattern lang s, s)
   (* this is for Emma, who often confuses -e with -f :) *)
   | None, Some s when s =~ ".*\\.sgrep$" ->
@@ -178,12 +175,9 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             Rule.rule_of_xpattern xlang xpat)
       in
       let res = Core_scan.scan config (([ rule ], []), rules_parse_time) in
-      let json =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) res
-      in
-      let s = Out.string_of_core_output json in
-      pr s
+      let json = Core_json_output.core_output_of_matches_and_errors res in
+      let s = OutJ.string_of_core_output json in
+      Out.put s
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->
@@ -192,7 +186,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       (* simpler code path than in scan() *)
       let target_info, _skipped = Core_scan.targets_of_config config in
       let files =
-        target_info |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
+        target_info |> List_.map (fun (t : Input_to_core_t.target) -> t.path)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then
@@ -212,7 +206,8 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                          Metavariable.ii_of_mval)
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
-                     minirule (file, lang, ast)
+                     minirule
+                     (Fpath.v file, lang, ast)
                    |> ignore)
              in
 
@@ -221,13 +216,14 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
              else E.try_with_exn_to_error file (fun () -> process file));
 
       let n = List.length !E.g_errors in
-      if n > 0 then pr2 (spf "error count: %d" n)
+      if n > 0 then UCommon.pr2 (spf "error count: %d" n)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let semgrep_core_dispatch (config : Core_scan_config.t) : unit =
+let semgrep_core_dispatch (caps : Cap.all_caps) (config : Core_scan_config.t) :
+    unit =
   if config.rule_source <> None then
-    semgrep_core_with_rules_and_formatted_output config
+    semgrep_core_with_rules_and_formatted_output caps config
   else semgrep_core_with_one_pattern config

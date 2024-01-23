@@ -90,22 +90,29 @@ local snapshot_update_pr_steps = [
 
 // This is mostly the same that in build-test-core-x86.jsonnet
 // but without the artifact creation and with more tests.
-// alt: we could factorize buy copy-paste is ok.
+// alt: we could factorize
 local test_semgrep_core_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     steps: [
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
       gha.git_safedir,
+      semgrep.cache_opam.step(
+        key=semgrep.containers.ocaml_alpine.opam_switch +
+          "-${{hashFiles('semgrep.opam')}}"
+       ),
       {
-        name: 'Build semgrep-core',
+        name: 'Install dependencies',
         run: |||
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-          make core
         |||,
+      },
+      {
+        name: 'Build semgrep-core',
+        run: 'opam exec -- make core',
       },
       {
         name: 'Test semgrep-core (and time it)',
@@ -142,7 +149,7 @@ local test_semgrep_core_job =
 
 // alt: could factorize with previous job
 local test_osemgrep_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     steps: [
       gha.speedy_checkout_step,
@@ -193,9 +200,6 @@ local fetch_submodules_step = {
   name: 'Fetch semgrep-cli submodules',
   run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
 };
-local pipenv_install_step = {
-  run: 'pip install pipenv==2022.6.7',
-};
 
 local download_x86_artifacts = {
   uses: 'actions/download-artifact@v3',
@@ -241,21 +245,22 @@ local test_cli_job = {
   steps: [
     actions.checkout(),
     fetch_submodules_step,
-    actions.setup_python('${{ matrix.python }}'),
-    pipenv_install_step,
+    actions.setup_python_step('${{ matrix.python }}'),
+    actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     install_python_deps,
     {
       name: 'Run pytest',
       'working-directory': 'cli',
-      // the --snapshot-update below works with the snapshot_update_pr_steps
+      // The --snapshot-update below works with the snapshot_update_pr_steps.
+      //
       run: |||
         # tests should simulate CI environment iff they need one
         unset CI
         unset "${!GITHUB_@}"
 
-        pipenv run pytest -n auto -vv --snapshot-update --allow-snapshot-deletion
+        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
       |||,
     },
   ] + snapshot_update_pr_steps,
@@ -290,8 +295,8 @@ local test_qa_job = {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
     },
-    actions.setup_python('3.11'),
-    pipenv_install_step,
+    actions.setup_python_step('3.11'),
+    actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     // TODO: mostly like install_python_deps with PATH adjustment
@@ -337,8 +342,8 @@ local test_qa_job = {
 local bench_prepare_steps = [
   actions.checkout(),
   fetch_submodules_step,
-  actions.setup_python('3.8'),
-  pipenv_install_step,
+  actions.setup_python_step('3.8'),
+  actions.pipenv_install_step,
   download_x86_artifacts,
   install_x86_artifacts,
   install_python_deps,
@@ -380,6 +385,14 @@ local benchmarks_full_job = {
       run: 'pipenv run pytest tests/performance',
     },
   ],
+};
+
+local trigger_semgrep_comparison_argo = {
+  secrets: 'inherit',
+  needs: [
+    'push-docker',
+  ],
+  uses: './.github/workflows/trigger-semgrep-comparison-argo.yml',
 };
 
 // ----------------------------------------------------------------------------
@@ -494,6 +507,26 @@ local push_docker_nonroot_job = {
   },
 };
 
+local build_test_docker_performance_tests_job = build_test_docker_nonroot_job + {
+  with: super.with + {
+    'docker-flavor': |||
+      latest=auto
+      suffix=-performance-tests,onlatest=true
+    |||,
+    'artifact-name': 'image-test-performance-tests',
+    target: 'performance-tests',
+  },
+};
+
+local push_docker_performance_tests_job = push_docker_nonroot_job + {
+  needs: [
+    'build-test-docker-performance-tests',
+  ],
+  with: super.with + {
+    'artifact-name': 'image-test-performance-tests',
+  }
+};
+
 // ----------------------------------------------------------------------------
 // Semgrep Pro
 // ----------------------------------------------------------------------------
@@ -503,7 +536,7 @@ local test_semgrep_pro_job = {
     'build-test-docker',
     'push-docker',
   ],
-  uses: './.github/workflows/test-semgrep-pro.yaml',
+  uses: './.github/workflows/test-semgrep-pro.yml',
   'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
   secrets: 'inherit',
   with: {
@@ -548,11 +581,19 @@ local ignore_md = {
     'push-docker': push_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     'push-docker-nonroot': push_docker_nonroot_job,
+    'build-test-docker-performance-tests': build_test_docker_performance_tests_job,
+    'push-docker-performance-tests': push_docker_performance_tests_job,
     // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
+    // trigger argo workflows
+    'trigger-semgrep-comparison-argo': trigger_semgrep_comparison_argo,
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
+      secrets: 'inherit',
+    },
+    'build-test-windows-x86': {
+      uses: './.github/workflows/build-test-windows-x86.yml',
       secrets: 'inherit',
     },
     'build-test-manylinux-x86': {
@@ -586,7 +627,7 @@ local ignore_md = {
       // - the branch name starts with "release-" (TODO: move this to release.yml instead)
       // - the PR is not a fork and has a "publish-js" label
       with: {
-        'upload-artifacts': "${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}",
+        'upload-artifacts': "${{ (github.ref == 'refs/heads/develop') || startsWith(github.head_ref, 'release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}",
       },
     },
   },

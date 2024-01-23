@@ -2,7 +2,7 @@ open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
-module H = Cmdliner_helpers
+module H = Cmdliner_
 module Show = Show_CLI
 
 (*****************************************************************************)
@@ -35,26 +35,15 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
   (* Other configuration options *)
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
   error_on_findings : bool;
-  strict : bool;
   rewrite_rule_ids : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
-  (* Display options *)
-  (* mix of --json, --emacs, --vim, etc. *)
-  output_format : Output_format.t;
   (* file or URL (None means output to stdout) *)
   output : string option;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
-  force_color : bool;
-  max_chars_per_line : int;
-  max_lines_per_finding : int;
+  output_conf : Output.conf;
   (* Networking options *)
   metrics : Metrics_.config;
   registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
@@ -64,7 +53,8 @@ type conf = {
   version : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
-  test : Test_subcommand.conf option;
+  test : Test_CLI.conf option;
+  ls : bool;
 }
 [@@deriving show]
 
@@ -90,7 +80,7 @@ let default : conf =
         baseline_commit = None;
         diff_depth = 2;
         max_target_bytes = 1_000_000 (* 1 MB *);
-        respect_git_ignore = true;
+        respect_gitignore = true;
         scan_unknown_extensions = false;
       };
     (* alt: could move in a Rule_filtering.default *)
@@ -104,9 +94,13 @@ let default : conf =
     core_runner_conf =
       {
         (* Maxing out number of cores used to 16 if more not requested to
-         * not overload on large machines
+         * not overload on large machines.
+         * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
+         * we don't believe that Parmap works in those environments
+         * TODO: figure out a solution for Windows multi-processing (OCaml 5 in the worst case)
          *)
-        Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
+        Core_runner.num_jobs =
+          min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
         timeout = 5.0;
         (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
         timeout_threshold = 3;
@@ -115,16 +109,15 @@ let default : conf =
         dataflow_traces = false;
         matching_explanations = false;
         time_flag = false;
+        nosem = true;
+        strict = false;
         (* better to set to false for now; annoying to add --ast-caching to
          * each command, but while we're still developing osemgrep it is
          * better to eliminate some source of complexity by default.
          *)
         ast_caching = false;
       };
-    autofix = false;
-    dryrun = false;
     error_on_findings = false;
-    strict = false;
     (* could be move in CLI_common.default_conf? *)
     common =
       {
@@ -133,11 +126,8 @@ let default : conf =
         maturity = Maturity.Default;
       };
     engine_type = OSS;
-    output_format = Output_format.Text;
     output = None;
-    force_color = false;
-    max_chars_per_line = 160;
-    max_lines_per_finding = 10;
+    output_conf = Output.default;
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
@@ -149,7 +139,7 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
-    nosem = true;
+    ls = false;
   }
 
 (*************************************************************************)
@@ -239,11 +229,11 @@ negative value disables this filter. Defaults to %d bytes|}
            default)
   in
 
-  Arg.value (Arg.opt Cmdliner_helpers.number_of_bytes_converter default info)
+  Arg.value (Arg.opt Cmdliner_.number_of_bytes_converter default info)
 
-let o_respect_git_ignore : bool Term.t =
+let o_respect_gitignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
-    ~default:default.targeting_conf.respect_git_ignore
+    ~default:default.targeting_conf.respect_gitignore
     ~doc:
       {|Skip files ignored by git. Scanning starts from the root
 folder specified on the Semgrep command line. Normally, if the
@@ -390,7 +380,7 @@ to 3 hours.|}
  *)
 let o_force_color : bool Term.t =
   H.negatable_flag_with_env [ "force-color" ] ~neg_options:[ "no-force-color" ]
-    ~default:default.force_color
+    ~default:default.output_conf.force_color
       (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR
        * # https://no-color.org/
        *)
@@ -405,7 +395,7 @@ let o_max_chars_per_line : int Term.t =
     Arg.info [ "max-chars-per-line" ]
       ~doc:"Maximum number of characters to show per line."
   in
-  Arg.value (Arg.opt Arg.int default.max_chars_per_line info)
+  Arg.value (Arg.opt Arg.int default.output_conf.max_chars_per_line info)
 
 let o_max_lines_per_finding : int Term.t =
   let info =
@@ -415,7 +405,7 @@ let o_max_lines_per_finding : int Term.t =
         {|Maximum number of lines of code that will be shown for each match
 before trimming (set to 0 for unlimited).|}
   in
-  Arg.value (Arg.opt Arg.int default.max_lines_per_finding info)
+  Arg.value (Arg.opt Arg.int default.output_conf.max_lines_per_finding info)
 
 let o_dataflow_traces : bool Term.t =
   let info =
@@ -526,7 +516,7 @@ let o_secrets : bool Term.t =
       [ "beta-testing-secrets-enabled" ]
       ~doc:
         {|Enable support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more informationon this.|}
+contact support@semgrep.com for more information on this.|}
   in
   Arg.value (Arg.flag info)
 
@@ -557,13 +547,13 @@ let o_oss : bool Term.t =
   Arg.value (Arg.flag info)
 
 let blurb =
-  "Requires Semgrep Pro Engine, contact support@semgrep.com for more \
-   information on this."
+  "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ \
+   for more."
 
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently just Apex). " ^ blurb)
+      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -580,7 +570,8 @@ let o_pro : bool Term.t =
   let info =
     Arg.info [ "pro" ]
       ~doc:
-        ("Inter-file analysis and Pro languages (currently just Apex). " ^ blurb)
+        ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
+       ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -639,7 +630,7 @@ with --pattern. Only valid with a command-line specified pattern.
 
 let o_autofix : bool Term.t =
   H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
-    ~default:default.autofix
+    ~default:default.output_conf.autofix
     ~doc:
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
 Make sure your files are stored in a version control system. Note that
@@ -648,7 +639,7 @@ this mode is experimental and not guaranteed to function properly.
 
 let o_dryrun : bool Term.t =
   H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
-    ~default:default.dryrun
+    ~default:default.output_conf.dryrun
     ~doc:
       {|If --dryrun, does not write autofixes to a file. This will print the
 changes to the console. This lets you see the changes before you commit to
@@ -753,14 +744,6 @@ let o_test : bool Term.t =
   let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
   Arg.value (Arg.flag info)
 
-let o_test_ignore_todo : bool Term.t =
-  H.negatable_flag [ "test-ignore-todo" ] ~neg_options:[ "no-test-ignore-todo" ]
-    ~default:false
-    ~doc:
-      {|If --test-ignore-todo, ignores rules marked as '#todoruleid:' in
-test files.
-|}
-
 (* alt: in configuration option *)
 let o_error : bool Term.t =
   H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
@@ -769,7 +752,7 @@ let o_error : bool Term.t =
 
 let o_strict : bool Term.t =
   H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
-    ~default:default.strict
+    ~default:default.output_conf.strict
     ~doc:
       {|Return a nonzero exit code when WARN level errors are encountered.
 Fails early if invalid configuration files are present.
@@ -786,7 +769,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> File.Path.to_strings) info)
+    (Arg.pos_all Arg.string (default.target_roots |> Fpath_.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -807,6 +790,16 @@ let o_project_root : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_remote : string option Term.t =
+  let info =
+    Arg.info [ "remote" ]
+      ~doc:
+        {|Remote will quickly checkout and scan a remote git repository of
+        the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
+        --pro Incompatible with --project-root|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 let o_ast_caching : bool Term.t =
   H.negatable_flag [ "ast-caching" ] ~neg_options:[ "no-ast-caching" ]
     ~default:default.core_runner_conf.ast_caching
@@ -824,6 +817,23 @@ let o_registry_caching : bool Term.t =
 Requires --experimental.
 |}
 
+(*
+   Let's use the following convention: the prefix '--x-' means "forbidden"
+   or "experimental".
+*)
+let o_ls : bool Term.t =
+  let info =
+    Arg.info [ "x-ls" ]
+      ~doc:
+        {|[INTERNAL] List the selected target files and the skipped target
+files before any rule-specific or language-specific filtering. Then exit.
+The output format is unspecified.
+THIS OPTION IS NOT PART OF THE SEMGREP API AND MAY
+CHANGE OR DISAPPEAR WITHOUT NOTICE.
+|}
+  in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -833,29 +843,45 @@ let cmdline_term ~allow_empty_config : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators ast_caching autofix baseline_commit
       common config dataflow_traces diff_depth dryrun dump_ast
-      dump_command_for_core dump_engine_path emacs error exclude
+      dump_command_for_core dump_engine_path emacs error exclude_
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang matching_explanations max_chars_per_line
+      junit_xml lang ls matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
       no_secrets_validation nosem optimizations oss output pattern pro
-      project_root pro_intrafile pro_lang registry_caching replacement
-      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
+      project_root pro_intrafile pro_lang registry_caching remote replacement
+      respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
       timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
-    Logs_helpers.setup_logging ~force_color
-      ~level:common.CLI_common.logging_level ();
-
-    let target_roots = target_roots |> File.Path.of_strings in
-
+    Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
+    let target_roots = target_roots |> Fpath_.of_strings in
+    let project_root =
+      let is_git_repo remote =
+        remote |> Git_wrapper.remote_repo_name |> Option.is_some
+      in
+      match (project_root, remote) with
+      | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
+      | None, Some url when is_git_repo url ->
+          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let url = Uri.of_string url in
+          Some (Find_targets.Git_remote { url; checkout_path })
+      | None, Some _url ->
+          Error.abort
+            "Remote arg is not a valid git remote, expected something like \
+             http[s]://website.com/.../<REPONAME>.git"
+      | Some _, Some _ ->
+          Error.abort
+            "Cannot use both --project-root and --remote at the same time"
+      | _ -> None
+    in
     let output_format =
       let all_flags =
         [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
       in
       let cnt =
-        all_flags |> Common.map (fun b -> if b then 1 else 0) |> Common2.sum_int
+        all_flags |> List.fold_left (fun acc b -> if b then acc + 1 else acc) 0
       in
       if cnt >= 2 then
         (* TOPORT: list the possibilities *)
@@ -870,8 +896,22 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _ when gitlab_sast -> Output_format.Gitlab_sast
       | _ when gitlab_secrets -> Output_format.Gitlab_secrets
       | _ when junit_xml -> Output_format.Junit_xml
-      | _else_ -> default.output_format
+      | _else_ -> default.output_conf.output_format
     in
+    let output_conf : Output.conf =
+      {
+        nosem;
+        autofix;
+        dryrun;
+        strict;
+        force_color;
+        output_format;
+        max_chars_per_line;
+        max_lines_per_finding;
+        logging_level = common.logging_level;
+      }
+    in
+
     let engine_type =
       (* This first bit just rules out mutually exclusive options. *)
       if oss && secrets then
@@ -900,9 +940,22 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
           else None
         in
+        let code_config =
+          if pro || pro_lang || pro_intrafile then Some () else None
+        in
+        (* Currently we don't run SCA in osemgrep *)
+        let supply_chain_config = None in
         match (extra_languages, analysis, secrets_config) with
         | false, Intraprocedural, None -> OSS
-        | _ -> PRO { extra_languages; analysis; secrets_config }
+        | _ ->
+            PRO
+              {
+                extra_languages;
+                analysis;
+                code_config;
+                secrets_config;
+                supply_chain_config;
+              }
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
@@ -958,6 +1011,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         max_memory_mb;
         ast_caching;
         dataflow_traces;
+        nosem;
+        strict;
         time_flag;
         matching_explanations;
       }
@@ -969,20 +1024,20 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_targets.project_root = Option.map Fpath.v project_root;
-        exclude;
+        Find_targets.project_root;
+        exclude = exclude_;
         include_;
         baseline_commit;
         diff_depth;
         max_target_bytes;
         scan_unknown_extensions;
-        respect_git_ignore;
+        respect_gitignore;
       }
     in
     let rule_filtering_conf =
       {
         Rule_filtering.exclude_rule_ids =
-          Common.map Rule_ID.of_string exclude_rule_ids;
+          List_.map Rule_ID.of_string exclude_rule_ids;
         severity;
         exclude_products = [];
       }
@@ -1001,13 +1056,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some str, Some lang_str, [] ->
               Some
                 {
-                  Show.target = Show.Pattern (str, Lang.of_string lang_str);
+                  Show.show_kind =
+                    Show.DumpPattern (str, Lang.of_string lang_str);
                   json;
                 }
           | None, Some lang_str, [ file ] ->
               Some
                 {
-                  Show.target = Show.File (file, Lang.of_string lang_str);
+                  Show.show_kind = Show.DumpAST (file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -1022,11 +1078,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some _, _, _ :: _ ->
               Error.abort "Can't specify both -e and a target for --dump-ast")
       | _ when dump_engine_path ->
-          Some { Show.target = Show.EnginePath pro; json }
+          Some { Show.show_kind = Show.DumpEnginePath pro; json }
       | _ when dump_command_for_core ->
-          Some { Show.target = Show.CommandForCore; json }
+          Some { Show.show_kind = Show.DumpCommandForCore; json }
       | _ when show_supported_languages ->
-          Some { Show.target = Show.SupportedLanguages; json }
+          Some { Show.show_kind = Show.SupportedLanguages; json }
       | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.
@@ -1045,43 +1101,22 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             Some { Validate_subcommand.rules_source; core_runner_conf; common }
       else None
     in
-    (* ugly: test should be a separate subcommand.
-     * alt: we could move this code in a Test_subcommand.cli_args()
-     *)
+    (* ugly: test should be a separate subcommand *)
     let test =
       if test then
         let target =
-          match (target_roots, config) with
-          | [ x ], [ config ] ->
-              let file_str = Fpath.to_string x in
-              if Sys.file_exists file_str && Sys.is_directory file_str then
-                Test_subcommand.Dir (x, Some config)
-              else Test_subcommand.File (x, config)
-          | [ x ], [] ->
-              let file_str = Fpath.to_string x in
-              if Sys.is_directory file_str then Test_subcommand.Dir (x, None)
-              else
-                (* was raise Exception but cleaner abort I think *)
-                Error.abort
-                  "--config is required when running a test on single file"
-          | _ :: _ :: _, _ ->
-              (* stricter: better error message '(directory or file)' *)
-              Error.abort
-                "only one target (directory or file) allowed for tests"
-          | _, _ :: _ :: _ ->
-              (* stricter: removed 'config directory' *)
-              Error.abort "only one config allowed for tests"
-          (* target_roots should always contain at least ["."] *)
-          | [], _ -> assert false
+          Test_CLI.target_kind_of_roots_and_config target_roots config
         in
         Some
-          {
-            Test_subcommand.target;
-            strict;
-            json;
-            optimizations;
-            ignore_todo = test_ignore_todo;
-          }
+          Test_CLI.
+            {
+              target;
+              strict;
+              json;
+              optimizations;
+              ignore_todo = test_ignore_todo;
+              common;
+            }
       else None
     in
 
@@ -1100,40 +1135,33 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * in osemgrep equal to the one in pysemgrep or when we remove
      * this sanity checks in pysemgrep and just rely on osemgrep to do it.
      *)
-    if include_ <> None && exclude <> [] && common.maturity <> Maturity.Default
+    if include_ <> None && exclude_ <> [] && common.maturity <> Maturity.Default
     then
       Logs.warn (fun m ->
           m
             "Paths that match both --include and --exclude will be skipped by \
              Semgrep.");
-
     {
       rules_source;
       target_roots;
       rule_filtering_conf;
       targeting_conf;
       core_runner_conf;
-      autofix;
-      dryrun;
       error_on_findings = error;
-      force_color;
-      max_chars_per_line;
-      max_lines_per_finding;
       metrics;
       registry_caching;
       version_check;
-      output_format;
       output;
+      output_conf;
       engine_type;
       rewrite_rule_ids;
-      strict;
       common;
       (* ugly: *)
       version;
       show;
       validate;
       test;
-      nosem;
+      ls;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -1145,16 +1173,17 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
-    $ o_junit_xml $ o_lang $ o_matching_explanations $ o_max_chars_per_line
-    $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
-    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
-    $ o_pro_languages $ o_registry_caching $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_junit_xml $ o_lang $ o_ls $ o_matching_explanations
+    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
+    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
+    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
+    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
-    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
+    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

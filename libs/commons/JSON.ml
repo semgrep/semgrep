@@ -85,12 +85,12 @@ let rec ezjsonm_to_yojson (json : ezjsonm) : yojson =
   | `Float f -> `Float f
   | `Null -> `Null
 
-let load_json file =
-  let y = Y.from_file file in
-  from_yojson y
-
 let json_of_string str =
   let y = Y.from_string str in
+  from_yojson y
+
+let json_of_chan (chan : Chan.i) =
+  let y = Y.from_channel chan.ic in
   from_yojson y
 
 let string_of_json ?compact ?recursive ?allow_nan json =
@@ -114,9 +114,9 @@ let rec merge cmp cmb xs ys =
 let update source updates =
   match (source, updates) with
   | `Assoc xs, `Assoc ys ->
-      let xs = List.sort (Common2.on String.compare fst) xs in
-      let ys = List.sort (Common2.on String.compare fst) ys in
-      `Assoc (merge (Common2.on String.compare fst) (fun _ x -> x) xs ys)
+      let xs = List.sort (Common.on String.compare fst) xs in
+      let ys = List.sort (Common.on String.compare fst) ys in
+      `Assoc (merge (Common.on String.compare fst) (fun _ x -> x) xs ys)
   | _ -> updates
 
 (* When a json is not a [String ...]  *)

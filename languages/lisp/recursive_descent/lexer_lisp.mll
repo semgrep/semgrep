@@ -13,8 +13,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
-
 module Flag = Flag_parsing
 open Parser_lisp
 
@@ -126,7 +124,7 @@ rule token = parse
   | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _ {
         if !Flag.verbose_lexing
-        then pr2_once ("LEXER:unrecognised symbol, in token rule:"^tok lexbuf);
+        then UCommon.pr2_once ("LEXER:unrecognised symbol, in token rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
     }
 
@@ -149,5 +147,5 @@ and string buf = parse
       string buf lexbuf
     }
   | eof {
-      pr2 "LEXER: WIERD end of file in double quoted string";
+      UCommon.pr2 "LEXER: WIERD end of file in double quoted string";
     }

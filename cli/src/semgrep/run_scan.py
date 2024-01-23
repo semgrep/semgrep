@@ -52,7 +52,7 @@ from semgrep.git import get_project_url
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.nosemgrep import process_ignores
+from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -61,6 +61,12 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_metrics import Any_ as AnySecretsOrigin
+from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import SecretsOrigin
+from semgrep.semgrep_interfaces.semgrep_metrics import Semgrep as SemgrepSecretsOrigin
+from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -166,6 +172,7 @@ def run_rules(
     time_flag: bool,
     matching_explanations: bool,
     engine_type: EngineType,
+    strict: bool,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     run_secrets: bool = False,
     disable_secrets_validation: bool = False,
@@ -214,6 +221,7 @@ def run_rules(
         time_flag,
         matching_explanations,
         engine_type,
+        strict,
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
@@ -300,9 +308,20 @@ def run_rules(
     )
 
 
+# This is used for testing and comparing with osemgrep.
+def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -> None:
+    targets = target_manager.get_files_for_language(None, product)
+    for path in sorted(targets.kept):
+        print(f"selected {path}")
+    for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
+        print(f"ignored {path} [{reason}]")
+    exit(0)
+
+
 ##############################################################################
 # Entry points
 ##############################################################################
+
 
 # cli/bin/semgrep -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main
@@ -346,6 +365,7 @@ def run_scan(
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
     dump_contributions: bool = False,
+    x_ls: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -408,7 +428,18 @@ def run_scan(
         metrics.add_project_url(project_url)
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
-        metrics.add_engine_type(engine_type)
+        metrics.add_engine_config(
+            engine_type,
+            CodeConfig() if with_code_rules else None,
+            SecretsConfig(
+                SecretsOrigin(AnySecretsOrigin())
+                if allow_untrusted_validators
+                else SecretsOrigin(SemgrepSecretsOrigin())
+            )
+            if run_secrets and not disable_secrets_validation
+            else None,
+            SupplyChainConfig() if with_supply_chain else None,
+        )
         metrics.add_is_diff_scan(baseline_commit is not None)
         if engine_type.is_pro:
             metrics.add_diff_depth(diff_depth)
@@ -469,18 +500,23 @@ def run_scan(
             raise SemgrepError(e)
 
     respect_git_ignore = not no_git_ignore
+    target_strings = frozenset(Path(t) for t in target)
+
     try:
         target_manager = TargetManager(
             includes=include,
             excludes=exclude,
             max_target_bytes=max_target_bytes,
-            target_strings=target,
+            target_strings=target_strings,
             respect_git_ignore=respect_git_ignore,
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
             ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
         )
+        # Debugging option --x-ls
+        if x_ls:
+            list_targets_and_exit(target_manager, out.Product(out.SAST()))
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
@@ -543,6 +579,7 @@ def run_scan(
         time_flag,
         matching_explanations,
         engine_type,
+        strict,
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
@@ -584,23 +621,23 @@ def run_scan(
             logger.info("")
             try:
                 with baseline_handler.baseline_context():
-                    baseline_target_strings = target
+                    baseline_target_strings = target_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
                         baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
                             frozenset(
-                                t
+                                Path(t)
                                 for t in target_mode_config.get_diff_targets()
                                 if t.exists() and not t.is_symlink()
                             ),
                             target_mode_config.get_diff_depth(),
                         )
                     else:
-                        baseline_target_strings = [
-                            str(t)
+                        baseline_target_strings = frozenset(
+                            Path(t)
                             for t in baseline_targets
                             if t.exists() and not t.is_symlink()
-                        ]
+                        )
                     baseline_target_manager = TargetManager(
                         includes=include,
                         excludes=exclude,
@@ -635,6 +672,7 @@ def run_scan(
                         time_flag,
                         matching_explanations,
                         engine_type,
+                        strict,
                         run_secrets,
                         disable_secrets_validation,
                         baseline_target_mode_config,
@@ -650,11 +688,10 @@ def run_scan(
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
-    filtered_matches_by_rule, nosem_errors = process_ignores(
-        rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
+    filtered_matches_by_rule = filter_ignored(
+        rule_matches_by_rule, keep_ignored=keep_ignored
     )
     profiler.save("ignores_time", ignores_start_time)
-    output_handler.handle_semgrep_errors(nosem_errors)
 
     profiler.save("total_time", rule_start_time)
 
@@ -667,6 +704,7 @@ def run_scan(
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
+        metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)

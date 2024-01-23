@@ -15,26 +15,17 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
   (* Other configuration options *)
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
   error_on_findings : bool;
-  strict : bool;
   rewrite_rule_ids : bool;
   engine_type : Engine_type.t;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
-  (* Display options *)
-  (* mix of --json, --emacs, --vim, etc. *)
-  output_format : Output_format.t;
   (* file or URL (None means output to stdout) *)
   output : string option;
-  force_color : bool;
+  output_conf : Output.conf;
   (* text output config (TODO: make a separate type gathering all of them)
    * or add them under Output_format.Text
    *)
-  max_chars_per_line : int;
-  max_lines_per_finding : int;
   (* Networking options *)
   metrics : Metrics_.config;
   registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
@@ -44,7 +35,8 @@ type conf = {
   version : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
-  test : Test_subcommand.conf option;
+  test : Test_CLI.conf option;
+  ls : bool;
 }
 [@@deriving show]
 

@@ -1,9 +1,11 @@
-open Common
-
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
 (* Unit tests exercising just the semgrep patterns part *)
+
+open Common
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Simple tests defined inline *)
@@ -15,8 +17,7 @@ open Common
 
 let tests ~any_gen_of_string =
   [
-    ( "sgrep(generic) features",
-      fun () ->
+    t "sgrep(generic) features" (fun () ->
         (* spec: pattern string, code string, should_match boolean *)
         let triples =
           [
@@ -136,5 +137,5 @@ let tests ~any_gen_of_string =
                      true (matches_with_env =*= [])
                with
                | Parsing.Parse_error ->
-                   failwith (spf "problem parsing %s or %s" spattern scode)) );
+                   failwith (spf "problem parsing %s or %s" spattern scode)));
   ]

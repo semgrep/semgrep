@@ -36,6 +36,25 @@ function ctypes_string_of_cstring(ptr) {
   return caml_string_of_jsstring(libyaml.UTF8ToString(ptr[2]));
 }
 
+//Provides: ctypes_cstring_of_string
+//Requires: libyaml, caml_string_of_jsstring
+function ctypes_cstring_of_string(s) {
+  var str = caml_string_of_jsstring(s);
+  var ptr;
+  const array = libyaml.intArrayFromString(str);
+  const length = array.length;
+  ptr = libyaml._malloc(length + 1);
+  libyaml.writeArrayToMemory(array, ptr);
+  return ptr;
+}
+//
+// Provides: ctypes_string_of_array
+//Requires: libyaml
+function ctypes_string_of_array(ptr, len) {
+  var array = new Uint8Array(libyaml.HEAPU8.buffer, ptr[2], len);
+  return libyaml.intArrayToString(array);
+}
+
 //Provides: caml_float_of_string (const)
 //Requires: caml_failwith, caml_jsbytes_of_string
 function caml_float_of_string(s) {
@@ -139,15 +158,13 @@ function yaml_stub_7_yaml_parser_parse(parser_ptr, event_ptr) {
 //Provides: yaml_stub_8_yaml_emitter_initialize
 //Requires: libyaml
 function yaml_stub_8_yaml_emitter_initialize(yaml_emitter) {
-  const { ptr } = yaml_emitter;
-  return libyaml._yaml_emitter_initialize(ptr);
+  return libyaml._yaml_emitter_initialize(yaml_emitter[2]);
 }
 
 //Provides: yaml_stub_9_yaml_emitter_delete
 //Requires: libyaml
 function yaml_stub_9_yaml_emitter_delete(yaml_emitter) {
-  const { ptr } = yaml_emitter;
-  libyaml._yaml_emitter_delete(ptr);
+  libyaml._yaml_emitter_delete(yaml_emitter[2]);
 }
 
 //Provides: yaml_stub_10_yaml_emitter_set_output_string
@@ -158,89 +175,192 @@ function yaml_stub_10_yaml_emitter_set_output_string(
   size,
   size_written_ptr
 ) {
-  const { ptr } = yaml_emitter;
   libyaml._yaml_emitter_set_output_string(
-    ptr,
-    output_ptr,
-    size,
-    size_written_ptr
+    yaml_emitter[2],
+    output_ptr[2],
+    size.value,
+    size_written_ptr[2]
   );
 }
 
 //Provides: yaml_stub_11_yaml_emitter_set_encoding
 //Requires: libyaml
 function yaml_stub_11_yaml_emitter_set_encoding(yaml_emitter, encoding) {
-  const { ptr } = yaml_emitter;
-  libyaml._yaml_emitter_set_encoding(ptr, encoding);
+  libyaml._yaml_emitter_set_encoding(yaml_emitter[2], encoding);
 }
 
 //Provides: yaml_stub_12_yaml_emitter_set_canonical
 //Requires: libyaml
 function yaml_stub_12_yaml_emitter_set_canonical(yaml_emitter, canonical) {
-  const { ptr } = yaml_emitter;
-  libyaml._yaml_emitter_set_canonical(ptr, canonical);
+  libyaml._yaml_emitter_set_canonical(yaml_emitter[2], canonical);
 }
 
 //Provides: yaml_stub_13_yaml_emitter_set_indent
 //Requires: libyaml
 function yaml_stub_13_yaml_emitter_set_indent(yaml_emitter, indent) {
-  const { ptr } = yaml_emitter;
-  libyaml._yaml_emitter_set_indent(ptr, indent);
+  libyaml._yaml_emitter_set_indent(yaml_emitter[2], indent);
 }
 
 //Provides: yaml_stub_14_yaml_emitter_set_width
 //Requires: libyaml
 function yaml_stub_14_yaml_emitter_set_width(yaml_emitter, width) {
-  const { ptr } = yaml_emitter;
-  libyaml._yaml_emitter_set_width(ptr, width);
+  libyaml._yaml_emitter_set_width(yaml_emitter[2], width);
 }
 
 //Provides: yaml_stub_15_yaml_emitter_set_unicode
 //Requires: libyaml
 function yaml_stub_15_yaml_emitter_set_unicode(yaml_emitter, unicode) {
-  const { ptr } = yaml_emitter;
-  libyaml._yaml_emitter_set_unicode(ptr, unicode);
+  libyaml._yaml_emitter_set_unicode(yaml_emitter[2], unicode);
 }
 
 //Provides: yaml_stub_16_yaml_emitter_flush
 //Requires: libyaml
 function yaml_stub_16_yaml_emitter_flush(yaml_emitter) {
-  const { ptr } = yaml_emitter;
-  return libyaml._yaml_emitter_flush(ptr);
+  return libyaml._yaml_emitter_flush(yaml_emitter[2]);
 }
 
 //Provides: yaml_stub_17_yaml_emitter_emit
 //Requires: libyaml
 function yaml_stub_17_yaml_emitter_emit(yaml_emitter, event_ptr) {
-  const { ptr } = yaml_emitter;
-  return libyaml._yaml_emitter_emit(ptr, event_ptr);
+  return libyaml._yaml_emitter_emit(yaml_emitter[2], event_ptr[2]);
 }
 
 //Provides: yaml_stub_18_yaml_stream_start_event_initialize
 //Requires: libyaml
 function yaml_stub_18_yaml_stream_start_event_initialize(event, encoding) {
-  const { ptr } = event;
-  return libyaml._yaml_stream_start_event_initialize(ptr, encoding);
+  return libyaml._yaml_stream_start_event_initialize(event[2], encoding);
 }
 
 //Provides: yaml_stub_19_yaml_stream_end_event_initialize
 //Requires: libyaml
 function yaml_stub_19_yaml_stream_end_event_initialize(event) {
-  const { ptr } = event;
-  return libyaml._yaml_stream_end_event_initialize(ptr);
+  return libyaml._yaml_stream_end_event_initialize(event[2]);
 }
 
-// yaml_stub_20_yaml_document_start_event_initialize
-// yaml_stub_21_yaml_document_end_event_initialize
-// yaml_stub_22_yaml_alias_event_initialize
-// yaml_stub_23_yaml_scalar_event_initialize_byte8
-// yaml_stub_24_yaml_sequence_start_event_initialize
-// yaml_stub_25_yaml_sequence_end_event_initialize
-// yaml_stub_26_yaml_mapping_start_event_initialize
-// yaml_stub_27_yaml_mapping_end_event_initialize
+//Provides: yaml_stub_20_yaml_document_start_event_initialize
+// Requires: libyaml
+function yaml_stub_20_yaml_document_start_event_initialize(
+  event,
+  version_directive,
+  tag_directives_start,
+  tag_directives_end,
+  implicit
+) {
+  return libyaml._yaml_document_start_event_initialize(
+    event[2],
+    version_directive[2],
+    tag_directives_start[2],
+    tag_directives_end[2],
+    implicit
+  );
+}
+
+//Provides: yaml_stub_21_yaml_document_end_event_initialize
+//Requires: libyaml
+function yaml_stub_21_yaml_document_end_event_initialize(
+  event,
+  implicit
+) {
+  return libyaml._yaml_document_end_event_initialize(
+    event[2],
+    implicit
+  );
+}
+
+//Provides: yaml_stub_22_yaml_alias_event_initialize
+//Requires: libyaml
+function yaml_stub_22_yaml_alias_event_initialize(
+  event,
+  anchor
+) {
+  return libyaml._yaml_alias_event_initialize(
+    event[2],
+    anchor[2]
+  );
+}
+
+//Provides: yaml_stub_23_yaml_scalar_event_initialize_byte8
+//Requires: libyaml
+function yaml_stub_23_yaml_scalar_event_initialize_byte8(
+  event,
+  anchor,
+  tag,
+  value,
+  length,
+  plain_implicit,
+  quoted_implicit,
+  style
+) {
+  return libyaml._yaml_scalar_event_initialize(
+    event[2],
+    anchor[2],
+    tag[2],
+    value[2],
+    length,
+    plain_implicit,
+    quoted_implicit,
+    style
+  );
+}
+
+//Provides: yaml_stub_24_yaml_sequence_start_event_initialize
+//Requires: libyaml
+function yaml_stub_24_yaml_sequence_start_event_initialize(
+  event,
+  anchor,
+  tag,
+  implicit,
+  style
+) {
+  return libyaml._yaml_sequence_start_event_initialize(
+    event[2],
+    anchor[2],
+    tag[2],
+    implicit,
+    style
+  );
+}
+
+//Provides: yaml_stub_25_yaml_sequence_end_event_initialize
+//Requires: libyaml
+function yaml_stub_25_yaml_sequence_end_event_initialize(
+  event
+) {
+  return libyaml._yaml_sequence_end_event_initialize(
+    event[2]
+  );
+}
+
+//Provides: yaml_stub_26_yaml_mapping_start_event_initialize
+//Requires: libyaml
+function yaml_stub_26_yaml_mapping_start_event_initialize(
+  event,
+  anchor,
+  tag,
+  implicit,
+  style
+) {
+  return libyaml._yaml_mapping_start_event_initialize(
+    event[2],
+    anchor[2],
+    tag[2],
+    implicit,
+    style
+  );
+}
+
+//Provides: yaml_stub_27_yaml_mapping_end_event_initialize
+//Requires: libyaml
+function yaml_stub_27_yaml_mapping_end_event_initialize(
+  event
+) {
+  return libyaml._yaml_mapping_end_event_initialize(
+    event[2]
+  );
+}
 
 //Always
-//Requires: set_libyaml_wasm_module,ctypes_allocate,yaml_stub_1_yaml_get_version_string,yaml_stub_2_yaml_get_version,yaml_stub_4_yaml_parser_initialize,yaml_stub_5_yaml_parser_delete
+//Requires: set_libyaml_wasm_module,ctypes_allocate,yaml_stub_1_yaml_get_version_string,yaml_stub_2_yaml_get_version,yaml_stub_4_yaml_parser_initialize,yaml_stub_5_yaml_parser_delete,yaml_stub_8_yaml_emitter_initialize
 (() => {
   if (globalThis.exposeYamlStubsForTesting) {
     module.exports = {

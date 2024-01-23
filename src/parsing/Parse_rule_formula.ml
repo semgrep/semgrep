@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Either_
 open Parse_rule_helpers
 module XP = Xpattern
 module MV = Metavariable
@@ -32,7 +33,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
   | G.L (String (_, (s, _), _)) ->
       [ s ]
   | G.Container (Array, (_, mvs, _)) ->
-      Common.map (fun mv -> fst (parse_string_wrap env key mv)) mvs
+      List_.map (fun mv -> fst (parse_string_wrap env key mv)) mvs
   | _ ->
       error_at_key env.id key
         ("Expected a string or a list of strings for " ^ fst key)
@@ -44,7 +45,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 (* Aliengrep word characters must be single-byte characters for now. *)
 let word_chars_of_strings env xs =
   xs
-  |> Common.map (function
+  |> List_.map (function
        | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
        | x when String.length x =|= 1 (* = *) -> x.[0]
        | long ->
@@ -56,7 +57,7 @@ let word_chars_of_strings env xs =
    For now, aliengrep only supports single-byte characters. *)
 let brace_pairs_of_string_pairs env xs =
   xs
-  |> Common.map (fun (open_, close) ->
+  |> List_.map (fun (open_, close) ->
          let opening_char =
            match open_ with
            | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
@@ -235,7 +236,7 @@ and metavariable_comparison = {
   (* I don't think those are really needed; they can be inferred
    * from the values *)
   strip : bool option;
-  base : int option;
+  base : Parsed_int.t option;
 }
 
 (* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
@@ -293,7 +294,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
   let parse_listi env (key : key) f x =
     match x.G.e with
-    | G.Container (Array, (_, xs, _)) -> Common.mapi f xs
+    | G.Container (Array, (_, xs, _)) -> List_.mapi f xs
     | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
   in
   let get_pattern str_e = parse_xpattern_expr env str_e in
@@ -337,6 +338,10 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "pattern-inside" -> R.Inside (t, get_formula ~allow_string:true env value)
   | "pattern-not-inside" ->
       R.Not (t, R.Inside (t, get_formula ~allow_string:true env value))
+  | "semgrep-internal-pattern-anywhere" -> (
+      match parse_str_or_dict env value with
+      | Left _ -> R.Anywhere (t, R.P (get_pattern value))
+      | Right dict -> R.Anywhere (t, parse_formula_old_from_dict env dict))
   | "pattern-either" ->
       R.Or (t, parse_listi env key (get_nested_formula_in_list env) value)
   | "patterns" ->
@@ -374,15 +379,16 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                 find "metavariable-comparison" )
             with
             | None, None, None, None, None, None ->
-                Left3 (get_nested_formula_in_list env i expr)
+                Either_.Left3 (get_nested_formula_in_list env i expr)
             | Some (((_, t) as key), value), None, None, None, None, None ->
-                Middle3 (t, parse_focus_mvs env key value)
+                Either_.Middle3 (t, parse_focus_mvs env key value)
             | None, Some (key, value), None, None, None, None
             | None, None, Some (key, value), None, None, None
             | None, None, None, Some (key, value), None, None
             | None, None, None, None, Some (key, value), None
             | None, None, None, None, None, Some (key, value) ->
-                Right3 (snd key, parse_extra env key value |> process_extra)
+                Either_.Right3
+                  (snd key, parse_extra env key value |> process_extra)
             | _ ->
                 error_at_expr env.id expr
                   "should not happen, expected\n\
@@ -390,7 +396,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                    `metavariable-regex`, or `metavariable-comparison`")
       in
       let conjuncts, focus, conditions =
-        Common.partition_either3
+        Either_.partition_either3
           (fun x -> x)
           (parse_listi env key parse_pattern value)
       in
@@ -433,8 +439,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   match fst key with
   | "metavariable-analysis" ->
       let mv_analysis_dict = yaml_to_dict env key value in
-      let metavar = take mv_analysis_dict env parse_string "metavariable" in
-      let analyzer = take mv_analysis_dict env parse_string "analyzer" in
+      let metavar = take_key mv_analysis_dict env parse_string "metavariable" in
+      let analyzer = take_key mv_analysis_dict env parse_string "analyzer" in
       let kind =
         match analyzer with
         | "entropy" -> R.CondEntropy
@@ -450,8 +456,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             error env.id t (msg ^ ". You should use multiple metavariable-regex")
       in
       let metavar, regexp, const_prop =
-        ( take mv_regex_dict env parse_string "metavariable",
-          take mv_regex_dict env parse_string_wrap "regex",
+        ( take_key mv_regex_dict env parse_string "metavariable",
+          take_key mv_regex_dict env parse_string_wrap "regex",
           take_opt mv_regex_dict env parse_bool "constant-propagation" )
       in
       MetavarRegexp
@@ -462,7 +468,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
           | None -> false )
   | "metavariable-type" ->
       let mv_type_dict = yaml_to_dict env key value in
-      let metavar = take mv_type_dict env parse_string "metavariable" in
+      let metavar = take_key mv_type_dict env parse_string "metavariable" in
       let type_strs =
         take_opt mv_type_dict env parse_string_wrap "type" |> Option.to_list
       in
@@ -493,11 +499,11 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let ts = type_strs |> Common.map (parse_type env' key) in
-      MetavarType (metavar, opt_xlang, type_strs |> Common.map fst, ts)
+      let ts = type_strs |> List_.map (parse_type env' key) in
+      MetavarType (metavar, opt_xlang, type_strs |> List_.map fst, ts)
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
-      let metavar = take mv_pattern_dict env parse_string "metavariable" in
+      let metavar = take_key mv_pattern_dict env parse_string "metavariable" in
       let env', opt_xlang =
         match take_opt mv_pattern_dict env parse_string "language" with
         | Some s ->
@@ -524,7 +530,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
         ( take_opt mv_comparison_dict env parse_string "metavariable",
-          take mv_comparison_dict env parse_string "comparison",
+          take_key mv_comparison_dict env parse_string "comparison",
           take_opt mv_comparison_dict env parse_bool "strip",
           take_opt mv_comparison_dict env parse_int "base" )
       in
@@ -544,10 +550,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
 (*****************************************************************************)
 
 let formula_keys =
-  [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside" ]
+  [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside"; "anywhere" ]
 
 let find_formula env (rule_dict : dict) : key * G.expr =
-  match find_some_opt (Hashtbl.find_opt rule_dict.h) formula_keys with
+  match List_.find_some_opt (Hashtbl.find_opt rule_dict.h) formula_keys with
   | None ->
       error env.id rule_dict.first_tok
         ("Expected one of " ^ String.concat "," formula_keys ^ " to be present")
@@ -635,7 +641,7 @@ and produce_constraint env dict tok indicator =
          [base: ...]
       *)
       let ((s, t) as compare_key) =
-        take dict env parse_string_wrap "comparison"
+        take_key dict env parse_string_wrap "comparison"
       in
       let cond = parse_metavar_cond env compare_key s in
       (* This base is pretty unnecessary. *)
@@ -654,14 +660,16 @@ and produce_constraint env dict tok indicator =
   | Cfocus ->
       (* focus: ...
        *)
-      let mv_list = take dict env parse_focus_mvs "focus" in
+      let mv_list = take_key dict env parse_focus_mvs "focus" in
       [ Right (tok, mv_list) ]
   | Canalyzer ->
       (* metavariable: ...
          analyzer: ...
       *)
-      let metavar, t = take dict env parse_string_wrap "metavariable" in
-      let analyzer, analyze_t = take dict env parse_string_wrap "analyzer" in
+      let metavar, t = take_key dict env parse_string_wrap "metavariable" in
+      let analyzer, analyze_t =
+        take_key dict env parse_string_wrap "analyzer"
+      in
       let kind =
         match analyzer with
         | "entropy" -> R.CondEntropy
@@ -677,7 +685,7 @@ and produce_constraint env dict tok indicator =
          [type: ...]
          [language: ...]
       *)
-      let metavar, t = take dict env parse_string_wrap "metavariable" in
+      let metavar, t = take_key dict env parse_string_wrap "metavariable" in
       let env', opt_xlang =
         match take_opt dict env parse_string "language" with
         | Some s ->
@@ -693,7 +701,7 @@ and produce_constraint env dict tok indicator =
         | ___else___ -> (env, None)
       in
       let pat =
-        match find_some_opt (Hashtbl.find_opt dict.h) formula_keys with
+        match List_.find_some_opt (Hashtbl.find_opt dict.h) formula_keys with
         | Some ps -> (
             let env' = { env' with in_metavariable_pattern = true } in
             let formula = parse_pair env' ps in
@@ -722,8 +730,8 @@ and produce_constraint env dict tok indicator =
                   R.CondType
                     ( metavar,
                       opt_xlang,
-                      type_strs |> Common.map fst,
-                      type_strs |> Common.map (parse_type env (metavar, t)) ) );
+                      type_strs |> List_.map fst,
+                      type_strs |> List_.map (parse_type env (metavar, t)) ) );
             ]
         | _ -> []
       in
@@ -743,7 +751,7 @@ and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
   let conditions, focus =
     parse_listi env where_key parse_where_pair value
     |> List.flatten
-    |> Common.partition_either (fun x -> x)
+    |> Either_.partition_either (fun x -> x)
   in
   let tok, conditions, focus, conjuncts =
     (* If the modified pattern is also an `And`, collect the conditions and focus
@@ -766,6 +774,7 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "pattern" -> R.P (get_string_pattern value)
   | "not" -> R.Not (t, parse_formula env value)
   | "inside" -> R.Inside (t, parse_formula env value)
+  | "anywhere" -> R.Anywhere (t, parse_formula env value)
   | "all" ->
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in

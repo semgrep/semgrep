@@ -1,4 +1,4 @@
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -98,6 +98,16 @@ let add_seg path seg =
   let segments = append_segment path.segments seg in
   unsafe_create segments
 
+(* saving you 3 neurons *)
+let add_segs path segs = List.fold_left add_seg path segs
+
+let append_fpath path fpath =
+  match Fpath.segs fpath with
+  | "" :: _ ->
+      invalid_arg
+        ("Ppath.append_fpath: not a relative path: " ^ Fpath.to_string fpath)
+  | segs -> add_segs path segs
+
 module Operators = struct
   let ( / ) = add_seg
 end
@@ -112,7 +122,7 @@ let to_fpath ~root path =
       |> (* remove leading "./" typically occuring when the project root
             is "." *)
       Fpath.normalize
-  | _else_ -> assert false
+  | _ -> assert false
 
 (*****************************************************************************)
 (* Project Builder *)
@@ -163,7 +173,8 @@ let normalize_ppath x =
       in
       Ok (create segments)
 
-let of_fpath path = Fpath.segs path |> create
+let of_fpath path =
+  Fpath.segs path |> create |> make_absolute |> normalize_ppath
 
 (*
    Prepend "./" to relative paths so as to make "." a prefix.
@@ -205,7 +216,13 @@ let remove_prefix root path =
   let path = Fpath.to_dir_path path in
   (* now we can call this function to remove the root prefix from path *)
   match Fpath.rem_prefix root path with
-  | None -> if Fpath.equal root path then Some (Fpath.v ".") else None
+  | None ->
+      if
+        Fpath.equal root path
+        || Fpath.equal path (Fpath.v ".")
+        || Fpath.equal path (Fpath.v "./")
+      then Some (Fpath.v ".")
+      else None
   | Some rel_path ->
       (* remove the trailing slash if we added one *)
       let rel_path =
@@ -224,7 +241,7 @@ let in_project ~root path =
       Error
         (Common.spf "cannot make path %S relative to project root %S" !!path
            !!root)
-  | Some path -> path |> of_fpath |> make_absolute |> normalize_ppath
+  | Some path -> path |> of_fpath
 
 let from_segments segs =
   match segs with
@@ -251,7 +268,7 @@ let of_string_for_tests string =
 (*****************************************************************************)
 
 let () =
-  Testutil.test "Ppath" (fun () ->
+  Testo.test "Ppath" (fun () ->
       let test_str f input expected_output =
         Alcotest.(check string) "equal" expected_output (f input)
       in

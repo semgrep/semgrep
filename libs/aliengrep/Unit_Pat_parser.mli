@@ -2,4 +2,4 @@
    Unit tests for aliengrep pattern parsing
 *)
 
-val tests : Testutil.test list
+val tests : Testo.test list

@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 open AST_jsonnet
 module C = Core_jsonnet
 
@@ -42,13 +42,13 @@ module C = Core_jsonnet
  * registry (e.g., local x = import 'p/python').
  *)
 type import_callback =
-  Common.filename (* a directory *) -> string -> AST_jsonnet.expr option
+  string (* a directory *) -> string -> AST_jsonnet.expr option
 
 let default_callback _ _ = None
 
 type env = {
   (* like in Python jsonnet binding, "the base is the directly of the file" *)
-  base : Common.filename; (* a directory *)
+  base : string; (* a directory *)
   import_callback : import_callback;
   (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec
@@ -93,7 +93,7 @@ let freshvar =
 
 (* todo? auto generate the right name in otarzan? *)
 let desugar_string _env x = x
-let desugar_list f env x = x |> Common.map (fun x -> f env x)
+let desugar_list f env x = x |> List_.map (fun x -> f env x)
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -119,7 +119,7 @@ let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 let rec desugar_expr env v : C.expr =
   try desugar_expr_aux env v with
   | Failure "TODO" ->
-      pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
+      UCommon.pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
       failwith "TODO:desugar"
 
 and desugar_expr_aux env v =
@@ -376,7 +376,7 @@ and desugar_obj_inside env (l, v, r) : C.expr =
   | Object v ->
       let binds, asserts, fields =
         v
-        |> Common.partition_either3 (function
+        |> Either_.partition_either3 (function
              | OLocal (_tlocal, x) -> Left3 x
              | OEllipsis tk ->
                  error tk "OEllipsis can appear only in semgrep patterns"
@@ -384,18 +384,19 @@ and desugar_obj_inside env (l, v, r) : C.expr =
              | OField x -> Right3 x)
       in
       let binds =
-        if env.within_an_object then binds
+        if env.within_an_object || not !Conf_ojsonnet.implement_dollar then
+          binds
         else binds @ [ B (("$", fk), fk, IdSpecial (Self, fk)) ]
       in
       let asserts' =
         asserts
-        |> Common.map (fun assert_ -> desugar_assert_ env (assert_, binds))
+        |> List_.map (fun assert_ -> desugar_assert_ env (assert_, binds))
       in
       let fields' =
-        fields |> Common.map (fun field -> desugar_field env (field, binds))
+        fields |> List_.map (fun field -> desugar_field env (field, binds))
       in
       let obj = C.Object (asserts', fields') in
-      if env.within_an_object then
+      if env.within_an_object && !Conf_ojsonnet.implement_self then
         C.Local
           ( fk,
             [
@@ -491,7 +492,7 @@ and desugar_import env v : C.expr =
       let final_path = Filename.concat env.base str in
       if not (Sys.file_exists final_path) then
         error tk (spf "file does not exist: %s" final_path);
-      let s = Common.read_file final_path in
+      let s = UCommon.read_file final_path in
       C.L (mk_str_literal (s, tk))
 
 (*****************************************************************************)
@@ -500,8 +501,8 @@ and desugar_import env v : C.expr =
 
 let desugar_expr_profiled env e = desugar_expr env e [@@profiling]
 
-let desugar_program ?(import_callback = default_callback) ?(use_std = true)
-    (file : Fpath.t) (e : program) : C.program =
+let desugar_program ?(import_callback = default_callback) (file : Fpath.t)
+    (e : program) : C.program =
   let env =
     {
       within_an_object = false;
@@ -510,7 +511,7 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
     }
   in
   let e =
-    if use_std then
+    if !Conf_ojsonnet.use_std then
       let std = Std_jsonnet.get_std_jsonnet () in
       (* 'local std = e_std; e' *)
       Local (fk, [ B (("std", fk), fk, std) ], fk, e)

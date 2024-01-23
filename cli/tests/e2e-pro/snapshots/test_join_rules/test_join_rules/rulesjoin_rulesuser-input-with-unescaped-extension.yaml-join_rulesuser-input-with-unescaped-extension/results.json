@@ -1,0 +1,49 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": []
+  },
+  "results": [
+    {
+      "check_id": "rules.join_rules.user-input-with-unescaped-extension",
+      "end": {
+        "col": 58,
+        "line": 9,
+        "offset": 162
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "        <li>person_name_full is <b>{{ person_name_full }}</b></li>",
+        "message": "The variable '$VAR' is most likely an XSS. This variable originates from user input and is rendered in an unescaped manner. An attacker could control this variable and input scripts onto rendered pages, resulting in all manner of bad juju. The best fix is to make sure your template extensions end in '.html', which automatically escapes rendered variables.",
+        "metadata": {},
+        "metavars": {
+          "$VAR": {
+            "abstract_content": " person_name_full",
+            "end": {
+              "col": 55,
+              "line": 9,
+              "offset": 159
+            },
+            "start": {
+              "col": 38,
+              "line": 9,
+              "offset": 142
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/join_rules/user-input-with-unescaped-extension/launch.htm.j2",
+      "start": {
+        "col": 36,
+        "line": 9,
+        "offset": 140
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

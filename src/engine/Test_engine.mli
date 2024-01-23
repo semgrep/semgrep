@@ -1,13 +1,27 @@
 (*
-   Create a list of tests for unit testing and a function to print
-   a summary once each test ran once.
+   Create a list of tests for regression testing
 *)
 val make_tests :
-  ?unit_testing:bool ->
-  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
+  ?fail_callback:
+    ((* default to Alcotest.fail msg *)
+     int (* num errors *) ->
+    string (* msg *) ->
+    unit) ->
+  (* default to Test_engine.single_xlang_from_rules *)
+  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  (* default to false *)
   ?prepend_lang:bool ->
   Fpath.t list ->
-  (string * (unit -> unit)) list * int ref (* total mismatch *) * (unit -> unit)
+  Testo.test list
 
-(* Run the tests and print a summary. *)
-val test_rules : ?unit_testing:bool -> Common.filename list -> unit
+(* For Pro tests *)
+val collect_tests :
+  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  Fpath.t list (* roots *) ->
+  (Fpath.t (* rule file *) * Fpath.t (* target file *) * Xlang.t) list
+
+(* helpers used in Test_subcommand.ml *)
+val find_target_of_yaml_file_opt : Fpath.t -> Fpath.t option
+val xlangs_of_rules : Rule.t list -> Xlang.t list
+val first_xlang_of_rules : Rule.t list -> Xlang.t
+val xtarget_of_file : Xlang.t -> Fpath.t -> Xtarget.t

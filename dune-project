@@ -30,8 +30,8 @@
 
 (package
   (name aliengrep)
-  (synopsis "XXX")
-  (description "XXX")
+  (synopsis "Generic Semgrep-like pattern search backed by PCRE")
+  (description "Generic Semgrep-like pattern search backed by PCRE")
 )
 
 (package
@@ -106,11 +106,15 @@ a few other projects developed at r2c.
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
-    (parmap (>= "1.2.4"))
     (digestif (>= "1.0.0"))
     uri
     bos
   )
+)
+
+(package (name commons2)
+  (synopsis "XXX")
+  (description "XXX")
 )
 
 (package (name concurrency)
@@ -206,10 +210,6 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name parser_dockerfile)
-  (synopsis "XXX")
-  (description "XXX")
-)
-(package (name parser_elixir)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -369,6 +369,27 @@ functions.
   )
 )
 
+(package
+  (name tracing)
+  (version "1.5.5")
+  (synopsis "Small library to help trace code")
+  (description "\
+This is a small library of utilities used by Semgrep to
+trace functions for the purpose of reporting them in
+metrics
+"
+  )
+  (maintainers "Emma Jin <emma@semgrep.com>")
+  (authors "Emma Jin <emma@semgrep.com>")
+  (license "LGPL-2.1-only")
+
+  (depends
+    (ocaml (>= "4.13.0"))
+    (dune (>= "3.2.0" ))
+    (commons (>= "1.5.5"))
+  )
+)
+
 (package (name semgrep)
   (version 1.38.0)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
@@ -419,15 +440,15 @@ For more information see https://semgrep.dev
     ocolor
     ANSITerminal
     terminal_size
-    notty
     ; logging
     (easy_logging ( = 0.8.1 ))
     (easy_logging_yojson ( = 0.8.1 ))
     logs
-    ; JSON/YAML
+    ; JSON/YAML/XML
     atdgen
     (yojson ( >= 2.0.0 ))
     yaml
+    xmlm
     ; CLI
     cmdliner
     ; PPX
@@ -447,6 +468,8 @@ For more information see https://semgrep.dev
     semver
     uri
     uuidm
+    trace
+    trace-tef ; will probably switch this out for a different backend
     (lsp (= 1.15.1-5.0))
     ; web stuff
     uri
@@ -458,7 +481,7 @@ For more information see https://semgrep.dev
     ; concurrency
     lwt
     lwt_ppx
-    conf-libev ; for lwt, to get better FD perf
+    (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
     ; jsoo
     (js_of_ocaml (= 5.4.0))
     (js_of_ocaml-compiler (= 5.4.0))
@@ -494,6 +517,11 @@ Uses indentation and standard braces to determine a crude parse tree
   (description "XXX")
 )
 (package (name tree-sitter-to-generic)
+  (synopsis "XXX")
+  (description "XXX")
+)
+
+(package (name TCB)
   (synopsis "XXX")
   (description "XXX")
 )

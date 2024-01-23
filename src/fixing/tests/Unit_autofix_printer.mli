@@ -1,1 +1,1 @@
-val tests : Testutil.test list
+val tests : Testo.test list

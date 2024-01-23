@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Martin Jambon
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,9 +13,10 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
+module C = Rules_config
 module Env = Semgrep_envvars
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module SS = Set.Make (String)
 
 (*****************************************************************************)
@@ -29,36 +30,17 @@ module SS = Set.Make (String)
 *)
 
 (*****************************************************************************)
-(* To run a Pro scan (Deep scan and multistep scan) *)
+(* Types *)
 (*****************************************************************************)
-
-(* Semgrep Pro hook. Note that this is useful only for osemgrep. Indeed,
- * for pysemgrep the code path is instead to fork the
- * semgrep-core-proprietary program, which executes Pro_CLI_main.ml
- * which then calls Run.ml code which is mostly a copy-paste of Core_scan.ml
- * with the Pro scan specifities hard-coded (no need for hooks).
- * We could do the same for osemgrep, but that would require to copy-paste
- * lots of code, so simpler to use a hook instead.
- *
- * Note that Scan_subcommand.ml itself is linked in (o)semgrep-pro,
- * and executed by osemgrep-pro. When linked from osemgrep-pro, this
- * hook below will be set.
- *)
-let (hook_pro_scan_func_for_osemgrep :
-      (Fpath.t list ->
-      ?diff_config:Differential_scan_config.t ->
-      Engine_type.t ->
-      Core_runner.scan_func_for_osemgrep)
-      option
-      ref) =
-  ref None
+(* TODO: probably far more needed at some point *)
+type caps = < Cap.stdout ; Cap.network >
 
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
-  CLI_common.setup_logging ~force_color:conf.force_color
+  CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   ()
@@ -84,7 +66,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
 (* python: this used to be done in a _final_raise method from output.py
  * but better separation of concern to do it here.
  *)
-let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
+let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
   match List.rev errors with
   | [] -> Exit_code.ok
   (* TODO? why do we look at the last error? What about the other errors? *)
@@ -107,29 +89,30 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
  * the use of Unix.lockf below.
  *)
 let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (_file : Fpath.t)
-    (match_results : Core_profiling.partial_profiling Core_result.match_result)
-    : unit =
-  let (cli_matches : Out.cli_match list) =
+    (_file : Fpath.t) (match_results : Core_result.matches_single_file) : unit =
+  let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
     let (pms : Pattern_match.t list) = match_results.matches in
-    let (core_matches : Out.core_match list) =
+    let (core_matches : OutJ.core_match list) =
       pms
-      |> Common.partition_either (Core_json_output.match_to_match None)
+      (* OK, because we don't need the postprocessing to report the matches. *)
+      |> List_.map Core_result.mk_processed_match
+      |> Either_.partition_either Core_json_output.match_to_match
       |> fst
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
-    |> Common.map (Cli_json_output.cli_match_of_core_match hrules)
+    |> List_.map
+         (Cli_json_output.cli_match_of_core_match
+            ~dryrun:conf.output_conf.dryrun hrules)
     |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =
     cli_matches
-    |> Common.exclude (fun m ->
-           let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
-           to_ignore)
+    |> List_.exclude (fun (m : OutJ.cli_match) ->
+           Option.value ~default:false m.extra.is_ignored)
   in
   if cli_matches <> [] then (
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
@@ -137,10 +120,106 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
         Matches_report.pp_text_outputs
-          ~max_chars_per_line:conf.max_chars_per_line
-          ~max_lines_per_finding:conf.max_lines_per_finding
-          ~color_output:conf.force_color Format.std_formatter cli_matches)
+          ~max_chars_per_line:conf.output_conf.max_chars_per_line
+          ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
+          ~color_output:conf.output_conf.force_color Format.std_formatter
+          cli_matches)
       ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
+
+(*****************************************************************************)
+(* Pretty Printing for CLI UX *)
+(*****************************************************************************)
+
+(* TODO: Update pysemgrep and osemgrep tests to match new output *)
+let new_cli_ux =
+  match !Env.v.user_agent_append with
+  | Some x -> (
+      match String.lowercase_ascii x with
+      | "pytest" -> false
+      | _ -> true)
+  | _ -> true
+
+let print_logo () : unit =
+  let logo =
+    Ocolor_format.asprintf
+      {|
+┌──── @{<green>○○○@} ────┐
+│ Semgrep CLI │
+└─────────────┘
+|}
+  in
+  Logs.app (fun m -> m "%s" logo);
+  ()
+
+let feature_status_str ~(enabled : bool) : string =
+  let status =
+    if enabled then Ocolor_format.asprintf {|@{<green>✔@}|}
+    else Ocolor_format.asprintf {|@{<red>✘@}|}
+  in
+  status
+
+let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
+    unit =
+  let secrets_enabled =
+    match engine with
+    | PRO
+        Engine_type.
+          { secrets_config = Some Engine_type.{ allow_all_origins = _; _ }; _ }
+      ->
+        true
+    | OSS
+    | PRO Engine_type.{ secrets_config = None; _ } ->
+        false
+  in
+  let features =
+    [
+      ( "Semgrep OSS",
+        "Basic security coverage for first-party code vulnerabilities.",
+        true );
+      ( "Semgrep Code (SAST)",
+        "Find and fix vulnerabilities in the code you write with advanced \
+         scanning and expert security rules.",
+        includes_token );
+      ( "Semgrep Secrets",
+        "Detect and validate potential secrets in your code.",
+        secrets_enabled );
+    ]
+  in
+  (* Print our set of features and whether each is enabled *)
+  List.iter
+    (fun (feature_name, desc, is_enabled) ->
+      Logs.app (fun m ->
+          m "%s %s"
+            (feature_status_str ~enabled:is_enabled)
+            (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name));
+      Logs.app (fun m ->
+          m "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
+    features;
+  ()
+
+let display_rule_source ~(rule_source : Rules_source.t) : unit =
+  let msg =
+    match rule_source with
+    | Configs xs
+      when List.exists
+             (function
+               | C.A _
+               | R _ ->
+                   true
+               | _ -> false)
+             (List_.map
+                (fun str ->
+                  Rules_config.parse_config_string ~in_docker:false str)
+                xs) ->
+        Ocolor_format.asprintf {|@{<bold>  %s@}|}
+          "Loading rules from registry..."
+    | Configs _ ->
+        Ocolor_format.asprintf {|@{<bold>  %s@}|}
+          "Loading rules from local config..."
+    | Pattern _ -> Ocolor_format.asprintf {|@{  %s@}|} "Using custom pattern."
+  in
+  Logs.app (fun m -> m "%s" msg);
+  ()
 
 (*************************************************************************)
 (* Helpers *)
@@ -155,10 +234,10 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
     | Some n -> Some (succ n)
     | None -> Some 1
   in
-  let fold acc (core_match : Out.core_match) =
+  let fold acc (core_match : OutJ.core_match) =
     Map_.update core_match.check_id update acc
   in
-  let map = List.fold_left fold Map_.empty res.core.Out.results in
+  let xmap = List.fold_left fold Map_.empty res.core.results in
   Map_.fold
     (fun rule_id n acc ->
       let res =
@@ -169,7 +248,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
                  (Rule_ID.to_string rule_id))
       in
       (res, n) :: acc)
-    map []
+    xmap []
 
 (* Select and execute the scan func based on the configured engine settings.
  * Yet another mk_scan_func adapter. TODO: can we simplify?
@@ -181,7 +260,7 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
     | OSS ->
         Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
     | PRO _ -> (
-        match !hook_pro_scan_func_for_osemgrep with
+        match !Core_runner.hook_pro_scan_func_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
              * instructions should be *)
@@ -193,9 +272,51 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
             let roots = conf.target_roots in
             pro_scan_func roots ~diff_config conf.engine_type)
   in
+  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+    match conf.targeting_conf.project_root with
+    | Some (Find_targets.Git_remote git_remote) -> (
+        match !Core_runner.hook_pro_git_remote_scan_setup with
+        | None ->
+            failwith
+              "You have requested running semgrep with a setting that requires \
+               the pro engine, but do not have the pro engine. You may need to \
+               acquire a different binary."
+        | Some pro_git_remote_scan_setup ->
+            pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
+    | _ -> scan_func_for_osemgrep
+  in
   scan_func_for_osemgrep
-    ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+    ~respect_git_ignore:conf.targeting_conf.respect_gitignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
+
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
+    rules_source =
+  (* Create the wait hook for our progress indicator *)
+  let spinner_ls =
+    if Console_Spinner.should_show_spinner () then
+      [ Console_Spinner.spinner_async () ]
+    else []
+  in
+  (* Fetch the rules *)
+  let rules_and_origins =
+    Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
+      ~registry_caching
+      (caps :> < Cap.network >)
+      rules_source
+  in
+  Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
+[@@profiling]
+
+(* The test test_autofix.py::terraform-ec2-instance-metadata-options.yaml
+   carries a newline at the end of the "fix" string, which is not the case
+   for PySemgrep.
+   TODO Trimming the "fix" here is a hacky workaround, it may be better to dig
+   down where and why the newline is inserted into "fix".
+*)
+let trim_core_match_fix (r : OutJ.core_match) =
+  let fix = Option.map String.trim r.OutJ.extra.fix in
+  let extra = { r.extra with fix } in
+  { r with extra }
 
 (*****************************************************************************)
 (* Differential scanning *)
@@ -207,45 +328,48 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
-    (head : Core_result.t) (renamed : (filename * filename) list) =
+    (head : Core_result.t)
+    (renamed : (string (* filename *) * string (* filename *)) list) =
   let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =
-      m.Pattern_match.file |> fun p ->
-      renamed
-      >>= Common.find_some_opt (fun (before, after) ->
-              if after = p then Some before else None)
+      !!(m.Pattern_match.file) |> fun p ->
+      Option.bind renamed
+        (List_.find_some_opt (fun (before, after) ->
+             if after = p then Some before else None))
       |> Option.value ~default:p
     in
     let start_range, end_range = m.Pattern_match.range_loc in
     let syntactic_ctx =
-      File.lines_of_file
+      UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
-        (Fpath.v m.Pattern_match.file)
+        m.Pattern_match.file
     in
     (rule_id, path, syntactic_ctx)
   in
   let sigs = Hashtbl.create 10 in
   Git_wrapper.run_with_worktree ~commit (fun () ->
       List.iter
-        (fun m -> m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
-        baseline.matches);
+        (fun ({ pm; _ } : Core_result.processed_match) ->
+          pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
+        baseline.processed_matches);
   let removed = ref 0 in
-  let matches =
-    Common.map_filter
-      (fun m ->
-        let s = extract_sig (Some renamed) m in
+  let processed_matches =
+    List_.map_filter
+      (fun (pm : Core_result.processed_match) ->
+        let s = extract_sig (Some renamed) pm.pm in
         if Hashtbl.mem sigs s then (
           Hashtbl.remove sigs s;
           incr removed;
           None)
-        else Some m)
-      (head.matches
+        else Some pm)
+      (head.processed_matches
        (* Sort the matches in ascending order according to their byte positions.
           This ensures that duplicated matches are not removed arbitrarily;
           rather, priority is given to removing matches positioned closer to the
           beginning of the file. *)
-      |> List.sort (fun x y ->
+      |> List.sort
+           (fun ({ pm = x; _ } : Core_result.processed_match) { pm = y; _ } ->
              let x_start_range, x_end_range = x.Pattern_match.range_loc in
              let y_start_range, y_end_range = y.Pattern_match.range_loc in
              let start_compare =
@@ -256,8 +380,8 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   in
   Logs.app (fun m ->
       m "Removed %s that were in baseline scan"
-        (String_utils.unit_str !removed "finding"));
-  { head with matches }
+        (String_.unit_str !removed "finding"));
+  { head with processed_matches }
 
 (* Execute the engine again on the baseline checkout, utilizing only
    the files and rules linked with matches from the head checkout
@@ -275,7 +399,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
   match result_or_exn with
   | Error _ as err -> err
   | Ok r ->
-      if r.matches <> [] then
+      if r.processed_matches <> [] then
         let add_renamed paths =
           List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
         in
@@ -283,9 +407,9 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
           List.fold_left (Fun.flip SS.remove) paths status.added
         in
         let rules_in_match =
-          r.matches
-          |> Common.map (fun m ->
-                 m.Pattern_match.rule_id.id |> Rule_ID.to_string)
+          r.processed_matches
+          |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
+                 pm.Pattern_match.rule_id.id |> Rule_ID.to_string)
           |> SS.of_list
         in
         (* only use the rules that have been identified within the existing
@@ -313,18 +437,20 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     |> List.of_seq
                   in
                   let paths_in_match =
-                    r.matches
-                    |> Common.map (fun m -> m.Pattern_match.file)
+                    r.processed_matches
+                    |> List_.map
+                         (fun ({ pm; _ } : Core_result.processed_match) ->
+                           !!(pm.Pattern_match.file))
                     |> prepare_targets
                   in
                   let paths_in_scanned =
-                    r.scanned |> Common.map Fpath.to_string |> prepare_targets
+                    r.scanned |> List_.map Fpath.to_string |> prepare_targets
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
                     | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                         let all_in_baseline, _ =
-                          Find_targets.get_targets conf.targeting_conf
+                          Find_targets.get_target_fpaths conf.targeting_conf
                             conf.target_roots
                         in
                         (* Performing a scan on the same set of files for the
@@ -350,16 +476,19 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 (*****************************************************************************)
 (* Conduct the scan *)
 (*****************************************************************************)
-let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
+let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
+    (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
-    (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
+    (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
+    (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
+    =
+  Metrics_.add_engine_type conf.engine_type;
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
   (* TODO: we should probably warn the user about rules using the same id *)
   let rules =
-    Common.uniq_by
+    List_.uniq_by
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
@@ -384,7 +513,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
      - tolerate different output between pysemgrep and osemgrep
        for tests that we would mark as such.
   *)
-  if Common.null rules then Error Exit_code.missing_config
+  if List_.null rules then Error Exit_code.missing_config
   else
     (* step 1: last touch on rules *)
     let filtered_rules =
@@ -411,15 +540,16 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let output_format, file_match_results_hook =
       match conf with
       | {
-       output_format = Output_format.Text;
+       output_conf = { output_format = Output_format.Text; _ };
        common = { maturity = Maturity.Develop; _ };
        _;
       } ->
           ( Output_format.TextIncremental,
             Some (file_match_results_hook conf filtered_rules) )
-      | { output_format; _ } -> (output_format, None)
+      | { output_conf; _ } -> (output_conf.output_format, None)
     in
     let scan_func = mk_scan_func conf file_match_results_hook errors in
+    (* step 3': call the engine! *)
     let exn_and_matches =
       match conf.targeting_conf.baseline_commit with
       | None ->
@@ -429,11 +559,11 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           (* diff scan mode *)
           Metrics_.g.payload.environment.isDiffScan <- true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
-          let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit in
+          let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
           let diff_depth = Differential_scan_config.default_depth in
           let targets, diff_targets =
             let added_or_modified =
-              status.added @ status.modified |> Common.map Fpath.v
+              status.added @ status.modified |> List_.map Fpath.v
             in
             match conf.engine_type with
             | PRO Engine_type.{ analysis = Interfile; _ } ->
@@ -452,12 +582,21 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
             filtered_rules commit status scan_func
     in
-    (* step 3': call the engine! *)
     let (res : Core_runner.result) =
-      Core_runner.create_core_result filtered_rules exn_and_matches
+      let res = Core_runner.create_core_result filtered_rules exn_and_matches in
+      (* step 3'': filter via nosemgrep *)
+      let keep_ignored =
+        (not conf.core_runner_conf.nosem)
+        (* --disable-nosem *)
+        || Output_format.keep_ignores output_format
+      in
+      let filtered_matches =
+        res.core.results
+        |> List_.map trim_core_match_fix
+        |> Nosemgrep.filter_ignored ~keep_ignored
+      in
+      { res with core = { res.core with results = filtered_matches } }
     in
-    res.Core_runner.core.engine_requested
-    |> Option.iter Metrics_.add_engine_kind;
 
     (* step 4: adjust the skipped_targets *)
     let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
@@ -467,7 +606,20 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
        * skipped above too?
        *)
       let skipped =
-        Some (skipped @ Common.optlist_to_list res.core.paths.skipped)
+        let skipped = skipped @ List_.optlist_to_list res.core.paths.skipped in
+        let in_test =
+          !Semgrep_envvars.v.user_agent_append
+          |> Option.map (fun s -> String.equal s "pytest")
+          |> Option.value ~default:false
+        in
+        let skipped =
+          if in_test then
+            List_.map
+              (fun (x : OutJ.skipped_target) -> { x with OutJ.details = None })
+              skipped
+          else skipped
+        in
+        Some skipped
       in
       (* Add the targets that were semgrepignored or errorneous *)
       {
@@ -479,7 +631,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      Output.output_result { conf with output_format } profiler res
+      Output.output_result { conf.output_conf with output_format } profiler res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
@@ -487,7 +639,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       match exn_and_matches with
       | Ok r ->
           r.rules_with_targets
-          |> Common.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
+          |> List_.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
       | _ -> []
     in
 
@@ -502,7 +654,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let skipped_groups = Skipped_report.group_skipped skipped in
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
-          ( conf.targeting_conf.respect_git_ignore,
+          ( conf.targeting_conf.respect_gitignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
             skipped_groups ));
@@ -510,16 +662,26 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
      * prefix), and is filtered when using --quiet.
      *)
     Logs.app (fun m ->
-        m "%a" Summary_report.pp_summary
-          ( conf.targeting_conf.respect_git_ignore,
-            conf.common.maturity,
-            conf.targeting_conf.max_target_bytes,
-            skipped_groups ));
+        m "%a"
+          (Summary_report.pp_summary
+             ~respect_gitignore:conf.targeting_conf.respect_gitignore
+             ~maturity:conf.common.maturity
+             ~max_target_bytes:conf.targeting_conf.max_target_bytes
+             ~skipped_groups)
+          ());
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
-          (String_utils.unit_str (List.length rules_with_targets) "rule")
-          (String_utils.unit_str (List.length cli_output.paths.scanned) "file")
-          (String_utils.unit_str (List.length cli_output.results) "finding"));
+          (String_.unit_str (List.length rules_with_targets) "rule")
+          (String_.unit_str (List.length cli_output.paths.scanned) "file")
+          (String_.unit_str (List.length cli_output.results) "finding"));
+
+    (* step 6: apply autofixes *)
+    (* this must happen posterior to reporting matches, or will report the
+       already-fixed file
+    *)
+    if conf.output_conf.autofix then
+      Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
+        res.core.results;
 
     (* TOPORT? was in formater/base.py
        def keep_ignores(self) -> bool:
@@ -532,9 +694,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     *)
     Ok (filtered_rules, res, cli_output)
 
-let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
+let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
+
+  (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
+  if new_cli_ux then print_logo ();
+
   (* Metrics initialization (and finalization) is done in CLI.ml,
    * but here we "configure" it (enable or disable it) based on CLI flags.
    *)
@@ -554,6 +720,22 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       settings)
     |> Profiler.record profiler ~name:"config_time"
   in
+
+  (* Print feature section for enabled products if pattern mode is not being used.
+     Ideally, pattern mode should be a different subcommand, but for now we will
+     conditionally print the feature section.
+  *)
+  (if new_cli_ux then
+     match conf.rules_source with
+     | Pattern _ ->
+         Logs.app (fun m ->
+             m "%s"
+               (Ocolor_format.asprintf {|@{<bold>  %s@}|}
+                  "Code scanning at ludicrous speed.\n"))
+     | _ ->
+         print_feature_section
+           ~includes_token:(settings.api_token <> None)
+           ~engine:conf.engine_type);
 
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
@@ -582,29 +764,44 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
 
-  (* Rule_fetching.rules_and_origin record also contain errors *)
-  let rules_and_origins =
-    Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
-      ~rewrite_rule_ids:conf.rewrite_rule_ids
-      ~registry_caching:conf.registry_caching conf.rules_source
-  in
+  (* Display a message to denote rule fetching that is made interactive when
+   * possible *)
+  if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
+  let rules_and_origins =
+    rules_from_rules_source ~token_opt:settings.api_token
+      ~rewrite_rule_ids:conf.rewrite_rule_ids
+      ~registry_caching:conf.registry_caching
+      (caps :> < Cap.network >)
+      conf.rules_source
+  in
   (* step2: getting the targets *)
   let targets_and_skipped =
-    Find_targets.get_targets conf.targeting_conf conf.target_roots
+    Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
+  (* Change dir if project_root is a git_remote
+   * note: sorry cooper, we gotta do this because
+   * git sparse-checkout doesn't like absolute paths
+   *)
+  (match conf.targeting_conf.project_root with
+  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
+      Sys.chdir (Fpath.to_string checkout_path)
+  | _ -> ());
   (* step3: let's go *)
   let res =
-    run_scan_files conf profiler rules_and_origins targets_and_skipped
+    run_scan_files
+      (caps :> < Cap.stdout >)
+      conf profiler rules_and_origins targets_and_skipped
   in
   match res with
   | Error ex -> ex
   | Ok (_, res, cli_output) ->
       (* step4: exit with the right exit code *)
       (* final result for the shell *)
-      if conf.error_on_findings && not (Common.null cli_output.results) then
+      if conf.error_on_findings && not (List_.null cli_output.results) then
         Exit_code.findings
-      else exit_code_of_errors ~strict:conf.strict res.core.errors
+      else
+        exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
 
 (*****************************************************************************)
 (* Main logic *)
@@ -612,7 +809,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
@@ -629,7 +826,11 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
       match conf with
       | {
        show =
-         Some { target = Show_CLI.EnginePath _ | Show_CLI.CommandForCore; _ };
+         Some
+           {
+             show_kind = Show_CLI.DumpEnginePath _ | Show_CLI.DumpCommandForCore;
+             _;
+           };
        _;
       } ->
           raise Pysemgrep.Fallback
@@ -659,23 +860,34 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Common.pr Version.version;
+      Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
-  | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
+  | _ when conf.test <> None ->
+      Test_subcommand.run_conf
+        (caps :> < Cap.stdout ; Cap.network >)
+        (Common2.some conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run (Common2.some conf.validate)
-  | _ when conf.show <> None -> Show_subcommand.run (Common2.some conf.show)
-  | _else_ ->
+      Validate_subcommand.run_conf
+        (caps :> < Cap.stdout ; Cap.network >)
+        (Common2.some conf.validate)
+  | _ when conf.show <> None ->
+      Show_subcommand.run_conf
+        (caps :> < Cap.stdout ; Cap.network >)
+        (Common2.some conf.show)
+  | _ when conf.ls ->
+      Ls_subcommand.run ~target_roots:conf.target_roots
+        ~targeting_conf:conf.targeting_conf ()
+  | _ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      run_scan_conf conf
+      run_scan_conf caps conf
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

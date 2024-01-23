@@ -1,0 +1,13 @@
+rules:
+  - id: du-same-file
+    languages:
+      - python
+    message: Found!
+    metadata:
+    patterns:
+    - semgrep-internal-pattern-anywhere:
+        pattern: |
+          def $F(...):
+              ...
+    - pattern: "$F(...)"
+    severity: ERROR

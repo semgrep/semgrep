@@ -4,7 +4,7 @@
 
 # Run everything that makes sense to run.
 .PHONY: default
-default:
+default: Pipfile.lock
 	$(MAKE) build
 	$(MAKE) test
 	$(MAKE) qa
@@ -34,15 +34,31 @@ clean:
 	rm -rf .pytest_cache/ .benchmarks/
 	rm -f cli/src/semgrep/bin/semgrep-core
 
+Pipfile.lock: setup.py
+	pipenv update
+
 ###############################################################################
 # Tests
 ###############################################################################
 
+# This is run from .github/workflow/tests.jsonnet (which sets
+# PYTEST_EXTRA_ARGS to some value for snapshot update).
+# Note that there are no tests/e2e/ argument to pytest below so it will
+# run all the tests specified in cli/pyproject.toml which are
+# all tests/xxx except tests/qa/ (which is run separately in another job
+# see tests.jsonnet).
+.PHONY: test-for-ci
+test-for-ci:
+	pipenv run pytest -n auto -vv $(PYTEST_EXTRA_ARGS)
+
 # From fastest to slowest (on pad's machine):
 # - 'make quick-tests' (=~ 30s)
-# - 'make e2e' (=~ 2m20s)
+# - 'make e2e' (=~ 2m20s?)
+# - 'make e2e-pro' (=~ 2m20s?)
 # - 'make kinda-quick-tests' (=~ 3min40s )
 # - 'make test' (=~ 11min)
+#
+# Note that none of the targets below are used in our CI test workflow.
 
 PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 
@@ -59,7 +75,11 @@ test:
 # We exclude the few tests that don't invoke the semgrep command directly.
 .PHONY: e2e
 e2e:
-	$(PYTEST) -n auto -v -m 'not no_semgrep_cli and not todo' tests/e2e
+	$(PYTEST) -n auto -v tests/e2e
+
+.PHONY: e2e-pro
+e2e-pro:
+	$(PYTEST) -n auto -v -m 'not no_semgrep_cli and not todo' tests/e2e-pro
 
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
@@ -89,6 +109,7 @@ kinda-quick-tests:
 # See tests/semgrep_runner.py for the use of the environment variables below.
 # To run individual tests, export PYTEST_USE_OSEMGREP=true
 # and run 'pytest tests/e2e/test_output.py' in a shell for example.
+#TODO: right now we just run the e2e-only because it's our main goal for Q4
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
 	PYTEST_USE_OSEMGREP=true $(MAKE) e2e
@@ -97,12 +118,12 @@ osemgrep-e2e:
 # coupling: this is run in CI in .github/workflows/tests.yml
 osempass:
 	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto \
-	  -m 'not osemfail and not todo' tests/e2e
+	  -m 'not osemfail' tests/e2e
 
 # to be used to discover tests that we should remove the osemfail pytest mark
 osempass-check-if-new-osempass:
 	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto -v --no-summary \
-	  -m 'not no_semgrep_cli and not todo and osemfail' tests/e2e \
+	  -m 'not no_semgrep_cli and osemfail' tests/e2e \
 	 | (grep PASSED || echo 'Found no new passing tests')
 
 # Run the quality assurance tests using osemgrep instead of the Python CLI.

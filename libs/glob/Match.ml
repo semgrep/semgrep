@@ -43,47 +43,85 @@ type loc = {
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
 
-type compiled_pattern = { source : loc; re : Re.re }
+type compiled_pattern = { source : loc; re : Pcre_.t }
 
 let string_loc ?(source_name = "<pattern>") ~source_kind pat =
   { source_name; source_kind; line_number = 1; line_contents = pat }
 
 (*****************************************************************************)
-(* Compilation of a Glob_pattern.t to Re.t *)
+(* Compilation of a Glob_pattern.t to a PCRE pattern *)
 (*****************************************************************************)
+(*
+   We used to use ocaml-re ('Re' module) to build directly a tree but
+   unfortunately, it doesn't support lookhead assertions that we would
+   need to match a glob pattern correctly. The issue is that the pattern
+   'a/*b' matches 'a/b' but the pattern 'a/*' doesn't match 'a/'.
+*)
 
-let slash = Re.char '/'
-let not_slash = Re.compl [ slash ]
+let add = Buffer.add_string
+let addc = Buffer.add_char
+let quote_char buf c = add buf (Pcre.quote (String.make 1 c))
 
-let map_frag (frag : Pattern.segment_fragment) : Re.t =
+let translate_frag buf pos (frag : Pattern.segment_fragment) =
   match frag with
-  | Char c -> Re.char c
+  | Char c -> quote_char buf c
   | Char_class { complement; ranges } ->
-      let cset =
-        Common.map
-          (fun range ->
-            match range with
-            | Class_char c -> Re.char c
-            | Range (a, b) -> Re.rg a b)
-          ranges
-      in
-      if complement then Re.compl cset else Re.alt cset
-  | Question -> not_slash
-  | Star -> Re.rep not_slash
+      if complement then add buf "[^" else addc buf '[';
+      ranges
+      |> List.iter (fun range ->
+             match range with
+             | Class_char c -> quote_char buf c
+             | Range (a, b) ->
+                 quote_char buf a;
+                 addc buf '-';
+                 quote_char buf b);
+      addc buf ']'
+  | Question ->
+      if pos = 0 then (* leading dot must match literally *)
+        add buf "[^/.]"
+      else add buf "[^/]"
+  | Star ->
+      if pos = 0 then (* leading dot must match literally *)
+        add buf "(?![.])";
+      add buf "[^/]*"
 
-let map_seg (seg : segment_fragment list) : Re.t =
-  Re.seq (Common.map map_frag seg)
+let translate_seg buf (seg : segment_fragment list) =
+  match seg with
+  | [] -> ()
+  | _nonempty_segment ->
+      (* lookahead assertion that checks that the path segment is not empty,
+         because pattern 'a/*' should not match path 'a/' which has an
+         empty trailing segment. *)
+      add buf "(?=[^/])";
+      List.iteri (translate_frag buf) seg
 
-let rec map pat =
+(* beginning of string *)
+let bos = {|\A|}
+
+(* end of string *)
+let eos = {|\z|}
+
+let rec translate buf pat =
   match pat with
-  | [ Segment seg ] -> [ map_seg seg; Re.eos ]
-  | [ Any_subpath ] -> []
-  | Segment seg :: pat -> map_seg seg :: slash :: map pat
-  | Any_subpath :: pat -> Re.rep (Re.seq [ Re.rep not_slash; slash ]) :: map pat
-  | [] -> [ Re.eos ]
+  | [ Segment seg ] ->
+      translate_seg buf seg;
+      add buf eos
+  | [ Any_subpath ] -> ()
+  | Segment seg :: pat ->
+      translate_seg buf seg;
+      add buf "/+";
+      translate buf pat
+  | Any_subpath :: pat ->
+      add buf "/*(?:[^/]+/+)*";
+      translate buf pat
+  | [] -> add buf eos
 
 (* Create a pattern that's left-anchored and right-anchored *)
-let map_root pat = Re.seq (Re.bos :: map pat)
+let translate_root pat =
+  let buf = Buffer.create 128 in
+  add buf bos;
+  translate buf pat;
+  Buffer.contents buf
 
 (*****************************************************************************)
 (* Entry points *)
@@ -91,7 +129,8 @@ let map_root pat = Re.seq (Re.bos :: map pat)
 
 (* Compile a pattern into an ocaml-re regexp for fast matching *)
 let compile ~source pat =
-  let re = map_root pat |> Re.compile in
+  let pcre = translate_root pat in
+  let re = Pcre_.regexp pcre in
   { source; re }
 [@@profiling "Glob.Match.compile"]
 
@@ -99,19 +138,15 @@ let compile ~source pat =
 let debug = ref false
 
 let run matcher path =
-  let res = Re.execp matcher.re path in
+  let res = Pcre_.pmatch_noerr ~rex:matcher.re path in
   if !debug then
     (* expensive string concatenation; may not be suitable for logger#debug *)
-    Printf.printf "** pattern: %S  path: %S  matches: %B\n"
-      matcher.source.line_contents path res;
+    Printf.eprintf "** glob: %S  pcre: %s  path: %S  matches: %B\n%!"
+      matcher.source.line_contents matcher.re.pattern path res;
   res
 [@@profiling "Glob.Match.run"]
 
 let source matcher = matcher.source
 
 let show x =
-  let re_info =
-    Re.pp_re Format.str_formatter x.re;
-    Format.flush_str_formatter ()
-  in
-  Printf.sprintf "pattern at %s:\n%s" (show_loc x.source) re_info
+  Printf.sprintf "pattern at %s:\n%s" (show_loc x.source) x.re.pattern

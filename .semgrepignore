@@ -25,7 +25,8 @@
 # To ignore a file with a literal ':' character, escape it with
 # a backslash, e.g. "\:foo".
 
-/tests/
+/tests
+# Test data
 /cli/tests/e2e/targets/
 /cli/tests/e2e/snapshots/
 /cli/tests/performance/targets/

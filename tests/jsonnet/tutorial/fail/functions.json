@@ -1,0 +1,13 @@
+{
+  "call": 12,
+  "call_inline_function": 25,
+  "call_method1": 9,
+  "call_multiline_function": [8, 9],
+  "len": [
+    5,
+    3
+  ],
+  "named_params": 12,
+  "named_params2": 5,
+  "standard_lib": "foo bar"
+}

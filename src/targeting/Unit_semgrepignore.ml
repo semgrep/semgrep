@@ -10,6 +10,8 @@ module F = Testutil_files
 (* Helpers *)
 (*****************************************************************************)
 
+let t = Testo.create
+
 (*
    In these tests, the file hierarchy must contain the
    .gitignore and .semgrepignore files but the target files are not
@@ -62,74 +64,73 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
 (*****************************************************************************)
 
 let tests =
-  Testutil.pack_tests "Semgrepignore"
+  Testo.categorize "Semgrepignore"
     [
-      ( "gitignore + semgrepignore",
-        test_filter
-          [
-            File (".gitignore", "*.c");
-            File (".semgrepignore", "!hello.*");
-            file "hello.c";
-            file "hello.ml";
-          ]
-          [ ("/hello.ml", true); ("/hello.c", true); ("/generated.c", false) ]
-      );
-      ( "semgrepignore alone",
-        test_filter
-          [ File (".semgrepignore", "hello.*"); file "hello.c"; file "bye.c" ]
-          [ ("/hello.c", false); ("/bye.c", true) ] );
-      ( "deep semgrepignore + gitignore",
-        test_filter
-          [
-            File (".gitignore", "a");
-            dir "dir"
-              [ File (".semgrepignore", "b"); file "a"; file "b"; file "c" ];
-            file "a";
-            file "b";
-          ]
-          [
-            ("/a", false);
-            ("/b", true);
-            ("/dir/a", false);
-            ("/dir/b", false);
-            ("/dir/c", true);
-          ] );
-      ( "includes",
-        test_filter ~includes:[ "*.ml" ] []
-          [
-            ("/a.ml", true);
-            ("/a.c", false);
-            ("/b/a.ml", true);
-            ("/b/a.c", false);
-          ] );
-      ( "excludes",
-        test_filter ~excludes:[ "*.ml" ] []
-          [
-            ("/a.ml", false);
-            ("/a.c", true);
-            ("/b/a.ml", false);
-            ("/b/a.c", true);
-          ] );
-      ( "includes + excludes",
-        test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ] []
-          [
-            ("/a.ml", false);
-            ("/a.c", false);
-            ("/src/a.ml", true);
-            ("/src/a.c", false);
-          ] );
-      ( "includes + excludes + semgrepignore",
-        test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ]
-          [
-            (* command-line level includes/excludes take precedence over
-               gitignore/semgrepignore files, so this is ignored. *)
-            File (".semgrepignore", "!b.*");
-          ]
-          [
-            ("/a.ml", false);
-            ("/a.c", false);
-            ("/src/a.ml", true);
-            ("/src/a.c", false);
-            ("/src/b.c", false);
-          ] );
+      t "gitignore + semgrepignore"
+        (test_filter
+           [
+             File (".gitignore", "*.c");
+             File (".semgrepignore", "!hello.*");
+             file "hello.c";
+             file "hello.ml";
+           ]
+           [ ("/hello.ml", true); ("/hello.c", true); ("/generated.c", false) ]);
+      t "semgrepignore alone"
+        (test_filter
+           [ File (".semgrepignore", "hello.*"); file "hello.c"; file "bye.c" ]
+           [ ("/hello.c", false); ("/bye.c", true) ]);
+      t "deep semgrepignore + gitignore"
+        (test_filter
+           [
+             File (".gitignore", "a");
+             dir "dir"
+               [ File (".semgrepignore", "b"); file "a"; file "b"; file "c" ];
+             file "a";
+             file "b";
+           ]
+           [
+             ("/a", false);
+             ("/b", true);
+             ("/dir/a", false);
+             ("/dir/b", false);
+             ("/dir/c", true);
+           ]);
+      t "includes"
+        (test_filter ~includes:[ "*.ml" ] []
+           [
+             ("/a.ml", true);
+             ("/a.c", false);
+             ("/b/a.ml", true);
+             ("/b/a.c", false);
+           ]);
+      t "excludes"
+        (test_filter ~excludes:[ "*.ml" ] []
+           [
+             ("/a.ml", false);
+             ("/a.c", true);
+             ("/b/a.ml", false);
+             ("/b/a.c", true);
+           ]);
+      t "includes + excludes"
+        (test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ] []
+           [
+             ("/a.ml", false);
+             ("/a.c", false);
+             ("/src/a.ml", true);
+             ("/src/a.c", false);
+           ]);
+      t "includes + excludes + semgrepignore"
+        (test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ]
+           [
+             (* command-line level includes/excludes take precedence over
+                gitignore/semgrepignore files, so this is ignored. *)
+             File (".semgrepignore", "!b.*");
+           ]
+           [
+             ("/a.ml", false);
+             ("/a.c", false);
+             ("/src/a.ml", true);
+             ("/src/a.c", false);
+             ("/src/b.c", false);
+           ]);
     ]

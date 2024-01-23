@@ -1,0 +1,13 @@
+rules:
+  - patterns:
+      - pattern: |
+          $EXPR
+      - metavariable-type:
+          metavariable: $EXPR
+          type: string
+    id: string-type
+    message: string-type
+    languages:
+      - cpp
+    severity: WARNING
+

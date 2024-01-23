@@ -13,7 +13,6 @@
  * license.txt for more details.
  *
  *)
-open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_go
 module Lexer = Lexer_go
@@ -49,7 +48,7 @@ let tokens input_source =
 let parse filename =
   (* this can throw Parse_info.Lexical_error *)
   let toks_orig = tokens (Parsing_helpers.file filename) in
-  let toks = Common.exclude TH.is_comment_or_space toks_orig in
+  let toks = List_.exclude TH.is_comment_or_space toks_orig in
   (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
   let toks = Parsing_hacks_go.fix_tokens toks in
   let tr, lexer, lexbuf_fake =
@@ -76,9 +75,9 @@ let parse filename =
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then (
-        pr2 ("parse error \n = " ^ error_msg_tok cur);
-        let filelines = Common2.cat_array filename in
-        let checkpoint2 = Common.cat filename |> List.length in
+        UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
+        let filelines = UFile.cat_array (Fpath.v filename) in
+        let checkpoint2 = UCommon.cat filename |> List.length in
         let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       {
@@ -104,7 +103,7 @@ let (program_of_string : string -> Ast_go.program) =
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
       let toks_orig = tokens (Parsing_helpers.Str s) in
-      let toks = Common.exclude TH.is_comment_or_space toks_orig in
+      let toks = List_.exclude TH.is_comment_or_space toks_orig in
       (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
       let toks = Parsing_hacks_go.fix_tokens toks in
       let tr, lexer, lexbuf_fake =
@@ -116,5 +115,5 @@ let any_of_string s =
       try Parser_go.sgrep_spatch_pattern lexer lexbuf_fake with
       | Parsing.Parse_error ->
           let cur = tr.Parsing_helpers.current in
-          pr2 ("parse error \n = " ^ error_msg_tok cur);
+          UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
           raise (Parsing_error.Syntax_error (TH.info_of_tok cur)))

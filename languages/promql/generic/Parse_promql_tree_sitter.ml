@@ -78,7 +78,7 @@ let map_duration (env : env) (x : CST.duration) =
         List.map
           (fun (f, d) ->
             let si, ti = str env f in
-            let i = int_of_string si in
+            let pi = Parsed_int.parse (si, ti) in
             let sd, td =
               match d with
               | `Ms tok -> str env tok
@@ -92,10 +92,8 @@ let map_duration (env : env) (x : CST.duration) =
             G.Container
               ( G.Tuple,
                 fb
-                  [
-                    G.L (G.Int (Some i, ti)) |> G.e;
-                    G.L (G.String (fb (sd, td))) |> G.e;
-                  ] )
+                  [ G.L (G.Int pi) |> G.e; G.L (G.String (fb (sd, td))) |> G.e ]
+              )
             |> G.e)
           x
       in
@@ -408,6 +406,6 @@ let parse_pattern str =
     (fun () -> Tree_sitter_promql.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
       let e = map_query env cst in
       G.E e)

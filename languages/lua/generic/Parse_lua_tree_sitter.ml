@@ -128,7 +128,7 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
           (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
         in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
@@ -153,14 +153,14 @@ let map_local_variable_declarator (env : env)
     ((v1, v2) : CST.local_variable_declarator) local : G.entity list =
   let ident_first = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let ident_rest =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _comma = token env v1 (* "," *) in
         let ident = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
         ident)
       v2
   in
-  Common.map
+  List_.map
     (fun x -> G.basic_entity x ~attrs:[ G.KeywordAttr (G.Static, local) ])
     (ident_first :: ident_rest)
 
@@ -168,7 +168,7 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
     colon_and_ident : G.name =
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let v2 =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "." *) in
         let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
@@ -197,7 +197,7 @@ let rec map_expression_list (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.expr list =
   let v1 = map_expression env v1 in
   let v2 =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "," *) in
         let v2 = map_expression env v2 in
@@ -214,7 +214,7 @@ and map_expression_tuple (env : env)
 and map_anon_arguments (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.argument list =
   let v1 = map_expression_list env (v1, v2) in
-  Common.map (fun (v1 : G.expr) -> G.Arg v1) v1
+  List_.map (fun (v1 : G.expr) -> G.Arg v1) v1
 
 and map_arguments (env : env) (x : CST.arguments) : G.arguments =
   match x with
@@ -341,7 +341,7 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       G.Call (G.IdSpecial (G.Op G.BitXor, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
 
 and map_statement_list (env : env) (x : CST.statement list) : G.stmt list =
-  let v1 = Common.map (map_statement env) x in
+  let v1 = List_.map (map_statement env) x in
   List.flatten v1
 
 and map_statements_and_return (env : env) (v1, v2) : G.stmt list =
@@ -445,7 +445,7 @@ and map_field_sequence (env : env) ((v1, v2, v3) : CST.field_sequence) :
     G.expr list =
   let v1 = map_field env v1 in
   let v2 =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = map_field_sep env v1 in
         let v2 = map_field env v2 in
@@ -502,7 +502,7 @@ and map_in_loop_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.in_loop_expression) =
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let v2 =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "," *) in
         let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
@@ -514,7 +514,7 @@ and map_in_loop_expression (env : env)
     | [] -> G.PatId (v1, G.empty_id_info ()) |> G.p
     | _ ->
         let pats =
-          Common.map (fun id -> G.PatId (id, G.empty_id_info ())) (v1 :: v2)
+          List_.map (fun id -> G.PatId (id, G.empty_id_info ())) (v1 :: v2)
         in
         G.PatTuple (fb (pats |> G.p))
   in
@@ -534,7 +534,7 @@ and map_in_loop_expression (env : env)
   *)
   let v4 = map_expression env v4 in
   let _v5_TODO =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "," *) in
         let v2 = map_expression env v2 in
@@ -600,7 +600,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
   | `Var_decl (v1, v2, v3, v4, v5) ->
       let ident_first = map_variable_declarator env v1 in
       let ident_rest =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = token env v1 (* "," *) in
             let v2 = map_variable_declarator env v2 in
@@ -610,7 +610,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let equal = token env v3 (* "=" *) in
       let expr_first = map_expression env v4 in
       let expr_rest =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = token env v1 (* "," *) in
             let v2 = map_expression env v2 in
@@ -620,7 +620,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let assigns =
         mk_assigns (ident_first :: ident_rest) (expr_first :: expr_rest) equal
       in
-      Common.map (fun x -> G.ExprStmt (x, G.sc) |> G.s) assigns
+      List_.map (fun x -> G.ExprStmt (x, G.sc) |> G.s) assigns
   | `Local_var_decl (v1, v2, v3) ->
       let local = token env v1 (* "local" *) in
       let entities = map_local_variable_declarator env v2 local in
@@ -630,7 +630,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
             let _v1 = token env v1 (* "=" *) in
             let v2 = map_expression env v2 in
             let v3 =
-              Common.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = token env v1 (* "," *) in
                   let v2 = map_expression env v2 in
@@ -641,7 +641,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
         | None -> []
       in
       let defs = mk_vars entities exprs in
-      Common.map (fun x -> G.DefStmt x |> G.s) defs
+      List_.map (fun x -> G.DefStmt x |> G.s) defs
   | `Do_stmt (v1, v2, v3, v4) -> [ map_do_block env (v1, v2, v3, v4) ]
   | `If_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = token env v1 (* "if" *) in
@@ -805,6 +805,6 @@ let parse_pattern str =
     (fun () -> Tree_sitter_lua.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
       let xs = map_program env cst in
       G.Ss xs)

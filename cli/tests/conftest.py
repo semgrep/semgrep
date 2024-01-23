@@ -24,6 +24,7 @@ from typing import Union
 
 import colorama
 import pytest
+from ruamel.yaml import YAML
 from tests import fixtures
 from tests.semgrep_runner import SemgrepRunner
 
@@ -41,6 +42,7 @@ TESTS_PATH = Path(__file__).parent
 ##############################################################################
 # Pytest hacks
 ##############################################################################
+
 
 # ???
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -71,13 +73,40 @@ def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> 
 
 
 ##############################################################################
-# Helper functions
+# Helper functions/classes
 ##############################################################################
+
+
+class str_containing:
+    """Assert that a given string meets some expectations."""
+
+    def __init__(self, pattern, flags=0):
+        self._pattern = pattern
+
+    def __eq__(self, actual):
+        return self._pattern in actual
+
+    def __repr__(self):
+        return self._pattern
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
     semgrepconfig_path = dir_path / ".semgrepconfig"
     semgrepconfig_path.write_text(contents)
+
+
+def make_settings_file(unique_path: Path) -> None:
+    Path(unique_path).write_text(
+        "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+        "has_shown_metrics_notification: true\n"
+    )
+
+
+def load_anonymous_user_id(settings_file: Path) -> Optional[str]:
+    with open(settings_file) as fd:
+        yaml_contents = YAML(typ="safe").load(fd)
+    raw_value = yaml_contents.get("anonymous_user_id")
+    return f"{raw_value}" if raw_value else None
 
 
 def mark_masked(obj, path):
@@ -182,6 +211,31 @@ def mask_capture_group(match: re.Match) -> str:
     for group in match.groups():
         text = text.replace(group, "<MASKED>") if group else text
     return text
+
+
+def mask_times(result_json: str) -> str:
+    result = json.loads(result_json)
+
+    def zero_times(value):
+        if type(value) == float:
+            return 2.022
+        elif type(value) == list:
+            return [zero_times(val) for val in value]
+        elif type(value) == dict:
+            return {k: zero_times(v) for k, v in value.items()}
+        else:
+            return value
+
+    if "time" in result:
+        result["time"] = zero_times(result["time"])
+    return json.dumps(result, indent=2, sort_keys=True)
+
+
+FLOATS = re.compile("([0-9]+).([0-9]+)")
+
+
+def mask_floats(text_output: str) -> str:
+    return re.sub(FLOATS, "x.xxx", text_output)
 
 
 # ProTip: make sure your regexps can't match JSON quotes so as to keep any
@@ -307,6 +361,7 @@ def _run_semgrep(
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
     target_name: Optional[str] = "basic",
+    subcommand: Optional[str] = None,
     options: Optional[List[Union[str, Path]]] = None,
     output_format: Optional[OutputFormat] = OutputFormat.JSON,
     strict: bool = True,
@@ -334,6 +389,10 @@ def _run_semgrep(
 
     if force_color:
         env["SEMGREP_FORCE_COLOR"] = "true"
+        # NOTE: We should also apply the known color flags to the env
+        env["FORCE_COLOR"] = "1"
+        if "NO_COLOR" in env:
+            del env["NO_COLOR"]
 
     if "SEMGREP_USER_AGENT_APPEND" not in env:
         env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
@@ -343,11 +402,7 @@ def _run_semgrep(
     # Use a unique settings file so multithreaded pytest works well
     if "SEMGREP_SETTINGS_FILE" not in env:
         unique_settings_file = tempfile.NamedTemporaryFile().name
-        Path(unique_settings_file).write_text(
-            "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
-            "has_shown_metrics_notification: true\n"
-        )
-
+        make_settings_file(Path(unique_settings_file))
         env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     if "SEMGREP_VERSION_CACHE_PATH" not in env:
         env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
@@ -392,10 +447,11 @@ def _run_semgrep(
     env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
     runner = SemgrepRunner(env=env, mix_stderr=False, use_click_runner=use_click_runner)
-    click_result = runner.invoke(cli, args, input=stdin)
+    click_result = runner.invoke(cli, subcommand=subcommand, args=args, input=stdin)
+    subcommand_prefix = f"{subcommand} " if subcommand else ""
     result = SemgrepResult(
         # the actual executable was either semgrep or osemgrep. Is it bad?
-        f"{env_string} semgrep {args}",
+        f"{env_string} semgrep {subcommand_prefix}{args}",
         click_result.stdout,
         click_result.stderr,
         click_result.exit_code,
@@ -502,16 +558,3 @@ def parse_lockfile_path_in_tmp_for_perf(
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path
-
-
-class str_containing:
-    """Assert that a given string meets some expectations."""
-
-    def __init__(self, pattern, flags=0):
-        self._pattern = pattern
-
-    def __eq__(self, actual):
-        return self._pattern in actual
-
-    def __repr__(self):
-        return self._pattern

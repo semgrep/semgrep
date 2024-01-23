@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Either_
 open Ast_go
 module G = AST_generic
 module H = AST_generic_helpers
@@ -30,7 +31,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 let string = id
-let list = Common.map
+let list = List_.map
 let option = Option.map
 let either = OCaml.map_of_either
 let arithmetic_operator = id
@@ -64,7 +65,7 @@ let return_type_of_results results =
       Some
         (G.TyTuple
            (xs
-           |> Common.map (function
+           |> List_.map (function
                 | G.Param { G.ptype = Some t; _ } -> t
                 | G.Param { G.ptype = None; _ } -> raise Impossible
                 | G.ParamEllipsis t -> G.TyEllipsis t |> G.t
@@ -297,8 +298,7 @@ let top_func () =
         and v2, tok = wrap arithmetic_operator v2
         and v3 = expr v3 in
         G.Call
-          ( G.IdSpecial (G.Op v2, tok) |> G.e,
-            fb ([ v1; v3 ] |> Common.map G.arg) )
+          (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and l, v2, r = bracket (list init_for_composite_lit) v2 in
@@ -344,9 +344,7 @@ let top_func () =
           ("ParenType should disappear" ^ Dumper.dump v1))
     |> G.e
   and literal = function
-    | Int v1 ->
-        let v1 = wrap id v1 in
-        G.Int v1
+    | Int v1 -> G.Int v1
     | Float v1 ->
         let v1 = wrap id v1 in
         G.Float v1
@@ -555,12 +553,12 @@ let top_func () =
         and v3 = expr v3 in
         match opt with
         | None ->
-            let pattern = G.PatUnderscore (fake v2 "_") in
+            let pattern = G.PatWildcard (fake v2 "_") in
             G.ForEach (pattern, v2, v3)
         | Some (xs, _tokEqOrColonEqTODO) ->
             let pattern =
               G.PatTuple
-                (xs |> Common.map H.expr_to_pattern |> Tok.unsafe_fake_bracket)
+                (xs |> List_.map H.expr_to_pattern |> Tok.unsafe_fake_bracket)
             in
             G.ForEach (pattern, v2, v3))
   and case_clause = function
@@ -579,12 +577,12 @@ let top_func () =
         | Right t -> G.PatType t)
   and case_kind = function
     | CaseExprs (tok, v1) ->
-        v1 |> Common.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
+        v1 |> List_.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
     | CaseAssign (tok, v1, v2, v3) ->
         let v1 = list expr_or_type v1 and v3 = expr v3 in
         let v1 =
           v1
-          |> Common.map (function
+          |> List_.map (function
                | Left e -> e
                | Right _ -> error tok "TODO: Case Assign with Type?")
         in
@@ -622,7 +620,7 @@ let top_func () =
         G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
     | DTypeDef (v1, v2, v3) ->
         let id = ident v1 in
-        let tparams = option type_parameters v2 |> Common.optlist_to_list in
+        let tparams = option type_parameters v2 |> List_.optlist_to_list in
         let ty = type_ v3 in
         let ent = G.basic_entity id ~tparams in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
@@ -635,7 +633,7 @@ let top_func () =
   and top_decl = function
     | DFunc (v1, v2, (v3, v4)) ->
         let v1 = ident v1 in
-        let tparams = option type_parameters v2 |> Common.optlist_to_list in
+        let tparams = option type_parameters v2 |> List_.optlist_to_list in
         let ftok, params, ret = func_type v3 in
         let body = stmt v4 in
         let ent = G.basic_entity v1 ~tparams in

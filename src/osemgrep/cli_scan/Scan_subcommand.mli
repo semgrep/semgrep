@@ -5,23 +5,15 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : string array -> Exit_code.t
+val main : < Cap.stdout ; Cap.network > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf : Scan_CLI.conf -> Exit_code.t
-val run_scan_conf : Scan_CLI.conf -> Exit_code.t
-
-(* Semgrep Pro hook for osemgrep *)
-val hook_pro_scan_func_for_osemgrep :
-  (Fpath.t list ->
-  ?diff_config:Differential_scan_config.t ->
-  Engine_type.t ->
-  Core_runner.scan_func_for_osemgrep)
-  option
-  ref
+val run_conf : < Cap.stdout ; Cap.network > -> Scan_CLI.conf -> Exit_code.t
+val run_scan_conf : < Cap.stdout ; Cap.network > -> Scan_CLI.conf -> Exit_code.t
 
 (* internal: scan all the files - also used in CI *)
 val run_scan_files :
+  < Cap.stdout > ->
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->

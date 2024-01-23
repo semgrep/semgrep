@@ -435,7 +435,7 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
-        open_and_ignore("/tmp/core-runner-semgrep-BEGIN")
+        open_and_ignore(f"{tempfile.gettempdir()}/core-runner-semgrep-BEGIN")
 
         terminal = get_state().terminal
         with Progress(
@@ -460,7 +460,7 @@ class StreamingSemgrepCore:
 
             rc = asyncio.run(self._stream_exec_subprocess())
 
-        open_and_ignore("/tmp/core-runner-semgrep-END")
+        open_and_ignore(f"{tempfile.gettempdir()}/core-runner-semgrep-END")
         return rc
 
 
@@ -690,6 +690,7 @@ class CoreRunner:
         time_flag: bool,
         matching_explanations: bool,
         engine: EngineType,
+        strict: bool,
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
@@ -700,7 +701,7 @@ class CoreRunner:
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
-        file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
+        file_timeouts: Dict[Path, int] = collections.defaultdict(int)
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
@@ -768,6 +769,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             # adding multi-core option
             cmd.extend(["-j", str(self._jobs)])
+
+            if strict:
+                cmd.extend(["-strict"])
 
             # adding targets option
             if target_mode_config.is_pro_diff_scan:
@@ -962,6 +966,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         time_flag: bool,
         matching_explanations: bool,
         engine: EngineType,
+        strict: bool,
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
@@ -982,6 +987,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 time_flag,
                 matching_explanations,
                 engine,
+                strict,
                 run_secrets,
                 disable_secrets_validation,
                 target_mode_config,
@@ -1019,6 +1025,7 @@ Exception raised: `{e}`
         time_flag: bool,
         matching_explanations: bool,
         engine: EngineType,
+        strict: bool,
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
@@ -1039,6 +1046,7 @@ Exception raised: `{e}`
             time_flag,
             matching_explanations,
             engine,
+            strict,
             run_secrets,
             disable_secrets_validation,
             target_mode_config,

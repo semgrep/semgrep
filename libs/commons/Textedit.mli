@@ -1,11 +1,12 @@
 type t = {
-  path : Common.filename;
+  path : string;
   (* 0-based byte index, inclusive *)
   start : int;
   (* 0-based byte index, exclusive *)
   end_ : int;
   replacement_text : string;
 }
+[@@deriving show]
 
 type edit_application_result =
   | Success of string

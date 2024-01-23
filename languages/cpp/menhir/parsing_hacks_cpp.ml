@@ -135,7 +135,7 @@ let find_template_inf_sup xs =
     | { t = TIdent (_, i1) } :: ({ t = TInf i2 } as tok2) :: xs
       when no_space_between i1 i2
            && (* safe guard, and good style anyway *)
-           have_a_tsup_quite_close (Common.take_safe templateLOOKAHEAD xs) ->
+           have_a_tsup_quite_close (List_.take_safe templateLOOKAHEAD xs) ->
         change_tok tok2 (TInf_Template i2);
         let before_sup, (toksup, toksupi), rest =
           find_tsup_quite_close tok2 xs

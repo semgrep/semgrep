@@ -15,7 +15,6 @@ from dataclasses import replace
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -23,9 +22,9 @@ import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
-from semgrep.error import SemgrepError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
+from semgrep.rule_match import CliUniqueKey
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.verbose_logging import getLogger
@@ -178,40 +177,10 @@ def core_matches_to_rule_matches(
             metadata = copy.deepcopy(metadata)
             metadata.update(match.extra.metadata.value)
 
-        if match.extra.rendered_fix is not None:
-            fix = match.extra.rendered_fix
-            logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
-        elif rule.fix is not None:
-            fix = interpolate(
-                rule.fix,
-                matched_values,
-                propagated_values,
-                isinstance(rule.product.value, out.Secrets),
-            )
-            logger.debug(f"Using text-based autofix rendered in cli: `{fix}`")
+        if match.extra.fix is not None:
+            fix = match.extra.fix
         else:
             fix = None
-        fix_regex = None
-
-        # this validation for fix_regex code was in autofix.py before
-        # TODO: this validation should be done in rule.py when parsing the rule
-        if rule.fix_regex:
-            regex = rule.fix_regex.get("regex")
-            replacement = rule.fix_regex.get("replacement")
-            count = rule.fix_regex.get("count")
-            if not regex or not replacement:
-                raise SemgrepError(
-                    "'regex' and 'replacement' values required when using 'fix-regex'"
-                )
-            if count:
-                try:
-                    count = int(count)
-                except ValueError:
-                    raise SemgrepError(
-                        "optional 'count' value must be an integer when using 'fix-regex'"
-                    )
-
-            fix_regex = out.FixRegex(regex=regex, replacement=replacement, count=count)
 
         return RuleMatch(
             match=match,
@@ -220,18 +189,19 @@ def core_matches_to_rule_matches(
             metadata=metadata,
             severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=fix,
-            fix_regex=fix_regex,
         )
+
+    by_unique_key: Dict[CliUniqueKey, RuleMatch] = {}
+    for match in res.results:
+        rule_match = convert_to_rule_match(match)
+        curr = by_unique_key.setdefault(rule_match.cli_unique_key, rule_match)
+        if rule_match.should_report_instead(curr):
+            by_unique_key[rule_match.cli_unique_key] = rule_match
 
     # TODO: Dict[out.RuleId, RuleMatchSet]
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
-    seen_cli_unique_keys: Set[Tuple] = set()
-    for match in res.results:
-        rule = rule_table[match.check_id.value]
-        rule_match = convert_to_rule_match(match)
-        if rule_match.cli_unique_key in seen_cli_unique_keys:
-            continue
-        seen_cli_unique_keys.add(rule_match.cli_unique_key)
+    for rule_match in by_unique_key.values():
+        rule = rule_table[rule_match.rule_id]
         findings[rule].add(rule_match)
 
     # Sort results so as to guarantee the same results across different

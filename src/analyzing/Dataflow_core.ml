@@ -133,8 +133,8 @@ module Make (F : Flow) = struct
 
   let (display_mapping : F.flow -> 'env mapping -> ('env -> string) -> unit) =
    fun flow mapping env_to_str ->
-    pr (* nosemgrep: no-print-in-semgrep *)
-      (mapping_to_str flow env_to_str mapping)
+    (* nosemgrep: no-print-in-semgrep *)
+    UCommon.pr (mapping_to_str flow env_to_str mapping)
 
   let fixpoint_worker ~timeout eq_env mapping trans flow succs workset =
     let t0 = Sys.time () in

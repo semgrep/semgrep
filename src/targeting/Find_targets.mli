@@ -3,6 +3,12 @@
    regardless of rules or languages.
  *)
 
+(* Git_remote should really be a URI *)
+type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
+
+type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+[@@deriving show]
+
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
@@ -14,7 +20,7 @@ type conf = {
   (* whether or not follow what is specified in the .gitignore
    * TODO? what about .semgrepignore?
    *)
-  respect_git_ignore : bool;
+  respect_gitignore : bool;
   (* TODO: not used for now *)
   baseline_commit : string option;
   (* TODO: not used for now *)
@@ -22,7 +28,7 @@ type conf = {
   (* TODO: not used for now *)
   scan_unknown_extensions : bool;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : Fpath.t option;
+  project_root : project_root option;
 }
 [@@deriving show]
 
@@ -43,6 +49,12 @@ type conf = {
    This may raise Unix.Unix_error if the scanning root does not exist.
 *)
 val get_targets :
+  conf ->
+  Fpath.t list (* scanning roots *) ->
+  Fppath.t list * Semgrep_output_v1_t.skipped_target list
+
+(* Same as get_targets but drop the ppath (path within the project) *)
+val get_target_fpaths :
   conf ->
   Fpath.t list (* scanning roots *) ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list

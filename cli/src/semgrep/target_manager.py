@@ -43,7 +43,7 @@ from boltons.iterutils import partition
 
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import FilesNotFoundError
-from semgrep.formatter.text import width
+from semgrep.formatter.text import BASE_WIDTH as width
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
@@ -176,6 +176,20 @@ class FileTargetingLog:
             else self.target_manager.get_all_files()
         )
 
+    def list_skipped_paths_with_reason(self) -> List[Tuple[Path, str]]:
+        res: List[Tuple[Path, str]] = []
+        # The strings used to describe the reason are those defined
+        # in semgrep_output_v1.atd for type 'skip_reason':
+        for x in self.always_skipped:
+            res.append((x, "always_skipped"))
+        for x in self.cli_includes:
+            res.append((x, "cli_include_flags_do_not_match"))
+        for x in self.cli_excludes:
+            res.append((x, "cli_exclude_flags_match"))
+        for x in self.size_limit:
+            res.append((x, "exceeded_size_limit"))
+        return sorted(res)
+
     def __str__(self) -> str:
         limited_fragments = []
         skip_fragments = []
@@ -262,7 +276,7 @@ class FileTargetingLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by .semgrepignore:"
-        yield 1, "(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
+        yield 1, "- https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
         if self.semgrepignored:
             for path in sorted(self.semgrepignored):
                 yield 2, with_color(Colors.cyan, str(path))
@@ -459,7 +473,7 @@ class Target:
             [
                 "git",
                 "ls-files",
-                "--other",
+                "--others",
                 "--exclude-standard",
             ]
         )
@@ -527,7 +541,7 @@ class TargetManager:
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
-    target_strings: Sequence[str]
+    target_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
     excludes: Sequence[str] = Factory(list)
     max_target_bytes: int = -1
@@ -603,7 +617,7 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Union[Language, Ecosystem], *, candidates: FrozenSet[Path]
+        self, language: Union[None, Language, Ecosystem], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns only paths that have the correct extension or shebang, or are the correct lockfile format
@@ -620,7 +634,7 @@ class TargetManager:
                 if any(str(path).endswith(ext) for ext in language.definition.exts)
                 or self.executes_with_shebang(path, language.definition.shebangs)
             )
-        else:
+        elif isinstance(language, Ecosystem):
             kept = frozenset(
                 path
                 for path in candidates
@@ -629,6 +643,8 @@ class TargetManager:
                     for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
                 )
             )
+        else:
+            kept = frozenset(candidates)
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
@@ -703,7 +719,7 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
-        self, lang: Union[Language, Ecosystem], product: out.Product
+        self, lang: Union[None, Language, Ecosystem], product: out.Product
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
@@ -716,8 +732,11 @@ class TargetManager:
         """
         all_files = self.get_all_files()
 
-        files = self.filter_by_language(lang, candidates=all_files)
-        self.ignore_log.by_language[lang].update(files.removed)
+        if lang:
+            files = self.filter_by_language(lang, candidates=all_files)
+            self.ignore_log.by_language[lang].update(files.removed)
+        else:
+            files = FilteredFiles(frozenset(all_files), frozenset())
 
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)

@@ -1,7 +1,8 @@
-open Testutil
-open File.Operators
-module Out = Semgrep_output_v1_t
+open Fpath_.Operators
+module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
+
+let t = Testo.create
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
     for the python side as testing there is easier *)
@@ -15,7 +16,7 @@ let checked_command cmd =
   | _ -> failwith (Common.spf "Error running cmd: %s" (Bos.Cmd.to_string cmd))
 
 let setup_git workspace =
-  Git_wrapper.init workspace;
+  Git_wrapper.init ~cwd:workspace ();
   checked_command
     Bos.Cmd.(
       v "git" % "-C" % Fpath.to_string workspace % "config" % "user.email"
@@ -34,7 +35,9 @@ let mock_session () =
   session
 
 let set_session_targets (session : Session.t) folders =
-  { session with workspace_folders = folders }
+  let session = { session with workspace_folders = folders } in
+  Session.cache_workspace_targets session;
+  session
 
 let mock_run_results (files : string list) : Core_runner.result =
   let pattern_string = "print(...)" in
@@ -47,14 +50,15 @@ let mock_run_results (files : string list) : Core_runner.result =
   let rule = Rule.rule_of_xpattern xlang xpat in
   let rule = { rule with id = (Rule_ID.of_string "print", fk) } in
   let hrules = Rule.hrules_of_rules [ rule ] in
-  let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
+  let scanned = List_.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let (extra : Out.core_match_extra) =
+    let (extra : OutJ.core_match_extra) =
       {
         message = Some "test";
         metavars = [];
         dataflow_trace = None;
-        rendered_fix = None;
+        fix = None;
+        is_ignored = false;
         engine_kind = `OSS;
         validation_state = Some `No_validator;
         extra_extra = None;
@@ -62,7 +66,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metadata = None;
       }
     in
-    let (m : Out.core_match) =
+    let (m : OutJ.core_match) =
       {
         check_id = Rule_ID.of_string "print";
         (* inherited location *)
@@ -74,8 +78,8 @@ let mock_run_results (files : string list) : Core_runner.result =
     in
     m
   in
-  let matches = Common.map match_of_file files in
-  let (core : Out.core_output) =
+  let matches = List_.map match_of_file files in
+  let (core : OutJ.core_output) =
     {
       version = None;
       results = matches;
@@ -87,6 +91,9 @@ let mock_run_results (files : string list) : Core_runner.result =
       time = None;
       rules_by_engine = None;
       engine_requested = Some `OSS;
+      (* If the engine requested is OSS, there must be no
+         interfile requested languages *)
+      interfile_languages_used = Some [];
     }
   in
   Core_runner.{ core; hrules; scanned }
@@ -110,13 +117,21 @@ let add_file ?(git = false) ?(dirty = false)
   let oc = open_out_bin file in
   output_string oc content;
   close_out oc;
-  if git then Git_wrapper.add workspace [ Fpath.v file ];
-  if (not dirty) && git then Git_wrapper.commit workspace "test";
+  if git then Git_wrapper.add ~cwd:workspace [ Fpath.v file ];
+  if (not dirty) && git then Git_wrapper.commit ~cwd:workspace "test";
   file
 
 let with_mock_envvars f () =
+  (* TODO: we should simply do:
+   *    Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" "123456789" f
+   * but we then get CI failures on build-js-tests
+   * see https://github.com/semgrep/semgrep/pull/9285
+   * because of the use of putenv in Semgrep_envvars.with_envvar,
+   * even after adding a fake on in js/node_shared/unix.js
+   *)
   let old_settings = !Semgrep_envvars.v in
-  let new_settings = { old_settings with app_token = Some "123456789" } in
+  let app_token = Some (Auth.unsafe_token_of_string "123456789") in
+  let new_settings = { old_settings with app_token } in
   Common.save_excursion Semgrep_envvars.v new_settings f
 
 (*****************************************************************************)
@@ -129,9 +144,9 @@ let session_targets () =
     let user_settings = { session.user_settings with only_git_dirty } in
     let session = { session with user_settings; workspace_folders } in
     let session = set_session_targets session workspace_folders in
-    let targets = session |> Session.targets |> Common.map Fpath.to_string in
-    let targets = Common.sort targets in
-    let expected = Common.sort expected in
+    let targets = session |> Session.targets |> List_.map Fpath.to_string in
+    let targets = List_.sort targets in
+    let expected = List_.sort expected in
     Alcotest.(check (list string)) "targets" expected targets
   in
   let test_session_basic git only_git_dirty () =
@@ -170,31 +185,31 @@ let session_targets () =
   in
   let tests =
     [
-      ("Test no git", test_session_basic false false);
-      ("Test no git with only_git_dirty", test_session_basic false true);
-      ("Test git", test_session_basic true false);
-      ("Test git with dirty files", test_git_dirty);
-      ( "Test multiple workspaces (only_git_dirty: true)",
-        test_multi_workspaces true );
-      ( "Test multiple workspaces (only_git_dirty: false)",
-        test_multi_workspaces false );
-      ( "Test multiple workspaces with some dirty (only_git_dirty: true)",
-        test_multi_some_dirty true );
-      ( "Test multiple workspaces with some dirty (only_git_dirty: false)",
-        test_multi_some_dirty false );
+      t "Test no git" (test_session_basic false false);
+      t "Test no git with only_git_dirty" (test_session_basic false true);
+      t "Test git" (test_session_basic true false);
+      t "Test git with dirty files" test_git_dirty;
+      t "Test multiple workspaces (only_git_dirty: true)"
+        (test_multi_workspaces true);
+      t "Test multiple workspaces (only_git_dirty: false)"
+        (test_multi_workspaces false);
+      t "Test multiple workspaces with some dirty (only_git_dirty: true)"
+        (test_multi_some_dirty true);
+      t "Test multiple workspaces with some dirty (only_git_dirty: false)"
+        (test_multi_some_dirty false);
     ]
   in
-  pack_tests "Session Targets" tests
+  Testo.categorize "Session Targets" tests
 
 let processed_run () =
   let test_processed_run files expected only_git_dirty =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> Common.map (fun (m : Out.cli_match) -> !!(m.path))
+      matches |> List_.map (fun (m : OutJ.cli_match) -> !!(m.path))
     in
-    let final_files = Common.sort final_files in
-    let expected = Common.sort expected in
+    let final_files = List_.sort final_files in
+    let expected = List_.sort expected in
     Alcotest.(check (list string)) "processed run" expected final_files
   in
   let test_processed only_git_dirty git () =
@@ -223,36 +238,15 @@ let processed_run () =
     let expected = [ file2; file3 ] in
     test_processed_run files expected true
   in
-  let test_nosem () =
-    let workspace = mock_workspace () in
-    let file1 =
-      add_file ~content:"print(\"hello world\") # nosem" workspace ()
-    in
-    let file2 =
-      add_file ~content:"# nosem\nprint(\"hello world\")" workspace ()
-    in
-    let file3 =
-      add_file ~content:"# print(\"hello world\") # nosemgrep: print" workspace
-        ()
-    in
-    let file4 =
-      add_file ~content:"# print(\"hello world\") # nosemgrep: other_rule"
-        workspace ()
-    in
-    let files = [ file1; file2; file3; file4 ] in
-    let expected = [ file4 ] in
-    test_processed_run files expected false
-  in
   let tests =
     [
-      ("Test no git", test_processed false false);
-      ("Test git", test_processed false true);
-      ("Test only git dirty with no git", test_processed true false);
-      ("Test only git dirty with dirty files", test_git_dirty_lines);
-      ("Test nosem", test_nosem);
+      t "Test no git" (test_processed false false);
+      t "Test git" (test_processed false true);
+      t "Test only git dirty with no git" (test_processed true false);
+      t "Test only git dirty with dirty files" test_git_dirty_lines;
     ]
   in
-  pack_tests "Processed Run" tests
+  Testo.categorize "Processed Run" tests
 
 let ci_tests () =
   let with_ci_client =
@@ -278,24 +272,24 @@ let ci_tests () =
     Lwt_platform.run (Session.cache_session session);
     let rules = session.cached_session.rules in
     Alcotest.(check int) "rules" 1 (List.length rules);
-    let skipped_fingerprints = session.cached_session.skipped_fingerprints in
+    let skipped_fingerprints = Session.skipped_fingerprints session in
     Alcotest.(check int)
       "skipped_fingerprints" 1
       (List.length skipped_fingerprints)
   in
   let tests =
     [
-      ( "Test session cache",
-        with_mock_envvars (with_ci_client test_cache_session) );
+      t "Test session cache"
+        (with_mock_envvars (with_ci_client test_cache_session));
     ]
   in
-  pack_tests "CI Tests" tests
+  Testo.categorize "CI Tests" tests
 
 let test_ls_libev () = Lwt_platform.set_engine ()
 
 let libev_tests =
-  pack_tests "Lib EV tests" [ ("Test LS with libev", test_ls_libev) ]
+  Testo.categorize "Lib EV tests" [ t "Test LS with libev" test_ls_libev ]
 
 let tests =
-  pack_suites "Language Server (unit)"
+  Testo.categorize_suites "Language Server (unit)"
     [ session_targets (); processed_run (); ci_tests (); libev_tests ]

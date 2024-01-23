@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,9 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open File.Operators
+open Fpath_.Operators
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module PM = Pattern_match
 
 (*****************************************************************************)
@@ -30,10 +30,9 @@ module PM = Pattern_match
  * the matching results corresponding to this id.
  *)
 type pattern_id = Xpattern.pattern_id
+type id_to_match_results = (pattern_id, Pattern_match.t list ref) Hashtbl.t
 
-(* !This hash table uses the Hashtbl.find_all property! *)
-type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
-
+(* alt: prefilter_cache option *)
 type prefilter_config =
   | PrefilterWithCache of Analyze_rule.prefilter_cache
   | NoPrefiltering
@@ -80,7 +79,7 @@ let error env msg =
   let loc = Tok.first_loc_of_file !!(env.xtarget.Xtarget.file) in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
-    E.mk_error (Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
+    E.mk_error (Some (fst env.rule.Rule.id)) loc msg OutJ.MatchingError
   in
   env.errors := Core_error.ErrorSet.add err !(env.errors)
 
@@ -91,6 +90,7 @@ let fake_rule_id (id, str) =
     pattern_string = str;
     message = "";
     fix = None;
+    fix_regexp = None;
     langs = [];
   }
 

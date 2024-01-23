@@ -9,4 +9,7 @@
    Exceptions are caught and turned into an appropriate exit code
    (unless you used --debug).
 *)
-val main : string array -> Exit_code.t
+val main : Cap.all_caps -> string array -> Exit_code.t
+
+(* set in semgrep-pro *)
+val hook_semgrep_interactive : (string array -> Exit_code.t) ref

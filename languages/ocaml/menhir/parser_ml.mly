@@ -10,8 +10,8 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (*                                                                     *)
 (***********************************************************************)
-open Common
-open Ast_ml
+open AST_ocaml
+open Either_
 
 (*************************************************************************)
 (* Prelude *)
@@ -43,7 +43,7 @@ open Ast_ml
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
-let (qufix: name -> tok -> ident -> name) =
+let (qufix: name -> Tok.t -> ident -> name) =
  fun longname _dottok ident ->
   match longname with
   | xs, ident2 -> xs @ [ident2], ident
@@ -81,7 +81,7 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <int option * Tok.t> TInt
+%token <Parsed_int.t> TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t> TChar TString
 %token <string * Tok.t> TLowerIdent TUpperIdent
@@ -205,10 +205,10 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
 (*************************************************************************)
 (* Rules type declaration *)
 (*************************************************************************)
-%start <Ast_ml.item list> interface
-%start <Ast_ml.item list> implementation
-%start <Ast_ml.any> semgrep_pattern
-%start <Ast_ml.type_> type_for_lsp
+%start <AST_ocaml.item list> interface
+%start <AST_ocaml.item list> implementation
+%start <AST_ocaml.any> semgrep_pattern
+%start <AST_ocaml.type_> type_for_lsp
 
 %%
 (*************************************************************************)
@@ -620,7 +620,7 @@ simple_expr:
  | "(" seq_expr ")"
      { match $2 with
      | [] -> Sequence ($1, [], $3)
-     (* Ml_to_generic will do the right thing if x is a tuple or
+     (* Ocaml_to_generic will do the right thing if x is a tuple or
       * if this expression is part of a Constructor call.
       *)
      | [x] -> ParenExpr ($1, x, $3)
@@ -778,8 +778,8 @@ simple_pattern:
  | val_ident %prec below_EQUAL      { PatVar ($1) }
  | constr_longident
      { match $1 with
-       | Left x -> PatConstructor (x, None)
-       | Right lit -> PatLiteral lit
+       | Either.Left x -> PatConstructor (x, None)
+       | Either.Right lit -> PatLiteral lit
      }
 
  | "_"                              { PatUnderscore $1 }
@@ -1022,7 +1022,7 @@ type_variance:
 let_binding:
  | val_ident fun_binding
       { let (lparams, (lrettype, _teq, body)) = $2 in
-        LetClassic { lname = $1; lparams; lrettype; lbody = seq1 body; } }
+        LetClassic { lname = $1; lparams; lrettype; lbody = seq1 body; lattrs = [] } }
  | pattern "=" seq_expr
       { LetPattern ($1, seq1 $3) }
 

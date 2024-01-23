@@ -114,6 +114,7 @@ install_requires = [
     "click~=8.1",
     "colorama~=0.4.0",
     "defusedxml~=0.7.1",
+    "exceptiongroup~=1.2.0",
     "glom~=22.1",
     "jsonschema~=4.6",
     "packaging>=21.0",
@@ -123,25 +124,23 @@ install_requires = [
     "ruamel.yaml>=0.16.0,<0.18",
     "tomli~=2.0.1",
     "typing-extensions~=4.2",
-    "urllib3~=1.26",
+    "urllib3~=2.0",
     "wcmatch~=8.3",
 ]
 
-extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.48.0",
+    version="1.58.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,
-    extras_require=extras_require,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    scripts=["bin/semgrep", "bin/pysemgrep", "bin/sg"],
+    scripts=["bin/semgrep", "bin/pysemgrep"],
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"semgrep": [os.path.join("bin", "*")]},

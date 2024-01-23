@@ -1,7 +1,9 @@
 // This workflow checks whether the current semgrep PR can break the
 // compilation and tests of semgrep-pro if semgrep-pro was using this
-// semgrep branch as a submodule.
+// semgrep branch as a submodule. It also checks whether this PR
+// break Pro rules (rules from the semgrep-rules-proprietary repo).
 
+local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -9,7 +11,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The job
 // ----------------------------------------------------------------------------
 
-local check_compile_test_semgrep_pro_job = {
+local job = {
   'runs-on': 'ubuntu-latest',
   // Switching to Ubuntu here because Alpine does not provide easily 'gh'
   // which is needed to checkout semgrep-pro from semgrep GHA.
@@ -21,7 +23,7 @@ local check_compile_test_semgrep_pro_job = {
   // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
   //      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
   //      and opam can work only when run from this directory
-  steps: [
+  steps: semgrep.github_bot.get_token_steps + [
     actions.checkout_with_submodules(),
     // this must be done after the checkout as opam installs itself
     // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
@@ -29,9 +31,13 @@ local check_compile_test_semgrep_pro_job = {
       name: 'Setup OCaml and opam',
       uses: 'ocaml/setup-ocaml@v2',
       with: {
-        'ocaml-compiler': '4.14.x',
+        'ocaml-compiler': semgrep.opam_switch,
       },
     },
+    semgrep.cache_opam.step(
+      key=semgrep.opam_switch + '-_opam-' + "${{ hashFiles('semgrep.opam') }}",
+      path="_opam",
+    ),
     // alt: call 'sudo make install-deps-UBUNTU-for-semgrep-core'
     // but looks like opam and setup-ocaml@ can automatically install
     // depext dependencies.
@@ -47,10 +53,10 @@ local check_compile_test_semgrep_pro_job = {
     {
       run: 'sudo apt-get install gh',
     },
-    semgrep.github_bot.get_jwt_step,
-    semgrep.github_bot.get_token_step,
     {
-      env: semgrep.github_bot.github_token,
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
       name: 'Checkout semgrep-pro',
       // We are in /home/runner/work/semgrep/semgrep at this point
       // and we must keep it that way otherwise GHA will complain
@@ -107,6 +113,32 @@ local check_compile_test_semgrep_pro_job = {
         make test
       |||,
     },
+
+    // We are in /home/runner/work/semgrep/semgrep at this point.
+    {
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+      name: 'Checkout Pro rules',
+      run: |||
+        cd ..
+        gh repo clone semgrep/semgrep-rules-proprietary
+        cd semgrep-rules-proprietary
+        git submodule update --init
+      |||,
+    },
+
+    {
+      name: 'Test Pro rules',
+      run: |||
+        cd ../semgrep-rules-proprietary/paid
+        # This rule is missing a target file
+        rm -f kotlin/ktor/active-debug-code/ktor-development-mode-yaml.yaml
+        # This is much faster than `pysemgrep --test` and it's also stricter.
+        # TODO: Replace with `osemgrep-pro test` when that is ready.
+        ../../semgrep-proprietary/bin/semgrep-core-proprietary -test_rules .
+      |||,
+    },
   ],
 };
 
@@ -116,16 +148,8 @@ local check_compile_test_semgrep_pro_job = {
 
 {
   name: 'check-semgrep-pro',
-  on: {
-    workflow_dispatch: null,
-    pull_request: null,
-    push: {
-      branches: [
-        'develop',
-      ],
-    },
-  },
+  on: gha.on_classic,
   jobs: {
-    'check-compile-test-semgrep-pro': check_compile_test_semgrep_pro_job,
+    job: job,
   },
 }

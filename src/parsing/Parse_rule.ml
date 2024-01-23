@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module J = JSON
 module FT = File_type
 module R = Rule
@@ -25,9 +25,6 @@ module MV = Metavariable
 open Parse_rule_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
-(* TODO? make it a flag? *)
-let use_ojsonnet = true
 
 (*****************************************************************************)
 (* Prelude *)
@@ -93,7 +90,7 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
       | `Aliengrep -> (None, LAliengrep))
   | xs -> (
       let rule_id, _ = id in
-      let langs = xs |> Common.map (parse_language ~id:rule_id) in
+      let langs = xs |> List_.map (parse_language ~id:rule_id) in
       match langs with
       | [] ->
           Rule.raise_error (Some rule_id)
@@ -123,15 +120,15 @@ let parse_severity ~id (s, t) : Rule.severity =
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
   let (regex : string R.wrap) =
-    take fix_regex_dict env parse_string_wrap "regex"
+    take_key fix_regex_dict env parse_string_wrap "regex"
   in
   let (replacement : string) =
-    take fix_regex_dict env parse_string "replacement"
+    take_key fix_regex_dict env parse_string "replacement"
   in
   let (count_opt : int option) =
-    take_opt fix_regex_dict env parse_int "count"
+    take_opt fix_regex_dict env parse_int_strict "count"
   in
-  (parse_regexp env regex, count_opt, replacement)
+  Rule.{ regexp = parse_regexp env regex; count = count_opt; replacement }
 
 let parse_equivalences env key value =
   let parse_equivalence env equiv =
@@ -186,7 +183,10 @@ let parse_paths env key value =
     error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)";
-  { R.require = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
+  {
+    R.require = List_.optlist_to_list inc_opt;
+    exclude = List_.optlist_to_list exc_opt;
+  }
 
 let parse_options rule_id (key : key) value =
   let s = J.string_of_json (generic_to_json rule_id key value) in
@@ -199,7 +199,7 @@ let parse_options rule_id (key : key) value =
          * this in the JSON to the semgrep wrapper and user.
          *)
         (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
-        pr2 (spf "WARNING: unknown option: %s" field_name))
+        UCommon.pr2 (spf "WARNING: unknown option: %s" field_name))
       (fun () -> Rule_options_j.t_of_string s)
   in
   (options, Some key)
@@ -317,8 +317,8 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_bool "by-side-effect"
       |> Option.value ~default:true
     in
-    let from = take dict env parse_string_wrap "from" in
-    let to_ = take dict env parse_string_wrap "to" in
+    let from = take_key dict env parse_string_wrap "from" in
+    let to_ = take_key dict env parse_string_wrap "to" in
     let propagator_requires =
       take_opt dict env parse_taint_requires "requires"
     in
@@ -392,8 +392,18 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
   let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
     let sink_requires = take_opt dict env parse_taint_requires "requires" in
+    let sink_at_exit =
+      take_opt dict env parse_bool "at-exit" |> Option.value ~default:false
+    in
     let sink_formula = f env dict in
-    { R.sink_id; sink_formula; sink_requires }
+    let sink_is_func_with_focus = Rule.is_sink_func_with_focus sink_formula in
+    {
+      R.sink_id;
+      sink_formula;
+      sink_requires;
+      sink_at_exit;
+      sink_is_func_with_focus;
+    }
   in
   if is_old then
     let dict = yaml_to_dict env key value in
@@ -404,7 +414,16 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
         let sink_formula =
           R.P (Parse_rule_formula.parse_rule_xpattern env value)
         in
-        { sink_id; sink_formula; sink_requires = None }
+        let sink_is_func_with_focus =
+          Rule.is_sink_func_with_focus sink_formula
+        in
+        {
+          sink_id;
+          sink_formula;
+          sink_requires = None;
+          sink_at_exit = false;
+          sink_is_func_with_focus;
+        }
     | Right dict ->
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 
@@ -417,14 +436,17 @@ let parse_taint_pattern env key (value : G.expr) =
         x )
   in
   let sources, propagators_opt, sanitizers_opt, sinks =
-    ( take dict env (parse_specs (parse_taint_source ~is_old:false)) "sources",
+    ( take_key dict env
+        (parse_specs (parse_taint_source ~is_old:false))
+        "sources",
       take_opt dict env
         (parse_specs (parse_taint_propagator ~is_old:false))
         "propagators",
       take_opt dict env
         (parse_specs (parse_taint_sanitizer ~is_old:false))
         "sanitizers",
-      take dict env (parse_specs (parse_taint_sink ~is_old:false)) "sinks" )
+      take_key dict env (parse_specs (parse_taint_sink ~is_old:false)) "sinks"
+    )
   in
   `Taint
     {
@@ -495,8 +517,8 @@ let parse_rules_to_run_with_extract env key value =
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)";
   {
-    R.required_rules = optlist_to_list inc_opt;
-    excluded_rules = optlist_to_list exc_opt;
+    R.required_rules = List_.optlist_to_list inc_opt;
+    excluded_rules = List_.optlist_to_list exc_opt;
   }
 
 (*****************************************************************************)
@@ -525,7 +547,7 @@ let parse_taint_fields env rule_dict =
   | Some (key, value) -> parse_taint_pattern env key value
   | __else__ ->
       let sources, propagators_opt, sanitizers_opt, sinks =
-        ( take rule_dict env
+        ( take_key rule_dict env
             (parse_specs (parse_taint_source ~is_old:true))
             "pattern-sources",
           take_opt rule_dict env
@@ -534,7 +556,7 @@ let parse_taint_fields env rule_dict =
           take_opt rule_dict env
             (parse_specs (parse_taint_sanitizer ~is_old:true))
             "pattern-sanitizers",
-          take rule_dict env
+          take_key rule_dict env
             (parse_specs (parse_taint_sink ~is_old:true))
             "pattern-sinks" )
       in
@@ -601,7 +623,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
 let parse_steps env key (value : G.expr) : R.step list =
   let parse_step step = parse_step_fields env key step in
   match value.G.e with
-  | G.Container (Array, (_, xs, _)) -> Common.map parse_step xs
+  | G.Container (Array, (_, xs, _)) -> List_.map parse_step xs
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 (*****************************************************************************)
@@ -616,10 +638,10 @@ let parse_validity env key x : Rule.validation_state =
 
 let parse_http_request env key value : Rule.request =
   let req = yaml_to_dict env key value in
-  let url = take req env parse_string "url" in
-  let meth = take req env method_ "method" in
+  let url = take_key req env parse_string "url" in
+  let meth = take_key req env method_ "method" in
   let headers : Rule.header list =
-    take req env yaml_to_dict "headers" |> fun { h; _ } ->
+    take_key req env yaml_to_dict "headers" |> fun { h; _ } ->
     Hashtbl.fold
       (fun name value lst ->
         { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
@@ -637,8 +659,8 @@ let parse_http_matcher_clause key env value : Rule.http_match_clause =
       (fun env key ->
         parse_list env key (fun env x : Rule.header ->
             let hd = yaml_to_dict env key x in
-            let name = take hd env parse_string "name" in
-            let value = take hd env parse_string "value" in
+            let name = take_key hd env parse_string "name" in
+            let value = take_key hd env parse_string "value" in
             { name; value }))
       "headers"
   in
@@ -662,12 +684,12 @@ let parse_http_matcher_clause key env value : Rule.http_match_clause =
 let parse_http_matcher key env value : Rule.http_matcher =
   let matcher = yaml_to_dict env key value in
   let match_conditions =
-    take matcher env
+    take_key matcher env
       (fun env key -> parse_list env key (parse_http_matcher_clause key))
       "match"
   in
-  let result = take matcher env yaml_to_dict "result" in
-  let validity = take result env parse_validity "validity" in
+  let result = take_key matcher env yaml_to_dict "result" in
+  let validity = take_key result env parse_validity "validity" in
   let message = take_opt result env parse_string "message" in
   let severity =
     take_opt result env parse_string_wrap "severity"
@@ -681,8 +703,8 @@ let parse_http_response env key value : Rule.http_matcher list =
 
 let parse_http_validator env key value : Rule.validator =
   let validator_dict = yaml_to_dict env key value in
-  let request = take validator_dict env parse_http_request "request" in
-  let response = take validator_dict env parse_http_response "response" in
+  let request = take_key validator_dict env parse_http_request "request" in
+  let response = take_key validator_dict env parse_http_response "response" in
   HTTP { request; response }
 
 let parse_validator key env value =
@@ -700,7 +722,7 @@ let parse_validators env key value =
 (* NOTE: For old secrets / postprocessors syntax. *)
 let parse_secrets_fields env rule_dict : R.secrets =
   let secrets : R.formula list =
-    take rule_dict env
+    take_key rule_dict env
       (fun env key expr ->
         parse_list env key
           (fun env dict_pair ->
@@ -709,12 +731,12 @@ let parse_secrets_fields env rule_dict : R.secrets =
           expr)
       "postprocessor-patterns"
   in
-  let req = take rule_dict env yaml_to_dict "request" in
-  let res = take rule_dict env yaml_to_dict "response" in
-  let url = take req env parse_string "url" in
-  let meth = take req env method_ "method" in
+  let req = take_key rule_dict env yaml_to_dict "request" in
+  let res = take_key rule_dict env yaml_to_dict "response" in
+  let url = take_key req env parse_string "url" in
+  let meth = take_key req env method_ "method" in
   let headers : Rule.header list =
-    take req env yaml_to_dict "headers" |> fun { h; _ } ->
+    take_key req env yaml_to_dict "headers" |> fun { h; _ } ->
     Hashtbl.fold
       (fun name value lst ->
         { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
@@ -722,7 +744,7 @@ let parse_secrets_fields env rule_dict : R.secrets =
   in
   let body = take_opt req env parse_string "body" in
   let auth = take_opt req env parse_auth "auth" in
-  let return_code = take res env parse_int "return_code" in
+  let return_code = take_key res env parse_int "return_code" in
   let regex = take_opt res env parse_string "pattern-regex" in
   {
     secrets;
@@ -779,11 +801,11 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         Parse_rule_formula.parse_formula_old_from_dict env rule_dict
       in
       let dst_lang =
-        take rule_dict env parse_string_wrap "dest-language"
+        take_key rule_dict env parse_string_wrap "dest-language"
         |> parse_extract_dest ~id:env.id
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
-      let extract = take rule_dict env parse_string "extract" in
+      let extract = take_key rule_dict env parse_string "extract" in
       let extract_rule_ids =
         take_opt rule_dict env parse_rules_to_run_with_extract "dest-rules"
       in
@@ -806,7 +828,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       `Secrets (parse_secrets_fields env rule_dict)
   (* TODO? should we use "mode: steps" instead? *)
   | Some ("step", _), _ ->
-      let steps = take rule_dict env parse_steps "steps" in
+      let steps = take_key rule_dict env parse_steps "steps" in
       `Steps steps
   (* unknown mode *)
   | Some key, _ ->
@@ -821,7 +843,7 @@ let report_unparsed_fields rd =
   (* those were not "consumed" *)
   Hashtbl.remove rd.h "pattern";
   Hashtbl.remove rd.h "patterns";
-  match Common.hash_to_list rd.h with
+  match Hashtbl_.hash_to_list rd.h with
   | [] -> ()
   | xs ->
       (* less: we could return an error, but better to be fault-tolerant
@@ -920,8 +942,8 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     match mode with
     | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
     | _ ->
-        ( take rd env parse_string "message",
-          take rd env parse_string_wrap "severity" )
+        ( take_key rd env parse_string "message",
+          take_key rd env parse_string_wrap "severity" )
   in
   let fix_opt = take_opt rd env parse_string "fix" in
   let fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
@@ -992,16 +1014,16 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
   in
   let xs =
     rules
-    |> Common.mapi (fun i rule ->
-           try Left (parse_one_rule ~rewrite_rule_ids i rule) with
+    |> List_.mapi (fun i rule ->
+           try Either.Left (parse_one_rule ~rewrite_rule_ids i rule) with
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
                logger#warning "skipping rule %s, error = %s"
                  (Rule_ID.to_string ruleid) s;
-               Right err)
+               Either.Right err)
   in
-  Common.partition_either (fun x -> x) xs
+  Either_.partition_either (fun x -> x) xs
 
 (* We can't call just Yaml_to_generic.program below because when we parse
  * YAML Semgrep rules, we preprocess unicode characters differently.
@@ -1011,7 +1033,7 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
  * because we don't want parsing/other/ to depend on core/.
  *)
 let parse_yaml_rule_file file =
-  let str = Common.read_file file in
+  let str = UCommon.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
   | Parsing_error.Other_error (s, t) ->
       Rule.raise_error None (InvalidYaml (s, t))
@@ -1046,24 +1068,24 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
         Json_to_generic.program ~unescape_strings:true
           (Parse_json.parse_program !!file)
     | FT.Config FT.Jsonnet ->
-        if use_ojsonnet then
-          let ast = Parse_jsonnet.parse_program file in
-          (* Note that here we do not support registry-aware import;
-           * those are defined in osemgrep/.../Rule_fetching.ml where
-           * we use Network.get functions. Thus, semgrep-core -dump_rule
-           * will not work with registry-aware import either.
-           * Use osemgrep --dump-config instead.
-           *)
-          let core = Desugar_jsonnet.desugar_program file ast in
-          let value_ = Eval_jsonnet.eval_program core in
-          Manifest_jsonnet_to_AST_generic.manifest_value value_
-        else
-          Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-              let cmd = spf "jsonnet -J vendor %s -o %s" !!file tmpfile in
-              let n = Sys.command cmd in
-              if n <> 0 then failwith (spf "error executing %s" cmd);
-              let ast = Parse_json.parse_program tmpfile in
-              Json_to_generic.program ~unescape_strings:true ast)
+        (* old: via external jsonnet program
+           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
+               let cmd = spf "jsonnet -J vendor %s -o %s" !!file tmpfile in
+               let n = Sys.command cmd in
+               if n <> 0 then failwith (spf "error executing %s" cmd);
+               let ast = Parse_json.parse_program tmpfile in
+               Json_to_generic.program ~unescape_strings:true ast)
+        *)
+        let ast = Parse_jsonnet.parse_program file in
+        (* Note that here we do not support registry-aware import;
+         * those are defined in osemgrep/.../Rule_fetching.ml where
+         * we use Network.get functions. Thus, semgrep-core -dump_rule
+         * will not work with registry-aware import either.
+         * Use osemgrep --dump-config instead.
+         *)
+        let core = Desugar_jsonnet.desugar_program file ast in
+        let value_ = Eval_jsonnet.eval_program core in
+        Manifest_jsonnet_to_AST_generic.manifest_value value_
     | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
     | _else_ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";

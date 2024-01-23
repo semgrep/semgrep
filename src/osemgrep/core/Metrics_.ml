@@ -1,5 +1,5 @@
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -160,9 +160,12 @@ let default_payload =
         features = [];
         proFeatures = None;
         numFindings = None;
+        numFindingsByProduct = None;
         numIgnored = None;
         ruleHashesWithFindings = None;
         engineRequested = "OSS";
+        engineConfig = None;
+        interfileLanguagesUsed = Some [];
       };
     parse_rate = [];
     extension =
@@ -246,9 +249,9 @@ let string_of_user_agent () = String.concat " " g.user_agent
 (* we pass an anonymous_user_id here to avoid a dependency cycle with
  * ../configuring/Semgrep_settings.ml
  *)
-let init ~anonymous_user_id ~ci =
+let init (caps : < Cap.random >) ~anonymous_user_id ~ci =
   g.payload.started_at <- now ();
-  g.payload.event_id <- Uuidm.v4_gen (Random.get_state ()) ();
+  g.payload.event_id <- Uuidm.v4_gen (CapRandom.get_state caps#random ()) ();
   g.payload.anonymous_user_id <- Uuidm.to_string anonymous_user_id;
   (* TODO: this field in semgrep_metrics.atd should be a boolean *)
   if ci then g.payload.environment.ci <- Some "true"
@@ -259,9 +262,59 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 (*****************************************************************************)
 (* add_xxx wrappers *)
 (*****************************************************************************)
-let add_engine_kind (kind : Out.engine_kind) =
-  (* TODO: use a better type in semgrep_metrics.atd for this field *)
-  g.payload.value.engineRequested <- Out.show_engine_kind kind
+let add_engine_type (engine_type : Engine_type.t) =
+  let metrics_from_engine_type et : Semgrep_metrics_t.engine_config =
+    match (et : Engine_type.t) with
+    | OSS ->
+        {
+          analysis_type = `Intraprocedural;
+          pro_langs = false;
+          code_config = None;
+          secrets_config = None;
+          supply_chain_config = None;
+        }
+    | PRO
+        {
+          analysis;
+          extra_languages;
+          secrets_config;
+          code_config;
+          supply_chain_config;
+        } ->
+        {
+          analysis_type =
+            (match analysis with
+            | Intraprocedural -> `Intraprocedural
+            | Interprocedural -> `Interprocedural
+            | Interfile -> `Interfile);
+          code_config =
+            Option.map
+              (fun () : Semgrep_metrics_t.code_config -> { _rfu = None })
+              code_config;
+          secrets_config =
+            Option.map
+              (fun (conf : Engine_type.secrets_config) :
+                   Semgrep_metrics_t.secrets_config ->
+                {
+                  permitted_origins =
+                    (if conf.allow_all_origins then `Any else `Semgrep);
+                })
+              secrets_config;
+          supply_chain_config =
+            Option.map
+              (fun () : Semgrep_metrics_t.supply_chain_config ->
+                { _rfu = None })
+              supply_chain_config;
+          pro_langs = extra_languages;
+        }
+  in
+  (* TODO: remove this field? *)
+  g.payload.value.engineRequested <-
+    OutJ.show_engine_kind
+      (match engine_type with
+      | OSS -> `OSS
+      | PRO _ -> `PRO);
+  g.payload.value.engineConfig <- Some (metrics_from_engine_type engine_type)
 
 (* TODO? should pass Uri.t directly *)
 let add_project_url_hash (project_url : string) =
@@ -288,8 +341,8 @@ let add_configs_hash configs =
 let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   let hashes =
     rules
-    |> Common.map Rule.sha256_of_rule
-    |> Common.map Digestif.SHA256.to_hex
+    |> List_.map Rule.sha256_of_rule
+    |> List_.map Digestif.SHA256.to_hex
     |> List.sort String.compare
   in
   let rulesHash_value =
@@ -300,17 +353,13 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   in
   g.payload.environment.rulesHash <- Some (Digestif.SHA256.get rulesHash_value);
   g.payload.performance.numRules <- Some (List.length rules);
-  let ruleStats_value =
-    Common.mapi
-      (fun idx _rule ->
-        {
-          Semgrep_metrics_t.ruleHash = List.nth hashes idx;
-          bytesScanned = 0;
-          matchTime = None;
-        })
-      rules
-  in
-  g.payload.performance.ruleStats <- Some ruleStats_value
+  (* TODO: Properly populate g.payload.performance.ruleStats.
+   * Currently, when we have thousands of rules, they will bloat the
+   * metrics payload. Right now in metrics.py, we are only populating
+   * these stats when both matching time and bytes scanned are greater
+   * than 0.
+   *)
+  g.payload.performance.ruleStats <- None
 
 let add_max_memory_bytes (profiling_data : Core_profiling.t option) =
   Option.iter
@@ -320,10 +369,19 @@ let add_max_memory_bytes (profiling_data : Core_profiling.t option) =
 
 let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
     =
+  (* Rules with 0 findings don't carry a lot of information
+   * compared to rules that actually have findings. Rules with 0
+   * findings also increase the size of the metrics quite
+   * significantly, e.g., when the number of rules grows up to
+   * magnitudes of 10k. So we filter them out in the metrics.
+   *)
   let ruleHashesWithFindings_value =
     filtered_matches
-    |> Common.map (fun (rule, rule_matches) ->
-           (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches))
+    |> List_.map_filter (fun (rule, rule_matches) ->
+           if rule_matches > 0 then
+             Some
+               (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches)
+           else None)
   in
   g.payload.value.ruleHashesWithFindings <- Some ruleHashesWithFindings_value
 
@@ -335,29 +393,30 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     | None -> Hashtbl.create 0
     | Some prof ->
         prof.file_times
-        |> Common.map (fun ({ Core_profiling.file; _ } as file_prof) ->
+        |> List_.map (fun ({ Core_profiling.file; _ } as file_prof) ->
                (file, file_prof))
-        |> Common.hash_of_list
+        |> Hashtbl_.hash_of_list
   in
+
   let file_stats =
     targets
-    |> Common.map (fun path ->
+    |> List_.map (fun path ->
            let runTime, parseTime, matchTime =
              match Hashtbl.find_opt hprof path with
              | Some fprof ->
                  ( Some fprof.run_time,
                    Some
                      (fprof.rule_times
-                     |> Common.map (fun rt -> rt.Core_profiling.parse_time)
+                     |> List_.map (fun rt -> rt.Core_profiling.parse_time)
                      |> Common2.sum_float),
                    Some
                      (fprof.rule_times
-                     |> Common.map (fun rt -> rt.Core_profiling.match_time)
+                     |> List_.map (fun rt -> rt.Core_profiling.match_time)
                      |> Common2.sum_float) )
              | None -> (None, None, None)
            in
            {
-             Semgrep_metrics_t.size = File.filesize path;
+             Semgrep_metrics_t.size = UFile.filesize path;
              numTimesScanned =
                (match Hashtbl.find_opt hprof path with
                | None -> 0
@@ -369,19 +428,19 @@ let add_targets_stats (targets : Fpath.t Set_.t)
   in
   g.payload.performance.fileStats <- Some file_stats;
   g.payload.performance.totalBytesScanned <-
-    Some (targets |> Common.map File.filesize |> Common2.sum_int);
+    Some (targets |> List_.map UFile.filesize |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
 (* TODO? type_ is enough? or want also to log the path? but too
  * privacy sensitive maybe?
  *)
-let string_of_error (err : Out.cli_error) : string =
+let string_of_error (err : OutJ.cli_error) : string =
   Error.string_of_error_type err.type_
 
 let add_errors errors =
   g.payload.errors.errors <-
     Some
-      (errors |> Common.map (fun (err : Out.cli_error) -> string_of_error err))
+      (errors |> List_.map (fun (err : OutJ.cli_error) -> string_of_error err))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)

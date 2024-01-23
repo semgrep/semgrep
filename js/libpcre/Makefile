@@ -45,5 +45,5 @@ dist/libpcre.js dist/libpcre.wasm: dist/libpcre.a
 		-O3 \
 		$^ \
 		$(EMCC_DEFAULTS) \
-		-sEXPORTED_FUNCTIONS=_malloc,_free,$(PCRE_EXPORTED_METHODS) \
+		-sEXPORTED_FUNCTIONS=_malloc,_free,$(PCRE_EXPORTED_FUNCTIONS) \
 		-o $(word 1,$@)

@@ -1,5 +1,7 @@
 open Common
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
@@ -8,10 +10,9 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Testutil.pack_tests "parsing_js"
+  Testo.categorize "parsing_js"
     [
-      ( "regression files",
-        fun () ->
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "js/parsing" in
           let files =
             Common2.glob (spf "%s/*.js" dir)
@@ -26,9 +27,8 @@ let tests =
                  with
                  | Parsing_error.Syntax_error _
                  | Common.Todo ->
-                     Alcotest.failf "it should correctly parse %s" file) );
-      ( "regression files typescript",
-        fun () ->
+                     Alcotest.failf "it should correctly parse %s" file));
+      t "regression files typescript" (fun () ->
           let dir = Filename.concat tests_path "typescript/parsing" in
           let files =
             Common2.glob (spf "%s/*.js" dir)
@@ -43,16 +43,15 @@ let tests =
                  with
                  | Parsing_error.Syntax_error _
                  | Common.Todo ->
-                     Alcotest.failf "it should correctly parse %s" file) );
-      ( "rejecting bad code",
-        fun () ->
+                     Alcotest.failf "it should correctly parse %s" file));
+      t "rejecting bad code" (fun () ->
           try
             Common.save_excursion Flag_parsing.show_parsing_error false
               (fun () ->
                 let _ = Parse_js.program_of_string "echo 1+" in
                 Alcotest.fail "it should have thrown a Parse_error exception")
           with
-          | Parsing_error.Syntax_error _ -> () )
+          | Parsing_error.Syntax_error _ -> ())
       (*
     "the javascript AST mapper", (fun () ->
       let js_ex = "foo(42, 101);" in

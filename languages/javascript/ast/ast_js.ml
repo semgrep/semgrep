@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -303,8 +302,8 @@ and for_header =
   | ForEllipsis of tok
 
 (* the expr is usually just an assign *)
-and vars_or_expr = (var list, expr) Common.either
-and var_or_expr = (var, expr) Common.either
+and vars_or_expr = (var list, expr) Either_.t
+and var_or_expr = (var, expr) Either_.t
 and case = Case of tok * expr * stmt | Default of tok * stmt
 
 and catch =
@@ -459,7 +458,7 @@ and parameter_classic = {
  * For an interface, the parent is always a type_
  * TODO: expr can have <type_arguments>
  *)
-and parent = (expr, type_) Common.either
+and parent = (expr, type_) Either_.t
 
 and class_definition = {
   (* typescript-ext: Interface is now possible *)
@@ -661,9 +660,9 @@ let var_pattern_to_var v_kind pat tok init_opt =
 
 let build_var kwd (id_or_pat, ty_opt, initopt) =
   match id_or_pat with
-  | Left id ->
+  | Either.Left id ->
       (basic_entity id, { v_kind = kwd; v_init = initopt; v_type = ty_opt })
-  | Right pat -> var_pattern_to_var kwd pat (snd kwd) initopt
+  | Either.Right pat -> var_pattern_to_var kwd pat (snd kwd) initopt
 
 let build_vars kwd vars = vars |> List.map (build_var kwd)
 let vars_to_defs xs = xs |> List.map (fun (ent, v) -> (ent, VarDef v))

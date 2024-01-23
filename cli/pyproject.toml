@@ -1,10 +1,14 @@
 [tool.pytest.ini_options]
 minversion = "7.0"
+# note that we dont't put tests/qa here
 testpaths = [
     "tests/unit",
     "tests/e2e",
+    "tests/e2e-pysemgrep",
+    "tests/e2e-pro",
     "tests/consistency",
 ]
+addopts = "--strict-markers"
 markers = [
     "quick: test takes less than 100 ms",
     "kinda_slow: test takes up to 2s",

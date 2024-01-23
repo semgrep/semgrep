@@ -149,7 +149,7 @@ exception Error of error
 
 (* coupling: see print_statistics below *)
 type statistics = {
-  parse_errors : Common.filename list ref;
+  parse_errors : string (* filename *) list ref;
   (* could be Parse_info.token_location*)
   lookup_fail : (Tok.t * node) list ref;
   method_calls : (Tok.t * resolved) list ref;
@@ -224,10 +224,10 @@ let create () =
 
 let add_node n g =
   if G.has_node n g.has then (
-    pr2_gen n;
+    UCommon.pr2_gen n;
     raise (Error (NodeAlreadyPresent n)));
   if G.has_node n g.use then (
-    pr2_gen n;
+    UCommon.pr2_gen n;
     raise (Error (NodeAlreadyPresent n)));
 
   G.add_vertex_if_not_present n g.has;
@@ -283,17 +283,17 @@ let iter_nodes f g = G.iter_nodes f g.has
 
 let all_use_edges g =
   let res = ref [] in
-  G.iter_edges (fun n1 n2 -> Common.push (n1, n2) res) g.use;
+  G.iter_edges (fun n1 n2 -> Stack_.push (n1, n2) res) g.use;
   !res
 
 let all_has_edges g =
   let res = ref [] in
-  G.iter_edges (fun n1 n2 -> Common.push (n1, n2) res) g.has;
+  G.iter_edges (fun n1 n2 -> Stack_.push (n1, n2) res) g.has;
   !res
 
 let all_nodes g =
   let res = ref [] in
-  G.iter_nodes (fun n -> Common.push n res) g.has;
+  G.iter_nodes (fun n -> Stack_.push n res) g.has;
   !res
 
 (*****************************************************************************)
@@ -325,8 +325,8 @@ let mk_eff_use_pred g =
   g
   |> iter_nodes (fun n1 ->
          let uses = succ n1 Use g in
-         uses |> List.iter (fun n2 -> Hashtbl.add h n2 n1));
-  fun n -> Hashtbl.find_all h n
+         uses |> List.iter (fun n2 -> Hashtbl_.push h n2 n1));
+  fun n -> Hashtbl_.get_stack h n
 
 let parent n g =
   let xs = G.pred n g.has in
@@ -338,7 +338,7 @@ let children n g = G.succ n g.has
 
 let rec node_and_all_children n g =
   let xs = G.succ n g.has in
-  if null xs then [ n ]
+  if List_.null xs then [ n ]
   else n :: (xs |> List.map (fun n -> node_and_all_children n g) |> List.flatten)
 
 let nb_nodes g = G.nb_nodes g.has
@@ -374,13 +374,13 @@ let privacy_of_node n g =
   let info = nodeinfo n g in
   let props = info.props in
   props
-  |> Common.find_some (function
+  |> List_.find_some (function
        | E.Privacy x -> Some x
        | _ -> None)
 
 (* see also Graph_code_class_analysis.class_method_of_string *)
 let shortname_of_node (s, _kind) =
-  let xs = Common.split "[.]" s in
+  let xs = String_.split ~sep:"[.]" s in
   let s = Common2.list_last xs in
   (* undo what was in gensym, otherwise codemap for instance will not
    * recognize the entity as one hovers on its name in a file. *)
@@ -446,11 +446,10 @@ let remove_empty_nodes g xs =
            remove_edge (parent n g, n) Has g)
 
 let basename_to_readable_disambiguator xs ~root =
-  let xs = xs |> List.map (Common.readable ~root) in
-  (* use the Hashtbl.find_all property of this hash *)
+  let xs = xs |> List.map (Filename_.readable ~root) in
   let h = Hashtbl.create 101 in
-  xs |> List.iter (fun file -> Hashtbl.add h (Filename.basename file) file);
-  fun file -> Hashtbl.find_all h file
+  xs |> List.iter (fun file -> Hashtbl_.push h (Filename.basename file) file);
+  fun file -> Hashtbl_.get_stack h file
 
 (*****************************************************************************)
 (* Misc *)
@@ -461,7 +460,7 @@ let group_edges_by_files_edges xs g =
   |> Common2.group_by_mapped_key (fun (n1, n2) ->
          (file_of_node n1 g, file_of_node n2 g))
   |> List.map (fun (x, deps) -> (List.length deps, (x, deps)))
-  |> Common.sort_by_key_highfirst |> List.map snd
+  |> Assoc.sort_by_key_highfirst |> List.map snd
 
 (*****************************************************************************)
 (* Graph algorithms *)
@@ -499,15 +498,15 @@ let bottom_up_numbering g =
 (* Graph adjustments *)
 (*****************************************************************************)
 let load_adjust file =
-  Common.cat file
-  |> Common.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
+  UCommon.cat file
+  |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
          | _ when s =~ "\\([^ ]+\\)[ ]+->[ ]*\\([^ ]+\\)" -> Common.matched2 s
          | _ -> failwith ("wrong line format in adjust file: " ^ s))
 
 let load_whitelist file =
-  Common.cat file
+  UCommon.cat file
   |> List.map (fun s ->
          if s =~ "\\(.*\\) --> \\(.*\\) " then
            let s1, s2 = Common.matched2 s in
@@ -515,7 +514,7 @@ let load_whitelist file =
          else failwith (spf "load_whitelist: wrong line: %s" s))
 
 let save_whitelist xs file g =
-  Common.with_open_outfile file (fun (pr_no_nl, _chan) ->
+  UCommon.with_open_outfile file (fun (pr_no_nl, _chan) ->
       xs
       |> List.iter (fun (n1, n2) ->
              let file = file_of_node n2 g in
@@ -529,10 +528,10 @@ let save_whitelist xs file g =
  *)
 let adjust_graph g xs whitelist =
   let mapping = Hashtbl.create 101 in
-  g |> iter_nodes (fun (s, kind) -> Hashtbl.add mapping s (s, kind));
+  g |> iter_nodes (fun (s, kind) -> Hashtbl_.push mapping s (s, kind));
   xs
   |> List.iter (fun (s1, s2) ->
-         let nodes = Hashtbl.find_all mapping s1 in
+         let nodes = Hashtbl_.get_stack mapping s1 in
 
          let new_parent = (s2, E.Dir) in
          create_intermediate_directories_if_not_present g s2;
@@ -544,25 +543,24 @@ let adjust_graph g xs whitelist =
          | [] -> failwith (spf "could not find entity %s" s1)
          | _ -> failwith (spf "multiple entities with %s as a name" s1));
   whitelist
-  |> Console.progress ~show:true (fun k ->
-         List.iter (fun (n1, n2) ->
-             k ();
-             remove_edge (n1, n2) Use g))
+  |> (*|> Console.progress ~show:true (fun k -> *)
+  List.iter (fun (n1, n2) -> (*k (); *)
+                             remove_edge (n1, n2) Use g)
 
 (*****************************************************************************)
 (* Example *)
 (*****************************************************************************)
 (* assumes a "path/to/file.x" -> "path/to/file2.x" format *)
 let graph_of_dotfile dotfile =
-  let xs = Common.cat dotfile in
+  let xs = UCommon.cat dotfile in
   let deps =
     xs
-    |> Common.map_filter (fun s ->
+    |> List_.map_filter (fun s ->
            if s =~ "^\"\\(.*\\)\" -> \"\\(.*\\)\"$" then
              let src, dst = Common.matched2 s in
              Some (src, dst)
            else (
-             pr2 (spf "ignoring line: %s" s);
+             UCommon.pr2 (spf "ignoring line: %s" s);
              None))
   in
   let g = create () in
@@ -582,7 +580,7 @@ let graph_of_dotfile dotfile =
              g |> add_node (dst, E.File);
              g |> add_edge ((dstdir, E.Dir), (dst, E.File)) Has)
          with
-         | Assert_failure _ -> pr2_gen (src, dst));
+         | Assert_failure _ -> UCommon.pr2_gen (src, dst));
   (* step2: use *)
   deps
   |> List.iter (fun (src, dst) ->
@@ -596,30 +594,31 @@ let graph_of_dotfile dotfile =
 (* Statistics *)
 (*****************************************************************************)
 let print_statistics stats g =
-  pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
-  pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
-  pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
+  UCommon.pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
+  UCommon.pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
+  UCommon.pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved method calls = %d"
        (!(stats.method_calls)
        |> List.filter (fun (_, x) -> not x)
        |> List.length));
-  pr
+  UCommon.pr
     (spf "(resolved method calls = %d)"
        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved field access = %d"
        (!(stats.field_access)
        |> List.filter (fun (_, x) -> not x)
        |> List.length));
-  pr
+  UCommon.pr
     (spf "(resolved field access) = %d)"
        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved class access = %d"
        (!(stats.unresolved_class_access) |> List.length));
-  pr (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
+  UCommon.pr
+    (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
   ()

@@ -39,7 +39,7 @@ let hook_facts = ref []
 
 let build g =
   let res = ref [] in
-  let add x = Common.push x res in
+  let add x = Stack_.push x res in
 
   add (Misc "% -*- prolog -*-");
   add (Misc ":- discontiguous kind/2, at/3");
@@ -81,7 +81,7 @@ let build g =
          | E.TopStmts
          | E.Other _
          | E.MultiDirs ->
-             pr2_gen n;
+             UCommon.pr2_gen n;
              raise Todo);
 
          try
@@ -197,8 +197,8 @@ let hook_use_edge_for_prolog ctx in_assign (src, dst) g _loc =
   | NoCtx, _ -> ()
   | AssignCtx fld_node, E.Function ->
       let efld = entity_of_str (fst fld_node) in
-      hook_facts |> Common.push (Special (esrc, efld, edst, "field"))
+      hook_facts |> Stack_.push (Special (esrc, efld, edst, "field"))
   | CallCtx func_node, E.Function ->
       let efunc = entity_of_str (fst func_node) in
-      hook_facts |> Common.push (Special (esrc, efunc, edst, "function"))
+      hook_facts |> Stack_.push (Special (esrc, efunc, edst, "function"))
   | _ -> ()

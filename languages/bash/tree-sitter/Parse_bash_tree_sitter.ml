@@ -311,7 +311,7 @@ and stmt_with_opt_heredoc (env : env)
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let open_ = token env v1 (* "(" *) in
-  let elements = Common.map (literal env) v2 in
+  let elements = List_.map (literal env) v2 in
   let close = token env v3 (* ")" *) in
   let loc = (open_, close) in
   Array (loc, (open_, elements, close))
@@ -358,7 +358,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
   let first_pattern = literal env v1 in
   let more_patterns =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _bar = token env v1 (* "|" *) in
         let pat = literal env v2 in
@@ -387,7 +387,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
 
 and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
   let assignments, redirects =
-    partition_either
+    Either_.partition_either
       (fun x ->
         match x with
         | `Var_assign x -> Left (variable_assignment env x)
@@ -396,7 +396,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
   in
   let name = command_name env v2 in
   let args =
-    Common.map
+    List_.map
       (fun x ->
         match x with
         | `Choice_conc x -> literal env x
@@ -440,7 +440,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       Concatenation (loc, el)
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
-      let el = Common.map (fun tok -> Special_character (str env tok)) xs in
+      let el = List_.map (fun tok -> Special_character (str env tok)) xs in
       let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       Concatenation (loc, el)
 
@@ -480,7 +480,7 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
   let first_expr = prim_exp_or_special_char env v1 in
   let exprs =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _empty_tok = token env v1 in
         prim_exp_or_special_char env v2)
@@ -575,7 +575,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
               | None -> todo env ()
             in
             let _v3_TODO () =
-              Common.map
+              List_.map
                 (fun x ->
                   match x with
                   | `Choice_conc x -> literal env x
@@ -749,7 +749,7 @@ and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
   | `Here_body_begin_rep_choice_expa_here_body_end (v1, v2, v3) ->
       let start = token env v1 (* heredoc_body_beginning *) in
       let _body =
-        Common.map
+        List_.map
           (fun x ->
             match x with
             | `Expa x -> expansion env x |> ignore
@@ -773,7 +773,7 @@ and herestring_redirect (env : env) ((v1, v2) : CST.herestring_redirect) =
 and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
   let first_pattern = literal env v1 in
   let more_patterns =
-    Common.map
+    List_.map
       (fun (v1, v2) ->
         let _bar = token env v1 (* "|" *) in
         let pat = literal env v2 in
@@ -803,7 +803,7 @@ and literal (env : env) (x : CST.literal) : expression =
       | _ -> Concatenation (loc, el))
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
-      let el = Common.map (fun tok -> Special_character (str env tok)) xs in
+      let el = List_.map (fun tok -> Special_character (str env tok)) xs in
       let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       match el with
       | [ e ] -> e
@@ -967,7 +967,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let assigns = ref [] in
       let attrs2 = ref [] in
       let unknowns = ref [] in
-      let push_attr tok attr = Common.push (attr, tok) attrs2 in
+      let push_attr tok attr = Stack_.push (attr, tok) attrs2 in
       v2
       |> List.iter (fun x ->
              match x with
@@ -988,21 +988,21 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
                      | "-t" -> push_attr tok Trace
                      | "-u" -> push_attr tok Uppercase
                      | "-x" -> push_attr tok Export
-                     | _ -> Common.push expr unknowns);
+                     | _ -> Stack_.push expr unknowns);
                      last_tok := tok
                  | e ->
-                     Common.push e unknowns;
+                     Stack_.push e unknowns;
                      last_tok := snd (AST_bash_loc.expression_loc e))
              | `Choice_semg_meta x ->
                  (* x, $X *)
                  let var = simple_variable_name env x in
                  last_tok := AST_bash_loc.variable_name_loc var |> snd;
-                 Common.push var decls
+                 Stack_.push var decls
              | `Var_assign x ->
                  (* x=42, $X=42 *)
                  let assign = variable_assignment env x in
                  last_tok := AST_bash_loc.assignment_loc assign |> snd;
-                 Common.push assign assigns);
+                 Stack_.push assign assigns);
       let decls = List.rev !decls in
       let assigns = List.rev !assigns in
       let attrs = attrs1 @ List.rev !attrs2 in
@@ -1037,11 +1037,11 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
              match x with
              | `Choice_conc x ->
                  let e = literal env x in
-                 Common.push e unknowns;
+                 Stack_.push e unknowns;
                  last_tok := AST_bash_loc.expression_loc e |> snd
              | `Choice_semg_meta tok ->
                  let var = simple_variable_name env tok in
-                 Common.push var decls;
+                 Stack_.push var decls;
                  last_tok := variable_name_tok var);
       let loc = (first_tok, !last_tok) (* TODO *) in
       let command =
@@ -1089,7 +1089,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         match v3 with
         | Some (v1, v2) ->
             let in_ = token env v1 (* "in" *) in
-            let values = Common.map (literal env) v2 in
+            let values = List_.map (literal env) v2 in
             Some (in_, values)
         | None ->
             (* iterate over $1, $2, ..., $# *)
@@ -1156,7 +1156,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> statements2 env x
         | None -> Empty (then_, then_)
       in
-      let elif_branches = Common.map (elif_clause env) v5 in
+      let elif_branches = List_.map (elif_clause env) v5 in
       let else_branch =
         match v6 with
         | Some x -> Some (else_clause env x)
@@ -1181,7 +1181,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let case_clauses =
         match v6 with
         | Some (v1, v2) ->
-            let cases = Common.map (case_item env) v1 in
+            let cases = List_.map (case_item env) v1 in
             let last_case = last_case_item env v2 in
             cases @ [ last_case ]
         | None -> []
@@ -1276,7 +1276,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
   let blist =
-    Common.map (stmt_with_opt_heredoc env) v1 |> AST_bash_builder.concat_blists
+    List_.map (stmt_with_opt_heredoc env) v1 |> AST_bash_builder.concat_blists
   in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
@@ -1308,7 +1308,7 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
   Seq (loc, blist, last_blist)
 
 and statements2 (env : env) (xs : CST.statements2) : blist =
-  Common.map (stmt_with_opt_heredoc env) xs |> AST_bash_builder.concat_blists
+  List_.map (stmt_with_opt_heredoc env) xs |> AST_bash_builder.concat_blists
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     string_fragment list bracket =
@@ -1483,6 +1483,8 @@ let parse_pattern str =
     (fun () -> Tree_sitter_bash.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = AST_bash.Pattern } in
+      let env =
+        { H.file; conv = (fun _ -> raise Not_found); extra = AST_bash.Pattern }
+      in
       let tok = Tok.first_tok_of_file file in
       program env ~tok cst)

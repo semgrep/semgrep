@@ -1,0 +1,93 @@
+=== command
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/maven-guice.yaml --json targets/dependency_aware/maven_dep_tree_release_version
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/maven_dep_tree_release_version/maven_dep_tree.txt"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.maven-guice",
+      "end": {
+        "col": 0,
+        "line": 2,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "+- com.google.inject:guice:jar:no_aop:4.2.2.RELEASE:test (optional)",
+        "message": "got em",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "maven",
+              "package": "com.google.inject:guice",
+              "semver_range": "<= 4.3.3"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "children": [],
+              "ecosystem": "maven",
+              "line_number": 2,
+              "package": "com.google.inject:guice",
+              "transitivity": "direct",
+              "version": "4.2.2.RELEASE"
+            },
+            "lockfile": "targets/dependency_aware/maven_dep_tree_release_version/maven_dep_tree.txt"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/maven_dep_tree_release_version/maven_dep_tree.txt",
+      "start": {
+        "col": 0,
+        "line": 2,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - plain

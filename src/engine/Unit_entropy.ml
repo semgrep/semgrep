@@ -4,6 +4,7 @@
 
 open Printf
 
+let t = Testo.create
 let entropy_threshold = 64.
 let density_threshold = 0.6
 let low_entropy_strings = [ ""; "a"; "ab"; "!@"; "change"; "1234" ]
@@ -117,7 +118,7 @@ let test_information_density () =
 
 let get_entropies strings =
   strings
-  |> Common.map (fun s ->
+  |> List_.map (fun s ->
          print_info s;
          (s, Entropy.entropy s))
 
@@ -143,7 +144,7 @@ let test_high_entropy () =
 
 let get_densities strings =
   strings
-  |> Common.map (fun s ->
+  |> List_.map (fun s ->
          print_info s;
          (s, Entropy.information_density s))
 
@@ -170,7 +171,7 @@ let test_high_density () =
 
 let get_scores strings =
   strings
-  |> Common.map (fun s ->
+  |> List_.map (fun s ->
          print_info s;
          (s, Entropy.score s))
 
@@ -196,11 +197,11 @@ let test_high_score () =
 
 let tests =
   [
-    ("information density", test_information_density);
-    ("low entropy", test_low_entropy);
-    ("high entropy", test_high_entropy);
-    ("low density", test_low_entropy);
-    ("high density", test_high_entropy);
-    ("low score", test_low_score);
-    ("high score", test_high_score);
+    t "information density" test_information_density;
+    t "low entropy" test_low_entropy;
+    t "high entropy" test_high_entropy;
+    t "low density" test_low_entropy;
+    t "high density" test_high_entropy;
+    t "low score" test_low_score;
+    t "high score" test_high_score;
   ]

@@ -9,7 +9,7 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : string array -> Exit_code.t
+val main : < Cap.random > -> string array -> Exit_code.t
 
 (* internal *)
-val run : Install_CLI.conf -> Exit_code.t
+val run_conf : < Cap.random > -> Install_CLI.conf -> Exit_code.t

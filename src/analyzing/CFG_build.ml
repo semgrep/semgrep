@@ -169,7 +169,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
   match stmt.s with
   | Instr x ->
       let new_ = F.NInstr x in
-      let newi = state.g#add_node { F.n = new_ } in
+      let newi = state.g#add_node (IL.mk_node new_) in
       state.g |> add_arc_from_opt (previ, newi);
       let lasti, throws =
         match x.i with
@@ -190,7 +190,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
             (* Just in case the lambda CFG needs be inserted here later on (if the
              * lambda is never dereferenced) then we have to insert a JOIN node here,
              * see cfg_lambda. *)
-            let lasti = state.g#add_node { F.n = F.Join } in
+            let lasti = state.g#add_node (IL.mk_node F.Join) in
             state.g |> add_arc (newi, lasti);
             Hashtbl.add state.lambdas name fdef;
             Hashtbl.add state.unused_lambdas name ();
@@ -205,11 +205,11 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *
        * The lasti can be a Join when there is no return in either branch.
        *)
-      let newi = state.g#add_node { F.n = F.NCond (tok, e) } in
+      let newi = state.g#add_node (IL.mk_node (F.NCond (tok, e))) in
       state.g |> add_arc_from_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode e } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode e } in
+      let newfakethen = state.g#add_node (IL.mk_node (F.TrueNode e)) in
+      let newfakeelse = state.g#add_node (IL.mk_node (F.FalseNode e)) in
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
@@ -224,7 +224,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       | None, Some nodei ->
           CfgFirstLast (newi, Some nodei, throws)
       | Some n1, Some n2 ->
-          let lasti = state.g#add_node { F.n = F.Join } in
+          let lasti = state.g#add_node (IL.mk_node F.Join) in
           state.g |> add_arc (n1, lasti);
           state.g |> add_arc (n2, lasti);
           CfgFirstLast (newi, Some lasti, throws))
@@ -233,11 +233,11 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *             |---|-----------------------------------|
        *                 |-> newfakelse
        *)
-      let newi = state.g#add_node { F.n = NCond (tok, e) } in
+      let newi = state.g#add_node (IL.mk_node (NCond (tok, e))) in
       state.g |> add_arc_from_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode e } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode e } in
+      let newfakethen = state.g#add_node (IL.mk_node (F.TrueNode e)) in
+      let newfakeelse = state.g#add_node (IL.mk_node (F.FalseNode e)) in
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
@@ -246,13 +246,13 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       CfgFirstLast (newi, Some newfakeelse, throws)
   | Label label -> CfgLabel label
   | Goto (tok, label) ->
-      let newi = state.g#add_node { F.n = F.NGoto (tok, label) } in
+      let newi = state.g#add_node (IL.mk_node (F.NGoto (tok, label))) in
       state.g |> add_arc_from_opt (previ, newi);
       add_pending_goto state newi label;
       CfgFirstLast (newi, None, false)
   | Return (tok, e) ->
       let new_ = F.NReturn (tok, e) in
-      let newi = state.g#add_node { F.n = new_ } in
+      let newi = state.g#add_node (IL.mk_node new_) in
       state.g |> add_arc_from_opt (previ, newi);
       let lasti =
         match build_cfg_for_lambdas_in state (Some newi) new_ with
@@ -270,10 +270,12 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                 |-----------|
        *     -> elsei    --> else    |-> newfakefinally -> finally
        *)
-      let newi = state.g#add_node { F.n = NOther (Noop "try") } in
-      let catchesi = state.g#add_node { F.n = NOther (Noop "catch") } in
-      let elsei = state.g#add_node { F.n = NOther (Noop "else") } in
-      let newfakefinally = state.g#add_node { F.n = NOther (Noop "finally") } in
+      let newi = state.g#add_node (IL.mk_node (NOther (Noop "try"))) in
+      let catchesi = state.g#add_node (IL.mk_node (NOther (Noop "catch"))) in
+      let elsei = state.g#add_node (IL.mk_node (NOther (Noop "else"))) in
+      let newfakefinally =
+        state.g#add_node (IL.mk_node (NOther (Noop "finally")))
+      in
 
       (* From prev to try. *)
       state.g |> add_arc_from_opt (previ, newi);
@@ -346,12 +348,12 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *)
       CfgFirstLast (newi, finalfinally, may_throw)
   | Throw (tok, e) ->
-      let newi = state.g#add_node { F.n = F.NThrow (tok, e) } in
+      let newi = state.g#add_node (IL.mk_node (F.NThrow (tok, e))) in
       state.g |> add_arc_from_opt (previ, newi);
       state.g |> add_arc_opt_to_opt (previ, state.throw_destination);
       CfgFirstLast (newi, None, true)
   | MiscStmt x ->
-      let newi = state.g#add_node { F.n = F.NOther x } in
+      let newi = state.g#add_node (IL.mk_node (F.NOther x)) in
       state.g |> add_arc_from_opt (previ, newi);
       CfgFirstLast (newi, Some newi, false)
   | FixmeStmt _ -> cfg_todo state previ stmt
@@ -366,7 +368,7 @@ and cfg_lambda state previ joini (fdef : IL.function_definition) =
      *
      * alt: We could inline lambdas perhaps?
   *)
-  let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
+  let newi = state.g#add_node (IL.mk_node (NLambda fdef.fparams)) in
   state.g |> add_arc_from_opt (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
     cfg_stmt_list
@@ -384,7 +386,7 @@ and build_cfg_for_lambdas_in state previ n =
    *   as the function being called, or as arguments to a higher-order function. *)
   let lambda_names, lambda_fdefs =
     IL_helpers.rlvals_of_node n
-    |> Common.map_filter (lval_is_lambda state)
+    |> List_.map_filter (lval_is_lambda state)
     |> List.split
   in
   if lambda_fdefs <> [] then (
@@ -401,7 +403,7 @@ and build_cfg_for_lambdas_in state previ n =
      *       \-> (lambda N) ->/
      *       \_______________/
      *)
-    let lasti = state.g#add_node { F.n = F.Join } in
+    let lasti = state.g#add_node (IL.mk_node F.Join) in
     state.g |> add_arc_from_opt (previ, lasti);
     lambda_fdefs |> List.iter (fun fdef -> cfg_lambda state previ lasti fdef);
     lambda_names
@@ -410,7 +412,7 @@ and build_cfg_for_lambdas_in state previ n =
   else None
 
 and cfg_todo state previ stmt =
-  let newi = state.g#add_node { F.n = F.NTodo stmt } in
+  let newi = state.g#add_node (IL.mk_node (F.NTodo stmt)) in
   state.g |> add_arc_from_opt (previ, newi);
   CfgFirstLast (newi, Some newi, false)
 
@@ -445,7 +447,7 @@ and cfg_stmt_list state previ xs =
        * Such labels may be in the original sources, or they may be introduced
        * by the AST-to-IL translation.
        *)
-      let dummyi = state.g#add_node { n = NOther (Noop "return") } in
+      let dummyi = state.g#add_node (IL.mk_node (NOther (Noop "return"))) in
       label_node state (l :: ls) dummyi;
       state.g |> add_arc_from_opt (lasti_opt, dummyi);
       (Some dummyi, may_throw)
@@ -462,6 +464,37 @@ let build_cfg_of_unused_lambdas state previ nexti =
   Hashtbl.clear state.unused_lambdas
 
 (*****************************************************************************)
+(* Marking nodes *)
+(*****************************************************************************)
+
+let mark_at_exit_nodes cfg =
+  let rec loop nodei =
+    let node = cfg.CFG.graph#nodes#find nodei in
+    match node.n with
+    (* Visit ancestor for exit, noop, goto, and join nodes. *)
+    | Exit
+    | NOther (Noop _)
+    | NGoto _
+    | Join ->
+        CFG.predecessors cfg nodei |> List.iter (fun (predi, _) -> loop predi)
+    (* These can be at-exit nodes. *)
+    | NInstr _
+    | NReturn _
+    | NThrow _
+    | NLambda _
+    | NTodo _ ->
+        node.at_exit <- true
+    (* Whereas these cannot. *)
+    | NOther _
+    | NCond _
+    | TrueNode _
+    | FalseNode _
+    | Enter ->
+        ()
+  in
+  loop cfg.exit
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
@@ -470,8 +503,8 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   (* yes, I sometimes use objects, and even mutable objects in OCaml ... *)
   let g = new Ograph_extended.ograph_mutable in
 
-  let enteri = g#add_node { F.n = F.Enter } in
-  let exiti = g#add_node { F.n = F.Exit } in
+  let enteri = g#add_node (IL.mk_node F.Enter) in
+  let exiti = g#add_node (IL.mk_node F.Exit) in
 
   let newi = enteri in
 
@@ -517,19 +550,24 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
 
-let cfg_of_fdef lang fdef =
+let cfg_of_fdef lang ?ctx fdef =
+  let cfg_of_fdef () =
+    let fparams, fstmts = AST_to_IL.function_definition lang ?ctx fdef in
+    let fcfg = cfg_of_stmts fstmts in
+    mark_at_exit_nodes fcfg;
+    { fparams; fcfg }
+  in
+
   if Implicit_return.lang_supports_implicit_return lang then (
     (* We need to build the CFG here first because the analysis
      * visits the CFG to determine returning nodes.
      *)
-    let _fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    (* TODO: Could we instead just transform the CFG directly ? *)
+    let _fparams, fstmts = AST_to_IL.function_definition lang ?ctx fdef in
     Implicit_return.mark_implicit_return_nodes (cfg_of_stmts fstmts);
 
     (* Rebuild CFG after marking the return nodes, so that all
      * implicit returns become explicit.
      *)
-    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
-    { fparams; fcfg = cfg_of_stmts fstmts })
-  else
-    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
-    { fparams; fcfg = cfg_of_stmts fstmts }
+    cfg_of_fdef ())
+  else cfg_of_fdef ()

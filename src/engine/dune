@@ -28,5 +28,6 @@
    semgrep_targeting ; for Input_to_core.atd
    semgrep_reporting; for Test_engine.ml, we should split in tests/ separate dir
  )
- (preprocess (pps ppx_deriving.show ppx_profiling))
+ (inline_tests)
+ (preprocess (pps ppx_deriving.show ppx_profiling ppx_inline_test))
 )

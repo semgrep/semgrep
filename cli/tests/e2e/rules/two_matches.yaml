@@ -1,0 +1,13 @@
+rules:
+  - id: match-foo
+    pattern: |
+      foo(...)
+    message: "test regex message"
+    languages: [python]
+    severity: ERROR
+  - id: match-bar
+    pattern: |
+      bar(...)
+    message: "test regex message"
+    languages: [python]
+    severity: ERROR

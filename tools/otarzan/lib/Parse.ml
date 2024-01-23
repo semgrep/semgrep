@@ -29,14 +29,14 @@ let parse file =
 (* It returns a list list because it's a list of possibly mutually
  * recursive type definitions. See ast_ml.ml
  *)
-let extract_toplevel_typedefs program : Ast_ml.type_declaration list list =
+let extract_toplevel_typedefs program : AST_ocaml.type_declaration list list =
   program
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        (* less: we could look at iattrs and restrict the boilerplate
         * to type decls with certain attributes (e.g., [@@otarzan]) like
         * for deriving
         *)
-       | { Ast_ml.i = Type (_t, decls); iattrs = _ } -> Some decls
+       | { AST_ocaml.i = Type (_t, decls); iattrs = _ } -> Some decls
        | _else_ -> None)
 
 let extract_typedefs_from_ml_file file =

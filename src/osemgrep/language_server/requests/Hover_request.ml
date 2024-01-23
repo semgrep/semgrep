@@ -19,7 +19,7 @@ open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Entry point *)
@@ -38,13 +38,13 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
     let file = Uri.to_path textDocument.uri in
     (* Add 1 to each list for the newline! *)
     let base_charpos =
-      let contents = Common.cat file in
+      let contents = UCommon.cat file in
       let lines =
-        contents |> Common.index_list
+        contents |> List_.index_list
         |> List.filter (fun (_, idx) -> idx < position.line)
       in
       lines
-      |> Common.map (fun (l, _) -> String.length l + 1)
+      |> List_.map (fun (l, _) -> String.length l + 1)
       |> List.fold_left ( + ) 0
     in
     let charpos = base_charpos + position.character in

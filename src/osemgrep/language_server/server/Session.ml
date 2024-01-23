@@ -1,7 +1,14 @@
+module Env = Semgrep_envvars
 open Lsp
 open Types
-open File.Operators
+open Fpath_.Operators
 module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_j
+(*****************************************************************************)
+(* Refs *)
+(*****************************************************************************)
+
+let scan_config_parser_ref = ref OutJ.scan_config_of_string
 
 (*****************************************************************************)
 (* Types *)
@@ -10,8 +17,8 @@ module Out = Semgrep_output_v1_t
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
 type session_cache = {
-  mutable rules : Rule.t list;
-  mutable skipped_fingerprints : string list;
+  mutable rules : Rule.t list; [@opaque]
+  mutable skipped_app_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
 }
@@ -23,8 +30,10 @@ type t = {
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
+  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
+  skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
@@ -39,7 +48,7 @@ let create capabilities =
   let cached_session =
     {
       rules = [];
-      skipped_fingerprints = [];
+      skipped_app_fingerprints = [];
       lock = Lwt_mutex.create ();
       open_documents = [];
     }
@@ -47,30 +56,42 @@ let create capabilities =
   {
     capabilities;
     workspace_folders = [];
+    cached_workspace_targets = Hashtbl.create 10;
     cached_scans = Hashtbl.create 10;
     cached_session;
+    skipped_local_fingerprints = [];
     user_settings = User_settings.default;
     metrics = LS_metrics.default;
     is_intellij = false;
   }
 
 let dirty_files_of_folder folder =
-  let git_repo = Git_wrapper.is_git_repo folder in
+  let git_repo = Git_wrapper.is_git_repo ~cwd:folder () in
   if git_repo then
-    let dirty_files = Git_wrapper.dirty_files folder in
-    Some (Common.map (fun x -> folder // x) dirty_files)
+    let dirty_files = Git_wrapper.dirty_files ~cwd:folder () in
+    Some (List_.map (fun x -> folder // x) dirty_files)
   else None
 
 let decode_rules data =
+  let caps = Cap.network_caps_UNSAFE () in
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       let res =
-        Rule_fetching.load_rules_from_file ~origin:Other_origin
-          ~registry_caching:true file
+        Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
+          ~registry_caching:true caps file
       in
       Logs.info (fun m -> m "Loaded %d rules from CI" (List.length res.rules));
       Logs.info (fun m -> m "Got %d errors from CI" (List.length res.errors));
       res)
+
+let get_targets session root =
+  let targets_conf =
+    User_settings.find_targets_conf_of_t session.user_settings
+  in
+  Find_targets.get_target_fpaths
+    { targets_conf with project_root = Some (Find_targets.Filesystem root) }
+    [ root ]
+  |> fst
 
 (*****************************************************************************)
 (* State getters *)
@@ -83,13 +104,49 @@ let auth_token () =
       let settings = Semgrep_settings.load () in
       settings.api_token
 
+let scan_config_of_token = function
+  | Some token -> (
+      let caps =
+        Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ())
+      in
+      let%lwt config_string =
+        Semgrep_App.fetch_scan_config_string caps ~sca:false ~dry_run:true
+          ~full_scan:true ~repository:""
+      in
+      match config_string with
+      | Ok config_string ->
+          (* TODO: Check config string hash, and update rules iff its different, and cache rules in file *)
+          (* See [scan_config_parser_ref] declaration for why we do this *)
+          let scan_config = !scan_config_parser_ref config_string in
+          Lwt.return_some scan_config
+      | Error e ->
+          Logs.warn (fun m -> m "Failed to fetch scan config: %s" e);
+          Lwt.return_none)
+  | _ -> Lwt.return_none
+
+let fetch_ci_rules_and_origins () =
+  let token = auth_token () in
+  let%lwt scan_config_opt = scan_config_of_token token in
+
+  let rules_opt =
+    Option.bind scan_config_opt (fun scan_config ->
+        Some (decode_rules scan_config.rule_config))
+  in
+  Lwt.return rules_opt
+
+let cache_workspace_targets session =
+  let folders = session.workspace_folders in
+  let targets = List_.map (fun f -> (f, get_targets session f)) folders in
+  List.iter
+    (fun (folder, targets) ->
+      Hashtbl.replace session.cached_workspace_targets folder targets)
+    targets
+
 (* This is dynamic so if the targets file is updated we don't have to restart
- * (and reparse rules...).
- * Once osemgrep is ready, we can just use its target manager directly here
  *)
 let targets session =
   let dirty_files =
-    Common.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
+    List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
   in
   let member_folder_dirty_files file folder =
     let dirty_files = List.assoc folder dirty_files in
@@ -106,11 +163,8 @@ let targets session =
     List.exists (fun f -> member_workspace_folder t f) session.workspace_folders
   in
   let workspace_targets f =
-    let targets_conf =
-      User_settings.find_targets_conf_of_t session.user_settings
-    in
-    Find_targets.get_targets { targets_conf with project_root = Some f } [ f ]
-    |> fst
+    Hashtbl.find_opt session.cached_workspace_targets f
+    |> Option.value ~default:[]
   in
   let targets =
     session.workspace_folders |> List.concat_map workspace_targets
@@ -118,38 +172,19 @@ let targets session =
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
 
-let fetch_ci_rules_and_origins () =
-  let token = auth_token () in
-  match token with
-  | Some token ->
-      let%lwt res =
-        Semgrep_App.fetch_scan_config_async ~token ~sca:false ~dry_run:true
-          ~full_scan:true ~repository:""
-      in
-      let conf =
-        match res with
-        | Ok scan_config -> Some (decode_rules scan_config.rule_config)
-        | Error e ->
-            Logs.warn (fun m -> m "Failed to fetch rules from CI: %s" e);
-            None
-      in
-      Lwt.return conf
-  | _ -> Lwt.return None
-
-(* TODO Default to auto *)
 let fetch_rules session =
   let%lwt ci_rules =
     if session.user_settings.ci then fetch_ci_rules_and_origins ()
     else Lwt.return_none
   in
-  let home = Unix.getenv "HOME" |> Fpath.v in
+  let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
-    session.user_settings.configuration |> Common.map Fpath.v
-    |> Common.map Fpath.normalize
-    |> Common.map (fun f ->
+    session.user_settings.configuration |> List_.map Fpath.v
+    |> List_.map Fpath.normalize
+    |> List_.map (fun f ->
            let p = Fpath.rem_prefix (Fpath.v "~/") f in
            Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> Common.map Fpath.to_string
+    |> List_.map Fpath.to_string
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
@@ -157,6 +192,7 @@ let fetch_rules session =
       [ "auto" ])
     else rules_source
   in
+  let caps = Cap.network_caps_UNSAFE () in
   let%lwt rules_and_origins =
     Lwt_list.map_p
       (fun source ->
@@ -164,7 +200,7 @@ let fetch_rules session =
         let config = Rules_config.parse_config_string ~in_docker source in
         Rule_fetching.rules_from_dashdash_config_async
           ~rewrite_rule_ids:true (* default *)
-          ~token_opt:(auth_token ()) ~registry_caching:true config)
+          ~token_opt:(auth_token ()) ~registry_caching:true caps config)
       rules_source
   in
   let rules_and_origins = List.flatten rules_and_origins in
@@ -181,7 +217,7 @@ let fetch_rules session =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
   let rules =
-    Common.uniq_by
+    List_.uniq_by
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
@@ -191,10 +227,7 @@ let fetch_rules session =
         exclude_rule_ids = [];
         severity = [];
         (* Exclude these as they require the pro engine which we don't support *)
-        exclude_products =
-          [
-            Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
-          ];
+        exclude_products = [ `SCA; `Secrets ];
       }
   in
   let rules, errors =
@@ -203,26 +236,22 @@ let fetch_rules session =
 
   Lwt.return (rules, errors)
 
-let fetch_skipped_fingerprints () =
+let fetch_skipped_app_fingerprints () =
   (* At some point we should allow users to ignore ids locally *)
   let auth_token = auth_token () in
   match auth_token with
   | Some token -> (
+      let caps =
+        Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ())
+      in
+
       let%lwt deployment_opt =
-        Semgrep_App.get_scan_config_from_token_async ~token
+        Semgrep_App.get_scan_config_from_token_async caps
       in
       match deployment_opt with
       | Some deployment -> Lwt.return deployment.triage_ignored_match_based_ids
       | None -> Lwt.return [])
   | None -> Lwt.return []
-
-let cache_session session =
-  let%lwt rules, _ = fetch_rules session in
-  let%lwt skipped_fingerprints = fetch_skipped_fingerprints () in
-  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-      session.cached_session.rules <- rules;
-      session.cached_session.skipped_fingerprints <- skipped_fingerprints;
-      Lwt.return_unit)
 
 (* Useful for when we need to reset diagnostics, such as when changing what
  * rules we've run *)
@@ -231,15 +260,70 @@ let scanned_files session =
   Hashtbl.fold (fun file _ acc -> file :: acc) session.cached_scans []
   |> List.sort_uniq Fpath.compare
 
+let skipped_fingerprints session =
+  let skipped_fingerprints =
+    session.cached_session.skipped_app_fingerprints
+    @ session.skipped_local_fingerprints
+  in
+  List.sort_uniq String.compare skipped_fingerprints
+
 let runner_conf session =
   User_settings.core_runner_conf_of_t session.user_settings
 
 let previous_scan_of_file session file =
   Hashtbl.find_opt session.cached_scans file
 
+let save_local_skipped_fingerprints session =
+  let save_dir =
+    !Env.v.user_dot_semgrep_dir / "cache" / "fingerprinted_ignored_findings"
+  in
+  if not (Sys.file_exists (Fpath.to_string save_dir)) then
+    Sys.mkdir (Fpath.to_string save_dir) 0o755;
+  let save_file_name =
+    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    ^ ".txt"
+  in
+  let save_file = save_dir / save_file_name |> Fpath.to_string in
+  let skipped_fingerprints = skipped_fingerprints session in
+  let skipped_fingerprints = String.concat "\n" skipped_fingerprints in
+  UCommon.with_open_outfile save_file (fun (_pr, chan) ->
+      output_string chan skipped_fingerprints)
+
+let load_local_skipped_fingerprints session =
+  let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
+  let save_file_name =
+    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    ^ ".txt"
+  in
+  let save_file = save_dir / save_file_name |> Fpath.to_string in
+  if not (Sys.file_exists save_file) then session
+  else
+    let skipped_local_fingerprints =
+      UCommon.read_file save_file
+      |> String.split_on_char '\n'
+      |> List.filter (fun s -> s <> "")
+    in
+    { session with skipped_local_fingerprints }
 (*****************************************************************************)
 (* State setters *)
 (*****************************************************************************)
+
+let cache_session session =
+  let%lwt rules, _ = fetch_rules session in
+  let%lwt skipped_app_fingerprints = fetch_skipped_app_fingerprints () in
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.rules <- rules;
+      session.cached_session.skipped_app_fingerprints <-
+        skipped_app_fingerprints;
+      Lwt.return_unit)
+
+let add_skipped_fingerprint session fingerprint =
+  {
+    session with
+    skipped_local_fingerprints =
+      fingerprint :: session.skipped_local_fingerprints;
+  }
+
 let add_open_document session file =
   Lwt.async (fun () ->
       Lwt_mutex.with_lock session.cached_session.lock (fun () ->
@@ -275,7 +359,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : Out.cli_match) -> r.path) results
+    Assoc.group_by (fun (r : Out.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter
