@@ -29,6 +29,9 @@ module TM = Taint_smatch
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO: Rename things to make clear that there are "sub-matches" and there are
+ * "best matches". *)
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -103,7 +106,7 @@ type env = {
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
-  top_matches : TM.Top_matches.t;
+  best_matches : TM.Best_matches.t;
   java_props : java_props_cache;
 }
 
@@ -174,7 +177,7 @@ let union_map_taints_and_vars env f xs =
 let any_is_best_sanitizer env any =
   env.config.is_sanitizer any
   |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
-         (not m.spec.sanitizer_exact) || TM.is_best_match env.top_matches m)
+         (not m.spec.sanitizer_exact) || TM.is_best_match env.best_matches m)
 
 (* TODO: We could return source matches already split by `by-side-effect` here ? *)
 let any_is_best_source ?(is_lval = false) env any =
@@ -187,13 +190,13 @@ let any_is_best_source ?(is_lval = false) env any =
           *  backwards compatibility we keep it this way. *)
          | Yes
          | No ->
-             (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
+             (not m.spec.source_exact) || TM.is_best_match env.best_matches m)
 
 let any_is_best_sink env any =
   env.config.is_sink any
   |> List.filter (fun (tm : R.taint_sink TM.t) ->
          (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
-         (not tm.spec.sink_at_exit) && TM.is_best_match env.top_matches tm)
+         (not tm.spec.sink_at_exit) && TM.is_best_match env.best_matches tm)
 
 let orig_is_source config orig = config.is_source (any_of_orig orig)
 
@@ -884,7 +887,7 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   in
   let sinks =
     lval_is_sink env lval
-    |> List.filter (TM.is_best_match env.top_matches)
+    |> List.filter (TM.is_best_match env.best_matches)
     |> List_.map TM.sink_of_match
   in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
@@ -1638,7 +1641,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
 let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
     any_is_best_sink env (G.Tk tok) @ orig_is_best_sink env e.eorig
-    |> List.filter (TM.is_best_match env.top_matches)
+    |> List.filter (TM.is_best_match env.best_matches)
     |> List_.map TM.sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
@@ -1713,10 +1716,10 @@ let transfer :
     Lval_env.t ->
     string option ->
     flow:F.cfg ->
-    top_matches:TM.Top_matches.t ->
+    best_matches:TM.Best_matches.t ->
     java_props:java_props_cache ->
     Lval_env.t D.transfn =
- fun lang options config enter_env opt_name ~flow ~top_matches ~java_props
+ fun lang options config enter_env opt_name ~flow ~best_matches ~java_props
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1729,7 +1732,7 @@ let transfer :
       config;
       fun_name = opt_name;
       lval_env = in';
-      top_matches;
+      best_matches;
       java_props;
     }
   in
@@ -1838,12 +1841,13 @@ let (fixpoint :
     | None -> Lval_env.empty
     | Some in_env -> in_env
   in
-  let top_matches =
-    (* Here we compute the "canonical" or "top" sink matches, for each sink we check
-     * whether there is a "best match" among the top nodes in the CFG.
-     * See NOTE "Top matches" *)
-    TM.top_level_matches_in_nodes
-      ~matches_of_orig:(fun orig ->
+  let best_matches =
+    (* Here we compute the "canonical" or "best" source/sanitizer/sink matches,
+     * for each source/sanitizer/sink we check whether there is a "best match"
+     * among all the potential matches in the CFG.
+     * See NOTE "Best matches" *)
+    TM.best_matches_in_nodes
+      ~sub_matches_of_orig:(fun orig ->
         let sources =
           orig_is_source config orig |> List.to_seq
           |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
@@ -1868,7 +1872,7 @@ let (fixpoint :
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
-        (transfer lang options config enter_env opt_name ~flow ~top_matches
+        (transfer lang options config enter_env opt_name ~flow ~best_matches
            ~java_props)
         (* tainting is a forward analysis! *)
       ~forward:true ~flow

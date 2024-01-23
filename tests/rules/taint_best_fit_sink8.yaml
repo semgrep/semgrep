@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Match
+    mode: taint
+    pattern-sinks:
+      - patterns:
+        - pattern: sink([$X, ...])
+        - focus-metavariable: $X
+    pattern-sources:
+      - pattern: tainted(...)
+    severity: WARNING
+
