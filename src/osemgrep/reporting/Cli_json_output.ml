@@ -289,8 +289,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
 
-let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
-    OutJ.cli_match =
+let cli_match_of_core_match ~dryrun (hrules : Rule.hrules) (m : OutJ.core_match)
+    : OutJ.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -342,8 +342,26 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
        * we concatenate the lines after? *)
       let lines =
         Semgrep_output_utils.lines_of_file_at_range (start, end_) path
-        |> String.concat "\n"
       in
+      let fixed_lines =
+        if dryrun then
+          Option.map
+            (fun fix ->
+              match (lines, List.rev lines) with
+              | line :: _, last_line :: _ ->
+                  let first_line_part = Str.first_chars line (start.col - 1)
+                  and last_line_part =
+                    Str.string_after last_line (end_.col - 1)
+                  in
+                  String.split_on_char '\n'
+                    (first_line_part ^ fix ^ last_line_part)
+              | [], _
+              | _, [] ->
+                  [])
+            fix
+        else None
+      in
+      let lines = lines |> String.concat "\n" in
       {
         check_id;
         path;
@@ -362,7 +380,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
             (* TODO: extra fields *)
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
-            fixed_lines = None;
+            fixed_lines;
             dataflow_trace;
             (* It's optional in the CLI output, but not in the core match results!
              *)
@@ -448,7 +466,7 @@ let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
  * alt: we could move Core_runner.result type in core/
  *)
-let cli_output_of_core_results ~logging_level (core : OutJ.core_output)
+let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
     (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : OutJ.cli_output =
   match core with
   | {
@@ -518,7 +536,7 @@ let cli_output_of_core_results ~logging_level (core : OutJ.core_output)
          *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match hrules)
+          |> List_.map (cli_match_of_core_match ~dryrun hrules)
           |> dedup_and_sort;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;

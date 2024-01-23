@@ -174,10 +174,9 @@ let fixed_lines (cli_match : OutT.cli_match) fix =
       []
 
 let sarif_fix (cli_match : OutT.cli_match) =
-  match cli_match.extra.fix with
+  match cli_match.extra.fixed_lines with
   | None -> []
-  | Some fix ->
-      let fixed_lines = fixed_lines cli_match fix in
+  | Some fixed_lines ->
       let description_text =
         spf "%s\n Autofix: Semgrep rule suggested fix" cli_match.extra.message
       in

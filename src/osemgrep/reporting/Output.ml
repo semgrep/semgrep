@@ -156,8 +156,8 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
 let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
     =
   let cli_output : OutJ.cli_output =
-    Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      res.core res.hrules res.scanned
+    Cli_json_output.cli_output_of_core_results ~dryrun:conf.dryrun
+      ~logging_level:conf.logging_level res.core res.hrules res.scanned
   in
   cli_output |> fun results ->
   {
