@@ -14,7 +14,8 @@ type 'spec t = {
   spec : 'spec;
       (** The specification on which the match is based, e.g. a taint source.
       * This spec should have a pattern formula. *)
-  spec_id : string;  (** See 'source_id' etc in 'Rule' and 'Parse_rule'. *)
+  spec_id : string;
+      (** See 'source_id' etc in 'Rule' and 'Parse_rule', this is the very same id. *)
   spec_pm : Pattern_match.t;
       (** What the spec's pattern formula actually matches in the target file. *)
   range : Range.t;
@@ -23,7 +24,9 @@ type 'spec t = {
   overlap : overlap;
       (** The overlap of this match ('range') with the spec match ('spec_pm'). *)
 }
-(** A match for a taint spec *)
+(** A sub-match for a taint spec, the 'range' is a subset of the range delimited by
+ * the spec. This is more of a candidate, sometimes we are fine with a submatch, but
+ * sometimes we want the "best match", see NOTE "Best matches". *)
 
 val is_exact : 'spec t -> bool
 (** An exact match, i.e. overlap 0.99. Typically useful for l-values. *)
@@ -51,5 +54,7 @@ val is_best_match : Best_matches.t -> 'spec t -> bool
 (** Similar to 'is_exact' but based on "top matches". *)
 
 val best_matches_in_nodes :
-  matches_of_orig:(IL.orig -> any Seq.t) -> (IL.node, _) CFG.t -> Best_matches.t
+  sub_matches_of_orig:(IL.orig -> any Seq.t) ->
+  (IL.node, _) CFG.t ->
+  Best_matches.t
 (** Collect the top-level matches in a CFG. *)

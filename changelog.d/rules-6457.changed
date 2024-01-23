@@ -10,5 +10,10 @@ where `props` is tainted and the sink specification is:
 
     patterns:
       - pattern: |
-         <$Y ... dangerouslySetInnerHTML={{__html: $X}} />
+         dangerouslySetInnerHTML={{__html: $X}}
       - focus-metavariable: $X
+
+Previously Semgrep wrongly considered the individual subexpressions of the
+conditional as sinks, including the `props` in `props ? ...`, thus producing a
+false positive. Now it will only consider the conditional expression as a whole
+as the sink.

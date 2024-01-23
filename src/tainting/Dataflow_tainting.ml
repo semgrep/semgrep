@@ -29,6 +29,9 @@ module TM = Taint_smatch
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO: Rename things to make clear that there are "sub-matches" and there are
+ * "best matches". *)
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -1844,7 +1847,7 @@ let (fixpoint :
      * among all the potential matches in the CFG.
      * See NOTE "Best matches" *)
     TM.best_matches_in_nodes
-      ~matches_of_orig:(fun orig ->
+      ~sub_matches_of_orig:(fun orig ->
         let sources =
           orig_is_source config orig |> List.to_seq
           |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
