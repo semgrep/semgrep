@@ -1,2 +1,0 @@
-Removed support for writing rules using jsonnet. This feature
-will be restored once we finish the port to OCaml of the semgrep CLI.
