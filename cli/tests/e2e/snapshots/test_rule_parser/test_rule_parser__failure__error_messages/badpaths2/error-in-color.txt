@@ -5,4 +5,4 @@
 
 [31m[22m[24mAdditional properties are not allowed ('filename' was unexpected)[0m
 
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)
