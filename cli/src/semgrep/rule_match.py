@@ -221,8 +221,15 @@ class RuleMatch:
             # current scan results if an issue arises.
             self.annotated_rule_name if self.from_transient_scan else self.rule_id,
             str(self.path),
-            self.start.offset,
-            self.end.offset,
+            # Lockfile-only supply chain findings don't have offsets (not for any technical reason, the parsers just aren't set up to output them, though of course they could be)
+            # So just use line numbers instead
+            *(
+                (self.start.offset, self.end.offset)
+                if not (
+                    self.extra.get("sca_info") and not self.extra["sca_info"].reachable
+                )
+                else (self.start.line, self.end.line)
+            ),
             self.message,
             # TODO: Bring this back.
             # This is necessary so we don't deduplicate taint findings which
