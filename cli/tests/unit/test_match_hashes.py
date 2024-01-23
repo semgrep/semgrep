@@ -295,6 +295,7 @@ def test_same_code_hash_for_previous_scan_finding(mocker, foo_contents):
     assert prev_scan_match.pattern_hash == prev_scan_match.pattern_hash
 
 
+# Same rule finding the same package at two different lines, the match_based_ids should be different
 def test_lockfile_only(mocker, lockfile_only_rule):
     lockfile_contents = dedent(
         """
