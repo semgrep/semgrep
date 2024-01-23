@@ -2813,13 +2813,13 @@ and map_tuple_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.tuple_expression) : G.expr =
   let v1 = (* "(" *) token env v1 in
   (* TODO handle labels *)
-  let _v2TODO =
+  let first_label =
     match v2 with
     | Some (v1, v2) ->
-        let _v1TODO = map_simple_identifier env v1 in
-        let _tcolon = (* ":" *) token env v2 in
-        ()
-    | None -> ()
+        let v1 = map_simple_identifier env v1 in
+        let tcolon = (* ":" *) token env v2 in
+        Some (tcolon, v1)
+    | None -> None
   in
   let v3 = map_expression env v3 in
   let v4 =
@@ -2840,7 +2840,7 @@ and map_tuple_expression (env : env)
   in
   let v5 = (* ")" *) token env v5 in
   let exprs = v3 :: v4 in
-  match exprs with
+  match (first_label, exprs) with
   (* The grammar doesn't differentiate, but according to the Swift spec:
    *
    * "A single expression inside parentheses is a parenthesized expression."
@@ -2850,7 +2850,17 @@ and map_tuple_expression (env : env)
    * See also
    * https://docs.swift.org/swift-book/ReferenceManual/Expressions.html#ID395
    *)
-  | [ e ] -> e
+  | Some (tcolon, ((s, _) as id1)), [ { e = G.N (Id (id2, _)); _ } ]
+    when AST_generic.is_metavar_name s ->
+      (* Notably, Swift tuples can have labels for the fields in them.
+         This means that this case handles where we have a typed metavariable,
+         which looks like a unary tuple which has a label that looks like a
+         metavariable.
+         ($X : ty)
+      *)
+      G.TypedMetavar (id1, tcolon, TyN (Id (id2, G.empty_id_info ())) |> G.t)
+      |> G.e
+  | _, [ e ] -> e
   | _ -> G.Container (G.Tuple, (v1, exprs, v5)) |> G.e
 
 and map_tuple_type (env : env) ((v1, v2, v3) : CST.tuple_type) =
