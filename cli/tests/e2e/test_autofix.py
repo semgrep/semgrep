@@ -33,6 +33,7 @@ from tests.fixtures import RunSemgrep
             "autofix/django-none-password-default.py",
         ),
         ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
+        ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
         (
             "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
             "autofix/terraform-ec2-instance-metadata-options.hcl",
@@ -60,19 +61,3 @@ def test_autofix(
         result,
         (f"{target}-dryrun" if dryrun else f"{target}-fixed"),
     )
-
-
-@pytest.mark.osemfail
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
-@pytest.mark.parametrize(
-    "rule,target",
-    [
-        ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
-    ],
-)
-@pytest.mark.kinda_slow
-def test_autofix_osemfail(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot, rule, target, dryrun
-):
-    test_autofix(run_semgrep_on_copied_files, tmp_path, snapshot, rule, target, dryrun)
