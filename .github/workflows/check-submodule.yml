@@ -1,0 +1,44 @@
+name: check-submodule
+
+on: [pull_request]
+
+jobs:
+  check-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+      # We need to explicitly check out the Semgrep interfaces submodule since
+      # it's set up using ssh for the remote, which doesn't work without auth.
+      # Normally this would only be necessary for a private submodule.
+      - name: Checkout Semgrep interfaces repo
+        uses: actions/checkout@v3
+        with:
+          repository: "returntocorp/semgrep-interfaces"
+          path: "cli/src/semgrep/semgrep_interfaces"
+      - name: Check that Semgrep interfaces submodule points to main
+        uses: jtmullen/submodule-branch-check-action@v1
+        with:
+          # See https://github.com/marketplace/actions/submodule-branch-check for
+          # docs
+          path: "cli/src/semgrep/semgrep_interfaces"
+          branch: "main"
+          # Allow the submodule to point to any commit that has made it into
+          # main, even if it's a commit on a separate branch that has since
+          # been merged in.
+          first_parent: false
+          # Don't fetch full history. We could remove this to do a full clone or
+          # increase the number if we start getting false positives, but our
+          # branches are usually short-lived so this is probably sufficient.
+          fetch_depth: "50"
+          # Pass if the PR in question doesn't modify the submodule, even if it
+          # would otherwise fail (i.e. if the submodule already points to
+          # something off of main, then don't bother people making unrelated
+          # changes).
+          pass_if_unchanged: true
+          # Don't check that the new commit is a descendent of the old commit.
+          # Otherwise, if the submodule already points to a different branch,
+          # this job would fail on the PR to return it to main. This way, the
+          # job will simply fail if the PR updates `semgrep-interfaces` to point
+          # to any non-`main` commit, and succeed otherwise.
+          disable_progression: true
