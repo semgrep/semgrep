@@ -148,10 +148,8 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               in
               Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
-              assert (res.exit_code =*= Exit_code.missing_config);
-              assert (
-                String_.contains res.logs
-                  ~term:"invalid configuration file found"));
+              assert (res.exit_code =*= Exit_code.fatal);
+              assert (String_.contains res.logs ~term:"Invalid rule definition:"));
 
           (* fails if a yaml with more than one rule is specified *)
           with_logs
