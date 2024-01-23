@@ -39,8 +39,10 @@ class JunitXmlFormatter(BaseFormatter):
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
     ) -> str:
+        # Sort according to RuleMatch.get_ordering_key
+        sorted_findings = sorted(rule_matches)
         test_cases = [
-            self._rule_match_to_test_case(rule_match) for rule_match in rule_matches
+            self._rule_match_to_test_case(rule_match) for rule_match in sorted_findings
         ]
         ts = TestSuite("semgrep results", test_cases)
         return cast(str, to_xml_report_string([ts]))
