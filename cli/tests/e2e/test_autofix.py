@@ -33,6 +33,10 @@ from tests.fixtures import RunSemgrep
             "autofix/django-none-password-default.py",
         ),
         ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
+        (
+            "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
+            "autofix/terraform-ec2-instance-metadata-options.hcl",
+        ),
     ],
 )
 def test_autofix(
@@ -65,10 +69,6 @@ def test_autofix(
     "rule,target",
     [
         ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
-        (
-            "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
-            "autofix/terraform-ec2-instance-metadata-options.hcl",
-        ),
     ],
 )
 @pytest.mark.kinda_slow
