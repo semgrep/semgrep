@@ -19,7 +19,6 @@ from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
 import requests
-import ruamel.yaml
 from rich import progress
 from ruamel.yaml import YAMLError
 
@@ -100,7 +99,6 @@ class ConfigLoader:
         self,
         config_str: str,
         project_url: Optional[str] = None,
-        config_str_for_jsonnet: Optional[str] = None,
     ) -> None:
         """
         Mutates Metrics state!
@@ -132,11 +130,6 @@ class ConfigLoader:
         else:
             state.metrics.add_feature("config", "local")
             self._origin = ConfigType.LOCAL
-            # For local imports, use the jsonnet config str
-            # if it exists
-            config_str = (
-                config_str_for_jsonnet if config_str_for_jsonnet else config_str
-            )
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
@@ -765,95 +758,12 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def import_callback(base: str, path: str) -> Tuple[str, bytes]:
-    """
-    Instructions to jsonnet for how to resolve
-    import expressions (`local $NAME = $PATH`).
-    The base is the directory of the file and the
-    path is $PATH in the local expression. We will
-    later pass this function to jsonnet, which will
-    use it when resolving imports. By implementing
-    this callback, we support yaml files (jsonnet
-    can otherwise only build against json files)
-    and config specifiers like `p/python`. We also
-    support a library path
-    """
-
-    # If the library path is absolute, assume that's
-    # the intended path. But if it's relative, assume
-    # it's relative to the path semgrep was called from.
-    # This follows the semantics of `jsonnet -J`
-    library_path = os.environ.get("R2C_INTERNAL_JSONNET_LIB")
-
-    if library_path and not os.path.isabs(library_path):
-        library_path = os.path.join(os.curdir, library_path)
-
-    # Assume the path is the library path if it exists,
-    # otherwise try it without the library. This way,
-    # jsonnet will give an error for the path the user
-    # likely expects
-    # TODO throw an error if neither exists?
-    if library_path and os.path.exists(os.path.join(library_path, path)):
-        final_path = os.path.join(library_path, path)
-    else:
-        final_path = os.path.join(base, path)
-    logger.debug(f"import_callback for {path}, base = {base}, final = {final_path}")
-
-    # On the fly conversion from yaml to json.
-    # We can now do 'local x = import "foo.yml";'
-    # TODO: Make this check less jank
-    if final_path and (
-        final_path.split(".")[-1] == "yml" or final_path.split(".")[-1] == "yaml"
-    ):
-        logger.debug(f"loading yaml file {final_path}, converting to JSON on the fly")
-        yaml = ruamel.yaml.YAML(typ="safe")
-        with open(final_path) as fpi:
-            data = yaml.load(fpi)
-        contents = json.dumps(data)
-        filename = final_path
-        return filename, contents.encode()
-
-    logger.debug(f"defaulting to the config resolver for {path}")
-    # Registry-aware import!
-    # Can now do 'local x = import "p/python";'!!
-    # Will also handle `.jsonnet` and `.libsonnet` files
-    # implicitly, since they will be resolved as local files
-    config_infos = ConfigLoader(path, None, final_path).load_config()
-    if len(config_infos) == 0:
-        raise SemgrepError(f"No valid configs imported")
-    elif len(config_infos) > 1:
-        raise SemgrepError(f"Currently configs cannot be imported from a directory")
-    else:
-        (_config_id, contents, config_path) = config_infos[0]
-        return config_path, contents.encode()
-
-
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str]
 ) -> Dict[str, YamlTree]:
     if not contents:
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
-        )
-
-    # TODO: Make this check less jank
-    if filename and filename.split(".")[-1] == "jsonnet":
-        logger.error(
-            "Support for Jsonnet rules is experimental and currently meant for internal use only. The syntax may change or be removed at any point."
-        )
-
-        # Importing jsonnet here so that people who aren't using
-        # jsonnet rules don't need to deal with jsonnet as a
-        # dependency, especially while this is internal.
-        try:
-            import _jsonnet  # type: ignore
-        except ImportError:
-            logger.error(
-                "Running jsonnet rules requires the python jsonnet library. Please run `pip install jsonnet` and try again."
-            )
-
-        contents = _jsonnet.evaluate_snippet(
-            filename, contents, import_callback=import_callback
         )
 
     # Should we guard this code and checks whether filename ends with .json?

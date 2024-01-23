@@ -9,7 +9,6 @@ from semgrep.constants import OutputFormat
 # If there are nosemgrep comments to ignore findings, SARIF output should include them
 # labeled as suppressed.
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -23,7 +22,6 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot
 
 # Test that rule board information makes its way into SARIF output
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -91,7 +89,6 @@ def test_sarif_output_with_nosemgrep_and_error(
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

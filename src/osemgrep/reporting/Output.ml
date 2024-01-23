@@ -58,7 +58,7 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) =
+    (cli_output : OutJ.cli_output) (hrules : Rule.hrules) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -134,10 +134,14 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         ~color_output:conf.force_color Format.std_formatter cli_output
   (* matches have already been displayed in a file_match_results_hook *)
   | TextIncremental -> ()
-  | Gitlab_sast
-  | Gitlab_secrets
-  | Junit_xml
   | Sarif ->
+      let sarif_json = Sarif_output.sarif_output hrules cli_output in
+      Out.put (Yojson.Basic.to_string sarif_json)
+  | Junit_xml ->
+      let junit_xml = Junit_xml_output.junit_xml_output cli_output in
+      Out.put junit_xml
+  | Gitlab_sast
+  | Gitlab_secrets ->
       Out.put
         (spf "TODO: output format %s not supported yet"
            (Output_format.show output_format))
@@ -152,8 +156,8 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
 let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
     =
   let cli_output : OutJ.cli_output =
-    Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      res.core res.hrules res.scanned
+    Cli_json_output.cli_output_of_core_results ~dryrun:conf.dryrun
+      ~logging_level:conf.logging_level res.core res.hrules res.scanned
   in
   cli_output |> fun results ->
   {
@@ -175,6 +179,6 @@ let output_result (conf : conf) (profiler : Profiler.t)
   let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output;
+  dispatch_output_format conf.output_format conf cli_output res.hrules;
   cli_output
 [@@profiling]

@@ -328,7 +328,7 @@ and name env = function
  * `LetPattern`s. *)
 and pattern env pat =
   match pat with
-  | G.PatUnderscore tok ->
+  | G.PatWildcard tok ->
       let lval = fresh_lval env tok in
       (lval, [])
   | G.PatId (id, id_info) ->
@@ -905,7 +905,7 @@ and call_special _env (x, tok) =
     | G.Instanceof -> Instanceof
     | G.Sizeof -> Sizeof
     | G.ConcatString _kindopt -> Concat
-    | G.Spread -> Spread
+    | G.Spread -> SpreadFn
     | G.Require -> Require
     | G.EncodedString _
     | G.Defined

@@ -25,6 +25,19 @@ from tests.fixtures import RunSemgrep
         ("rules/autofix/ocaml_paren_expr.yaml", "autofix/ocaml_paren_expr.ml"),
         ("rules/autofix/python-delete-import.yaml", "autofix/python-delete-import.py"),
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
+        ("rules/autofix/csv-writer.yaml", "autofix/csv-writer.py"),
+        ("rules/autofix/defaulthttpclient.yaml", "autofix/defaulthttpclient.java"),
+        ("rules/autofix/requests-use-timeout.yaml", "autofix/requests-use-timeout.py"),
+        (
+            "rules/autofix/django-none-password-default.yaml",
+            "autofix/django-none-password-default.py",
+        ),
+        ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
+        ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
+        (
+            "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
+            "autofix/terraform-ec2-instance-metadata-options.hcl",
+        ),
     ],
 )
 def test_autofix(
@@ -48,31 +61,3 @@ def test_autofix(
         result,
         (f"{target}-dryrun" if dryrun else f"{target}-fixed"),
     )
-
-
-@pytest.mark.osemfail
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
-@pytest.mark.parametrize(
-    "rule,target",
-    [
-        ("rules/autofix/csv-writer.yaml", "autofix/csv-writer.py"),
-        ("rules/autofix/defaulthttpclient.yaml", "autofix/defaulthttpclient.java"),
-        ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
-        ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
-        ("rules/autofix/requests-use-timeout.yaml", "autofix/requests-use-timeout.py"),
-        (
-            "rules/autofix/django-none-password-default.yaml",
-            "autofix/django-none-password-default.py",
-        ),
-        (
-            "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
-            "autofix/terraform-ec2-instance-metadata-options.hcl",
-        ),
-    ],
-)
-@pytest.mark.kinda_slow
-def test_autofix_osemfail(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot, rule, target, dryrun
-):
-    test_autofix(run_semgrep_on_copied_files, tmp_path, snapshot, rule, target, dryrun)

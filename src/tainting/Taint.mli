@@ -231,3 +231,4 @@ type signature = Findings.t
  *)
 
 val _show_finding : finding -> string
+val _show_signature : signature -> string

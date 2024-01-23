@@ -444,10 +444,11 @@ For more information see https://semgrep.dev
     (easy_logging ( = 0.8.1 ))
     (easy_logging_yojson ( = 0.8.1 ))
     logs
-    ; JSON/YAML
+    ; JSON/YAML/XML
     atdgen
     (yojson ( >= 2.0.0 ))
     yaml
+    xmlm
     ; CLI
     cmdliner
     ; PPX

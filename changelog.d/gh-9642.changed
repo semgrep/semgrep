@@ -1,0 +1,2 @@
+Removed `sg` alias to avoid naming conflicts
+with the shadow-utils `sg` command for Linux systems.

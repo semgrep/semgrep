@@ -560,6 +560,11 @@ and fieldstmt x =
 and stmt_aux env x =
   match x with
   | FunctionDef (t, v1, v2, v3, v4, v5) ->
+      let fkind =
+        match env.context with
+        | InClass -> G.Method
+        | _ -> G.Function
+      in
       let env = { env with context = InFunctionOrMethod } in
       let v1 = name env v1
       and v2 = parameters env v2
@@ -572,7 +577,7 @@ and stmt_aux env x =
           G.fparams = fb v2;
           frettype = v3;
           fbody = G.FBStmt v4;
-          fkind = (G.Function, t);
+          fkind = (fkind, t);
         }
       in
       [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
@@ -869,7 +874,7 @@ and excepthandler env = function
                      (H.expr_to_type
                         (G.Container (G.Tuple, Tok.unsafe_fake_bracket [ e ])
                         |> G.e))))
-        | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
+        | None, None -> G.CatchPattern (G.PatWildcard (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
             G.CatchParam (G.param_of_type (H.expr_to_type e) ~pname:(Some n))

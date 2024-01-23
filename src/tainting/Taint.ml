@@ -374,6 +374,10 @@ end)
 
 type signature = Findings.t
 
+let _show_signature s =
+  s |> Findings.to_seq |> List.of_seq |> List_.map _show_finding
+  |> [%show: string list]
+
 (*****************************************************************************)
 (* Taint sets *)
 (*****************************************************************************)
@@ -472,7 +476,8 @@ module Taint_set = struct
                * Otherwise we end up with taint sets where most of the taints are
                * essentially the same. This is probably due to
                * [see note "Taint-tracking via ranges" in Match_tainting_mode],
-               * and not having "Top_sources" [see note "Top matches" in 'Taint_smatch'].
+               * and not having "Best_sources" [see note "Best matches" in 'Taint_smatch'].
+               * TOOD: Revisit ^^^ now we have `exact: true` sources.
                *)
               let ts1' = of_list ts1 in
               let ts2' = of_list ts2 in

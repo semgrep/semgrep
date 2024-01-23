@@ -1,1 +1,0 @@
-Fixed bugs in gitignore/semgrepignore globbing implementation affecting `--experimental`.
