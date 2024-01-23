@@ -13,3 +13,13 @@ except A:
   pass
 except B:
   pass
+
+try:
+  pass
+except:
+  pass
+
+try:
+  pass
+except B:
+  pass
