@@ -2851,12 +2851,12 @@ and map_tuple_expression (env : env)
    * https://docs.swift.org/swift-book/ReferenceManual/Expressions.html#ID395
    *)
   | Some (tcolon, ((s, _) as id1)), [ { e = G.N (Id (id2, _)); _ } ]
-    when AST_generic.is_metavar_name s ->
+    when AST_generic.is_metavar_name s && in_pattern env ->
       (* Notably, Swift tuples can have labels for the fields in them.
-         This means that this case handles where we have a typed metavariable,
-         which looks like a unary tuple which has a label that looks like a
-         metavariable.
-         ($X : ty)
+         This means that a valid Swift tuple includes ($X : ty), which is the
+         unary tuple associating `$X` to `ty`.
+         This coincides with our typed metavariable syntax, so we dispatch upon
+         it here to translate it into a TypedMetavar, when we are parsing a pattern.
       *)
       G.TypedMetavar (id1, tcolon, TyN (Id (id2, G.empty_id_info ())) |> G.t)
       |> G.e
