@@ -1,7 +1,7 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/autofix/python-assert-statement.py"
     ]
@@ -40,7 +40,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/python-assert-statement.py",
       "start": {
@@ -82,7 +83,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/python-assert-statement.py",
       "start": {
@@ -92,5 +94,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }
