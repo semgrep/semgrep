@@ -14,6 +14,7 @@ val exit_code_of_error_type : Semgrep_output_v1_t.error_type -> Exit_code.t
 (* internals used also for incremental display of matches *)
 val cli_match_of_core_match :
   dryrun:bool ->
+  ?applied_fixes:(string, (int * int) list) Hashtbl.t ->
   Rule.hrules ->
   Semgrep_output_v1_t.core_match ->
   Semgrep_output_v1_t.cli_match

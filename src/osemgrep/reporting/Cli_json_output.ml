@@ -289,8 +289,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
 
-let cli_match_of_core_match ~dryrun (hrules : Rule.hrules) (m : OutJ.core_match)
-    : OutJ.cli_match =
+let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
+    (m : OutJ.core_match) : OutJ.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -345,19 +345,41 @@ let cli_match_of_core_match ~dryrun (hrules : Rule.hrules) (m : OutJ.core_match)
       in
       let fixed_lines =
         if dryrun then
-          Option.map
-            (fun fix ->
-              match (lines, List.rev lines) with
-              | line :: _, last_line :: _ ->
-                  let first_line_part = Str.first_chars line (start.col - 1)
-                  and last_line_part =
-                    Str.string_after last_line (end_.col - 1)
-                  in
-                  String.split_on_char '\n'
-                    (first_line_part ^ fix ^ last_line_part)
-              | [], _
-              | _, [] ->
-                  [])
+          Option.fold ~none:None
+            ~some:(fun fix ->
+              if String.equal fix "" then None
+              else
+                let fix_already_applied =
+                  Option.fold ~none:false
+                    ~some:(fun tbl ->
+                      Option.value ~default:[] (Hashtbl.find_opt tbl !!path)
+                      |> List.exists (fun (st, en) ->
+                             st <= start.offset && en >= start.offset))
+                    applied_fixes
+                in
+                if fix_already_applied then None
+                else
+                  match (lines, List.rev lines) with
+                  | line :: _, last_line :: _ ->
+                      let first_line_part = Str.first_chars line (start.col - 1)
+                      and last_line_part =
+                        Str.string_after last_line (end_.col - 1)
+                      in
+                      Option.fold ~none:()
+                        ~some:(fun tbl ->
+                          let v =
+                            Option.value ~default:[]
+                              (Hashtbl.find_opt tbl !!path)
+                          in
+                          Hashtbl.replace tbl !!path
+                            ((start.offset, end_.offset) :: v))
+                        applied_fixes;
+                      Some
+                        (String.split_on_char '\n'
+                           (first_line_part ^ fix ^ last_line_part))
+                  | [], _
+                  | _, [] ->
+                      None)
             fix
         else None
       in
@@ -597,6 +619,7 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
         ignore skipped_rules;
         []
       in
+      let applied_fixes = Hashtbl.create 13 in
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
@@ -604,7 +627,7 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
          *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match ~dryrun hrules)
+          |> List_.map (cli_match_of_core_match ~dryrun ~applied_fixes hrules)
           |> dedup_and_sort;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;
