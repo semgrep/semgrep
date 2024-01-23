@@ -791,6 +791,7 @@ type error_kind =
   | InvalidYaml of string * Tok.t
   | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
+[@@deriving show]
 
 type error = {
   (* Some errors are in the YAML file before we can enter a specific rule
@@ -799,6 +800,7 @@ type error = {
   rule_id : Rule_ID.t option;
   kind : error_kind;
 }
+[@@deriving show]
 
 exception Error of error
 

@@ -1,6 +1,0 @@
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Invalid YAML file rules/syntax/invalid-metavariable-regex.yml:
-	while parsing a block collection
-	  in "<file>", line 7, column 15
-	expected <block end>, but found '?'
-	  in "<file>", line 8, column 15
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs

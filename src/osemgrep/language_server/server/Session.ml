@@ -76,13 +76,19 @@ let decode_rules data =
   let caps = Cap.network_caps_UNSAFE () in
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
-      let res =
+      match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           ~registry_caching:true caps file
-      in
-      Logs.info (fun m -> m "Loaded %d rules from CI" (List.length res.rules));
-      Logs.info (fun m -> m "Got %d errors from CI" (List.length res.errors));
-      res)
+      with
+      | Ok res ->
+          Logs.info (fun m ->
+              m "Loaded %d rules from CI" (List.length res.rules));
+          Logs.info (fun m ->
+              m "Got %d errors from CI" (List.length res.errors));
+          res
+      | Error _err ->
+          (* There shouldn't be any errors, because we got these rules from CI. *)
+          failwith "impossible: received invalid rules from CI")
 
 let get_targets session root =
   let targets_conf =
@@ -193,7 +199,7 @@ let fetch_rules session =
     else rules_source
   in
   let caps = Cap.network_caps_UNSAFE () in
-  let%lwt rules_and_origins =
+  let%lwt rules_and_errors =
     Lwt_list.map_p
       (fun source ->
         let in_docker = !Semgrep_envvars.v.in_docker in
@@ -203,7 +209,18 @@ let fetch_rules session =
           ~token_opt:(auth_token ()) ~registry_caching:true caps config)
       rules_source
   in
-  let rules_and_origins = List.flatten rules_and_origins in
+
+  let rules_and_origins, errors =
+    let rules_and_origins_nested, errors_nested =
+      Common2.unzip rules_and_errors
+    in
+    (List.flatten rules_and_origins_nested, List.flatten errors_nested)
+  in
+
+  Logs.warn (fun m ->
+      m "Got %d errors while refreshing rules in language server"
+        (List.length errors));
+
   let rules_and_origins =
     match ci_rules with
     | Some r ->

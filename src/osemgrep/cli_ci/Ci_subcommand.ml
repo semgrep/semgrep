@@ -179,8 +179,16 @@ let at_url_maybe ppf () : unit =
 let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
-      Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
-        ~registry_caching:false caps file)
+      match
+        Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
+          ~registry_caching:false caps file
+      with
+      | Ok rules -> rules
+      | Error _err ->
+          (* There shouldn't be any errors, because we obtained these rules
+             from CI.
+          *)
+          failwith "impossible: received an invalid rule from CI")
 
 let scan_config_and_rules_from_deployment ~dry_run
     (prj_meta : OutJ.project_metadata)
@@ -668,12 +676,15 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
      * token / deployment. We could simplify the code.
      *)
     | None ->
-        ( None,
+        let rules_and_origins =
           Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
             ~rewrite_rule_ids:conf.rewrite_rule_ids
             ~registry_caching:conf.registry_caching
+            ~strict:conf.core_runner_conf.strict
             (caps :> < Cap.network >)
-            conf.rules_source )
+            conf.rules_source
+        in
+        (None, rules_and_origins)
     | Some (token, depl) ->
         let caps = Auth.cap_token_and_network token caps in
         let scan_id, scan_config, rules =
