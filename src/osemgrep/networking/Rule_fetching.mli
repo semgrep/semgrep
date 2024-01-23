@@ -99,7 +99,7 @@ val load_rules_from_file :
   registry_caching:bool ->
   < Cap.network > ->
   Fpath.t ->
-  (rules_and_origin, Rule.error) Either.t
+  (rules_and_origin, Rule.error) Result.t
 
 val load_rules_from_url :
   origin:origin ->
@@ -107,4 +107,4 @@ val load_rules_from_url :
   ?ext:string ->
   < Cap.network > ->
   Uri.t ->
-  (rules_and_origin, Rule.error) Either.t
+  (rules_and_origin, Rule.error) Result.t

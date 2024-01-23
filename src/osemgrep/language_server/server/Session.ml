@@ -80,15 +80,15 @@ let decode_rules data =
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           ~registry_caching:true caps file
       with
-      | Left res ->
+      | Ok res ->
           Logs.info (fun m ->
               m "Loaded %d rules from CI" (List.length res.rules));
           Logs.info (fun m ->
               m "Got %d errors from CI" (List.length res.errors));
           res
-      | Right _err ->
+      | Error _err ->
           (* There shouldn't be any errors, because we got these rules from CI. *)
-          raise Common.Impossible)
+          failwith "impossible: received invalid rules from CI")
 
 let get_targets session root =
   let targets_conf =

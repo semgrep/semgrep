@@ -183,12 +183,12 @@ let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           ~registry_caching:false caps file
       with
-      | Left rules -> rules
-      | Right _err ->
+      | Ok rules -> rules
+      | Error _err ->
           (* There shouldn't be any errors, because we obtained these rules
              from CI.
           *)
-          raise Common.Impossible)
+          failwith "impossible: received an invalid rule from CI")
 
 let scan_config_and_rules_from_deployment ~dry_run
     (prj_meta : OutJ.project_metadata)

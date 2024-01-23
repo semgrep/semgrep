@@ -320,7 +320,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
  * registry-cache aware.
  *)
 let parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps (file : Fpath.t)
-    : (Rule.rules * Rule.invalid_rule_error list, Rule.error) Either.t =
+    : (Rule.rules * Rule.invalid_rule_error list, Rule.error) Result.t =
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in
@@ -348,12 +348,11 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps (file : Fpath.t)
           Parse_rule.parse_and_filter_invalid_rules
             ~rewrite_rule_ids:rule_id_rewriter file
     in
-    Either.Left
-      (List_.map (modify_registry_provided_metadata origin) rules, errors)
+    Ok (List_.map (modify_registry_provided_metadata origin) rules, errors)
   with
-  | Rule.Error err -> Right err
+  | Rule.Error err -> Error err
   | Parsing_error.Other_error (s, t) ->
-      Right { rule_id = None; kind = Rule.InvalidYaml (s, t) }
+      Error { rule_id = None; kind = Rule.InvalidYaml (s, t) }
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -369,14 +368,14 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps (file : Fpath.t)
  * be a jsonnet file importing rules from the registry.
  *)
 let load_rules_from_file ~rewrite_rule_ids ~origin ~registry_caching caps
-    (file : Fpath.t) : (rules_and_origin, Rule.error) Either.t =
+    (file : Fpath.t) : (rules_and_origin, Rule.error) Result.t =
   Logs.debug (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then
     match parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps file with
-    | Left (rules, errors) ->
+    | Ok (rules, errors) ->
         Logs.debug (fun m -> m "Done loading local config from %s" !!file);
-        Left { rules; errors; origin = Local_file file }
-    | Right err -> Right err
+        Ok { rules; errors; origin = Local_file file }
+    | Error err -> Error err
   else
     (* This should never happen because Semgrep_dashdash_config only builds
      * a File case if the file actually exists.
@@ -384,7 +383,7 @@ let load_rules_from_file ~rewrite_rule_ids ~origin ~registry_caching caps
     Error.abort (spf "file %s does not exist anymore" !!file)
 
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule.error) Either.t Lwt.t =
+    (rules_and_origin, Rule.error) Result.t Lwt.t =
   let%lwt content = fetch_content_from_url_async ?token_opt caps url in
   let ext, content =
     if ext = "policy" then
@@ -407,7 +406,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
   |> Lwt.return
 
 let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule.error) Either.t =
+    (rules_and_origin, Rule.error) Result.t =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
 [@@profiling]
 
@@ -418,7 +417,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
   match kind with
   | C.File path ->
       Lwt.return
-        (Either_.partition_either
+        (Result_.partition_result
            (load_rules_from_file ~rewrite_rule_ids ~registry_caching
               ~origin:(Local_file path) caps)
            [ path ])
@@ -434,7 +433,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                ~registry_caching caps file)
-      |> Either_.partition_either Fun.id
+      |> Result_.partition_result Fun.id
       |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
@@ -446,7 +445,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
         load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
           caps url
       in
-      [ rules ] |> Either_.partition_either Fun.id |> Lwt.return
+      [ rules ] |> Result_.partition_result Fun.id |> Lwt.return
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content =
@@ -459,7 +458,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
             load_rules_from_file ~rewrite_rule_ids ~origin:Registry
               ~registry_caching caps file;
           ])
-      |> Either_.partition_either Fun.id
+      |> Result_.partition_result Fun.id
       |> Lwt.return
   | C.A Policy ->
       let token =
@@ -478,7 +477,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
           uri
       in
       Metrics_.g.is_using_app <- true;
-      [ rules_and_errors ] |> Either_.partition_either Fun.id |> Lwt.return
+      [ rules_and_errors ] |> Result_.partition_result Fun.id |> Lwt.return
   | C.A SupplyChain ->
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"
