@@ -1259,7 +1259,8 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * The 'sig_arg' may refer to `this` and also have an offset:
  * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
-let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
+let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
+    (lval * name) option =
   let os =
     sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
   in
@@ -1271,7 +1272,15 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
          _;
         } ->
+            (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
+        | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
+            (* We're calling a `method` on the same instace of the caller,
+             * and `this.x` it's just `this.x` *)
+            let this =
+              VarSpecial (This, Tok.fake_tok (snd method_.ident) "this")
+            in
+            Some ({ base = this; rev_offset = List.rev os }, method_)
         | __else__ -> None)
     | BArg pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
