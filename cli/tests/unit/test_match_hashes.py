@@ -2,13 +2,6 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from interfaces.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
-from interfaces.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from interfaces.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Pypi
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Transitive
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
@@ -16,6 +9,13 @@ from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 
 @pytest.fixture
