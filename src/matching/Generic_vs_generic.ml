@@ -2594,7 +2594,7 @@ and m_stmt a b =
   | G.Try (a0, a1, a2, a3, a4), B.Try (b0, b1, b2, b3, b4) ->
       let* () = m_tok a0 b0 in
       let* () = m_stmt a1 b1 in
-      let* () = (m_list m_catch) a2 b2 in
+      let* () = (m_list_in_any_order ~less_is_ok:true m_catch) a2 b2 in
       let* () = (m_option m_try_else) a3 b3 in
       (m_option m_finally) a4 b4
   | G.Assert (a0, aargs, asc), B.Assert (b0, bargs, bsc) ->
