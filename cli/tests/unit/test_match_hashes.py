@@ -2,9 +2,17 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+from interfaces.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
+from interfaces.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
+from interfaces.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from interfaces.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from interfaces.semgrep_interfaces.semgrep_output_v1 import Pypi
+from interfaces.semgrep_interfaces.semgrep_output_v1 import Transitive
+from interfaces.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
+from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -40,6 +48,28 @@ def double_eqeq_rule() -> Rule:
           pattern: |
             $X == $X
             $Y == $Y
+          languages: [python]
+          severity: INFO
+          message: bad
+        """
+        ),
+        None,
+    )
+    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+
+
+@pytest.fixture
+def lockfile_only_rule() -> Rule:
+    config = parse_config_string(
+        "testfile",
+        dedent(
+            """
+        rules:
+        - id: rule_id
+          r2c-internal-project-depends-on:
+              package: "foo"
+              version: ">=1.0.0"
+              namespace: "pypi"
           languages: [python]
           severity: INFO
           message: bad
@@ -88,6 +118,52 @@ def get_rule_match(
         ),
         extra={"metavars": metavars if metavars else {}},
         metadata=metadata if metadata else {},
+    )
+
+
+def get_lockfile_only_rule_match(
+    filepath="requirements.txt",
+    start_line=3,
+    end_line=3,
+    rule_id="rule_id",
+) -> RuleMatch:
+    return RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId(rule_id),
+            path=out.Fpath(filepath),
+            start=out.Position(start_line, 0, 0),
+            end=out.Position(end_line, 0, 0),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+            ),
+        ),
+        extra={
+            "sca_info": out.ScaInfo(
+                reachable=False,
+                reachability_rule=False,
+                sca_finding_schema=SCA_FINDING_SCHEMA,
+                dependency_match=DependencyMatch(
+                    dependency_pattern=DependencyPattern(
+                        ecosystem=Ecosystem(Pypi()),
+                        package="foo",
+                        semver_range=">=1.0.0",
+                    ),
+                    found_dependency=FoundDependency(
+                        ecosystem=Ecosystem(Pypi()),
+                        package="foo",
+                        version="1.0.0",
+                        allowed_hashes={},
+                        transitivity=Transitivity(Transitive()),
+                    ),
+                    lockfile=filepath,
+                ),
+            )
+        },
+        metadata={},
     )
 
 
@@ -217,3 +293,20 @@ def test_same_code_hash_for_previous_scan_finding(mocker, foo_contents):
     assert curr_scan_match.match_based_id == prev_scan_match.match_based_id
     assert curr_scan_match.code_hash == prev_scan_match.code_hash
     assert prev_scan_match.pattern_hash == prev_scan_match.pattern_hash
+
+
+def test_lockfile_only(mocker, lockfile_only_rule):
+    lockfile_contents = dedent(
+        """
+        foo == 1.0.0
+        foo == 2.0.0
+        foo == 3.0.0
+        """
+    ).lstrip()
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=lockfile_contents))
+    match1 = get_lockfile_only_rule_match(start_line=1, end_line=1)
+    match2 = get_lockfile_only_rule_match(start_line=2, end_line=2)
+    matches = RuleMatchSet(lockfile_only_rule)
+    matches.update([match1, match2])
+    matches = list(sorted(matches))
+    assert matches[0].match_based_id != matches[1].match_based_id

@@ -223,6 +223,7 @@ class RuleMatch:
             str(self.path),
             # Lockfile-only supply chain findings don't have offsets (not for any technical reason, the parsers just aren't set up to output them, though of course they could be)
             # So just use line numbers instead
+            # TODO: remove this when the switch to ocaml is done
             *(
                 (self.start.offset, self.end.offset)
                 if not (
