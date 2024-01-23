@@ -553,7 +553,7 @@ let blurb =
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently just Apex). " ^ blurb)
+      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -570,7 +570,8 @@ let o_pro : bool Term.t =
   let info =
     Arg.info [ "pro" ]
       ~doc:
-        ("Inter-file analysis and Pro languages (currently just Apex). " ^ blurb)
+        ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
+       ^ blurb)
   in
   Arg.value (Arg.flag info)
 
