@@ -1070,7 +1070,11 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env =
-        { H.file; conv = H.line_col_to_pos_str str; extra = (input_kind, Sh) }
+        {
+          H.file;
+          conv = H.line_col_to_pos_pattern str;
+          extra = (input_kind, Sh);
+        }
       in
       source_file env cst)
 

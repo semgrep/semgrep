@@ -2448,7 +2448,9 @@ let parse_pattern str =
     (fun () -> Tree_sitter_julia.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = H.line_col_to_pos_str str; extra = Pattern } in
+      let env =
+        { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
+      in
       match map_source_file env cst with
       | [ s ] -> (
           match s.G.s with

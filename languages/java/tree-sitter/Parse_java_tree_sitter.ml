@@ -1949,5 +1949,5 @@ let parse_pattern str =
     (fun () -> Tree_sitter_java.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = H.line_col_to_pos_str str; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       program env file cst)

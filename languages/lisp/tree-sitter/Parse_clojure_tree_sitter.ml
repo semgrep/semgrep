@@ -325,7 +325,7 @@ let parse_pattern str =
     (fun () -> Tree_sitter_clojure.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = H.line_col_to_pos_str str; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let e = map_source env cst in
       (* this will be simplified if needed in Parse_pattern.normalize_any *)
       Raw e)

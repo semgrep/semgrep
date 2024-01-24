@@ -68,33 +68,8 @@ let line_col_to_pos file =
       full_charpos_to_pos_aux ());
   Hashtbl.find h
 
-(* mostly a copy-paste of Pos.full_convertors_str *)
-let line_col_to_pos_str str =
-  let size = String.length str + 2 in
-  let h = Hashtbl.create size in
-  let charpos = ref 0 in
-  let line = ref 0 in
-  let str_lines = String.split_on_char '\n' str in
-  let full_charpos_to_pos_aux () =
-    List.iter
-      (fun s ->
-        incr line;
-        let len = String.length s + 1 in
-
-        (* '... +1 do'  cos input_line dont return the trailing \n *)
-        for i = 0 to len - 1 do
-          Hashtbl.add h (!line, i) (!charpos + i)
-        done;
-        charpos := !charpos + len)
-      str_lines
-  in
-  full_charpos_to_pos_aux ();
-  (* This is equivalent to returning `Hashtbl.find h` but Semgrep complains
-     and honestly Semgrep is valid *)
-  fun key ->
-    match Hashtbl.find_opt h key with
-    | None -> raise Not_found
-    | Some x -> x
+(* Patterns are given as a one line string with `\n` characters *)
+let line_col_to_pos_pattern _str (_line, col) = col
 
 let token env (tok : Tree_sitter_run.Token.t) =
   let loc, str = tok in

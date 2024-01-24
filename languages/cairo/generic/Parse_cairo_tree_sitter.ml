@@ -995,5 +995,7 @@ let parse_pattern str =
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = H.line_col_to_pos_str str; extra = Pattern } in
+      let env =
+        { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
+      in
       map_source_file env cst)
