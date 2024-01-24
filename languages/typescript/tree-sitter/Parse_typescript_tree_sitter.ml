@@ -530,7 +530,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
         let id = concat_nested_identifier ids in
         (* TODO:
            let v2 = type_arguments env v2 |> PI.unbracket
-             |> Common.map (fun x -> G.TypeArg x) in
+             |> List_.map (fun x -> G.TypeArg x) in
             H2.name_of_ids ~name_typeargs:(Some v2) v1
         *)
         let _v2TODO =

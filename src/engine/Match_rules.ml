@@ -228,7 +228,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res =
     res_total
-    |> Common.map fst (* Match_dependency.join_core_result *)
+    |> List_.map fst (* Match_dependency.join_core_result *)
     |> RP.collate_rule_results xtarget.Xtarget.file
   in
   let extra =

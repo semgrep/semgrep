@@ -782,7 +782,7 @@ let parse_lockfile file =
   |> parse_package_lock (Fpath.to_string file)
 
 
-let map_generic_dict f xs = xs |> Tok.unbracket |> Common.map (fun (expr : AST_generic.expr) ->
+let map_generic_dict f xs = xs |> Tok.unbracket |> List_.map (fun (expr : AST_generic.expr) ->
   match expr.e with
     | Container (Tuple, (_ , [ {e = L (String (_, (str, _), _)) ; _} ; value ] , _ )) -> f str value
     | _ -> None
@@ -792,7 +792,7 @@ let read_key key (expr : AST_generic.expr) =
   match expr.e with
   | Container (Dict, xs) ->
       xs |> Tok.unbracket
-      |> Common.find_some_opt (fun (expr : AST_generic.expr) ->
+      |> List_.find_some_opt (fun (expr : AST_generic.expr) ->
              match expr.e with
              | Container
                  ( Tuple,
@@ -935,7 +935,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
          {
            Xtarget.lockfile = file;
            ecosystem = AST_generic.Npm;
-           lazy_lockfile_content = lazy (File.read_file file);
+           lazy_lockfile_content = lazy (UFile.read_file file);
            lazy_lockfile_ast_and_errors = lazy (parse_lockfile file);
          });
   }
@@ -1132,9 +1132,18 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     }
   in
   let matches =
+    (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
+    let _skipped_supply_chain, applicable_rules_with_dep_matches =
+      applicable_rules
+      |> Match_dependency.match_all_dependencies xtarget
+      |> Either_.partition_either (function
+           | rule, Some [] -> Left rule
+           | x -> Right x)
+    in
     (* !!Calling Match_rules!! Calling the matching engine!! *)
     Match_rules.check ~match_hook ~timeout:config.timeout
-      ~timeout_threshold:config.timeout_threshold xconf applicable_rules xtarget
+      ~timeout_threshold:config.timeout_threshold xconf
+      applicable_rules_with_dep_matches xtarget
     |> set_matches_to_proprietary_origin_if_needed xtarget
     |> Extract.adjust_location_extracted_targets_if_needed adjusters file
   in

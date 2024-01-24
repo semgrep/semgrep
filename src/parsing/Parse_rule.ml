@@ -762,15 +762,15 @@ let parse_ecosystem env key value =
 
 let parse_dependency_pattern key env value : R.dependency_pattern =
   let rd = yaml_to_dict env key value in
-  let ecosystem = take rd env parse_ecosystem "namespace" in
-  let package_name = take rd env parse_string "package" in
-  let version_constraint = take rd env parse_string "version" in
+  let ecosystem = take_key rd env parse_ecosystem "namespace" in
+  let package_name = take_key rd env parse_string "package" in
+  let version_constraint = take_key rd env parse_string "version" in
   R.{ ecosystem; package_name; version_constraint }
 
 let parse_dependency_formula env key value : R.dependency_formula =
   let rd = yaml_to_dict env key value in
   if Hashtbl.mem rd.h "depends-on-either" then
-    take rd env
+    take_key rd env
       (fun env key -> parse_list env key (parse_dependency_pattern key))
       "depends-on-either"
   else [ parse_dependency_pattern key env value ]

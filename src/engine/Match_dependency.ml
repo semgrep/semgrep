@@ -97,7 +97,7 @@ let match_dependencies xtarget rule =
   | _ -> None
 
 let match_all_dependencies xtarget =
-  Common.map (fun rule -> (rule, match_dependencies xtarget rule))
+  List_.map (fun rule -> (rule, match_dependencies xtarget rule))
 
 (* TODO: should these actually use a mutable fields for perf reasons?  *)
 
@@ -106,7 +106,7 @@ let match_all_dependencies xtarget =
        (dependency_matches : Pattern_match.dependency_match list)
        (code_match : Pattern_match.t) =
      dependency_matches
-     |> Common.map (fun dm -> { code_match with dependency_match = Some dm })
+     |> List_.map (fun dm -> { code_match with dependency_match = Some dm })
 
    (* TODO: if the core_result has no matches, but we *do* have dependency matches, create unreachable/lockfile-only matches! *)
    let join_core_result

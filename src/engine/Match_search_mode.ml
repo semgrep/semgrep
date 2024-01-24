@@ -942,7 +942,7 @@ let check_rule ?(dms : Pattern_match.dependency_match list option = None)
          | Some dms ->
              List.concat_map (fun pm ->
                  dms
-                 |> Common.map (fun dm ->
+                 |> List_.map (fun dm ->
                         { pm with Pattern_match.dependency_match = Some dm })))
       |> before_return (fun v ->
              v

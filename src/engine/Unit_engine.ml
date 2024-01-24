@@ -693,7 +693,7 @@ let tainting_test lang rules_file file =
 
   let matches =
     taint_rules
-    |> Common.map (fun x -> (x, None))
+    |> List_.map (fun x -> (x, None))
     |> List.concat_map (fun rule ->
            let xtarget =
              {

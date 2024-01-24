@@ -87,6 +87,7 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
     xlang;
     lazy_content = lazy (UFile.read_file target);
     lazy_ast_and_errors;
+    lockfile_data = None;
   }
 
 (*****************************************************************************)
@@ -279,7 +280,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
             Match_rules.check
               ~match_hook:(fun _ _ -> ())
               ~timeout:0. ~timeout_threshold:0 xconf
-              (Common.map (fun x -> (x, None)) rules)
+              (List_.map (fun x -> (x, None)) rules)
               xtarget
           with
           | exn ->

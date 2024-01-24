@@ -475,7 +475,7 @@ let extract ~match_hook ~timeout ~timeout_threshold
   let res =
     (* !! Calling Match_rules !! *)
     Match_rules.check ~match_hook ~timeout ~timeout_threshold xconf
-      (Common.map (fun x -> (x, None)) (erules :> Rule.rules))
+      (List_.map (fun x -> (x, None)) (erules :> Rule.rules))
       xtarget
   in
   let separate_matches, combine_matches =

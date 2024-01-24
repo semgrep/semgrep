@@ -14,7 +14,10 @@ type t = {
   validation_state : Rule.validation_state;
   severity_override : Rule.severity option;
   metadata_override : JSON.t option;
+  dependency_match : dependency_match option;
 }
+
+and dependency_match = AST_generic.dependency * Rule.dependency_pattern
 
 (* a record but really only the [id] field should matter *)
 and rule_id = {
