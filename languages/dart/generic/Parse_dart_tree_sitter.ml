@@ -3866,9 +3866,7 @@ let parse_pattern str =
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
-      let env =
-        { H.file; conv = (fun _ -> raise Not_found); extra = Pattern }
-      in
+      let env = { H.file; conv = H.line_col_to_pos_str str; extra = Pattern } in
       let any = map_program env cst in
       (* this will be simplified i:f needed in Parse_pattern.normalize_any *)
       any)

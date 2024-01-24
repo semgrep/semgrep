@@ -37,7 +37,7 @@ type 'a env = {
 (* Helpers *)
 (*****************************************************************************)
 
-(* mostly a copy-paste of Parse_info.full_charpos_to_pos_large *)
+(* mostly a copy-paste of Pos.full_charpos_to_pos_large *)
 let line_col_to_pos file =
   let size = UFile.filesize (Fpath.v file) + 2 in
   let h = Hashtbl.create size in
@@ -68,6 +68,34 @@ let line_col_to_pos file =
       full_charpos_to_pos_aux ());
   Hashtbl.find h
 
+(* mostly a copy-paste of Pos.full_convertors_str *)
+let line_col_to_pos_str str =
+  let size = String.length str + 2 in
+  let h = Hashtbl.create size in
+  let charpos = ref 0 in
+  let line = ref 0 in
+  let str_lines = String.split_on_char '\n' str in
+  let full_charpos_to_pos_aux () =
+    List.iter
+      (fun s ->
+        incr line;
+        let len = String.length s + 1 in
+
+        (* '... +1 do'  cos input_line dont return the trailing \n *)
+        for i = 0 to len - 1 do
+          Hashtbl.add h (!line, i) (!charpos + i)
+        done;
+        charpos := !charpos + len)
+      str_lines
+  in
+  full_charpos_to_pos_aux ();
+  (* This is equivalent to returning `Hashtbl.find h` but Semgrep complains
+     and honestly Semgrep is valid *)
+  fun key ->
+    match Hashtbl.find_opt h key with
+    | None -> raise Not_found
+    | Some x -> x
+
 let token env (tok : Tree_sitter_run.Token.t) =
   let loc, str = tok in
   let h = env.conv in
@@ -79,11 +107,13 @@ let token env (tok : Tree_sitter_run.Token.t) =
   let bytepos =
     try h (line, column) with
     | Not_found ->
-        raise
-          (Tok.NoTokenLocation
-             (Printf.sprintf
-                "Could not convert from location %d:%d in %s to a position" line
-                column file))
+        if (line = 1 && column = 0) || file = "<pattern>" then 0
+        else
+          raise
+            (Tok.NoTokenLocation
+               (Printf.sprintf
+                  "Could not convert from location %d:%d in %s to a position"
+                  line column file))
   in
   let pos = Pos.make ~line ~column ~file bytepos in
   let tok_loc = { Tok.str; pos } in

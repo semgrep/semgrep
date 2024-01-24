@@ -2981,7 +2981,7 @@ let parse_pattern str =
        * Imitate what we do in php_to_generic.ml?
        *)
       let extra = Pattern in
-      let env = { H.file; conv = (fun _ -> raise Not_found); extra } in
+      let env = { H.file; conv = H.line_col_to_pos_str str; extra } in
       (* TODO: G.Ss (script env cst) but regressions *)
       match script env cst with
       | [ { G.s = G.ExprStmt (e, _); _ } ] -> G.E e

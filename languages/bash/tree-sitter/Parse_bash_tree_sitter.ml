@@ -1484,7 +1484,7 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env =
-        { H.file; conv = (fun _ -> raise Not_found); extra = AST_bash.Pattern }
+        { H.file; conv = H.line_col_to_pos_str str; extra = AST_bash.Pattern }
       in
       let tok = Tok.first_tok_of_file file in
       program env ~tok cst)
