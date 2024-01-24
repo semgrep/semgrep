@@ -107,13 +107,11 @@ let token env (tok : Tree_sitter_run.Token.t) =
   let bytepos =
     try h (line, column) with
     | Not_found ->
-        if (line = 1 && column = 0) || file = "<pattern>" then 0
-        else
-          raise
-            (Tok.NoTokenLocation
-               (Printf.sprintf
-                  "Could not convert from location %d:%d in %s to a position"
-                  line column file))
+        raise
+          (Tok.NoTokenLocation
+             (Printf.sprintf
+                "Could not convert from location %d:%d in %s to a position" line
+                column file))
   in
   let pos = Pos.make ~line ~column ~file bytepos in
   let tok_loc = { Tok.str; pos } in
