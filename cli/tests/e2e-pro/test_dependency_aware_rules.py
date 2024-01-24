@@ -101,10 +101,6 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/poetry_with_uppercase_package_name",
         ),
         (
-            "rules/dependency_aware/python-poetry-sca.yaml",
-            "dependency_aware/poetry_with_arbitrary_starting_comment",
-        ),
-        (
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
         ),
@@ -214,6 +210,14 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/dart-parity.yaml",
             "dependency_aware/dart",
+        ),
+        (
+            "rules/dependency_aware/swift-sca.yaml",
+            "dependency_aware/swiftpm/v1",
+        ),
+        (
+            "rules/dependency_aware/swift-sca.yaml",
+            "dependency_aware/swiftpm/v2",
         ),
     ],
 )

@@ -64,6 +64,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
+from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 
 logger = getLogger(__name__)
 
@@ -95,6 +96,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Composer()): ["composer.lock"],
     Ecosystem(Nuget()): ["packages.lock.json"],
     Ecosystem(Pub()): ["pubspec.lock"],
+    Ecosystem(SwiftPM()): ["Package.resolved"],
 }
 
 
@@ -819,6 +821,7 @@ class TargetManager:
             Ecosystem(Composer()),
             Ecosystem(Nuget()),
             Ecosystem(Pub()),
+            Ecosystem(SwiftPM()),
         }
 
         return {
