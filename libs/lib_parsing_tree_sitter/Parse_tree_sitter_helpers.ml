@@ -59,11 +59,9 @@ let line_col_to_pos file =
           done
         with
         | End_of_file ->
-            (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
-             * because an ident on the last line would get
-             * the last charpos.
-             *)
-            ()
+            (* We need to add this in case there is a trailing \n in the
+               end of the file *)
+            Hashtbl.add h (!line + 1, 0) !charpos
       in
       full_charpos_to_pos_aux ());
   Hashtbl.find h
