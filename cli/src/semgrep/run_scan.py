@@ -554,14 +554,15 @@ def run_scan(
         filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
     )
 
-    logger.verbose("Rules:")
-    for ruleid in sorted(rule.id for rule in unexperimental_rules):
-        logger.verbose(f"- {ruleid}")
-
-    if len(experimental_rules) > 0:
-        logger.verbose("Experimental Rules:")
-        for ruleid in sorted(rule.id for rule in experimental_rules):
+    if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
+        logger.verbose("Rules:")
+        for ruleid in sorted(rule.id for rule in unexperimental_rules):
             logger.verbose(f"- {ruleid}")
+
+        if len(experimental_rules) > 0:
+            logger.verbose("Experimental Rules:")
+            for ruleid in sorted(rule.id for rule in experimental_rules):
+                logger.verbose(f"- {ruleid}")
 
     (
         rule_matches_by_rule,
