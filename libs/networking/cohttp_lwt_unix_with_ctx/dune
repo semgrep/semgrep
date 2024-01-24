@@ -1,0 +1,21 @@
+(library
+ (public_name networking.cohttp_lwt_unix_with_ctx)
+ (name networking_cohttp_lwt_unix_with_ctx)
+ (wrapped false)
+  (libraries
+    lwt
+    uri
+    cohttp-lwt
+    cohttp-lwt-unix
+    profiling
+  )
+  (preprocess
+    (pps
+      profiling.ppx
+      ppx_deriving.show
+      ppx_deriving.eq
+      ppx_hash
+      lwt_ppx
+     )
+   )
+)
