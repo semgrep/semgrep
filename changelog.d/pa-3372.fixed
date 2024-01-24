@@ -17,7 +17,7 @@ class Test {
 
   public test() {
     setStr();
-	useStr();
+    useStr();
   }
 
 }
