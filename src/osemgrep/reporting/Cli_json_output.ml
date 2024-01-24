@@ -262,6 +262,17 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
  *)
 let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
+  let rule =
+    (* the python implementation does not include sanitizers; so as to not
+     * break fingerprints we ignore sanitizers, too. *)
+    let mode =
+      match rule.mode with
+      | `Taint { Rule.sources; sanitizers = _; sinks; propagators } ->
+          `Taint { Rule.sources; sanitizers = None; sinks; propagators }
+      | (`Search _ | `Extract _ | `Secrets _ | `Steps _) as mode -> mode
+    in
+    { rule with mode }
+  in
   let xpats = Rule.xpatterns_of_rule rule in
   let xpat_strs =
     xpats |> List_.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
