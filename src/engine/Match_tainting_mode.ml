@@ -883,10 +883,19 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   (* TODO: 'debug_taint' should just be part of 'res'
      * (i.e., add a "debugging" field to 'Report.match_result'). *)
   let taint_config, _TODO_debug_taint, expls =
+    let match_on =
+      (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
+       * taint_focus_on (preferred name by SR). *)
+      match (xconf.config.taint_focus_on, xconf.config.taint_match_on) with
+      | `Source, _
+      | _, `Source ->
+          `Source
+      | `Sink, `Sink -> `Sink
+    in
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
-             pms_of_finding ~match_on:xconf.config.taint_match_on finding
+             pms_of_finding ~match_on finding
              |> List.iter (fun pm -> Stack_.push pm matches))
     in
     taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
