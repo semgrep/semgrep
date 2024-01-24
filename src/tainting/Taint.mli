@@ -7,7 +7,9 @@ module LabelSet : Set.S with type elt = string
 (* Taint *)
 (*****************************************************************************)
 
-type tainted_tokens = AST_generic.tok list [@@deriving show]
+type tainted_token = AST_generic.tok [@@deriving show]
+
+type tainted_tokens = tainted_token list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. For example,
   * when passing through a statement like `x = tainted`, the token

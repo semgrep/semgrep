@@ -1,0 +1,24 @@
+taint-mode: Pro: Semgrep will now propagate taint via instance variables when
+calling methods within the same class, making this example work:
+
+```java
+class Test {
+
+  private String str;
+
+  public setStr() {
+    this.str = "tainted";
+  }
+
+  public useStr() {
+    //ruleid: test
+    sink(this.str);
+  }
+
+  public test() {
+    setStr();
+    useStr();
+  }
+
+}
+```

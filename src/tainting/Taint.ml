@@ -62,7 +62,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Call traces *)
 (*****************************************************************************)
 
-type tainted_tokens = G.tok list [@@deriving show]
+type tainted_token = G.tok [@@deriving show]
+type tainted_tokens = tainted_token list [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
  * all potential paths. So a set of tokens seems more appropriate than a list.
  * TODO: May have to annotate each tainted token with a `call_trace` that explains
