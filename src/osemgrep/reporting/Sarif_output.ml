@@ -439,7 +439,10 @@ let sarif_output is_logged_in hrules (cli_output : OutT.cli_output) =
   in
   let run =
     let hide_nudge =
-      is_logged_in || is_pro || not Metrics_.g.is_using_registry
+      let is_using_registry =
+        Metrics_.g.is_using_registry || !Semgrep_envvars.v.mock_using_registry
+      in
+      is_logged_in || is_pro || not is_using_registry
     in
     let rules = rules hide_nudge hrules in
     let tool =
