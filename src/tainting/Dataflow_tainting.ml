@@ -1260,7 +1260,12 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
-    (lval * name) option =
+    (* Besides the 'lval', we also return a "tainted token" pointing to an
+     * identifier in the actual code that relates to 'sig_arg', to be used
+     * in the taint trace.  For example, if we're calling `obj.method` and
+     * `this.x` were tainted, then we would record that taint went through
+     * `obj`. *)
+    (lval * T.tainted_token) option =
   let os =
     sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
   in
@@ -1276,7 +1281,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
         | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
             (* We're calling a `method` on the same instace of the caller,
-             * and `this.x` it's just `this.x` *)
+             * and `this.x` is just `this.x` *)
             let this =
               VarSpecial (This, Tok.fake_tok (snd method_.ident) "this")
             in
@@ -1316,7 +1321,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
                 None)
         | __else__ -> None)
   in
-  Some (lval, obj)
+  Some (lval, snd obj.ident)
 
 (* What is the taint denoted by 'sig_arg' ? *)
 let taints_of_sig_arg env fparams fun_exp args_exps args_taints
@@ -1483,7 +1488,7 @@ let check_function_signature env fun_exp args args_taints =
             (* Taints 'taints' go into an argument of the call, by side-effect.
              * Right now this is mainly used to track taint going into specific
              * fields of the callee object, like `this.x = "tainted"`. *)
-            let+ dst_lval, dst_obj =
+            let+ dst_lval, tainted_tok =
               (* 'dst_lval' is the actual argument/l-value that corresponds
                  * to the formal argument 'dst_arg'. *)
               lval_of_sig_arg fun_exp fparams args dst_arg
@@ -1506,7 +1511,7 @@ let check_function_signature env fun_exp args args_taints =
                          |> Taints.map (fun taint ->
                                 let tokens =
                                   List.rev_append t.tokens
-                                    (snd dst_obj.ident :: taint.T.tokens)
+                                    (tainted_tok :: taint.T.tokens)
                                 in
                                 { taint with tokens })
                      | Control ->
