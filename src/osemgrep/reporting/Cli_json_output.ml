@@ -289,6 +289,37 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
 
+let make_fixed_lines ?applied_fixes lines fix path (start : OutJ.position)
+    (end_ : OutJ.position) =
+  let fix_overlaps, add_fix =
+    match applied_fixes with
+    | None -> (false, fun () -> ())
+    | Some table ->
+        let v =
+          match Hashtbl.find_opt table !!path with
+          | Some xs -> xs
+          | None -> []
+        in
+        ( List.exists
+            (fun (st, en) -> st <= start.offset && en >= start.offset)
+            v,
+          fun () ->
+            Hashtbl.replace table !!path ((start.offset, end_.offset) :: v) )
+  in
+  if String.equal fix "" then None
+  else if fix_overlaps then None
+  else
+    match (lines, List.rev lines) with
+    | line :: _, last_line :: _ ->
+        let first_line_part = Str.first_chars line (start.col - 1)
+        and last_line_part = Str.string_after last_line (end_.col - 1) in
+        add_fix ();
+        Some
+          (String.split_on_char '\n' (first_line_part ^ fix ^ last_line_part))
+    | [], _
+    | _, [] ->
+        None
+
 let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
     (m : OutJ.core_match) : OutJ.cli_match =
   match m with
@@ -344,44 +375,12 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
         Semgrep_output_utils.lines_of_file_at_range (start, end_) path
       in
       let fixed_lines =
-        if dryrun then
-          Option.fold ~none:None
-            ~some:(fun fix ->
-              if String.equal fix "" then None
-              else
-                let fix_already_applied =
-                  Option.fold ~none:false
-                    ~some:(fun tbl ->
-                      Option.value ~default:[] (Hashtbl.find_opt tbl !!path)
-                      |> List.exists (fun (st, en) ->
-                             st <= start.offset && en >= start.offset))
-                    applied_fixes
-                in
-                if fix_already_applied then None
-                else
-                  match (lines, List.rev lines) with
-                  | line :: _, last_line :: _ ->
-                      let first_line_part = Str.first_chars line (start.col - 1)
-                      and last_line_part =
-                        Str.string_after last_line (end_.col - 1)
-                      in
-                      Option.fold ~none:()
-                        ~some:(fun tbl ->
-                          let v =
-                            Option.value ~default:[]
-                              (Hashtbl.find_opt tbl !!path)
-                          in
-                          Hashtbl.replace tbl !!path
-                            ((start.offset, end_.offset) :: v))
-                        applied_fixes;
-                      Some
-                        (String.split_on_char '\n'
-                           (first_line_part ^ fix ^ last_line_part))
-                  | [], _
-                  | _, [] ->
-                      None)
-            fix
-        else None
+        match (fix, dryrun) with
+        | None, _
+        | _, false ->
+            None
+        | Some fix, true ->
+            make_fixed_lines ?applied_fixes lines fix path start end_
       in
       let lines = lines |> String.concat "\n" in
       {
