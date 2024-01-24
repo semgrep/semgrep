@@ -1,0 +1,3 @@
+Addressed an issue related to matching top-level identifiers with meta-variable
+qualified patterns in C++, such as matching ::foo with ::$A::$B.  This problem
+was specific to Pro Engine-enabled scans.

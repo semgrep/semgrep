@@ -471,11 +471,16 @@ let rec m_name_inner a b =
           | [] -> raise Impossible
           | _x :: xs -> List.rev xs |> List_.map (fun id -> (id, None))
         in
+        let new_middle =
+          match new_qualifier with
+          | [] -> None
+          | xs -> Some (B.QDots xs)
+        in
         m_name a
           (B.IdQualified
              {
                nameinfo with
-               name_middle = Some (B.QDots new_qualifier);
+               name_middle = new_middle;
                name_info = B.empty_id_info ();
              }))
   (* semantic! try to handle open in OCaml by querying LSP! The
