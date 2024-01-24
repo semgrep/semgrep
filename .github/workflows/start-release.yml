@@ -393,6 +393,33 @@ jobs:
       run: gh workflow run bump_version.yml --repo "semgrep/semgrep-rpc" --raw-field
         version="${{ needs.get-version.outputs.version }}"
     if: ${{ ! inputs.dry-run }}
+  bump-semgrep-vscode:
+    runs-on: ubuntu-22.04
+    needs:
+    - get-version
+    - validate-release-trigger
+    - release-setup
+    steps:
+    - name: Get JWT for semgrep-ci GitHub App
+      id: jwt
+      uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+      env:
+        EXPIRATION: 600
+        ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }}
+        PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+    - name: Get token for semgrep-ci GitHub App
+      id: token
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
+    - name: Bump semgrep version in semgrep/semgrep-vscode
+      env:
+        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+      run: gh workflow run bump_version.yml --repo "semgrep/semgrep-vscode" --raw-field
+        version="${{ needs.get-version.outputs.version }}"
+    if: ${{ ! inputs.dry-run }}
   notify-success:
     if: ${{ success() && ! inputs.dry-run }}
     needs:
@@ -402,6 +429,7 @@ jobs:
     - bump-semgrep-action
     - bump-semgrep-rpc
     - bump-semgrep-app
+    - bump-semgrep-vscode
     runs-on: ubuntu-20.04
     steps:
     - run: echo "${{ needs.get-version.outputs.version }}"
@@ -425,6 +453,7 @@ jobs:
     - bump-semgrep-action
     - bump-semgrep-rpc
     - bump-semgrep-app
+    - bump-semgrep-vscode
     runs-on: ubuntu-20.04
     steps:
     - name: Notify Failure
