@@ -22,6 +22,7 @@ const languages = [
   "promql",
   "python",
   "r",
+  "ruby",
   "rust",
   "scala",
   "solidity",
