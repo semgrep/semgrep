@@ -2211,7 +2211,7 @@ let map_constructor_definition (env : env)
   let attrs = ctor_attr :: attrs in
   let ent = G.basic_entity ("constructor", tctor) ~attrs in
   let def =
-    { fkind = (Method, tctor); fparams = params; frettype = None; fbody }
+    { fkind = (Method None, tctor); fparams = params; frettype = None; fbody }
   in
   (ent, FuncDef def)
 

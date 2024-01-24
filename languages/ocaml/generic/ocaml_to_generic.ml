@@ -560,7 +560,7 @@ and class_field (fld : class_field) : G.field =
             let e = expr e in
             G.FBExpr e
       in
-      let fdef = G.{ fkind = (Method, m_tok); fparams; frettype; fbody } in
+      let fdef = G.{ fkind = (Method None, m_tok); fparams; frettype; fbody } in
       G.fld (ent, G.FuncDef fdef)
   | InstanceVar { inst_tok = _; inst_name; inst_type; inst_expr } ->
       let id = ident inst_name in

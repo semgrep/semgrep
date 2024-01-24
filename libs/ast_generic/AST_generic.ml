@@ -1728,13 +1728,15 @@ and function_definition = {
 and function_kind =
   | Function
   (* This is a bit redundant with having the func in a field *)
-  | Method
+  | Method of method_kind option
   (* Also redundant; can just check if the fdef is in a Lambda *)
   | LambdaKind
   (* a.k.a short lambdas *)
   | Arrow
   (* for Scala *)
   | BlockCases
+
+and method_kind = { has_reciever_parameter : bool; method_is_static : bool }
 
 (* The brackets are usually '()', but it can be || in Rust (like in Smalltalk)
  * or even sometimes [xxx] in C#.
@@ -2353,6 +2355,16 @@ let attr kwd tok = KeywordAttr (kwd, tok)
 let unhandled_keywordattr (s, t) =
   (* TODO? or use OtherAttribue? *)
   NamedAttr (t, Id ((s, t), empty_id_info ()), Tok.unsafe_fake_bracket [])
+
+(* ------------------------------------------------------------------------- *)
+(* Method kind *)
+(* ------------------------------------------------------------------------- *)
+
+let default_instance_method_kind =
+  { has_reciever_parameter = false; method_is_static = false }
+
+let default_static_method_kind =
+  { has_reciever_parameter = false; method_is_static = false }
 
 (* ------------------------------------------------------------------------- *)
 (* Patterns *)

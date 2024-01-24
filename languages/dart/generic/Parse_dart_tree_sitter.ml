@@ -3024,8 +3024,12 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
       DefStmt
         ( ent,
           FuncDef
-            { fkind = (Method, fake "Method"); fparams; frettype = None; fbody }
-        )
+            {
+              fkind = (Method None, fake "Method");
+              fparams;
+              frettype = None;
+              fbody;
+            } )
       |> G.s
   | `Fact_cons_sign x ->
       let attr, dotted, fparams = map_factory_constructor_signature env x in
@@ -3040,7 +3044,7 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
         ( ent,
           FuncDef
             {
-              fkind = (Method, fake "Method");
+              fkind = (Method None, fake "Method");
               fparams;
               frettype = None;
               fbody = body;
@@ -3285,7 +3289,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
           ( { name = EN (H2.name_of_ids dotted); attrs; tparams = [] },
             FuncDef
               {
-                fkind = (Method, fake "method");
+                fkind = (Method None, fake "method");
                 fparams;
                 frettype = None;
                 fbody =
@@ -3355,14 +3359,15 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         | None -> attrs
       in
       let v2 =
-        map_function_signature ~attrs env v2 ((Method, fake "method"), FBNothing)
+        map_function_signature ~attrs env v2
+          ((Method None, fake "method"), FBNothing)
       in
       [ v2 ]
   | `Static_func_sign (v1, v2) ->
       let v1 = KeywordAttr (Static, (* "static" *) token env v1) in
       let v2 =
         map_function_signature ~attrs:([ v1 ] @ attrs) env v2
-          ((Method, fake "method"), FBNothing)
+          ((Method None, fake "method"), FBNothing)
       in
       [ v2 ]
   | `Static_choice_final_or_const_opt_type_static_final_decl_list (v1, v2) ->

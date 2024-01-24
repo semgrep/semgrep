@@ -207,8 +207,10 @@ let top_func () =
         let v1 = ident v1 in
         let ftok, params, ret = func_type v2 in
         let ent = G.basic_entity v1 in
+        (* TODO Go actually has explicit recievers. *)
         let fdef =
-          G.FuncDef (mk_func_def (G.Method, ftok) params ret (G.FBDecl G.sc))
+          G.FuncDef
+            (mk_func_def (G.Method None, ftok) params ret (G.FBDecl G.sc))
         in
         G.fld (ent, fdef)
     | EmbeddedInterface v1 ->
@@ -648,7 +650,8 @@ let top_func () =
         and ftok, params, ret = func_type v3
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
-        let def = mk_func_def (G.Method, ftok) params ret (G.FBStmt v4) in
+        (* TODO Go has explicit recievers *)
+        let def = mk_func_def (G.Method None, ftok) params ret (G.FBStmt v4) in
         let receiver =
           match v2 with
           | G.Param x -> G.ParamReceiver x

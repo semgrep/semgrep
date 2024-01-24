@@ -558,7 +558,7 @@ and function_kind (kind, t) =
     | Function -> G.Function
     | AnonLambda -> G.LambdaKind
     | ShortLambda -> G.Arrow
-    | Method -> G.Method),
+    | Method -> G.Method None),
     t )
 
 and parameters x : G.parameter list = list parameter x

@@ -819,7 +819,7 @@ and map_computed_getter (env : env) ((v1, v2, v3) : CST.computed_getter) =
     ( { G.name = G.OtherEntity (v2, []); attrs = []; tparams = [] },
       G.FuncDef
         {
-          G.fkind = (G.Method, v2 |> snd);
+          G.fkind = (G.Method None, v2 |> snd);
           G.fparams = fb [];
           G.frettype = None;
           G.fbody = v3;
@@ -841,7 +841,7 @@ and map_computed_modify (env : env) ((v1, v2, v3) : CST.computed_modify) =
     ( { G.name = G.OtherEntity (v2, []); attrs; tparams = [] },
       G.FuncDef
         {
-          G.fkind = (G.Method, v2 |> snd);
+          G.fkind = (G.Method None, v2 |> snd);
           G.fparams = fb [];
           G.frettype = None;
           G.fbody;
@@ -899,7 +899,7 @@ and map_computed_setter (env : env) ((v1, v2, v3, v4) : CST.computed_setter) =
     ( { G.name = G.OtherEntity (v2, []); attrs; tparams = [] },
       G.FuncDef
         {
-          G.fkind = (G.Method, v2 |> snd);
+          G.fkind = (G.Method None, v2 |> snd);
           G.fparams;
           G.frettype = None;
           G.fbody;
@@ -1288,7 +1288,7 @@ and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
   let definition_kind =
     G.FuncDef
       {
-        fkind = (G.Method, snd v2);
+        fkind = (G.Method None, snd v2);
         fparams = fb [];
         frettype = None;
         fbody = G.FBStmt v3;
@@ -2134,7 +2134,7 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
 
   let attrs = attrs in
   let entity = G.basic_entity ~tparams:v2 ~attrs v1 in
-  let kind = if in_class then G.Method else G.Function in
+  let kind = if in_class then G.Method None else G.Function in
   let definition_kind =
     G.FuncDef
       { fkind = (kind, snd v1); fparams = fb fparams; frettype; fbody = body }
@@ -2720,7 +2720,7 @@ and map_subscript_declaration (env : env)
     ( ent,
       G.FuncDef
         {
-          fkind = (G.Method, v2);
+          fkind = (G.Method None, v2);
           fparams = fb fparams;
           frettype;
           fbody = G.FBStmt v7;

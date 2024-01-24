@@ -1090,7 +1090,7 @@ and map_variance = function
 
 and map_function_kind = function
   | Function -> `Function
-  | Method -> `Method
+  | Method _ -> `Method
   | LambdaKind -> `LambdaKind
   | Arrow -> `Arrow
   | BlockCases -> `BlockCases

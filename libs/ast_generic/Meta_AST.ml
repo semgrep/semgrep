@@ -1225,7 +1225,8 @@ and vof_variance = function
 and vof_function_kind = function
   | Function -> OCaml.VSum ("Function", [])
   | LambdaKind -> OCaml.VSum ("LambdaKind", [])
-  | Method -> OCaml.VSum ("Method", [])
+  (* TODO: If this is needed somewhere fill it out. *)
+  | Method _ -> OCaml.VSum ("Method", [])
   | Arrow -> OCaml.VSum ("Arrow", [])
   | BlockCases -> OCaml.VSum ("BlockCases", [])
 

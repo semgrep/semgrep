@@ -779,9 +779,10 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
             | None -> G.FBDecl G.sc
           in
           let ent = G.basic_entity v2 ~attrs:v1 in
-          let def =
-            { fkind = (Method, snd v2); fparams; frettype = None; fbody }
+          let fkind =
+            (G.Method (Some G.default_instance_method_kind), snd v2)
           in
+          let def = { fkind; fparams; frettype = None; fbody } in
           (ent, FuncDef def) |> G.fld)
   | `Ellips x ->
       let x = token env x in

@@ -613,12 +613,22 @@ and method_decl ?(cl_kind = None) { m_var; m_formals; m_throws; m_body } =
     | Some (Interface, _), { s = G.Block (_, [], _); _ } -> G.FBNothing
     | _ -> FBStmt v4
   in
+  let method_kind =
+    {
+      G.has_reciever_parameter = false;
+      G.method_is_static =
+        ent.attrs
+        |> List.exists (function
+             | G.KeywordAttr (G.Static, _) -> true
+             | _ -> false);
+    }
+  in
   ( { ent with G.attrs = ent.G.attrs @ throws },
     {
       G.fparams = fb fparams;
       frettype = rett;
       fbody;
-      fkind = (G.Method, G.fake "");
+      fkind = (G.Method (Some method_kind), G.fake "");
     } )
 
 and field v = var_with_init v
