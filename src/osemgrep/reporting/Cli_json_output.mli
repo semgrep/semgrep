@@ -13,8 +13,9 @@ val exit_code_of_error_type : Semgrep_output_v1_t.error_type -> Exit_code.t
 
 (* internals used also for incremental display of matches
    The [applied_fixes] hash table is both in and out parameter, it is used for
-   deciding whether a fixed_lines elements is output, depending on whether an
-   overlapping fix was already proposed.
+   deciding whether a fixed_lines elements is included in the cli_match. This
+   depends on whether an overlapping fix was already included in an earlier
+   cli_match in the same list of matches.
 *)
 val cli_match_of_core_match :
   dryrun:bool ->
