@@ -1,4 +1,5 @@
 name: check-submodule
+# this file is copied from semgrep-proprietary's check-submodule.yaml
 
 on: [pull_request]
 
@@ -8,14 +9,8 @@ jobs:
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v3
-      # We need to explicitly check out the Semgrep interfaces submodule since
-      # it's set up using ssh for the remote, which doesn't work without auth.
-      # Normally this would only be necessary for a private submodule.
-      - name: Checkout Semgrep interfaces repo
-        uses: actions/checkout@v3
         with:
-          repository: "returntocorp/semgrep-interfaces"
-          path: "cli/src/semgrep/semgrep_interfaces"
+          submodules: true
       - name: Check that Semgrep interfaces submodule points to main
         uses: jtmullen/submodule-branch-check-action@v1
         with:
