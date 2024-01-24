@@ -59,7 +59,6 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF

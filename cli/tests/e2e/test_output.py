@@ -176,7 +176,7 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--emacs", "--vim"],
+    ["--json", "--emacs", "--vim", "--sarif"],
 )
 def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
@@ -191,7 +191,7 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
+    ["--gitlab-sast", "--gitlab-secrets"],
 )
 @pytest.mark.osemfail
 def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
