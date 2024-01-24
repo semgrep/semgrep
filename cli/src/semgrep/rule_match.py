@@ -225,11 +225,11 @@ class RuleMatch:
             # So just use line numbers instead
             # TODO: remove this when the switch to ocaml is done
             *(
-                (self.start.offset, self.end.offset)
-                if not (
+                (self.start.line, self.end.line)
+                if (
                     self.extra.get("sca_info") and not self.extra["sca_info"].reachable
                 )
-                else (self.start.line, self.end.line)
+                else (self.start.offset, self.end.offset)
             ),
             self.message,
             # TODO: Bring this back.
