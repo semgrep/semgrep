@@ -6,7 +6,7 @@ module FT = File_type
 module C = Rules_config
 module R = Rule
 module XP = Xpattern
-module Http_helpers = Http_helpers.Make (Lwt_platform)
+module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
 
 (*****************************************************************************)
 (* Prelude *)
