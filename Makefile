@@ -321,7 +321,8 @@ install-deps: install-deps-for-semgrep-core
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
+# - curl-dev: for opentelemetry, which we use for tracing
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -356,7 +357,7 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
-UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev
+UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev libcurl-dev
 
 install-deps-UBUNTU-for-semgrep-core:
 	apt-get install -y $(UBUNTU_DEPS)
@@ -371,7 +372,8 @@ install-deps-UBUNTU-for-semgrep-core:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext libev
+# - curl: for opentelemetry, which we use for tracing
+BREW_DEPS=pcre gmp pkg-config coreutils gettext libev curl
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
