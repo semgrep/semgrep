@@ -1,0 +1,2 @@
+val foo: int -> bool
+
