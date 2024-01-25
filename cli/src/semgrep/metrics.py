@@ -135,6 +135,8 @@ class Metrics:
                 projectHash=None,
                 ci=None,
                 isDiffScan=False,
+                os=os.name,
+                isJS=False,
             ),
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),

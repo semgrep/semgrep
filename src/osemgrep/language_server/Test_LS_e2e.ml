@@ -427,9 +427,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
                 ("ci", `Bool false);
               ] );
           ("trace", `Assoc [ ("server", `String "verbose") ]);
-          ( "metrics",
-            `Assoc [ ("enabled", `Bool true); ("isNewAppInstall", `Bool true) ]
-          );
+          ("metrics", `Assoc [ ("enabled", `Bool false) ]);
           ("doHover", `Bool true);
         ]
     in

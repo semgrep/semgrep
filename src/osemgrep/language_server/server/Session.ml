@@ -96,22 +96,22 @@ let get_targets session root =
   |> fst
 
 let send_metrics session =
-  let settings = Semgrep_settings.load () in
-  let api_token = settings.Semgrep_settings.api_token in
-  let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
-  Metrics_.init session.caps ~anonymous_user_id ~ci:false;
-  api_token
-  |> Option.iter (fun (_token : Auth.token) ->
-         Metrics_.g.payload.environment.isAuthenticated <- true);
-  Metrics_.add_rules_hashes_and_rules_profiling session.cached_session.rules;
-  Metrics_.g.payload.extension.machineId <- session.metrics.machineId;
-  Metrics_.g.payload.extension.isNewAppInstall <-
-    Some session.metrics.isNewAppInstall;
-
-  Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
-  Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
-  Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
   if session.metrics.enabled then (
+    let settings = Semgrep_settings.load () in
+    let api_token = settings.Semgrep_settings.api_token in
+    let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+    Metrics_.init session.caps ~anonymous_user_id ~ci:false;
+    api_token
+    |> Option.iter (fun (_token : Auth.token) ->
+           Metrics_.g.payload.environment.isAuthenticated <- true);
+    Metrics_.add_rules_hashes_and_rules_profiling session.cached_session.rules;
+    Metrics_.g.payload.extension.machineId <- session.metrics.machineId;
+    Metrics_.g.payload.extension.isNewAppInstall <-
+      Some session.metrics.isNewAppInstall;
+
+    Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
+    Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
+    Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
     Metrics_.prepare_to_send ();
     Semgrep_Metrics.send session.caps)
 
