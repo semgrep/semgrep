@@ -45,6 +45,7 @@ let wrap_with_js_error ?(hook = None) f =
 let init_jsoo yaml_wasm_module =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
+  Metrics_.g.payload.environment.isJS <- true;
   (* Using semgrep.parsing_languages makes the JS goes
      from 16MB to 7MB (in release mode) and from 110MB to 50MB (in dev mode)
      TODO: we should add language parsers dynamically, loading language "bundles"

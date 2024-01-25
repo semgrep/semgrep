@@ -136,6 +136,8 @@ let default_payload =
     environment =
       {
         version = Version.version;
+        os = Sys.os_type;
+        isJS = false;
         projectHash = None;
         configNamesHash = Digestif.SHA256.digest_string "<noconfigyet>";
         rulesHash = None;
@@ -249,7 +251,7 @@ let string_of_user_agent () = String.concat " " g.user_agent
 (* we pass an anonymous_user_id here to avoid a dependency cycle with
  * ../configuring/Semgrep_settings.ml
  *)
-let init (caps : < Cap.random >) ~anonymous_user_id ~ci =
+let init (caps : < Cap.random ; .. >) ~anonymous_user_id ~ci =
   g.payload.started_at <- now ();
   g.payload.event_id <- Uuidm.v4_gen (CapRandom.get_state caps#random ()) ();
   g.payload.anonymous_user_id <- Uuidm.to_string anonymous_user_id;
