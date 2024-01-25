@@ -259,11 +259,18 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
  * I have not tested this code beyond checking a bunch of examples manually.
  *
  * There's some weird thing we do w/ join mode. I am hoping that this doesn't matter irl
+ *
+ * We also don't use pattern sanitizers at all in calculating match based id, which seems
+ * weird, but this because if code matches a pattern sanitizer, then its ALWAYS sanitized
+ * which means it would never show up as a taint mode finding. So we can safely ignore
+ * it, since it shouldn't affect the match based id.
  *)
 let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
   (* the python implementation does not include sanitizers; so as to not
-   * break fingerprints we ignore sanitizers, too. *)
+   * break fingerprints we ignore sanitizers, too. see above assumptions
+   * on why.
+   *)
   let mode =
     match rule.mode with
     | `Taint { Rule.sources; sanitizers = _; sinks; propagators } ->
