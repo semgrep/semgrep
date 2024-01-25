@@ -37,6 +37,7 @@ type t = {
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
+  caps : < Cap.random ; Cap.network >; [@opaque]
 }
 [@@deriving show]
 
@@ -44,7 +45,7 @@ type t = {
 (* Helpers *)
 (*****************************************************************************)
 
-let create capabilities =
+let create caps capabilities =
   let cached_session =
     {
       rules = [];
@@ -63,6 +64,7 @@ let create capabilities =
     user_settings = User_settings.default;
     metrics = LS_metrics.default;
     is_intellij = false;
+    caps;
   }
 
 let dirty_files_of_folder folder =
@@ -93,11 +95,32 @@ let get_targets session root =
     [ root ]
   |> fst
 
+let send_metrics session =
+  let settings = Semgrep_settings.load () in
+  let api_token = settings.Semgrep_settings.api_token in
+  let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+  Metrics_.init session.caps ~anonymous_user_id ~ci:false;
+  api_token
+  |> Option.iter (fun (_token : Auth.token) ->
+         Metrics_.g.payload.environment.isAuthenticated <- true);
+  Metrics_.add_rules_hashes_and_rules_profiling session.cached_session.rules;
+  Metrics_.g.payload.extension.machineId <- session.metrics.machineId;
+  Metrics_.g.payload.extension.isNewAppInstall <-
+    Some session.metrics.isNewAppInstall;
+
+  Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
+  Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
+  Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
+  if session.metrics.enabled then (
+    Metrics_.prepare_to_send ();
+    Semgrep_Metrics.send session.caps)
+
 (*****************************************************************************)
 (* State getters *)
 (*****************************************************************************)
 
 let auth_token () =
+  ignore send_metrics;
   match !Semgrep_envvars.v.app_token with
   | Some token -> Some token
   | None ->

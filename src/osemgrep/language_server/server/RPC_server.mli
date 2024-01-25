@@ -79,5 +79,5 @@ end) : sig
   val handle_client_message :
     Jsonrpc.Packet.t -> t -> (t * Jsonrpc.Packet.t option) Lwt.t
 
-  val create : unit -> t
+  val create : < Cap.random ; Cap.network > -> t
 end
