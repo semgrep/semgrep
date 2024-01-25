@@ -1,0 +1,3 @@
+When Semgrep fails to produce a bytepos from a line/col position (an internal
+error that should be impossible), we previously silently moved on. This causes
+problems with Autofix, however, so it's better to give a clear error message.
