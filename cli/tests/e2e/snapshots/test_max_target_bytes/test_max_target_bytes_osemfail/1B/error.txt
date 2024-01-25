@@ -1,18 +1,28 @@
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 23 files tracked by git with 4 Code rules:
-  Nothing to scan.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 14 files larger than 1e-06 MB
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
-Ran 4 rules on 0 files: 0 findings.
+Traceback (most recent call last):
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/bin/pysemgrep", line 52, in <module>
+    sys.exit(semgrep.main.main())
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/main.py", line 17, in main
+    cli(prog_name="semgrep")
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1157, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1685, in invoke
+    super().invoke(ctx)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 783, in invoke
+    return __callback(*args, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/decorators.py", line 33, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/cli.py", line 49, in cli
+    state = get_state()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/state.py", line 110, in get_state
+    return ctx.ensure_object(SemgrepState)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 643, in ensure_object
+    self.obj = rv = object_type()
+  File "<attrs generated init semgrep.state.SemgrepState>", line 15, in __init__
+  File "<attrs generated init semgrep.metrics.Metrics>", line 7, in __init__
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/metrics.py", line 132, in <lambda>
+    environment=Environment(
+TypeError: Environment.__init__() got an unexpected keyword argument 'os'

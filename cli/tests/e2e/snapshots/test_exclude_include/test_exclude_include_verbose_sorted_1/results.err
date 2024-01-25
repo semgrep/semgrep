@@ -1,65 +1,28 @@
-running 4 rules from 1 config rules/eqeq.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-Rules:
-- rules.assert-eqeq-is-ok
-- rules.eqeq-is-bad
-- rules.javascript-basic-eqeq-bad
-- rules.python37-compatability-os-module
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules:
-  Nothing to scan.
-
-========================================
-Files skipped:
-========================================
-
-  Always skipped by Semgrep:
-
-   • <none>
-
-  Skipped by .gitignore:
-  (Disable by passing --no-git-ignore)
-
-   • <all files not listed by `git ls-files` were skipped>
-
-  Skipped by .semgrepignore:
-  - https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults
-
-   • <none>
-
-  Skipped by --include patterns:
-
-   • <none>
-
-  Skipped by --exclude patterns:
-
-   • targets/exclude_include/excluded/excluded.js
-   • targets/exclude_include/excluded/included.js
-   • targets/exclude_include/included/excluded.js
-   • targets/exclude_include/included/included.js
-
-  Skipped by limiting to files smaller than 1000000 bytes:
-  (Adjust with the --max-target-bytes flag)
-
-   • <none>
-
-  Partially analyzed due to parsing or internal Semgrep errors
-
-   • <none>
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 4 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
-Ran 4 rules on 0 files: 0 findings.
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
+Traceback (most recent call last):
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/bin/pysemgrep", line 52, in <module>
+    sys.exit(semgrep.main.main())
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/main.py", line 17, in main
+    cli(prog_name="semgrep")
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1157, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1685, in invoke
+    super().invoke(ctx)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 783, in invoke
+    return __callback(*args, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/decorators.py", line 33, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/cli.py", line 49, in cli
+    state = get_state()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/state.py", line 110, in get_state
+    return ctx.ensure_object(SemgrepState)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/click/core.py", line 643, in ensure_object
+    self.obj = rv = object_type()
+  File "<attrs generated init semgrep.state.SemgrepState>", line 15, in __init__
+  File "<attrs generated init semgrep.metrics.Metrics>", line 7, in __init__
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/metrics.py", line 132, in <lambda>
+    environment=Environment(
+TypeError: Environment.__init__() got an unexpected keyword argument 'os'
