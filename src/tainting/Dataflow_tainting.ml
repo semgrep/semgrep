@@ -1497,7 +1497,16 @@ let check_function_signature env fun_exp args args_taints =
             |> List.concat_map (fun t ->
                    let dst_taints =
                      match t.T.orig with
-                     | Src _ -> (
+                     | Src src -> (
+                         let call_trace =
+                           T.Call (eorig, t.tokens, src.call_trace)
+                         in
+                         let t =
+                           {
+                             Taint.orig = Src { src with call_trace };
+                             tokens = [];
+                           }
+                         in
                          match t |> subst_in_precondition with
                          | None -> Taints.empty
                          | Some t -> Taints.singleton t)
