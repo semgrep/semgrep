@@ -57,6 +57,12 @@ let write_func : push_function ref = ref (fun _ -> ())
 let read_stream : Jsonrpc.Packet.t Lwt_stream.t ref =
   ref (fst (Lwt_stream.create ()))
 
+(* For some reason parameterizing promise tests below breaks things
+ * so lets just use a ref. I (Austin) know this is bad but this is
+ * a test so idc
+ *)
+let caps = ref None
+
 module Io : RPC_server.LSIO = struct
   let write packet =
     !write_func (Some packet);
@@ -72,11 +78,18 @@ type info = {
   out_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
 }
 
-let create_info caps =
+let create_info () =
   RPC_server.io_ref := (module Io);
   let in_stream, in_push_func = Lwt_stream.create () in
   let out_stream, out_push_func = Lwt_stream.create () in
-  let server = LanguageServer.create caps in
+  let server =
+    match !caps with
+    | Some caps -> LanguageServer.create caps
+    | None ->
+        failwith
+          "No caps set this is impossible as theyre set at the beginning of \
+           the e2e ls tests"
+  in
   write_func := out_push_func;
   read_stream := in_stream;
   {
@@ -703,19 +716,19 @@ let check_startup info folders (files : Fpath.t list) =
 (* Tests *)
 (*****************************************************************************)
 
-let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
+let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
   (Lwt.async_exception_hook :=
      fun exn ->
        let err = Printexc.to_string exn in
        Logs.err (fun m -> m "Got exception: %s" err);
        Alcotest.fail err);
-  let info = create_info caps in
+  let info = create_info () in
   let server_promise = LanguageServer.start info.server in
   let f_promise = f info in
   Lwt.join [ f_promise; server_promise ]
 
-let test_ls_specs caps () =
-  with_session caps (fun info ->
+let test_ls_specs () =
+  with_session (fun info ->
       let root, files = mock_files () in
       let%lwt () = Lwt.return_unit in
       let%lwt () = check_startup info [ root ] files in
@@ -833,8 +846,8 @@ let test_ls_specs caps () =
 
       send_exit info)
 
-let test_ls_ext caps () =
-  with_session caps (fun info ->
+let test_ls_ext () =
+  with_session (fun info ->
       let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
@@ -931,8 +944,8 @@ let test_ls_ext caps () =
 
           send_exit info))
 
-let test_ls_multi caps () =
-  with_session caps (fun info ->
+let test_ls_multi () =
+  with_session (fun info ->
       let ( (workspace1_root, workspace1_files),
             (workspace2_root, workspace2_files) ) =
         mock_workspaces ()
@@ -983,8 +996,8 @@ let test_ls_multi caps () =
       in
       send_exit info)
 
-let test_login caps () =
-  with_session caps (fun info ->
+let test_login () =
+  with_session (fun info ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
       *)
@@ -1009,8 +1022,8 @@ let test_login caps () =
           Semgrep_settings.save settings |> ignore;
           send_exit info))
 
-let test_ls_no_folders caps () =
-  with_session caps (fun info ->
+let test_ls_no_folders () =
+  with_session (fun info ->
       let%lwt () = check_startup info [] [] in
 
       send_exit info)
@@ -1026,27 +1039,29 @@ let test_ls_libev () =
 module Test = Testo
 module Test_lwt = Testo_lwt
 
-let promise_tests caps =
+let promise_tests =
   [
-    Test_lwt.create "Test LS" (test_ls_specs caps) ~tolerate_chdir:true;
-    Test_lwt.create "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
-    Test_lwt.create "Test LS multi-workspaces" (test_ls_multi caps)
+    Test_lwt.create "Test LS" test_ls_specs ~tolerate_chdir:true;
+    Test_lwt.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
+    Test_lwt.create "Test LS multi-workspaces" test_ls_multi
       ~tolerate_chdir:true;
-    Test_lwt.create "Test LS login" (test_login caps)
+    Test_lwt.create "Test LS login" test_login
       ~expected_outcome:
         (Should_fail "TODO: currently failing in js tests in CI");
-    Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
+    Test_lwt.create "Test LS with no folders" test_ls_no_folders;
   ]
   |> List_.map (fun (test : _ Test.t) ->
          Test.update test ~func:(with_timeout test.func))
 
-let tests caps =
+let tests capabilities =
+  caps := Some capabilities;
   let prepare f () = Lwt_platform.run (f ()) in
   Test.categorize "Language Server (e2e)"
-    (promise_tests caps
+    (promise_tests
     |> List_.map (fun (test : _ Test.t) ->
            Test.update_func test Test.Mona.sync (prepare test.func)))
 
-let lwt_tests caps =
+let lwt_tests capabilities =
+  caps := Some capabilities;
   Test.categorize "Language Server (e2e)"
-    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests caps)
+    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests)

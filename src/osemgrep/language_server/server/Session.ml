@@ -113,14 +113,13 @@ let send_metrics session =
     Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
     Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
     Metrics_.prepare_to_send ();
-    Semgrep_Metrics.send session.caps)
+    Lwt.async (fun () -> Semgrep_Metrics.send_async session.caps))
 
 (*****************************************************************************)
 (* State getters *)
 (*****************************************************************************)
 
 let auth_token () =
-  ignore send_metrics;
   match !Semgrep_envvars.v.app_token with
   | Some token -> Some token
   | None ->
