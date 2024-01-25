@@ -4,16 +4,37 @@
  *)
 
 (* Git_remote should really be a URI *)
-type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
+type git_remote = { url : Uri.t; checkout_path : Rfpath.t } [@@deriving show]
 
-type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
 [@@deriving show]
+
 (*
    Abstract type designed for quickly determining whether a path is in the
    set of explicit targets. An explicit target is a target file passed directly
    on the command line.
-*)
 
+   This is a bit fragile as it assumes that target file paths found in the file
+   system have the same form as those passed on the command line. It won't
+   work with unnormalized paths such as 'foo/../bar.js' that will likely
+   be rewritten into 'bar.js'. See:
+
+     $ git ls-files libs/../README.md
+     README.md
+
+   This results in 'README.md' being treated as non-explicit target file.
+
+   TODO: use pairs (project, ppath) instead as keys? If we use a dedicated
+   record for targets, we can extract the pair (project, ppath):
+
+     type target = {
+       project: Project.t; (* provides normalized project root *)
+       path: Fppath.t; (* provides (normalized) ppath *)
+     }
+
+   If we go this path, we could also add a field 'is_explicit: bool' to the
+   target type.
+*)
 module Explicit_targets : sig
   type t
 
@@ -86,13 +107,13 @@ val default_conf : conf
 *)
 val get_targets :
   conf ->
-  Fpath.t list (* scanning roots *) ->
+  Rfpath.t list (* scanning roots *) ->
   Fppath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* Same as get_targets but drop the ppath (path within the project) *)
 val get_target_fpaths :
   conf ->
-  Fpath.t list (* scanning roots *) ->
+  Rfpath.t list (* scanning roots *) ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* internals used also in Find_targets_old.ml *)

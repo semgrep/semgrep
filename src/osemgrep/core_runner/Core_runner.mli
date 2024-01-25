@@ -23,8 +23,12 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-(* similar to Core_scan.core_scan_func *)
-type scan_func_for_osemgrep = {
+(* similar to Core_scan.core_scan_func (?)
+
+   This is called "core run" and not "scan" because it takes a list of target
+   files as input. No further scanning of the filesystem shall be performed.
+*)
+type core_run_for_osemgrep = {
   run :
     ?file_match_results_hook:
       (Fpath.t -> Core_result.matches_single_file -> unit) option ->
@@ -33,21 +37,22 @@ type scan_func_for_osemgrep = {
     (* LATER? use Config_resolve.rules_and_origin instead? *)
     Rule.rules ->
     Rule.invalid_rule_error list ->
+    (* All targets. Not scanning roots. *)
     Fpath.t list ->
     Core_result.result_or_exn;
 }
 
 (* Semgrep Pro hook for osemgrep *)
 val hook_pro_scan_func_for_osemgrep :
-  (Fpath.t list ->
-  ?diff_config:Differential_scan_config.t ->
+  (?diff_config:Differential_scan_config.t ->
+  roots:Rfpath.t list ->
   Engine_type.t ->
-  scan_func_for_osemgrep)
+  core_run_for_osemgrep)
   option
   ref
 
 val hook_pro_git_remote_scan_setup :
-  (Find_targets.git_remote -> scan_func_for_osemgrep -> scan_func_for_osemgrep)
+  (Find_targets.git_remote -> core_run_for_osemgrep -> core_run_for_osemgrep)
   option
   ref
 
@@ -65,8 +70,7 @@ val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
 
    LATER: This function should go away.
 *)
-val mk_scan_func_for_osemgrep :
-  Core_scan.core_scan_func -> scan_func_for_osemgrep
+val mk_core_run_for_osemgrep : Core_scan.core_scan_func -> core_run_for_osemgrep
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
 val core_scan_config_of_conf : conf -> Core_scan_config.t

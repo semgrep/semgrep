@@ -235,12 +235,15 @@ let remove_prefix root path =
 (* Builder entry points *)
 (*****************************************************************************)
 
-let in_project ~root path =
-  match remove_prefix root path with
+let in_project ~(root : Rfpath.t) (path : Rfpath.t) =
+  let root_rpath = Rfpath.to_rpath root |> Rpath.to_fpath in
+  let rpath = Rfpath.to_rpath path |> Rpath.to_fpath in
+  match remove_prefix root_rpath rpath with
   | None ->
       Error
-        (Common.spf "cannot make path %S relative to project root %S" !!path
-           !!root)
+        (Common.spf "cannot make path %S relative to project root %S"
+           !!(Rfpath.to_fpath path)
+           !!(Rfpath.to_fpath root))
   | Some path -> path |> of_fpath
 
 let from_segments segs =
@@ -319,12 +322,16 @@ let () =
       test_add_seg "/a/" "c" "/a/c";
 
       let test_in_project_ok root path expected =
-        match in_project ~root:(Fpath.v root) (Fpath.v path) with
+        match
+          in_project ~root:(Rfpath.of_string root) (Rfpath.of_string path)
+        with
         | Ok res -> Alcotest.(check string) "equal" expected (to_string res)
         | Error msg -> Alcotest.fail msg
       in
       let test_in_project_fail root path =
-        match in_project ~root:(Fpath.v root) (Fpath.v path) with
+        match
+          in_project ~root:(Rfpath.of_string root) (Rfpath.of_string path)
+        with
         | Ok res -> Alcotest.fail (to_string res)
         | Error _ -> ()
       in

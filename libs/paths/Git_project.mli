@@ -3,31 +3,17 @@
 *)
 
 (*
-   Is a given path the root of a git project?
-   This works by checking the presence of a folder named '.git/'.
+   The result of searching for the project root from the filesystem path
+   of a scanning root.
 *)
-val is_git_root : Fpath.t -> bool
-
-(*
-   Is a given path the root of a git submodule?
-   This works by checking the presence of a *file* named '.git'.
-*)
-val is_git_submodule_root : Fpath.t -> bool
-
-(*
-   Locate the root folder of the git project starting from
-   the given path. The result is the pair
-   (path from OS root to git root, path from git root).
-
-   This function is meant to turn a user-specified path into
-   paths that are usable with the Semgrepignore module.
-
-   Don't dereference symlinks: the project root of /a/b/c is searched in
-   /a/b/ then /a/ then /, regardless of whether they're symlinks or regular
-   folders.
-   TODO? return an Rpath instead for the git root?
-*)
-val find_git_project_root : Fpath.t -> (Fpath.t * Ppath.t) option
+type scanning_root_info = {
+  (* Physical, absolute path to the project root in the local filesystem
+     + original path to be preferred in messages to the user. *)
+  project_root : Rfpath.t;
+  (* Path of a Semgrep scanning root express within the project, relative to
+     the project root. *)
+  inproject_path : Ppath.t;
+}
 
 (*
    Find a project root even if the given path is not within a git project.
@@ -44,22 +30,22 @@ val find_git_project_root : Fpath.t -> (Fpath.t * Ppath.t) option
 
    To keep things simple, the default value of 'fallback_project_root' is
    set to the current folder '.', resolved to a physical path.
-
-   TODO? return an Rpath instead for the git root?
 *)
 val find_any_project_root :
-  ?fallback_root:Fpath.t ->
-  ?force_root:Project.kind * Fpath.t ->
-  Fpath.t ->
-  Project.kind * Fpath.t * Ppath.t
+  ?fallback_root:Rfpath.t ->
+  ?force_root:Project.kind * Rfpath.t ->
+  Rfpath.t ->
+  Project.kind * scanning_root_info
 
-(* The default value of '?fallback_project_root' *)
-val default_project_root : Fpath.t
+(* The default value of '?fallback_project_root', based on the current
+   working directory when starting the program. Use chdir very carefully
+   if at all! *)
+val default_project_root : Rfpath.t
 
 (*
    Provide a similar result as 'find_git_project_root' but don't look
    for a git project root. Instead, use the project root provided
    by 'project_root' which defaults to the current directory.
-   TODO? take an Rpath instead for the git root?
 *)
-val force_project_root : ?project_root:Fpath.t -> Fpath.t -> Fpath.t * Ppath.t
+val force_project_root :
+  ?project_root:Rfpath.t -> Rfpath.t -> scanning_root_info

@@ -10,7 +10,7 @@ type conf = {
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
   (* can be a list of files or directories *)
-  target_roots : Fpath.t list;
+  target_roots : Rfpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;

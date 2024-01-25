@@ -65,9 +65,9 @@ end
          and have the exclusions apply only to the files that aren't tracked.
 *)
 
-type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
+type git_remote = { url : Uri.t; checkout_path : Rfpath.t } [@@deriving show]
 
-type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
 [@@deriving show]
 
 type conf = {
@@ -222,8 +222,8 @@ let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
  *
  * pre: the scan_root must be a path to a directory
  *)
-let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
-    (scan_root : Fppath.t) : Fppath.t list * Out.skipped_target list =
+let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
+    Fppath.t list * Out.skipped_target list =
   (* Imperative style! walk and collect.
      This is for the sake of readability so let's try to make this as
      readable as possible.
@@ -255,23 +255,12 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
            | Keep -> add fppath
            | Skip skipped -> skip skipped
            | Dir ->
-               (* skipping submodules.
-                  TODO? should we add a skip_reason for it? pysemgrep
-                  though was using `git ls-files` which implicitely does
-                  not even consider submodule files, so those files/dirs
-                  were not mentioned in the skip list
+               (* TODO? if a dir, then try Git_filter.select() again
+                  with a trailing '/'!
+                  (it would be detected though anyway in the children of
+                  the dir at least, but better to skip the dir ASAP)
                *)
-               if
-                 conf.respect_gitignore
-                 && Git_project.is_git_submodule_root fpath
-               then ignore ()
-               else
-                 (* TODO? if a dir, then add trailing / to ppath
-                    and try Git_filter.select() again!
-                    (it would detected though anyway in the children of
-                    the dir at least, but better to skip the dir ASAP
-                 *)
-                 aux fppath
+               aux fppath
            | Ignore_silently -> ())
   in
   aux scan_root;
@@ -304,7 +293,7 @@ let git_list_files ~exclude_standard
         |> List.concat_map (fun (sc_root : Fppath.t) ->
                (* TODO: this is incorrect. We want to list targets relative to
                   the current folder, not to the project root. *)
-               let cwd = Rpath.to_fpath project.path in
+               let cwd = Rfpath.to_fpath project.path in
                Git_wrapper.ls_files ~cwd ~exclude_standard ~kinds:file_kinds
                  [ sc_root.fpath ]
                |> List_.map (fun fpath ->
@@ -370,28 +359,43 @@ let git_list_untracked_files (project_roots : project_roots) :
    TODO? move in paths/Project.ml?
 *)
 let group_scanning_roots_by_project (conf : conf)
-    (scanning_roots : Fpath.t list) : project_roots list =
+    (scanning_roots : Rfpath.t list) : project_roots list =
   (* Force root relativizes scan roots to project roots.
-   * I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
-   * it would make the scanning root /foo. So it doesn't make sense to combine this
-   * with the git remote unless we wanted to make it so git remotes could be
-   * further specified (say github.com/semgrep/semgrep.git:/src/foo).
-   *)
+     I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
+     it would make the scanning root /foo. So it doesn't make sense to
+     combine this with the git remote unless we wanted to make it so git
+     remotes could be further specified (say
+     github.com/semgrep/semgrep.git:/src/foo).
+
+     TODO: revise the above. 'force_root' is the project root.
+  *)
   let force_root =
     match conf.project_root with
     | Some (Git_remote { checkout_path; _ }) ->
         Some (Project.Git_project, checkout_path)
-    | None -> None
-    | Some (Filesystem proj_root) -> Some (Project.Gitignore_project, proj_root)
+    | None ->
+        (* Usual case when scanning the local file system *)
+        None
+    | Some (Filesystem proj_root) ->
+        (* This is when --project-root is specified on the command line.
+           It doesn't use 'git ls-files' to list files. This is required
+           for some tests to pass within our semgrep repo but it's not clear
+           why it's like this.
+           TODO: make tests work without requiring --project-root? *)
+        Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
   |> List_.map (fun scanning_root ->
-         let kind, project_root, scanning_root_ppath =
+         let ( kind,
+               {
+                 Git_project.project_root;
+                 inproject_path = scanning_root_ppath;
+               } ) =
            Git_project.find_any_project_root ?force_root scanning_root
          in
-         ( ({ kind; path = Rpath.of_fpath project_root } : Project.t),
-           ({ fpath = scanning_root; ppath = scanning_root_ppath } : Fppath.t)
-         ))
+         ( ({ kind; path = project_root } : Project.t),
+           ({ fpath = scanning_root.fpath; ppath = scanning_root_ppath }
+             : Fppath.t) ))
   (* Using a realpath (physical path) in Project.t ensures we group
      correctly even if the scanning_roots went through different symlink paths.
   *)
@@ -438,7 +442,7 @@ let setup_semgrepignore conf (project_roots : project_roots) : Semgrepignore.t =
   Semgrepignore.create ?include_patterns:conf.include_
     ~cli_patterns:conf.exclude ~builtin_semgrepignore:Semgrep_scan_legacy
     ~exclusion_mechanism
-    ~project_root:(Rpath.to_fpath project_root)
+    ~project_root:(Rfpath.to_fpath project_root)
     ()
 
 (* Work from a list of  obtained with git *)
@@ -462,7 +466,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
         match (Unix.stat !!(scan_root.fpath)).st_kind with
         (* TOPORT? make sure has right permissions (readable) *)
         | S_REG -> ([ scan_root ], [])
-        | S_DIR -> walk_skip_and_collect conf ign scan_root
+        | S_DIR -> walk_skip_and_collect ign scan_root
         | S_LNK ->
             (* already dereferenced by Unix.stat *)
             raise Impossible
@@ -521,6 +525,7 @@ let get_targets_for_project conf (project_roots : project_roots) =
 let clone_if_remote_project_root conf =
   match conf.project_root with
   | Some (Git_remote { url; checkout_path }) ->
+      let checkout_path = Rfpath.to_fpath checkout_path in
       Logs.debug (fun m ->
           m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
       (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with

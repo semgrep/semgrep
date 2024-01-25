@@ -62,12 +62,15 @@ type result = {
 }
 
 (* Type for the scan function, which can either be built by
-   mk_scan_func_for_osemgrep() or set in Scan_subcommand.hook_pro_scan_func
+   mk_core_run_for_osemgrep() or set in Scan_subcommand.hook_pro_scan_func
 
    This is a record in an attempt to produce clearer error messages than
    with a type alias.
+
+   It doesn't scan the filesystem since it takes a list of target files,
+   not scanning roots.
 *)
-type scan_func_for_osemgrep = {
+type core_run_for_osemgrep = {
   run :
     ?file_match_results_hook:
       (Fpath.t -> Core_result.matches_single_file -> unit) option ->
@@ -78,6 +81,7 @@ type scan_func_for_osemgrep = {
     (* LATER? use Config_resolve.rules_and_origin instead? *)
     Rule.rules ->
     Rule.invalid_rule_error list ->
+    (* Takes a list of target files, not scanning roots. *)
     Fpath.t list ->
     Core_result.result_or_exn;
 }
@@ -99,10 +103,10 @@ type scan_func_for_osemgrep = {
  * hook below will be set.
  *)
 let (hook_pro_scan_func_for_osemgrep :
-      (Fpath.t list ->
-      ?diff_config:Differential_scan_config.t ->
+      (?diff_config:Differential_scan_config.t ->
+      roots:Rfpath.t list ->
       Engine_type.t ->
-      scan_func_for_osemgrep)
+      core_run_for_osemgrep)
       option
       ref) =
   ref None
@@ -114,8 +118,8 @@ let (hook_pro_scan_func_for_osemgrep :
  *)
 let (hook_pro_git_remote_scan_setup :
       (Find_targets.git_remote ->
-      scan_func_for_osemgrep ->
-      scan_func_for_osemgrep)
+      core_run_for_osemgrep ->
+      core_run_for_osemgrep)
       option
       ref) =
   ref None
@@ -324,12 +328,19 @@ let create_core_result (all_rules : Rule.rule list)
 (*
    Take in rules and targets and return object with findings.
 *)
-let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
-    scan_func_for_osemgrep =
+let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
+    core_run_for_osemgrep =
   let run ?(file_match_results_hook = None) (conf : conf)
       (targeting_conf : Find_targets.conf) (all_rules : Rule.t list)
       (invalid_rules : Rule.invalid_rule_error list)
       (all_targets : Fpath.t list) : Core_result.result_or_exn =
+    (*
+       At this point, we already have the full list of targets. These targets
+       will populate the 'target_source' field of the config object
+       (after splitting into "languages").
+       This mode doesn't tolerate scanning roots. This is checked in
+       Core_scan.ml.
+    *)
     let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
     let config : Core_scan_config.t = core_scan_config_of_conf conf in
     let config = { config with file_match_results_hook } in

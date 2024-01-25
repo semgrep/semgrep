@@ -31,7 +31,7 @@ type conf = {
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
   (* can be a list of files or directories *)
-  target_roots : Fpath.t list;
+  target_roots : Rfpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
@@ -66,7 +66,7 @@ type conf = {
 let default : conf =
   {
     rules_source = Configs [ "auto" ];
-    target_roots = [ Fpath.v "." ];
+    target_roots = [ Rfpath.of_string "." ];
     targeting_conf = Find_targets.default_conf;
     (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
@@ -756,7 +756,9 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> Fpath_.to_strings) info)
+    (Arg.pos_all Arg.string
+       (default.target_roots |> List_.map Rfpath.to_fpath |> Fpath_.to_strings)
+       info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -843,15 +845,18 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-    let target_roots = target_roots |> Fpath_.of_strings in
+    let target_roots = target_roots |> List_.map Rfpath.of_string in
     let project_root =
       let is_git_repo remote =
         remote |> Git_wrapper.remote_repo_name |> Option.is_some
       in
       match (project_root, remote) with
-      | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
+      | Some root, None ->
+          Some (Find_targets.Filesystem (Rfpath.of_string root))
       | None, Some url when is_git_repo url ->
-          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let checkout_path =
+            Git_wrapper.temporary_remote_checkout_path url |> Rfpath.of_fpath
+          in
           let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })
       | None, Some _url ->
@@ -866,7 +871,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let explicit_targets =
       (* This is for determining whether a target path appears on the command
          line. As long as this holds, it's ok to include folders. *)
-      Find_targets.Explicit_targets.of_list target_roots
+      target_roots |> List_.map Rfpath.to_fpath
+      |> Find_targets.Explicit_targets.of_list
     in
 
     let output_format =
@@ -1057,7 +1063,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | None, Some lang_str, [ file ] ->
               Some
                 {
-                  Show.show_kind = Show.DumpAST (file, Lang.of_string lang_str);
+                  Show.show_kind =
+                    Show.DumpAST (Rfpath.to_fpath file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -1099,7 +1106,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let test =
       if test then
         let target =
-          Test_CLI.target_kind_of_roots_and_config target_roots config
+          Test_CLI.target_kind_of_roots_and_config
+            (List_.map Rfpath.to_fpath target_roots)
+            config
         in
         Some
           Test_CLI.

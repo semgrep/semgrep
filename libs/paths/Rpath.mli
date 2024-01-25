@@ -1,4 +1,5 @@
-(* Real paths.
+(* "Real paths" - Absolute physical filesystem paths as returned
+   by 'Unix.realpath'.
 
    Here is some terminology:
    - relative path: a path relative to a directory
@@ -26,7 +27,7 @@
    error messages, findings, etc. that contain paths derived from
    what was passed on the command line, or Ppath.t if users want
    findings relative to the root of their project (and not real paths like
-   /home/pad/my/long/project/foo/bar).
+   /home/pad/my/long/project/foo/bar). Rfpath.t encapsulates both.
 
    The name of the module imitates Fpath.ml, and Ppath.ml, but use Rpath.ml
    for Real path.
@@ -42,7 +43,7 @@
    `of_string`, and in particular, ensures that they all must be
    validated by `realpath()`.
 *)
-type t = private Rpath of Fpath.t [@@deriving show, eq]
+type t = private Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 
 (* only way to build a Rpath *)
 val of_fpath : Fpath.t -> t
@@ -56,3 +57,18 @@ val to_string : t -> string
 
 (* <=> to_string (of_string s) *)
 val canonical : string -> string
+
+(*
+   Get the current working directory from the system.
+   It raises an exception with a slightly better error message than
+   'Sys.getcwd' or 'Unix.getcwd' if the current working directory
+   no longer exists or is inaccessible for some other reason.
+*)
+val getcwd : unit -> t
+
+(*
+   Return a realpath's parent (without having to consult the filesystem).
+   Unlike Fpath.parent, this returns None if the path has no parent rather
+   than returning itself.
+*)
+val parent : t -> t option

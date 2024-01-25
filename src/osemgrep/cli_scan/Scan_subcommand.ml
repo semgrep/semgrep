@@ -249,14 +249,14 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
     xmap []
 
 (* Select and execute the scan func based on the configured engine settings.
- * Yet another mk_scan_func adapter. TODO: can we simplify?
- *)
+   Yet another mk_scan_func adapter. TODO: can we simplify?
+*)
 let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
     ?(diff_config = Differential_scan_config.WholeScan) rules () =
-  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.engine_type with
     | OSS ->
-        Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+        Core_runner.mk_core_run_for_osemgrep Core_scan.scan_with_exn_handler
     | PRO _ -> (
         match !Core_runner.hook_pro_scan_func_for_osemgrep with
         | None ->
@@ -268,9 +268,9 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
                acquire a different binary."
         | Some pro_scan_func ->
             let roots = conf.target_roots in
-            pro_scan_func roots ~diff_config conf.engine_type)
+            pro_scan_func ~roots ~diff_config conf.engine_type)
   in
-  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.targeting_conf.project_root with
     | Some (Find_targets.Git_remote git_remote) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
@@ -280,10 +280,10 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
                the pro engine, but do not have the pro engine. You may need to \
                acquire a different binary."
         | Some pro_git_remote_scan_setup ->
-            pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
-    | _ -> scan_func_for_osemgrep
+            pro_git_remote_scan_setup git_remote core_run_for_osemgrep)
+    | _ -> core_run_for_osemgrep
   in
-  scan_func_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
+  core_run_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
     conf.targeting_conf rules errors targets
 
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
@@ -461,7 +461,12 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 
 (*****************************************************************************)
 (* Conduct the scan *)
+(* What scan? It takes the list as target files as argument! Call it a scan
+   only if takes scanning roots as argument (a mix of folders and regular
+   files).
+*)
 (*****************************************************************************)
+
 let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
@@ -768,12 +773,14 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
   (* Change dir if project_root is a git_remote
-   * note: sorry cooper, we gotta do this because
-   * git sparse-checkout doesn't like absolute paths
-   *)
+     note: sorry cooper, we gotta do this because
+     git sparse-checkout doesn't like absolute paths. - anonymous
+     Please try harder to not use chdir as it invalidates all relative paths.
+     'git -C dir' should work, no? - Martin
+  *)
   (match conf.targeting_conf.project_root with
   | Some (Find_targets.Git_remote { checkout_path; _ }) ->
-      Sys.chdir (Fpath.to_string checkout_path)
+      Sys.chdir (checkout_path |> Rfpath.to_fpath |> Fpath.to_string)
   | _ -> ());
   (* step3: let's go *)
   let res =

@@ -46,6 +46,7 @@ type t = {
   rule_source : rule_source option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
+  (* Scanning roots. They are mutually exclusive with target_source! *)
   roots : Fpath.t list;
   output_format : output_format;
   match_format : Core_text_output.match_format;

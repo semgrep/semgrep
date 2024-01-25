@@ -130,11 +130,11 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
-        let scan_func =
-          Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+        let core_run_func =
+          Core_runner.mk_core_run_for_osemgrep Core_scan.scan_with_exn_handler
         in
         let result_and_exn =
-          scan_func.run conf.core_runner_conf Find_targets.default_conf
+          core_run_func.run conf.core_runner_conf Find_targets.default_conf
             metarules [] targets
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
