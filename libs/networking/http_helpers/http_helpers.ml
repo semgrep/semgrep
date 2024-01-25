@@ -51,8 +51,16 @@ let set_client_ref v = if not !in_mock_context then client_ref := Some v
  *)
 module Make (Lwt_platform : sig
   val run : 'a Lwt.t -> 'a
+end) (Version : sig
+  val version : string
 end) =
 struct
+  (* The agent is needed by many endpoints in our backend guarded by
+   * @require_supported_cli_version()
+   * alt: use Metrics_.string_of_user_agent()
+   *)
+  let user_agent_header = ("User-Agent", Fmt.str "Semgrep/%s" Version.version)
+
   let rec get_async ?(headers = []) caps url =
     Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
     (* This checks to make sure a client has been set *)
@@ -64,6 +72,7 @@ struct
            | None -> failwith "HTTP client not initialized")
     in
     let headers = Header.of_list headers in
+    let headers = Header.add_list headers [ user_agent_header ] in
     let%lwt response, orig_body = Client.get ~headers url in
     let%lwt body = Cohttp_lwt.Body.to_string orig_body in
     let code = response |> Response.status |> Code.code_of_status in
@@ -104,6 +113,7 @@ struct
            | None -> failwith "HTTP client not initialized")
     in
     let headers = Header.of_list headers in
+    let headers = Header.add_list headers [ user_agent_header ] in
     let%lwt response, body =
       Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) ~chunked url
     in

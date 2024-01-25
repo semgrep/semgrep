@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 
-module Http_helpers = Http_helpers.Make (Lwt_platform)
+module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
 
 let t = Testo.create
 
