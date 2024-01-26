@@ -570,11 +570,11 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
      };
    skipped_rules;
    explanations;
+   interfile_languages_used;
    (* LATER *)
    time = _;
    rules_by_engine = _;
    engine_requested = _;
-   interfile_languages_used;
   } ->
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =

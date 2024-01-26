@@ -631,7 +631,10 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      Output.output_result { conf.output_conf with output_format } profiler res
+      let is_logged_in = Semgrep_login.is_logged_in () in
+      Output.output_result
+        { conf.output_conf with output_format }
+        profiler ~is_logged_in res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 

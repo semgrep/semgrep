@@ -87,6 +87,8 @@ type t = {
   (* deprecated *)
   in_agent : bool;
   min_fetch_depth : int;
+  (* TODO(reynir): is this deprecated?! *)
+  mock_using_registry : bool;
 }
 
 (* What about temp? Well we use ocaml stdlib definition of a temp directory.
@@ -149,6 +151,7 @@ let of_current_sys_env () : t =
     in_gh_action = in_env "GITHUB_WORKSPACE";
     in_agent = in_env "SEMGREP_AGENT";
     min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
+    mock_using_registry = in_env "MOCK_USING_REGISTRY";
   }
 
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)

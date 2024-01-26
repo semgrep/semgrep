@@ -37,6 +37,7 @@ type t = {
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
+  caps : < Cap.random ; Cap.network >; [@opaque]
 }
 [@@deriving show]
 
@@ -44,7 +45,7 @@ type t = {
 (* Helpers *)
 (*****************************************************************************)
 
-let create capabilities =
+let create caps capabilities =
   let cached_session =
     {
       rules = [];
@@ -63,6 +64,7 @@ let create capabilities =
     user_settings = User_settings.default;
     metrics = LS_metrics.default;
     is_intellij = false;
+    caps;
   }
 
 let dirty_files_of_folder folder =
@@ -72,8 +74,7 @@ let dirty_files_of_folder folder =
     Some (List_.map (fun x -> folder // x) dirty_files)
   else None
 
-let decode_rules data =
-  let caps = Cap.network_caps_UNSAFE () in
+let decode_rules caps data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       match
@@ -99,6 +100,26 @@ let get_targets session root =
     [ root ]
   |> fst
 
+let send_metrics session =
+  if session.metrics.enabled then (
+    let settings = Semgrep_settings.load () in
+    let api_token = settings.Semgrep_settings.api_token in
+    let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+    Metrics_.init session.caps ~anonymous_user_id ~ci:false;
+    api_token
+    |> Option.iter (fun (_token : Auth.token) ->
+           Metrics_.g.payload.environment.isAuthenticated <- true);
+    Metrics_.add_rules_hashes_and_rules_profiling session.cached_session.rules;
+    Metrics_.g.payload.extension.machineId <- session.metrics.machineId;
+    Metrics_.g.payload.extension.isNewAppInstall <-
+      Some session.metrics.isNewAppInstall;
+
+    Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
+    Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
+    Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
+    Metrics_.prepare_to_send ();
+    Lwt.async (fun () -> Semgrep_Metrics.send_async session.caps))
+
 (*****************************************************************************)
 (* State getters *)
 (*****************************************************************************)
@@ -110,11 +131,9 @@ let auth_token () =
       let settings = Semgrep_settings.load () in
       settings.api_token
 
-let scan_config_of_token = function
+let scan_config_of_token caps = function
   | Some token -> (
-      let caps =
-        Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ())
-      in
+      let caps = Auth.cap_token_and_network token caps in
       let%lwt config_string =
         Semgrep_App.fetch_scan_config_string caps ~sca:false ~dry_run:true
           ~full_scan:true ~repository:""
@@ -130,13 +149,13 @@ let scan_config_of_token = function
           Lwt.return_none)
   | _ -> Lwt.return_none
 
-let fetch_ci_rules_and_origins () =
+let fetch_ci_rules_and_origins caps =
   let token = auth_token () in
-  let%lwt scan_config_opt = scan_config_of_token token in
+  let%lwt scan_config_opt = scan_config_of_token caps token in
 
   let rules_opt =
     Option.bind scan_config_opt (fun scan_config ->
-        Some (decode_rules scan_config.rule_config))
+        Some (decode_rules caps scan_config.rule_config))
   in
   Lwt.return rules_opt
 
@@ -180,7 +199,7 @@ let targets session =
 
 let fetch_rules session =
   let%lwt ci_rules =
-    if session.user_settings.ci then fetch_ci_rules_and_origins ()
+    if session.user_settings.ci then fetch_ci_rules_and_origins session.caps
     else Lwt.return_none
   in
   let home = !Semgrep_envvars.v.user_home_dir in
@@ -198,7 +217,6 @@ let fetch_rules session =
       [ "auto" ])
     else rules_source
   in
-  let caps = Cap.network_caps_UNSAFE () in
   let%lwt rules_and_errors =
     Lwt_list.map_p
       (fun source ->
@@ -206,7 +224,7 @@ let fetch_rules session =
         let config = Rules_config.parse_config_string ~in_docker source in
         Rule_fetching.rules_from_dashdash_config_async
           ~rewrite_rule_ids:true (* default *)
-          ~token_opt:(auth_token ()) ~registry_caching:true caps config)
+          ~token_opt:(auth_token ()) ~registry_caching:true session.caps config)
       rules_source
   in
 
@@ -253,14 +271,12 @@ let fetch_rules session =
 
   Lwt.return (rules, errors)
 
-let fetch_skipped_app_fingerprints () =
+let fetch_skipped_app_fingerprints caps =
   (* At some point we should allow users to ignore ids locally *)
   let auth_token = auth_token () in
   match auth_token with
   | Some token -> (
-      let caps =
-        Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ())
-      in
+      let caps = Auth.cap_token_and_network token caps in
 
       let%lwt deployment_opt =
         Semgrep_App.get_scan_config_from_token_async caps
@@ -327,7 +343,9 @@ let load_local_skipped_fingerprints session =
 
 let cache_session session =
   let%lwt rules, _ = fetch_rules session in
-  let%lwt skipped_app_fingerprints = fetch_skipped_app_fingerprints () in
+  let%lwt skipped_app_fingerprints =
+    fetch_skipped_app_fingerprints session.caps
+  in
   Lwt_mutex.with_lock session.cached_session.lock (fun () ->
       session.cached_session.rules <- rules;
       session.cached_session.skipped_app_fingerprints <-

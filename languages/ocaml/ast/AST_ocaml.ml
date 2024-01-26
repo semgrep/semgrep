@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -173,6 +173,7 @@ and argument =
   (* we unsugar ~x in ~x:x (same for ?x) *)
   | ArgKwd of ident * expr
   | ArgQuestion of ident * expr
+  | ArgTodo of todo_category
 
 and match_case = pattern * match_action
 and match_action = expr option (* when *) * Tok.t (* -> *) * expr
