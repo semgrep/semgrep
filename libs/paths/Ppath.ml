@@ -8,6 +8,11 @@ open Fpath_.Operators
 
    The name of the module imitates Fpath.ml, but use Ppath.ml for
    Project path (instead of File path).
+
+   !!! The tests for this module are in the git_wrapper library because
+   they depend on git.
+   TODO: create a 'project' library that depends both on 'git_wrapper'
+   and 'paths'?
 *)
 
 (*****************************************************************************)

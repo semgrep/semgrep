@@ -47,7 +47,11 @@ let test_scan_config_registry_no_token (caps : Cap.all_caps) =
                   "--config";
                   "r/python.lang.correctness.useless-eqeq.useless-eqeq";
                 |])
-            ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))))
+            ~final:(fun res ->
+              Alcotest.(check int)
+                "exit code"
+                Exit_code.(to_int ok)
+                (Exit_code.to_int res.exit_code))))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Testo.test =

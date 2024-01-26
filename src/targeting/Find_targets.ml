@@ -291,11 +291,9 @@ let git_list_files ~exclude_standard
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               (* TODO: this is incorrect. We want to list targets relative to
-                  the current folder, not to the project root. *)
-               let cwd = Rfpath.to_fpath project.path in
-               Git_wrapper.ls_files ~cwd ~exclude_standard ~kinds:file_kinds
-                 [ sc_root.fpath ]
+               let project_root = Rfpath.to_rpath project.path in
+               Git_wrapper.ls_files_relative ~exclude_standard ~kinds:file_kinds
+                 ~project_root [ sc_root.fpath ]
                |> List_.map (fun fpath ->
                       let fpath_relative_to_scan_root =
                         match Fpath.relativize ~root:sc_root.fpath fpath with

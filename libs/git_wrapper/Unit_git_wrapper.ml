@@ -1,0 +1,53 @@
+(*
+   Unit tests for Git_wrapper
+*)
+
+open Printf
+
+let t =
+  Testo.create ~checked_output:Stdout ~mask_output:[ Testo.mask_temp_paths () ]
+
+(*
+   List repo files relative to 'cwd' which can be the root of the git repo,
+   some other folder in the git repo, or outside the git repo.
+
+   The scanning roots themselves can be absolute or relative paths. They
+   are relative to the chosen current directory 'cwd'.
+*)
+let test_ls_files_relative ~mk_cwd ~mk_scanning_root () =
+  let repo_files = Testutil_files.[ dir "a" [ dir "b" [ file "target" ] ] ] in
+  Git_wrapper.with_git_repo repo_files (fun () ->
+      let project_root = Rpath.getcwd () in
+      let cwd = mk_cwd ~project_root in
+      Testutil_files.with_chdir (Rpath.to_fpath cwd) (fun () ->
+          let scanning_root = mk_scanning_root ~project_root in
+          printf "cwd: %s\n" (Sys.getcwd ());
+          printf "project root: %s\n" (Rpath.to_string project_root);
+          printf "scanning root: %s\n" (Fpath.to_string scanning_root);
+          let file_list =
+            Git_wrapper.ls_files_relative ~project_root
+              [ mk_scanning_root ~project_root ]
+          in
+          printf "file list:\n";
+          file_list
+          |> List.iter (fun path -> printf "  %s\n" (Fpath.to_string path))))
+
+let tests =
+  [
+    t "ls-files from project root"
+      (test_ls_files_relative
+         ~mk_cwd:(fun ~project_root -> project_root)
+         ~mk_scanning_root:(fun ~project_root:_ -> Fpath.v "."));
+    t "ls-files from outside the project, relative scanning root"
+      (test_ls_files_relative
+         ~mk_cwd:(fun ~project_root ->
+           project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath)
+         ~mk_scanning_root:(fun ~project_root ->
+           project_root |> Rpath.to_fpath |> Fpath.basename |> Fpath.v));
+    t "ls-files from outside the project, absolute scanning root"
+      (test_ls_files_relative
+         ~mk_cwd:(fun ~project_root ->
+           project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath)
+         ~mk_scanning_root:(fun ~project_root -> project_root |> Rpath.to_fpath));
+    (*TODO: more tests*)
+  ]

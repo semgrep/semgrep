@@ -235,6 +235,56 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
   in
   files |> Fpath_.of_strings
 
+let append_slash_to_dir_path path = Fpath.add_seg path ""
+
+(*
+   List files relative to the current directory which may be outside of
+   a git project.
+
+   This is something git doesn't allow directly, so we need to perform
+   path conversions. The project root must be provided because it's somewhat
+   costly to obtain.
+*)
+let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
+    root_paths =
+  let sys_cwd = Sys.getcwd () |> Fpath.v in
+  let rel_project_root =
+    match
+      Fpath.relativize ~root:sys_cwd
+        (Rpath.to_fpath project_root |> append_slash_to_dir_path)
+    with
+    | None ->
+        (* This may happen on Windows if the cwd and project don't share the
+           same filesystem root. In which case, we use the project_root. *)
+        Rpath.to_fpath project_root
+    | Some rel_path -> rel_path
+  in
+  let abs_root_paths =
+    root_paths
+    |> List_.map (fun path ->
+           (* git accepts absolute paths to scanning roots but not if they
+              contain relative segments
+              such as '..':
+                OK: /home/user/proj/src
+                Rejected: ../proj/src
+           *)
+           Fpath.(sys_cwd // path |> normalize))
+  in
+  (* git returns paths that are relative to 'cwd' which must be within the
+     project. The following should work even if 'project_root' is a subfolder
+     in the git project but we're not counting on it. *)
+  let proj_rel_paths =
+    ls_files
+      ~cwd:(Rpath.to_fpath project_root)
+      ?exclude_standard ?kinds abs_root_paths
+  in
+  let rel_paths =
+    proj_rel_paths
+    |> List_.map (fun proj_rel_path ->
+           Fpath.(rel_project_root // proj_rel_path |> normalize))
+  in
+  rel_paths
+
 let get_project_root ?cwd () =
   let cmd = (git, cd cwd @ [ "rev-parse"; "--show-toplevel" ]) in
   match UCmd.string_of_run ~trim:true cmd with
@@ -674,3 +724,11 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
       objects
   in
   Some objects
+
+let with_git_repo (files : Testutil_files.t list) func =
+  Testutil_files.with_tempfiles_verbose files (fun path ->
+      Testutil_files.with_chdir path (fun () ->
+          init ();
+          add ~force:true [ Fpath.v "." ];
+          commit "Add all the files";
+          func ()))

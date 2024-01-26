@@ -4,18 +4,25 @@
 
 open Printf
 
-let with_git_repo (files : Testutil_files.t list) func =
-  Testutil_files.with_tempfiles_verbose files (fun path ->
-      Testutil_files.with_chdir path (fun () ->
-          Git_wrapper.init ();
-          Git_wrapper.add ~force:true [ Fpath.v "." ];
-          Git_wrapper.commit "Add all the files";
-          func ()))
+(*
+   List targets by invoking Find_targets.get_targets directly.
+*)
+let list_targets_internal ?(conf = Find_targets.default_conf) ?roots () =
+  let roots =
+    match roots with
+    | None -> [ Rfpath.of_string "." ]
+    | Some roots -> roots
+  in
+  let selected, _skipped = Find_targets.get_target_fpaths conf roots in
+  selected |> List.iter (fun fpath -> printf "%s\n" (Fpath.to_string fpath))
 
 let run_osemgrep caps argv =
   printf "RUN %s\n%!" (argv |> Array.to_list |> String.concat " ");
   CLI.main caps argv
 
+(*
+   List targets by going through the full semgrep command.
+*)
 let osemgrep_ls caps =
   let exit_code =
     run_osemgrep caps [| "semgrep"; "scan"; "--experimental"; "--x-ls"; "." |]
@@ -37,13 +44,17 @@ type repo_with_tests = {
 }
 
 let test_list_from_project_root =
+  ( "list target files from project root (internal)",
+    fun _caps -> list_targets_internal () )
+
+let test_cli_list_from_project_root =
   ("list target files from project root", fun caps -> osemgrep_ls caps)
 
-let test_list_targets_from_subdir cwd =
-  let func caps =
+let test_list_targets_from_subdir ?roots cwd =
+  let func _caps =
     Testutil_files.with_chdir cwd (fun () ->
-        printf "cwd: %s\n" (Fpath.to_string cwd);
-        osemgrep_ls caps)
+        printf "cwd: %s\n" (Sys.getcwd ());
+        list_targets_internal ?roots ())
   in
   let name = "list target files from " ^ Fpath.to_string cwd in
   (name, func)
@@ -60,12 +71,12 @@ let repos_with_tests : repo_with_tests list =
         [
           file "a"; file "b"; file "c"; gitignore [ "a" ]; semgrepignore [ "b" ];
         ];
-      tests = [ test_list_from_project_root ];
+      tests = [ test_list_from_project_root; test_cli_list_from_project_root ];
     };
     {
       repo_name = "no-semgrepignore";
       repo_files = [ file "a"; gitignore [ "a" ] ];
-      tests = [ test_list_from_project_root ];
+      tests = [ test_list_from_project_root; test_cli_list_from_project_root ];
     };
     {
       repo_name = "gitignore-deignore";
@@ -74,7 +85,7 @@ let repos_with_tests : repo_with_tests list =
           gitignore [ "bin/*"; "!bin/ignore-me-not" ];
           dir "bin" [ file "ignore-me"; file "ignore-me-not" ];
         ];
-      tests = [ test_list_from_project_root ];
+      tests = [ test_list_from_project_root; test_cli_list_from_project_root ];
     };
     {
       repo_name = "nested-repo";
@@ -108,5 +119,6 @@ let tests caps : Testo.test list =
                 Testo.create
                   ~category:[ "target selection on real git repos"; repo_name ]
                   ~checked_output:Stdout ~mask_output test_name (fun () ->
-                    with_git_repo repo_files (fun () -> test_func caps))))
+                    Git_wrapper.with_git_repo repo_files (fun () ->
+                        test_func caps))))
   |> List_.flatten

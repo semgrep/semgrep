@@ -8,10 +8,6 @@
 
      commons
      profiling
-
-     ; This is used in Git_project to find the project root. We could
-     ; move this code around if the dependency is problematic.
-     git_wrapper
   )
   (preprocess (pps
      ppx_deriving.show
