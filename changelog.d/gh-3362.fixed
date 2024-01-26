@@ -1,0 +1,18 @@
+Matching: Try blocks with catch clauses can now match try blocks that have
+extraneous catch clauses, as long as it matches a subset. For instance,
+the pattern
+```
+try:
+  ...
+catch A:
+  ...
+```
+can now match
+```
+try:
+  ...
+catch A:
+  ...
+catch B:
+  ...
+```

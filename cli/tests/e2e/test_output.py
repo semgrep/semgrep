@@ -278,7 +278,6 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
@@ -288,7 +287,7 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     filename = snapshot.snapshot_dir / "results.xml"
     expected = _etree_to_dict(cElementTree.XML(filename.read_text()))
 
-    assert expected == result
+    assert result == expected
 
 
 @pytest.mark.kinda_slow

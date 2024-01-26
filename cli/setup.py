@@ -131,7 +131,7 @@ install_requires = [
 
 setuptools.setup(
     name="semgrep",
-    version="1.56.0",
+    version="1.58.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
@@ -140,7 +140,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    scripts=["bin/semgrep", "bin/pysemgrep", "bin/sg"],
+    scripts=["bin/semgrep", "bin/pysemgrep"],
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"semgrep": [os.path.join("bin", "*")]},

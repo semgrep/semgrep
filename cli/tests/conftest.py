@@ -73,8 +73,21 @@ def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> 
 
 
 ##############################################################################
-# Helper functions
+# Helper functions/classes
 ##############################################################################
+
+
+class str_containing:
+    """Assert that a given string meets some expectations."""
+
+    def __init__(self, pattern, flags=0):
+        self._pattern = pattern
+
+    def __eq__(self, actual):
+        return self._pattern in actual
+
+    def __repr__(self):
+        return self._pattern
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
@@ -198,6 +211,31 @@ def mask_capture_group(match: re.Match) -> str:
     for group in match.groups():
         text = text.replace(group, "<MASKED>") if group else text
     return text
+
+
+def mask_times(result_json: str) -> str:
+    result = json.loads(result_json)
+
+    def zero_times(value):
+        if type(value) == float:
+            return 2.022
+        elif type(value) == list:
+            return [zero_times(val) for val in value]
+        elif type(value) == dict:
+            return {k: zero_times(v) for k, v in value.items()}
+        else:
+            return value
+
+    if "time" in result:
+        result["time"] = zero_times(result["time"])
+    return json.dumps(result, indent=2, sort_keys=True)
+
+
+FLOATS = re.compile("([0-9]+).([0-9]+)")
+
+
+def mask_floats(text_output: str) -> str:
+    return re.sub(FLOATS, "x.xxx", text_output)
 
 
 # ProTip: make sure your regexps can't match JSON quotes so as to keep any
@@ -520,16 +558,3 @@ def parse_lockfile_path_in_tmp_for_perf(
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path
-
-
-class str_containing:
-    """Assert that a given string meets some expectations."""
-
-    def __init__(self, pattern, flags=0):
-        self._pattern = pattern
-
-    def __eq__(self, actual):
-        return self._pattern in actual
-
-    def __repr__(self):
-        return self._pattern

@@ -3,7 +3,7 @@ rules:
     message: Test
     severity: ERROR
     options:
-      taint_match_on: source
+      taint_focus_on: source
     mode: taint
     languages:
       - python

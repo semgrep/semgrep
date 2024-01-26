@@ -29,6 +29,9 @@ module TM = Taint_smatch
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO: Rename things to make clear that there are "sub-matches" and there are
+ * "best matches". *)
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -103,7 +106,7 @@ type env = {
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
-  top_matches : TM.Top_matches.t;
+  best_matches : TM.Best_matches.t;
   java_props : java_props_cache;
 }
 
@@ -174,7 +177,7 @@ let union_map_taints_and_vars env f xs =
 let any_is_best_sanitizer env any =
   env.config.is_sanitizer any
   |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
-         (not m.spec.sanitizer_exact) || TM.is_best_match env.top_matches m)
+         (not m.spec.sanitizer_exact) || TM.is_best_match env.best_matches m)
 
 (* TODO: We could return source matches already split by `by-side-effect` here ? *)
 let any_is_best_source ?(is_lval = false) env any =
@@ -187,13 +190,13 @@ let any_is_best_source ?(is_lval = false) env any =
           *  backwards compatibility we keep it this way. *)
          | Yes
          | No ->
-             (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
+             (not m.spec.source_exact) || TM.is_best_match env.best_matches m)
 
 let any_is_best_sink env any =
   env.config.is_sink any
   |> List.filter (fun (tm : R.taint_sink TM.t) ->
          (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
-         (not tm.spec.sink_at_exit) && TM.is_best_match env.top_matches tm)
+         (not tm.spec.sink_at_exit) && TM.is_best_match env.best_matches tm)
 
 let orig_is_source config orig = config.is_source (any_of_orig orig)
 
@@ -884,7 +887,7 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   in
   let sinks =
     lval_is_sink env lval
-    |> List.filter (TM.is_best_match env.top_matches)
+    |> List.filter (TM.is_best_match env.best_matches)
     |> List_.map TM.sink_of_match
   in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
@@ -1256,7 +1259,13 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * The 'sig_arg' may refer to `this` and also have an offset:
  * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
-let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
+let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
+    (* Besides the 'lval', we also return a "tainted token" pointing to an
+     * identifier in the actual code that relates to 'sig_arg', to be used
+     * in the taint trace.  For example, if we're calling `obj.method` and
+     * `this.x` were tainted, then we would record that taint went through
+     * `obj`. *)
+    (lval * T.tainted_token) option =
   let os =
     sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
   in
@@ -1268,7 +1277,15 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
          _;
         } ->
+            (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
+        | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
+            (* We're calling a `method` on the same instace of the caller,
+             * and `this.x` is just `this.x` *)
+            let this =
+              VarSpecial (This, Tok.fake_tok (snd method_.ident) "this")
+            in
+            Some ({ base = this; rev_offset = List.rev os }, method_)
         | __else__ -> None)
     | BArg pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
@@ -1304,7 +1321,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
                 None)
         | __else__ -> None)
   in
-  Some (lval, obj)
+  Some (lval, snd obj.ident)
 
 (* What is the taint denoted by 'sig_arg' ? *)
 let taints_of_sig_arg env fparams fun_exp args_exps args_taints
@@ -1471,7 +1488,7 @@ let check_function_signature env fun_exp args args_taints =
             (* Taints 'taints' go into an argument of the call, by side-effect.
              * Right now this is mainly used to track taint going into specific
              * fields of the callee object, like `this.x = "tainted"`. *)
-            let+ dst_lval, dst_obj =
+            let+ dst_lval, tainted_tok =
               (* 'dst_lval' is the actual argument/l-value that corresponds
                  * to the formal argument 'dst_arg'. *)
               lval_of_sig_arg fun_exp fparams args dst_arg
@@ -1494,7 +1511,7 @@ let check_function_signature env fun_exp args args_taints =
                          |> Taints.map (fun taint ->
                                 let tokens =
                                   List.rev_append t.tokens
-                                    (snd dst_obj.ident :: taint.T.tokens)
+                                    (tainted_tok :: taint.T.tokens)
                                 in
                                 { taint with tokens })
                      | Control ->
@@ -1638,7 +1655,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
 let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
     any_is_best_sink env (G.Tk tok) @ orig_is_best_sink env e.eorig
-    |> List.filter (TM.is_best_match env.top_matches)
+    |> List.filter (TM.is_best_match env.best_matches)
     |> List_.map TM.sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
@@ -1713,10 +1730,10 @@ let transfer :
     Lval_env.t ->
     string option ->
     flow:F.cfg ->
-    top_matches:TM.Top_matches.t ->
+    best_matches:TM.Best_matches.t ->
     java_props:java_props_cache ->
     Lval_env.t D.transfn =
- fun lang options config enter_env opt_name ~flow ~top_matches ~java_props
+ fun lang options config enter_env opt_name ~flow ~best_matches ~java_props
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1729,7 +1746,7 @@ let transfer :
       config;
       fun_name = opt_name;
       lval_env = in';
-      top_matches;
+      best_matches;
       java_props;
     }
   in
@@ -1838,12 +1855,13 @@ let (fixpoint :
     | None -> Lval_env.empty
     | Some in_env -> in_env
   in
-  let top_matches =
-    (* Here we compute the "canonical" or "top" sink matches, for each sink we check
-     * whether there is a "best match" among the top nodes in the CFG.
-     * See NOTE "Top matches" *)
-    TM.top_level_matches_in_nodes
-      ~matches_of_orig:(fun orig ->
+  let best_matches =
+    (* Here we compute the "canonical" or "best" source/sanitizer/sink matches,
+     * for each source/sanitizer/sink we check whether there is a "best match"
+     * among all the potential matches in the CFG.
+     * See NOTE "Best matches" *)
+    TM.best_matches_in_nodes
+      ~sub_matches_of_orig:(fun orig ->
         let sources =
           orig_is_source config orig |> List.to_seq
           |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
@@ -1868,7 +1886,7 @@ let (fixpoint :
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
-        (transfer lang options config enter_env opt_name ~flow ~top_matches
+        (transfer lang options config enter_env opt_name ~flow ~best_matches
            ~java_props)
         (* tainting is a forward analysis! *)
       ~forward:true ~flow

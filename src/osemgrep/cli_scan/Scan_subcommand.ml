@@ -104,7 +104,9 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
-    |> List_.map (Cli_json_output.cli_match_of_core_match hrules)
+    |> List_.map
+         (Cli_json_output.cli_match_of_core_match
+            ~dryrun:conf.output_conf.dryrun hrules)
     |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =
@@ -304,6 +306,17 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
   in
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
 [@@profiling]
+
+(* The test test_autofix.py::terraform-ec2-instance-metadata-options.yaml
+   carries a newline at the end of the "fix" string, which is not the case
+   for PySemgrep.
+   TODO Trimming the "fix" here is a hacky workaround, it may be better to dig
+   down where and why the newline is inserted into "fix".
+*)
+let trim_core_match_fix (r : OutJ.core_match) =
+  let fix = Option.map String.trim r.OutJ.extra.fix in
+  let extra = { r.extra with fix } in
+  { r with extra }
 
 (*****************************************************************************)
 (* Differential scanning *)
@@ -578,7 +591,9 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
         || Output_format.keep_ignores output_format
       in
       let filtered_matches =
-        Nosemgrep.filter_ignored ~keep_ignored res.core.results
+        res.core.results
+        |> List_.map trim_core_match_fix
+        |> Nosemgrep.filter_ignored ~keep_ignored
       in
       { res with core = { res.core with results = filtered_matches } }
     in
@@ -665,7 +680,8 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        already-fixed file
     *)
     if conf.output_conf.autofix then
-      Autofix.apply_fixes_of_core_matches res.core.results;
+      Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
+        res.core.results;
 
     (* TOPORT? was in formater/base.py
        def keep_ignores(self) -> bool:

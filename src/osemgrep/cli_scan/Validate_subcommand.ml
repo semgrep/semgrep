@@ -140,7 +140,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         let res = Core_runner.create_core_result metarules result_and_exn in
         (* TODO? sanity check errors below too? *)
         let OutJ.{ results; errors = _; _ } =
-          Cli_json_output.cli_output_of_core_results
+          Cli_json_output.cli_output_of_core_results ~dryrun:true
             ~logging_level:conf.common.logging_level res.core res.hrules
             res.scanned
         in

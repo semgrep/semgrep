@@ -137,9 +137,11 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
   | Sarif ->
       let sarif_json = Sarif_output.sarif_output hrules cli_output in
       Out.put (Yojson.Basic.to_string sarif_json)
-  | Gitlab_sast
-  | Gitlab_secrets
   | Junit_xml ->
+      let junit_xml = Junit_xml_output.junit_xml_output cli_output in
+      Out.put junit_xml
+  | Gitlab_sast
+  | Gitlab_secrets ->
       Out.put
         (spf "TODO: output format %s not supported yet"
            (Output_format.show output_format))
@@ -154,8 +156,8 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
 let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
     =
   let cli_output : OutJ.cli_output =
-    Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      res.core res.hrules res.scanned
+    Cli_json_output.cli_output_of_core_results ~dryrun:conf.dryrun
+      ~logging_level:conf.logging_level res.core res.hrules res.scanned
   in
   cli_output |> fun results ->
   {

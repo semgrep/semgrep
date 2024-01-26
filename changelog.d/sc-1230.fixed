@@ -1,2 +1,0 @@
-Fixed a bug where Gemfile.lock files with multiple GEM sections
-would not be parsed correctly.
