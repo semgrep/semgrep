@@ -650,15 +650,8 @@ let label_pair (env : env) (x : CST.label_pair) : label_pair =
 *)
 let comment_line (env : env)
     (((hash_tok, comment_tok), backslash_tok) : CST.comment_line) : tok =
-  let tok =
-    Tok.combine_toks (token env hash_tok)
-      [ token env comment_tok; token env backslash_tok ]
-  in
-  (* TODO: the token called backslash_tok should be a newline according
-     to the grammar, not a backslash. Looks like a bug in the parser.
-     We have to add the newline here to end the comment and get correct
-     line locations. *)
-  Tok.tok_add_s "\n" tok
+  Tok.combine_toks (token env hash_tok)
+    [ token env comment_tok; token env backslash_tok ]
 
 let shell_command (env : env) (x : CST.shell_command) =
   match x with
