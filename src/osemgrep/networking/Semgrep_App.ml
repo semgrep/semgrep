@@ -14,7 +14,7 @@
  *)
 open Common
 module OutJ = Semgrep_output_v1_j
-module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -149,7 +149,12 @@ let extract_block_override (data : string) : (app_block_override, string) result
 
 (* Returns the deployment config if the token is valid, otherwise None *)
 let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
-  let headers = [ Auth.auth_header_of_token caps#token ] in
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
   let%lwt response = Http_helpers.get_async ~headers caps#network url in
   let deployment_opt =
@@ -181,6 +186,11 @@ let start_scan ~dry_run caps (prj_meta : Project_metadata.t)
     let headers =
       [
         ("Content-Type", "application/json");
+        (* The agent is needed by many endpoints in our backend guarded by
+         * @require_supported_cli_version()
+         * alt: use Metrics_.string_of_user_agent()
+         *)
+        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in
@@ -270,7 +280,12 @@ let fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps :
    *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
    *)
   let url = scan_config_uri ~sca ~dry_run ~full_scan repository in
-  let headers = [ Auth.auth_header_of_token caps#token ] in
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
   let%lwt content =
     let%lwt response = Http_helpers.get_async ~headers caps#network url in
     let results =
@@ -331,6 +346,7 @@ let upload_findings ~dry_run ~scan_id ~results ~complete caps :
     let headers =
       [
         ("Content-Type", "application/json");
+        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in
@@ -389,6 +405,7 @@ let report_failure ~dry_run ~scan_id caps (exit_code : Exit_code.t) : unit =
     let headers =
       [
         ("Content-Type", "application/json");
+        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in
@@ -412,7 +429,12 @@ let report_failure ~dry_run ~scan_id caps (exit_code : Exit_code.t) : unit =
 
 (* for semgrep show identity *)
 let get_identity_async caps =
-  let headers = [ Auth.auth_header_of_token caps#token ] in
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url identity_route in
   let%lwt res = Http_helpers.get_async ~headers caps#network url in
   match res with
@@ -427,7 +449,9 @@ let upload_rule_to_registry caps json =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url registry_rule_route in
   let headers =
     [
-      ("Content-Type", "application/json"); Auth.auth_header_of_token caps#token;
+      ("Content-Type", "application/json");
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
     ]
   in
   let body = JSON.string_of_json (JSON.from_yojson json) in

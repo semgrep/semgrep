@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Types *)
@@ -80,9 +80,12 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
   in
   let settings = Semgrep_settings.load () in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+  let user_agent = Metrics_.string_of_user_agent () in
   let headers =
     [
       ("Content-Type", "application/json");
+      (* include the user_agent which encodes the current semgrep version *)
+      ("User-Agent", user_agent);
       (* include the anonymous user id to help with debugging and analysis.*)
       ("X-Semgrep-Client-Id", Uuidm.to_string anonymous_user_id);
     ]

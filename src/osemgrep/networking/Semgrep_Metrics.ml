@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -34,10 +34,14 @@ module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
 let send caps =
   (* Populate the sent_at timestamp *)
   Metrics_.prepare_to_send ();
+  let user_agent = Metrics_.string_of_user_agent () in
   let metrics = Metrics_.string_of_metrics () in
   let url = !Semgrep_envvars.v.metrics_url in
-  let headers = [ ("Content-Type", "application/json") ] in
+  let headers =
+    [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
+  in
   Logs.debug (fun m -> m "Metrics: %s" metrics);
+  Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
   match Http_helpers.post ~body:metrics ~headers caps#network url with
   | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
   | Error (status_code, err) ->

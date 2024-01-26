@@ -10,16 +10,13 @@ type get_info = {
 (* This is functorized because we must run http requests differently
  * depending on the platform (native vs jsoo). To use this module do:
  *
- *    module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
+ *    module Http_helpers = Http_helpers.Make(Lwt_platform)
  *
  * where this Lwt_platform is defined via the dune 'virtual modules'
- * and Version is the version module to create the user agent header
  * See libs/lwt_platform/ which defines this run() for more info.
  *)
 module Make (I : sig
   val run : 'a Lwt.t -> 'a
-end) (V : sig
-  val version : string
 end) : sig
   val get_async :
     ?headers:(string * string) list ->

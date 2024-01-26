@@ -1,4 +1,4 @@
-module Http_helpers = Http_helpers.Make (Lwt_platform) (Version)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (* GitHub REST API *)
 
