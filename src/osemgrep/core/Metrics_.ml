@@ -137,7 +137,7 @@ let default_payload =
       {
         version = Version.version;
         os = Sys.os_type;
-        isJS = false;
+        isTranspiledJS = false;
         projectHash = None;
         configNamesHash = Digestif.SHA256.digest_string "<noconfigyet>";
         rulesHash = None;

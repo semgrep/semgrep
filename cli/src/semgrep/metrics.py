@@ -136,7 +136,7 @@ class Metrics:
                 ci=None,
                 isDiffScan=False,
                 os=os.name,
-                isJS=False,
+                isTranspiledJS=False,
             ),
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
