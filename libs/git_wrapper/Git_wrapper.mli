@@ -179,6 +179,12 @@ val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
  *   [sha] does not designate an object.
  *)
 
+val object_size : ?cwd:Fpath.t -> sha -> int option
+(** [object_size sha] evaluates to [Some s] where [s] is the size of the object
+  * designated by [sha] in bytes, or [None] if an error occured (e.g. the
+  * object didn't exist).
+  *)
+
 val ls_tree :
   ?cwd:Fpath.t -> ?recurse:bool -> sha -> ls_tree_extra obj list option
 (** [ls_tree ~recurse sha] will run `git ls-tree --full-tree` and report the
