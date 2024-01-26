@@ -4,5 +4,6 @@ Initialized empty Git repository in<MASKED>
  create mode 100644 a/b/target
 Input files:
 a/b/target
-RUN semgrep scan --experimental --x-ls .
-selected b/target
+cwd: /tmp<MASKED>/a
+Target files:
+  b/target

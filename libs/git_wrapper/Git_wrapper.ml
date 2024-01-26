@@ -59,7 +59,7 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-type sha = string [@@deriving show]
+type sha = SHA of string [@@unboxed] [@@deriving show]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
@@ -238,6 +238,34 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
 let append_slash_to_dir_path path = Fpath.add_seg path ""
 
 (*
+   Make an absolute path relative to a root folder if possible.
+
+   This returns a relative path if possible, otherwise falls back to an
+   absolute path. It's possible to obtain a relative path if both paths
+   are relative (to the same implicit folder) or if they're both absolute
+   and share the same filesystem root ('/' on Unix or a volume name on
+   Windows).
+
+   TODO: move to Fpath_?
+*)
+let relativize_if_possible ~abs_cwd abs_path =
+  if not (Fpath.is_abs abs_cwd) then
+    invalid_arg
+      (spf
+         "Git_wrapper.relativize_if_possible: abs_cwd must be an absolute path \
+          but we received %s"
+         !!abs_cwd);
+  if not (Fpath.is_abs abs_path) then
+    invalid_arg
+      (spf
+         "Git_wrapper.relativize_if_possible: abs_path must be an absolute \
+          path but we received %s"
+         !!abs_path);
+  match Fpath.relativize ~root:(append_slash_to_dir_path abs_cwd) abs_path with
+  | Some rel_path -> rel_path
+  | None -> abs_path
+
+(*
    List files relative to the current directory which may be outside of
    a git project.
 
@@ -247,18 +275,9 @@ let append_slash_to_dir_path path = Fpath.add_seg path ""
 *)
 let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
     root_paths =
+  (* Both project_root and sys_cwd are absolute, physical paths *)
+  let project_root = Rpath.to_fpath project_root in
   let sys_cwd = Sys.getcwd () |> Fpath.v in
-  let rel_project_root =
-    match
-      Fpath.relativize ~root:sys_cwd
-        (Rpath.to_fpath project_root |> append_slash_to_dir_path)
-    with
-    | None ->
-        (* This may happen on Windows if the cwd and project don't share the
-           same filesystem root. In which case, we use the project_root. *)
-        Rpath.to_fpath project_root
-    | Some rel_path -> rel_path
-  in
   let abs_root_paths =
     root_paths
     |> List_.map (fun path ->
@@ -270,18 +289,19 @@ let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
            *)
            Fpath.(sys_cwd // path |> normalize))
   in
-  (* git returns paths that are relative to 'cwd' which must be within the
+  (* List paths relative to the project root.
+
+     Git returns paths that are relative to 'cwd' which must be within the
      project. The following should work even if 'project_root' is a subfolder
      in the git project but we're not counting on it. *)
   let proj_rel_paths =
-    ls_files
-      ~cwd:(Rpath.to_fpath project_root)
-      ?exclude_standard ?kinds abs_root_paths
+    ls_files ~cwd:project_root ?exclude_standard ?kinds abs_root_paths
   in
   let rel_paths =
     proj_rel_paths
     |> List_.map (fun proj_rel_path ->
-           Fpath.(rel_project_root // proj_rel_path |> normalize))
+           relativize_if_possible ~abs_cwd:sys_cwd
+             (project_root // proj_rel_path))
   in
   rel_paths
 
@@ -646,16 +666,16 @@ let cat_file_batch_check_all_objects ?cwd () =
           match String.split_on_char ' ' obj with
           | [ sha; "tag"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Tag; sha; extra = { size } }
+              Some { kind = Tag; sha = SHA sha; extra = { size } }
           | [ sha; "commit"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Commit; sha; extra = { size } }
+              Some { kind = Commit; sha = SHA sha; extra = { size } }
           | [ sha; "tree"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Tree; sha; extra = { size } }
+              Some { kind = Tree; sha = SHA sha; extra = { size } }
           | [ sha; "blob"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Blob; sha; extra = { size } }
+              Some { kind = Blob; sha = SHA sha; extra = { size } }
           | _ -> None
         in
         if Option.is_none parsed_obj then
@@ -666,7 +686,7 @@ let cat_file_batch_check_all_objects ?cwd () =
   in
   Some objects
 
-let cat_file_blob ?cwd sha =
+let cat_file_blob ?cwd (SHA sha) =
   let cmd = (git, cd cwd @ [ "cat-file"; "blob"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> Ok s
@@ -674,7 +694,7 @@ let cat_file_blob ?cwd sha =
   | Error (`Msg s) ->
       Error s
 
-let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
+let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
   let cmd =
     ( git,
       cd cwd
@@ -695,20 +715,20 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
           | [ "commit"; sha; path ] -> (
               (* possible for submodules *)
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Commit; sha; extra = { path } }
+              | Ok path -> Ok { kind = Commit; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | [ "tree"; sha; path ] -> (
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tree; sha; extra = { path } }
+              | Ok path -> Ok { kind = Tree; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | [ "blob"; sha; path ] -> (
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Blob; sha; extra = { path } }
+              | Ok path -> Ok { kind = Blob; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | [ "tag"; sha; path ] -> (
               (* possible, but we probably don't care. *)
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tag; sha; extra = { path } }
+              | Ok path -> Ok { kind = Tag; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | _ -> Error "invalid syntax"
         in

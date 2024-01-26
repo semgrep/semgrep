@@ -14,7 +14,8 @@ let list_targets_internal ?(conf = Find_targets.default_conf) ?roots () =
     | Some roots -> roots
   in
   let selected, _skipped = Find_targets.get_target_fpaths conf roots in
-  selected |> List.iter (fun fpath -> printf "%s\n" (Fpath.to_string fpath))
+  printf "Target files:\n";
+  selected |> List.iter (fun fpath -> printf "  %s\n" (Fpath.to_string fpath))
 
 let run_osemgrep caps argv =
   printf "RUN %s\n%!" (argv |> Array.to_list |> String.concat " ");
