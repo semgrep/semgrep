@@ -6,6 +6,8 @@
     "integrationName": "funkyintegration",
     "isAuthenticated": false,
     "isDiffScan": false,
+    "isTranspiledJS": false,
+    "os": "posix",
     "projectHash": null,
     "rulesHash": "7f693c12172d20798fe56ef8555cf42accb11ae6fc115d0d87405f2a988e9805",
     "version": "x.x.x"

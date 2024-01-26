@@ -120,6 +120,7 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
           res
       in
       Logs.debug (fun m -> m "Found %d matches" (List.length matches));
+      Session.send_metrics session;
       (matches, scanned)
 
 (** Scan all folders in the workspace *)

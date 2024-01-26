@@ -15,7 +15,6 @@
 
 (* Commentary *)
 (* Metrics we send to the mothership *)
-(* TODO actually send them *)
 
 (*****************************************************************************)
 (* Prelude *)

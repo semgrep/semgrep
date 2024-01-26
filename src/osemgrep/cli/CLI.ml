@@ -187,7 +187,10 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
               subcmd_argv
         | "logout" when experimental ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
-        | "lsp" -> Lsp_subcommand.main subcmd_argv
+        | "lsp" ->
+            Lsp_subcommand.main
+              (caps :> < Cap.random ; Cap.network >)
+              subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" ->
             Scan_subcommand.main
