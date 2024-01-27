@@ -474,7 +474,6 @@ For more information see https://semgrep.dev
     opentelemetry
     opentelemetry-client-ocurl
     ambient-context-lwt
-    curl-dev
     ; web stuff
     uri
     cohttp-lwt-unix
