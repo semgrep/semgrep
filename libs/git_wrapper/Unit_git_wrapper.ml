@@ -2,7 +2,9 @@
    Unit tests for Git_wrapper
 *)
 
+open Common
 open Printf
+open Fpath_.Operators
 
 (* Mask lines like this one:
    [main (root-commit) 45e8b46] Add all the files
@@ -83,4 +85,19 @@ let tests =
            Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath)
          ~mk_scanning_root:(fun ~project_root ->
            Fpath.(Rpath.to_fpath project_root / "a")));
+    t "get git project root" (fun () ->
+        match Git_wrapper.get_project_root () with
+        | Some _ -> ()
+        | None ->
+            Alcotest.fail
+              (spf "couldn't find a git project root for current directory %s"
+                 (Sys.getcwd ())));
+    t "fail to get git project root" (fun () ->
+        (* A standard folder that we know is not in a git repo *)
+        let cwd = Filename.get_temp_dir_name () |> Fpath.v in
+        match Git_wrapper.get_project_root ~cwd () with
+        | Some _ ->
+            Alcotest.fail
+              (spf "we found a git project root with cwd = %s" !!cwd)
+        | None -> ());
   ]
