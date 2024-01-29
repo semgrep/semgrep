@@ -14,6 +14,7 @@ val check :
   match_hook:(string -> Pattern_match.t -> unit) ->
   timeout:float ->
   timeout_threshold:int ->
+  ?dependency_match_table:Match_dependency.dependency_match_table ->
   Match_env.xconfig ->
   Rule.rules ->
   Xtarget.t ->

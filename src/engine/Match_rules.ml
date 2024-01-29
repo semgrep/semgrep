@@ -161,8 +161,8 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
-    rules xtarget =
+let check ~match_hook ~timeout ~timeout_threshold ?dependency_match_table
+    (xconf : Match_env.xconfig) rules xtarget =
   let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
   logger#trace "checking %s with %d rules" !!file (List.length rules);
   (match (!Profiling.profile, xlang) with

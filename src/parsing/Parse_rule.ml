@@ -722,6 +722,33 @@ let parse_validators env key value =
   parse_list env key (parse_validator key) value
 
 (*****************************************************************************)
+(* Supply chain *)
+(*****************************************************************************)
+
+let parse_ecosystem env key value =
+  match value.G.e with
+  | G.L (String (_, (ecosystem, _), _)) -> (
+      match String.lowercase_ascii ecosystem with
+      | "npm" -> Supply_chain.Npm
+      | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem))
+  | _ -> error_at_key env.id key "Non-string data for ecosystem?"
+
+let parse_dependency_pattern key env value : R.dependency_pattern =
+  let rd = yaml_to_dict env key value in
+  let ecosystem = take_key rd env parse_ecosystem "namespace" in
+  let package_name = take_key rd env parse_string "package" in
+  let version_constraint = take_key rd env parse_string "version" in
+  R.{ ecosystem; package_name; version_constraint }
+
+let parse_dependency_formula env key value : R.dependency_formula =
+  let rd = yaml_to_dict env key value in
+  if Hashtbl.mem rd.h "depends-on-either" then
+    take_key rd env
+      (fun env key -> parse_list env key (parse_dependency_pattern key))
+      "depends-on-either"
+  else [ parse_dependency_pattern key env value ]
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
@@ -824,10 +851,10 @@ let check_version_compatibility rule_id ~min_version ~max_version =
 (* TODO: Unify how we differentiate which rules correspond to which
    products. This basically just copies the logic of
    semgrep/cli/src/semgrep/rule.py::Rule.product *)
-let parse_product rd (metadata : J.t option) : Semgrep_output_v1_t.product =
-  match
-    take_opt_no_env rd (fun _ _ -> ()) "r2c-internal-project-depends-on"
-  with
+let parse_product (metadata : J.t option)
+    (dep_formula_opt : R.dependency_formula option) :
+    Semgrep_output_v1_t.product =
+  match dep_formula_opt with
   | Some _ -> `SCA
   | None -> (
       match metadata with
@@ -879,7 +906,10 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let mode = parse_mode env mode_opt rd in
   let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
-  let product = parse_product rd metadata_opt in
+  let dep_formula_opt =
+    take_opt rd env parse_dependency_formula "r2c-internal-project-depends-on"
+  in
+  let product = parse_product metadata_opt dep_formula_opt in
   let message, severity =
     match mode with
     | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
@@ -911,6 +941,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     equivalences = equivs_opt;
     options = options_opt;
     validators = validators_opt;
+    dependency_formula = dep_formula_opt;
   }
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)

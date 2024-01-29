@@ -692,11 +692,23 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
        Parse_with_caching.parse_and_resolve_name ~parsing_cache_dir
          AST_generic.version lang file)
   in
+  let lockfile_path = Parse_lockfile.find_lockfile file in
   {
     Xtarget.file;
     xlang;
     lazy_content = lazy (UFile.read_file file);
     lazy_ast_and_errors;
+    (* TODO: make computing this optional *)
+    lockfile_data =
+      (lockfile_path
+      |> Option.map @@ fun file ->
+         {
+           Xtarget.lockfile = file;
+           ecosystem = Supply_chain.Npm;
+           lazy_lockfile_content = lazy (UFile.read_file file);
+           lazy_lockfile_ast_and_errors =
+             lazy (Parse_lockfile.parse_lockfile file);
+         });
   }
 
 (* Compute the set of targets, either by reading what was passed
@@ -890,10 +902,27 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       filter_irrelevant_rules = prefilter_cache_opt;
     }
   in
+  (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
+  let ( _skipped_supply_chain,
+        (applicable_rules_with_dep_matches :
+          (Rule.rule * PM.dependency_match list option) list) ) =
+    applicable_rules
+    |> Match_dependency.match_all_dependencies xtarget
+    |> Either_.partition_either (function
+         | rule, Some [] -> Left rule
+         | x -> Right x)
+  in
+  let dependency_match_table =
+    applicable_rules_with_dep_matches
+    |> List_.map (fun (rule, dep_matches) -> (rule.R.id, dep_matches))
+    |> Hashtbl_.hash_of_list
+  in
+  let applicable_rules = applicable_rules_with_dep_matches |> List_.map fst in
   let matches =
     (* !!Calling Match_rules!! Calling the matching engine!! *)
     Match_rules.check ~match_hook ~timeout:config.timeout
-      ~timeout_threshold:config.timeout_threshold xconf applicable_rules xtarget
+      ~timeout_threshold:config.timeout_threshold ~dependency_match_table xconf
+      applicable_rules xtarget
     |> set_matches_to_proprietary_origin_if_needed xtarget
     |> Extract.adjust_location_extracted_targets_if_needed adjusters file
   in

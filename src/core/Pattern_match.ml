@@ -129,7 +129,17 @@ type t = {
      the override is applied on top of the default and only changes the fields
      present in the override. *)
   metadata_override : JSON.t option;
+  dependency_match : dependency_match option;
 }
+
+and dependency_match = Supply_chain.dependency * Rule.dependency_pattern
+
+(* and dependency_match = {
+     dependency_range_loc : Tok.location * Tok.location;
+     package_name : string;
+     package_version : string;
+     ecosystem : Supply_chain.ecosystem;
+   } *)
 
 (* This is currently a record, but really only the rule id should matter.
  *

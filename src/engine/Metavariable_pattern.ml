@@ -314,6 +314,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                               xlang;
                               lazy_ast_and_errors;
                               lazy_content = lazy content;
+                              lockfile_data = None;
                             }
                           in
                           (* Persist the bindings from inside the `metavariable-pattern`

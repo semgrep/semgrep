@@ -69,6 +69,7 @@ depends: [
   "ctypes_stubs_js"
   "integers_stubs_js"
   "odoc" {with-doc}
+  "angstrom"
 ]
 build: [
   ["dune" "subst"] {dev}

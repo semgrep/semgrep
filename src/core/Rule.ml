@@ -563,6 +563,20 @@ and step = {
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
+(* Supply chain *)
+(*****************************************************************************)
+
+(* You can only do single layer deep OR *)
+type dependency_formula = dependency_pattern list
+
+and dependency_pattern = {
+  ecosystem : Supply_chain.ecosystem;
+  package_name : string;
+  version_constraint : string;
+}
+[@@deriving show, eq]
+
+(*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
 
@@ -660,6 +674,7 @@ type 'mode rule_info = {
      in the current version of Semgrep and wouldn't even reach this point. *)
   min_version : Version_info.t option;
   max_version : Version_info.t option;
+  dependency_formula : dependency_formula option;
 }
 [@@deriving show]
 
@@ -985,6 +1000,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     metadata = None;
     validators = None;
     product = `SAST;
+    dependency_formula = None;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
