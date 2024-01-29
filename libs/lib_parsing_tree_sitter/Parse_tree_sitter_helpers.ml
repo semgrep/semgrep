@@ -37,7 +37,7 @@ type 'a env = {
 (* Helpers *)
 (*****************************************************************************)
 
-(* mostly a copy-paste of Parse_info.full_charpos_to_pos_large *)
+(* mostly a copy-paste of Pos.full_charpos_to_pos_large *)
 let line_col_to_pos file =
   let size = UFile.filesize (Fpath.v file) + 2 in
   let h = Hashtbl.create size in
@@ -59,14 +59,15 @@ let line_col_to_pos file =
           done
         with
         | End_of_file ->
-            (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
-             * because an ident on the last line would get
-             * the last charpos.
-             *)
-            ()
+            (* We need to add this in case there is a trailing \n in the
+               end of the file *)
+            Hashtbl.add h (!line + 1, 0) !charpos
       in
       full_charpos_to_pos_aux ());
   Hashtbl.find h
+
+(* Patterns are given as a one line string with `\n` characters *)
+let line_col_to_pos_pattern _str (_line, col) = col
 
 let token env (tok : Tree_sitter_run.Token.t) =
   let loc, str = tok in
@@ -75,12 +76,16 @@ let token env (tok : Tree_sitter_run.Token.t) =
   (* Parse_info is 1-line based and 0-column based, like Emacs *)
   let line = start.Tree_sitter_run.Loc.row + 1 in
   let column = start.Tree_sitter_run.Loc.column in
+  let file = env.file in
   let bytepos =
     try h (line, column) with
-    | Not_found -> -1
-    (* TODO? more strict? raise exn? *)
+    | Not_found ->
+        raise
+          (Tok.NoTokenLocation
+             (Printf.sprintf
+                "Could not convert from location %d:%d in %s to a position" line
+                column file))
   in
-  let file = env.file in
   let pos = Pos.make ~line ~column ~file bytepos in
   let tok_loc = { Tok.str; pos } in
   Tok.tok_of_loc tok_loc
