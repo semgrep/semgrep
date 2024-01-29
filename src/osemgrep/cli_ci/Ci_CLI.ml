@@ -77,7 +77,10 @@ let o_code : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_beta_testing_secrets : bool Term.t =
-  let info = Arg.info [ "beta-testing-secrets" ] in
+  let info =
+    Arg.info [ "beta-testing-secrets" ]
+      ~doc:{|Please use --secrets instead of --beta-testing-secrets.|}
+  in
   Arg.value (Arg.flag info)
 
 let o_secrets : bool Term.t =
