@@ -248,6 +248,9 @@ FROM semgrep-oss AS semgrep-cli
 # download it.
 RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro
 
+# Clear out any detritus from the pro install
+RUN rm -rf /root/.semgrep
+
 ###############################################################################
 # Step5: (optional) nonroot variant
 ###############################################################################
