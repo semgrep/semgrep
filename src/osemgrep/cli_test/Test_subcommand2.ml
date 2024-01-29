@@ -371,6 +371,7 @@ let _run_conf_TODO (conf : Test_CLI.conf) : Exit_code.t =
      in
   *)
   let (results : (Fpath.t * Core_result.result_or_exn) list) =
+    ignore config_with_tests;
     failwith "TODO"
   in
 
