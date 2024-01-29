@@ -317,12 +317,12 @@ and argument v =
   | ArgType v ->
       let v = type_ v in
       G.ArgType v
-  | ArgBlock (l, stmts, r) ->
-      Arg (StmtExpr (Block (l, list stmt stmts, r) |> G.s) |> G.e)
+  | ArgBlock (l, body, r) ->
+      Arg (StmtExpr (Block (l, stmts body, r) |> G.s) |> G.e)
 
 and const_expr v = expr v
 
-and stmt st =
+and stmt (st : stmt) : G.stmt =
   (match st with
   | DefStmt x -> definition x
   | DirStmt x -> directive x
@@ -335,7 +335,7 @@ and stmt st =
       let v1 = expr v1 in
       G.ExprStmt (v1, t)
   | Block v1 ->
-      let v1 = bracket (list stmt) v1 in
+      let v1 = bracket stmts v1 in
       G.Block v1
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = option stmt v3 in
@@ -391,60 +391,11 @@ and stmt st =
       G.OtherStmt
         ( G.OS_Asm,
           [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
-          @ a_gotos @ [ G.Tk sc ] )
-  | PreprocStmt { p_condition; p_stmts; p_elifs; p_else; p_endif = _ } -> (
-      (* We take every
-         #ifdef <x>
-            <stuff>
-         #elifdef <y>
-            <stuff2>
-         #endif
-         and translate it to a series of conditionals, like
-
-         if (<x>) {
-           <stuff>
-         } else {
-           if (<y>) {
-             <stuff2>
-           }
-         }
-
-         where each conditional is an OtherCond.
-
-         We may desire to treat this differently in the future, as this is
-         not the same as how C++ represents macros.
-      *)
-      let top_tk, cond =
-        match p_condition with
-        | PreprocIfdef (tk, n) ->
-            (tk, G.OtherCond (("ifdef", G.fake "ifdef"), [ G.I (name n) ]))
-        | PreprocIf (tk, e) ->
-            (tk, OtherCond (("if", G.fake "if"), [ G.E (expr e) ]))
-      in
-      let elifs =
-        List_.map
-          (fun (tk, e, stmts) -> (tk, G.Cond (expr e), list stmt stmts))
-          p_elifs
-      in
-      let p_else =
-        match p_else with
-        | None -> None
-        | Some stmts -> Some (G.Block (fb (list stmt stmts)))
-      in
-      match
-        List.fold_right
-          (fun (tk, cond, stmts) acc ->
-            match acc with
-            | None -> Some (G.If (tk, cond, Block (fb stmts) |> G.s, None))
-            | Some old_s ->
-                Some
-                  (G.If (tk, cond, Block (fb stmts) |> G.s, Some (old_s |> G.s))))
-          ((top_tk, cond, List_.map stmt p_stmts) :: elifs)
-          p_else
-      with
-      | None -> failwith "impossible"
-      | Some stmt -> stmt))
+          @ a_gotos @ [ G.Tk sc ] ))
   |> G.s
+
+and stmts (x : stmt sequencable list) =
+  list (sequencable stmt) x |> List.flatten
 
 and expr_asm_operand (v1, v2, v3) =
   let v1 =
@@ -500,7 +451,7 @@ and storage tok = function
 and func_def { f_name; f_type; f_body; f_static } =
   let v1 = name f_name in
   let ret, params = function_type f_type in
-  let v3 = bracket (list stmt) f_body in
+  let v3 = bracket stmts f_body in
   let v4 =
     if f_static then [ G.attr G.Static (fake (snd v1) "static") ] else []
   in
@@ -609,8 +560,48 @@ and definition = function
       let v1 = func_def v1 in
       G.DefStmt v1
 
-let toplevel x = stmt x
-let program v = list toplevel v
+and ifdef_directive = function
+  | Ifdef v1 ->
+      let _v1 = info v1 in
+      ()
+  | IfdefElse v1 ->
+      let _v1 = info v1 in
+      ()
+  | IfdefElseif v1 ->
+      let _v1 = info v1 in
+      ()
+  | IfdefEndif v1 ->
+      let _v1 = info v1 in
+      ()
+
+(* TODO: ifdef_skipper like in ast_c_build.ml *)
+and sequencable : 'a. ('a -> G.stmt) -> 'a sequencable -> G.stmt list =
+ fun _of_a -> function
+  | X v1 ->
+      let v1 = _of_a v1 in
+      [ v1 ]
+  | CDirective v1 ->
+      let v1 = directive v1 in
+      [ v1 |> G.s ]
+  | CIfdef v1 ->
+      let _v1TODO = ifdef_directive v1 in
+      []
+(* | MacroDecl (v1, v2, v3, v4) ->
+       let v1 = map_of_list (map_specifier env) v1
+       and v2 = map_ident env v2
+       and _, xs, _ = map_paren env (map_of_list (map_argument env)) v3
+       and v4 = map_tok env v4 in
+       let ent = G.basic_entity ~attrs:v1 v2 in
+       let def = G.OtherDef (("MacroDecl", snd v2), [ G.Args xs; G.Tk v4 ]) in
+       [ G.DefStmt (ent, def) |> G.s ]
+   | MacroVar (v1, v2) ->
+       let v1 = map_ident env v1 and v2 = map_sc env v2 in
+       let ent = G.basic_entity v1 in
+       let def = G.OtherDef (("MacroVar", snd v1), [ G.Tk v2 ]) in
+       [ G.DefStmt (ent, def) |> G.s ] *)
+
+let toplevel (x : stmt) = stmt x
+let program v = list (sequencable toplevel) v |> List.flatten
 
 let any = function
   | Expr v1 ->
