@@ -21,9 +21,11 @@ let loc_of_tree_sitter_error (err : Err.t) =
   let start = err.start_pos in
   {
     Tok.str = err.substring;
-    pos =
-      Pos.make ~file:err.file.name ~line:(start.row + 1) (* fake *)
-        ~column:start.column 0;
+    bytepos = 0;
+    line = start.row + 1;
+    (* fake *)
+    column = start.column;
+    file = err.file.name;
   }
 
 (*

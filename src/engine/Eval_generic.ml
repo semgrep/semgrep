@@ -475,7 +475,7 @@ let text_of_binding mvar mval =
             (G.show_any any);
           None
       | Some (min, max) ->
-          let file = min.Tok.pos.file in
+          let file = min.Tok.file in
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))
 

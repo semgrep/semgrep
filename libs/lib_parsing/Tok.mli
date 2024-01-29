@@ -27,7 +27,10 @@
 
 type location = {
   str : string; (* the content of the token starting at pos (e.g., "if") *)
-  pos : Pos.t;
+  bytepos : int; (* 0-based *)
+  line : int; (* 1-based *)
+  column : int; (* 0-based *)
+  file : string;
 }
 [@@deriving show, eq, ord, sexp]
 
@@ -191,9 +194,6 @@ val tok_add_s : string -> t -> t
 (*****************************************************************************)
 val fix_location : (location -> location) -> t -> t
 (** adjust the location in a token *)
-
-val fix_pos : (Pos.t -> Pos.t) -> location -> location
-(** adjust the position in a location *)
 
 val adjust_tok_wrt_base : location -> t -> t
 (** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location

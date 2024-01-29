@@ -143,22 +143,21 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
             mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens_unsafe
             |> fst |> Tok.unsafe_loc_of_tok
           in
-          let mast_start_pos = mast_start_loc.pos in
           let fix_loc file (loc : Tok.location) =
             (* The column is only perturbed if this loc is on the first line of
              * the original metavariable match *)
-            let pos = loc.pos in
             let column =
-              if pos.line =|= mast_start_pos.line then
-                pos.column - mast_start_pos.column
-              else pos.column
+              if loc.line =|= mast_start_loc.line then
+                loc.column - mast_start_loc.column
+              else loc.column
             in
-            let pos =
-              Pos.make ~file ~column
-                ~line:(pos.line - mast_start_pos.line + 1)
-                (pos.bytepos - mast_start_pos.bytepos)
-            in
-            { loc with pos }
+            {
+              loc with
+              bytepos = loc.bytepos - mast_start_loc.bytepos;
+              line = loc.line - mast_start_loc.line + 1;
+              column;
+              file;
+            }
           in
           (* We need to undo the changes made to the file location,
              for when we preserve this binding and re-localize it to
@@ -166,17 +165,17 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           *)
           let revert_loc (loc : Tok.location) =
             (* See fix_loc *)
-            let pos = loc.pos in
             let column =
-              if pos.line =|= 1 then pos.column + mast_start_pos.column
-              else pos.column
+              if loc.line =|= 1 then loc.column + mast_start_loc.column
+              else loc.column
             in
-            let pos =
-              Pos.make ~file:mval_file ~column
-                ~line:(pos.line + mast_start_pos.line - 1)
-                (pos.bytepos + mast_start_pos.bytepos)
-            in
-            { loc with pos }
+            {
+              loc with
+              bytepos = loc.bytepos + mast_start_loc.bytepos;
+              line = loc.line + mast_start_loc.line - 1;
+              column;
+              file = mval_file;
+            }
           in
           match opt_xlang with
           | None -> (

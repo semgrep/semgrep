@@ -1138,8 +1138,14 @@ let get_original_token_location = function
 let make_expanded ii =
   let no_virt_loc =
     (* TODO? use Pos.fake_pos? *)
-    let pos = Pos.make 0 in
-    ({ Tok.str = ""; pos }, -1)
+    ( {
+        Tok.str = "";
+        bytepos = 0;
+        line = -1;
+        column = -1;
+        file = "NO FILE INFO YET";
+      },
+      -1 )
   in
   Tok.ExpandedTok (get_original_token_location ii, no_virt_loc)
 

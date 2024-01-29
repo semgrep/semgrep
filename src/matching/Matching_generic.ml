@@ -753,13 +753,10 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
+            loc with
             Tok.str = s;
-            pos =
-              {
-                loc.pos with
-                bytepos = loc.pos.bytepos + pos;
-                column = loc.pos.column + pos;
-              };
+            bytepos = loc.bytepos + pos;
+            column = loc.column + pos;
           }
         in
         let info = Tok.OriginTok loc in

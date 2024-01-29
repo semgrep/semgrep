@@ -59,8 +59,10 @@ let split_two_char pi =
   let rhs =
     {
       Tok.str = String.sub pi.Tok.str 1 1;
-      pos =
-        { pi.pos with bytepos = pi.pos.bytepos + 1; column = pi.pos.column + 1 };
+      bytepos = pi.bytepos + 1;
+      line = pi.line;
+      column = pi.column + 1;
+      file = pi.file;
     }
   in
   (lhs, rhs)

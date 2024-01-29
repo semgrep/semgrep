@@ -71,11 +71,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_lexing
 let mark_end_define ii =
   let tok_loc = Tok.unsafe_loc_of_tok ii in
   let ii' =
-    Tok.OriginTok
-      {
-        str = "";
-        pos = { tok_loc.pos with bytepos = Tok.bytepos_of_tok ii + 1 };
-      }
+    Tok.OriginTok { tok_loc with str = ""; bytepos = Tok.bytepos_of_tok ii + 1 }
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'
 

@@ -360,7 +360,7 @@ let edgeinfo_opt (n1, n2) e g =
 let file_of_node n g =
   try
     let info = nodeinfo n g in
-    info.pos.Tok.pos.Pos.file
+    info.pos.Tok.file
   with
   | Not_found -> (
       match n with

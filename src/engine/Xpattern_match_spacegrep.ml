@@ -24,8 +24,7 @@ let lexing_pos_to_loc file (x : Lexing.position) str =
    * JSON_report.json_range does the adjust_column + 1.
    *)
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
-  let pos = Pos.make ~line ~column ~file bytepos in
-  { Tok.str; pos }
+  { Tok.str; bytepos; line; column; file }
 
 let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) file pat =
   let search_param =

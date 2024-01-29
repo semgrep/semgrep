@@ -86,10 +86,9 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
             in
             Some (Tok.unsafe_loc_of_tok start)
           in
-          let mval_start_pos = mast_start_loc.pos in
 
           match
-            Eval_generic.eval_regexp_matches ~base_offset:mval_start_pos.bytepos
+            Eval_generic.eval_regexp_matches ~base_offset:mast_start_loc.bytepos
               ~regexp:re_str ~file str
           with
           | [] -> None
