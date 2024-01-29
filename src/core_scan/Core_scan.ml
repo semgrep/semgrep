@@ -284,11 +284,24 @@ let print_taint_trace ~format taint_trace =
 let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
-  let { Pattern_match.env; tokens = (lazy tokens_matched_code); taint_trace; _ }
-      =
+  let {
+    Pattern_match.env;
+    tokens = (lazy tokens_matched_code);
+    taint_trace;
+    dependency_match;
+    _;
+  } =
     match_
   in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
+  let dep_toks_and_version =
+    match dependency_match with
+    | Some (dmatched, _) ->
+        Some
+          ( dmatched.toks |> List.filter Tok.is_origintok,
+            dmatched.package_version )
+    | None -> None
+  in
   (if config.mvars =*= [] then
      Core_text_output.print_match ?str ~format:config.match_format toks
    else
@@ -311,6 +324,11 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
      in
      Out.put (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
      ());
+  Option.iter
+    (fun (toks, version) ->
+      Out.put ("with dependency match at version " ^ version);
+      Core_text_output.print_match ~format:config.match_format toks)
+    dep_toks_and_version;
   Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 
 (*****************************************************************************)
@@ -903,9 +921,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     }
   in
   (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
-  let ( _skipped_supply_chain,
-        (applicable_rules_with_dep_matches :
-          (Rule.rule * PM.dependency_match list option) list) ) =
+  let _skipped_supply_chain, applicable_rules_with_dep_matches =
     applicable_rules
     |> Match_dependency.match_all_dependencies xtarget
     |> Either_.partition_either (function

@@ -1,5 +1,6 @@
 (* main entry point *)
 val check_rule :
+  ?dependency_matches:Pattern_match.dependency_match list ->
   Rule.search_rule ->
   (string -> Pattern_match.t -> unit) ->
   Match_env.xconfig ->
