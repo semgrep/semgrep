@@ -237,7 +237,8 @@ LABEL maintainer="support@semgrep.com"
 ###############################################################################
 # Step4: install semgrep-pro
 ###############################################################################
-# This step is valid only when run from Github Actions
+# This step is valid only when run from Github Actions.
+# See .github/workflows/build-test-docker.yaml
 
 #coupling: the 'semgrep-cli' name is used in release.jsonnet
 FROM semgrep-oss AS semgrep-cli
