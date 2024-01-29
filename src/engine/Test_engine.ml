@@ -87,6 +87,7 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
     xlang;
     lazy_content = lazy (UFile.read_file target);
     lazy_ast_and_errors;
+    lockfile_data = None;
   }
 
 (*****************************************************************************)
