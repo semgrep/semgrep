@@ -371,7 +371,7 @@ let _run_conf_TODO (conf : Test_CLI.conf) : Exit_code.t =
      in
   *)
   let (results : (Fpath.t * Core_result.result_or_exn) list) =
-    Obj.magic config_with_tests (* TODO *)
+    failwith "TODO"
   in
 
   (* invoke_semgrep_fn = functools.partial(

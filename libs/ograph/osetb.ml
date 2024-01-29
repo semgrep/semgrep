@@ -10,6 +10,7 @@ class ['a] osetb xs =
     method! tosetb = data
 
     (* if put [] then no segfault, if [11] then segfault *)
+    (* nosemgrep: forbid-obj-magic *)
     method toset = Obj.magic data
     method empty = {<data = Set_.empty>}
     method add e = {<data = Set_.add e data>}
