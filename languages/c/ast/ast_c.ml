@@ -345,16 +345,13 @@ and define_body =
 
 (* ------------------------------------------------------------------------- *)
 (* cppext: #ifdefs *)
+(* coupling: this is the same as in Ast_cpp! *)
 (* ------------------------------------------------------------------------- *)
 and 'a sequencable =
   | X of 'a
   (* cppext: *)
   | CDirective of directive
   | CIfdef of ifdef_directive
-
-(* * 'a list *)
-(* | MacroDecl of specifier list * ident * argument list paren * sc
-   | MacroVar of ident * sc *)
 
 (* less: 'a ifdefed = 'a list wrap (* ifdef elsif else endif *) *)
 and ifdef_directive =

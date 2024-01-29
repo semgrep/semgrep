@@ -586,19 +586,6 @@ and sequencable : 'a. ('a -> G.stmt) -> 'a sequencable -> G.stmt list =
   | CIfdef v1 ->
       let _v1TODO = ifdef_directive v1 in
       []
-(* | MacroDecl (v1, v2, v3, v4) ->
-       let v1 = map_of_list (map_specifier env) v1
-       and v2 = map_ident env v2
-       and _, xs, _ = map_paren env (map_of_list (map_argument env)) v3
-       and v4 = map_tok env v4 in
-       let ent = G.basic_entity ~attrs:v1 v2 in
-       let def = G.OtherDef (("MacroDecl", snd v2), [ G.Args xs; G.Tk v4 ]) in
-       [ G.DefStmt (ent, def) |> G.s ]
-   | MacroVar (v1, v2) ->
-       let v1 = map_ident env v1 and v2 = map_sc env v2 in
-       let ent = G.basic_entity v1 in
-       let def = G.OtherDef (("MacroVar", snd v1), [ G.Tk v2 ]) in
-       [ G.DefStmt (ent, def) |> G.s ] *)
 
 let toplevel (x : stmt) = stmt x
 let program v = list (sequencable toplevel) v |> List.flatten

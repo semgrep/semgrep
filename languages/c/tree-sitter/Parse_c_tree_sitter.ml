@@ -58,118 +58,6 @@ let token = H.token
 let str = H.str
 
 (*****************************************************************************)
-(* Forward references *)
-(*****************************************************************************)
-let preproc_expression_ = ref (fun _ -> failwith "forward ref not set")
-
-(*****************************************************************************)
-(* Preprocessor conversion *)
-(*****************************************************************************)
-
-let ifdef_token env = function
-  | `Ifdef x -> Ifdef (token env x)
-  (* TODO: ifndef *)
-  | `Ifndef x -> Ifdef (token env x)
-
-let elifdef_token env = function
-  | `Elifdef x -> IfdefElseif (token env x)
-  (* TODO: elifndef *)
-  | `Elifndef x -> IfdefElseif (token env x)
-
-let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
-    (env : env) ((v1, v2, v3, v4, v5, v6) : item P.preproc_if_poly) =
-  (* coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
-  let rec preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
-      (x : item P.preproc_else_poly) : 'out list =
-    match x with
-    | `Prep_else_poly (v1, v2) ->
-        let v1 = token env v1 (* pattern #[ 	]*else *) in
-        let v2 = List.concat_map (map_item env) v2 in
-        let dir = CIfdef (IfdefElse v1) in
-        dir :: v2
-    | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
-        let v1 = token env v1 (* pattern #[ 	]*elif *) in
-        let _v2 = !preproc_expression_ env v2 in
-        let _v3 = token env v3 (* "\n" *) in
-        let v4 = List.concat_map (map_item env) v4 in
-        let v5 =
-          match v5 with
-          | Some x -> preproc_else_poly ~map_item env x
-          | None -> []
-        in
-        let dir = CIfdef (IfdefElseif v1) in
-        (dir :: v4) @ v5
-  in
-  let v1 = token env v1 (* pattern #[ 	]*if *) in
-  let _v2TODO = !preproc_expression_ env v2 in
-  let _v3 = token env v3 (* "\n" *) in
-  let dir1 = Ifdef v1 in
-  let v4 = List.concat_map (map_item env) v4 in
-  let v5 =
-    match v5 with
-    | Some x -> preproc_else_poly ~map_item env x
-    | None -> []
-  in
-  let v6 = token env v6 (* pattern #[ 	]*endif *) in
-  let dir2 = IfdefEndif v6 in
-  (CIfdef dir1 :: v4) @ v5 @ [ CIfdef dir2 ]
-
-and preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
-    (env : env) ((v1, v2, v3, v4, v5) : item P.preproc_ifdef_poly) =
-  let rec preproc_elifdef_poly ~(map_item : env -> item -> 'out list)
-      (env : env) ((v1, v2, v3, v4) : item P.preproc_elifdef_poly) =
-    let v1 = elifdef_token env v1 in
-    let _v2 =
-      (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-      token env v2
-    in
-    let dir1 = v1 in
-    let v3 = List.concat_map (map_item env) v3 in
-    let v4 =
-      match v4 with
-      | Some x -> preproc_else_poly ~map_item env x
-      | None -> []
-    in
-    (CIfdef dir1 :: v3) @ v4
-  (* coupling: This is a copy-paste of `map_preproc_else_poly` above. *)
-  and preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
-      (x : item P.preproc_else_poly) : 'out list =
-    match x with
-    | `Prep_else_poly (v1, v2) ->
-        let v1 = token env v1 (* pattern #[ 	]*else *) in
-        let v2 = List.concat_map (map_item env) v2 in
-        let dir = CIfdef (IfdefElse v1) in
-        dir :: v2
-    | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
-        let v1 = token env v1 (* pattern #[ 	]*elif *) in
-        let _v2 = !preproc_expression_ env v2 in
-        let _v3 = token env v3 (* "\n" *) in
-        let v4 = List.concat_map (map_item env) v4 in
-        let v5 =
-          match v5 with
-          | Some x -> preproc_else_poly ~map_item env x
-          | None -> []
-        in
-        let dir = CIfdef (IfdefElseif v1) in
-        (dir :: v4) @ v5
-  in
-  let v1 = ifdef_token env v1 in
-  let dir1 = v1 in
-  let _v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
-  let v3 = List.concat_map (map_item env) v3 in
-  let v4 =
-    match v4 with
-    | Some x -> (
-        match x with
-        | `Choice_prep_else_poly x -> preproc_else_poly ~map_item env x
-        | `Prep_elif_poly x -> preproc_elifdef_poly ~map_item env x)
-    | None -> []
-  in
-  let v5 = token env v5 (* pattern #[ 	]*endif *) in
-  let dir2 = IfdefEndif v5 in
-  (CIfdef dir1 :: v3) @ v4 @ [ CIfdef dir2 ]
-
-(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-go/.../Boilerplate.ml *)
@@ -766,6 +654,112 @@ let preproc_function_def (env : env)
   match v4 with
   | Some x -> Macro (v1, v2, v3, Some (CppExpr (String x)))
   | None -> Macro (v1, v2, v3, None)
+
+(* coupling(preproc): the below four functions are all the same as in
+   Parse_cpp_tree_sitter.ml
+*)
+let ifdef_token env = function
+  | `Ifdef x -> Ifdef (token env x)
+  (* TODO: ifndef *)
+  | `Ifndef x -> Ifdef (token env x)
+
+let elifdef_token env = function
+  | `Elifdef x -> IfdefElseif (token env x)
+  (* TODO: elifndef *)
+  | `Elifndef x -> IfdefElseif (token env x)
+
+let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
+    (env : env) ((v1, v2, v3, v4, v5, v6) : item P.preproc_if_poly) =
+  (* coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
+  let rec preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
+      (x : item P.preproc_else_poly) : 'out list =
+    match x with
+    | `Prep_else_poly (v1, v2) ->
+        let v1 = token env v1 (* pattern #[ 	]*else *) in
+        let v2 = List.concat_map (map_item env) v2 in
+        let dir = CIfdef (IfdefElse v1) in
+        dir :: v2
+    | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
+        let v1 = token env v1 (* pattern #[ 	]*elif *) in
+        let _v2 = preproc_expression env v2 in
+        let _v3 = token env v3 (* "\n" *) in
+        let v4 = List.concat_map (map_item env) v4 in
+        let v5 =
+          match v5 with
+          | Some x -> preproc_else_poly ~map_item env x
+          | None -> []
+        in
+        let dir = CIfdef (IfdefElseif v1) in
+        (dir :: v4) @ v5
+  in
+  let v1 = token env v1 (* pattern #[ 	]*if *) in
+  let _v2TODO = preproc_expression env v2 in
+  let _v3 = token env v3 (* "\n" *) in
+  let dir1 = Ifdef v1 in
+  let v4 = List.concat_map (map_item env) v4 in
+  let v5 =
+    match v5 with
+    | Some x -> preproc_else_poly ~map_item env x
+    | None -> []
+  in
+  let v6 = token env v6 (* pattern #[ 	]*endif *) in
+  let dir2 = IfdefEndif v6 in
+  (CIfdef dir1 :: v4) @ v5 @ [ CIfdef dir2 ]
+
+let preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
+    (env : env) ((v1, v2, v3, v4, v5) : item P.preproc_ifdef_poly) =
+  let rec preproc_elifdef_poly ~(map_item : env -> item -> 'out list)
+      (env : env) ((v1, v2, v3, v4) : item P.preproc_elifdef_poly) =
+    let v1 = elifdef_token env v1 in
+    let _v2 =
+      (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+      token env v2
+    in
+    let dir1 = v1 in
+    let v3 = List.concat_map (map_item env) v3 in
+    let v4 =
+      match v4 with
+      | Some x -> preproc_else_poly ~map_item env x
+      | None -> []
+    in
+    (CIfdef dir1 :: v3) @ v4
+  (* coupling: This is a copy-paste of `map_preproc_else_poly` above. *)
+  and preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
+      (x : item P.preproc_else_poly) : 'out list =
+    match x with
+    | `Prep_else_poly (v1, v2) ->
+        let v1 = token env v1 (* pattern #[ 	]*else *) in
+        let v2 = List.concat_map (map_item env) v2 in
+        let dir = CIfdef (IfdefElse v1) in
+        dir :: v2
+    | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
+        let v1 = token env v1 (* pattern #[ 	]*elif *) in
+        let _v2 = preproc_expression env v2 in
+        let _v3 = token env v3 (* "\n" *) in
+        let v4 = List.concat_map (map_item env) v4 in
+        let v5 =
+          match v5 with
+          | Some x -> preproc_else_poly ~map_item env x
+          | None -> []
+        in
+        let dir = CIfdef (IfdefElseif v1) in
+        (dir :: v4) @ v5
+  in
+  let v1 = ifdef_token env v1 in
+  let dir1 = v1 in
+  let _v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v3 = List.concat_map (map_item env) v3 in
+  let v4 =
+    match v4 with
+    | Some x -> (
+        match x with
+        | `Choice_prep_else_poly x -> preproc_else_poly ~map_item env x
+        | `Prep_elif_poly x -> preproc_elifdef_poly ~map_item env x)
+    | None -> []
+  in
+  let v5 = token env v5 (* pattern #[ 	]*endif *) in
+  let dir2 = IfdefEndif v5 in
+  (CIfdef dir1 :: v3) @ v4 @ [ CIfdef dir2 ]
 
 (* takes left part of the type as a parameter and return final type *)
 let rec abstract_declarator (env : env) (x : CST.abstract_declarator) :
@@ -2498,8 +2492,6 @@ and translation_unit (env : env) (xs : CST.translation_unit) : program =
       |> List_.map (fun x -> X (DefStmt x)))
       @ res)
     xs
-
-let () = preproc_expression_ := preproc_expression
 
 (*****************************************************************************)
 (* Entry point *)

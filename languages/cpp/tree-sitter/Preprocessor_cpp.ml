@@ -16,6 +16,46 @@
 module H = Parse_tree_sitter_helpers
 module CST = Tree_sitter_cpp.CST
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* This file is for preprocessor-related boilerplate. *)
+
+(* The primary motivating factor is that there is a function preprocIf
+   (https://github.com/tree-sitter/tree-sitter-c/blob/ecdd500806cf8154d944344f1df6418b32e0e9a7/grammar.js#L1328)
+   which generates tree-sitter nonterminals that all look very similar, but each
+   different type stores a different type of data, essentially similar to an
+   'a tree.
+
+   Unfortunately, the generated CSTs have no idea about this similar structure,
+   and all register as different types. This means that although each use site
+   of preprocIf generates trees with similar structure, we cannot use the same
+   code to translate it, as the trees have different types.
+
+   So we end up with types like preproc_if, preproc_if_in_field_declaration,
+   preproc_if_in_enumerator_list, which all look like concrete instances of a
+   common polymorphic type.
+
+   To prevent code duplication (and maintenance burden), we will maintain this
+   `preproc_if_poly` type here (and friends), which encode the similar structure
+   of all these types. Our strategy will be to first translate each concrete
+   `preproc_if` to this `preproc_if_poly` type, and then translate the common
+   `preproc_if_poly` to the AST.
+
+   This means that we only need to keep one copy of the actual translation logic.
+*)
+
+(* coupling: Note that this file is identical to `Preprocessor_c.ml`.
+   This is regrettable, because this is also a measure of code duplication, but
+   we can't reuse these types between both, because the type of
+   `preproc_expression` used in both are different, and are too deep to use the
+   same trick as we do here.
+*)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type ifdef_token =
   [ `Ifdef of Tree_sitter_run.Token.t (* pattern #[ 	]*ifdef *)
   | `Ifndef of Tree_sitter_run.Token.t (* pattern #[ 	]*ifndef *) ]
@@ -56,6 +96,10 @@ and 'a preproc_elifdef_poly =
   * Tree_sitter_run.Token.t (* identifier *)
   * 'a list (* zero or more *)
   * 'a preproc_else_poly option
+
+(*****************************************************************************)
+(* translation to polymorphic type *)
+(*****************************************************************************)
 
 let elifdef_token_to_poly (x : CST.anon_choice_pat_0307ca2_dbf6a9d) :
     elifdef_token =
