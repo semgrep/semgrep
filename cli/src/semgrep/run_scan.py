@@ -456,12 +456,6 @@ def run_scan(
 
     output_handler.handle_semgrep_errors(config_errors)
 
-    if config_errors and strict:
-        raise SemgrepError(
-            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
-            code=MISSING_CONFIG_EXIT_CODE,
-        )
-
     if not pattern:
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
@@ -487,6 +481,14 @@ def run_scan(
 """,
                 code=MISSING_CONFIG_EXIT_CODE,
             )
+
+    # This is after the `not pattern` block, because this error message is less
+    # helpful.
+    if config_errors and strict:
+        raise SemgrepError(
+            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
+            code=MISSING_CONFIG_EXIT_CODE,
+        )
 
     # Initialize baseline here to fail early on bad args
     baseline_handler = None

@@ -55,6 +55,7 @@ val rules_from_rules_source :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   registry_caching:bool ->
+  strict:bool ->
   < Cap.network > ->
   Rules_source.t ->
   rules_and_origin list
@@ -64,6 +65,7 @@ val rules_from_rules_source_async :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   registry_caching:bool ->
+  strict:bool ->
   < Cap.network > ->
   Rules_source.t ->
   rules_and_origin list Lwt.t
@@ -76,7 +78,7 @@ val rules_from_dashdash_config_async :
   registry_caching:bool ->
   < Cap.network ; .. > ->
   Rules_config.t ->
-  rules_and_origin list Lwt.t
+  (rules_and_origin list * Rule.error list) Lwt.t
 
 (* [rules_from_dashdash_config] returns a list of rules_and_origin
  * because the [Rules_config.t] can be a [Dir], in which case we return one
@@ -88,7 +90,7 @@ val rules_from_dashdash_config :
   registry_caching:bool ->
   < Cap.network ; .. > ->
   Rules_config.t ->
-  rules_and_origin list
+  rules_and_origin list * Rule.error list
 
 (* low-level API *)
 val load_rules_from_file :
@@ -97,7 +99,7 @@ val load_rules_from_file :
   registry_caching:bool ->
   < Cap.network ; .. > ->
   Fpath.t ->
-  rules_and_origin
+  (rules_and_origin, Rule.error) Result.t
 
 val load_rules_from_url :
   origin:origin ->
@@ -105,4 +107,4 @@ val load_rules_from_url :
   ?ext:string ->
   < Cap.network ; .. > ->
   Uri.t ->
-  rules_and_origin
+  (rules_and_origin, Rule.error) Result.t

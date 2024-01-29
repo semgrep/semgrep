@@ -26,7 +26,7 @@
     {
       "code": 7,
       "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
+      "message": "invalid configuration file found (1 configs were invalid)",
       "type": "SemgrepError"
     }
   ],
