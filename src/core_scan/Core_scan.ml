@@ -914,7 +914,9 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
   in
   let dependency_match_table =
     applicable_rules_with_dep_matches
-    |> List_.map (fun (rule, dep_matches) -> (rule.R.id, dep_matches))
+    |> List_.map_filter (function
+         | _, None -> None
+         | rule, Some dep_matches -> Some (fst rule.R.id, dep_matches))
     |> Hashtbl_.hash_of_list
   in
   let applicable_rules = applicable_rules_with_dep_matches |> List_.map fst in

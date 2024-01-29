@@ -161,8 +161,14 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout ~timeout_threshold ?dependency_match_table
+let check ~match_hook ~timeout ~timeout_threshold
+    ?(dependency_match_table : Match_dependency.dependency_match_table option)
     (xconf : Match_env.xconfig) rules xtarget =
+  let get_dep_matches =
+    match dependency_match_table with
+    | Some table -> Hashtbl.find_opt table
+    | None -> fun _ -> None
+  in
   let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
   logger#trace "checking %s with %d rules" !!file (List.length rules);
   (match (!Profiling.profile, xlang) with
@@ -213,6 +219,42 @@ let check ~match_hook ~timeout ~timeout_threshold ?dependency_match_table
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
+  let res =
+    {
+      res with
+      matches =
+        res.matches
+        |> List.concat_map (fun pm ->
+               match get_dep_matches pm.Pattern_match.rule_id.id with
+               | Some dep_matches ->
+                   dep_matches
+                   |> List_.map_filter (fun dm ->
+                          (* TODO: Make this not quadratic
+                             If the match is on a transitive dep and there's also a match on
+                             a direct copy of the dep, then do not include it, only use the direct one
+                             this is what the python code does
+                          *)
+                          if
+                            Supply_chain.(
+                              equal_transitivity (fst dm).transitivity
+                                Transitive)
+                            && dep_matches
+                               |> List.exists (fun (dep, _) ->
+                                      Supply_chain.(
+                                        equal_transitivity dep.transitivity
+                                          Direct
+                                        && String.equal dep.package_name
+                                             (fst dm).package_name))
+                          then None
+                          else
+                            Some
+                              {
+                                pm with
+                                Pattern_match.dependency_match = Some dm;
+                              })
+               | None -> [ pm ]);
+    }
+  in
   let extra =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->

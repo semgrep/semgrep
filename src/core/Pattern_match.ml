@@ -138,7 +138,9 @@ and dependency_match = Supply_chain.dependency * Rule.dependency_pattern
      dependency_range_loc : Tok.location * Tok.location;
      package_name : string;
      package_version : string;
+     transitivity : Supply_chain.transitivity;
      ecosystem : Supply_chain.ecosystem;
+     matched_pattern : Rule.dependency_pattern
    } *)
 
 (* This is currently a record, but really only the rule id should matter.
