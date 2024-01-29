@@ -865,8 +865,8 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   in
   (flow, mapping)
 
-let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
+let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
+    match_hook (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
@@ -962,6 +962,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     (* same post-processing as for search-mode in Match_rules.ml *)
     |> PM.uniq
     |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+    |> List.concat_map (Match_dependency.annotate_pattern_match dep_matches)
     |> Common.before_return (fun v ->
            v
            |> List.iter (fun (m : Pattern_match.t) ->
@@ -990,7 +991,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let report = { report with explanations } in
   report
 
-let check_rules ~match_hook
+let check_rules ?get_dep_matches ~match_hook
     ~(per_rule_boilerplate_fn :
        R.rule ->
        (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
@@ -1009,6 +1010,9 @@ let check_rules ~match_hook
 
   rules
   |> List_.map (fun rule ->
+         let dep_matches =
+           Option.bind get_dep_matches (fun f -> f (fst rule.R.id))
+         in
          let xconf =
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
@@ -1019,4 +1023,5 @@ let check_rules ~match_hook
          per_rule_boilerplate_fn
            (rule :> R.rule)
            (fun () ->
-             check_rule per_file_formula_cache rule match_hook xconf xtarget))
+             check_rule ?dep_matches per_file_formula_cache rule match_hook
+               xconf xtarget))

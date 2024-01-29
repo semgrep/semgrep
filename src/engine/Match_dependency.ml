@@ -101,3 +101,27 @@ let match_dependencies xtarget rule =
 
 let match_all_dependencies xtarget =
   List_.map (fun rule -> (rule, match_dependencies xtarget rule))
+
+let annotate_pattern_match dep_matches pm =
+  match dep_matches with
+  | None -> [ pm ]
+  | Some dep_matches ->
+      (* If there are two, transitive copies of a library, and no direct copies, and it's used in code, we produce TWO reachable matches *)
+      dep_matches
+      |> List_.map_filter (fun dm ->
+             (* TODO: Make this not quadratic
+                If the match is on a transitive dep and there's also a match on
+                a direct copy of the dep, then do not include it, only use the direct one
+                this is what the python code does
+             *)
+             if
+               Supply_chain.(
+                 equal_transitivity (fst dm).transitivity Transitive)
+               && dep_matches
+                  |> List.exists (fun (dep, _) ->
+                         Supply_chain.(
+                           equal_transitivity dep.transitivity Direct
+                           && String.equal dep.package_name
+                                (fst dm).package_name))
+             then None
+             else Some { pm with Pattern_match.dependency_match = Some dm })

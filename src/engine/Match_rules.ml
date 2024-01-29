@@ -208,12 +208,13 @@ let check ~match_hook ~timeout ~timeout_threshold
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
-           Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
-             relevant_taint_rules xconf xtarget)
+           Match_tainting_mode.check_rules ~get_dep_matches ~match_hook
+             ~per_rule_boilerplate_fn relevant_taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
     |> List_.map (fun r ->
+           let dependency_matches = get_dep_matches (fst r.R.id) in
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -223,8 +224,8 @@ let check ~match_hook ~timeout ~timeout_threshold
                (* dispatching *)
                match r.R.mode with
                | `Search _ as mode ->
-                   Match_search_mode.check_rule { r with mode } match_hook xconf
-                     xtarget
+                   Match_search_mode.check_rule ?dependency_matches
+                     { r with mode } match_hook xconf xtarget
                | `Extract extract_spec ->
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
@@ -233,42 +234,6 @@ let check ~match_hook ~timeout ~timeout_threshold
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
-  let res =
-    {
-      res with
-      matches =
-        res.matches
-        |> List.concat_map (fun pm ->
-               match get_dep_matches pm.Pattern_match.rule_id.id with
-               | Some dep_matches ->
-                   dep_matches
-                   |> List_.map_filter (fun dm ->
-                          (* TODO: Make this not quadratic
-                             If the match is on a transitive dep and there's also a match on
-                             a direct copy of the dep, then do not include it, only use the direct one
-                             this is what the python code does
-                          *)
-                          if
-                            Supply_chain.(
-                              equal_transitivity (fst dm).transitivity
-                                Transitive)
-                            && dep_matches
-                               |> List.exists (fun (dep, _) ->
-                                      Supply_chain.(
-                                        equal_transitivity dep.transitivity
-                                          Direct
-                                        && String.equal dep.package_name
-                                             (fst dm).package_name))
-                          then None
-                          else
-                            Some
-                              {
-                                pm with
-                                Pattern_match.dependency_match = Some dm;
-                              })
-               | None -> [ pm ]);
-    }
-  in
   let extra =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
