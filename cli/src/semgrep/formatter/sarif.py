@@ -414,6 +414,7 @@ class SarifFormatter(BaseFormatter):
         - Full specification is at:
             https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
         """
+        sorted_findings = sorted(rule_matches)
         engine_label = (
             cli_output_extra.engine_requested.value.to_json()
             if cli_output_extra.engine_requested
@@ -449,7 +450,7 @@ class SarifFormatter(BaseFormatter):
                     },
                     "results": [
                         self._rule_match_to_sarif(rule_match, extra["dataflow_traces"])
-                        for rule_match in rule_matches
+                        for rule_match in sorted_findings
                     ],
                     "invocations": [
                         {

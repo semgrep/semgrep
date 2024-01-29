@@ -259,13 +259,39 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
  * I have not tested this code beyond checking a bunch of examples manually.
  *
  * There's some weird thing we do w/ join mode. I am hoping that this doesn't matter irl
+ *
+ * We also don't use pattern sanitizers at all in calculating match based id, which seems
+ * weird, but this because if code matches a pattern sanitizer, then its ALWAYS sanitized
+ * which means it would never show up as a taint mode finding. So we can safely ignore
+ * it, since it shouldn't affect the match based id.
  *)
 let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
-  let xpats = Rule.xpatterns_of_rule rule in
-  let xpat_strs =
-    xpats |> List_.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
+  (* the python implementation does not include sanitizers; so as to not
+   * break fingerprints we ignore sanitizers, too. see above assumptions
+   * on why.
+   *)
+  let mode =
+    match rule.mode with
+    | `Taint { Rule.sources; sanitizers = _; sinks; propagators } ->
+        `Taint { Rule.sources; sanitizers = None; sinks; propagators }
+    | (`Search _ | `Extract _ | `Secrets _ | `Steps _) as mode -> mode
   in
+  let formulae = Rule.formula_of_mode mode in
+  (* We need to do this as flattening and sorting does not always produce the
+   * same result: [[a c] b] become "a c b" while [a c b] becomes "a b c". *)
+  let rec go = function
+    | Rule.P p -> fst p.pstr
+    | Rule.Anywhere (_, formula)
+    | Rule.Inside (_, formula)
+    | Rule.Not (_, formula) ->
+        go formula
+    | Rule.Or (_, formulae)
+    | Rule.And (_, { Rule.conjuncts = formulae; _ }) ->
+        let xs = List_.map go formulae in
+        String.concat " " (List.sort String.compare xs)
+  in
+  let xpat_strs = List_.map go formulae in
   let sorted_xpat_strs = List.sort String.compare xpat_strs in
   let xpat_str = String.concat " " sorted_xpat_strs in
   let metavars = Option.value ~default:[] metavars in
