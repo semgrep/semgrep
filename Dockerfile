@@ -146,7 +146,8 @@ RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.wh
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-FROM python:3.11.4-alpine AS semgrep-cli
+#coupling: the 'semgrep-oss' name is used in 'make build-docker'
+FROM python:3.11.4-alpine AS semgrep-oss
 
 WORKDIR /semgrep
 
@@ -234,7 +235,20 @@ CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
 ###############################################################################
-# Step 4 (optional) nonroot variant
+# Step4: install semgrep-pro
+###############################################################################
+# This step is valid only when run from Github Actions
+
+#coupling: the 'semgrep-cli' name is used in release.jsonnet
+FROM semgrep-oss AS semgrep-cli
+
+# A semgrep docker image with semgrep-pro already included in the image,
+# to save time in CI as one does not need to wait 2min each time to
+# download it.
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN)semgrep install-semgrep-pro
+
+###############################################################################
+# Step5: (optional) nonroot variant
 ###############################################################################
 
 # Additional build stage that sets a non-root user.
@@ -259,7 +273,7 @@ ENV PATH="$PATH:/home/semgrep/bin"
 USER semgrep
 
 ###############################################################################
-# Step 5 (optional) performance testing
+# Step6: (optional) performance testing
 ###############################################################################
 
 # Build target that exposes the performance benchmark tests in perf/ for
