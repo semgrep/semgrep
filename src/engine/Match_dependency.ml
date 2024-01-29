@@ -1,5 +1,5 @@
 type dependency_match_table =
-  (Rule_ID.t Rule.wrap, Pattern_match.dependency_match list option) Hashtbl.t
+  (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
 
 type version_core = { major : int; minor : int; incrementals : int list }
 type version = Version of version_core | Other of string
