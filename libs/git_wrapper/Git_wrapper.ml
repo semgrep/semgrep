@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Sexplib.Std
 open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -59,7 +60,7 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-type sha = string [@@deriving show]
+type sha = string [@@deriving show, eq, ord, sexp]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }

@@ -78,7 +78,7 @@ type status = {
 }
 [@@deriving show]
 
-type sha [@@deriving show]
+type sha [@@deriving show, eq, ord, sexp]
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
