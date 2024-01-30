@@ -8,6 +8,7 @@
  *)
 
 type t = {
+  source : Source.t;
   file : Fpath.t;
   xlang : Xlang.t;
   lazy_content : string lazy_t;

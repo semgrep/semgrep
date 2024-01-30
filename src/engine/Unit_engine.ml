@@ -701,7 +701,8 @@ let tainting_test lang rules_file file =
     |> List.concat_map (fun rule ->
            let xtarget =
              {
-               Xtarget.file;
+               Xtarget.source = File file;
+               file;
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);

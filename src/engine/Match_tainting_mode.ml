@@ -592,7 +592,8 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
     {
-      Xtarget.file;
+      Xtarget.source = File file;
+      file;
       xlang = rule.target_analyzer;
       lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;

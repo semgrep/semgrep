@@ -723,7 +723,8 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
          AST_generic.version lang file)
   in
   {
-    Xtarget.file;
+    Xtarget.source = File file;
+    file;
     xlang;
     lazy_content = lazy (UFile.read_file file);
     lazy_ast_and_errors;

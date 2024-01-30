@@ -308,9 +308,11 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                mvar (Xlang.to_string xlang) msg);
                           []
                       | Ok lazy_ast_and_errors ->
+                          let file = Fpath.v file in
                           let xtarget =
                             {
-                              Xtarget.file = Fpath.v file;
+                              Xtarget.source = File file;
+                              file;
                               xlang;
                               lazy_ast_and_errors;
                               lazy_content = lazy content;
