@@ -326,7 +326,7 @@ install-deps: install-deps-for-semgrep-core
 # - nghttp2-static: dependency of curl-static
 # - zlib-static: dependency of curl-static
 
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev curl-static openssl-libs-static nghttp2-static zlib-static
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev curl-static openssl-libs-static nghttp2-static zlib-static brotli-static libidn2-static
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
