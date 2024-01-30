@@ -10,7 +10,7 @@ kind of metaprogramming technique. Nowaday, you should use
 ppx deriving[3] or ppx visitors[4] to generate automatically boilerplate
 code, but there is also a need and place for tools that generate
 boilerplate that a human can start from and would like to further edit
-(e.g., for AST_to_IL.ml in semgrep, for AST_to_SAST.ml in deep-semgrep).
+(e.g., for AST_to_IL.ml in semgrep, for AST_to_SAST.ml in semgrep-pro).
 Otarzan is such a tool.
 
 See https://github.com/returntocorp/semgrep/issues/6440 for more

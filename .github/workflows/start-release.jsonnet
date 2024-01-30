@@ -216,6 +216,7 @@ local check_semgrep_pro_job = {
   name: 'Check Semgrep Pro Manifest',
   secrets: 'inherit',
   uses: './.github/workflows/check-semgrep-pro-version.yml',
+  // coupling: with pro-release.jsonnet in semgrep-pro
   with: {
     'bucket-name': 'deep-semgrep-artifacts',
     'manifest-key': 'versions-manifest.json',
