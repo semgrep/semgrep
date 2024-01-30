@@ -339,8 +339,8 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
 # pro:
 #  - it avoids repeating yourself everywhere
 install-deps-ALPINE-for-semgrep-core:
-	apk add -i --no-cache $(ALPINE_APK_DEPS_CORE_INDEXES)
 	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
+	apk add -i $(ALPINE_APK_DEPS_CORE_INDEXES)
 
 
 # Here is why we need those external packages below for pysemgrep:
