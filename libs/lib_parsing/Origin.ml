@@ -15,11 +15,18 @@
 
 (* See Origin.mli for top-level documentation of this module. *)
 
-type t = File of Fpath.t [@@deriving show, eq, ord]
+type t =
+  | File of Fpath.t
+  | GitBlob of {
+      sha : Git_wrapper.sha;
+      paths : (Git_wrapper.sha * Fpath.t) list;
+    }
+[@@deriving show, eq, ord]
 
 let to_string (s : t) =
   match s with
   | File path -> Fpath.to_string path
+  | GitBlob { sha; _ } -> [%show: Git_wrapper.sha] sha
 
 let to_string_opt ?(unspecified = "unknown") (s : t option) =
   match s with

@@ -51,6 +51,10 @@
     {ul
       {- [File path] origins are for files, and should have as [path] the
         relative path from the scanned project root.}
+      {- [GitBlob { sha; paths }] sources are for {{:
+        https://git-scm.com/book/en/v2/Git-Internals-Git-Objects } git blob
+        objects}, and have the blob's [sha] alongside relevant commit hashes
+        and the path from the git root at each commit.}
     }
 
     Possible future variants:
@@ -59,13 +63,26 @@
       {- [Stdin] origins are for content read from standard input.}
       {- [Network uri] origins are for content obtained from [uri] over the
       network.}
-      {- [GitBlob info] origins are for git blob objects with metadata given in
-      [info] (e.g., the blob's sha, commits the blob is present at, etc..).}
     }
  *)
-type t = File of Fpath.t [@@deriving show, eq, ord]
-(* TODO: Evaluate futher using Ppath.t instead of Fpath.t, since it documents
-   we want this to be a relative path from the project root. *)
+type t =
+  | File of Fpath.t
+  (* TODO: Evaluate futher using Ppath.t instead of Fpath.t, since it documents
+     we want this to be a relative path from the project root. *)
+  | GitBlob of {
+      sha : Git_wrapper.sha;
+          (** The hash for this specific git {e blob}. Used for git operations and to
+              identify the object. *)
+      paths : (Git_wrapper.sha * Fpath.t) list;
+          (** The paths corresponding to this blob for whichever commits are of
+              interest. This is stored since it is not efficient to calculate
+              given only the blob's sha, and requires additional information
+              like what commits we care about, if not all. These are relative
+              to the git root.
+        
+              This is used for e.g., a rule's path-based include & excludes. *)
+    }
+[@@deriving show, eq, ord]
 
 val to_string : t -> string
 (** [to_string origin] is [origin] as a user-facing string. This is the version

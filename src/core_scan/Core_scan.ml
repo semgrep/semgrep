@@ -215,6 +215,18 @@ let filter_existing_targets (targets : Target.t list) :
                    reason = Nonexistent_file;
                    details = Some "File does not exist";
                    rule_id = None;
+                 }
+           | GitBlob { sha; _ } ->
+               Right
+                 {
+                   Semgrep_output_v1_t.path =
+                     Target.internal_path_to_content target;
+                   reason = Nonexistent_file;
+                   details =
+                     Some
+                       (spf "Issue creating a target from git blob %s"
+                          (Git_wrapper.show_sha sha));
+                   rule_id = None;
                  })
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
@@ -919,7 +931,12 @@ let select_applicable_rules_for_origin paths (origin : Origin.t) =
   match paths with
   | Some paths -> (
       match origin with
-      | File path -> Filter_target.filter_paths paths path)
+      | File path -> Filter_target.filter_paths paths path
+      | GitBlob { paths = target_paths; _ } ->
+          List.exists
+            (fun (_, path_at_commit) ->
+              Filter_target.filter_paths paths path_at_commit)
+            target_paths)
   | _else -> true
 
 (* This is also used by semgrep-proprietary. *)

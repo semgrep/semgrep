@@ -37,11 +37,21 @@ type regular = {
 
 type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 
+(** [git_blob_to_tempfile sha] is the path to a newly created temporary file
+    which contains the contents of the git blob object identified by [sha] *)
+let git_blob_to_tempfile sha =
+  let contents = Git_wrapper.cat_file_blob sha |> Result.get_ok in
+  let file =
+    UCommon.new_temp_file "git-blob" ([%show: Git_wrapper.sha] sha) |> Fpath.v
+  in
+  UFile.write_file file contents;
+  file
+
 let path_of_origin (origin : Origin.t) : path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
-(* This may create tempfile in the future if still required by
-   Match_seach_mode et al., e.g., in the case of a GitBlob origin *)
+  | GitBlob { sha; _ } ->
+      { origin; internal_path_to_content = git_blob_to_tempfile sha }
 
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
