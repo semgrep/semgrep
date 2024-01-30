@@ -1,1 +1,0 @@
-Removed an internal legacy syntax for secrets rules (`mode: semgrep_internal_postprocessor`).
