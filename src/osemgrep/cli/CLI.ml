@@ -34,8 +34,10 @@ module Env = Semgrep_envvars
 *)
 
 (*****************************************************************************)
-(* Constants *)
+(* Types and constants *)
 (*****************************************************************************)
+
+type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.random ; Cap.signal >
 
 let default_subcommand = "scan"
 
@@ -120,7 +122,7 @@ let known_subcommands =
     "interactive";
   ]
 
-let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
+let dispatch_subcommand (caps : caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -270,7 +272,7 @@ let before_exit ~profile () : unit =
 (*****************************************************************************)
 
 (* called from ../../main/Main.ml *)
-let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
