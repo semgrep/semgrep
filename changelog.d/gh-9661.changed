@@ -1,1 +1,0 @@
-Prevent unnecessary computation when running scans without verbose logging enabled

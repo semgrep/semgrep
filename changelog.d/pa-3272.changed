@@ -1,4 +1,0 @@
-Deprecated option `taint_match_on` introduced in 1.51.0, it is being renamed
-to `taint_focus_on`. Note that `taint_match_on` was experimental, and
-`taint_focus_on` is experimental too. Option `taint_match_on` will continue
-to work but it will be completely removed at some point after 1.63.0.
