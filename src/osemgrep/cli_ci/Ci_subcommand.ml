@@ -567,6 +567,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
           parse_rate = [];
           engine_requested =
             Some (Semgrep_output_v1_j.string_of_engine_kind engine_requested);
+          (* TODO: findings_by_product *)
+          findings_by_product = None;
         };
       (* TODO:
            if self._dependency_query:
