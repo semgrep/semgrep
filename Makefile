@@ -339,7 +339,7 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static
 #  - it avoids repeating yourself everywhere
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
-
+	./scripts/build-static-libcurl.sh
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests

@@ -105,10 +105,6 @@ COPY --from=semgrep-core-files /src/semgrep .
 RUN make install-deps-ALPINE-for-semgrep-core &&\
     make install-deps-for-semgrep-core
 
-# Build libcurl as a static library. We could install `curl-static`, but it comes with a ton of junk.
-# This can be removed once we move away from the ocurl otel collector
-RUN /src/semgrep/scripts/build-static-libcurl.sh
-
 # Let's build just semgrep-core
 WORKDIR /src/semgrep
 # An alternative to the eval is to use 'opam exec -- ...'
