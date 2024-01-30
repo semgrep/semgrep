@@ -8,5 +8,6 @@ type dependency = {
   toks : Tok.t list;
 }
 
+(* TODO: the rest of *)
 and ecosystem = Npm
 and transitivity = Direct | Transitive | Unknown [@@deriving show, eq]

@@ -717,10 +717,15 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     lazy_ast_and_errors;
   }
 
+let parse_lockfile : In.lockfile_kind -> Fpath.t -> Supply_chain.dependency list
+    = function
+  (* TODO: add parsers, guard behind semgrep-core  *)
+  | `PackageLock -> fun _ -> []
+
 let lockfile_target_of_input_to_core (target : In.target) =
   match target.In.lockfile_data with
   | None -> None
-  | Some In.{ path; lockfile_kind = _ } ->
+  | Some In.{ path; lockfile_kind } ->
       let path = Fpath.v path in
       Some
         {
@@ -728,7 +733,7 @@ let lockfile_target_of_input_to_core (target : In.target) =
           ecosystem = Supply_chain.Npm;
           lazy_lockfile_content = lazy (UFile.read_file path);
           lazy_lockfile_ast_and_errors =
-            lazy (Parse_lockfile.parse_lockfile path);
+            lazy (parse_lockfile lockfile_kind path);
         }
 
 (* Compute the set of targets, either by reading what was passed
