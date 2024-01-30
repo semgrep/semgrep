@@ -717,23 +717,44 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     lazy_ast_and_errors;
   }
 
-let parse_lockfile : In.lockfile_kind -> Fpath.t -> Supply_chain.dependency list
-    = function
-  (* TODO: add parsers, guard behind semgrep-core  *)
-  | `PackageLock -> fun _ -> []
+let parse_lockfile :
+    In.lockfile_kind ->
+    Lockfile_target.manifest_target option ->
+    Fpath.t ->
+    Dependency.t list = function
+  (* TODO: add parsers, guard behind semgrep-pro  *)
+  | `PackageLockJsonV3 -> failwith "parsing lockfiles not implemented"
+
+let parse_manifest :
+    In.manifest_kind -> Fpath.t -> Dependency.manifest_dependency list =
+  function
+  (* TODO: add parsers, guard behind semgrep-pro  *)
+  | `PackageJson -> failwith "parsing manifest files not implemented"
 
 let lockfile_target_of_input_to_core (target : In.target) =
   match target.In.lockfile_data with
   | None -> None
   | Some In.{ path; lockfile_kind } ->
+      let manifest_target =
+        target.In.manifest_data
+        |> Option.map @@ fun In.{ path; manifest_kind } ->
+           let path = Fpath.v path in
+           {
+             Lockfile_target.manifest = path;
+             lazy_manifest_content = lazy (UFile.read_file path);
+             lazy_manifest_ast_and_errors =
+               lazy (parse_manifest manifest_kind path);
+           }
+      in
       let path = Fpath.v path in
       Some
         {
           Lockfile_target.lockfile = path;
-          ecosystem = Supply_chain.Npm;
+          ecosystem = Dependency.Npm;
           lazy_lockfile_content = lazy (UFile.read_file path);
           lazy_lockfile_ast_and_errors =
-            lazy (parse_lockfile lockfile_kind path);
+            lazy (parse_lockfile lockfile_kind manifest_target path);
+          manifest_target;
         }
 
 (* Compute the set of targets, either by reading what was passed
@@ -779,6 +800,7 @@ let targets_of_config (config : Core_scan_config.t) :
                  analyzer = `XLang xlang;
                  products = Product.all;
                  lockfile_data = None;
+                 manifest_data = None;
                })
       in
       (target_mappings, skipped)
@@ -851,6 +873,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
              analyzer = `XLang analyzer;
              products = Product.all;
              lockfile_data = None;
+             manifest_data = None;
            })
   in
   (in_targets, adjusters)

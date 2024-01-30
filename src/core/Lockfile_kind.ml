@@ -1,0 +1,17 @@
+type t = PackageLockV3
+
+let to_ecosystem = function
+  | PackageLockV3 -> Dependency.Npm
+
+let to_string = function
+  | PackageLockV3 -> "package-lock.json"
+
+let supported_lockfiles = String.concat "," [ "package-lock.json v3" ]
+
+let unsupported_lockfile_message (lockfile_s : string) =
+  Common.spf "unsupported lockfile: %s; supported lockfile tags are: %s"
+    lockfile_s supported_lockfiles
+
+let of_string = function
+  | "PackageLockV3" -> PackageLockV3
+  | s -> failwith (unsupported_lockfile_message s)

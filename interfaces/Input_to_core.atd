@@ -28,9 +28,13 @@ type product
   | Secrets <json name="secrets">
 ]
 
+
 type lockfile_kind <ocaml attr="deriving show"> = [
-  | PackageLock
-  (* TODO: the rest of them *)
+  | PackageLockJsonV3
+]
+
+type manifest_kind <ocaml attr="deriving show"> = [
+  | PackageJson
 ]
 
 type analyzer <ocaml attr="deriving show"> = [
@@ -38,6 +42,11 @@ type analyzer <ocaml attr="deriving show"> = [
   | Lockfile of lockfile_kind
 ]
 
+
+type manifest_data <ocaml attr="deriving show"> = {
+  path : string;
+  manifest_kind : manifest_kind;
+}
 
 type lockfile_data <ocaml attr="deriving show"> = {
   path : string;
@@ -52,6 +61,7 @@ type target <ocaml attr="deriving show"> = {
   analyzer: analyzer;
   products: product list;
   ?lockfile_data : lockfile_data option;
+  ?manifest_data : manifest_data option;
 }
 
 (* The same path can be present multiple times in targets below, with
