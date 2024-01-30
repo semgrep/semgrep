@@ -264,7 +264,8 @@ FROM semgrep-cli AS nonroot
 
 # We need to move the core binary out of the protected /usr/local/bin dir so
 # the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
-# Alt: we could also do this work directly in the root docker image.
+# alt: we could also do this work directly in the root docker image.
+# TODO? now that we install semgrep-pro in step4, do we still need that?
 RUN rm /usr/local/bin/osemgrep && \
     mkdir /home/semgrep/bin && \
     mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
