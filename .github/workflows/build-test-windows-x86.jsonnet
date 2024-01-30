@@ -81,7 +81,7 @@ default: https://github.com/ocaml/opam-repository.git
       name: 'Install deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        opam depext conf-pkg-config conf-gmp conf-libpcre
+        opam depext conf-pkg-config conf-gmp conf-libpcre conf-libcurl
         opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
       |||,
     },
