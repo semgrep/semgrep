@@ -257,7 +257,7 @@ let get_project_root_exn () =
 
 let checkout ?cwd ?git_ref () =
   let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
-  match UCmd.status_of_run cmd with
+  match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Could not checkout git ref")
 
@@ -307,7 +307,7 @@ let sparse_checkout_add ?cwd folders =
       @ [ "sparse-checkout"; "add"; "--sparse-index"; "--cone" ]
       @ folders )
   in
-  match UCmd.status_of_run cmd with
+  match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) -> Ok ()
   | _ -> Error "Could not add sparse checkout"
 

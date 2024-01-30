@@ -1,9 +1,0 @@
-Previously, some people got the error:
-
-```
-Encountered error when running rules: Other syntax error at line NO FILE INFO YET:-1:
-Invalid_argument: String.sub / Bytes.sub
-```
-
-Semgrep should now report this error properly with a file name and line number and
-handle it gracefully.
