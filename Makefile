@@ -320,7 +320,7 @@ install-deps: install-deps-for-semgrep-core
 
 # This external package needs to be installed using `-i`
 # - curl-dev: for opentelemetry, which we use for tracing
-ALPINE_APK_DEPS_CORE_INDEXES curl-dev
+ALPINE_APK_DEPS_CORE_INDEXES=curl-dev
 
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
