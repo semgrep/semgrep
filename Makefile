@@ -324,7 +324,7 @@ install-deps: install-deps-for-semgrep-core
 # - curl-dev: for opentelemetry, which we use for tracing
 # - openssl-libs-static: dependency of curl-static
 
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
