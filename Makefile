@@ -322,7 +322,7 @@ install-deps: install-deps-for-semgrep-core
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
 # - curl-dev: for opentelemetry, which we use for tracing
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev libcurl-dev
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev libcurl4-openssl-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
