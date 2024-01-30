@@ -596,7 +596,6 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       xlang = rule.target_analyzer;
       lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;
-      lockfile_data = None;
     }
   in
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
