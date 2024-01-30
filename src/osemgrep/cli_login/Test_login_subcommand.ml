@@ -39,8 +39,13 @@ let with_logs ~f ~final =
       let code =
         match res with
         | Ok code -> code
-        | Error (Error.Exit code) -> code
-        | _ -> Exit_code.fatal
+        | Error (Error.Exit_code code) -> code
+        | Error exn ->
+            (* never, ever, ignore errors without logging them first *)
+            Logs.err (fun m ->
+                m "Fatal exception without a trace: %s\n"
+                  (Printexc.to_string exn));
+            Exit_code.fatal ~__LOC__
       in
       UCommon.pr2
         (spf "exit_code = %d, meaning = %s" (Exit_code.to_int code)
@@ -80,7 +85,7 @@ let test_logout_not_logged_in caps : Testo.test =
            ~f:(fun () -> Logout_subcommand.main caps [| "semgrep-logout" |])
            ~final:(fun res ->
              assert (res.logs =~ ".*You are not logged in");
-             assert (res.exit_code =*= Exit_code.ok))))
+             Exit_code.Check.ok res.exit_code)))
 
 let test_login_no_tty caps : Testo.test =
   t __FUNCTION__
@@ -98,7 +103,7 @@ let test_login_no_tty caps : Testo.test =
              exit_code)
            ~final:(fun res ->
              assert (res.logs =~ ".*meant to be run in an interactive terminal");
-             assert (res.exit_code =*= Exit_code.fatal))))
+             Exit_code.Check.fatal res.exit_code)))
 
 (* This token does not have to be valid because we mock the deployment
  * request and response that is supposed to come from our endpoint and
@@ -129,7 +134,7 @@ let test_login_with_env_token caps : Testo.test =
                      Login_subcommand.main caps [| "semgrep-login" |])
                    ~final:(fun res ->
                      assert (res.logs =~ "[.\n]*Saved access token");
-                     assert (res.exit_code =*= Exit_code.ok));
+                     Exit_code.Check.ok res.exit_code);
 
                  (* login should fail on second call *)
                  with_logs
@@ -137,7 +142,7 @@ let test_login_with_env_token caps : Testo.test =
                      Login_subcommand.main caps [| "semgrep-login" |])
                    ~final:(fun res ->
                      assert (res.logs =~ ".*You're already logged in");
-                     assert (res.exit_code =*= Exit_code.fatal));
+                     Exit_code.Check.fatal res.exit_code);
 
                  (* clear login (by logging out) *)
                  with_logs
@@ -147,7 +152,7 @@ let test_login_with_env_token caps : Testo.test =
                        [| "semgrep-logout" |])
                    ~final:(fun res ->
                      assert (res.logs =~ ".*Logged out!");
-                     assert (res.exit_code =*= Exit_code.ok));
+                     Exit_code.Check.ok res.exit_code);
 
                  (* logout twice should work *)
                  with_logs
@@ -157,7 +162,7 @@ let test_login_with_env_token caps : Testo.test =
                        [| "semgrep-logout" |])
                    ~final:(fun res ->
                      assert (res.logs =~ ".*You are not logged in");
-                     assert (res.exit_code =*= Exit_code.ok))))))
+                     Exit_code.Check.ok res.exit_code)))))
 
 (*****************************************************************************)
 (* Entry point *)

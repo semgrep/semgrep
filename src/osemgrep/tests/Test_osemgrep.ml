@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Printf
 open Common
 module TL = Test_login_subcommand
 
@@ -32,13 +33,21 @@ module TL = Test_login_subcommand
 (* Tests *)
 (*****************************************************************************)
 
+let log_command argv =
+  printf "cwd: %s\n" (Sys.getcwd ());
+  printf "command: %s\n"
+    (argv |> Array.to_list
+    |> List_.map (fun x -> sprintf "%S" x)
+    |> String.concat " ");
+  flush stdout
+
 (* no need for a token to access public rules in the registry *)
 let test_scan_config_registry_no_token (caps : Cap.all_caps) =
   Testo.create __FUNCTION__ (fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
-              CLI.main caps
+              let command =
                 [|
                   "semgrep";
                   "scan";
@@ -46,11 +55,13 @@ let test_scan_config_registry_no_token (caps : Cap.all_caps) =
                   "--debug";
                   "--config";
                   "r/python.lang.correctness.useless-eqeq.useless-eqeq";
-                |])
+                |]
+              in
+              log_command command;
+              CLI.main caps command)
             ~final:(fun res ->
               Alcotest.(check int)
-                "exit code"
-                Exit_code.(to_int ok)
+                "semgrep exit code" 0
                 (Exit_code.to_int res.exit_code))))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
@@ -72,8 +83,9 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
                        [| "semgrep-login" |])
                    ~final:(fun res ->
                      assert (res.logs =~ "[.\n]*Saved access token");
-                     assert (res.exit_code =*= Exit_code.ok)));
-
+                     Alcotest.(check int)
+                       "semgrep exit code" 0
+                       (Exit_code.to_int res.exit_code)));
              (* Even if we are allowed to login with a fake token (because
               * of the with_fake_deployment_response), outside of it
               * we can't use the registry with an invalid token.

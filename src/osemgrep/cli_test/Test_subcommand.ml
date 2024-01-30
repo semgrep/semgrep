@@ -258,7 +258,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
       }
   in
   report_tests_result ~json:conf.json res;
-  if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
+  if !total_mismatch > 0 then Exit_code.fatal ~__LOC__
+  else Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

@@ -185,7 +185,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));
   match num_errors with
-  | 0 -> Exit_code.ok
+  | 0 -> Exit_code.ok ~__LOC__
   | _else_ ->
       (* was a raise SemgrepError originally *)
       Error.abort "Please fix the above errors and try again."

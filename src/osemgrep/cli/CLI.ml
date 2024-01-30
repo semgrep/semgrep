@@ -131,7 +131,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
   | [ _; "--experimental" ] ->
       Help.print_help caps#stdout;
       Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | [ _; ("-h" | "--help") ]
   (* ugly: this --experimental management here is a bit ugly, to allow the
    * different combination.
@@ -141,7 +141,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
       Help.print_semgrep_dashdash_help caps#stdout;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | argv0 :: args -> (
       let subcmd, subcmd_args =
         match args with
@@ -209,7 +209,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
             Test_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
-        | _else_ ->
+        | _ ->
             if experimental then
               (* this should never happen because we default to 'scan',
                * but better to be safe than sorry.
@@ -237,21 +237,21 @@ let safe_run ~debug f : Exit_code.t =
     | Error.Semgrep_error (s, opt_exit_code) -> (
         Logs.err (fun m -> m "%s" s);
         match opt_exit_code with
-        | None -> Exit_code.fatal
+        | None -> Exit_code.fatal ~__LOC__
         | Some code -> code)
-    | Error.Exit code -> code
+    | Error.Exit_code code -> code
     (* should never happen, you should prefer Error.Exit to Common.UnixExit
      * but just in case *)
-    | Common.UnixExit i -> Exit_code.of_int i
+    | Common.UnixExit i -> Exit_code.of_int ~__LOC__ i
     (* TOPORT: PLEASE_FILE_ISSUE_TEXT for unexpected exn *)
     | Failure msg ->
         Logs.err (fun m -> m "Error: %s%!" msg);
-        Exit_code.fatal
+        Exit_code.fatal ~__LOC__
     | e ->
         let trace = Printexc.get_backtrace () in
         Logs.err (fun m ->
             m "Error: exception %s\n%s%!" (Printexc.to_string e) trace);
-        Exit_code.fatal
+        Exit_code.fatal ~__LOC__
 
 let before_exit ~profile () : unit =
   (* alt: could be done in Main.ml instead, just before the call to exit() *)

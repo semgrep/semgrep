@@ -68,16 +68,35 @@ let setup_profiling (conf : Scan_CLI.conf) =
  *)
 let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
   match List.rev errors with
-  | [] -> Exit_code.ok
+  | [] -> Exit_code.ok ~__LOC__
   (* TODO? why do we look at the last error? What about the other errors? *)
   | x :: _ -> (
-      (* alt: raise a Semgrep_error that would be catched by CLI_Common
+      (* alt: raise a Semgrep_error that would be caught by CLI_Common
        * wrapper instead of returning an exit code directly? *)
       match () with
       | _ when x.severity =*= `Error ->
-          Cli_json_output.exit_code_of_error_type x.error_type
-      | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
-      | _else_ -> Exit_code.ok)
+          let exit_code =
+            Cli_json_output.exit_code_of_error_type x.error_type
+          in
+          Logs.info (fun m ->
+              m
+                "Exiting semgrep scan due to error of severity level=Error: %s \
+                 -> exit code %i"
+                (Semgrep_output_v1_j.string_of_error_type x.error_type)
+                (Exit_code.to_int exit_code));
+          exit_code
+      | _ when strict ->
+          let exit_code =
+            Cli_json_output.exit_code_of_error_type x.error_type
+          in
+          Logs.info (fun m ->
+              m
+                "Exiting semgrep scan due to error in strict mode: %s -> exit \
+                 code %i"
+                (Semgrep_output_v1_j.string_of_error_type x.error_type)
+                (Exit_code.to_int exit_code));
+          exit_code
+      | _ -> Exit_code.ok ~__LOC__)
 
 (*****************************************************************************)
 (* Incremental display *)
@@ -504,7 +523,7 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
      - tolerate different output between pysemgrep and osemgrep
        for tests that we would mark as such.
   *)
-  if List_.null rules then Error Exit_code.missing_config
+  if List_.null rules then Error (Exit_code.missing_config ~__LOC__)
   else
     (* step 1: last touch on rules *)
     let filtered_rules =
@@ -794,7 +813,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step4: exit with the right exit code *)
       (* final result for the shell *)
       if conf.error_on_findings && not (List_.null cli_output.results) then
-        Exit_code.findings
+        Exit_code.findings ~__LOC__
       else
         exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
 
@@ -857,7 +876,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.version ->
       Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
       Test_subcommand.run_conf
         (caps :> < Cap.stdout ; Cap.network >)

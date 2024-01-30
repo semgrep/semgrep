@@ -560,7 +560,8 @@ let _run_conf_TODO (conf : Test_CLI.conf) : Exit_code.t =
        for fixtest_file_results in fixtest_results_output.values()
      ) *)
   let exit_code =
-    if strict_error && any_failures then Exit_code.fatal else Exit_code.ok
+    if strict_error && any_failures then Exit_code.fatal ~__LOC__
+    else Exit_code.ok ~__LOC__
   in
 
   (* int(strict_error or any_failures or any_fixtest_failures) *)

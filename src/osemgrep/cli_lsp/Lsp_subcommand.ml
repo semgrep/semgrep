@@ -48,7 +48,7 @@ let run_conf (conf : Lsp_CLI.conf) : Exit_code.t =
   RPC_server.io_ref := (module Io);
   Logs.debug (fun m -> m "Starting semgrep-lsp");
   Lwt_platform.run (LS.start ());
-  Exit_code.ok
+  Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

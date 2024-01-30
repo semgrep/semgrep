@@ -67,13 +67,13 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   | Version ->
       CapConsole.out stdout Version.version;
       (* TODO? opportunity to perform version-check? *)
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | Identity -> Whoami.print caps Whoami.Identity
   | Deployment -> Whoami.print caps Whoami.Deployment
   | SupportedLanguages ->
       CapConsole.out stdout
         (spf "supported languages are: %s" Xlang.supported_xlangs);
-      Exit_code.ok (* dumpers *)
+      Exit_code.ok ~__LOC__ (* dumpers *)
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
@@ -83,7 +83,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
       CapConsole.out stdout s;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parsing_result2.ast; skipped_tokens = _; _ } =
@@ -94,7 +94,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       UFormat.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
       CapConsole.out stdout s;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
       let token_opt = settings.api_token in
@@ -110,7 +110,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       rules_and_errors
       |> List.iter (fun x ->
              CapConsole.out stdout (Rule_fetching.show_rules_and_origin x));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpRuleV2 file ->
       (* TODO: use validation ocaml code to enforce the
        * CHECK: in rule_schema_v2.atd.
@@ -120,7 +120,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
        *)
       let rules = Parse_rules_with_atd.parse_rules_v2 file in
       CapConsole.out stdout (Rule_schema_v2_t.show_rules rules);
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"

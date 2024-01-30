@@ -15,8 +15,6 @@
 open Common
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -227,7 +225,6 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
       @ flag "--exclude-standard" exclude_standard
       @ roots )
   in
-  Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with
     | Ok (files, (_, `Exited 0)) -> files
@@ -420,7 +417,8 @@ let run_with_worktree ~commit ?(branch = None) f =
         cwd |> Fpath.to_string |> UUnix.chdir;
         let cmd = (git, [ "worktree"; "remove"; temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
-        | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
+        | Ok (`Exited 0) ->
+            Logs.info (fun m -> m "Finished cleaning up git worktree")
         | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
         | Error (`Msg e) -> raise (Error e)
       in
@@ -472,8 +470,9 @@ let status ?cwd ?commit () =
   let renamed = ref [] in
   let rec parse = function
     | _ :: file :: tail when check_dir file && check_symlink file ->
-        logger#info "Skipping %s since it is a symlink to a directory: %s" file
-          (UUnix.realpath file);
+        Logs.info (fun m ->
+            m "Skipping %s since it is a symlink to a directory: %s" file
+              (UUnix.realpath file));
         parse tail
     | "A" :: file :: tail ->
         added := file :: !added;
@@ -498,10 +497,11 @@ let status ?cwd ?commit () =
     | "!" (* ignored *) :: _ :: tail -> parse tail
     | "?" (* untracked *) :: _ :: tail -> parse tail
     | unknown :: file :: tail ->
-        logger#warning "unknown type in git status: %s, %s" unknown file;
+        Logs.warn (fun m -> m "unknown type in git status: %s, %s" unknown file);
         parse tail
     | [ remain ] ->
-        logger#warning "unknown data after parsing git status: %s" remain
+        Logs.warn (fun m ->
+            m "unknown data after parsing git status: %s" remain)
     | [] -> ()
   in
   parse stats;

@@ -17,10 +17,11 @@ let mask_temp_git_hash =
 let mask_test_dirname =
   Testo.mask_pcre_pattern ~mask:"test-<HEX>" "test-[a-f0-9]{8}"
 
-let t =
-  Testo.create ~checked_output:Stdout
-    ~mask_output:
-      [ mask_temp_git_hash; mask_test_dirname; Testo.mask_temp_paths () ]
+let mask_output =
+  [ mask_temp_git_hash; mask_test_dirname; Testo.mask_temp_paths () ]
+
+let t = Testo.create
+let capture = Testo.create ~checked_output:Stdout ~mask_output
 
 (*
    List repo files relative to 'cwd' which can be the root of the git repo,
@@ -54,32 +55,32 @@ let test_ls_files_relative ~mk_cwd ~mk_scanning_root () =
 
 let tests =
   [
-    t "ls-files from project root"
+    capture "ls-files from project root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root -> project_root)
          ~mk_scanning_root:(fun ~project_root:_ -> Fpath.v "."));
-    t "ls-files from outside the project, relative scanning root"
+    capture "ls-files from outside the project, relative scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
            project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath)
          ~mk_scanning_root:(fun ~project_root ->
            project_root |> Rpath.to_fpath |> Fpath.basename |> Fpath.v));
-    t "ls-files from outside the project, absolute scanning root"
+    capture "ls-files from outside the project, absolute scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
            project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath)
          ~mk_scanning_root:(fun ~project_root -> project_root |> Rpath.to_fpath));
-    t "ls-files from project subfolder"
+    capture "ls-files from project subfolder"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
            Fpath.((project_root |> Rpath.to_fpath) / "a") |> Rpath.of_fpath)
          ~mk_scanning_root:(fun ~project_root:_ -> Fpath.v "."));
-    t "ls-files from project subfolder, relative scanning root"
+    capture "ls-files from project subfolder, relative scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
            Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath)
          ~mk_scanning_root:(fun ~project_root:_ -> Fpath.v "../a"));
-    t "ls-files from project subfolder, absolute scanning root"
+    capture "ls-files from project subfolder, absolute scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
            Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath)
@@ -87,7 +88,7 @@ let tests =
            Fpath.(Rpath.to_fpath project_root / "a")));
     t "get git project root" (fun () ->
         match Git_wrapper.get_project_root () with
-        | Some _ -> ()
+        | Some root -> printf "found git project root: %s\n" !!root
         | None ->
             Alcotest.fail
               (spf "couldn't find a git project root for current directory %s"
@@ -96,8 +97,8 @@ let tests =
         (* A standard folder that we know is not in a git repo *)
         let cwd = Filename.get_temp_dir_name () |> Fpath.v in
         match Git_wrapper.get_project_root ~cwd () with
-        | Some _ ->
+        | Some root ->
             Alcotest.fail
-              (spf "we found a git project root with cwd = %s" !!cwd)
-        | None -> ());
+              (spf "we found a git project root with cwd = %s: %s" !!cwd !!root)
+        | None -> printf "found no git project root as expected\n");
   ]
