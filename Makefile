@@ -321,12 +321,10 @@ install-deps: install-deps-for-semgrep-core
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-# - curl-static: for opentelemetry, which we use for tracing
+# - curl-dev: for opentelemetry, which we use for tracing
 # - openssl-libs-static: dependency of curl-static
-# - nghttp2-static: dependency of curl-static
-# - zlib-static: dependency of curl-static
 
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev curl-static openssl-libs-static nghttp2-static zlib-static brotli-static libidn2-static
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead

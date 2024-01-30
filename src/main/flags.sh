@@ -15,7 +15,7 @@ set -eu
 if [[ "$(opam switch show)" == *+static* || -e /etc/alpine-release ]]; then
   # The -cclib statically link in libcurl's dependencies.
   # This can be removed when we transition away from the ocurl otel collector
-  echo "(-cclib -lnghttp2 -cclib -lssl -cclib -lcrypto -cclib -lz -cclib -lbrotlicommon-static -cclib -lbrotlidec-static -cclib -lidn2 -ccopt -static -ccopt -no-pie)" > flags.sexp
+  echo "(-cclib -lssl -cclib -lcrypto -cclib -lz -ccopt -static -ccopt -no-pie)" > flags.sexp
 else
   echo "( :standard )" > flags.sexp
 fi
