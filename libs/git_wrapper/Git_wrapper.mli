@@ -185,6 +185,12 @@ val object_size : ?cwd:Fpath.t -> sha -> int option
   * object didn't exist).
   *)
 
+val commit_timestamp : ?cwd:Fpath.t -> sha -> Timedesc.Timestamp.t option
+(** [commit_datetime sha] evaluates to [Some dt] where [dt] is the date and
+ * time of the commit designated by [sha] or [None] if an error occured (e.g.,
+ * the sha was for another object type).
+ *)
+
 val ls_tree :
   ?cwd:Fpath.t -> ?recurse:bool -> sha -> ls_tree_extra obj list option
 (** [ls_tree ~recurse sha] will run `git ls-tree --full-tree` and report the

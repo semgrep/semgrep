@@ -631,6 +631,14 @@ let object_size ?cwd sha =
   | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
   | _ -> None
 
+let commit_timestamp ?cwd sha =
+  (* %cI - print datetime in strict ISO 8601 format *)
+  let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) ->
+      Timedesc.Timestamp.of_iso8601 s |> Result.to_option
+  | _ -> None
+
 let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
   let cmd =
     ( git,
