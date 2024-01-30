@@ -290,7 +290,7 @@ install-deps-for-semgrep-core: semgrep.opam
 	# This now also installs the dev dependencies. This has the benefit
 	# of installing all the packages in one shot and detecting possible
 	# version conflicts.
-	opam install -y --deps-only $(REQUIRED_DEPS)
+	opam install -y --deps-only $(REQUIRED_DEPS) --assume-depexts
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
