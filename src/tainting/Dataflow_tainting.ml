@@ -1271,6 +1271,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
   in
   let* lval, obj =
     match sig_arg.base with
+    | BGlob gvar -> Some ({ base = Var gvar; rev_offset = List.rev os }, gvar)
     | BThis -> (
         match fun_exp with
         | {

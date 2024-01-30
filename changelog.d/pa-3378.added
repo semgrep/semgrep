@@ -1,0 +1,19 @@
+taint-mode: Pro: Semgrep can now track taint via static class fields and global
+variables, such as in the following example:
+
+```c
+static char* x;
+
+void foo() {
+    x = "tainted";
+}
+
+void bar() {
+    sink(x);
+}
+
+void main() {
+    foo();
+    bar();
+}
+```
