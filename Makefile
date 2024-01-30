@@ -318,11 +318,14 @@ install-deps: install-deps-for-semgrep-core
 # Alpine
 # -------------------------------------------------
 
+# This external package needs to be installed using `-i`
+# - curl-dev: for opentelemetry, which we use for tracing
+ALPINE_APK_DEPS_CORE_INDEXES curl-dev
+
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-# - curl-dev: for opentelemetry, which we use for tracing
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev libcurl
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -336,7 +339,7 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev libcurl
 # pro:
 #  - it avoids repeating yourself everywhere
 install-deps-ALPINE-for-semgrep-core:
-	apk add -i curl-dev
+	apk add -i --no-cache $(ALPINE_APK_DEPS_CORE_INDEXES)
 	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
 
 
