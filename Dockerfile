@@ -246,7 +246,7 @@ FROM semgrep-oss AS semgrep-cli
 # A semgrep docker image with semgrep-pro already included in the image,
 # to save time in CI as one does not need to wait 2min each time to
 # download it.
-RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug
 
 # Clear out any detritus from the pro install
 RUN rm -rf /root/.semgrep
