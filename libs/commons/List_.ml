@@ -325,6 +325,11 @@ let optlist_to_list = function
 
 let sort xs = List.sort compare xs
 
+let sort_by_key key cmp xs =
+  map (fun x -> (key x, x)) xs
+  |> List.sort (fun (x, _) (y, _) -> cmp x y)
+  |> map snd
+
 (* maybe too slow? use an hash instead to first group, and then in
  * that group remove duplicates? *)
 let rec uniq_by eq xs =
