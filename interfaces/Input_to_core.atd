@@ -28,13 +28,30 @@ type product
   | Secrets <json name="secrets">
 ]
 
+type lockfile_kind <ocaml attr="deriving show"> = [
+  | PackageLock
+  (* TODO: the rest of them *)
+]
+
+type analyzer <ocaml attr="deriving show"> = [
+  | XLang of xlang
+  | Lockfile of lockfile_kind
+]
+
+
+type lockfile_data <ocaml attr="deriving show"> = {
+  path : string;
+  lockfile_kind : lockfile_kind;
+}
+
 type target <ocaml attr="deriving show"> = {
   path: string (* source file *);
   (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
   *)
-  analyzer: xlang;
+  analyzer: analyzer;
   products: product list;
+  ?lockfile_data : lockfile_data option;
 }
 
 (* The same path can be present multiple times in targets below, with

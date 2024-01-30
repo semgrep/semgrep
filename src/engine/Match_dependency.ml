@@ -87,20 +87,20 @@ let match_dependency_pattern (deps : Supply_chain.dependency list)
 
 (* Return the set of dependency/pattern pairs that matched *)
 let match_dependency_formula :
-    Xtarget.lockfile_data ->
+    Lockfile_target.t ->
     Rule.dependency_formula ->
     Pattern_match.dependency_match list =
  fun { lazy_lockfile_ast_and_errors; _ } ->
   List.concat_map (fun pat ->
       match_dependency_pattern (Lazy.force lazy_lockfile_ast_and_errors) pat)
 
-let match_dependencies xtarget rule =
-  match (xtarget.Xtarget.lockfile_data, rule.Rule.dependency_formula) with
+let match_dependencies lockfile_target rule =
+  match (lockfile_target, rule.Rule.dependency_formula) with
   | Some d, Some f -> Some (match_dependency_formula d f)
   | _ -> None
 
-let match_all_dependencies xtarget =
-  List_.map (fun rule -> (rule, match_dependencies xtarget rule))
+let match_all_dependencies lockfile_target =
+  List_.map (fun rule -> (rule, match_dependencies lockfile_target rule))
 
 let annotate_pattern_match dep_matches pm =
   match dep_matches with

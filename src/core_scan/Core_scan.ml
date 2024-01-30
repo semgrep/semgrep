@@ -710,24 +710,26 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
        Parse_with_caching.parse_and_resolve_name ~parsing_cache_dir
          AST_generic.version lang file)
   in
-  let lockfile_path = Parse_lockfile.find_lockfile file in
   {
     Xtarget.file;
     xlang;
     lazy_content = lazy (UFile.read_file file);
     lazy_ast_and_errors;
-    (* TODO: make computing this optional *)
-    lockfile_data =
-      (lockfile_path
-      |> Option.map @@ fun file ->
-         {
-           Xtarget.lockfile = file;
-           ecosystem = Supply_chain.Npm;
-           lazy_lockfile_content = lazy (UFile.read_file file);
-           lazy_lockfile_ast_and_errors =
-             lazy (Parse_lockfile.parse_lockfile file);
-         });
   }
+
+let lockfile_target_of_input_to_core (target : In.target) =
+  match target.In.lockfile_data with
+  | None -> None
+  | Some In.{ path; lockfile_kind = _ } ->
+      let path = Fpath.v path in
+      Some
+        {
+          Lockfile_target.lockfile = path;
+          ecosystem = Supply_chain.Npm;
+          lazy_lockfile_content = lazy (UFile.read_file path);
+          lazy_lockfile_ast_and_errors =
+            lazy (Parse_lockfile.parse_lockfile path);
+        }
 
 (* Compute the set of targets, either by reading what was passed
  * in -target, or by using our poor's man file targeting with
@@ -769,8 +771,9 @@ let targets_of_config (config : Core_scan_config.t) :
         |> List_.map (fun file ->
                {
                  In.path = Fpath.to_string file;
-                 analyzer = xlang;
+                 analyzer = `XLang xlang;
                  products = Product.all;
+                 lockfile_data = None;
                })
       in
       (target_mappings, skipped)
@@ -812,28 +815,38 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   let (extracted_targets : Extract.extracted_target_and_adjuster list) =
     basic_targets
     |> List.concat_map (fun (t : In.target) ->
-           (* TODO: addt'l filtering required for rule_ids when targets are
-              passed explicitly? *)
-           let file = t.path in
-           let xtarget =
-             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
-               t.analyzer (Fpath.v file)
-           in
-           let extracted_targets =
-             Match_extract_mode.extract ~match_hook ~timeout:config.timeout
-               ~timeout_threshold:config.timeout_threshold extract_rules xtarget
-           in
-           (* Print number of extra targets so pysemgrep knows *)
-           if not (List_.null extracted_targets) then
-             print_cli_additional_targets config (List.length extracted_targets);
-           extracted_targets)
+           match t.analyzer with
+           | `Lockfile _ -> []
+           | `XLang xlang ->
+               (* TODO: addt'l filtering required for rule_ids when targets are
+                  passed explicitly? *)
+               let file = t.path in
+               let xtarget =
+                 xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
+                   xlang (Fpath.v file)
+               in
+               let extracted_targets =
+                 Match_extract_mode.extract ~match_hook ~timeout:config.timeout
+                   ~timeout_threshold:config.timeout_threshold extract_rules
+                   xtarget
+               in
+               (* Print number of extra targets so pysemgrep knows *)
+               if not (List_.null extracted_targets) then
+                 print_cli_additional_targets config
+                   (List.length extracted_targets);
+               extracted_targets)
   in
   let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
   let in_targets : In.target list =
     extracted_targets
     |> List_.map (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
            (* Extract mode targets work with any product? *)
-           { In.path = !!path; analyzer; products = Product.all })
+           {
+             In.path = !!path;
+             analyzer = `XLang analyzer;
+             products = Product.all;
+             lockfile_data = None;
+           })
   in
   (in_targets, adjusters)
 
@@ -882,75 +895,84 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     (adjusters : Extract.adjusters) match_hook : target_handler =
  (* Note that this function runs in another process *)
  fun (target : In.target) ->
-  let file = Fpath.v target.path in
-  let analyzer = target.analyzer in
-  let products = target.products in
-  let applicable_rules =
-    select_applicable_rules_for_target ~analyzer ~products ~path:file
-      ~respect_rule_paths:config.respect_rule_paths valid_rules
-  in
-  let was_scanned =
-    match applicable_rules with
-    | [] -> Not_scanned
-    | _x :: _xs ->
-        (* Map back extracted targets when recording files as scanned *)
-        let original_target =
-          match Hashtbl.find_opt adjusters.original_target (Extracted file) with
-          | None -> Extract.Original file
-          | Some orig -> orig
-        in
-        Scanned original_target
-  in
-  (* TODO: can we skip all of this if there are no applicable
-     rules? In particular, can we skip print_cli_progress? *)
-  let xtarget =
-    xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir analyzer file
-  in
-  let default_match_hook str match_ =
-    if config.output_format =*= Text then
-      print_match ~str config match_ Metavariable.ii_of_mval
-  in
-  let match_hook = Option.value match_hook ~default:default_match_hook in
-  let xconf =
-    {
-      Match_env.config = Rule_options.default_config;
-      equivs = parse_equivalences config.equivalences_file;
-      nested_formula = false;
-      matching_explanations = config.matching_explanations;
-      filter_irrelevant_rules = prefilter_cache_opt;
-    }
-  in
-  (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
-  let _skipped_supply_chain, applicable_rules_with_dep_matches =
-    applicable_rules
-    |> Match_dependency.match_all_dependencies xtarget
-    |> Either_.partition_either (function
-         | rule, Some [] -> Left rule
-         | x -> Right x)
-  in
-  let dependency_match_table =
-    applicable_rules_with_dep_matches
-    |> List_.map_filter (function
-         | _, None -> None
-         | rule, Some dep_matches -> Some (fst rule.R.id, dep_matches))
-    |> Hashtbl_.hash_of_list
-  in
-  let applicable_rules = applicable_rules_with_dep_matches |> List_.map fst in
-  let matches =
-    (* !!Calling Match_rules!! Calling the matching engine!! *)
-    Match_rules.check ~match_hook ~timeout:config.timeout
-      ~timeout_threshold:config.timeout_threshold ~dependency_match_table xconf
-      applicable_rules xtarget
-    |> set_matches_to_proprietary_origin_if_needed xtarget
-    |> Extract.adjust_location_extracted_targets_if_needed adjusters file
-  in
-  (* So we can display matches incrementally in osemgrep!
-   * Note that this is run in a child process of Parmap, so
-   * the hook should not rely on shared memory.
-   *)
-  config.file_match_results_hook |> Option.iter (fun hook -> hook file matches);
-  print_cli_progress config;
-  (matches, was_scanned)
+  match target.analyzer with
+  | `Lockfile _ -> failwith "TODO: lockfile-only findings"
+  | `XLang analyzer ->
+      let file = Fpath.v target.path in
+      let products = target.products in
+      let applicable_rules =
+        select_applicable_rules_for_target ~analyzer ~products ~path:file
+          ~respect_rule_paths:config.respect_rule_paths valid_rules
+      in
+      let was_scanned =
+        match applicable_rules with
+        | [] -> Not_scanned
+        | _x :: _xs ->
+            (* Map back extracted targets when recording files as scanned *)
+            let original_target =
+              match
+                Hashtbl.find_opt adjusters.original_target (Extracted file)
+              with
+              | None -> Extract.Original file
+              | Some orig -> orig
+            in
+            Scanned original_target
+      in
+      (* TODO: can we skip all of this if there are no applicable
+         rules? In particular, can we skip print_cli_progress? *)
+      let xtarget =
+        xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir analyzer
+          file
+      in
+      let lockfile_target = lockfile_target_of_input_to_core target in
+      let default_match_hook str match_ =
+        if config.output_format =*= Text then
+          print_match ~str config match_ Metavariable.ii_of_mval
+      in
+      let match_hook = Option.value match_hook ~default:default_match_hook in
+      let xconf =
+        {
+          Match_env.config = Rule_options.default_config;
+          equivs = parse_equivalences config.equivalences_file;
+          nested_formula = false;
+          matching_explanations = config.matching_explanations;
+          filter_irrelevant_rules = prefilter_cache_opt;
+        }
+      in
+      (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
+      let _skipped_supply_chain, applicable_rules_with_dep_matches =
+        applicable_rules
+        |> Match_dependency.match_all_dependencies lockfile_target
+        |> Either_.partition_either (function
+             | rule, Some [] -> Left rule
+             | x -> Right x)
+      in
+      let dependency_match_table =
+        applicable_rules_with_dep_matches
+        |> List_.map_filter (function
+             | _, None -> None
+             | rule, Some dep_matches -> Some (fst rule.R.id, dep_matches))
+        |> Hashtbl_.hash_of_list
+      in
+      let applicable_rules =
+        applicable_rules_with_dep_matches |> List_.map fst
+      in
+      let matches =
+        (* !!Calling Match_rules!! Calling the matching engine!! *)
+        Match_rules.check ~match_hook ~timeout:config.timeout
+          ~timeout_threshold:config.timeout_threshold ~dependency_match_table
+          xconf applicable_rules xtarget
+        |> set_matches_to_proprietary_origin_if_needed xtarget
+        |> Extract.adjust_location_extracted_targets_if_needed adjusters file
+      in
+      (* So we can display matches incrementally in osemgrep!
+         * Note that this is run in a child process of Parmap, so
+         * the hook should not rely on shared memory.
+      *)
+      config.file_match_results_hook
+      |> Option.iter (fun hook -> hook file matches);
+      print_cli_progress config;
+      (matches, was_scanned)
 
 (* This is the main function used by pysemgrep right now.
  * This is also called now from osemgrep.
