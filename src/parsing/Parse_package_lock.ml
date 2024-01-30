@@ -1,5 +1,3 @@
-(* TODO: Move this to a sensible place *)
-
 open Common
 
 let rec find_lockfile file : Fpath.t option =
