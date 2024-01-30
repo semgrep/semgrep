@@ -2,7 +2,7 @@
 
 set -eu
 
-${CURL_VERSION:=8.5.0}
+CURL_VERSION="8.5.0"
 
 cd /tmp
 
