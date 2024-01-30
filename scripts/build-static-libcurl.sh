@@ -10,6 +10,6 @@ curl -L "https://curl.se/download/curl-${CURL_VERSION}.tar.gz" | tar xz
 
 cd /tmp/curl-${CURL_VERSION}
 
-./configure --disable-shared --with-ssl --disable-ldap --without-nghttp2 --without-libidn2
+./configure --disable-shared --with-ssl --disable-ldap --without-brotli --without-nghttp2 --without-libidn2
 
 make install
