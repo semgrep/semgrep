@@ -729,7 +729,7 @@ let parse_ecosystem env key value =
   match value.G.e with
   | G.L (String (_, (ecosystem, _), _)) -> (
       match String.lowercase_ascii ecosystem with
-      | "npm" -> Supply_chain.Npm
+      | "npm" -> Dependency.Npm
       | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem))
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 

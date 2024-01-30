@@ -73,10 +73,10 @@ let check_constraint (c, v) v' =
       | `LT -> compare_version_core v' v = `LT)
   | _ -> false
 
-let match_dependency_pattern (deps : Supply_chain.dependency list)
+let match_dependency_pattern (deps : Dependency.t list)
     (pat : Rule.dependency_pattern) : Pattern_match.dependency_match list =
   deps
-  |> List_.map_filter @@ fun (dep : Supply_chain.dependency) ->
+  |> List_.map_filter @@ fun (dep : Dependency.t) ->
      if
        String.equal dep.package_name pat.package_name
        && check_constraint
@@ -115,11 +115,10 @@ let annotate_pattern_match dep_matches pm =
                 this is what the python code does
              *)
              if
-               Supply_chain.(
-                 equal_transitivity (fst dm).transitivity Transitive)
+               Dependency.(equal_transitivity (fst dm).transitivity Transitive)
                && dep_matches
                   |> List.exists (fun (dep, _) ->
-                         Supply_chain.(
+                         Dependency.(
                            equal_transitivity dep.transitivity Direct
                            && String.equal dep.package_name
                                 (fst dm).package_name))

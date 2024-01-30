@@ -256,6 +256,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
                analyzer = `XLang x.xlang;
                products = Product.all;
                lockfile_data = None;
+               manifest_data = None;
              })
     in
     (target_mappings, x.rules)

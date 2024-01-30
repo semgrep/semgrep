@@ -570,7 +570,7 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 type dependency_formula = dependency_pattern list
 
 and dependency_pattern = {
-  ecosystem : Supply_chain.ecosystem;
+  ecosystem : Dependency.ecosystem;
   package_name : string;
   version_constraint : string;
 }
