@@ -508,6 +508,7 @@ local notify_success_job = {
     'bump-semgrep-action',
     'bump-semgrep-rpc',
     'bump-semgrep-app',
+    'bump-semgrep-vscode',
   ],
   'runs-on': 'ubuntu-20.04',
   steps: [
@@ -541,6 +542,7 @@ local notify_failure_job = {
     'bump-semgrep-action',
     'bump-semgrep-rpc',
     'bump-semgrep-app',
+    'bump-semgrep-vscode',
   ],
   'runs-on': 'ubuntu-20.04',
   steps: [
@@ -571,6 +573,7 @@ local notify_failure_job = {
     'bump-semgrep-app': bump_job('semgrep/semgrep-app'),
     'bump-semgrep-action': bump_job('semgrep/semgrep-action'),
     'bump-semgrep-rpc': bump_job('semgrep/semgrep-rpc'),
+    'bump-semgrep-vscode': bump_job('semgrep/semgrep-vscode'),
     'notify-success': notify_success_job,
     'notify-failure': notify_failure_job,
   },
