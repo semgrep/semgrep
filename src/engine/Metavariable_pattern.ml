@@ -122,13 +122,20 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
       (* We will create a temporary file with the content of the metavariable,
        * then call evaluate_formula recursively. *)
       match MV.range_of_mvalue mval with
-      | None ->
-          error env
-            (Common.spf
-               "metavariable-pattern failed because we lack range info for %s, \
-                please file a bug report"
-               mvar);
-          []
+      | None -> (
+          match mval with
+          | MV.Ss [] ->
+              (* It's not an error for an mvalue of an empty sequence of statements
+                 to have no range.
+              *)
+              []
+          | _ ->
+              error env
+                (Common.spf
+                   "metavariable-pattern failed because we lack range info for \
+                    %s, please file a bug report"
+                   mvar);
+              [])
       | Some (mval_file, mval_range) -> (
           let r' =
             (* Fix the range to match the content of the temporary file. *)
