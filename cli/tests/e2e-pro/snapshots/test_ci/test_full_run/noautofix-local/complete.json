@@ -16,7 +16,11 @@
         "num_bytes": 366
       }
     },
-    "engine_requested": "OSS"
+    "engine_requested": "OSS",
+    "findings_by_product": {
+      "code": 16,
+      "supply-chain": 1
+    }
   },
   "dependency_parser_errors": [],
   "task_id": "00000000-0000-0000-0000-000000000000"
