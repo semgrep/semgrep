@@ -340,14 +340,18 @@ class ScanHandler:
         dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()}
 
         # NOTE: This mirrors the logic in metrics.py to show the number of
-        #  findings by product for SCP customers. We should consider refactoring
+        #  findings by product for SCP customers. See PA-3312
+        #  We should consider refactoring this logic into a shared function
         #  in a future PR for metric and behavioral consistency.
         #  An open question remains on whether we should be including the number
         #  of ignored findings in this count.
 
         findings_by_product: Dict[str, int] = Counter()
         for r, f in matches_by_rule.items():
-            name = USER_FRIENDLY_PRODUCT_NAMES.get(r.product, r.product)
+            # NOTE: For parity with metrics.py, we are using the human-readable product name,
+            #  (i.e. code) and falling back to the internal json string (i.e. sast) if we
+            #  somehow drift out of sync with the product enum.
+            name = USER_FRIENDLY_PRODUCT_NAMES.get(r.product, r.product.to_json())
             findings_by_product[f"{name}"] += len(f)
 
         complete = out.CiScanComplete(
