@@ -382,19 +382,15 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
       in
       let check_id = rule_id in
       let metavars = Some metavars in
+      let metadata =
+        match metadata with
+        | None -> `Assoc []
+        | Some json -> json
+      in
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
       let severity = severity ||| rule.severity in
-      let metadata =
-        match rule.metadata with
-        | None -> `Assoc []
-        | Some json -> (
-            JSON.to_yojson json |> fun rule_metadata ->
-            match metadata with
-            | Some metadata -> JSON.update rule_metadata metadata
-            | None -> rule_metadata)
-      in
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
       let lines =

@@ -172,6 +172,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
+    metadata = None;
     severity = `Error;
     langs =
       (match xlang with

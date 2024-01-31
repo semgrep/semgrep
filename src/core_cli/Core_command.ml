@@ -123,6 +123,7 @@ let minirule_of_pattern lang pattern_string pattern =
     pattern;
     inside = false;
     message = "";
+    metadata = None;
     severity = `Error;
     langs = [ lang ];
     fix = None;
