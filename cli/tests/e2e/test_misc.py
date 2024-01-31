@@ -99,7 +99,22 @@ def test_deduplication(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.kinda_slow
+def test_noextension_with_explicit_lang(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Check that we can scan all the target files on the command line when
+    specifying the pattern with -e or -f.
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            None,  # no --config
+            target_name="basic/simple_python_no_extension",
+            options=["--scan-unknown-extensions", "--lang", "python", "-e", "hello"],
+        ).stdout,
+        "results.json",
+    )
+
+
 @pytest.mark.kinda_slow
 def test_noextension_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -116,7 +131,6 @@ def test_noextension_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_noextension_filtering_optimizations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """

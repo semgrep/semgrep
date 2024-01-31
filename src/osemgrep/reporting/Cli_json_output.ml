@@ -100,7 +100,7 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   | ParseError
   | LexicalError
   | PartialParsing _ ->
-      Exit_code.invalid_code
+      Exit_code.invalid_code ~__LOC__
   | OtherParseError
   | AstBuilderError
   | RuleParseError
@@ -118,13 +118,13 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   (* TODO? really? fatal for SemgrepWarning? *)
   | SemgrepWarning
   | SemgrepError ->
-      Exit_code.fatal
-  | InvalidRuleSchemaError -> Exit_code.invalid_pattern
-  | UnknownLanguageError -> Exit_code.invalid_language
+      Exit_code.fatal ~__LOC__
+  | InvalidRuleSchemaError -> Exit_code.invalid_pattern ~__LOC__
+  | UnknownLanguageError -> Exit_code.invalid_language ~__LOC__
   | IncompatibleRule _
   | IncompatibleRule0
   | MissingPlugin ->
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
 
 (* Skipping the intermediate python SemgrepCoreError for now.
  * TODO: should we return an Error.Semgrep_core_error instead? like we

@@ -450,7 +450,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
             (Logs_.err_tag ()));
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
   | Some token ->
       (* setup gh *)
       install_gh_cli_if_needed ();
@@ -461,7 +461,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
             (Logs_.success_tag ()));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

@@ -68,8 +68,9 @@ let with_logs ~f ~final =
       let exit_code, logs =
         match res with
         | Ok code -> (code, log_content)
-        | Error (Error.Exit code) -> (code, log_content)
-        | _exn -> (Exit_code.fatal, log_content ^ Printexc.get_backtrace ())
+        | Error (Error.Exit_code code) -> (code, log_content)
+        | _exn ->
+            (Exit_code.fatal ~__LOC__, log_content ^ Printexc.get_backtrace ())
       in
       final { exit_code; logs })
 
@@ -116,7 +117,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               Logout_subcommand.main
                 (caps :> < Cap.stdout >)
                 [| "semgrep-logout" |])
-            ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok));
+            ~final:(fun res -> Exit_code.Check.ok res.exit_code);
 
           (* should require login *)
           with_logs
@@ -124,7 +125,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               Publish_subcommand.main caps
                 [| "semgrep-publish"; !!valid_target |])
             ~final:(fun res ->
-              assert (res.exit_code =*= Exit_code.fatal);
+              Exit_code.Check.fatal res.exit_code;
               assert (
                 String_.contains res.logs
                   ~term:"run `semgrep login` before using upload"));
@@ -133,12 +134,12 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               with_logs
                 ~f:(fun () -> Login_subcommand.main caps [| "semgrep-login" |])
-                ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok)));
+                ~final:(fun res -> Exit_code.Check.ok res.exit_code));
 
           (* fails if no rule specified *)
           with_logs
             ~f:(fun () -> Publish_subcommand.main caps [| "semgrep-publish" |])
-            ~final:(fun res -> assert (res.exit_code =*= Exit_code.fatal));
+            ~final:(fun res -> Exit_code.Check.fatal res.exit_code);
 
           (* fails if invalid rule specified *)
           with_logs
@@ -148,7 +149,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               in
               Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
-              assert (res.exit_code =*= Exit_code.fatal);
+              Exit_code.Check.fatal res.exit_code;
               assert (String_.contains res.logs ~term:"Invalid rule definition:"));
 
           (* fails if a yaml with more than one rule is specified *)
@@ -159,7 +160,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               in
               Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
-              assert (res.exit_code =*= Exit_code.fatal);
+              Exit_code.Check.fatal res.exit_code;
               assert (
                 String_.contains res.logs
                   ~term:
@@ -171,7 +172,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               Publish_subcommand.main caps
                 [| "semgrep-publish"; "--visibility=public"; !!valid_target |])
             ~final:(fun res ->
-              assert (res.exit_code =*= Exit_code.fatal);
+              Exit_code.Check.fatal res.exit_code;
               assert (
                 String_.contains res.logs
                   ~term:
@@ -187,7 +188,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
                   !!valid_single_file_target;
                 |])
             ~final:(fun res ->
-              assert (res.exit_code =*= Exit_code.fatal);
+              Exit_code.Check.fatal res.exit_code;
               assert (
                 String_.contains res.logs
                   ~term:"--visibility=public requires --registry-id"));
