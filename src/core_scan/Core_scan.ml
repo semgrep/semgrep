@@ -706,34 +706,6 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
-    Xtarget.t =
-  let lazy_ast_and_errors =
-    lazy
-      (let lang =
-         (* ew. We fail tests if this gets pulled out of the lazy block. *)
-         match xlang with
-         | L (lang, []) -> lang
-         | L (_lang, _ :: _) ->
-             failwith
-               "xlang from the language field in -target should be unique \
-                (this shouldn't happen FIXME)"
-         | _ ->
-             (* alt: could return an empty program, but better to be defensive*)
-             failwith
-               "requesting generic AST for an unspecified target language"
-       in
-       Parse_with_caching.parse_and_resolve_name ~parsing_cache_dir
-         AST_generic.version lang file)
-  in
-  {
-    Xtarget.source = File file;
-    file;
-    xlang;
-    lazy_content = lazy (UFile.read_file file);
-    lazy_ast_and_errors;
-  }
-
 let lockfile_target_of_location
     ({ source; file; kind = lockfile_kind; manifest } :
       Target_location.lockfile) =
@@ -876,8 +848,11 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let xtarget =
-             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
-               t.analyzer t.file
+             Xtarget.resolve
+               (Parse_with_caching.parse_and_resolve_name
+                  ~parsing_cache_dir:config.parsing_cache_dir
+                  AST_generic.version)
+               t
            in
            let extracted_targets =
              Match_extract_mode.extract ~match_hook ~timeout:config.timeout
@@ -1019,8 +994,10 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
       let xtarget =
-        xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir analyzer
-          file
+        Xtarget.resolve
+          (Parse_with_caching.parse_and_resolve_name
+             ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version)
+          target
       in
       let lockfile_target =
         Option.map lockfile_target_of_location target.lockfile

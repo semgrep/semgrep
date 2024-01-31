@@ -125,9 +125,6 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-val xtarget_of_file :
-  parsing_cache_dir:Fpath.t option -> Xlang.t -> Fpath.t -> Xtarget.t
-
 (*
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.

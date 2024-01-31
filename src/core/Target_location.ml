@@ -79,4 +79,3 @@ let source (target : t) : Source.t =
   match target with
   | Code { source; _ }
   | Lockfile { source; _ } ->
-      source
