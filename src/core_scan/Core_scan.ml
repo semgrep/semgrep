@@ -964,6 +964,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
         | [] -> Not_scanned
         | _ -> Scanned (Original lockfile)
       in
+      (* TODO: run all the right hooks *)
       (RP.collate_rule_results lockfile dep_matches, was_scanned)
   | `CodeTarget target ->
       let file = Fpath.v target.path in
