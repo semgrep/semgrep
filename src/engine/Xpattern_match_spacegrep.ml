@@ -64,7 +64,7 @@ let preprocess_spacegrep (xconfig : Match_env.xconfig) src =
       in
       Spacegrep.Comment.remove_comments_from_src style src
 
-let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
+let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file source =
   matches_of_matcher spacegreps
     {
       init =
@@ -110,6 +110,5 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
                 Some (Spacegrep.Parse_doc.of_src src, src));
       matcher = spacegrep_matcher xconfig;
     }
-    (Fpath.v file)
-    (File (Fpath.v file))
+    (Fpath.v file) source
 [@@profiling]

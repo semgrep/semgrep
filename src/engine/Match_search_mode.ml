@@ -457,7 +457,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
-  let { Xtarget.file; lazy_content; _ } = xtarget in
+  let { Xtarget.file; lazy_content; source; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -471,10 +471,11 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
   RP.collate_pattern_results
     [
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
-      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps !!file;
+      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps !!file
+        source;
       Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
-        !!file;
-      Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
+        !!file source;
+      Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file source;
     ]
 [@@profiling]
 
