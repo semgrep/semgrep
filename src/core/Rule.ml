@@ -64,7 +64,7 @@ type 'a loc = {
  * Match_tainting_mode.Formula_tbl formula cache.
  *)
 type formula_kind =
-  | P of (Xpattern.t[@name "xpattern"]) (* a leaf pattern *)
+  | P of Xpattern.t (* a leaf pattern *)
   (* The conjunction must contain at least
      * one positive "term" (unless it's inside a CondNestedFormula, in which
      * case there is not such a restriction).
@@ -119,13 +119,13 @@ and metavar_cond =
       MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondType of
       MV.mvar
-      * (Xlang.t[@name "xlang"]) option
+      * Xlang.t option
       (* when the type expression is in different lang *)
       * string list (* raw input string saved for regenerating rule yaml *)
       * AST_generic.type_ list
     (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
-  | CondNestedFormula of MV.mvar * (Xlang.t[@name "xlang"]) option * formula
+  | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
 and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 
