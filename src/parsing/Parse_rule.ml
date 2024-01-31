@@ -737,7 +737,9 @@ let parse_dependency_pattern key env value : R.dependency_pattern =
   let rd = yaml_to_dict env key value in
   let ecosystem = take_key rd env parse_ecosystem "namespace" in
   let package_name = take_key rd env parse_string "package" in
-  let version_constraint = take_key rd env parse_string "version" in
+  let version_constraint =
+    take_key rd env parse_string "version" |> Parse_version.parse_constraint
+  in
   R.{ ecosystem; package_name; version_constraint }
 
 let parse_dependency_formula env key value : R.dependency_formula =

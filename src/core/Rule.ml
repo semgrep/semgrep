@@ -569,10 +569,11 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 (* You can only do single layer deep OR *)
 type dependency_formula = dependency_pattern list
 
+(* A pattern to  *)
 and dependency_pattern = {
   ecosystem : Dependency.ecosystem;
   package_name : string;
-  version_constraint : string;
+  version_constraint : Dependency.version_constraint;
 }
 [@@deriving show, eq]
 

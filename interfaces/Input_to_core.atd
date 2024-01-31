@@ -33,17 +33,29 @@ type lockfile_kind <ocaml attr="deriving show"> = string wrap <ocaml module="Loc
 
 type manifest_kind <ocaml attr="deriving show"> = string wrap <ocaml module="Manifest_kind">
 
+
+(* A dependency manifest, which should contain a list of direct dependencies *)
 type manifest_target <ocaml attr="deriving show"> = {
   path : string;
   manifest_kind : manifest_kind;
 }
 
+
+(* A lockfile to be matched against dependency patterns *)
+(* Optionally associated to a [manifest_target], which specifies which dependencies are direct *)
 type lockfile_target <ocaml attr="deriving show"> = {
   path : string;
   lockfile_kind : lockfile_kind;
   manifest_target : manifest_target option;
 }
 
+
+(*
+  A normal semgrep target, optionally with an associated [lockfile_target]
+  The lockfile_target means: the code in this file has its dependencies specified by this lockfile
+  We dont' want to commit to a specific way of associating these in semgrep-core, so we leave it
+  up to the caller (pysemgrep or osemgrep) to do it.
+*)
 type code_target <ocaml attr="deriving show"> = {
   path: string (* source file *);
   (* Must be a valid target analyzer as defined in Xlang.mli.
@@ -54,6 +66,9 @@ type code_target <ocaml attr="deriving show"> = {
   ?lockfile_target: lockfile_target option;
 }
 
+(* A target can either be a traditional code target (now with optional associated lockfile)
+   or it can be a lockfile target, which will be used to generate lockfile-only findings
+*)
 type target <ocaml attr="deriving show"> = [
   | CodeTarget of code_target
   | LockfileTarget of lockfile_target
