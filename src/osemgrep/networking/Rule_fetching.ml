@@ -572,7 +572,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
                ( Common.spf
                    "invalid configuration file found (%d configs were invalid)"
                    (List.length errors),
-                 Some Exit_code.missing_config ));
+                 Some (Exit_code.missing_config ~__LOC__) ));
         (* NOTE: We should default to config auto if no config was passed in an earlier step,
            but if we reach this step without a config, we emit the error below.
         *)
@@ -582,7 +582,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
                ( "No config given. Run with `--config auto` or see \
                   https://semgrep.dev/docs/running-rules/ for instructions on \
                   running with a specific config",
-                 Some Exit_code.missing_config ));
+                 Some (Exit_code.missing_config ~__LOC__) ));
 
         Lwt.return (rules_and_origins, errors)
     (* better: '-e foo -l regex' was not handled in pysemgrep
@@ -599,7 +599,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
       (Error.Semgrep_error
          ( Common.spf "Ran with --strict and got %s while loading configs"
              (String_.unit_str (List.length errors) "error"),
-           Some Exit_code.missing_config ));
+           Some (Exit_code.missing_config ~__LOC__) ));
 
   (* errors should be empty here, because patterns cannot yet return errors *)
   Lwt.return rules_and_origins

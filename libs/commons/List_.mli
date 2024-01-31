@@ -4,6 +4,13 @@
  *)
 val null : 'a list -> bool
 
+(* Stack-safe implementation of List.append aka (@) *)
+val append : 'a list -> 'a list -> 'a list
+val ( @ ) : 'a list -> 'a list -> 'a list
+
+(* Stack-safe implementation of List.fold_right *)
+val fold_right : ('elt -> 'acc -> 'acc) -> 'elt list -> 'acc -> 'acc
+
 val map : ('a -> 'b) -> 'a list -> 'b list
 (** Same as [List.map] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from

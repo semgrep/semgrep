@@ -13,3 +13,8 @@ val erase_this_temp_file : Fpath.t -> unit
 *)
 val replace_named_pipe_by_regular_file_if_needed :
   ?prefix:string -> Fpath.t -> Fpath.t
+
+(* Create a temporary file holding the contents of stdin. Works like
+   'replace_named_pipe_by_regular_file_if_needed' above.
+*)
+val replace_stdin_by_regular_file : ?prefix:string -> unit -> Fpath.t

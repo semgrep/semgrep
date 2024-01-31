@@ -334,9 +334,13 @@ let ( @ ) = ( @ )
  * See also for In: Scanf/Lexing/Parsing
  *)
 
+(*
+I don't know how to use stdin if it's shadowed -- Martin
+
 let stdin = ()
 let stdout = ()
 let stderr = ()
+*)
 
 (* printing on stdout *)
 let print_char = ()
