@@ -1,3 +1,6 @@
+module R = Rule
+module PM = Pattern_match
+
 type dependency_match_table =
   (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
 
@@ -102,6 +105,47 @@ let match_dependencies lockfile_target rule =
 let match_all_dependencies lockfile_target =
   List_.map (fun rule -> (rule, match_dependencies lockfile_target rule))
 
+let check_rule rule target dependency_formula =
+  let _, parse_time =
+    Common.with_time (fun () ->
+        Lazy.force target.Lockfile_target.lazy_lockfile_ast_and_errors)
+  in
+  let matches, match_time =
+    Common.with_time (fun () ->
+        match_dependency_formula target dependency_formula)
+  in
+  let matches =
+    matches
+    |> List_.map (fun ((dep, pat) : PM.dependency_match) ->
+           PM.
+             {
+               rule_id =
+                 {
+                   id = fst rule.R.id;
+                   message = rule.R.message;
+                   fix = rule.R.fix;
+                   fix_regexp = rule.R.fix_regexp;
+                   langs = Xlang.to_langs rule.R.target_analyzer;
+                   (* TODO: What should this be? *)
+                   pattern_string = "";
+                 };
+               file = target.lockfile;
+               (* TODO: should be pro? Where is this supposed to be set? *)
+               engine_kind = `OSS;
+               range_loc = dep.Dependency.loc;
+               tokens = lazy dep.Dependency.toks;
+               env = [];
+               taint_trace = None;
+               (* TODO: What if I have a secrets rule with a dependency pattern *)
+               validation_state = `No_validator;
+               severity_override = None;
+               metadata_override = None;
+               dependency_match_data = LockfileOnlyPM (dep, pat);
+             })
+  in
+  Core_result.make_match_result matches Core_error.ErrorSet.empty
+    { Core_profiling.parse_time; match_time; rule_id = fst rule.R.id }
+
 let annotate_pattern_match dep_matches pm =
   match dep_matches with
   | None -> [ pm ]
@@ -123,4 +167,6 @@ let annotate_pattern_match dep_matches pm =
                            && String.equal dep.package_name
                                 (fst dm).package_name))
              then None
-             else Some { pm with Pattern_match.dependency_match = Some dm })
+             else
+               Some
+                 { pm with Pattern_match.dependency_match_data = CodePMwith dm })
