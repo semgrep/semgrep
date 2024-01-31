@@ -128,8 +128,6 @@ a few other projects developed at r2c.
 (package (name git_wrapper)
   (synopsis "Wrappers for the git CLI")
   (description "Utility functions for interacting with git on the command-line.")
-  (depends
-    (timedesc (>= "2.0.0")))
 )
 (package (name glob)
   (synopsis "XXX")
@@ -472,6 +470,7 @@ For more information see https://semgrep.dev
     uuidm
     trace
     trace-tef ; will probably switch this out for a different backend
+    (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
     ; web stuff
     uri
