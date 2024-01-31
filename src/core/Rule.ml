@@ -54,35 +54,6 @@ type 'a loc = {
 (* Formula (patterns boolean composition) *)
 (*****************************************************************************)
 
-class virtual ['self] map_parent =
-  object (_self : 'self)
-    (* Virtual methods *)
-    method virtual visit_xpattern : 'env. 'env -> Xpattern.t -> Xpattern.t
-    method virtual visit_mvar : 'env. 'env -> MV.mvar -> MV.mvar
-
-    method virtual visit_regexp_string
-        : 'env. 'env -> Xpattern.regexp_string -> Xpattern.regexp_string
-
-    method virtual visit_tok : 'env. 'env -> tok -> tok
-
-    method virtual visit_type_
-        : 'env. 'env -> AST_generic.type_ -> AST_generic.type_
-
-    method virtual visit_expr
-        : 'env. 'env -> AST_generic.expr -> AST_generic.expr
-
-    method virtual visit_xlang : 'env. 'env -> Xlang.t -> Xlang.t
-
-    (* Stubs *)
-    method visit_xpattern _env x = x
-    method visit_mvar _env x = x
-    method visit_regexp_string _env x = x
-    method visit_tok _env x = x
-    method visit_type_ _env x = x
-    method visit_expr _env x = x
-    method visit_xlang _env x = x
-  end
-
 (* Classic boolean-logic/set operators with text range set semantic.
  * The main complication is the handling of metavariables and especially
  * negation in the presence of metavariables.
@@ -160,9 +131,7 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
-and focus_mv_list = tok * MV.mvar list
-[@@deriving
-  show, eq, hash, visitors { variety = "map"; ancestors = [ "map_parent" ] }]
+and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Semgrep_output aliases *)
