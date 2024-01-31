@@ -45,7 +45,31 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>.json -j <MASKED> -strict -targets <MASKED> -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-<semgrep-core stderr not captured, should be printed above>
+minirules [{ Mini_rule.id = "1";
+   pattern =
+   (E
+      { e =
+        (Call (
+           { e =
+             (N
+                (Id (("print", ()),
+                   { id_resolved = ref (None); id_type = ref (None);
+                     id_svalue = ref (None); id_flags = ref (0);
+                     id_info_id = 7 }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false },
+           ((),
+            [(Arg
+                { e = (L (String ((), ("...", ()), ()))); e_id = 0;
+                  e_range = None; is_implicit_return = false })
+              ],
+            ())
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false });
+   inside = false; message = ""; severity = `Error; langs = [Python];
+   pattern_string = "print(\"...\")"; fix = None; fix_regexp = None }
+  ]
+We put in 1 minirules and got 2 matches
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
