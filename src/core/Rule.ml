@@ -581,7 +581,23 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 (* You can only do single layer deep OR *)
 type dependency_formula = dependency_pattern list
 
-(* A pattern to  *)
+(* A pattern to match against versions in a lockfile.
+
+   Here's a breakdown of how this interacts with normal patterns:
+   * Rule has only normal patterns:
+      Rule behaves as normal
+   * Rule has normal patterns and dependency patterns:
+      If *both* match, the rule produces "reachable" findings: code findings annotated with dependency findings
+      If only the code patterns match, the rule produces *no* findings
+      If only the dependency patterns match, the rule produces "lockfile-only" findings: dependency findings without code findings
+   * Rule has only dependency patterns:
+      Rule only produces "lockfile-only" findings
+
+   Currently version_constraint can only have one constraint, e.g. >= 1.0.0 or <= 3.2.5,
+   but it should be possible to express intersections of constraints, e.g. >= 1.0.0 && <= 3.2.5,
+   and ideally we'd just have a constraint AST that wasn't split up so that unions can only appear
+   at the top level. This is just copying how it works in python for now.
+*)
 and dependency_pattern = {
   ecosystem : Dependency.ecosystem;
   package_name : string;
