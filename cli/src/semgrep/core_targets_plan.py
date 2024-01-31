@@ -57,11 +57,14 @@ class Task:
         )
 
     def to_json(self) -> Any:
-        return {
-            "path": self.path,
-            "analyzer": self.analyzer,
-            "products": tuple(x.to_json() for x in self.products),
-        }
+        return [
+            "CodeTarget",
+            {
+                "path": self.path,
+                "analyzer": self.analyzer,
+                "products": tuple(x.to_json() for x in self.products),
+            },
+        ]
 
 
 class TargetMappings(List[Task]):
