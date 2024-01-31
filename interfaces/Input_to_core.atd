@@ -29,40 +29,35 @@ type product
 ]
 
 
-type lockfile_kind <ocaml attr="deriving show"> = [
-  | PackageLockJsonV3
-]
+type lockfile_kind <ocaml attr="deriving show"> = string wrap <ocaml module="Lockfile_kind">
 
-type manifest_kind <ocaml attr="deriving show"> = [
-  | PackageJson
-]
+type manifest_kind <ocaml attr="deriving show"> = string wrap <ocaml module="Manifest_kind">
 
-type analyzer <ocaml attr="deriving show"> = [
-  | XLang of xlang
-  | Lockfile of lockfile_kind
-]
-
-
-type manifest_data <ocaml attr="deriving show"> = {
+type manifest_target <ocaml attr="deriving show"> = {
   path : string;
   manifest_kind : manifest_kind;
 }
 
-type lockfile_data <ocaml attr="deriving show"> = {
+type lockfile_target <ocaml attr="deriving show"> = {
   path : string;
   lockfile_kind : lockfile_kind;
+  manifest_target : manifest_target option;
 }
 
-type target <ocaml attr="deriving show"> = {
+type code_target <ocaml attr="deriving show"> = {
   path: string (* source file *);
   (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
   *)
-  analyzer: analyzer;
+  analyzer: xlang;
   products: product list;
-  ?lockfile_data : lockfile_data option;
-  ?manifest_data : manifest_data option;
+  ?lockfile_target: lockfile_target option;
 }
+
+type target <ocaml attr="deriving show"> = [
+  | CodeTarget of code_target
+  | LockfileTarget of lockfile_target
+]
 
 (* The same path can be present multiple times in targets below, with
  * different languages each time, so a Python file can be both analyzed

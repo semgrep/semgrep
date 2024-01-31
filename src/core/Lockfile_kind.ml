@@ -1,10 +1,7 @@
-type t = PackageLockV3
+type t = PackageLockJsonV3 [@@deriving show, eq]
 
 let to_ecosystem = function
-  | PackageLockV3 -> Dependency.Npm
-
-let to_string = function
-  | PackageLockV3 -> "package-lock.json"
+  | PackageLockJsonV3 -> Dependency.Npm
 
 let supported_lockfiles = String.concat "," [ "package-lock.json v3" ]
 
@@ -13,5 +10,8 @@ let unsupported_lockfile_message (lockfile_s : string) =
     lockfile_s supported_lockfiles
 
 let of_string = function
-  | "PackageLockV3" -> PackageLockV3
+  | "PackageLockV3" -> PackageLockJsonV3
   | s -> failwith (unsupported_lockfile_message s)
+
+let wrap = of_string
+let unwrap = show
