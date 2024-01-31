@@ -41,7 +41,7 @@ let semgrepignore lines : Testutil_files.t =
 type repo_with_tests = {
   repo_name : string;
   repo_files : Testutil_files.t list;
-  tests : (string * (Cap.all_caps -> unit)) list;
+  tests : (string * (CLI.caps -> unit)) list;
 }
 
 let test_list_from_project_root =

@@ -53,7 +53,7 @@ let rule_files_and_rules_of_config_string caps
     raise
       (Error.Semgrep_error
          ( Common.spf "invalid configuration string found: %s" config_string,
-           Some Exit_code.missing_config ));
+           Some (Exit_code.missing_config ~__LOC__) ));
 
   rules_and_origin
   |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->

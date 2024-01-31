@@ -112,7 +112,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
         raise
           (Error.Semgrep_error
              ( Common.spf "invalid configuration string found: %s" config_str,
-               Some Exit_code.missing_config ));
+               Some (Exit_code.missing_config ~__LOC__) ));
 
       rules_and_errors
       |> List.iter (fun x ->
