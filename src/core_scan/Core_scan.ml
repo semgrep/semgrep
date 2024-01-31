@@ -729,13 +729,13 @@ let parse_lockfile :
     Fpath.t ->
     Dependency.t list = function
   (* TODO: add parsers, guard behind semgrep-pro  *)
-  | PackageLockJsonV3 -> failwith "parsing lockfiles not implemented"
+  | PackageLockJsonV3 -> fun _ _ -> []
 
 let parse_manifest :
     In.manifest_kind -> Fpath.t -> Dependency.manifest_dependency list =
   function
   (* TODO: add parsers, guard behind semgrep-pro  *)
-  | PackageJson -> failwith "parsing manifest files not implemented"
+  | PackageJson -> fun _ -> []
 
 let lockfile_target_of_input_to_core
     ({ path; lockfile_kind; manifest_target } : In.lockfile_target) =
