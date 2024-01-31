@@ -83,14 +83,12 @@ let () =
           (match opt_exit_code with
           | None -> base_msg
           | Some exit_code ->
-              Printf.sprintf "%s\nExit code %i: %s" base_msg
-                (Exit_code.to_int exit_code)
-                (Exit_code.to_message exit_code))
+              Printf.sprintf "%s\nExit code %i: %s" base_msg exit_code.code
+                exit_code.description)
     | Exit_code exit_code ->
         Some
-          (Printf.sprintf "Exit code %i: %s"
-             (Exit_code.to_int exit_code)
-             (Exit_code.to_message exit_code))
+          (Printf.sprintf "Exit code %i: %s" exit_code.code
+             exit_code.description)
     | _ -> None)
 
 (*****************************************************************************)

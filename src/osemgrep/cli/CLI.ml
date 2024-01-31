@@ -247,7 +247,8 @@ let safe_run ~debug f : Exit_code.t =
     | Error.Exit_code code -> code
     (* should never happen, you should prefer Error.Exit to Common.UnixExit
      * but just in case *)
-    | Common.UnixExit i -> Exit_code.of_int ~__LOC__ i
+    | Common.UnixExit i ->
+        Exit_code.of_int ~__LOC__ ~code:i ~description:"rogue UnixExit"
     (* TOPORT: PLEASE_FILE_ISSUE_TEXT for unexpected exn *)
     | Failure msg ->
         Logs.err (fun m -> m "Error: %s%!" msg);

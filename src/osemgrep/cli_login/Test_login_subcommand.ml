@@ -48,8 +48,7 @@ let with_logs ~f ~final =
             Exit_code.fatal ~__LOC__
       in
       UCommon.pr2
-        (spf "exit_code = %d, meaning = %s" (Exit_code.to_int code)
-           (Exit_code.to_message code));
+        (spf "exit_code = %d, meaning = %s" code.code code.description);
       final { exit_code = code; logs = log_content })
 
 (* we return a fun () to match Testo.test second element *)
