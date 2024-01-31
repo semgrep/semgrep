@@ -52,6 +52,7 @@ depends: [
   "uuidm"
   "trace"
   "trace-tef"
+  "timedesc" {>= "2.0.0"}
   "lsp" {= "1.15.1-5.0"}
   "uri"
   "cohttp-lwt-unix"
