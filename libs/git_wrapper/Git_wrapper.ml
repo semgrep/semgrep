@@ -60,7 +60,9 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-type sha = string [@@deriving show, eq, ord, sexp]
+
+type sha = (string[@printer fun fmt -> fprintf fmt "%s"])
+[@@deriving show, eq, ord, sexp]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
