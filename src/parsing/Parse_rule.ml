@@ -738,7 +738,9 @@ let parse_dependency_pattern key env value : R.dependency_pattern =
   let ecosystem = take_key rd env parse_ecosystem "namespace" in
   let package_name = take_key rd env parse_string "package" in
   let version_constraint =
-    take_key rd env parse_string "version" |> Parse_version.parse_constraint
+    (* TODO: version parser *)
+    take_key rd env parse_string "version" |> fun _ ->
+    Dependency.{ version = Other "not implemented"; constraint_ = Eq }
   in
   R.{ ecosystem; package_name; version_constraint }
 
