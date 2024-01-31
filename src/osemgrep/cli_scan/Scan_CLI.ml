@@ -829,6 +829,20 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
+let replace_target_roots_by_regular_files_where_needed
+    (target_roots : string list) : Rfpath.t list =
+  target_roots
+  |> List_.map (fun str ->
+         let fpath =
+           match str with
+           | "-" ->
+               UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+           | str ->
+               UTmp.replace_named_pipe_by_regular_file_if_needed
+                 ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
+         in
+         Rfpath.of_fpath fpath)
+
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
@@ -847,7 +861,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-    let target_roots = target_roots |> List_.map Rfpath.of_string in
+    let target_roots =
+      replace_target_roots_by_regular_files_where_needed target_roots
+    in
     let project_root =
       let is_git_repo remote =
         remote |> Git_wrapper.remote_repo_name |> Option.is_some

@@ -85,7 +85,7 @@ let metrics_init (caps : < Cap.random >) : unit =
 *)
 let log_cli_feature (flag : string) : unit =
   Metrics_.add_feature "cli-flag"
-    (flag
+    (flag (* TODO: don't use Base unless there's some agreement about it. *)
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
     |> Base.String.chop_prefix_if_exists ~prefix:"-")
 
@@ -164,7 +164,9 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
       Metrics_.add_feature "subcommand" subcmd;
       Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x ->
+             (* TODO: don't use JaneStreet Base until we agree to do so *)
+             not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.

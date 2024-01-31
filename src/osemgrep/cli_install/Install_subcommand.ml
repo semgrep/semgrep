@@ -28,7 +28,9 @@ let chop_origin_if_needed branch : string =
        *)
       "develop"
   (* let's chop the origin *)
-  | _ when Base.String.is_prefix ~prefix:"origin/" branch ->
+  | _
+    when (* TODO: don't use JaneStreet Base until we agree to do so *)
+         Base.String.is_prefix ~prefix:"origin/" branch ->
       Base.String.chop_prefix_exn ~prefix:"origin/" branch
   | _ -> branch
 
