@@ -15,7 +15,7 @@ let mask_temp_git_hash =
 (* Precisely mask the hexadecimal part in a temp folder name
    such as 'test-1e92745e' *)
 let mask_test_dirname =
-  Testo.mask_pcre_pattern ~mask:"test-<HEX>" "test-[a-f0-9]{8}"
+  Testo.mask_pcre_pattern ~mask:"test-<HEX>" "test-[a-f0-9]{1,8}"
 
 let mask_output =
   [ mask_temp_git_hash; mask_test_dirname; Testo.mask_temp_paths () ]
