@@ -54,6 +54,35 @@ type 'a loc = {
 (* Formula (patterns boolean composition) *)
 (*****************************************************************************)
 
+class virtual ['self] map_parent =
+  object (_self : 'self)
+    (* Virtual methods *)
+    method virtual visit_xpattern : 'env. 'env -> Xpattern.t -> Xpattern.t
+    method virtual visit_mvar : 'env. 'env -> MV.mvar -> MV.mvar
+
+    method virtual visit_regexp_string
+        : 'env. 'env -> Xpattern.regexp_string -> Xpattern.regexp_string
+
+    method virtual visit_tok : 'env. 'env -> tok -> tok
+
+    method virtual visit_type_
+        : 'env. 'env -> AST_generic.type_ -> AST_generic.type_
+
+    method virtual visit_expr
+        : 'env. 'env -> AST_generic.expr -> AST_generic.expr
+
+    method virtual visit_xlang : 'env. 'env -> Xlang.t -> Xlang.t
+
+    (* Stubs *)
+    method visit_xpattern _env x = x
+    method visit_mvar _env x = x
+    method visit_regexp_string _env x = x
+    method visit_tok _env x = x
+    method visit_type_ _env x = x
+    method visit_expr _env x = x
+    method visit_xlang _env x = x
+  end
+
 (* Classic boolean-logic/set operators with text range set semantic.
  * The main complication is the handling of metavariables and especially
  * negation in the presence of metavariables.
@@ -63,9 +92,14 @@ type 'a loc = {
  * We use 'deriving hash' for formula because of the
  * Match_tainting_mode.Formula_tbl formula cache.
  *)
-type formula =
-  | P of Xpattern.t (* a leaf pattern *)
-  | And of tok * conjunction
+type formula_kind =
+  | P of (Xpattern.t[@name "xpattern"]) (* a leaf pattern *)
+  (* The conjunction must contain at least
+     * one positive "term" (unless it's inside a CondNestedFormula, in which
+     * case there is not such a restriction).
+     * See also split_and().
+  *)
+  | And of tok * formula list
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -90,14 +124,9 @@ type formula =
   *)
   | Anywhere of tok * formula
 
-(* The conjunction must contain at least
- * one positive "term" (unless it's inside a CondNestedFormula, in which
- * case there is not such a restriction).
- * See also split_and().
- *)
-and conjunction = {
+and formula = {
   (* pattern-inside:'s and pattern:'s *)
-  conjuncts : formula list;
+  f : formula_kind;
   (* metavariable-xyz:'s *)
   conditions : (tok * metavar_cond) list;
   (* focus-metavariable:'s *)
@@ -119,18 +148,21 @@ and metavar_cond =
       MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondType of
       MV.mvar
-      * Xlang.t option (* when the type expression is in different lang *)
+      * (Xlang.t[@name "xlang"]) option
+      (* when the type expression is in different lang *)
       * string list (* raw input string saved for regenerating rule yaml *)
       * AST_generic.type_ list
     (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
-  | CondNestedFormula of MV.mvar * Xlang.t option * formula
+  | CondNestedFormula of MV.mvar * (Xlang.t[@name "xlang"]) option * formula
 
 and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
-and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
+and focus_mv_list = tok * MV.mvar list
+[@@deriving
+  show, eq, hash, visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (*****************************************************************************)
 (* Semgrep_output aliases *)
@@ -327,7 +359,8 @@ let get_sink_requires { sink_requires; _ } =
  *
  * See 'taint_sink', field 'sink_is_func_with_focus'. *)
 let is_sink_func_with_focus sink_formula =
-  let rec is_inside_or_not = function
+  let rec is_inside_or_not { f; _ } =
+    match f with
     | Inside _
     | Not _ ->
         true
@@ -337,19 +370,20 @@ let is_sink_func_with_focus sink_formula =
     | Anywhere _ ->
         false
   in
-  let rec is_call_pattern = function
-    | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
-    | Or (_tok, formulas) ->
+  let rec is_call_pattern { f; focus; _ } =
+    match (f, focus) with
+    | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ }, _ -> true
+    | Or (_tok, formulas), _ ->
         (* Each case in an 'Or' is independent, all must be call patterns. *)
         List.for_all is_call_pattern formulas
-    | And (_, { conjuncts; focus = []; _ }) ->
+    | And (_, conjuncts), [] ->
         (* NOTE: No `focus-metavariable:` here to make sure this is matching a call. *)
         is_call_pattern_conjuncts conjuncts
-    | P _
-    | Inside _
-    | Not _
-    | And _
-    | Anywhere _ ->
+    | P _, _
+    | Inside _, _
+    | Not _, _
+    | And _, _
+    | Anywhere _, _ ->
         false
   and is_call_pattern_conjuncts conjuncts =
     (* The conjuncts that are 'inside' or 'not' (or an OR of those) can be
@@ -364,7 +398,7 @@ let is_sink_func_with_focus sink_formula =
   match sink_formula with
   (* THINK: Should we just assume that if there is 'focus' then the match should
    * be exact regardless of whether the 'conjuncts' are matching a function call? *)
-  | And (_, { conjuncts; focus = [ _focus ]; _ }) ->
+  | { f = And (_, conjuncts); focus = [ _focus ]; _ } ->
       is_call_pattern_conjuncts conjuncts
   | __else__ -> false
 
@@ -877,15 +911,15 @@ let () = Printexc.register_printer opt_string_of_exn
 let visit_new_formula f formula =
   let bref = ref false in
   let rec visit_new_formula f formula =
-    match formula with
+    match formula.f with
     | P p -> f p ~inside:!bref
     | Anywhere (_, formula)
     | Inside (_, formula) ->
         Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Not (_, x) -> visit_new_formula f x
     | Or (_, xs)
-    | And (_, { conjuncts = xs; _ }) ->
-        xs |> List.iter (visit_new_formula f)
+    | And (_, xs) ->
+        xs |> List.iter (fun formula -> visit_new_formula f formula)
   in
   visit_new_formula f formula
 
@@ -933,6 +967,14 @@ let xpatterns_of_rule rule =
   List.iter (visit_new_formula visit) formulae;
   !xpat_store
 
+let mk_formula ?(focus = []) ?(conditions = []) kind =
+  { f = kind; focus; conditions }
+
+let f kind = mk_formula kind
+
+let map_formula ~f { f = kind; focus; conditions } =
+  { f = f kind; focus; conditions }
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
@@ -950,7 +992,7 @@ let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
   |> Either_.partition_either (fun e ->
-         match e with
+         match e.f with
          (* positives *)
          | P _
          | And _
@@ -969,7 +1011,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
     id = (Rule_ID.of_string "-e", fk);
-    mode = `Search (P xpat);
+    mode = `Search (f (P xpat));
     min_version = None;
     max_version = None;
     (* alt: could put xpat.pstr for the message *)
