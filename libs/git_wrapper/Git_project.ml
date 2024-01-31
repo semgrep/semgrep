@@ -6,10 +6,12 @@
 
 type scanning_root_info = { project_root : Rfpath.t; inproject_path : Ppath.t }
 
-let default_project_root = Rfpath.of_string "."
-
-let force_project_root ?(project_root = (default_project_root : Rfpath.t))
-    (path : Rfpath.t) =
+let force_project_root ?(project_root : Rfpath.t option) (path : Rfpath.t) =
+  let project_root =
+    match project_root with
+    | None -> Rfpath.getcwd ()
+    | Some x -> x
+  in
   match Ppath.in_project ~root:project_root path with
   | Ok inproject_path -> { project_root; inproject_path }
   | Error msg -> failwith msg

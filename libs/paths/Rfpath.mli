@@ -17,3 +17,6 @@ val to_fpath : t -> Fpath.t
 
 (* Return the realpath *)
 val to_rpath : t -> Rpath.t
+
+(* Return the current directory "." *)
+val getcwd : unit -> t

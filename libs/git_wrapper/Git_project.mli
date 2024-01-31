@@ -37,11 +37,6 @@ val find_any_project_root :
   Rfpath.t ->
   Project.kind * scanning_root_info
 
-(* The default value of '?fallback_project_root', based on the current
-   working directory when starting the program. Use chdir very carefully
-   if at all! *)
-val default_project_root : Rfpath.t
-
 (*
    Provide a similar result as 'find_git_project_root' but don't look
    for a git project root. Instead, use the project root provided
