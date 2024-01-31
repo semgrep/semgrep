@@ -941,9 +941,6 @@ let mk_formula ?(focus = []) ?(conditions = []) kind =
 
 let f kind = mk_formula kind
 
-let map_formula ~f { f = kind; focus; conditions } =
-  { f = f kind; focus; conditions }
-
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
