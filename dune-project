@@ -126,8 +126,10 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 (package (name git_wrapper)
-  (synopsis "XXX")
-  (description "XXX")
+  (synopsis "Wrappers for the git CLI")
+  (description "Utility functions for interacting with git on the command-line.")
+  (depends
+    (timedesc (>= "2.0.0"))
 )
 (package (name glob)
   (synopsis "XXX")
