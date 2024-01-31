@@ -226,41 +226,47 @@ and translate_taint_spec
        ])
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
-  match f with
-  | P { pat; pstr; _ } -> (
-      match pat with
-      | Sem (_, _)
-      | Spacegrep _
-      | Aliengrep _ ->
-          `O [ ("pattern", `String (fst pstr)) ]
-      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
-  | Anywhere (_, f) -> `O [ ("anywhere", (translate_formula f :> Yaml.value)) ]
-  | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
-  | And (_, { conjuncts; focus; conditions; _ }) ->
-      let mk_focus_obj (_, mv_list) =
-        match mv_list with
-        | [] ->
-            (* probably shouldn't happen... *)
-            []
-        | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
-        | mvs -> [ `O [ ("focus", `A (List_.map (fun x -> `String x) mvs)) ] ]
-      in
-      `O
-        (("all", `A (List_.map translate_formula conjuncts :> Yaml.value list))
-        ::
-        (if focus =*= [] && conditions =*= [] then []
-         else
-           [
-             ( "where",
-               `A
-                 (List_.map
-                    (fun (_, cond) -> translate_metavar_cond cond)
-                    conditions
-                 @ List.concat_map mk_focus_obj focus) );
-           ]))
-  | Or (_, fs) ->
-      `O [ ("any", `A (List_.map translate_formula fs :> Yaml.value list)) ]
-  | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]
+  let rec aux { f; focus; conditions } =
+    let mk_focus_obj (_, mv_list) =
+      match mv_list with
+      | [] ->
+          (* probably shouldn't happen... *)
+          []
+      | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
+      | mvs -> [ `O [ ("focus", `A (List_.map (fun x -> `String x) mvs)) ] ]
+    in
+    let where_obj =
+      match (focus, conditions) with
+      | [], [] -> []
+      | _ ->
+          [
+            ( "where",
+              `A
+                (List_.map
+                   (fun (_, cond) -> translate_metavar_cond cond)
+                   conditions
+                @ List.concat_map mk_focus_obj focus) );
+          ]
+    in
+    let (`O objs) = aux' f in
+    `O (objs @ where_obj)
+  and aux' kind =
+    match kind with
+    | P { pat; pstr; _ } -> (
+        match pat with
+        | Sem (_, _)
+        | Spacegrep _
+        | Aliengrep _ ->
+            `O [ ("pattern", `String (fst pstr)) ]
+        | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
+    | Inside (_, f) -> `O [ ("inside", (aux f :> Yaml.value)) ]
+    | Anywhere (_, f) -> `O [ ("anywhere", (aux f :> Yaml.value)) ]
+    | Not (_, f) -> `O [ ("not", (aux f :> Yaml.value)) ]
+    | And (_, conjuncts) ->
+        `O [ ("all", `A (List_.map aux conjuncts :> Yaml.value list)) ]
+    | Or (_, fs) -> `O [ ("any", `A (List_.map aux fs :> Yaml.value list)) ]
+  in
+  aux f
 
 let rec json_to_yaml json : Yaml.value =
   match json with
