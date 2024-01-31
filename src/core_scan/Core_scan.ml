@@ -817,9 +817,7 @@ let targets_of_config (config : Core_scan_config.t) :
         failwith "if you use -targets and -rules, you should not specify a lang";
       match target_source with
       | Targets x ->
-          x
-          |> List_.map target_location_of_input_to_code
-          |> filter_existing_targets
+          x |> filter_existing_targets
       | Target_file target_file ->
           UFile.read_file target_file
           |> In.targets_of_string

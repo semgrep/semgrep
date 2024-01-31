@@ -48,15 +48,8 @@ let _ =
            in
            let targets =
              List.map
-               (fun f ->
-                 `CodeTarget
-                   Input_to_core_t.
-                     {
-                       path = f;
-                       analyzer = xlang;
-                       products = Product.all;
-                       lockfile_target = None;
-                     })
+               (fun f : Target_location.t ->
+                 Code (Target_location.code_of_source xlang Product.all (File (Fpath.v f))))
                source_files
            in
            let default_config = Output.default in
