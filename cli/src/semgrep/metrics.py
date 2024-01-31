@@ -2,6 +2,7 @@ import functools
 import hashlib
 import json
 import os
+import platform
 import uuid
 from collections import defaultdict
 from datetime import datetime
@@ -135,6 +136,8 @@ class Metrics:
                 projectHash=None,
                 ci=None,
                 isDiffScan=False,
+                os=platform.system(),
+                isTranspiledJS=False,
             ),
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),

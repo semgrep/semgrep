@@ -131,6 +131,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
           res
       in
       Logs.debug (fun m -> m "Found %d matches" (List.length matches));
+      Session.send_metrics session;
       (matches, scanned)
 
 (** Scan all folders in the workspace *)

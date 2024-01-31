@@ -47,6 +47,8 @@ type t = {
   in_agent : bool;
   (* $SEMGREP_xxx *)
   min_fetch_depth : int;
+  (* $MOCK_USING_REGISTRY *)
+  mock_using_registry : bool;
 }
 
 val v : t ref

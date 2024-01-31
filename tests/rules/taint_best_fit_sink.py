@@ -5,6 +5,9 @@ sink(tainted())
 sink(ok1 if tainted() else ok2)
 
 #ok:test
+sink([ok1 if tainted() else ok2])
+
+#ok:test
 sink(not_a_propagator(tainted()))
 
 #ok:test

@@ -67,23 +67,29 @@ let o_internal_ci_scan_results : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_supply_chain : bool Term.t =
-  let info = Arg.info [ "supply-chain" ] in
+  let info =
+    Arg.info [ "supply-chain" ] ~doc:{|Run Semgrep Supply Chain product.|}
+  in
   Arg.value (Arg.flag info)
 
 let o_code : bool Term.t =
-  let info = Arg.info [ "code" ] in
+  let info = Arg.info [ "code" ] ~doc:{|Run Semgrep Code (SAST) product.|} in
   Arg.value (Arg.flag info)
 
 let o_beta_testing_secrets : bool Term.t =
-  let info = Arg.info [ "beta-testing-secrets" ] in
+  let info =
+    Arg.info [ "beta-testing-secrets" ]
+      ~doc:{|Please use --secrets instead of --beta-testing-secrets.|}
+  in
   Arg.value (Arg.flag info)
 
 let o_secrets : bool Term.t =
   let info =
     Arg.info [ "secrets" ]
       ~doc:
-        {|Support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more information on this.|}
+        {|Run Semgrep Secrets product, including support for secret validation.
+          Requires access to Secrets, contact support@semgrep.com for more
+          information.|}
   in
   Arg.value (Arg.flag info)
 

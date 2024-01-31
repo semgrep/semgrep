@@ -36,4 +36,9 @@ val preprocess_result : conf -> Core_runner.result -> OutJ.cli_output
  *
  * ugly: this also apply autofixes depending on the configuration.
  *)
-val output_result : conf -> Profiler.t -> Core_runner.result -> OutJ.cli_output
+val output_result :
+  conf ->
+  Profiler.t ->
+  is_logged_in:bool ->
+  Core_runner.result ->
+  OutJ.cli_output

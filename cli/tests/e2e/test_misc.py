@@ -424,7 +424,6 @@ def test_nested_patterns_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_nested_pattern_either_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
@@ -432,9 +431,7 @@ def test_nested_pattern_either_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# TODO: This can be unmarked osemfail once we port cli_unique_key deduplication
 # https://github.com/returntocorp/semgrep/pull/8510
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_metavariable_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
@@ -700,9 +697,7 @@ def test_multiple_configs_different_origins(run_semgrep_in_tmp: RunSemgrep, snap
     )
 
 
-# TODO: This can be unmarked osemfail once we port cli_unique_key deduplication
 # https://github.com/returntocorp/semgrep/pull/8510
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_metavariable_propagation_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
@@ -736,7 +731,6 @@ def test_taint_mode(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_deduplication_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """

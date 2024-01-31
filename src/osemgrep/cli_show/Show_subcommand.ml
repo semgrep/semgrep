@@ -100,13 +100,20 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       let token_opt = settings.api_token in
       let in_docker = !Semgrep_envvars.v.in_docker in
       let config = Rules_config.parse_config_string ~in_docker config_str in
-      let rules_and_errors =
+      let rules_and_errors, errors =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
           ~token_opt ~registry_caching:false
           (caps :> < Cap.network >)
           config
       in
+
+      if errors <> [] then
+        raise
+          (Error.Semgrep_error
+             ( Common.spf "invalid configuration string found: %s" config_str,
+               Some Exit_code.missing_config ));
+
       rules_and_errors
       |> List.iter (fun x ->
              CapConsole.out stdout (Rule_fetching.show_rules_and_origin x));

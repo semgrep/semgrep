@@ -254,6 +254,6 @@ struct
 
   (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
 
-  let create () =
-    { session = Session.create capabilities; state = State.Uninitialized }
+  let create caps =
+    { session = Session.create caps capabilities; state = State.Uninitialized }
 end

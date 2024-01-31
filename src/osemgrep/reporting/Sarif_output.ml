@@ -174,10 +174,9 @@ let fixed_lines (cli_match : OutT.cli_match) fix =
       []
 
 let sarif_fix (cli_match : OutT.cli_match) =
-  match cli_match.extra.fix with
+  match cli_match.extra.fixed_lines with
   | None -> []
-  | Some fix ->
-      let fixed_lines = fixed_lines cli_match fix in
+  | Some fixed_lines ->
       let description_text =
         spf "%s\n Autofix: Semgrep rule suggested fix" cli_match.extra.message
       in
@@ -427,21 +426,23 @@ let error_to_sarif_notification (e : OutT.cli_error) =
       ("level", `String level);
     ]
 
-let sarif_output hrules (cli_output : OutT.cli_output) =
+let sarif_output is_logged_in hrules (cli_output : OutT.cli_output) =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
-  let engine_label =
+  let engine_label, is_pro =
     match cli_output.OutT.engine_requested with
     | Some `OSS
     | None ->
-        "OSS"
-    | Some `PRO -> "PRO"
+        ("OSS", false)
+    | Some `PRO -> ("PRO", true)
   in
   let run =
     let hide_nudge =
-      (* TODO is_logged_in or is_pro or not is_using_registry *)
-      true
+      let is_using_registry =
+        Metrics_.g.is_using_registry || !Semgrep_envvars.v.mock_using_registry
+      in
+      is_logged_in || is_pro || not is_using_registry
     in
     let rules = rules hide_nudge hrules in
     let tool =

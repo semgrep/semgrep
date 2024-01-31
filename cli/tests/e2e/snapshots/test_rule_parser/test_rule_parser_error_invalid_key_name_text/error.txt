@@ -1,6 +1,0 @@
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Invalid YAML file rules/syntax/invalid-patterns-key.yml:
-	while parsing a block mapping
-	  in "<file>", line 4, column 7
-	expected <block end>, but found '-'
-	  in "<file>", line 9, column 7
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs

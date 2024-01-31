@@ -320,34 +320,39 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
  * registry-cache aware.
  *)
 let parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps (file : Fpath.t)
-    : Rule.rules * Rule.invalid_rule_error list =
+    : (Rule.rules * Rule.invalid_rule_error list, Rule.error) Result.t =
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in
-  let rules, errors =
-    match FT.file_type_of_file file with
-    | FT.Config FT.Jsonnet ->
-        Logs.warn (fun m ->
-            m
-              "Support for Jsonnet rules is experimental and currently meant \
-               for internal use only. The syntax may change or be removed at \
-               any point.");
-        let ast = Parse_jsonnet.parse_program file in
-        let core =
-          Desugar_jsonnet.desugar_program
-            ~import_callback:(mk_import_callback ~registry_caching caps)
-            file ast
-        in
-        let value_ = Eval_jsonnet.eval_program core in
-        let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
-        (* TODO: put to true at some point *)
-        Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
-          ~error_recovery:false file gen
-    | _ ->
-        Parse_rule.parse_and_filter_invalid_rules
-          ~rewrite_rule_ids:rule_id_rewriter file
-  in
-  (List_.map (modify_registry_provided_metadata origin) rules, errors)
+  try
+    let rules, errors =
+      match FT.file_type_of_file file with
+      | FT.Config FT.Jsonnet ->
+          Logs.warn (fun m ->
+              m
+                "Support for Jsonnet rules is experimental and currently meant \
+                 for internal use only. The syntax may change or be removed at \
+                 any point.");
+          let ast = Parse_jsonnet.parse_program file in
+          let core =
+            Desugar_jsonnet.desugar_program
+              ~import_callback:(mk_import_callback ~registry_caching caps)
+              file ast
+          in
+          let value_ = Eval_jsonnet.eval_program core in
+          let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
+          (* TODO: put to true at some point *)
+          Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
+            ~error_recovery:false file gen
+      | _ ->
+          Parse_rule.parse_and_filter_invalid_rules
+            ~rewrite_rule_ids:rule_id_rewriter file
+    in
+    Ok (List_.map (modify_registry_provided_metadata origin) rules, errors)
+  with
+  | Rule.Error err -> Error err
+  | Parsing_error.Other_error (s, t) ->
+      Error { rule_id = None; kind = Rule.InvalidYaml (s, t) }
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -363,14 +368,14 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps (file : Fpath.t)
  * be a jsonnet file importing rules from the registry.
  *)
 let load_rules_from_file ~rewrite_rule_ids ~origin ~registry_caching caps
-    (file : Fpath.t) : rules_and_origin =
+    (file : Fpath.t) : (rules_and_origin, Rule.error) Result.t =
   Logs.debug (fun m -> m "loading local config from %s" !!file);
-  if Sys.file_exists !!file then (
-    let rules, errors =
-      parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps file
-    in
-    Logs.debug (fun m -> m "Done loading local config from %s" !!file);
-    { rules; errors; origin = Local_file file })
+  if Sys.file_exists !!file then
+    match parse_rule ~rewrite_rule_ids ~origin ~registry_caching caps file with
+    | Ok (rules, errors) ->
+        Logs.debug (fun m -> m "Done loading local config from %s" !!file);
+        Ok { rules; errors; origin = Local_file file }
+    | Error err -> Error err
   else
     (* This should never happen because Semgrep_dashdash_config only builds
      * a File case if the file actually exists.
@@ -378,7 +383,7 @@ let load_rules_from_file ~rewrite_rule_ids ~origin ~registry_caching caps
     Error.abort (spf "file %s does not exist anymore" !!file)
 
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
-    rules_and_origin Lwt.t =
+    (rules_and_origin, Rule.error) Result.t Lwt.t =
   let%lwt content = fetch_content_from_url_async ?token_opt caps url in
   let ext, content =
     if ext = "policy" then
@@ -394,29 +399,28 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
       | _failure -> (ext, content)
     else (ext, content)
   in
-  let rules =
-    Common2.with_tmp_file ~str:content ~ext (fun file ->
-        let file = Fpath.v file in
-        load_rules_from_file ~rewrite_rule_ids:false ~origin
-          ~registry_caching:false caps file)
-  in
-  Lwt.return rules
+  Common2.with_tmp_file ~str:content ~ext (fun file ->
+      let file = Fpath.v file in
+      load_rules_from_file ~rewrite_rule_ids:false ~origin
+        ~registry_caching:false caps file)
+  |> Lwt.return
 
 let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
-    rules_and_origin =
+    (rules_and_origin, Rule.error) Result.t =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
 [@@profiling]
 
 (* TODO: merge caps and token_opt and caps_opt? *)
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-    ~registry_caching caps kind : rules_and_origin list Lwt.t =
+    ~registry_caching caps kind :
+    (rules_and_origin list * Rule.error list) Lwt.t =
   match kind with
   | C.File path ->
       Lwt.return
-        [
-          load_rules_from_file ~rewrite_rule_ids ~registry_caching
-            ~origin:(Local_file path) caps path;
-        ]
+        (Result_.partition_result
+           (load_rules_from_file ~rewrite_rule_ids ~registry_caching
+              ~origin:(Local_file path) caps)
+           [ path ])
   | C.Dir dir ->
       (* We used to skip dot files under [dir], but keeping rules/.semgrep.yml,
        * but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
@@ -429,6 +433,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                ~registry_caching caps file)
+      |> Result_.partition_result Fun.id
       |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
@@ -440,23 +445,21 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
         load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
           caps url
       in
-      Lwt.return [ rules ]
+      [ rules ] |> Result_.partition_result Fun.id |> Lwt.return
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content =
         fetch_content_from_registry_url_async ~token_opt ~registry_caching caps
           url
       in
-      (* TODO: this also assumes every registry URL is for yaml *)
-      let rules =
-        Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-            let file = Fpath.v file in
-            [
-              load_rules_from_file ~rewrite_rule_ids ~origin:Registry
-                ~registry_caching caps file;
-            ])
-      in
-      Lwt.return rules
+      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+          let file = Fpath.v file in
+          [
+            load_rules_from_file ~rewrite_rule_ids ~origin:Registry
+              ~registry_caching caps file;
+          ])
+      |> Result_.partition_result Fun.id
+      |> Lwt.return
   | C.A Policy ->
       let token =
         match token_opt with
@@ -469,18 +472,18 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       in
       let caps = Auth.cap_token_and_network token caps in
       let uri = Semgrep_App.url_for_policy caps in
-      let%lwt rules =
+      let%lwt rules_and_errors =
         load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry caps
           uri
       in
       Metrics_.g.is_using_app <- true;
-      Lwt.return [ rules ]
+      [ rules_and_errors ] |> Result_.partition_result Fun.id |> Lwt.return
   | C.A SupplyChain ->
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
-    caps kind : rules_and_origin list =
+    caps kind : rules_and_origin list * Rule.error list =
   Lwt_platform.run
     (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
        ~registry_caching caps kind)
@@ -543,30 +546,71 @@ let rules_from_pattern pattern : rules_and_origin list =
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
-    caps (src : Rules_source.t) : rules_and_origin list Lwt.t =
-  match src with
-  | Configs xs ->
-      xs
-      |> Lwt_list.map_p (fun str ->
-             let in_docker = !Semgrep_envvars.v.in_docker in
-             let config = Rules_config.parse_config_string ~in_docker str in
-             rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-               ~registry_caching caps config)
-      |> Lwt.map List.concat
-  (* better: '-e foo -l regex' was not handled in pysemgrep
-   *  (got a weird 'invalid pattern clause' error)
-   * better: '-e foo -l generic' was not handled in semgrep-core
-   *)
-  | Pattern (pat, xlang_opt, fix) ->
-      Lwt.return (rules_from_pattern (pat, xlang_opt, fix))
+    ~strict caps (src : Rules_source.t) : rules_and_origin list Lwt.t =
+  let%lwt rules_and_origins, errors =
+    match src with
+    | Configs xs ->
+        let%lwt pairs_list =
+          xs
+          |> Lwt_list.map_p (fun str ->
+                 let in_docker = !Semgrep_envvars.v.in_docker in
+                 let config = Rules_config.parse_config_string ~in_docker str in
+                 rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+                   ~registry_caching caps config)
+        in
+        let rules_and_origins_nested, errors_nested =
+          Common2.unzip pairs_list
+        in
+        let rules_and_origins, errors =
+          (List.flatten rules_and_origins_nested, List.flatten errors_nested)
+        in
+
+        (* error handling: *)
+        if errors <> [] then
+          raise
+            (Error.Semgrep_error
+               ( Common.spf
+                   "invalid configuration file found (%d configs were invalid)"
+                   (List.length errors),
+                 Some Exit_code.missing_config ));
+        (* NOTE: We should default to config auto if no config was passed in an earlier step,
+           but if we reach this step without a config, we emit the error below.
+        *)
+        if rules_and_origins =*= [] then
+          raise
+            (Error.Semgrep_error
+               ( "No config given. Run with `--config auto` or see \
+                  https://semgrep.dev/docs/running-rules/ for instructions on \
+                  running with a specific config",
+                 Some Exit_code.missing_config ));
+
+        Lwt.return (rules_and_origins, errors)
+    (* better: '-e foo -l regex' was not handled in pysemgrep
+       *  (got a weird 'invalid pattern clause' error)
+       * better: '-e foo -l generic' was not handled in semgrep-core
+    *)
+    | Pattern (pat, xlang_opt, fix) ->
+        Lwt.return (rules_from_pattern (pat, xlang_opt, fix), [])
+  in
+
+  (* error handling: *)
+  if errors <> [] && strict then
+    raise
+      (Error.Semgrep_error
+         ( Common.spf "Ran with --strict and got %s while loading configs"
+             (String_.unit_str (List.length errors) "error"),
+           Some Exit_code.missing_config ));
+
+  (* errors should be empty here, because patterns cannot yet return errors *)
+  Lwt.return rules_and_origins
 
 (* You should probably avoid using directly this function and prefer
  * to use the _async variant above mixed with a spinner as in
  * Scan_subcommand.rules_from_rules_source()
  *)
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
-    (src : Rules_source.t) : rules_and_origin list =
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    ~strict caps (src : Rules_source.t) : rules_and_origin list =
   Lwt_platform.run
     (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
-       ~registry_caching caps src)
+       ~registry_caching ~strict caps src)
 [@@profiling]

@@ -123,7 +123,9 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
-    |> List_.map (Cli_json_output.cli_match_of_core_match hrules)
+    |> List_.map
+         (Cli_json_output.cli_match_of_core_match
+            ~dryrun:conf.output_conf.dryrun hrules)
     |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =
@@ -305,8 +307,8 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
   core_run_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
     conf.targeting_conf rules errors targets
 
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
-    rules_source =
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    ~strict caps rules_source =
   (* Create the wait hook for our progress indicator *)
   let spinner_ls =
     if Console_Spinner.should_show_spinner () then
@@ -316,12 +318,23 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching caps
   (* Fetch the rules *)
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
-      ~registry_caching
+      ~registry_caching ~strict
       (caps :> < Cap.network >)
       rules_source
   in
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
 [@@profiling]
+
+(* The test test_autofix.py::terraform-ec2-instance-metadata-options.yaml
+   carries a newline at the end of the "fix" string, which is not the case
+   for PySemgrep.
+   TODO Trimming the "fix" here is a hacky workaround, it may be better to dig
+   down where and why the newline is inserted into "fix".
+*)
+let trim_core_match_fix (r : OutJ.core_match) =
+  let fix = Option.map String.trim r.OutJ.extra.fix in
+  let extra = { r.extra with fix } in
+  { r with extra }
 
 (*****************************************************************************)
 (* Differential scanning *)
@@ -606,7 +619,9 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
         || Output_format.keep_ignores output_format
       in
       let filtered_matches =
-        Nosemgrep.filter_ignored ~keep_ignored res.core.results
+        res.core.results
+        |> List_.map trim_core_match_fix
+        |> Nosemgrep.filter_ignored ~keep_ignored
       in
       { res with core = { res.core with results = filtered_matches } }
     in
@@ -644,7 +659,10 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      Output.output_result { conf.output_conf with output_format } profiler res
+      let is_logged_in = Semgrep_login.is_logged_in () in
+      Output.output_result
+        { conf.output_conf with output_format }
+        profiler ~is_logged_in res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
@@ -693,7 +711,8 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        already-fixed file
     *)
     if conf.output_conf.autofix then
-      Autofix.apply_fixes_of_core_matches res.core.results;
+      Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
+        res.core.results;
 
     (* TOPORT? was in formater/base.py
        def keep_ignores(self) -> bool:
@@ -784,6 +803,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching
+      ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network >)
       conf.rules_source
   in

@@ -423,7 +423,10 @@ local homebrew_core_pr_job =
     'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,
-    'sleep-before-homebrew': sleep_before_homebrew_job,
-    'homebrew-core-pr': homebrew_core_pr_job,
+    // These two steps are no longer necessary because homebrew now
+    // autobumps us (as of 1/20/2024). Leaving it commented until
+    // we've had a few successful releases
+    // 'sleep-before-homebrew': sleep_before_homebrew_job,
+    // 'homebrew-core-pr': homebrew_core_pr_job,
   },
 }

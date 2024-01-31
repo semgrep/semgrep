@@ -216,6 +216,7 @@ local check_semgrep_pro_job = {
   name: 'Check Semgrep Pro Manifest',
   secrets: 'inherit',
   uses: './.github/workflows/check-semgrep-pro-version.yml',
+  // coupling: with pro-release.jsonnet in semgrep-pro
   with: {
     'bucket-name': 'deep-semgrep-artifacts',
     'manifest-key': 'versions-manifest.json',
@@ -508,6 +509,7 @@ local notify_success_job = {
     'bump-semgrep-action',
     'bump-semgrep-rpc',
     'bump-semgrep-app',
+    'bump-semgrep-vscode',
   ],
   'runs-on': 'ubuntu-20.04',
   steps: [
@@ -541,6 +543,7 @@ local notify_failure_job = {
     'bump-semgrep-action',
     'bump-semgrep-rpc',
     'bump-semgrep-app',
+    'bump-semgrep-vscode',
   ],
   'runs-on': 'ubuntu-20.04',
   steps: [
@@ -571,6 +574,7 @@ local notify_failure_job = {
     'bump-semgrep-app': bump_job('semgrep/semgrep-app'),
     'bump-semgrep-action': bump_job('semgrep/semgrep-action'),
     'bump-semgrep-rpc': bump_job('semgrep/semgrep-rpc'),
+    'bump-semgrep-vscode': bump_job('semgrep/semgrep-vscode'),
     'notify-success': notify_success_job,
     'notify-failure': notify_failure_job,
   },

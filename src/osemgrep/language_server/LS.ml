@@ -68,8 +68,8 @@ module LanguageServer = RPC_server.Make (MessageHandler)
 (*****************************************************************************)
 
 (* LET'S GOOOOOO *)
-let start () =
+let start caps =
   Logs.debug (fun m -> m "Starting Semgrep Language Server");
   Lwt_platform.set_engine ();
-  let server = LanguageServer.create () in
+  let server = LanguageServer.create caps in
   LanguageServer.start server

@@ -42,7 +42,7 @@ let log_command argv =
   flush stdout
 
 (* no need for a token to access public rules in the registry *)
-let test_scan_config_registry_no_token (caps : Cap.all_caps) =
+let test_scan_config_registry_no_token (caps : CLI.caps) =
   Testo.create __FUNCTION__ (fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
@@ -117,7 +117,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests caps =
+let tests (caps : CLI.caps) =
   Testo.categorize "Osemgrep (e2e)"
     [
       test_scan_config_registry_no_token caps;

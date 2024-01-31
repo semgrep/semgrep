@@ -29,7 +29,6 @@ open Semgrep_js_shared
 (* Code *)
 (*****************************************************************************)
 
-let server = ref (LS.LanguageServer.create ())
 let write_ref = ref (fun _ -> failwith "write_ref not set")
 
 (* JS specific IO for the RPC server *)
@@ -64,31 +63,37 @@ let scan_config_parser (scan_config_string : string) :
   scan_config_with_rules
 
 let _ =
-  RPC_server.io_ref := (module Io);
-  Logs.set_level (Some Logs.Debug);
-  Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
-  Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
-  Session.scan_config_parser_ref := scan_config_parser;
-  Js.export_all
-    (object%js
-       method init wasm_module =
-         init_jsoo wasm_module;
-         set_parser_wasm_module wasm_module;
-         Parsing_init.init ()
+  Cap.main (fun all_caps ->
+      RPC_server.io_ref := (module Io);
+      Logs.set_level (Some Logs.Debug);
+      Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
+      Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
+      Session.scan_config_parser_ref := scan_config_parser;
 
-       method setWriteRef f = write_ref := f
+      let server =
+        ref
+          (LS.LanguageServer.create (all_caps :> < Cap.random ; Cap.network >))
+      in
+      Js.export_all
+        (object%js
+           method init wasm_module =
+             init_jsoo wasm_module;
+             set_parser_wasm_module wasm_module;
+             Parsing_init.init ()
 
-       method handleClientMessage json =
-         let yojson = Yojson.Safe.from_string json in
-         let packet = Jsonrpc.Packet.t_of_yojson yojson in
-         Semgrep_js_shared.promise_of_lwt (fun () ->
-             let%lwt new_server, response_opt =
-               LS.LanguageServer.handle_client_message packet !server
-             in
-             server := new_server;
-             let response_json =
-               Option.map Jsonrpc.Packet.yojson_of_t response_opt
-               |> Option.map Yojson.Safe.to_string
-             in
-             Lwt.return (Js.Opt.option response_json))
-    end)
+           method setWriteRef f = write_ref := f
+
+           method handleClientMessage json =
+             let yojson = Yojson.Safe.from_string json in
+             let packet = Jsonrpc.Packet.t_of_yojson yojson in
+             Semgrep_js_shared.promise_of_lwt (fun () ->
+                 let%lwt new_server, response_opt =
+                   LS.LanguageServer.handle_client_message packet !server
+                 in
+                 server := new_server;
+                 let response_json =
+                   Option.map Jsonrpc.Packet.yojson_of_t response_opt
+                   |> Option.map Yojson.Safe.to_string
+                 in
+                 Lwt.return (Js.Opt.option response_json))
+        end))

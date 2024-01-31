@@ -1,7 +1,7 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/autofix/three-autofixes.py"
     ]
@@ -53,7 +53,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/three-autofixes.py",
       "start": {
@@ -108,7 +109,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/three-autofixes.py",
       "start": {
@@ -163,7 +165,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/three-autofixes.py",
       "start": {
@@ -173,5 +176,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

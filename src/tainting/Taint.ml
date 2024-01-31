@@ -62,7 +62,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Call traces *)
 (*****************************************************************************)
 
-type tainted_tokens = G.tok list [@@deriving show]
+type tainted_token = G.tok [@@deriving show]
+type tainted_tokens = tainted_token list [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
  * all potential paths. So a set of tokens seems more appropriate than a list.
  * TODO: May have to annotate each tainted token with a `call_trace` that explains
@@ -131,7 +132,10 @@ let rec _show_call_trace show_thing = function
 (*****************************************************************************)
 
 type arg_pos = { name : string; index : int } [@@deriving show, ord]
-type arg_base = BThis | BArg of arg_pos [@@deriving show, ord]
+
+type arg_base = BGlob of IL.name | BThis | BArg of arg_pos
+[@@deriving show, ord]
+
 type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
 
 let compare_arg { base = base1; offset = offset1 }
@@ -144,6 +148,7 @@ let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
 
 let _show_base base =
   match base with
+  | BGlob name -> fst name.ident
   | BThis -> "this"
   | BArg pos -> _show_pos pos
 
@@ -476,7 +481,8 @@ module Taint_set = struct
                * Otherwise we end up with taint sets where most of the taints are
                * essentially the same. This is probably due to
                * [see note "Taint-tracking via ranges" in Match_tainting_mode],
-               * and not having "Top_sources" [see note "Top matches" in 'Taint_smatch'].
+               * and not having "Best_sources" [see note "Best matches" in 'Taint_smatch'].
+               * TOOD: Revisit ^^^ now we have `exact: true` sources.
                *)
               let ts1' = of_list ts1 in
               let ts2' = of_list ts2 in

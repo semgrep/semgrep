@@ -503,14 +503,15 @@ let o_secrets : bool Term.t =
     Arg.info
       [ "beta-testing-secrets-enabled" ]
       ~doc:
-        {|Enable support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more information on this.|}
+        {|Please use --secrets instead of --beta-testing-secrets.
+          Requires Semgrep Secrets, contact support@semgrep.com for more
+          information on this.|}
   in
   Arg.value (Arg.flag info)
 
 let o_no_secrets_validation : bool Term.t =
   let info =
-    Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secrets validation|}
+    Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secret validation.|}
   in
   Arg.value (Arg.flag info)
 
@@ -541,7 +542,7 @@ let blurb =
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently just Apex). " ^ blurb)
+      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -558,7 +559,8 @@ let o_pro : bool Term.t =
   let info =
     Arg.info [ "pro" ]
       ~doc:
-        ("Inter-file analysis and Pro languages (currently just Apex). " ^ blurb)
+        ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
+       ^ blurb)
   in
   Arg.value (Arg.flag info)
 

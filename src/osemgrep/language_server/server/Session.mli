@@ -29,13 +29,17 @@ type t = {
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
+  caps : < Cap.random ; Cap.network >; [@opaque]
 }
 
 val show : t -> string
 (** [show t] returns a string representation of the session *)
 
-val create : ServerCapabilities.t -> t
-(** [create capabilities] creates a [Session.t] given server capabilities *)
+val create : < Cap.random ; Cap.network > -> ServerCapabilities.t -> t
+(** [create caps capabilities] creates a [Session.t] given server capabilities *)
+
+val send_metrics : t -> unit
+(** [send_metrics t] sends metrics to the server *)
 
 val save_local_skipped_fingerprints : t -> unit
 (** [save_local_skipped_fingerprints t] saves the skipped fingerprints in the session to disk *)

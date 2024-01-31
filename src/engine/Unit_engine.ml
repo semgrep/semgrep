@@ -507,8 +507,10 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                | Ok fix_file -> Fix (UFile.read_file fix_file)
                | Error _ -> (
                    (* A poor man's configuration format.
-                      Either two or three lines.
-                      regex-replacement or regex-count-replacement.
+                      This can either be two lines, the regex to match
+                      and the replacement content (one line),
+                      or 3+ lines, the regex to match, the number of matches
+                      to replace, and the replacement text (possibly multiline)
                    *)
                    match
                      related_file_of_target ~polyglot_pattern_path
@@ -517,12 +519,16 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                    | Ok fix_regex_file -> (
                        match UFile.cat fix_regex_file with
                        | [ l1; l2 ] -> FixRegex (l1, None, l2)
-                       | [ l1; l2; l3 ] ->
-                           FixRegex (l1, Some (int_of_string l2), l3)
+                       | l1 :: l2 :: l3 :: rest ->
+                           FixRegex
+                             ( l1,
+                               Some (int_of_string l2),
+                               String.concat "\n" (l3 :: rest) )
                        | _ ->
                            failwith
                              (Common.spf
-                                "found fix-regex file %s with <> 2 lines"
+                                "found fix-regex file %s with invalid number \
+                                 of lines"
                                 (Fpath.to_string fix_regex_file)))
                    | Error _ ->
                        failwith
@@ -637,7 +643,7 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules, _, _ = R.partition_rules rules in
+  let _, _, erules, _ = R.partition_rules rules in
   let erule_langs =
     erules |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
   in
@@ -682,12 +688,11 @@ let tainting_test lang rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let search_rules, taint_rules, extract_rules, secrets_rules, join_rules =
+  let search_rules, taint_rules, extract_rules, join_rules =
     Rule.partition_rules rules
   in
   assert (search_rules =*= []);
   assert (extract_rules =*= []);
-  assert (secrets_rules =*= []);
   assert (join_rules =*= []);
   let xconf = Match_env.default_xconfig in
 
@@ -859,7 +864,7 @@ let mark_todo_js (test : Testo.test) =
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "full semgrep rule Java", so one can just run the Java tests
  * with ./test Java
- * alt: do like in deep-semgrep and call the toplevel engine
+ * alt: do like in semgrep-pro and call the toplevel engine
  * in a Unit_runner.ml instead of using Test_engine.make_tests
  *)
 let full_rule_semgrep_rules_regression_tests () =
