@@ -67,7 +67,8 @@ type code_target <ocaml attr="deriving show"> = {
 }
 
 (* A target can either be a traditional code target (now with optional associated lockfile)
-   or it can be a lockfile target, which will be used to generate lockfile-only findings
+   or it can be a lockfile target, which will be used to generate lockfile-only findings.
+   Currently *ALL TARGETS FROM OSEMGREP AND PYSEMGREP ARE CODETARGETS*
 *)
 type target <ocaml attr="deriving show"> = [
   | CodeTarget of code_target

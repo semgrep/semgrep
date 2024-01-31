@@ -57,6 +57,8 @@ class Task:
         )
 
     def to_json(self) -> Any:
+        # Once we start sending supply chain rules to semgrep-core,
+        # we'll need to start sending LockfileTargets as well
         return [
             "CodeTarget",
             {
