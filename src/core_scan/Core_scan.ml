@@ -305,7 +305,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
     | CodePMwith (dmatched, _) ->
         Some
           ( dmatched.toks |> List.filter Tok.is_origintok,
-            dmatched.package_version )
+            dmatched.package_version_string )
     | _ -> None
   in
   (if config.mvars =*= [] then
@@ -1103,6 +1103,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
          (mk_target_handler config valid_rules prefilter_cache_opt adjusters
             match_hook)
   in
+  (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile finding in that lockfile *)
   let scanned_target_table =
     (* provide fast access to paths that were scanned by at least one rule;
        includes extracted targets *)
