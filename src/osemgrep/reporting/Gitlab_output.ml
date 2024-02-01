@@ -82,62 +82,61 @@ let format_cli_match (cli_match : OutT.cli_match) =
               },
   *)
   let r =
-    `Assoc
-      [
-        ("id", `String "TODO");
-        (*str(rule_match.uuid),  # create UUID from sha256 hash *)
-        ("category", `String "sast");
-        (* CVE is a required field from Gitlab schema.
-           It also is part of the determination for uniqueness
-           of a detected secret
-           /regardless/ of differentiated ID. See issue 262648.
-           https://gitlab.com/gitlab-org/gitlab/-/issues/262648
-           Gitlab themselves mock a CVE for findings that lack a CVE
-           Format: path:hash-of-file-path:check_id *)
-        ( "cve",
-          `String
-            (spf "%s:%s:%s"
-               (Fpath.to_string cli_match.path)
-               Digestif.SHA256.(
-                 to_hex (digest_string (Fpath.to_string cli_match.path)))
-               (Rule_ID.to_string cli_match.check_id)) );
-        ("message", `String cli_match.extra.message);
-        (* added to the GitLab SAST schema in 16.x, c.f.
-           https://gitlab.com/gitlab-org/gitlab/-/issues/339812
-           The above "message" field should be unused in 16.x and later! *)
-        ("description", `String cli_match.extra.message);
-        ("severity", `String (to_gitlab_severity cli_match.extra.severity));
-        ( "scanner",
-          `Assoc
-            [
-              ("id", `String "semgrep");
-              ("name", `String "Semgrep");
-              ("vendor", `Assoc [ ("name", `String "Semgrep") ]);
-            ] );
-        ( "location",
-          `Assoc
-            [
-              ("file", `String (Fpath.to_string cli_match.path));
-              (* Gitlab only uses line identifiers *)
-              ("start_line", `Int cli_match.start.line);
-              ("end_line", `Int cli_match.end_.line);
-            ] );
-        ( "identifiers",
-          `List
-            [
-              `Assoc
-                [
-                  ("type", `String "semgrep_type");
-                  ( "name",
-                    `String ("Semgrep - " ^ Rule_ID.to_string cli_match.check_id)
-                  );
-                  ("value", `String (Rule_ID.to_string cli_match.check_id));
-                  ("url", `String source);
-                ];
-            ] );
-        ("flags", `List (confidence_flags @ exposure_flags));
-        ("details", `Assoc (confidence_details @ exposure_details));
-      ]
+    [
+      ("id", `String "TODO");
+      (*str(rule_match.uuid),  # create UUID from sha256 hash *)
+      ("category", `String "sast");
+      (* CVE is a required field from Gitlab schema.
+         It also is part of the determination for uniqueness
+         of a detected secret
+         /regardless/ of differentiated ID. See issue 262648.
+         https://gitlab.com/gitlab-org/gitlab/-/issues/262648
+         Gitlab themselves mock a CVE for findings that lack a CVE
+         Format: path:hash-of-file-path:check_id *)
+      ( "cve",
+        `String
+          (spf "%s:%s:%s"
+             (Fpath.to_string cli_match.path)
+             Digestif.SHA256.(
+               to_hex (digest_string (Fpath.to_string cli_match.path)))
+             (Rule_ID.to_string cli_match.check_id)) );
+      ("message", `String cli_match.extra.message);
+      (* added to the GitLab SAST schema in 16.x, c.f.
+         https://gitlab.com/gitlab-org/gitlab/-/issues/339812
+         The above "message" field should be unused in 16.x and later! *)
+      ("description", `String cli_match.extra.message);
+      ("severity", `String (to_gitlab_severity cli_match.extra.severity));
+      ( "scanner",
+        `Assoc
+          [
+            ("id", `String "semgrep");
+            ("name", `String "Semgrep");
+            ("vendor", `Assoc [ ("name", `String "Semgrep") ]);
+          ] );
+      ( "location",
+        `Assoc
+          [
+            ("file", `String (Fpath.to_string cli_match.path));
+            (* Gitlab only uses line identifiers *)
+            ("start_line", `Int cli_match.start.line);
+            ("end_line", `Int cli_match.end_.line);
+          ] );
+      ( "identifiers",
+        `List
+          [
+            `Assoc
+              [
+                ("type", `String "semgrep_type");
+                ( "name",
+                  `String ("Semgrep - " ^ Rule_ID.to_string cli_match.check_id)
+                );
+                ("value", `String (Rule_ID.to_string cli_match.check_id));
+                ("url", `String source);
+              ];
+          ] );
+      ("flags", `List (confidence_flags @ exposure_flags));
+      ("details", `Assoc (confidence_details @ exposure_details));
+    ]
   in
   r
 
@@ -149,7 +148,7 @@ let format_cli_match (cli_match : OutT.cli_match) =
    - Schema:
      https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
 *)
-let sast_output matches =
+let output f matches =
   let header =
     [
       ( "$schema",
@@ -191,8 +190,30 @@ let sast_output matches =
         | `Info
         | `Warning
         | `Error ->
-            Some (format_cli_match cli_match))
+            Some (`Assoc (f cli_match)))
       matches
   in
   `Assoc
     (header @ [ ("scan", scan); ("vulnerabilities", `List vulnerabilities) ])
+
+let sast_output matches = output format_cli_match matches
+
+let secrets_format_cli_match (cli_match : OutT.cli_match) =
+  let r = format_cli_match cli_match in
+  let more =
+    [
+      ("category", `String "secret_detection");
+      ("raw_source_code_extract", `String cli_match.extra.lines);
+      ( "commit",
+        `Assoc
+          [
+            ("date", `String "1970-01-01T00:00:00Z");
+            (* Even the native Gitleaks based Gitlab secret detection
+               only provides a dummy value for now on relevant hash. *)
+            ("sha", `String "0000000");
+          ] );
+    ]
+  in
+  r @ more
+
+let secrets_output matches = output secrets_format_cli_match matches

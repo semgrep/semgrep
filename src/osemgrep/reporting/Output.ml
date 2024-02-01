@@ -146,9 +146,10 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
       Out.put (Yojson.Basic.to_string gitlab_sast_json)
   | Gitlab_secrets ->
-      Out.put
-        (spf "TODO: output format %s not supported yet"
-           (Output_format.show output_format))
+      let gitlab_secrets_json =
+        Gitlab_output.secrets_output cli_output.results
+      in
+      Out.put (Yojson.Basic.to_string gitlab_secrets_json)
 
 (*****************************************************************************)
 (* Entry points *)
