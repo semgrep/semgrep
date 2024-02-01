@@ -9,6 +9,7 @@
    terminal_size
    digestif
    xmlm
+   sarif
 
   osemgrep_configuring
    osemgrep_core
