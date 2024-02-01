@@ -298,19 +298,14 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let xpat_str_interp =
     Metavar_replacement.interpolate_metavars xpat_str
       (Metavar_replacement.of_out metavars)
-    |> String.escaped
   in
-  (* Python doesn't escape the double quote character, but ocaml does :/ so we need this monstrosity *)
-  let py_esc_reg = Str.regexp "\\\\\\\"" in
-  (* On the other hand Python escapes single quote character, but OCaml does not *)
-  let py_esc_reg' = Str.regexp "'" in
-  let xpat_str_interp = Str.global_replace py_esc_reg "\"" xpat_str_interp in
-  let xpat_str_interp = Str.global_replace py_esc_reg' "\\'" xpat_str_interp in
   (* We have been hashing w/ this PosixPath thing in python so we must recreate it here  *)
   (* We also have been hashing a tuple formatted as below *)
   let string =
-    spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path
-      (Rule_ID.to_string rule_id)
+    spf "(%s, PosixPath(%s), %s)"
+      (Python_str_repr.repr xpat_str_interp)
+      (Python_str_repr.repr path)
+      (Python_str_repr.repr (Rule_ID.to_string rule_id))
   in
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
