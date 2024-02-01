@@ -178,6 +178,13 @@ let target_path : In.target -> Fpath.t = function
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
+let sort_code_targets_by_decreasing_size (targets : In.code_target list) :
+    In.code_target list =
+  targets
+  |> List_.map (fun target -> (target, UFile.filesize (Fpath.v target.In.path)))
+  |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
+  |> List_.map fst
+
 let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
     =
   targets
