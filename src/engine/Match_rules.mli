@@ -12,11 +12,7 @@ exception File_timeout of Rule_ID.t list
  *      One, we'd have to make the dependency_match field of a Pattern_match.t mutable, but this minor.
  *      Two, it's currently possible for dependency matches to turn a single pattern match into *multiple* pattern matches,
  *      and match_hook cannot do this since it does not have access to the list of pattern matches produced by a rule.
- *      See: [annotate_pattern_match] in Match_dependency.ml
- *      This only happens in a very rare edge case: when we have multiple copies of a dependency in a lockfile, and they are *all*
- *      transitive, and the dependency is used in code. In this case we cannot tell which copy of the dependency is
- *      getting used, so we create a match for all of them. That's what the python code does. This is a very unusual
- *      case though, and it might be reasonable to just say this is undefined behavior and pick a random choice of match
+ *      See: [annotate_pattern_match] in Match_dependency.mli
  *
  * Return matches, errors, and match time.
  *
