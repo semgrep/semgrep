@@ -6,10 +6,10 @@ module Out = Semgrep_output_v1_t
 type dependency_match_table =
   (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
 
-type cmp = [ `EQ | `GT | `LT ] [@@deriving show]
+type cmp = [ `EQ | `GT | `LT ]
 
 let compare_version_core c1 c2 =
-  let cmp n m = if n > m then `GT else if n < m then `LT else `EQ in
+  let cmp n m : cmp = if n > m then `GT else if n < m then `LT else `EQ in
   let rec check = function
     | (i, j) :: is -> (
         match cmp i j with
@@ -56,8 +56,8 @@ let match_dependency_formula :
       match_dependency_pattern (Lazy.force lazy_lockfile_ast_and_errors) pat)
 
 let match_dependencies lockfile_target rule =
-  match (lockfile_target, rule.Rule.dependency_formula) with
-  | Some d, Some f -> Some (match_dependency_formula d f)
+  match rule.Rule.dependency_formula with
+  | Some f -> Some (match_dependency_formula lockfile_target f)
   | _ -> None
 
 let match_all_dependencies lockfile_target =

@@ -22,7 +22,7 @@ and t = {
   package_version_string : string;
   ecosystem : Out.ecosystem;
   transitivity : Out.transitivity;
-  url : string option;
+  url : Uri.t option;
   loc : Tok.location * Tok.location;
   toks : Tok.t list;
 }

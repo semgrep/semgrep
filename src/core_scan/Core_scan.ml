@@ -1006,11 +1006,14 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       in
       (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
       let _skipped_supply_chain, applicable_rules_with_dep_matches =
-        applicable_rules
-        |> Match_dependency.match_all_dependencies lockfile_target
-        |> Either_.partition_either (function
-             | rule, Some [] -> Left rule
-             | x -> Right x)
+        match lockfile_target with
+        | None -> ([], applicable_rules |> List_.map (fun x -> (x, None)))
+        | Some lockfile_target ->
+            applicable_rules
+            |> Match_dependency.match_all_dependencies lockfile_target
+            |> Either_.partition_either (function
+                 | rule, Some [] -> Left rule
+                 | x -> Right x)
       in
       let dependency_match_table =
         applicable_rules_with_dep_matches

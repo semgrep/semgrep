@@ -13,6 +13,7 @@ let of_string = function
   | "PackageJson" -> PackageJson
   | s -> failwith (unsupported_manifest_message s)
 
+(* For use in Input_to_core.atd *)
 let wrap = of_string
 let unwrap = show
 
