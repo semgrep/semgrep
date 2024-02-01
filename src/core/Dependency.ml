@@ -28,7 +28,10 @@ and t = {
 }
 [@@deriving show, eq]
 
-(* A dependency in a manifest may have a version range like >=1.0.0, and they are *direct* by definition *)
+(* A dependency in a manifest may have a version range like >=1.0.0, and they are *direct* by definition
+   Contains only an unparsed string for it's package_version_constraint because we never actually use it
+   for anything, so parsing it is pointless
+*)
 type manifest_dependency = {
   package_name : string;
   package_version_constraint_string : string;
