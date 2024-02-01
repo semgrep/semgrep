@@ -440,6 +440,9 @@ For more information see https://semgrep.dev
     ocolor
     ANSITerminal
     terminal_size
+    ; Unicode - used via python-str-repr
+    uucp
+    uutf
     ; logging
     (easy_logging ( = 0.8.1 ))
     (easy_logging_yojson ( = 0.8.1 ))
