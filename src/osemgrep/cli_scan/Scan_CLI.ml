@@ -829,19 +829,42 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
+(*
+   Return a list of files or folders that exist.
+   Stdin and named pipes are converted to temporary regular files.
+   The bool indicates that some paths were converted to temporary files without
+   a particular file name or extension.
+*)
 let replace_target_roots_by_regular_files_where_needed
-    (target_roots : string list) : Rfpath.t list =
-  target_roots
-  |> List_.map (fun str ->
-         let fpath =
-           match str with
-           | "-" ->
-               UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
-           | str ->
-               UTmp.replace_named_pipe_by_regular_file_if_needed
-                 ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
-         in
-         Rfpath.of_fpath fpath)
+    (target_roots : string list) : Rfpath.t list * bool =
+  let imply_always_select_explicit_targets = ref false in
+  let target_roots =
+    target_roots
+    |> List_.map (fun str ->
+           let fpath =
+             match str with
+             | "-" ->
+                 imply_always_select_explicit_targets := true;
+                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+             | str -> (
+                 let orig_path = Fpath.v str in
+                 match
+                   UTmp.replace_named_pipe_by_regular_file_if_needed
+                     ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
+                 with
+                 | None -> orig_path
+                 | Some new_path ->
+                     imply_always_select_explicit_targets := true;
+                     new_path)
+           in
+           Rfpath.of_fpath fpath)
+  in
+  if !imply_always_select_explicit_targets then
+    Logs.info (fun m ->
+        m
+          "Implying --scan-unknown-extensions due to explicit targets being \
+           stdin or named pipes");
+  (target_roots, !imply_always_select_explicit_targets)
 
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
@@ -861,7 +884,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-    let target_roots =
+    let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed target_roots
     in
     let project_root =
@@ -1047,7 +1070,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         baseline_commit;
         diff_depth;
         max_target_bytes;
-        always_select_explicit_targets = scan_unknown_extensions;
+        always_select_explicit_targets =
+          scan_unknown_extensions || imply_always_select_explicit_targets;
         explicit_targets;
         respect_gitignore;
       }

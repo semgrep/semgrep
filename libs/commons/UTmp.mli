@@ -10,9 +10,12 @@ val erase_this_temp_file : Fpath.t -> unit
    of that temporary file. This allows multiple reads on the file and
    avoids illegal seeks when reporting match results or parsing errors.
    The temporary file is deleted at_exit.
+
+   We return an option because it's useful to know whether the path
+   was replaced.
 *)
 val replace_named_pipe_by_regular_file_if_needed :
-  ?prefix:string -> Fpath.t -> Fpath.t
+  ?prefix:string -> Fpath.t -> Fpath.t option
 
 (* Create a temporary file holding the contents of stdin. Works like
    'replace_named_pipe_by_regular_file_if_needed' above.

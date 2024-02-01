@@ -46,17 +46,18 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
   Fpath.v tmp_path
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
-    (path : Fpath.t) : Fpath.t =
-  if !Common.jsoo then path
+    (path : Fpath.t) : Fpath.t option =
+  if !Common.jsoo then None
     (* don't bother supporting exotic things like fds if running in JS *)
   else
     match (UUnix.stat !!path).st_kind with
     | Unix.S_FIFO ->
         let data = UFile.read_file path in
         let suffix = "-" ^ Fpath.basename path in
-        write_temp_file_with_autodelete ~prefix ~suffix ~data
-    | _ -> path
+        Some (write_temp_file_with_autodelete ~prefix ~suffix ~data)
+    | _ -> None
 
 let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   let data = In_channel.input_all stdin in
+  Logs.debug (fun m -> m "stdin data: %S" data);
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data

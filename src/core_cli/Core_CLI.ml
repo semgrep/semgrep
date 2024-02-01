@@ -430,7 +430,13 @@ let options caps actions =
       Arg.String (fun s -> pattern_file := Some (Fpath.v s)),
       " <file> use the file content as the pattern" );
     ( "-rules",
-      Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
+      Arg.String
+        (fun s ->
+          let path = Fpath.v s in
+          (*
+        Printf.eprintf "-rules:\n%s\n%!" (UFile.read_file path);
+*)
+          rule_source := Some (Rule_file path)),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
@@ -440,7 +446,13 @@ let options caps actions =
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> shortcut for -lang" );
     ( "-targets",
-      Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
+      Arg.String
+        (fun s ->
+          let path = Fpath.v s in
+          (*
+        Printf.eprintf "-targets:\n%s\n%!" (UFile.read_file path);
+*)
+          target_source := Some (Target_file path)),
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
