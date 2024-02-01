@@ -729,8 +729,10 @@ let parse_ecosystem env key value =
   match value.G.e with
   | G.L (String (_, (ecosystem, _), _)) -> (
       match String.lowercase_ascii ecosystem with
-      | "npm" -> Dependency.Npm
-      | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem))
+      | _ ->
+          Dependency.Npm
+          (* | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem)) *)
+      )
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
 let parse_dependency_pattern key env value : R.dependency_pattern =
