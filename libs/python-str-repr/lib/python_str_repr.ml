@@ -172,88 +172,76 @@ unicode_repr(PyObject *unicode)
 let py_unicode_isprintable ?unicode_version uchar =
   (* {[    if char == ord(" ") or category[0] not in ("C", "Z"):
            flags |= PRINTABLE_MASK]} *)
-  Uchar.equal uchar (Uchar.of_char ' ') ||
+  Uchar.equal uchar (Uchar.of_char ' ')
+  ||
   let age = Uucp.Age.age uchar in
-  (match age, unicode_version with
-   | `Unassigned, _ -> false
-   | `Version _, None -> true
-   | `Version (major, minor), Some (major', minor') ->
-     major < major' || major = major' && minor <= minor') &&
+  (match (age, unicode_version) with
+  | `Unassigned, _ -> false
+  | `Version _, None -> true
+  | `Version (major, minor), Some (major', minor') ->
+      major < major' || (major = major' && minor <= minor'))
+  &&
   let gc = Uucp.Gc.general_category uchar in
   (* Not those categories starting with 'C' or 'Z' *)
   match gc with
-  | `Cc| `Cf | `Cn | `Cs | `Co | `Zs | `Zl | `Zp ->
-    false
+  | `Cc | `Cf | `Cn | `Cs | `Co | `Zs | `Zl | `Zp -> false
   | `Po | `Pc | `Sc | `Pd | `Lt | `Pf | `Ps | `Sm | `Nd | `Mc | `Sk | `Lo | `Nl
   | `Ll | `Pi | `So | `Lu | `Pe | `No | `Lm | `Mn | `Me ->
-    true
+      true
 
 let repr ?unicode_version s =
   let osize, squote, dquote =
     let folder (osize, squote, dquote) _pos c =
-      let c =
-        match c with
-        | `Uchar c -> c
-        | `Malformed _string -> Uutf.u_rep
-      in
+      let c = match c with `Uchar c -> c | `Malformed _string -> Uutf.u_rep in
       if Uchar.is_char c && Uchar.to_int c < 128 then
         match Uchar.to_char c with
         | '\'' -> (succ osize, succ squote, dquote)
         | '"' -> (succ osize, squote, succ dquote)
         | '\\' | '\t' | '\r' | '\n' -> (osize + 2, squote, dquote)
-        | '\x00'..'\x1f' (* c < ' ' *) | '\x7f' -> (osize + 4, squote, dquote)
-        | _printable ->
-          (succ osize, squote, dquote)
+        | '\x00' .. '\x1f' (* c < ' ' *) | '\x7f' -> (osize + 4, squote, dquote)
+        | _printable -> (succ osize, squote, dquote)
       else if py_unicode_isprintable ?unicode_version c then
         (osize + Uchar.utf_8_byte_length c, squote, dquote)
       else
         let utf8_byte_len = Uchar.utf_8_byte_length c in
-        (osize + 2 + 2 * utf8_byte_len, squote, dquote)
+        (osize + 2 + (2 * utf8_byte_len), squote, dquote)
     in
     Uutf.String.fold_utf_8 folder (0, 0, 0) s
   in
   let quote, osize =
-    match squote, dquote with
-    | 0, _ -> '\'', osize + 2
-    | _non_zero, 0 -> '"', osize + 2
-    | _non_zero, _non_zero' -> '\'', osize + squote + 2
+    match (squote, dquote) with
+    | 0, _ -> ('\'', osize + 2)
+    | _non_zero, 0 -> ('"', osize + 2)
+    | _non_zero, _non_zero' -> ('\'', osize + squote + 2)
   in
   let uquote = Uchar.of_char quote in
-  if osize = String.length s + 2 then
-    Printf.sprintf "%c%s%c" quote s quote
+  if osize = String.length s + 2 then Printf.sprintf "%c%s%c" quote s quote
   else
     let b = Buffer.create osize in
     Buffer.add_char b quote;
     let folder () _index uchar =
       let c =
-        match uchar with
-        | `Uchar c -> c
-        | `Malformed _string -> Uutf.u_rep
+        match uchar with `Uchar c -> c | `Malformed _string -> Uutf.u_rep
       in
       if py_unicode_isprintable ?unicode_version c then
         match Uchar.to_int c with
         | 0x22 (* '\'' *) | 0x27 (* '"' *) ->
-          if Uchar.equal c uquote then
-            Buffer.add_char b '\\';
-          Buffer.add_utf_8_uchar b c
-        | 0x5c (* '\\' *) ->
-          Buffer.add_string b "\\\\"
+            if Uchar.equal c uquote then Buffer.add_char b '\\';
+            Buffer.add_utf_8_uchar b c
+        | 0x5c (* '\\' *) -> Buffer.add_string b "\\\\"
         | 0x09 (* '\t' *) | 0x0a (* '\n' *) | 0x0d (* '\r' *) ->
-          Buffer.add_string b (Char.escaped (Uchar.to_char c))
-        | _ ->
-          Buffer.add_utf_8_uchar b c
+            Buffer.add_string b (Char.escaped (Uchar.to_char c))
+        | _ -> Buffer.add_utf_8_uchar b c
       else
         let codepoint = Uchar.to_int c in
         match codepoint with
         | 0x09 (* '\t' *) | 0x0a (* '\n' *) | 0x0d (* '\r' *) ->
-          Buffer.add_string b (Char.escaped (Uchar.to_char c))
+            Buffer.add_string b (Char.escaped (Uchar.to_char c))
         | _ ->
-          if codepoint < 0x100 then
-            Printf.bprintf b "\\x%02x" codepoint
-          else if codepoint < 0x10000 then
-            Printf.bprintf b "\\u%04x" codepoint
-          else
-            Printf.bprintf b "\\U%08x" codepoint
+            if codepoint < 0x100 then Printf.bprintf b "\\x%02x" codepoint
+            else if codepoint < 0x10000 then
+              Printf.bprintf b "\\u%04x" codepoint
+            else Printf.bprintf b "\\U%08x" codepoint
     in
     Uutf.String.fold_utf_8 folder () s;
     Buffer.add_char b quote;
