@@ -28,6 +28,8 @@ depends: [
   "ocolor"
   "ANSITerminal"
   "terminal_size"
+  "uucp"
+  "uutf"
   "easy_logging" {= "0.8.1"}
   "easy_logging_yojson" {= "0.8.1"}
   "logs"
@@ -50,6 +52,7 @@ depends: [
   "semver"
   "uri"
   "uuidm"
+  "timedesc" {>= "2.0.0"}
   "lsp" {= "1.15.1-5.0"}
   "trace"
   "opentelemetry"

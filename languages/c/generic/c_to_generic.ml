@@ -505,12 +505,18 @@ and func_def { f_name; f_type; f_body; f_static } =
     if f_static then [ G.attr G.Static (fake (snd v1) "static") ] else []
   in
   let entity = G.basic_entity v1 ~attrs:v4 in
+  let body =
+    match v3 with
+    (* explicitly mark that this funcdef is a prototype. *)
+    | _, [], _ -> G.FBNothing
+    | _ -> G.FBStmt (G.s (G.Block v3))
+  in
   ( entity,
     G.FuncDef
       {
         G.fparams = fb params;
         frettype = Some ret;
-        fbody = G.FBStmt (G.s (G.Block v3));
+        fbody = body;
         fkind = (G.Function, G.fake "");
       } )
 

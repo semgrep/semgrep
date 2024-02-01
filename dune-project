@@ -126,8 +126,8 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 (package (name git_wrapper)
-  (synopsis "XXX")
-  (description "XXX")
+  (synopsis "Wrappers for the git CLI")
+  (description "Utility functions for interacting with git on the command-line.")
 )
 (package (name glob)
   (synopsis "XXX")
@@ -440,6 +440,9 @@ For more information see https://semgrep.dev
     ocolor
     ANSITerminal
     terminal_size
+    ; Unicode - used via python-str-repr
+    uucp
+    uutf
     ; logging
     (easy_logging ( = 0.8.1 ))
     (easy_logging_yojson ( = 0.8.1 ))
@@ -468,6 +471,7 @@ For more information see https://semgrep.dev
     semver
     uri
     uuidm
+    (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
     ; tracing
     trace

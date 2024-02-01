@@ -1,0 +1,9 @@
+(test
+ (name test_python_str_repr)
+ (modules test_python_str_repr)
+ (libraries python-str-repr alcotest))
+
+(test
+ (name test_py_python_str_repr)
+ (modules test_py_python_str_repr)
+ (libraries python-str-repr alcotest py qcheck qcheck-alcotest))
