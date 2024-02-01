@@ -1,3 +1,5 @@
+module Out = Semgrep_output_v1_j
+
 (* The "core of a version": a dot separated list of numbers, like 4.1.6.2.7 *)
 type version_core = { major : int; minor : int; incrementals : int list }
 
@@ -18,22 +20,19 @@ and t = {
   package_name : string;
   package_version : version;
   package_version_string : string;
-  ecosystem : ecosystem;
-  transitivity : transitivity;
+  ecosystem : Out.ecosystem;
+  transitivity : Out.transitivity;
   url : string option;
   loc : Tok.location * Tok.location;
   toks : Tok.t list;
 }
-
-(* TODO: the rest of them *)
-and ecosystem = Npm
-and transitivity = Direct | Transitive | Unknown [@@deriving show, eq]
+[@@deriving show, eq]
 
 (* A dependency in a manifest may have a version range like >=1.0.0, and they are *direct* by definition *)
 type manifest_dependency = {
   package_name : string;
   package_version_constraint_string : string;
-  ecosystem : ecosystem;
+  ecosystem : Out.ecosystem;
   loc : Tok.location * Tok.location;
   toks : Tok.t list;
 }

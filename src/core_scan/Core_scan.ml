@@ -299,7 +299,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
     Pattern_match.env;
     tokens = (lazy tokens_matched_code);
     taint_trace;
-    dependency_match_data;
+    dependency;
     _;
   } =
     match_
@@ -308,8 +308,8 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
   let dep_toks_and_version =
     (* Only print the extra data if it was a reachable finding *)
     (* TODO: special printing for lockfile-only findings *)
-    match dependency_match_data with
-    | CodePMwith (dmatched, _) ->
+    match dependency with
+    | Some (CodeAndLockfileMatch (dmatched, _)) ->
         Some
           ( dmatched.toks |> List.filter Tok.is_origintok,
             dmatched.package_version_string )
@@ -337,11 +337,10 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
      in
      Out.put (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
      ());
-  Option.iter
-    (fun (toks, version) ->
-      Out.put ("with dependency match at version " ^ version);
-      Core_text_output.print_match ~format:config.match_format toks)
-    dep_toks_and_version;
+  dep_toks_and_version
+  |> Option.iter (fun (toks, version) ->
+         Out.put ("with dependency match at version " ^ version);
+         Core_text_output.print_match ~format:config.match_format toks);
   Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 
 (*****************************************************************************)
@@ -730,20 +729,6 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     lazy_ast_and_errors;
   }
 
-let parse_lockfile :
-    In.lockfile_kind ->
-    Lockfile_target.manifest_target option ->
-    Fpath.t ->
-    Dependency.t list = function
-  (* TODO: add parsers, guard behind semgrep-pro  *)
-  | PackageLockJsonV3 -> fun _ _ -> []
-
-let parse_manifest :
-    In.manifest_kind -> Fpath.t -> Dependency.manifest_dependency list =
-  function
-  (* TODO: add parsers, guard behind semgrep-pro  *)
-  | PackageJson -> fun _ -> []
-
 let lockfile_target_of_input_to_core
     ({ path; lockfile_kind; manifest_target } : In.lockfile_target) =
   let manifest_target =
@@ -753,7 +738,8 @@ let lockfile_target_of_input_to_core
        {
          Lockfile_target.manifest = path;
          lazy_manifest_content = lazy (UFile.read_file path);
-         lazy_manifest_ast_and_errors = lazy (parse_manifest manifest_kind path);
+         lazy_manifest_ast_and_errors =
+           lazy (Parse_lockfile.parse_manifest manifest_kind path);
          manifest_kind = Manifest_kind.of_lockfile_kind lockfile_kind;
        }
   in
@@ -763,7 +749,7 @@ let lockfile_target_of_input_to_core
     lockfile_kind;
     lazy_lockfile_content = lazy (UFile.read_file path);
     lazy_lockfile_ast_and_errors =
-      lazy (parse_lockfile lockfile_kind manifest_target path);
+      lazy (Parse_lockfile.parse_lockfile lockfile_kind manifest_target path);
     manifest_target;
   }
 
@@ -912,7 +898,7 @@ let select_applicable_rules_for_lockfile_kind ~lockfile_kind rules =
              if
                formula
                |> List.exists (fun R.{ ecosystem; _ } ->
-                      Dependency.equal_ecosystem ecosystem
+                      Semgrep_output_v1_t.equal_ecosystem ecosystem
                         (Lockfile_kind.to_ecosystem lockfile_kind))
              then Some (r, formula)
              else None)

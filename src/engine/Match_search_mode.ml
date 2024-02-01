@@ -385,7 +385,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
-               dependency_match_data = CodeOnlyPM;
+               dependency = None;
              })
     in
     let focused_ranges =

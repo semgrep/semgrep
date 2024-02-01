@@ -727,24 +727,21 @@ let parse_validators env key value =
 
 let parse_ecosystem env key value =
   match value.G.e with
-  | G.L (String (_, (ecosystem, _), _)) -> (
-      match String.lowercase_ascii ecosystem with
-      | _ ->
-          Dependency.Npm
-          (* | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem)) *)
-      )
+  | G.L (String (_, (_ecosystem, _), _)) ->
+      `Npm
+        (* | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem)) *)
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
 let parse_dependency_pattern key env value : R.dependency_pattern =
   let rd = yaml_to_dict env key value in
   let ecosystem = take_key rd env parse_ecosystem "namespace" in
   let package_name = take_key rd env parse_string "package" in
-  let version_constraint =
+  let version_constraints =
     (* TODO: version parser *)
     take_key rd env parse_string "version" |> fun _ ->
-    Dependency.{ version = Other "not implemented"; constraint_ = Eq }
+    Dependency.And [ { version = Other "not implemented"; constraint_ = Eq } ]
   in
-  R.{ ecosystem; package_name; version_constraint }
+  R.{ ecosystem; package_name; version_constraints }
 
 let parse_dependency_formula env key value : R.dependency_formula =
   let rd = yaml_to_dict env key value in

@@ -14,17 +14,21 @@ type t = {
   validation_state : Rule.validation_state;
   severity_override : Rule.severity option;
   metadata_override : JSON.t option;
-  dependency_match_data : dependency_match_data;
+  dependency : dependency option;
 }
 
-and dependency_match_data =
-  (* Rule had both code patterns and dependency patterns, got matches on *both*, the Pattern Match is in code, annotated with this dependency match *)
-  | CodePMwith of dependency_match
-  (* Rule had dependency patterns, they matched, the Pattern Match is in a lockfile *)
-  (* So the range_loc of the Dependency.t in this dependency_match should be *the same* as the range_loc in the PatternMatch.t *)
-  | LockfileOnlyPM of dependency_match
-  (* Rule had no dependency patterns, this is a regular code pattern match *)
-  | CodeOnlyPM
+and dependency =
+  (* Rule had both code patterns and dependency patterns,
+     got matches on *both*, the Pattern Match is in code,
+     annotated with this dependency match
+  *)
+  | CodeAndLockfileMatch of dependency_match
+  (* Rule had dependency patterns, they matched,
+     the Pattern Match is in a lockfile
+     So the range_loc of the Dependency.t in this dependency_match
+     should be *the same* as the range_loc in the PatternMatch.t
+  *)
+  | LockfileOnlyMatch of dependency_match
 
 and dependency_match = Dependency.t * Rule.dependency_pattern
 

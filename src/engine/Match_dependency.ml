@@ -1,6 +1,7 @@
 module R = Rule
 module PM = Pattern_match
 module D = Dependency
+module Out = Semgrep_output_v1_t
 
 type dependency_match_table =
   (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
@@ -38,7 +39,10 @@ let match_dependency_pattern (deps : Dependency.t list)
   |> List_.map_filter @@ fun (dep : Dependency.t) ->
      if
        String.equal dep.package_name pat.package_name
-       && check_constraint pat.version_constraint dep.package_version
+       && pat.version_constraints |> fun (And cs) ->
+          List.for_all
+            (fun constr -> check_constraint constr dep.package_version)
+            cs
      then Some (dep, pat)
      else None
 
@@ -94,7 +98,7 @@ let check_rule rule target dependency_formula =
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
-               dependency_match_data = LockfileOnlyPM (dep, pat);
+               dependency = Some (LockfileOnlyMatch (dep, pat));
              })
   in
   Core_result.make_match_result matches Core_error.ErrorSet.empty
@@ -113,14 +117,18 @@ let annotate_pattern_match dep_matches pm =
                 this is what the python code does
              *)
              if
-               Dependency.(equal_transitivity (fst dm).transitivity Transitive)
+               Dependency.(
+                 Out.equal_transitivity (fst dm).transitivity `Transitive)
                && dep_matches
                   |> List.exists (fun (dep, _) ->
                          Dependency.(
-                           equal_transitivity dep.transitivity Direct
+                           Out.equal_transitivity dep.transitivity `Direct
                            && String.equal dep.package_name
                                 (fst dm).package_name))
              then None
              else
                Some
-                 { pm with Pattern_match.dependency_match_data = CodePMwith dm })
+                 {
+                   pm with
+                   Pattern_match.dependency = Some (CodeAndLockfileMatch dm);
+                 })

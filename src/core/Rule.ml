@@ -570,6 +570,8 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 type dependency_formula = dependency_pattern list
 
 (* A pattern to match against versions in a lockfile.
+   This is not like a regular code pattern! It's description of a range of *versions*.
+   For example: ">=1.0.0, <= 2.3.5", which is meant to "match" any version in that interval, e.g. 1.3.5
 
    Here's a breakdown of how this interacts with normal patterns:
    * Rule has only normal patterns:
@@ -580,16 +582,11 @@ type dependency_formula = dependency_pattern list
       If only the dependency patterns match, the rule produces "lockfile-only" findings: dependency findings without code findings
    * Rule has only dependency patterns:
       Rule only produces "lockfile-only" findings
-
-   Currently version_constraint can only have one constraint, e.g. >= 1.0.0 or <= 3.2.5,
-   but it should be possible to express intersections of constraints, e.g. >= 1.0.0 && <= 3.2.5,
-   and ideally we'd just have a constraint AST that wasn't split up so that unions can only appear
-   at the top level. This is just copying how it works in python for now.
 *)
 and dependency_pattern = {
-  ecosystem : Dependency.ecosystem;
+  ecosystem : Semgrep_output_v1_t.ecosystem;
   package_name : string;
-  version_constraint : Dependency.version_constraint;
+  version_constraints : Dependency.constraint_ast;
 }
 [@@deriving show, eq]
 

@@ -1,7 +1,7 @@
 type t = PackageJson [@@deriving show, eq]
 
-let to_ecosystem = function
-  | PackageJson -> Dependency.Npm
+let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
+  | PackageJson -> `Npm
 
 let supported_manifests = String.concat "," [ "package.json" ]
 

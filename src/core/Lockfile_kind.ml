@@ -1,7 +1,7 @@
 type t = PackageLockJsonV3 [@@deriving show, eq]
 
-let to_ecosystem = function
-  | PackageLockJsonV3 -> Dependency.Npm
+let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
+  | PackageLockJsonV3 -> `Npm
 
 let supported_lockfiles = String.concat "," [ "package-lock.json v3" ]
 
