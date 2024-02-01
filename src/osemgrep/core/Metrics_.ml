@@ -125,7 +125,7 @@ type t = {
   mutable payload : Semgrep_metrics_t.payload;
 }
 
-let now () : Unix.tm = Unix.gmtime (Unix.gettimeofday ())
+let now () : Timedesc.t = Timedesc.now ()
 
 let default_payload =
   {
