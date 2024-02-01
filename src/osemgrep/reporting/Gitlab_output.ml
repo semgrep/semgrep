@@ -197,7 +197,8 @@ let secrets_format_cli_match (cli_match : OutT.cli_match) =
   let more =
     [
       ("category", `String "secret_detection");
-      ("raw_source_code_extract", `String cli_match.extra.lines);
+      ( "raw_source_code_extract",
+        `List [ `String (cli_match.extra.lines ^ "\n") ] );
       ( "commit",
         `Assoc
           [
