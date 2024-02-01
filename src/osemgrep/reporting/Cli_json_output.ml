@@ -267,14 +267,14 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
  *)
 let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
-  (* the python implementation does not include sanitizers; so as to not
-   * break fingerprints we ignore sanitizers, too. see above assumptions
-   * on why.
+  (* the python implementation does not include sanitizers and propagators; so
+   * as to not break fingerprints we ignore sanitizers, too. see above
+   * assumptions on why.
    *)
   let mode =
     match rule.mode with
-    | `Taint { Rule.sources; sanitizers = _; sinks; propagators } ->
-        `Taint { Rule.sources; sanitizers = None; sinks; propagators }
+    | `Taint { Rule.sources; sanitizers = _; sinks; propagators = _ } ->
+        `Taint { Rule.sources; sanitizers = None; sinks; propagators = [] }
     | (`Search _ | `Extract _ | `Steps _) as mode -> mode
   in
   let formulae = Rule.formula_of_mode mode in
