@@ -430,6 +430,7 @@ and decl =
   | EmptyDecl of Tok.t (* ; *)
   (* sgrep-ext: allows ... inside interface, class declarations *)
   | DeclEllipsis of Tok.t
+  | DeclMetavarEllipsis of ident
 
 and decls = decl list
 

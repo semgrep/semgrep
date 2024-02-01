@@ -95,7 +95,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
 # images available.
 #
-FROM returntocorp/ocaml:alpine-2023-10-17 as semgrep-core-container
+FROM returntocorp/ocaml:alpine-2024-01-18 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY --from=semgrep-core-files /src/semgrep .
@@ -157,10 +157,6 @@ WORKDIR /semgrep
 # the new base image was updated only after Y days.
 RUN apk upgrade --no-cache && \
 # Here is why we need the apk packages below:
-# - libstdc++: for the Python jsonnet binding now used in pysemgrep
-#   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
-#   symbol' errors
-#   TODO: remove once the osemgrep/ojsonnet port is done
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those submodules
 # - bash, curl, jq: various utilities useful in CI jobs (e.g., our benchmark jobs,
@@ -170,7 +166,6 @@ RUN apk upgrade --no-cache && \
 #   for our benchmarks, but it complicates things and the addition of those
 #   packages do not add much to the size of the docker image (<1%).
     apk add --no-cache --virtual=.run-deps\
-    libstdc++\
     git git-lfs openssh\
     bash curl jq
 
@@ -190,14 +185,8 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 # packages to keep a small Docker image (classic Docker trick).
 # Here is why we need the apk packages below:
 #  - build-base: ??
-#  - make, g++: to compile the jsonnet C++ library which is installed
-#    by 'pip install jsonnet'.
-#    TODO: at some point we should not need the 'pip install jsonnet' because
-#    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
-#    LATER: at some point we would not need at all because of osemgrep/ojsonnet
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
-     pip install jsonnet &&\
+RUN apk add --no-cache --virtual=.build-deps build-base make &&\
      pip install /semgrep &&\
      apk del .build-deps
 

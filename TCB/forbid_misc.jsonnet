@@ -19,6 +19,21 @@
         Do not use directly Random; use the safer CapRandom module.
       |||,
     },
+    {
+      id: 'forbid-obj-magic',
+      match: { any: [
+	'Obj.magic',
+      ] },
+      languages: ['ocaml'],
+      paths: {
+        exclude: [
+         ],
+      },
+      severity: 'ERROR',
+      message: |||
+        Do not use Obj.magic. Period.
+      |||,
+    },
   ],
 
 }

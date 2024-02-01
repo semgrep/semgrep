@@ -99,13 +99,17 @@
       ],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [
             {
               "defaultConfiguration": {
                 "level": "error"
               },
               "fullDescription": {
+                "text": "this rule comes from the rule board!"
+              },
+              "help": {
+                "markdown": "this rule comes from the rule board!",
                 "text": "this rule comes from the rule board!"
               },
               "id": "rules.rule-board-eqeq-five",

@@ -60,7 +60,7 @@ local guard_cache_hit = {
 local build_artifact_name = 'semgrep-js-ocaml-build-${{ github.sha }}';
 
 local build_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     'runs-on': 'ubuntu-latest-16-core',
     steps: [
@@ -97,11 +97,11 @@ local build_job =
   };
 
 local test_job = {
+  'runs-on': 'ubuntu-latest-16-core',
+  container: 'emscripten/emsdk:3.1.51',
   needs: [
     'build',
   ],
-  'runs-on': 'ubuntu-latest-16-core',
-  container: 'emscripten/emsdk:3.1.46',
   env: {
     HOME: '/root',
   },
@@ -129,9 +129,7 @@ local test_job = {
     },
     {
       name: 'Build JS artifacts',
-      run: |||
-        make -C js -j $(nproc) build
-      |||
+      run: "make -C js -j $(nproc) build",
     },
     {
       name: 'Test JS artifacts',
@@ -156,10 +154,7 @@ local test_job = {
       name: 'Test LSP.js',
       uses: 'coactions/setup-xvfb@v1',
       with: {
-        run: |||
-            make -C js/language_server test
-        |||
-
+        run: "make -C js/language_server test",
       }
     },
     {
@@ -187,28 +182,17 @@ local test_job = {
 };
 
 local upload_job = {
+  'runs-on': 'ubuntu-latest',
   needs: [
     'test',
   ],
   'if': '${{ inputs.upload-artifacts }}',
-  'runs-on': 'ubuntu-latest',
-  // ??
-  permissions: {
-    'id-token': 'write',
-    contents: 'write',
-  },
+  permissions: gha.write_permissions,
   steps: [
-    {
-      name: 'Configure AWS credentials',
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        // ???
-        'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role',
-        'role-duration-seconds': 900,
-        'role-session-name': 'semgrep-s3-access',
-        'aws-region': 'us-west-2',
-      },
-    },
+    semgrep.aws_credentials_step(
+      role='semgrep-oss-js-artifacts-deploy-role',
+      session_name='semgrep-s3-access'
+      ),
     {
       uses: 'actions/download-artifact@v3',
       with: {
@@ -247,7 +231,6 @@ local upload_job = {
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'build-test-javascript',
   on: {

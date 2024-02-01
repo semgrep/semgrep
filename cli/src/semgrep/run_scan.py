@@ -312,9 +312,9 @@ def run_rules(
 def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -> None:
     targets = target_manager.get_files_for_language(None, product)
     for path in sorted(targets.kept):
-        print(f"+ {path}")
+        print(f"selected {path}")
     for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
-        print(f"- [{reason}] {path}")
+        print(f"ignored {path} [{reason}]")
     exit(0)
 
 
@@ -457,12 +457,6 @@ def run_scan(
 
     output_handler.handle_semgrep_errors(config_errors)
 
-    if config_errors and strict:
-        raise SemgrepError(
-            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
-            code=MISSING_CONFIG_EXIT_CODE,
-        )
-
     if not pattern:
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
@@ -488,6 +482,14 @@ def run_scan(
 """,
                 code=MISSING_CONFIG_EXIT_CODE,
             )
+
+    # This is after the `not pattern` block, because this error message is less
+    # helpful.
+    if config_errors and strict:
+        raise SemgrepError(
+            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
+            code=MISSING_CONFIG_EXIT_CODE,
+        )
 
     # Initialize baseline here to fail early on bad args
     baseline_handler = None
@@ -556,14 +558,15 @@ def run_scan(
         filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
     )
 
-    logger.verbose("Rules:")
-    for ruleid in sorted(rule.id for rule in unexperimental_rules):
-        logger.verbose(f"- {ruleid}")
-
-    if len(experimental_rules) > 0:
-        logger.verbose("Experimental Rules:")
-        for ruleid in sorted(rule.id for rule in experimental_rules):
+    if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
+        logger.verbose("Rules:")
+        for ruleid in sorted(rule.id for rule in unexperimental_rules):
             logger.verbose(f"- {ruleid}")
+
+        if len(experimental_rules) > 0:
+            logger.verbose("Experimental Rules:")
+            for ruleid in sorted(rule.id for rule in experimental_rules):
+                logger.verbose(f"- {ruleid}")
 
     (
         rule_matches_by_rule,

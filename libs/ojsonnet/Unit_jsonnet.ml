@@ -3,6 +3,7 @@ open Fpath_.Operators
 module Conf = Conf_ojsonnet
 module Y = Yojson.Basic
 
+let t = Testo.create
 let _dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial/fail"
 let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
@@ -18,12 +19,11 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-let test_maker_err dir : Alcotest_ext.test list =
+let test_maker_err dir : Testo.test list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+         t ~category:[ !!dir ] (Fpath.basename file) (fun () ->
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
              try
@@ -32,16 +32,17 @@ let test_maker_err dir : Alcotest_ext.test list =
                Alcotest.(fail "this should have raised an error")
              with
              | Eval_jsonnet_common.Error _ ->
-                 Alcotest.(check bool) "this raised an error" true true ))
-  |> Alcotest_ext.pack_tests !!dir
+                 Alcotest.(check bool) "this raised an error" true true))
 
 let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
-    Alcotest_ext.test list =
+    Testo.test list =
   Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+         t
+           ~category:[ spf "tests/jsonnet/%s" subdir ]
+           (Fpath.basename file)
+           (fun () ->
              let comparison_file_path =
                match related_file_of_target ~ext:"json" ~file with
                | Ok json_file -> json_file
@@ -57,11 +58,13 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
              |> List.iter (fun strategy ->
                     let str_strategy = Conf.show_eval_strategy strategy in
                     try
+                      let timeout = 0.5 in
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->
                             Time_limit.set_timeout
-                              ~name:("ojsonnet-" ^ str_strategy) 0.5 (fun () ->
+                              ~name:("ojsonnet-" ^ str_strategy) timeout
+                              (fun () ->
                                 let value_ = Eval_jsonnet.eval_program core in
                                 JSON.to_yojson
                                   (Eval_jsonnet.manifest_value value_)))
@@ -69,7 +72,8 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                       match json_opt with
                       | None ->
                           failwith
-                            (spf "timeout on %s with %s" !!file str_strategy)
+                            (spf "%gs timeout on %s with %s" timeout !!file
+                               str_strategy)
                       | Some json ->
                           if not (Y.equal json expected) then
                             failwith
@@ -80,11 +84,10 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                     with
                     | Eval_jsonnet_common.Error _ ->
                         failwith
-                          (spf "this threw an error with %s" str_strategy)) ))
-  |> Alcotest_ext.pack_tests (spf "tests/jsonnet/%s" subdir)
+                          (spf "this threw an error with %s" str_strategy))))
 
-let tests () : Alcotest_ext.test list =
-  Alcotest_ext.pack_suites "ojsonnet"
+let tests () : Testo.test list =
+  Testo.categorize_suites "ojsonnet"
     [
       mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
       mk_tests "only_subst/" [ Conf.EvalSubst ];

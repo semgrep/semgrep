@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Martin Jambon
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -104,7 +104,9 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
-    |> List_.map (Cli_json_output.cli_match_of_core_match hrules)
+    |> List_.map
+         (Cli_json_output.cli_match_of_core_match
+            ~dryrun:conf.output_conf.dryrun hrules)
     |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =
@@ -270,9 +272,51 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
             let roots = conf.target_roots in
             pro_scan_func roots ~diff_config conf.engine_type)
   in
+  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+    match conf.targeting_conf.project_root with
+    | Some (Find_targets.Git_remote git_remote) -> (
+        match !Core_runner.hook_pro_git_remote_scan_setup with
+        | None ->
+            failwith
+              "You have requested running semgrep with a setting that requires \
+               the pro engine, but do not have the pro engine. You may need to \
+               acquire a different binary."
+        | Some pro_git_remote_scan_setup ->
+            pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
+    | _ -> scan_func_for_osemgrep
+  in
   scan_func_for_osemgrep
     ~respect_git_ignore:conf.targeting_conf.respect_gitignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
+
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    ~strict caps rules_source =
+  (* Create the wait hook for our progress indicator *)
+  let spinner_ls =
+    if Console_Spinner.should_show_spinner () then
+      [ Console_Spinner.spinner_async () ]
+    else []
+  in
+  (* Fetch the rules *)
+  let rules_and_origins =
+    Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
+      ~registry_caching ~strict
+      (caps :> < Cap.network >)
+      rules_source
+  in
+  Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
+[@@profiling]
+
+(* The test test_autofix.py::terraform-ec2-instance-metadata-options.yaml
+   carries a newline at the end of the "fix" string, which is not the case
+   for PySemgrep.
+   TODO Trimming the "fix" here is a hacky workaround, it may be better to dig
+   down where and why the newline is inserted into "fix".
+*)
+let trim_core_match_fix (r : OutJ.core_match) =
+  let fix = Option.map String.trim r.OutJ.extra.fix in
+  let extra = { r.extra with fix } in
+  { r with extra }
 
 (*****************************************************************************)
 (* Differential scanning *)
@@ -542,12 +586,14 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
       let res = Core_runner.create_core_result filtered_rules exn_and_matches in
       (* step 3'': filter via nosemgrep *)
       let keep_ignored =
-        (not conf.core_runner_conf.nosem) (* --disable-nosem *) || false
-        (* TODO(dinosaure): [false] depends on the output formatter. Currently,
-           we just have the JSON output. *)
+        (not conf.core_runner_conf.nosem)
+        (* --disable-nosem *)
+        || Output_format.keep_ignores output_format
       in
       let filtered_matches =
-        Nosemgrep.filter_ignored ~keep_ignored res.core.results
+        res.core.results
+        |> List_.map trim_core_match_fix
+        |> Nosemgrep.filter_ignored ~keep_ignored
       in
       { res with core = { res.core with results = filtered_matches } }
     in
@@ -560,7 +606,20 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        * skipped above too?
        *)
       let skipped =
-        Some (skipped @ List_.optlist_to_list res.core.paths.skipped)
+        let skipped = skipped @ List_.optlist_to_list res.core.paths.skipped in
+        let in_test =
+          !Semgrep_envvars.v.user_agent_append
+          |> Option.map (fun s -> String.equal s "pytest")
+          |> Option.value ~default:false
+        in
+        let skipped =
+          if in_test then
+            List_.map
+              (fun (x : OutJ.skipped_target) -> { x with OutJ.details = None })
+              skipped
+          else skipped
+        in
+        Some skipped
       in
       (* Add the targets that were semgrepignored or errorneous *)
       {
@@ -572,7 +631,10 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      Output.output_result { conf.output_conf with output_format } profiler res
+      let is_logged_in = Semgrep_login.is_logged_in () in
+      Output.output_result
+        { conf.output_conf with output_format }
+        profiler ~is_logged_in res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
@@ -621,7 +683,8 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        already-fixed file
     *)
     if conf.output_conf.autofix then
-      Autofix.apply_fixes_of_core_matches res.core.results;
+      Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
+        res.core.results;
 
     (* TOPORT? was in formater/base.py
        def keep_ignores(self) -> bool:
@@ -704,31 +767,30 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
 
-  (* Display a message to denote rule fetching that is made interactive when possible *)
+  (* Display a message to denote rule fetching that is made interactive when
+   * possible *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
-  (* Create the wait hook for our progress indicator *)
-  let spinner_ls =
-    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
-      [ Console_Spinner.spinner_async () ]
-    else []
-  in
-  (* Fetch the rules *)
   let rules_and_origins =
-    Rule_fetching.rules_from_rules_source_async ~token_opt:settings.api_token
+    rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching
+      ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network >)
       conf.rules_source
   in
-  let rules_and_origins =
-    Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
-  in
-
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
+  (* Change dir if project_root is a git_remote
+   * note: sorry cooper, we gotta do this because
+   * git sparse-checkout doesn't like absolute paths
+   *)
+  (match conf.targeting_conf.project_root with
+  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
+      Sys.chdir (Fpath.to_string checkout_path)
+  | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files

@@ -545,7 +545,7 @@ let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
 
 let rec variable_designation (env : env) (x : CST.variable_designation) =
   match x with
-  | `Disc tok -> PatUnderscore (token env tok) (* "_" *)
+  | `Disc tok -> PatWildcard (token env tok) (* "_" *)
   | `Paren_var_desi (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 =
@@ -611,7 +611,7 @@ and anon_choice_id_c036834 (env : env) (x : CST.anon_choice_id_c036834) =
       PatId (id, empty_id_info ())
   | `Disc tok ->
       let tok = token env tok (* "_" *) in
-      PatUnderscore tok
+      PatWildcard tok
   | `Tuple_pat x -> tuple_pattern env x
 
 let name_colon (env : env) ((v1, v2) : CST.name_colon) =
@@ -1123,7 +1123,7 @@ and catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) =
   let v2 =
     match v2 with
     | Some x -> catch_declaration env x
-    | None -> CatchPattern (PatUnderscore (fake "_"))
+    | None -> CatchPattern (PatWildcard (fake "_"))
   in
   let exn =
     match v3 with
@@ -2209,7 +2209,7 @@ and pattern (env : env) (x : CST.pattern) : G.pattern =
       let v1 = type_pattern env v1 in
       let v2 = variable_designation env v2 in
       PatTyped (v2, v1)
-  | `Disc tok -> PatUnderscore (token env tok) (* "_" *)
+  | `Disc tok -> PatWildcard (token env tok) (* "_" *)
   | `Recu_pat (v1, v2, v3) -> recursive_pattern env (v1, v2, v3)
   | `Var_pat (v1, v2) ->
       let _v1 = token env v1 (* "var" *) in
@@ -3396,5 +3396,5 @@ let parse_pattern str =
     (fun () -> parse_pattern_aux str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       compilation_unit env cst)

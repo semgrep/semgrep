@@ -296,7 +296,7 @@ let gen_typedef_group conf typedefs =
         true)
       else false
   in
-  (* Common.map would work but doesn't guarantee left-to-right evaluation :-( *)
+  (* List_.map would work but doesn't guarantee left-to-right evaluation :-( *)
   List.fold_left
     (fun acc x -> Inline (gen_typedef conf (is_first ()) x) :: acc)
     [] typedefs

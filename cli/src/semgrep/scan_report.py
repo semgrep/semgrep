@@ -2,6 +2,7 @@
 # Prelude
 ##############################################################################
 # Helpers to run_scan.py to report scan status
+import sys
 from textwrap import wrap
 from typing import List
 from typing import Sequence
@@ -190,10 +191,14 @@ def _print_sast_table(
         )
         return
 
+    use_color = sys.stderr.isatty()
+    # NOTE: osemgrep lacks support for bold table headers
+    # Given that this is only printed in legacy and compatability
+    # runs, the output doesn't really matter
     _print_tables(
         [
-            sast_plan.table_by_language(with_tables_for=product),
-            sast_plan.table_by_origin(with_tables_for=product),
+            sast_plan.table_by_language(with_tables_for=product, use_color=use_color),
+            sast_plan.table_by_origin(with_tables_for=product, use_color=use_color),
         ]
     )
 
@@ -206,12 +211,9 @@ def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
         _print_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
-    _print_tables(
-        [
-            sca_plan.table_by_ecosystem(),
-            sca_plan.table_by_sca_analysis(),
-        ]
-    )
+    _print_tables([sca_plan.table_by_ecosystem()])
+    console.print("\n")  # space intentional to force second table to be on its own line
+    _print_tables([sca_plan.table_by_sca_analysis()])
 
 
 def _print_detailed_sca_table(

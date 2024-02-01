@@ -65,87 +65,96 @@ open Js_of_ocaml
 let skip_todo_tests tests =
   tests
   |> List_.map (fun test ->
-         if Alcotest_ext.has_tag Test_tags.todo_js test then
-           Alcotest_ext.update ~skipped:true test
+         if Testo.has_tag Test_tags.todo_js test then
+           Testo.update ~skipped:true test
          else test)
 
 (* Stolen from Logs' logs_browser.ml *)
 let () =
-  Logs.set_level (Some Logs.Debug);
-  Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
-  Js.export_all
-    (object%js
-       method init = Semgrep_js_shared.init_jsoo
-       method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
-       method setParsePattern = Semgrep_js_shared.setParsePattern
-       method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
-       method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
+  Cap.main (fun all_caps ->
+      Logs.set_level (Some Logs.Debug);
+      Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
+      Js.export_all
+        (object%js
+           method init = Semgrep_js_shared.init_jsoo
+           method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
+           method setParsePattern = Semgrep_js_shared.setParsePattern
+           method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
+           method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
 
-       method run filter =
-         let argv = [| "" |] in
-         let argv =
-           if filter <> "" then Array.append argv [| "-e"; filter |] else argv
-         in
-         let tests =
-           [
-             Unit_parsing.tests ();
-             Unit_engine.tests ();
-             Unit_entropy.tests;
-             Unit_LS.tests;
-           ]
-           |> List.flatten
-         in
-         let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
-         let tests =
-           List_.map
-             (fun (test : Alcotest_ext.test) ->
-               let f () =
-                 Semgrep_js_shared.wrap_with_js_error
-                   ~hook:
-                     (Some
-                        (fun () -> Firebug.console##log (Js.string test.name)))
-                   test.func
-               in
-               Alcotest_ext.update test ~func:f)
-             tests
-           |> skip_todo_tests
-         in
-         let lwt_tests =
-           List_.map
-             (fun (test : Alcotest_ext_lwt.test) ->
-               let f () =
-                 Semgrep_js_shared.wrap_with_js_error
-                   ~hook:
-                     (Some
-                        (fun () -> Firebug.console##log (Js.string test.name)))
-                   test.func
-               in
-               Alcotest_ext.update test ~func:f)
-             lwt_tests
-           |> skip_todo_tests
-         in
-         let run () =
-           Alcotest.run "semgrep-js"
-             (Alcotest_ext.to_alcotest tests)
-             ~and_exit:false ~argv
-         in
-         let run_lwt () : unit Lwt.t =
-           Alcotest_lwt.run "semgrep-js"
-             (Alcotest_ext.to_alcotest lwt_tests)
-             ~and_exit:false ~argv
-         in
-         (* Some gymnastics are needed here because we need to
-            produce a top level promise, in order to properly transform the
-            lwt promise into a Javascript promise, and run it on the Node.js
-            runtime.
-            So we must use Alcotest_lwt to turn our test running into a
-            promise.*)
-         Semgrep_js_shared.promise_of_lwt
-           (Semgrep_js_shared.wrap_with_js_error (fun () () ->
-                (* I don't know why, but on my (Brandon's) machine, the
-                   e2e tests fail unless they are run in this order.
-                *)
-                let%lwt () = run_lwt () in
-                run ();
-                Lwt.return_unit))
-    end)
+           method run filter =
+             let argv = [| "" |] in
+             let argv =
+               if filter <> "" then Array.append argv [| "-e"; filter |]
+               else argv
+             in
+             let tests =
+               [
+                 Unit_parsing.tests ();
+                 Unit_engine.tests ();
+                 Unit_entropy.tests;
+                 Unit_LS.tests (all_caps :> < Cap.random ; Cap.network >);
+               ]
+               |> List.flatten
+             in
+             let lwt_tests =
+               [
+                 Test_LS_e2e.lwt_tests
+                   (all_caps :> < Cap.random ; Cap.network >);
+               ]
+               |> List.flatten
+             in
+             let tests =
+               List_.map
+                 (fun (test : Testo.test) ->
+                   let f () =
+                     Semgrep_js_shared.wrap_with_js_error
+                       ~hook:
+                         (Some
+                            (fun () ->
+                              Firebug.console##log (Js.string test.name)))
+                       test.func
+                   in
+                   Testo.update test ~func:f)
+                 tests
+               |> skip_todo_tests
+             in
+             let lwt_tests =
+               List_.map
+                 (fun (test : Testo_lwt.test) ->
+                   let f () =
+                     Semgrep_js_shared.wrap_with_js_error
+                       ~hook:
+                         (Some
+                            (fun () ->
+                              Firebug.console##log (Js.string test.name)))
+                       test.func
+                   in
+                   Testo.update test ~func:f)
+                 lwt_tests
+               |> skip_todo_tests
+             in
+             let run () =
+               Alcotest.run "semgrep-js" (Testo.to_alcotest tests)
+                 ~and_exit:false ~argv
+             in
+             let run_lwt () : unit Lwt.t =
+               Alcotest_lwt.run "semgrep-js"
+                 (Testo.to_alcotest lwt_tests)
+                 ~and_exit:false ~argv
+             in
+             (* Some gymnastics are needed here because we need to
+                produce a top level promise, in order to properly transform the
+                lwt promise into a Javascript promise, and run it on the Node.js
+                runtime.
+                So we must use Alcotest_lwt to turn our test running into a
+                promise.*)
+             Semgrep_js_shared.promise_of_lwt
+               (Semgrep_js_shared.wrap_with_js_error (fun () () ->
+                    (* I don't know why, but on my (Brandon's) machine, the
+                       e2e tests fail unless they are run in this order.
+                    *)
+                    let%lwt () = run_lwt () in
+                    run ();
+                    Lwt.return_unit))
+        end))

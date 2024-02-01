@@ -47,7 +47,7 @@ let map_trailing_comma env v =
   | None -> ()
 
 let tuple_hole_expr _env tok = OtherExpr (("TupleHole", tok), []) |> G.e
-let tuple_hole_pat _env tok = PatUnderscore tok |> G.p
+let tuple_hole_pat _env tok = PatWildcard tok |> G.p
 
 let stmt_of_def_or_dir = function
   | Either_.Left3 def -> DefStmt def |> G.s
@@ -2509,5 +2509,5 @@ let parse_pattern str =
     (fun () -> Tree_sitter_solidity.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       map_source_file env cst)

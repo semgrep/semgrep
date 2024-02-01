@@ -1,6 +1,8 @@
 open Common
 open Fpath_.Operators
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
@@ -9,10 +11,9 @@ open Fpath_.Operators
 let tests_path = "tests"
 
 let tests parse_program =
-  Alcotest_ext.pack_tests "naming generic"
+  Testo.categorize "naming generic"
     [
-      ( "regression files",
-        fun () ->
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "naming/python" in
           let files1 = Common2.glob (spf "%s/*.py" dir) in
           let dir = Filename.concat tests_path "naming/go" in
@@ -37,5 +38,5 @@ let tests parse_program =
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" !!file) );
+                     Alcotest.failf "it should correctly parse %s" !!file));
     ]

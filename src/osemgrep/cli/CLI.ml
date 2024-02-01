@@ -34,10 +34,22 @@ module Env = Semgrep_envvars
 *)
 
 (*****************************************************************************)
-(* Constants *)
+(* Types and constants *)
 (*****************************************************************************)
 
+type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.random ; Cap.signal >
+
 let default_subcommand = "scan"
+
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+(* alt: define our own Pro_CLI.ml in semgrep-pro
+ * old: was Interactive_subcommand.main
+ *)
+let hook_semgrep_interactive =
+  ref (fun _argv ->
+      failwith "semgrep interactive not available (requires --pro)")
 
 (*****************************************************************************)
 (* Helpers *)
@@ -104,12 +116,13 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "install-ci";
-    "interactive";
     "show";
     "test";
+    (* pro-only and osemgrep-only *)
+    "interactive";
   ]
 
-let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
+let dispatch_subcommand (caps : caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -176,7 +189,10 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
               subcmd_argv
         | "logout" when experimental ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
-        | "lsp" -> Lsp_subcommand.main subcmd_argv
+        | "lsp" ->
+            Lsp_subcommand.main
+              (caps :> < Cap.random ; Cap.network >)
+              subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" ->
             Scan_subcommand.main
@@ -189,7 +205,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" ->
             Install_subcommand.main (caps :> < Cap.random >) subcmd_argv
-        | "interactive" -> Interactive_subcommand.main subcmd_argv
+        | "interactive" -> !hook_semgrep_interactive subcmd_argv
         | "show" ->
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
@@ -256,7 +272,7 @@ let before_exit ~profile () : unit =
 (*****************************************************************************)
 
 (* called from ../../main/Main.ml *)
-let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
@@ -282,7 +298,7 @@ let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
+  if Sys.unix then CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
 
   (* TODO? We used to tune the garbage collector but from profiling
      we found that the effect was small. Meanwhile, the memory

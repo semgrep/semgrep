@@ -112,7 +112,6 @@ def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_promql_duration_captures(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/promql-duration-capture.yaml",
@@ -177,7 +176,7 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--emacs", "--vim"],
+    ["--json", "--emacs", "--vim", "--sarif"],
 )
 def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
@@ -192,11 +191,32 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
+    ["--gitlab-sast", "--gitlab-secrets"],
 )
 @pytest.mark.osemfail
 def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     test_output_format(run_semgrep_in_tmp, snapshot, format)
+
+
+@pytest.mark.kinda_slow
+def test_long_rule_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/cli_test/long_rule_id/long_rule_id.yaml",
+        target_name="cli_test/basic",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(stdout, "results.out")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail  # TODO: fix text wrapping of findings
+def test_long_rule_id_long_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/cli_test/long_rule_id/long_rule_id.yaml",
+        target_name="cli_test/long_text",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(stdout, "results.out")
 
 
 @pytest.mark.kinda_slow
@@ -258,7 +278,6 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
@@ -268,11 +287,10 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     filename = snapshot.snapshot_dir / "results.xml"
     expected = _etree_to_dict(cElementTree.XML(filename.read_text()))
 
-    assert expected == result
+    assert result == expected
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

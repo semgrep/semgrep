@@ -48,6 +48,15 @@ let env_or conv var default =
 
 let in_env var = env_opt var <> None
 
+let env_truthy var =
+  env_opt var |> Option.value ~default:"" |> String.lowercase_ascii |> function
+  | "true"
+  | "1"
+  | "yes"
+  | "y" ->
+      true
+  | _ -> false
+
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
@@ -71,12 +80,15 @@ type t = {
   user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
+  no_color : bool;
   is_ci : bool;
   in_docker : bool;
   in_gh_action : bool;
   (* deprecated *)
   in_agent : bool;
   min_fetch_depth : int;
+  (* TODO(reynir): is this deprecated?! *)
+  mock_using_registry : bool;
 }
 
 (* What about temp? Well we use ocaml stdlib definition of a temp directory.
@@ -133,11 +145,13 @@ let of_current_sys_env () : t =
     user_settings_file =
       env_or Fpath.v "SEMGREP_SETTINGS_FILE"
         (user_dot_semgrep_dir / settings_filename);
+    no_color = env_truthy "NO_COLOR" || env_truthy "SEMGREP_COLOR_NO_COLOR";
     is_ci = in_env "CI";
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";
     in_agent = in_env "SEMGREP_AGENT";
     min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
+    mock_using_registry = in_env "MOCK_USING_REGISTRY";
   }
 
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)

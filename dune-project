@@ -29,32 +29,6 @@
 ; Opam packages
 
 (package
-  (name alcotest_ext)
-  (synopsis "Extension of the Alcotest library")
-  (description "\
-Alcotest_ext extends the functionality of the Alcotest library by providing
-new subcommands for capturing, checking, and approving the output of tests.")
-  (depends
-    (ocaml (>= 4.08.0))
-    alcotest
-    cmdliner
-    re
-  )
-)
-
-(package
-  (name alcotest_ext_lwt)
-  (synopsis "Extension of the Alcotest library for Lwt")
-  (description "\
-Use this if the tests return Lwt promises and you can't make them synchronous
-by wrapping them in 'Lwt_main.run'.")
-  (depends
-    (ocaml (>= 4.08.0))
-    alcotest_ext
-  )
-)
-
-(package
   (name aliengrep)
   (synopsis "Generic Semgrep-like pattern search backed by PCRE")
   (description "Generic Semgrep-like pattern search backed by PCRE")
@@ -466,15 +440,15 @@ For more information see https://semgrep.dev
     ocolor
     ANSITerminal
     terminal_size
-    notty
     ; logging
     (easy_logging ( = 0.8.1 ))
     (easy_logging_yojson ( = 0.8.1 ))
     logs
-    ; JSON/YAML
+    ; JSON/YAML/XML
     atdgen
     (yojson ( >= 2.0.0 ))
     yaml
+    xmlm
     ; CLI
     cmdliner
     ; PPX
@@ -510,7 +484,7 @@ For more information see https://semgrep.dev
     ; concurrency
     lwt
     lwt_ppx
-    conf-libev ; for lwt, to get better FD perf
+    (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
     ; jsoo
     (js_of_ocaml (= 5.4.0))
     (js_of_ocaml-compiler (= 5.4.0))

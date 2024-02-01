@@ -1072,9 +1072,9 @@ and vof_pattern = function
   | PatKeyVal (v1, v2) ->
       let v1 = vof_pattern v1 and v2 = vof_pattern v2 in
       OCaml.VSum ("PatKeyVal", [ v1; v2 ])
-  | PatUnderscore v1 ->
+  | PatWildcard v1 ->
       let v1 = vof_tok v1 in
-      OCaml.VSum ("PatUnderscore", [ v1 ])
+      OCaml.VSum ("PatWildcard", [ v1 ])
   | PatDisj (v1, v2) ->
       let v1 = vof_pattern v1 and v2 = vof_pattern v2 in
       OCaml.VSum ("PatDisj", [ v1; v2 ])

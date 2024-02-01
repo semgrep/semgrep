@@ -95,9 +95,13 @@ let default : conf =
     core_runner_conf =
       {
         (* Maxing out number of cores used to 16 if more not requested to
-         * not overload on large machines
+         * not overload on large machines.
+         * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
+         * we don't believe that Parmap works in those environments
+         * TODO: figure out a solution for Windows multi-processing (OCaml 5 in the worst case)
          *)
-        Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
+        Core_runner.num_jobs =
+          min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
         timeout = 5.0;
         (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
         timeout_threshold = 3;
@@ -519,14 +523,15 @@ let o_secrets : bool Term.t =
     Arg.info
       [ "beta-testing-secrets-enabled" ]
       ~doc:
-        {|Enable support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more information on this.|}
+        {|Please use --secrets instead of --beta-testing-secrets.
+          Requires Semgrep Secrets, contact support@semgrep.com for more
+          information on this.|}
   in
   Arg.value (Arg.flag info)
 
 let o_no_secrets_validation : bool Term.t =
   let info =
-    Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secrets validation|}
+    Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secret validation.|}
   in
   Arg.value (Arg.flag info)
 
@@ -557,7 +562,7 @@ let blurb =
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently just Apex). " ^ blurb)
+      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -574,7 +579,8 @@ let o_pro : bool Term.t =
   let info =
     Arg.info [ "pro" ]
       ~doc:
-        ("Inter-file analysis and Pro languages (currently just Apex). " ^ blurb)
+        ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
+       ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -793,6 +799,16 @@ let o_project_root : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_remote : string option Term.t =
+  let info =
+    Arg.info [ "remote" ]
+      ~doc:
+        {|Remote will quickly checkout and scan a remote git repository of
+        the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
+        --pro Incompatible with --project-root|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 let o_ast_caching : bool Term.t =
   H.negatable_flag [ "ast-caching" ] ~neg_options:[ "no-ast-caching" ]
     ~default:default.core_runner_conf.ast_caching
@@ -841,7 +857,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       junit_xml lang ls matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
       no_secrets_validation nosem optimizations oss output pattern pro
-      project_root pro_intrafile pro_lang registry_caching replacement
+      project_root pro_intrafile pro_lang registry_caching remote replacement
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
@@ -849,9 +865,26 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
-
     let target_roots = target_roots |> Fpath_.of_strings in
-
+    let project_root =
+      let is_git_repo remote =
+        remote |> Git_wrapper.remote_repo_name |> Option.is_some
+      in
+      match (project_root, remote) with
+      | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
+      | None, Some url when is_git_repo url ->
+          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let url = Uri.of_string url in
+          Some (Find_targets.Git_remote { url; checkout_path })
+      | None, Some _url ->
+          Error.abort
+            "Remote arg is not a valid git remote, expected something like \
+             http[s]://website.com/.../<REPONAME>.git"
+      | Some _, Some _ ->
+          Error.abort
+            "Cannot use both --project-root and --remote at the same time"
+      | _ -> None
+    in
     let output_format =
       let all_flags =
         [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
@@ -1000,7 +1033,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_targets.project_root = Option.map Fpath.v project_root;
+        Find_targets.project_root;
         exclude = exclude_;
         include_;
         baseline_commit;
@@ -1155,8 +1188,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
     $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
     $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
-    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
+    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate

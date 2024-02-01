@@ -7,7 +7,9 @@ module LabelSet : Set.S with type elt = string
 (* Taint *)
 (*****************************************************************************)
 
-type tainted_tokens = AST_generic.tok list [@@deriving show]
+type tainted_token = AST_generic.tok [@@deriving show]
+
+type tainted_tokens = tainted_token list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. For example,
   * when passing through a statement like `x = tainted`, the token
@@ -29,9 +31,10 @@ type arg_pos = { name : string; index : int } [@@deriving show]
 (** A formal argument of a function given by its name and it's index/position. *)
 
 type arg_base =
+  | BGlob of IL.name  (** A global variable or a static class field. *)
   | BThis
       (** The 'this' or 'self' object, treated here like an special argument. *)
-  | BArg of arg_pos
+  | BArg of arg_pos  (** A formal parameter in a function/method definition. *)
 [@@deriving show]
 
 type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
@@ -231,3 +234,4 @@ type signature = Findings.t
  *)
 
 val _show_finding : finding -> string
+val _show_signature : signature -> string

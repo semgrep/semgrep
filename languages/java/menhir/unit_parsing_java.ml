@@ -1,5 +1,7 @@
 open Common
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
@@ -8,14 +10,12 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Alcotest_ext.pack_tests "parsing_java"
+  Testo.categorize "parsing_java"
     [
-      ( "regression files",
-        fun () ->
+      t "regression files" (fun () ->
           let dir = Filename.concat tests_path "java/parsing" in
           let files = Common2.glob (spf "%s/*.java" dir) in
           files
           |> List.iter (fun file ->
-                 Testutil.run file (fun () -> Parse_java.parse file |> ignore))
-      );
+                 Testutil.run file (fun () -> Parse_java.parse file |> ignore)));
     ]

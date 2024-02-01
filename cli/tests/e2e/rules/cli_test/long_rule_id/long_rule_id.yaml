@@ -1,0 +1,6 @@
+rules:
+  - id: this-is-a-very-long-rule-id-which-should-be-wrapped-in-the-cli-thank-you-very-much-supercalifragilisticexpialidocious
+    pattern: $X == $X
+    message: This is the description of a very long rule id which should be wrapped in the cli thank you very much supercalifragilisticexpialidocious.
+    severity: WARNING
+    languages: [python]

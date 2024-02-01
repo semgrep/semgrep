@@ -318,9 +318,7 @@ let translate_files fparser xs =
                         ]
                     | `Taint spec ->
                         [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
-                    | `Steps _ -> failwith "step rules not currently handled"
-                    | `Secrets _ ->
-                        failwith "secrets rules not currently handled")
+                    | `Steps _ -> failwith "step rules not currently handled")
            in
            (file, formulas))
   in

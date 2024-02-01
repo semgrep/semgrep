@@ -5,7 +5,11 @@ open Lang
 open Fpath_.Operators
 
 type exec = Exec | Nonexec
+
+(* TODO: simplify and use Testo.create ~expected_outcome:Should_fail *)
 type success = OK | XFAIL
+
+let t = Testo.create
 
 (*
    For these tests, the file doesn't need to exist.
@@ -101,15 +105,14 @@ let test_with_contents lang name contents exec expectation =
 let test_inspect_file =
   List_.map
     (fun (test_name, lang, path, expectation) ->
-      (test_name, fun () -> test_name_only lang path expectation))
+      t test_name (fun () -> test_name_only lang path expectation))
     name_tests
   @ List_.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->
-        ( test_name,
-          fun () -> test_with_contents lang file_name contents exec expectation
-        ))
+        t test_name (fun () ->
+            test_with_contents lang file_name contents exec expectation))
       contents_tests
 
 let tests =
-  Alcotest_ext.pack_suites "Guess_lang"
-    [ Alcotest_ext.pack_tests "inspect_file" test_inspect_file ]
+  Testo.categorize_suites "Guess_lang"
+    [ Testo.categorize "inspect_file" test_inspect_file ]

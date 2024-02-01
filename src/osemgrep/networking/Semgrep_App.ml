@@ -149,7 +149,12 @@ let extract_block_override (data : string) : (app_block_override, string) result
 
 (* Returns the deployment config if the token is valid, otherwise None *)
 let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
-  let headers = [ Auth.auth_header_of_token caps#token ] in
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
   let%lwt response = Http_helpers.get_async ~headers caps#network url in
   let deployment_opt =
@@ -399,7 +404,8 @@ let report_failure ~dry_run ~scan_id caps (exit_code : Exit_code.t) : unit =
   else
     let headers =
       [
-        ("content-type", "application/json");
+        ("Content-Type", "application/json");
+        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in

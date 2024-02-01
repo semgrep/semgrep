@@ -6,6 +6,231 @@
 
 <!-- insertion point -->
 
+## [1.59.0](https://github.com/returntocorp/semgrep/releases/tag/v1.59.0) - 2024-01-30
+
+
+### Added
+
+
+- Swift: Now supports typed metavariables, such as `($X : ty)`. (pa-3370)
+
+
+### Changed
+
+
+- Add Elixir to Pro languages list in help information. (gh-9609)
+- Removed `sg` alias to avoid naming conflicts
+  with the shadow-utils `sg` command for Linux systems. (gh-9642)
+- Prevent unnecessary computation when running scans without verbose logging enabled (gh-9661)
+- Deprecated option `taint_match_on` introduced in 1.51.0, it is being renamed
+  to `taint_focus_on`. Note that `taint_match_on` was experimental, and
+  `taint_focus_on` is experimental too. Option `taint_match_on` will continue
+  to work but it will be completely removed at some point after 1.63.0. (pa-3272)
+- Added information on product-related flags to help output, especially for Semgrep Secrets. (pa-3383)
+- taint-mode: Improve inference of best matches for exact-sources, exact-sanitizers,
+  and sinks. Now we also avoid FPs in cases such as:
+
+      dangerouslySetInnerHTML = {
+        // ok:
+        {__html: props ? DOMPurify.sanitize(props.text) : ''} // no more FPs!
+      }
+
+  where `props` is tainted and the sink specification is:
+
+      patterns:
+        - pattern: |
+           dangerouslySetInnerHTML={{__html: $X}}
+        - focus-metavariable: $X
+
+  Previously Semgrep wrongly considered the individual subexpressions of the
+  conditional as sinks, including the `props` in `props ? ...`, thus producing a
+  false positive. Now it will only consider the conditional expression as a whole
+  as the sink. (rules-6457)
+- Removed an internal legacy syntax for secrets rules (`mode: semgrep_internal_postprocessor`). (scrt-320)
+
+
+### Fixed
+
+
+- Autofix: Fixes that span multiple lines will now try to align
+  inserted fixed lines with each other. (gh-3070)
+- Matching: Try blocks with catch clauses can now match try blocks that have
+  extraneous catch clauses, as long as it matches a subset. For instance,
+  the pattern
+  ```
+  try:
+    ...
+  catch A:
+    ...
+  ```
+  can now match
+  ```
+  try:
+    ...
+  catch A:
+    ...
+  catch B:
+    ...
+  ``` (gh-3362)
+- Previously, some people got the error:
+
+  ```
+  Encountered error when running rules: Other syntax error at line NO FILE INFO YET:-1:
+  Invalid_argument: String.sub / Bytes.sub
+  ```
+
+  Semgrep should now report this error properly with a file name and line number and
+  handle it gracefully. (gh-9628)
+- Fixed Dockerfile parsing bug where multiline comments were parsed incorrectly. (gh-9628-2)
+- The language server will now properly respect findings that have been ignored via the app (lsp-fingerprints)
+- taint-mode: Pro: Semgrep will now propagate taint via instance variables when
+  calling methods within the same class, making this example work:
+
+  ```java
+  class Test {
+
+    private String str;
+
+    public setStr() {
+      this.str = "tainted";
+    }
+
+    public useStr() {
+      //ruleid: test
+      sink(this.str);
+    }
+
+    public test() {
+      setStr();
+      useStr();
+    }
+
+  }
+  ``` (pa-3372)
+- taint-mode: Pro: Taint traces will now reflect when taint is propagated via
+  class fields, such as in this example:
+
+  ```java
+  class Test {
+
+    private String str;
+
+    public setStr() {
+      this.str = "tainted";
+    }
+
+    public useStr() {
+      //ruleid: test
+      sink(this.str);
+    }
+
+    public test() {
+      setStr();
+      useStr();
+    }
+
+  }
+  ```
+
+  Previously Semgrep will report that taint originated at `this.str = "tainted"`,
+  but it would not tell you how the control flow got there. Now the taint trace
+  will indicate that we get there by calling `setStr()` inside `test()`. (pa-3373)
+- Addressed an issue related to matching top-level identifiers with meta-variable
+  qualified patterns in C++, such as matching ::foo with ::$A::$B.  This problem
+  was specific to Pro Engine-enabled scans. (pa-3375)
+
+
+## [1.58.0](https://github.com/returntocorp/semgrep/releases/tag/v1.58.0) - 2024-01-23
+
+
+### Added
+
+
+- Added a severity icon (e.g. "❯❯❱") and corresponding color to our CLI text output
+  for findings of known severity. (grow-97)
+- Naming has better support for if statements. In particular, for
+  languages with block scope, shadowed variables inside if-else blocks
+  that are tainted won't "leak" outside of those blocks.
+
+  This helps with features related to naming, such as tainting.
+
+  For example, previously in Go, the x in sink(x) will report
+  that x is tainted, even though the x that is tainted is the
+  one inside the scope of the if block.
+
+  ```go
+  func f() {
+    x := "safe";
+    if (c) {
+      x := "tainted";
+    }
+    // x should not be tainted
+    sink(x);
+  }
+  ```
+
+  This is now fixed. (pa-3185)
+- OSemgrep can now scan remote git repositories. Pass `--experimental --pro --remote http[s]://<website>/.../<repo>.git` to use this feature (pa-remote)
+
+
+### Changed
+
+
+- Rules stored under an "hidden" directory (e.g., dir/.hidden/myrule.yml)
+  are now processed when using --config <dir>.
+  We used to skip dot files under dir, but keeping rules/.semgrep.yml,
+  but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
+  but not ./.pre-commit-config.yaml, ... This was mainly because
+  we used to fetch rules from ~/.semgrep/ implicitely when --config
+  was not given, but this feature was removed, so now we can keep it simple. (hidden_rules)
+- Removed support for writing rules using jsonnet. This feature
+  will be restored once we finish the port to OCaml of the semgrep CLI. (jsonnet)
+- The primitive object construct expression will no longer match the new
+  expression pattern. For example, the pattern `new $TYPE` will now only match
+  `new int`, not `int()`. (pa-3336)
+- The placement new expression will no longer match the new expression without
+  placement. For instance, the pattern `new ($STORAGE) $TYPE` will now only match
+  `new (storage) int` and not `new int`. (pa-3338)
+
+
+### Fixed
+
+
+- Java: You can now use metavariable ellipses properly in
+  function arguments, as statements, and as expressions.
+
+  For instance, you may write the pattern
+  ```
+  public $F($...ARGS) { ... }
+  ``` (gh-9260)
+- Nosemgrep: Fixed a bug where Semgrep would err upon reading a `nosemgrep`
+  comment with multiple rule IDs. (gh-9463)
+- Fixed bugs in gitignore/semgrepignore globbing implementation affecting `--experimental`. (gh-9544)
+- Fixed rule IDs, descriptions, findings, and autofix text not wrapping as expected.
+  Use newline instead of horiziontal separator for findings with a shared file
+  but for different rules per design spec. (grow-97)
+- Keep track of the origin of `return;` statements in the dataflow IL so that
+  recently added (Pro-only) `at-exit: true` sinks work properly on them. (pa-3337)
+- C++: Improve translation of `delete` expressions to the dataflow IL so that
+  recently added (Pro-only) `at-exit: true` sinks work on them. Previously
+  `delete` expression at "exit" positions were not being properly recognized
+  as such. (pa-3339)
+- cli: fix python runtime error with 0 width wrapped printing (pa-3366)
+- Fixed a bug where Gemfile.lock files with multiple GEM sections
+  would not be parsed correctly. (sc-1230)
+
+
+## [1.56.0](https://github.com/returntocorp/semgrep/releases/tag/v1.56.0) - 2024-01-10
+
+
+### Added
+
+
+- Added a new field that breaks down the number of findings per product
+  in the metrics that are sent out by the CLI. This will help Semgrep
+  understand users better. (pa-3312)
+
+
 ## [1.55.2](https://github.com/returntocorp/semgrep/releases/tag/v1.55.2) - 2024-01-05
 
 

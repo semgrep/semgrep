@@ -617,7 +617,7 @@ and id_info = {
    * the same identifier can now have different flags. In fact we did not really
    * have to compare 'id_flags' anyways. *)
   id_flags : id_flags ref; [@equal fun _a _b -> true]
-  (* this is used by Naming_X in deep-semgrep *)
+  (* this is used by Naming_SAST in semgrep-pro *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
@@ -1243,7 +1243,7 @@ and condition =
 
 (* newscope: *)
 (* less: could merge even more with pattern
- * list = PatDisj and Default = PatUnderscore,
+ * list = PatDisj and Default = PatWildcard,
  * so case_and_body of Switch <=> action of MatchPattern
  *)
 and case_and_body =
@@ -1256,7 +1256,7 @@ and case_and_body =
  *)
 and case =
   | Case of tok * pattern
-  (* less: could unsugar as Case (PatUnderscore _) *)
+  (* less: could unsugar as Case (PatWildcard _) *)
   | Default of tok
   (* For Go, expr can contain some Assign bindings.
    * todo? could merge with regular Case? can 'case x := <-chan' be
@@ -1345,7 +1345,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_Todo
 
 and other_stmt_operator =
-  (* Python *)
+  (* Python, C++ *)
   | OS_Delete
   (* todo: reduce? transpile? *)
   | OS_ForOrElse
@@ -1401,8 +1401,8 @@ and pattern =
   (* less: generalize to other container_operator? *)
   | PatList of pattern list bracket
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
-  (* special case of PatId, TODO: name PatAny *)
-  | PatUnderscore of tok
+  (* special case of PatId e.g. `_` in OCaml and Scala, `...` in C++ *)
+  | PatWildcard of tok
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
   | PatTyped of pattern * type_
@@ -2173,7 +2173,7 @@ let p x = x
 (* Ident and names *)
 (* ------------------------------------------------------------------------- *)
 
-(* For Naming_SAST.ml in deep-semgrep.
+(* For Naming_SAST.ml in semgrep-pro.
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
  *)

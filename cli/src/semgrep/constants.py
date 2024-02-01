@@ -2,13 +2,14 @@ import re
 from enum import auto
 from enum import Enum
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+
 RULES_KEY = "rules"
 MISSED_KEY = "missed"  # The number of Pro rules missed out on
 ID_KEY = "id"
 CLI_RULE_ID = "-"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
-DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
 DEFAULT_SEMGREP_APP_CONFIG_URL = "api/agent/deployments/scans/config"
 
 DEFAULT_TIMEOUT = (
@@ -123,7 +124,16 @@ class Colors(Enum):
     yellow = "yellow"  # TODO: benchmark timing output?
     red = "red"  # for errors
     bright_blue = "bright_blue"  # TODO: line numbers?
-
+    magenta = "magenta"
     # these colors ignore user's terminal theme
     forced_black = 16  # #000
     forced_white = 231  # #FFF
+
+
+# Maps from product names used in our ATD files to product names
+# used in as command line options that users are more familiar with.
+USER_FRIENDLY_PRODUCT_NAMES = {
+    out.Product(out.SAST()): "code",
+    out.Product(out.SCA()): "supply-chain",
+    out.Product(out.Secrets()): "secrets",
+}

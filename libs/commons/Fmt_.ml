@@ -67,7 +67,7 @@ let with_buffer_to_string f =
   Buffer.contents buf
 
 let () =
-  Alcotest_ext.test "Fmt_.with_buffer_to_string" (fun () ->
+  Testo.test "Fmt_.with_buffer_to_string" (fun () ->
       assert (
         with_buffer_to_string (fun fmt -> Format.fprintf fmt "foo") = "foo"))
 

@@ -412,7 +412,7 @@ and catch_block = function
         (* bugfix: reusing 't' to avoid NoTokenLocation error when
          * a semgrep patter like catch($ERR) matches an UnboundCatch. *)
       in
-      (t, G.CatchPattern (G.PatUnderscore t), v1)
+      (t, G.CatchPattern (G.PatWildcard t), v1)
 
 and tok_and_stmt (t, v) =
   let v = stmt v in

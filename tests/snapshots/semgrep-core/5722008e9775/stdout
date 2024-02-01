@@ -1,0 +1,12 @@
+--- All files ---
+.gitignore
+dir/ignore-me
+sub/dir/ignore-me-not
+--- Filtered files ---
+Selection events for path .gitignore:
+SEL .gitignore
+Selection events for path dir/ignore-me:
+ignored at <TEMPORARY FILE PATH>, line 1: dir/*
+IGN dir/ignore-me
+Selection events for path sub/dir/ignore-me-not:
+SEL sub/dir/ignore-me-not

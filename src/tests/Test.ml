@@ -17,6 +17,8 @@
 (* Helpers *)
 (*****************************************************************************)
 
+let t = Testo.create
+
 let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
@@ -64,21 +66,21 @@ let tests (caps : Cap.all_caps) =
       Unit_jsonnet.tests ();
       Unit_metachecking.tests ();
       (* OSemgrep tests *)
-      Unit_LS.tests;
+      Unit_LS.tests (caps :> < Cap.random ; Cap.network >);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network >);
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
-      Osemgrep_tests.tests caps;
+      Osemgrep_tests.tests (caps :> CLI.caps);
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests;
+      Test_LS_e2e.tests (caps :> < Cap.random ; Cap.network >);
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
-      Alcotest_ext.get_registered_tests ();
+      Testo.get_registered_tests ();
     ]
 
 (*****************************************************************************)
@@ -96,11 +98,10 @@ let tests_with_delayed_error caps =
   try tests caps with
   | e ->
       let exn = Exception.catch e in
-      Alcotest_ext.simple_tests
-        [
-          ( "ERROR DURING TEST SUITE INITIALIZATION",
-            fun () -> Exception.reraise exn );
-        ]
+      [
+        t "ERROR DURING TEST SUITE INITIALIZATION" (fun () ->
+            Exception.reraise exn);
+      ]
 
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
@@ -120,7 +121,7 @@ let main (caps : Cap.all_caps) : unit =
       Data_init.init ();
       Core_CLI.register_exception_printers ();
       Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
-      Alcotest_ext.interpret_argv ~project_name:"semgrep-core" (fun () ->
+      Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
           tests_with_delayed_error caps))
 
 let () = Cap.main (fun all_caps -> main all_caps)

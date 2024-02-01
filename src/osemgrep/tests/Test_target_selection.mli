@@ -2,4 +2,4 @@
    Test Osemgrep's target selection on real git (or other) repos.
 *)
 
-val tests : Alcotest_ext.test list
+val tests : CLI.caps -> Testo.test list

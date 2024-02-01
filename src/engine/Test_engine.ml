@@ -220,12 +220,17 @@ let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
 (* Main logic *)
 (*****************************************************************************)
 
-let read_rules_file ~get_xlang rule_file =
+let read_rules_file ~get_xlang ?fail_callback rule_file =
   match Parse_rule.parse rule_file with
   (* TODO? sanity check rules |> List.iter Check_rule.check; *)
   | [] ->
-      Logs.err (fun m ->
-          m "file %s is empty or all rules were skipped" !!rule_file);
+      (match fail_callback with
+      | None ->
+          Logs.err (fun m ->
+              m "file %s is empty or all rules were skipped" !!rule_file)
+      | Some fail_callback ->
+          fail_callback 1
+            (spf "file %s is empty or all rules were skipped" !!rule_file));
       None
   | rules ->
       let xlang = get_xlang rule_file rules in
@@ -245,10 +250,10 @@ let read_rules_file ~get_xlang rule_file =
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
     ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
-    (rule_file : Fpath.t) : unit Alcotest_ext.t =
+    (rule_file : Fpath.t) : unit Testo.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-    match read_rules_file ~get_xlang rule_file with
+    match read_rules_file ~get_xlang ~fail_callback rule_file with
     | None -> ()
     | Some (rules, target, xlang) -> (
         (* expected *)
@@ -312,11 +317,11 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let langs = Lang.langs_of_filename target_path in
       let tags = Test_tags.tags_of_langs langs in
       let name = test_name_for_target ~prepend_lang langs rule_file in
-      Alcotest_ext.create ~tags name test
+      Testo.create ~tags name test
   | None ->
       let name = !!rule_file in
       let reason = spf "Missing target file for rule file %s" !!rule_file in
-      Alcotest_ext.create name test ~expected_outcome:(Should_fail reason)
+      Testo.create name test ~expected_outcome:(Should_fail reason)
 
 let find_rule_files roots =
   roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
@@ -333,6 +338,6 @@ let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
          Some (rule_file, target, xlang))
 
 let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
-    unit Alcotest_ext.t list =
+    unit Testo.t list =
   xs |> find_rule_files
   |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)

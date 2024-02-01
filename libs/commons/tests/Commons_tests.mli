@@ -4,4 +4,4 @@
    This is the only module exposed by the commons.tests library.
 *)
 
-val tests : Alcotest_ext.test list
+val tests : Testo.test list

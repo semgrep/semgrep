@@ -138,6 +138,12 @@ local push_docker_job(artifact_name) = {
 // Pypy jobs
 // ----------------------------------------------------------------------------
 
+// Note that we now have a 50GB quota on pypi thx to a request we made in
+// Dec 2023: https://github.com/pypi/support/issues/3464
+// Indeed around that time we reached our quota because each release was
+// taking 170MB and we had released a lot.
+// alt: remove old versions, but Bence didn't like it.
+
 local park_pypi_packages_job = {
   'runs-on': 'ubuntu-latest',
   defaults: {
@@ -149,7 +155,7 @@ local park_pypi_packages_job = {
     {
       uses: 'actions/checkout@v3',
     },
-    actions.setup_python('3.10'),
+    actions.setup_python_step('3.10'),
     {
       run: 'sudo python3 -m pip install pipenv==2022.6.7',
     },
@@ -417,7 +423,10 @@ local homebrew_core_pr_job =
     'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,
-    'sleep-before-homebrew': sleep_before_homebrew_job,
-    'homebrew-core-pr': homebrew_core_pr_job,
+    // These two steps are no longer necessary because homebrew now
+    // autobumps us (as of 1/20/2024). Leaving it commented until
+    // we've had a few successful releases
+    // 'sleep-before-homebrew': sleep_before_homebrew_job,
+    // 'homebrew-core-pr': homebrew_core_pr_job,
   },
 }

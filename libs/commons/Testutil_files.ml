@@ -217,7 +217,7 @@ let with_tempfiles_verbose (files : t list) func =
       func root)
 
 let () =
-  Alcotest_ext.test "Testutil_files" (fun () ->
+  Testo.test "Testutil_files" (fun () ->
       with_tempdir ~chdir:true (fun root ->
           assert (read root = []);
           assert (read (Fpath.v ".") = []);

@@ -1,3 +1,6 @@
+(* return whether or not we should show a spinner *)
+val should_show_spinner : unit -> bool
+
 (*
   Show a spinner while waiting for the user to sign in.
   delay_ms is the total delay across all frames, in milliseconds.

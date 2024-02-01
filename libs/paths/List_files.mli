@@ -30,7 +30,7 @@ val list_regular_files : ?keep_root:bool -> Fpath.t -> Fpath.t list
 
 (*
    List all files recursively. Exclude folders/directories.
-   Use Common.map_filter to exclude more file types.
+   Use List_.map_filter to exclude more file types.
 *)
 val list_with_stat : Fpath.t -> (Fpath.t * Unix.stats) list
 

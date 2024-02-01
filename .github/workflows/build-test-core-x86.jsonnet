@@ -13,7 +13,7 @@ local artifact_name = 'ocaml-build-artifacts-release';
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_test=true) =
+local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run_test=true) =
 
   local test_steps =
     if run_test
@@ -27,20 +27,31 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
   // already created, and a big set of packages already installed. Thus,
   // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
   // almost a noop.
-  container
+  // TODO? now that we use cache_opam, maybe we need less those containers
+  // and could use a more regular opam container (or setup-ocaml@v2)
+  container.job
   {
     steps: [
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
       gha.git_safedir,
+      semgrep.cache_opam.step(
+        key=container.opam_switch + "-${{hashFiles('semgrep.opam')}}"),
       {
-        name: 'Build semgrep-core',
+        name: 'Install dependencies',
         run: |||
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-          make core
-
+        |||,
+      },
+      {
+        name: 'Build semgrep-core',
+        run: 'opam exec -- make core',
+      },
+      {
+        name: 'Make artifact',
+        run: |||
           mkdir -p ocaml-build-artifacts/bin
           cp bin/semgrep-core ocaml-build-artifacts/bin/
           tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts

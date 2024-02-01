@@ -14,7 +14,7 @@
    libpcre_stubs_js
    libyaml_stubs_js
    alcotest
-   alcotest_ext
+   testo
    semgrep.language_server
   lwt_platform.js
   alcotest-lwt

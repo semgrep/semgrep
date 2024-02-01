@@ -72,11 +72,11 @@ type info = {
   out_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
 }
 
-let create_info () =
+let create_info caps =
   RPC_server.io_ref := (module Io);
   let in_stream, in_push_func = Lwt_stream.create () in
   let out_stream, out_push_func = Lwt_stream.create () in
-  let server = LanguageServer.create () in
+  let server = LanguageServer.create caps in
   write_func := out_push_func;
   read_stream := in_stream;
   {
@@ -428,7 +428,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
               ] );
           ("trace", `Assoc [ ("server", `String "verbose") ]);
           ( "metrics",
-            `Assoc [ ("enabled", `Bool true); ("isNewAppInstall", `Bool true) ]
+            `Assoc [ ("enabled", `Bool false); ("isNewAppInstall", `Bool true) ]
           );
           ("doHover", `Bool true);
         ]
@@ -705,19 +705,19 @@ let check_startup info folders (files : Fpath.t list) =
 (* Tests *)
 (*****************************************************************************)
 
-let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
+let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
   (Lwt.async_exception_hook :=
      fun exn ->
        let err = Printexc.to_string exn in
        Logs.err (fun m -> m "Got exception: %s" err);
        Alcotest.fail err);
-  let info = create_info () in
+  let info = create_info caps in
   let server_promise = LanguageServer.start info.server in
   let f_promise = f info in
   Lwt.join [ f_promise; server_promise ]
 
-let test_ls_specs () =
-  with_session (fun info ->
+let test_ls_specs caps () =
+  with_session caps (fun info ->
       let root, files = mock_files () in
       let%lwt () = Lwt.return_unit in
       let%lwt () = check_startup info [ root ] files in
@@ -835,8 +835,8 @@ let test_ls_specs () =
 
       send_exit info)
 
-let test_ls_ext () =
-  with_session (fun info ->
+let test_ls_ext caps () =
+  with_session caps (fun info ->
       let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
@@ -866,7 +866,9 @@ let test_ls_ext () =
           (* scan workspace full *)
           let%lwt () = send_semgrep_scan_workspace ~full:true info in
 
+          Logs.app (fun m -> m "Waiting for scan to finish 2");
           let%lwt notif = receive_notification info in
+          Logs.app (fun m -> m "Received notification");
           let%lwt () =
             assert_message notif
               "Scanning all files regardless of git status. These diagnostics \
@@ -933,8 +935,8 @@ let test_ls_ext () =
 
           send_exit info))
 
-let test_ls_multi () =
-  with_session (fun info ->
+let test_ls_multi caps () =
+  with_session caps (fun info ->
       let ( (workspace1_root, workspace1_files),
             (workspace2_root, workspace2_files) ) =
         mock_workspaces ()
@@ -985,8 +987,8 @@ let test_ls_multi () =
       in
       send_exit info)
 
-let test_login () =
-  with_session (fun info ->
+let test_login caps () =
+  with_session caps (fun info ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
       *)
@@ -1011,8 +1013,8 @@ let test_login () =
           Semgrep_settings.save settings |> ignore;
           send_exit info))
 
-let test_ls_no_folders () =
-  with_session (fun info ->
+let test_ls_no_folders caps () =
+  with_session caps (fun info ->
       let%lwt () = check_startup info [] [] in
 
       send_exit info)
@@ -1025,30 +1027,31 @@ let test_ls_libev () =
 (* Entry point *)
 (*****************************************************************************)
 
-module Test = Alcotest_ext
-module Test_lwt = Alcotest_ext_lwt
+module Test = Testo
+module Test_lwt = Testo_lwt
 
-let promise_tests =
+let promise_tests caps =
   [
-    Test_lwt.create "Test LS" test_ls_specs ~tolerate_chdir:true;
-    Test_lwt.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
-    Test_lwt.create "Test LS multi-workspaces" test_ls_multi
+    Test_lwt.create "Test LS" (test_ls_specs caps) ~tolerate_chdir:true;
+    Test_lwt.create "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
+    Test_lwt.create "Test LS multi-workspaces" (test_ls_multi caps)
       ~tolerate_chdir:true;
-    Test_lwt.create "Test LS login" test_login
+    Test_lwt.create "Test LS login" (test_login caps)
       ~expected_outcome:
         (Should_fail "TODO: currently failing in js tests in CI");
-    Test_lwt.create "Test LS with no folders" test_ls_no_folders;
+    Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
   ]
   |> List_.map (fun (test : _ Test.t) ->
          Test.update test ~func:(with_timeout test.func))
 
-let tests =
+let tests caps =
   let prepare f () = Lwt_platform.run (f ()) in
-  Test.pack_tests_pro "Language Server (e2e)"
+  let promise_tests = promise_tests caps in
+  Test.categorize "Language Server (e2e)"
     (promise_tests
     |> List_.map (fun (test : _ Test.t) ->
            Test.update_func test Test.Mona.sync (prepare test.func)))
 
-let lwt_tests =
-  Test.pack_tests_pro "Language Server (e2e)"
-    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests)
+let lwt_tests caps =
+  Test.categorize "Language Server (e2e)"
+    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests caps)

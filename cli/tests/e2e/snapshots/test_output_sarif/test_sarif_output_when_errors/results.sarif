@@ -21,7 +21,7 @@
       "results": [],
       "tool": {
         "driver": {
-          "name": "semgrep",
+          "name": "Semgrep OSS",
           "rules": [],
           "semanticVersion": "placeholder"
         }

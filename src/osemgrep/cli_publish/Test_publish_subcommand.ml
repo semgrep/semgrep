@@ -14,8 +14,9 @@
  *)
 open Common
 open Fpath_.Operators
-open Alcotest_ext
 module Http_helpers = Http_helpers.Make (Lwt_platform)
+
+let t = Testo.create
 
 (*****************************************************************************)
 (* Prelude *)
@@ -198,4 +199,5 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
 (*****************************************************************************)
 
 let tests (caps : < Cap.network ; Cap.stdout >) =
-  pack_tests "Osemgrep Publish (e2e)" [ ("test_publish", test_publish caps) ]
+  Testo.categorize "Osemgrep Publish (e2e)"
+    [ t "test_publish" (test_publish caps) ]

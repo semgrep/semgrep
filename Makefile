@@ -325,7 +325,10 @@ ALPINE_APK_DEPS_CORE_INDEXES=curl-dev
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
+# - curl-dev: for opentelemetry, which we use for tracing
+# - openssl-libs-static: dependency of curl-static
+
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -340,8 +343,7 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
 #  - it avoids repeating yourself everywhere
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
-	apk add -i $(ALPINE_APK_DEPS_CORE_INDEXES)
-
+	./scripts/build-static-libcurl.sh
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests

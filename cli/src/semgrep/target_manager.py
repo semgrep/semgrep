@@ -43,7 +43,7 @@ from boltons.iterutils import partition
 
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import FilesNotFoundError
-from semgrep.formatter.text import width
+from semgrep.formatter.text import BASE_WIDTH as width
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
@@ -276,7 +276,7 @@ class FileTargetingLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by .semgrepignore:"
-        yield 1, "(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
+        yield 1, "- https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
         if self.semgrepignored:
             for path in sorted(self.semgrepignored):
                 yield 2, with_color(Colors.cyan, str(path))

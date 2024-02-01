@@ -90,22 +90,29 @@ local snapshot_update_pr_steps = [
 
 // This is mostly the same that in build-test-core-x86.jsonnet
 // but without the artifact creation and with more tests.
-// alt: we could factorize buy copy-paste is ok.
+// alt: we could factorize
 local test_semgrep_core_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     steps: [
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
       gha.git_safedir,
+      semgrep.cache_opam.step(
+        key=semgrep.containers.ocaml_alpine.opam_switch +
+          "-${{hashFiles('semgrep.opam')}}"
+       ),
       {
-        name: 'Build semgrep-core',
+        name: 'Install dependencies',
         run: |||
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-          make core
         |||,
+      },
+      {
+        name: 'Build semgrep-core',
+        run: 'opam exec -- make core',
       },
       {
         name: 'Test semgrep-core (and time it)',
@@ -142,7 +149,7 @@ local test_semgrep_core_job =
 
 // alt: could factorize with previous job
 local test_osemgrep_job =
-  semgrep.ocaml_alpine_container
+  semgrep.containers.ocaml_alpine.job
   {
     steps: [
       gha.speedy_checkout_step,
@@ -193,9 +200,6 @@ local fetch_submodules_step = {
   name: 'Fetch semgrep-cli submodules',
   run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
 };
-local pipenv_install_step = {
-  run: 'pip install pipenv==2022.6.7',
-};
 
 local download_x86_artifacts = {
   uses: 'actions/download-artifact@v3',
@@ -241,8 +245,8 @@ local test_cli_job = {
   steps: [
     actions.checkout(),
     fetch_submodules_step,
-    actions.setup_python('${{ matrix.python }}'),
-    pipenv_install_step,
+    actions.setup_python_step('${{ matrix.python }}'),
+    actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     install_python_deps,
@@ -291,8 +295,8 @@ local test_qa_job = {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
     },
-    actions.setup_python('3.11'),
-    pipenv_install_step,
+    actions.setup_python_step('3.11'),
+    actions.pipenv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     // TODO: mostly like install_python_deps with PATH adjustment
@@ -338,8 +342,8 @@ local test_qa_job = {
 local bench_prepare_steps = [
   actions.checkout(),
   fetch_submodules_step,
-  actions.setup_python('3.8'),
-  pipenv_install_step,
+  actions.setup_python_step('3.8'),
+  actions.pipenv_install_step,
   download_x86_artifacts,
   install_x86_artifacts,
   install_python_deps,
@@ -586,6 +590,10 @@ local ignore_md = {
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
+      secrets: 'inherit',
+    },
+    'build-test-windows-x86': {
+      uses: './.github/workflows/build-test-windows-x86.yml',
       secrets: 'inherit',
     },
     'build-test-manylinux-x86': {

@@ -11,7 +11,7 @@ let syntax_error msg =
 let neg = ['^' '!']
 
 rule token = parse
-| '/'      { SLASH }
+| '/'+     { SLASH }
 | "**"     { (* only special if it occupies a whole path segment. This
                 is dealt with later. *)
              STARSTAR }

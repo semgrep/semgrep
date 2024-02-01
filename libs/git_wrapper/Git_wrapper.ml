@@ -58,6 +58,16 @@ type status = {
 
 let git : Cmd.name = Cmd.Name "git"
 
+type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+type sha = string [@@deriving show]
+
+(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
+type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+[@@deriving show]
+
+type batch_check_extra = { size : int } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -91,8 +101,8 @@ exception Error of string
  * We use a named capture group for the lines, and then split on the comma if
  * it's a multiline diff
  *)
-let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
+let git_diff_lines_re = Pcre_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
+let remote_repo_name_re = Pcre_.regexp {|^http.*\/(.*)\.git$|}
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -113,6 +123,21 @@ let opt (o : string option) : string list =
   match o with
   | None -> []
   | Some str -> [ str ]
+
+(*
+   Add an optional flag to the command line by returning a list of arguments
+   to add to the current arguments.
+
+   Usage:
+
+   let do_something ?(foo = false) () =
+     let cmd = (git, [ "do-something" ] @ flag "--foo" foo) in
+     ...
+*)
+let flag name (is_set : bool) : string list =
+  match is_set with
+  | true -> [ name ]
+  | false -> []
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
@@ -143,6 +168,21 @@ let range_of_git_diff lines =
         ranges
   | Error _ -> [||]
 
+let remote_repo_name url =
+  match Pcre_.exec ~rex:remote_repo_name_re url with
+  | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
+  | _ -> None
+
+let temporary_remote_checkout_path url =
+  let name =
+    match remote_repo_name url with
+    | Some name -> name
+    | None -> failwith "Could not get remote repo name"
+  in
+  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
+  let name = rand_prefix ^ "_" ^ name in
+  let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
+  Fpath.add_seg tmp_dir name
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -176,10 +216,17 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Cached -> "--cached"
   | Others -> "--others"
 
-let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
+let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
+    root_paths =
   let roots = root_paths |> List_.map Fpath.to_string in
   let kinds = kinds |> List_.map string_of_ls_files_kind in
-  let cmd = (git, [ "-C"; !!cwd; "ls-files" ] @ kinds @ roots) in
+  let cmd =
+    ( git,
+      [ "-C"; !!cwd; "ls-files" ]
+      @ kinds
+      @ flag "--exclude-standard" exclude_standard
+      @ roots )
+  in
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with
@@ -207,6 +254,62 @@ let get_project_root_exn () =
   match get_project_root () with
   | Some path -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
+
+let checkout ?cwd ?git_ref () =
+  let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
+  match UCmd.status_of_run ~quiet:true cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Could not checkout git ref")
+
+(* Why these options?
+ * --depth=1: only get the most recent commit
+ *  --filter=blob:none: don't get any blobs (file contents) from the repo
+ *  --sparse: only get the files we need
+ *  --no-checkout: don't checkout the files, we'll do that later
+ * See https://github.blog/2020-01-17-bring-your-monorepo-down-to-size-with-sparse-checkout/#sparse-checkout-and-partial-clones
+ * for a better explanation
+ *
+ * The following benchmarks were run scanning the django repo
+ * for a bash rule
+ * Mini benchmarks:
+ * clone then scan repo for : 32.9s
+ * depth=1 then scan repo for a bash rule: 4.8s
+ * using sparse shallow checkout + sparse checkout adding files
+ * determined during the targeting step: 1.09s
+ *)
+let sparse_shallow_filtered_checkout (url : Uri.t) path =
+  let path = Fpath.to_string path in
+  let cmd =
+    ( git,
+      [
+        "clone";
+        "--depth=1";
+        "--filter=blob:none";
+        "--sparse";
+        "--no-checkout";
+        Uri.to_string url;
+        path;
+      ] )
+  in
+  match UCmd.status_of_run ~quiet:true cmd with
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not clone git repo"
+
+(* To be used in combination with [sparse_shallow_filtered_checkout]
+   This function will add the files we want to actually pull the blobs for
+   and checkout the files we want.
+*)
+let sparse_checkout_add ?cwd folders =
+  let folders = List_.map Fpath.to_string folders in
+  let cmd =
+    ( git,
+      cd cwd
+      @ [ "sparse-checkout"; "add"; "--sparse-index"; "--cone" ]
+      @ folders )
+  in
+  match UCmd.status_of_run ~quiet:true cmd with
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not add sparse checkout"
 
 let get_merge_base commit =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in
@@ -405,9 +508,9 @@ let init ?cwd ?(branch = "main") () =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
-let add ?cwd files =
+let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
-  let cmd = (git, cd cwd @ [ "add" ] @ files) in
+  let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")
@@ -469,3 +572,105 @@ let get_git_logs ?cwd ?(since = None) () : string list =
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   List.filter (fun f -> not (String.trim f = "")) lines
+
+let cat_file_batch_check_all_objects ?cwd () =
+  let cmd =
+    ( git,
+      cd cwd
+      @ [
+          "cat-file";
+          "--batch-all-objects";
+          "--batch-check";
+          "--unordered" (* List in pack order instead of hash; faster. *);
+        ] )
+  in
+  let* objects =
+    match UCmd.lines_of_run ~trim:true cmd with
+    | Ok (s, (_, `Exited 0)) -> Some s
+    | _ -> None
+  in
+  let objects : batch_check_extra obj list =
+    List.filter_map
+      (fun obj ->
+        let parsed_obj =
+          match String.split_on_char ' ' obj with
+          | [ sha; "tag"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Tag; sha; extra = { size } }
+          | [ sha; "commit"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Commit; sha; extra = { size } }
+          | [ sha; "tree"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Tree; sha; extra = { size } }
+          | [ sha; "blob"; size ] ->
+              let* size = int_of_string_opt size in
+              Some { kind = Blob; sha; extra = { size } }
+          | _ -> None
+        in
+        if Option.is_none parsed_obj then
+          Logs.warn (fun m ->
+              m "Issue parsing git object: %s; this object will be ignored" obj);
+        parsed_obj)
+      objects
+  in
+  Some objects
+
+let cat_file_blob ?cwd sha =
+  let cmd = (git, cd cwd @ [ "cat-file"; "blob"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) -> Ok s
+  | Ok (s, _)
+  | Error (`Msg s) ->
+      Error s
+
+let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
+  let cmd =
+    ( git,
+      cd cwd
+      @ ("ls-tree" :: (if recurse then [ "-r" ] else []))
+      @ [ "--full-tree"; "--format=%(objecttype) %(objectname) %(path)"; sha ]
+    )
+  in
+  let* objects =
+    match UCmd.lines_of_run ~trim:true cmd with
+    | Ok (s, (_, `Exited 0)) -> Some s
+    | _ -> None
+  in
+  let objects =
+    List.filter_map
+      (fun obj ->
+        let parsed_obj =
+          match String.split_on_char ' ' obj with
+          | [ "commit"; sha; path ] -> (
+              (* possible for submodules *)
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Commit; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | [ "tree"; sha; path ] -> (
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Tree; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | [ "blob"; sha; path ] -> (
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Blob; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | [ "tag"; sha; path ] -> (
+              (* possible, but we probably don't care. *)
+              match Fpath.of_string path with
+              | Ok path -> Ok { kind = Tag; sha; extra = { path } }
+              | Error (`Msg s) -> Error s)
+          | _ -> Error "invalid syntax"
+        in
+        match parsed_obj with
+        | Ok obj -> Some obj
+        | Error s ->
+            Logs.warn (fun m ->
+                m
+                  "Issue parsing git object: %s -- %s; this object will be \
+                   ignored"
+                  obj s);
+            None)
+      objects
+  in
+  Some objects

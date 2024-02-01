@@ -147,7 +147,7 @@ and map_modifiers (env : env) (x : CST.modifier list) =
 and map_pattern (env : env) (x : CST.pattern) : G.pattern =
   let map_pattern_var (x : CST.pattern_var) : G.pattern =
     match x with
-    | `Wild x -> G.PatUnderscore (token env x)
+    | `Wild x -> G.PatWildcard (token env x)
     | `Choice_pat_7fdeb71 x -> G.PatId (map_name env x, G.empty_id_info ())
   in
 
@@ -996,6 +996,6 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env =
-        { H.file; conv = (fun _ -> raise Not_found); extra = Pattern }
+        { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in
       map_source_file env cst)

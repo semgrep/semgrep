@@ -2,6 +2,7 @@ import functools
 import hashlib
 import json
 import os
+import platform
 import uuid
 from collections import defaultdict
 from datetime import datetime
@@ -27,6 +28,7 @@ from typing_extensions import LiteralString
 import semgrep.semgrep_interfaces.semgrep_metrics as met
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -134,6 +136,8 @@ class Metrics:
                 projectHash=None,
                 ci=None,
                 isDiffScan=False,
+                os=platform.system(),
+                isTranspiledJS=False,
             ),
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
@@ -307,6 +311,15 @@ class Metrics:
         ]
         self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
+
+        # Breakdown # of findings per-product.
+        _num_findings_by_product: Dict[out.Product, int] = defaultdict(int)
+        for r, f in findings.kept.items():
+            _num_findings_by_product[r.product] += len(f)
+        self.payload.value.numFindingsByProduct = [
+            (USER_FRIENDLY_PRODUCT_NAMES[p], n_findings)
+            for p, n_findings in _num_findings_by_product.items()
+        ]
 
     @suppress_errors
     def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
