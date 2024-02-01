@@ -68,19 +68,6 @@ let format_cli_match (cli_match : OutT.cli_match) =
              )
     *)
   in
-
-  (* TODO (time)
-         metrics = get_state().metrics
-          start_time = datetime.fromisoformat(metrics.payload.started_at.value)
-          start_time = start_time.replace(tzinfo=None)
-          output_dict = {
-              "scan": {
-                  "start_time": start_time.isoformat(
-                      timespec="seconds",
-                  ),
-                  "end_time": datetime.now().isoformat(timespec="seconds"),
-              },
-  *)
   let r =
     [
       ("id", `String "TODO");
@@ -168,11 +155,18 @@ let output f matches =
         ("vendor", `Assoc [ ("name", `String "Semgrep") ]);
       ]
   in
+  let start_time = Metrics_.g.payload.started_at
+  and end_time = Unix.(gmtime (time ())) in
+  let tm_to_string { Unix.tm_sec; tm_min; tm_hour; tm_mday; tm_mon; tm_year; _ }
+      =
+    spf "%04d-%02d-%02dT%02d:%02d:%02d" (1900 + tm_year) (1 + tm_mon) tm_mday
+      tm_hour tm_min tm_sec
+  in
   let scan =
     `Assoc
       [
-        ("start_time", `String "TODO");
-        ("end_time", `String "TODO");
+        ("start_time", `String (tm_to_string start_time));
+        ("end_time", `String (tm_to_string end_time));
         ("analyzer", tool);
         ("scanner", tool);
         ("version", `String Version.version);
