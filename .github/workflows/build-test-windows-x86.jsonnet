@@ -105,6 +105,8 @@ default: https://github.com/ocaml/opam-repository.git
       name: 'Test semgrep-core',
       run: |||
         export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
+        export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
+        export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
         opam exec -- make core-test
       |||,
     },

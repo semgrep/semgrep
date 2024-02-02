@@ -57,8 +57,10 @@ jobs:
         > $filename.new\n          mv $filename.new $filename\n        done\n        opam
         exec -- dune build _build/install/default/bin/semgrep-core.exe\n      "
     - name: Test semgrep-core
-      run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        opam
-        exec -- make core-test\n      "
+      run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        export
+        TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
+        \       export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib\n
+        \       opam exec -- make core-test\n      "
     - name: Package semgrep-core
       run: "\n        mkdir archive\n        cp _build/install/default/bin/semgrep-core.exe
         archive/\n\n        # TODO: somehow upgrade to the latest flexdll, which should
