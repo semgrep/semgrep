@@ -148,7 +148,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
                   let mv = env.mv in
-                  match AST_generic_helpers.range_of_any_opt (any x) with
+                  match AST_generic_helpers.range_of_any (any x) with
                   | No_range_expected
                   | No_range_error ->
                       (* TODO: Report a warning to the user? *)
@@ -184,7 +184,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
   k x
 
 let location_stmts stmts =
-  AST_generic_helpers.range_of_any_opt (AST_generic.Ss stmts)
+  AST_generic_helpers.range_of_any (AST_generic.Ss stmts)
 
 let list_original_tokens_stmts stmts =
   AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
@@ -306,7 +306,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
            *)
           !expr_rules
           |> List.iter (fun (pattern, rule) ->
-                 match AST_generic_helpers.range_of_any_opt (E x) with
+                 match AST_generic_helpers.range_of_any (E x) with
                  | No_range_error
                  | No_range_expected ->
                      logger#debug "Skipping because we lack range info: %s"
@@ -378,9 +378,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
                             let mv = env.mv in
-                            match
-                              AST_generic_helpers.range_of_any_opt (S x)
-                            with
+                            match AST_generic_helpers.range_of_any (S x) with
                             | No_range_error
                             | No_range_expected ->
                                 (* TODO: Report a warning to the user? *)

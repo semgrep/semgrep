@@ -298,9 +298,9 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                     None
                 | Ok loc_pfrom, Ok loc_pto -> (
                     match
-                      ( AST_generic_helpers.range_of_any_opt
+                      ( AST_generic_helpers.range_of_any
                           (MV.mvalue_to_any mval_from),
-                        AST_generic_helpers.range_of_any_opt
+                        AST_generic_helpers.range_of_any
                           (MV.mvalue_to_any mval_to) )
                     with
                     | ( Range (mval_from_start_loc, mval_from_end_loc),
@@ -329,7 +329,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
 let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
-  match AST_generic_helpers.range_of_any_opt any with
+  match AST_generic_helpers.range_of_any any with
   | No_range_error ->
       logger#trace
         "Cannot compute range, there are no real tokens in this AST: %s"

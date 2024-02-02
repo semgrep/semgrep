@@ -76,7 +76,7 @@ let count_lines_and_trailing =
 let offsets_of_mval extract_mvalue =
   let range =
     Metavariable.mvalue_to_any extract_mvalue
-    |> AST_generic_helpers.range_of_any_opt
+    |> AST_generic_helpers.range_of_any
   in
   match range with
   | No_range_error

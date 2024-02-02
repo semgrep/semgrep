@@ -160,8 +160,8 @@ let location_aware_equal_mvalue mval1 mval2 =
   let ranges_equal =
     let any1, any2 = (mvalue_to_any mval1, mvalue_to_any mval2) in
     let range1, range2 =
-      ( AST_generic_helpers.range_of_any_opt any1,
-        AST_generic_helpers.range_of_any_opt any2 )
+      ( AST_generic_helpers.range_of_any any1,
+        AST_generic_helpers.range_of_any any2 )
     in
     match (range1, range2) with
     | Range (l1, r1), Range (l2, r2) ->
@@ -194,7 +194,7 @@ let program_of_mvalue : mvalue -> G.program option =
       None
 
 let range_of_mvalue mval =
-  match AST_generic_helpers.range_of_any_opt (mvalue_to_any mval) with
+  match AST_generic_helpers.range_of_any (mvalue_to_any mval) with
   | No_range_error
   | No_range_expected ->
       None

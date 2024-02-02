@@ -251,7 +251,7 @@ let parse_taint_requires env key x =
   let s = parse_string env key x in
   let e = parse_python_expression env key s in
   let range =
-    match AST_generic_helpers.range_of_any_opt (E e) with
+    match AST_generic_helpers.range_of_any (E e) with
     | No_range_error
     | No_range_expected ->
         (* This probably shouldn't happen. *)

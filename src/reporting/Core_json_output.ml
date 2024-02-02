@@ -28,9 +28,9 @@ module OutUtils = Semgrep_output_utils
 (* Helpers *)
 (*****************************************************************************)
 
-let range_of_any_opt startp_of_match_range any =
+let range_of_any startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
-  match AST_generic_helpers.range_of_any_opt any with
+  match AST_generic_helpers.range_of_any any with
   (* those are ok and we don't want to generate a NoTokenLocation for those.
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
    *)
@@ -59,7 +59,7 @@ let metavar_string_of_any any =
 
 let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =
-    match range_of_any_opt default_start any with
+    match range_of_any default_start any with
     | Some (start, end_) ->
         Some
           OutJ.
@@ -91,7 +91,7 @@ let get_propagated_value default_start mvalue =
 
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
-  match range_of_any_opt startp_of_match_range any with
+  match range_of_any startp_of_match_range any with
   | None ->
       raise
         (Tok.NoTokenLocation

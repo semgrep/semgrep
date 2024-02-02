@@ -585,7 +585,7 @@ let range_of_tokens tokens =
   | tokens -> Some (Tok_range.min_max_toks_by_pos tokens)
 [@@profiling]
 
-let range_of_any_opt any =
+let range_of_any any =
   (* Even if the ranges are cached, calling `extract_ranges` to get them
    * is extremely expensive (due to `mk_visitor`). Testing taint-mode
    * open-redirect rule on Django, we spent ~16 seconds computing range

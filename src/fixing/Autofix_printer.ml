@@ -81,7 +81,7 @@ let get_printer lang external_printer :
   | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
-  match AST_generic_helpers.range_of_any_opt any with
+  match AST_generic_helpers.range_of_any any with
   | No_range_error
   | No_range_expected ->
       None

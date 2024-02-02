@@ -368,9 +368,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     let fm_mval_range_locs =
       fm_mvals
       |> List_.map_filter (fun (focus_mvar, mval) ->
-             match
-               AST_generic_helpers.range_of_any_opt (MV.mvalue_to_any mval)
-             with
+             match AST_generic_helpers.range_of_any (MV.mvalue_to_any mval) with
              | No_range_error
              | No_range_expected ->
                  None

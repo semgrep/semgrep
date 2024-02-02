@@ -451,7 +451,7 @@ let text_of_binding mvar mval =
    * of the code. Unfortunately, a metavariable can be bound to such
    * code.
    * In that case, it's better to pretty print the code rather than using
-   * Visitor_AST.range_of_any_opt and Range.contents_at_range below.
+   * Visitor_AST.range_of_any and Range.contents_at_range below.
    *
    * The 'not is_hidden' guard is to avoid to pretty print
    * artificial identifiers such as "builtin__include" in PHP that
@@ -468,7 +468,7 @@ let text_of_binding mvar mval =
   | MV.Id ((s, _tok), None) when not (s =~ "^__builtin.*") -> Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in
-      match AST_generic_helpers.range_of_any_opt any with
+      match AST_generic_helpers.range_of_any any with
       | No_range_expected
       | No_range_error ->
           (* TODO: Report a warning to the user? *)
