@@ -655,7 +655,6 @@ and expr_aux env ?(void = false) e_gen =
           let fixme = fixme_exp kind any_generic (related_exp e_gen) in
           add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
   | G.Call (e, args) ->
-      logger#error "processing call";
       let tok = G.fake "call" in
       call_generic env ~void tok eorig e args
   | G.L lit -> mk_e (Literal lit) eorig
@@ -946,7 +945,7 @@ and call_special _env (x, tok) =
     | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok) |> G.e))
-    (* should be intercepted before *)
+        (* should be intercepted before *)
     | G.Eval -> Eval
     | G.Typeof -> Typeof
     | G.Instanceof -> Instanceof
