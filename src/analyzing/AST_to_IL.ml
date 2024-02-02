@@ -655,6 +655,7 @@ and expr_aux env ?(void = false) e_gen =
           let fixme = fixme_exp kind any_generic (related_exp e_gen) in
           add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
   | G.Call (e, args) ->
+      logger#error "processing call";
       let tok = G.fake "call" in
       call_generic env ~void tok eorig e args
   | G.L lit -> mk_e (Literal lit) eorig
@@ -685,6 +686,52 @@ and expr_aux env ?(void = false) e_gen =
         | _ -> exp
       in
       ident_function_call_hack exp
+  (* x = ClassName(args ...) in Python *)
+  (* ClassName has been resolved to __init__ by the pro engine. *)
+  (* Identified and treated as x = New ClassName(args ...) to support
+     field sensitivity. *)
+  | G.Assign
+      ( ({
+           e =
+             ( G.N (G.Id ((_, _), lhs_info))
+             | G.DotAccess (_, _, FN (Id ((_, _), lhs_info))) );
+           _;
+         } as lhs_e),
+        _,
+        ({
+           e =
+             G.Call
+               ( {
+                   e =
+                     ( G.N (Id (_, id_info))
+                     | G.DotAccess (_, _, FN (Id (_, id_info))) );
+                   _;
+                 },
+                 args );
+           _;
+         } as origin_exp) )
+  (* Can we be tighter about side conditions here to avoid catching
+     direct calls to __init__ ? *)
+    when match id_info.G.id_resolved.contents with
+         | Some (G.GlobalName (ls, _), _) -> (
+             env.lang =*= Lang.Python
+             && List.length ls >= 3 (* Module + Class + __init__ *)
+             && (match List_.last_opt ls with
+                | Some "__init__" -> true
+                | _ -> false)
+             &&
+             match lhs_info.id_type.contents with
+             | Some { t = G.TyN _; _ } -> true
+             | _ -> false)
+         | _ -> false ->
+      let lval = lval env lhs_e in
+      let ty =
+        match lhs_info.id_type.contents with
+        | Some ty -> ty
+        | _ -> failwith "Impossible: guard above checks that this exists"
+      in
+      mk_class_construction env lval origin_exp ty id_info args |> add_stmts env;
+      mk_e (Fetch lval) (SameAs lhs_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
@@ -899,7 +946,7 @@ and call_special _env (x, tok) =
     | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok) |> G.e))
-        (* should be intercepted before *)
+    (* should be intercepted before *)
     | G.Eval -> Eval
     | G.Typeof -> Typeof
     | G.Instanceof -> Instanceof
@@ -1367,6 +1414,29 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
       [ mk_s (Instr fake_i) ]
   | ss'' -> ss''
 
+and mk_class_construction env lval origin_exp ty cons_id_info args : stmt list =
+  (* x = new T(args) *)
+  (* HACK(new): Because of field-sensitivity hacks, we need to know to which
+     * variable are we assigning the `new` object, so we intercept the assignment. *)
+  let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
+  let opt_cons =
+    let* cons = mk_class_constructor_name ty cons_id_info in
+    let cons' = var_of_name cons in
+    let cons_exp =
+      mk_e
+        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
+        (SameAs (G.N cons |> G.e))
+      (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+         * looks at the eorig, but maybe it shouldn't? *)
+    in
+    Some cons_exp
+  in
+  let ss2, ty = type_with_pre_stmts env ty in
+  ss1 @ ss2
+  @ [
+      mk_s (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
+    ]
+
 and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
@@ -1384,30 +1454,8 @@ and stmt_aux env st =
       (* HACK(new): Because of field-sensitivity hacks, we need to know to which
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
-      let obj_lval = lval_of_base (Var obj') in
-      let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
-      let opt_cons =
-        let* cons = mk_class_constructor_name ty cons_id_info in
-        let cons' = var_of_name cons in
-        let cons_exp =
-          mk_e
-            (Fetch
-               {
-                 obj_lval with
-                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
-               })
-            (SameAs (G.N cons |> G.e))
-          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
-           * looks at the eorig, but maybe it shouldn't? *)
-        in
-        Some cons_exp
-      in
-      let ss2, ty = type_with_pre_stmts env ty in
-      ss1 @ ss2
-      @ [
-          mk_s
-            (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp)));
-        ]
+      let lval = lval_of_base (Var obj') in
+      mk_class_construction env lval new_exp ty cons_id_info args
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
