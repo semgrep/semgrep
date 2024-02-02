@@ -1,64 +1,17 @@
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "targets/language-filtering/call-f.js",
-      "targets/language-filtering/call-f.py"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.example-javascript",
-      "end": {
-        "col": 4,
-        "line": 1,
-        "offset": 3
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "f()",
-        "message": "It's a JavaScript finding.\n",
-        "metadata": {},
-        "metavars": {},
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/language-filtering/call-f.js",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    },
-    {
-      "check_id": "rules.example-python",
-      "end": {
-        "col": 4,
-        "line": 1,
-        "offset": 3
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "f()",
-        "message": "It's a Python finding.\n",
-        "metadata": {},
-        "metavars": {},
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/language-filtering/call-f.py",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+It's a JavaScript finding.
+
+It's a Python finding.
+
+It's a JavaScript finding.
+
+It's a JavaScript finding.
+
+It's a JavaScript finding.
+
+It's a Python finding.
+
+It's a Python finding.
+
+It's a Python finding.
+
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["targets/language-filtering/call-f.js", "targets/language-filtering/call-f.py"]}, "results": [{"check_id": "rules.example-javascript", "end": {"col": 4, "line": 1, "offset": 3}, "extra": {"engine_kind": "OSS", "fingerprint": "196de9af14d59041af3c33df2074b7eabadbcb8344fb7588c36c5664ff44e0668a76199db5343c264f89c91ff2c2fbab067c626fb0a3ea300d728466e4e3f438_0", "is_ignored": false, "lines": "f()", "message": "It's a JavaScript finding.\n", "metadata": {}, "metavars": {}, "severity": "WARNING", "validation_state": "NO_VALIDATOR"}, "path": "targets/language-filtering/call-f.js", "start": {"col": 1, "line": 1, "offset": 0}}, {"check_id": "rules.example-python", "end": {"col": 4, "line": 1, "offset": 3}, "extra": {"engine_kind": "OSS", "fingerprint": "ab145a0c091bb87afbc12cfc014f8c721eb5507649432cd7faed3005d38c021a5bcac74125023215e7869e6b3e3da3b8088d390f8f9653ab2aa238318cce9bb5_0", "is_ignored": false, "lines": "f()", "message": "It's a Python finding.\n", "metadata": {}, "metavars": {}, "severity": "WARNING", "validation_state": "NO_VALIDATOR"}, "path": "targets/language-filtering/call-f.py", "start": {"col": 1, "line": 1, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}

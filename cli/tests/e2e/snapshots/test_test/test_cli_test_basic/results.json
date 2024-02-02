@@ -1,17 +1,30 @@
+Basic test
+Basic test
+Basic test
+Basic test
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/cli_test/basic/basic.yaml": {
-      "checks": {
-        "basic-test": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {
+        "rules/cli_test/basic/basic.yaml": {
+            "checks": {
+                "basic-test": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/cli_test/basic/basic.py": {
+                            "expected_lines": [
+                                2
+                            ],
+                            "reported_lines": [
+                                2
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
-    }
-  }
+    },
+    "fixtest_results": {}
 }

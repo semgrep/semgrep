@@ -1,3 +1,11 @@
+useless comparison
+useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
+useless comparison
+useless comparison
+useless comparison
+useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
+useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
+useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -101,14 +109,14 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "this function is only available on Python 3.7+"
               },
               "help": {
                 "markdown": "some help text",
                 "text": "some help text"
               },
-              "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
               "properties": {
                 "precision": "very-high",
                 "tags": [
@@ -150,14 +158,14 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
+                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
               },
               "help": {
                 "markdown": "some help text",
                 "text": "some help text"
               },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": [
@@ -170,7 +178,7 @@
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

@@ -1,3 +1,15 @@
+captured duration "5m"
+captured duration "10m"
+captured duration "15m"
+captured duration "5m"
+captured duration "5m"
+captured duration "5m"
+captured duration "10m"
+captured duration "10m"
+captured duration "10m"
+captured duration "15m"
+captured duration "15m"
+captured duration "15m"
 
 
 ┌─────────────────┐

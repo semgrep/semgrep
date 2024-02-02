@@ -1,3 +1,7 @@
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -69,28 +73,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`"
-              },
-              "help": {
-                "markdown": "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
-                "text": "useless comparison operation `$X == $X` or `$X != $X`"
-              },
-              "helpUri": "https://semgrep.dev/r/eqeq-bad",
-              "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.eqeq-is-bad"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "useless comparison"
               },
               "help": {
@@ -127,9 +109,31 @@
               "shortDescription": {
                 "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+              },
+              "help": {
+                "markdown": "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+              },
+              "helpUri": "https://semgrep.dev/r/eqeq-bad",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.eqeq-is-bad"
+              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

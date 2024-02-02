@@ -1,12 +1,9 @@
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "targets/experiment/experiment.py"
-    ]
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+A match was found.
+A match was found.
+A match was found.
+A match was found.
+A match was found.
+A match was found.
+A match was found.
+A match was found.
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["targets/experiment/experiment.py"]}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

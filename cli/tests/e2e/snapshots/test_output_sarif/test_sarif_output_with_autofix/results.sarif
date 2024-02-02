@@ -1,3 +1,11 @@
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
+Use `.get()` method to avoid a KeyNotFound error
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -148,7 +156,7 @@
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

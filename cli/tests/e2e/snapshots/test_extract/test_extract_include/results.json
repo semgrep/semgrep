@@ -1,88 +1,13 @@
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "targets/extract/python_jupyter_paths_include.ipynb"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.extract_rules.check-for-data",
-      "end": {
-        "col": 39,
-        "line": 27,
-        "offset": 556
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "      \"source\": [",
-        "message": "check for data",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/python_jupyter_paths_include.ipynb",
-      "start": {
-        "col": 1,
-        "line": 27,
-        "offset": 518
-      }
-    },
-    {
-      "check_id": "rules.extract_rules.forbid-pickle",
-      "end": {
-        "col": 25,
-        "line": 31,
-        "offset": 618
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "       \"    pickle.dump(data, f)\"",
-        "message": "found pickle",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/python_jupyter_paths_include.ipynb",
-      "start": {
-        "col": 5,
-        "line": 31,
-        "offset": 598
-      }
-    },
-    {
-      "check_id": "rules.extract_rules.test123",
-      "end": {
-        "col": 24,
-        "line": 39,
-        "offset": 843
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "      \"outputs\": [],",
-        "message": "left `test123` in the code",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/python_jupyter_paths_include.ipynb",
-      "start": {
-        "col": 17,
-        "line": 39,
-        "offset": 836
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+check for data
+found pickle
+left `test123` in the code
+check for data
+check for data
+check for data
+found pickle
+found pickle
+found pickle
+left `test123` in the code
+left `test123` in the code
+left `test123` in the code
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["targets/extract/python_jupyter_paths_include.ipynb"]}, "results": [{"check_id": "rules.extract_rules.check-for-data", "end": {"col": 39, "line": 27, "offset": 556}, "extra": {"engine_kind": "OSS", "fingerprint": "f0a731b38fb924b061ba6a09f17cdab4df9f3aeb11f83c57bf747bf1db5144c74005b83b5969fe7006107556b26779315ef51e3218c2d42b8a1d24e5458362a3_0", "is_ignored": false, "lines": "      \"source\": [", "message": "check for data", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "targets/extract/python_jupyter_paths_include.ipynb", "start": {"col": 1, "line": 27, "offset": 518}}, {"check_id": "rules.extract_rules.forbid-pickle", "end": {"col": 25, "line": 31, "offset": 618}, "extra": {"engine_kind": "OSS", "fingerprint": "e2b6f9aa84ba2e0601a4de538bb03d6a61de3b1706af29ee3f26db17c780de9c647b697f54fd5caa6351368a0878d1c940aadcc1a731b1ad7c6ffcfeb9648845_0", "is_ignored": false, "lines": "       \"    pickle.dump(data, f)\"", "message": "found pickle", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "targets/extract/python_jupyter_paths_include.ipynb", "start": {"col": 5, "line": 31, "offset": 598}}, {"check_id": "rules.extract_rules.test123", "end": {"col": 24, "line": 39, "offset": 843}, "extra": {"engine_kind": "OSS", "fingerprint": "dd6811ff8f0d031e42d4cd57affade64748a2322832a1e6313c40b380a384d717e28eef655d5069f9ae65c6475ec8fd2db7755d43b083ae3d279244e1a30fbb9_0", "is_ignored": false, "lines": "      \"outputs\": [],", "message": "left `test123` in the code", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "targets/extract/python_jupyter_paths_include.ipynb", "start": {"col": 17, "line": 39, "offset": 836}}], "skipped_rules": [], "version": "<MASKED>"}

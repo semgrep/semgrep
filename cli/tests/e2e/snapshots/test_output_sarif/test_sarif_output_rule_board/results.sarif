@@ -1,3 +1,15 @@
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
+this rule comes from the rule board!
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -125,7 +137,7 @@
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

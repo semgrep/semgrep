@@ -1,3 +1,7 @@
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
   "scan": {

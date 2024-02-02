@@ -1,63 +1,9 @@
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "targets/extract/python_jupyter_paths_exclude.ipynb"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.extract_rules.check-for-data",
-      "end": {
-        "col": 55,
-        "line": 26,
-        "offset": 532
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "      \"outputs\": [],",
-        "message": "check for data",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/python_jupyter_paths_exclude.ipynb",
-      "start": {
-        "col": 17,
-        "line": 26,
-        "offset": 494
-      }
-    },
-    {
-      "check_id": "rules.extract_rules.forbid-pickle",
-      "end": {
-        "col": 25,
-        "line": 31,
-        "offset": 617
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "       \"    pickle.dump(data, f)\"",
-        "message": "found pickle",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/python_jupyter_paths_exclude.ipynb",
-      "start": {
-        "col": 5,
-        "line": 31,
-        "offset": 597
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+check for data
+found pickle
+check for data
+check for data
+check for data
+found pickle
+found pickle
+found pickle
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["targets/extract/python_jupyter_paths_exclude.ipynb"]}, "results": [{"check_id": "rules.extract_rules.check-for-data", "end": {"col": 55, "line": 26, "offset": 532}, "extra": {"engine_kind": "OSS", "fingerprint": "0cea56333c79e1b4d5df3e2a753874a2a744fea1e04afa0e3373b968e936a75421ce43b565b8aa37aad39e15b68b3a485ffbe3575e2de4ac1c9652c6db688c2d_0", "is_ignored": false, "lines": "      \"outputs\": [],", "message": "check for data", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "targets/extract/python_jupyter_paths_exclude.ipynb", "start": {"col": 17, "line": 26, "offset": 494}}, {"check_id": "rules.extract_rules.forbid-pickle", "end": {"col": 25, "line": 31, "offset": 617}, "extra": {"engine_kind": "OSS", "fingerprint": "2cca0fa1982d2fb933c3033609c544df86b9b864168812b85875a567986d7a47c1abd44b45308d59bc2588f513c05da3b96ed742ff7f1fa695cb0d43d4349eed_0", "is_ignored": false, "lines": "       \"    pickle.dump(data, f)\"", "message": "found pickle", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "targets/extract/python_jupyter_paths_exclude.ipynb", "start": {"col": 5, "line": 31, "offset": 597}}], "skipped_rules": [], "version": "<MASKED>"}

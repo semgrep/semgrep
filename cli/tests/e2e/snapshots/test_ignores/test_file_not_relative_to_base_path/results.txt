@@ -7,44 +7,12 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "<MASKED>"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "<MASKED>",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+a
+a
+a
+a
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["<MASKED>"]}, "results": [{"check_id": "-", "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"engine_kind": "OSS", "fingerprint": "83fd0bcf811cd9bb8c44d08cb0e39bd9f31888f7f815789e8d66dbee3b3d6832033fe86bffb01ebbbcd04d8c5eed90a51476580d7f8a2b3db50db07a3674930b_0", "is_ignored": false, "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "<MASKED>", "start": {"col": 1, "line": 1, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

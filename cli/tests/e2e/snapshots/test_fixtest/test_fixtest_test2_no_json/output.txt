@@ -1,2 +1,34 @@
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
+Use "sys.exit" over the python shell "exit" built-in. "exit" is a helper
+for the interactive shell and is not be available on all Python implementations.
+https://stackoverflow.com/a/6501134
+
 1/1: ✓ All tests passed
 No tests for fixes found.

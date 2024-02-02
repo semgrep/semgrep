@@ -1,38 +1,5 @@
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "<MASKED>"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "<MASKED>",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+a
+a
+a
+a
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["<MASKED>"]}, "results": [{"check_id": "-", "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"engine_kind": "OSS", "fingerprint": "5b21395440de150b17490683cc5f3c75fe9f7f206bd1834f8cca9e8a26aca3f3484808ade85285313559a8611877941aee38c308e6a5b7d0417b96883b756930_0", "is_ignored": false, "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "<MASKED>", "start": {"col": 1, "line": 1, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}

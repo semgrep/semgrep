@@ -1,17 +1,30 @@
+YAML language test
+YAML language test
+YAML language test
+YAML language test
 {
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/cli_test/language/yaml_language.yaml": {
-      "checks": {
-        "yaml-language": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
+    "config_missing_tests": [],
+    "config_missing_fixtests": [],
+    "config_with_errors": [],
+    "results": {
+        "rules/cli_test/language/yaml_language.yaml": {
+            "checks": {
+                "yaml-language": {
+                    "passed": true,
+                    "matches": {
+                        "/home/runner/work/semgrep/semgrep/cli/tests/e2e/targets/cli_test/language/yaml_language.test.yaml": {
+                            "expected_lines": [
+                                2
+                            ],
+                            "reported_lines": [
+                                2
+                            ]
+                        }
+                    },
+                    "errors": []
+                }
+            }
         }
-      }
-    }
-  }
+    },
+    "fixtest_results": {}
 }

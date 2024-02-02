@@ -1,64 +1,9 @@
-{
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "<MASKED>",
-      "<MASKED>"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "-",
-      "end": {
-        "col": 6,
-        "line": 1,
-        "offset": 5
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "b + a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "<MASKED>",
-      "start": {
-        "col": 5,
-        "line": 1,
-        "offset": 4
-      }
-    },
-    {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "<MASKED>",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+a
+a
+a
+a
+a
+a
+a
+a
+{"errors": [], "interfile_languages_used": [], "paths": {"scanned": ["<MASKED>", "<MASKED>"]}, "results": [{"check_id": "-", "end": {"col": 6, "line": 1, "offset": 5}, "extra": {"engine_kind": "OSS", "fingerprint": "97b17c50ee12dab3f39b91eada25edbba9042a442c2d310a101f3debd1d423a663a303fe4e3ac3861b8fc671a6e3f968ac79cc2bd3cde076b5ad8d5f39308e79_0", "is_ignored": false, "lines": "b + a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "<MASKED>", "start": {"col": 5, "line": 1, "offset": 4}}, {"check_id": "-", "end": {"col": 2, "line": 1, "offset": 1}, "extra": {"engine_kind": "OSS", "fingerprint": "8acf607da486e52ea52ac5e98c087b0613d28d19a440c836373ea76fe2c3de243f3ff3ba99dcc5e68451d27291cab154700cb585c9dd627f3c9cb63fc383e2b6_0", "is_ignored": false, "lines": "a", "message": "a", "metadata": {}, "metavars": {}, "severity": "ERROR", "validation_state": "NO_VALIDATOR"}, "path": "<MASKED>", "start": {"col": 1, "line": 1, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}

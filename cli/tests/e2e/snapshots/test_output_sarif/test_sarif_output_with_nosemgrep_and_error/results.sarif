@@ -1,3 +1,7 @@
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
+useless comparison operation `a + b == a + b` or `a + b != a + b`
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -53,27 +57,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
-              },
-              "help": {
-                "markdown": "possibly useless comparison but in eq function",
-                "text": "possibly useless comparison but in eq function"
-              },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
               "help": {
@@ -96,20 +79,20 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison"
+                "text": "possibly useless comparison but in eq function"
               },
               "help": {
-                "markdown": "useless comparison",
-                "text": "useless comparison"
+                "markdown": "possibly useless comparison but in eq function",
+                "text": "possibly useless comparison but in eq function"
               },
-              "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
               }
             },
             {
@@ -132,9 +115,30 @@
               "shortDescription": {
                 "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison"
+              },
+              "help": {
+                "markdown": "useless comparison",
+                "text": "useless comparison"
+              },
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
+              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }
