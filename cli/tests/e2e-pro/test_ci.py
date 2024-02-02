@@ -68,7 +68,7 @@ BAD_CONFIG = dedent(
       foo: bar
 """
 ).lstrip()
-FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00Z"
+FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
 
@@ -381,7 +381,7 @@ def automocks(mocker, mock_ci_api):
     mocker.patch.object(
         GitMeta,
         "commit_timestamp",
-        out.Datetime(FROZEN_ISOTIMESTAMP),
+        FROZEN_ISOTIMESTAMP,
     )
 
 
@@ -878,7 +878,7 @@ def test_full_run(
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
 
-    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP
+    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.to_json_string()
 
     if env.get("GITLAB_CI"):
         # If in a merge pipeline, base_sha is defined, otherwise is None
@@ -906,7 +906,7 @@ def test_full_run(
         assert f["commit_hash"] is not None
         f["commit_hash"] = "sanitized"
         assert f["commit_timestamp"] is not None
-        f["commit_timestamp"] = out.Datetime("sanitized")
+        f["commit_timestamp"] = "sanitized"
     snapshot.assert_match(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
