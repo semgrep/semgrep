@@ -29,6 +29,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type any_range =
+  | No_range_error
+  | No_range_expected
+  | Range of Tok.location * Tok.location
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -583,21 +592,31 @@ let range_of_any_opt any =
    * info (despite caching). If we bypass `extract_ranges` as we do here,
    * that time drops to just ~1.5 seconds! *)
   match any with
-  | G.E e when Option.is_some e.e_range -> e.e_range
-  | G.S s when Option.is_some s.s_range -> s.s_range
+  | G.Ss []
+  | G.Pr []
+  | Params []
+  | Args []
+  | Xmls [] ->
+      No_range_expected
+  (* TODO? Flds [] ? Pr []? *)
+  | G.E { e_range = Some (l, r); _ } -> Range (l, r)
+  | G.S { s_range = Some (l, r); _ } -> Range (l, r)
   | G.Tk tok -> (
       match Tok.loc_of_tok tok with
-      | Ok tok_loc -> Some (tok_loc, tok_loc)
-      | Error _ -> None)
-  | G.Anys [] -> None
-  | _ -> extract_ranges any
+      | Ok tok_loc -> Range (tok_loc, tok_loc)
+      | Error _ -> No_range_error)
+  | G.Anys [] -> No_range_error
+  | _ -> (
+      match extract_ranges any with
+      | None -> No_range_error
+      | Some (l, r) -> Range (l, r))
 [@@profiling]
 
 (*****************************************************************************)
 (* Nearest Any node of a position *)
 (*****************************************************************************)
 
-type any_range = {
+type any_range_helper = {
   range : (Tok.location * Tok.location) option ref;
   any : (AST_generic.any * (Tok.location * Tok.location)) option ref;
   position : int; (* charpos *)

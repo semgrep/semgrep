@@ -149,13 +149,14 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
            |> List.iter (fun (env : MG.tin) ->
                   let mv = env.mv in
                   match AST_generic_helpers.range_of_any_opt (any x) with
-                  | None ->
+                  | No_range_expected
+                  | No_range_error ->
                       (* TODO: Report a warning to the user? *)
                       logger#error
                         "Cannot report match because we lack range info: %s"
                         (show_any (any x));
                       ()
-                  | Some range_loc ->
+                  | Range (l, r) ->
                       let tokens =
                         lazy (AST_generic_helpers.ii_of_any (any x))
                       in
@@ -165,7 +166,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           PM.rule_id;
                           file;
                           env = mv;
-                          range_loc;
+                          range_loc = (l, r);
                           tokens;
                           taint_trace = None;
                           (* This will be overrided later on by the Pro engine, if this is
@@ -306,11 +307,12 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
           !expr_rules
           |> List.iter (fun (pattern, rule) ->
                  match AST_generic_helpers.range_of_any_opt (E x) with
-                 | None ->
+                 | No_range_error
+                 | No_range_expected ->
                      logger#debug "Skipping because we lack range info: %s"
                        (show_expr_kind x.e);
                      ()
-                 | Some range_loc when range_filter range_loc ->
+                 | Range (start, end_) when range_filter (start, end_) ->
                      let env =
                        {
                          m_env with
@@ -335,7 +337,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   PM.rule_id;
                                   file;
                                   env = mv;
-                                  range_loc;
+                                  range_loc = (start, end_);
                                   tokens;
                                   taint_trace = None;
                                   engine_kind = `OSS;
@@ -346,7 +348,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                               in
                               Stack_.push pm matches;
                               hook pm)
-                 | Some (start_loc, end_loc) ->
+                 | Range (start_loc, end_loc) ->
                      logger#info
                        "While matching pattern %s in file %s, we skipped \
                         expression at %d:%d-%d:%d (outside any range of \
@@ -379,14 +381,15 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                             match
                               AST_generic_helpers.range_of_any_opt (S x)
                             with
-                            | None ->
+                            | No_range_error
+                            | No_range_expected ->
                                 (* TODO: Report a warning to the user? *)
                                 logger#error
                                   "Cannot report match because we lack range \
                                    info: %s"
                                   (show_stmt x);
                                 ()
-                            | Some range_loc ->
+                            | Range (start, end_) ->
                                 let tokens =
                                   lazy (AST_generic_helpers.ii_of_any (S x))
                                 in
@@ -396,7 +399,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     PM.rule_id;
                                     file;
                                     env = mv;
-                                    range_loc;
+                                    range_loc = (start, end_);
                                     tokens;
                                     taint_trace = None;
                                     engine_kind = `OSS;
@@ -433,8 +436,10 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                        |> List.iter (fun (env : MG.tin) ->
                               let matched = env.stmts_matched in
                               match location_stmts matched with
-                              | None -> () (* empty sequence or bug *)
-                              | Some range_loc ->
+                              | No_range_expected
+                              | No_range_error ->
+                                  () (* empty sequence or bug *)
+                              | Range (start, end_) ->
                                   let mv = env.mv in
                                   let tokens =
                                     lazy (list_original_tokens_stmts matched)
@@ -445,7 +450,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       PM.rule_id;
                                       file;
                                       env = mv;
-                                      range_loc;
+                                      range_loc = (start, end_);
                                       tokens;
                                       taint_trace = None;
                                       engine_kind = `OSS;
@@ -528,8 +533,10 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                        |> List.iter (fun (env : MG.tin) ->
                               let matched = env.stmts_matched in
                               match location_stmts matched with
-                              | None -> () (* empty sequence or bug *)
-                              | Some range_loc ->
+                              | No_range_error
+                              | No_range_expected ->
+                                  () (* empty sequence or bug *)
+                              | Range (start, end_) ->
                                   let mv = env.mv in
                                   let tokens =
                                     lazy (list_original_tokens_stmts matched)
@@ -540,7 +547,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       PM.rule_id;
                                       file;
                                       env = mv;
-                                      range_loc;
+                                      range_loc = (start, end_);
                                       tokens;
                                       taint_trace = None;
                                       engine_kind = `OSS;

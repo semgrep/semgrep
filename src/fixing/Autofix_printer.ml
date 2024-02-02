@@ -81,12 +81,16 @@ let get_printer lang external_printer :
   | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
-  let* start, end_ = AST_generic_helpers.range_of_any_opt any in
-  let starti = start.Tok.pos.bytepos in
-  let _, _, endi = Tok.end_pos_of_loc end_ in
-  let len = endi - starti in
-  let str = String.sub source starti len in
-  Some str
+  match AST_generic_helpers.range_of_any_opt any with
+  | No_range_error
+  | No_range_expected ->
+      None
+  | Range (start, end_) ->
+      let starti = start.Tok.pos.bytepos in
+      let _, _, endi = Tok.end_pos_of_loc end_ in
+      let len = endi - starti in
+      let str = String.sub source starti len in
+      Some str
 
 let mvalue_to_any = function
   (* For autofix purposes, it's okay and in fact desirable to drop the info here.

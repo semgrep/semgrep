@@ -296,30 +296,31 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                 | Error _, _
                 | _, Error _ ->
                     None
-                | Ok loc_pfrom, Ok loc_pto ->
-                    let* mval_from_start_loc, mval_from_end_loc =
-                      AST_generic_helpers.range_of_any_opt
-                        (MV.mvalue_to_any mval_from)
-                    in
-                    let* mval_to_start_loc, mval_to_end_loc =
-                      AST_generic_helpers.range_of_any_opt
-                        (MV.mvalue_to_any mval_to)
-                    in
-                    let from =
-                      Range.range_of_token_locations mval_from_start_loc
-                        mval_from_end_loc
-                    in
-                    let to_ =
-                      Range.range_of_token_locations mval_to_start_loc
-                        mval_to_end_loc
-                    in
-                    let id =
-                      Common.spf "propagator:%d:%d:%d:%d:%d:%d"
-                        loc_pfrom.pos.bytepos loc_pto.pos.bytepos
-                        from.Range.start from.Range.end_ to_.Range.start
-                        to_.Range.end_
-                    in
-                    Some { id; rwm; from; to_; spec = p }))
+                | Ok loc_pfrom, Ok loc_pto -> (
+                    match
+                      ( AST_generic_helpers.range_of_any_opt
+                          (MV.mvalue_to_any mval_from),
+                        AST_generic_helpers.range_of_any_opt
+                          (MV.mvalue_to_any mval_to) )
+                    with
+                    | ( Range (mval_from_start_loc, mval_from_end_loc),
+                        Range (mval_to_start_loc, mval_to_end_loc) ) ->
+                        let from =
+                          Range.range_of_token_locations mval_from_start_loc
+                            mval_from_end_loc
+                        in
+                        let to_ =
+                          Range.range_of_token_locations mval_to_start_loc
+                            mval_to_end_loc
+                        in
+                        let id =
+                          Common.spf "propagator:%d:%d:%d:%d:%d:%d"
+                            loc_pfrom.pos.bytepos loc_pto.pos.bytepos
+                            from.Range.start from.Range.end_ to_.Range.start
+                            to_.Range.end_
+                        in
+                        Some { id; rwm; from; to_; spec = p }
+                    | _ -> None)))
 
 (*****************************************************************************)
 (* Testing whether some matches a taint spec *)
@@ -329,17 +330,13 @@ let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
   match AST_generic_helpers.range_of_any_opt any with
-  | None ->
-      (* IL.any_of_orig will return `G.Anys []` for `NoOrig`, and there is
-       * no point in issuing this warning in that case.
-       * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
-       * first place? *)
-      if any <> G.Anys [] then
-        logger#trace
-          "Cannot compute range, there are no real tokens in this AST: %s"
-          (G.show_any any);
+  | No_range_error ->
+      logger#trace
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (G.show_any any);
       None
-  | Some (tok1, tok2) ->
+  | No_range_expected -> None
+  | Range (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
       Some r
 

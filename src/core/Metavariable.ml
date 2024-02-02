@@ -164,7 +164,7 @@ let location_aware_equal_mvalue mval1 mval2 =
         AST_generic_helpers.range_of_any_opt any2 )
     in
     match (range1, range2) with
-    | Some (l1, r1), Some (l2, r2) ->
+    | Range (l1, r1), Range (l2, r2) ->
         Tok.equal_location l1 l2 && Tok.equal_location r1 r2
     | _ -> true
   in
@@ -194,12 +194,14 @@ let program_of_mvalue : mvalue -> G.program option =
       None
 
 let range_of_mvalue mval =
-  let* tok_start, tok_end =
-    AST_generic_helpers.range_of_any_opt (mvalue_to_any mval)
-  in
-  (* We must return both the range *and* the file, due to metavariable-pattern
-   * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
-  Some (tok_start.pos.file, Range.range_of_token_locations tok_start tok_end)
+  match AST_generic_helpers.range_of_any_opt (mvalue_to_any mval) with
+  | No_range_error
+  | No_range_expected ->
+      None
+  | Range (tok_start, tok_end) ->
+      (* We must return both the range *and* the file, due to metavariable-pattern
+       * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
+      Some (tok_start.pos.file, Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> AST_generic_helpers.ii_of_any
 let str_of_mval x = show_mvalue x

@@ -469,12 +469,13 @@ let text_of_binding mvar mval =
   | _ -> (
       let any = MV.mvalue_to_any mval in
       match AST_generic_helpers.range_of_any_opt any with
-      | None ->
+      | No_range_expected
+      | No_range_error ->
           (* TODO: Report a warning to the user? *)
           logger#error "We lack range info for metavariable %s: %s" mvar
             (G.show_any any);
           None
-      | Some (min, max) ->
+      | Range (min, max) ->
           let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))

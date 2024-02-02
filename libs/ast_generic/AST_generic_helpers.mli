@@ -1,3 +1,8 @@
+type any_range =
+  | No_range_error
+  | No_range_expected
+  | Range of Tok.location * Tok.location
+
 val str_of_ident : AST_generic.ident -> string
 
 (* expr conversions *)
@@ -137,7 +142,7 @@ val info_of_any : AST_generic.any -> Tok.t
 val first_info_of_any : AST_generic.any -> Tok.t
 val range_of_tokens_unsafe : Tok.t list -> Tok_range.t
 val range_of_tokens : Tok.t list -> Tok_range.t option
-val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
+val range_of_any_opt : AST_generic.any -> any_range
 
 val nearest_any_of_pos :
   AST_generic.program ->

@@ -74,18 +74,25 @@ let count_lines_and_trailing =
     (0, 0)
 
 let offsets_of_mval extract_mvalue =
-  Metavariable.mvalue_to_any extract_mvalue
-  |> AST_generic_helpers.range_of_any_opt
-  |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
-         let end_len = String.length end_loc.Tok.str in
-         {
-           start_pos = start_loc.pos.bytepos;
-           (* subtract 1 because lines are 1-indexed, so the
-               offset is one less than the current line *)
-           start_line = start_loc.pos.line - 1;
-           start_col = start_loc.pos.column;
-           end_pos = end_loc.pos.bytepos + end_len;
-         })
+  let range =
+    Metavariable.mvalue_to_any extract_mvalue
+    |> AST_generic_helpers.range_of_any_opt
+  in
+  match range with
+  | No_range_error
+  | No_range_expected ->
+      None
+  | Range (start_loc, end_loc) ->
+      let end_len = String.length end_loc.Tok.str in
+      Some
+        {
+          start_pos = start_loc.pos.bytepos;
+          (* subtract 1 because lines are 1-indexed, so the
+              offset is one less than the current line *)
+          start_line = start_loc.pos.line - 1;
+          start_col = start_loc.pos.column;
+          end_pos = end_loc.pos.bytepos + end_len;
+        }
 
 let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
     extracted_target =

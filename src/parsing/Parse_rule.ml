@@ -250,7 +250,14 @@ let requires_expr_to_precondition env key e =
 let parse_taint_requires env key x =
   let s = parse_string env key x in
   let e = parse_python_expression env key s in
-  let range = AST_generic_helpers.range_of_any_opt (E e) in
+  let range =
+    match AST_generic_helpers.range_of_any_opt (E e) with
+    | No_range_error
+    | No_range_expected ->
+        (* This probably shouldn't happen. *)
+        None
+    | Range (start, end_) -> Some (start, end_)
+  in
   { R.precondition = requires_expr_to_precondition env key e; range }
 
 (* TODO: can add a case where these take in only a single string *)
