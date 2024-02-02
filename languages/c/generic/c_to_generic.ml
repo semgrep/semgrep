@@ -391,11 +391,34 @@ and stmt (st : stmt) : G.stmt =
       G.OtherStmt
         ( G.OS_Asm,
           [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
-          @ a_gotos @ [ G.Tk sc ] ))
+          @ a_gotos @ [ G.Tk sc ] )
+  | MsTry (v1, (l, v2, r), v3) ->
+      G.OtherStmtWithStmt
+        (OSWS_SEH, [ G.Tk v1 ], ms_try_handler (l, List_.map stmt v2, r) v3)
+  | MsLeave v1 -> G.OtherStmt (OS_Todo, [ G.Tk v1 ]))
   |> G.s
 
 and stmts (x : stmt sequencable list) =
   list (sequencable stmt) x |> List.flatten
+
+and ms_try_handler (l, stmts, r) x =
+  let try_stmt =
+    G.OtherStmtWithStmt (OSWS_SEH, [], G.Block (l, stmts, r) |> G.s) |> G.s
+  in
+  let inner_stmt =
+    match x with
+    | MsExcept (v1, (_, v2, _), (l', v3, r')) ->
+        G.OtherStmtWithStmt
+          ( OSWS_SEH,
+            [ G.Tk v1; G.E (expr v2) ],
+            G.Block (l', List_.map stmt v3, r') |> G.s )
+        |> G.s
+    | MsFinally (v1, (l', v2, r')) ->
+        G.OtherStmtWithStmt
+          (OSWS_SEH, [ G.Tk v1 ], G.Block (l', List_.map stmt v2, r') |> G.s)
+        |> G.s
+  in
+  G.Block (Tok.unsafe_fake_bracket [ try_stmt; inner_stmt ]) |> G.s
 
 and expr_asm_operand (v1, v2, v3) =
   let v1 =

@@ -483,6 +483,8 @@ and stmt env st =
           debug (Stmt st);
           raise Todo
       | Return (_tok, Some _) -> raise CplusplusConstruct)
+  | MsTry (v1, v2, v3) -> A.MsTry (v1, compound env v2, ms_try_handler env v3)
+  | MsLeave tok -> A.MsLeave tok
   | Try (_, _, _)
   | If (_, _, (_, _, _), _, _)
   | While (_, (_, _, _), _)
@@ -494,6 +496,11 @@ and stmt env st =
   | MacroStmt _ ->
       debug (Stmt st);
       raise Todo
+
+and ms_try_handler env = function
+  | MsExcept (v1, v2, v3) ->
+      A.MsExcept (v1, bracket_keep (expr env) v2, compound env v3)
+  | MsFinally (v1, v2) -> MsFinally (v1, compound env v2)
 
 and ident_asm_operand _env (v1, v2, v3) = (v1, v2, v3)
 and expr_asm_operand env (v1, v2, v3) = (v1, v2, bracket_keep (expr env) v3)
@@ -766,15 +773,7 @@ and full_type env x =
             (s, tok)
         | Some n -> name env n
       in
-      let xs' =
-        xs |> unparen
-        |> List.map (fun eelem ->
-               let name, e_opt = (eelem.e_name, eelem.e_val) in
-               ( name,
-                 match e_opt with
-                 | None -> None
-                 | Some (_tok, e) -> Some (expr env e) ))
-      in
+      let xs' = xs |> unparen |> enum_elems_sequencable env in
       let def = { A.e_name = name; e_type = failwith "TODO"; e_consts = xs' } in
       env.enum_defs_toadd <- def :: env.enum_defs_toadd;
       A.TEnumName name
@@ -809,6 +808,29 @@ and class_members_sequencable env xs =
     | CppIfdef x -> Some x
     | _ -> None)
   |> List.map (class_member_sequencable env)
+
+and enum_elems_sequencable env (xs : enum_elem sequencable list) =
+  ifdef_skipper xs (function
+    | CppIfdef x -> Some x
+    | _ -> None)
+  |> List.map (enum_elem_sequencable env)
+
+and enum_elem_sequencable env x =
+  match x with
+  | X x -> enum_elem env x
+  | CppDirective dir ->
+      debug (Cpp dir);
+      raise Todo
+  | CppIfdef _ -> raise Impossible
+  | MacroVar (_, _)
+  | MacroDecl (_, _, _, _) ->
+      raise Todo
+
+and enum_elem env { e_name = name; e_val = e_opt } =
+  ( name,
+    match e_opt with
+    | None -> None
+    | Some (_tok, e) -> Some (expr env e) )
 
 and class_member_sequencable env x =
   match x with

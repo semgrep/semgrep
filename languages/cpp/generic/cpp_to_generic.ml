@@ -1771,13 +1771,16 @@ and map_enum_definition env
       enum_body = v_enum_body;
     } : G.name option * G.type_definition =
   let _l, v_enum_body, _r =
-    map_brace env (map_of_list (map_enum_elem env)) v_enum_body
+    map_brace env
+      (map_of_list (map_sequencable_for_or_type env (map_enum_elem env)))
+      v_enum_body
   in
   let v_enum_name = map_of_option (map_name env) v_enum_name in
   let _v_enum_kindTODO = map_tok env v_enum_kind in
-  (v_enum_name, { G.tbody = G.OrType v_enum_body })
+  (v_enum_name, { G.tbody = G.OrType (List.flatten v_enum_body) })
 
-and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } =
+and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } : G.or_type_element
+    =
   let v_e_val =
     map_of_option
       (fun (v1, v2) ->
@@ -2157,6 +2160,22 @@ and map_sequencable_for_field :
         let ent = G.basic_entity v1 in
         let def = G.OtherDef (("MacroVar", snd v1), [ G.Tk v2 ]) in
         [ G.DefStmt (ent, def) |> G.s |> field ]
+
+and map_sequencable_for_or_type :
+      'a.
+      env ->
+      ('a -> G.or_type_element) ->
+      'a sequencable ->
+      G.or_type_element list =
+ fun _env _of_a -> function
+  | X v1 ->
+      let v1 = _of_a v1 in
+      [ v1 ]
+  | CppDirective _
+  | CppIfdef _
+  | MacroDecl _
+  | MacroVar _ ->
+      []
 
 and map_ifdef_directive env = function
   | Ifdef v1 ->

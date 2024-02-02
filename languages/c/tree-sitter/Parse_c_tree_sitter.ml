@@ -63,9 +63,9 @@ let str = H.str
 (* This was started by copying tree-sitter-lang/semgrep-go/.../Boilerplate.ml *)
 
 (**
-   Boilerplate to be used as a template when mapping the c CST
-   to another type of tree.
-*)
+    Boilerplate to be used as a template when mapping the c CST
+    to another type of tree.
+ *)
 
 let imm_tok_pat_509ec78 (env : env) (tok : CST.imm_tok_pat_509ec78) =
   (* pattern \r?\n *) token env tok
@@ -197,15 +197,17 @@ let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) : string wrap =
     | `SQUOT tok -> token env tok
     (* "'" *)
   in
-  let v2 =
-    match v2 with
-    | `Esc_seq tok -> str env tok (* escape_sequence *)
-    | `Imm_tok_pat_36637e2 tok -> str env tok
-    (* pattern "[^\\n']" *)
+  let strings, toks =
+    List_.map
+      (function
+        | `Esc_seq tok -> (* escape_sequence *) str env tok
+        | `Imm_tok_pat_36637e2 x -> (* pattern "[^\\n']" *) str env x)
+      v2
+    |> Common2.unzip
   in
   let v3 = token env v3 (* "'" *) in
-  let s = fst v2 in
-  (s, Tok.combine_toks v1 [ snd v2; v3 ])
+  let t = Tok.combine_toks v1 (toks @ [ v3 ]) in
+  (String.concat "" strings, t)
 
 let anon_choice_pat_25b90ba_4a37f8c (env : env)
     (x : CST.anon_choice_pat_25b90ba_4a37f8c) =

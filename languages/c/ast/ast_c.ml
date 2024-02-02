@@ -221,8 +221,17 @@ and stmt =
   | DefStmt of definition
   | DirStmt of directive
   | AsmStmt of tok * assembler bracket * sc
+  (* Microsoft-specific:
+     https://learn.microsoft.com/en-us/cpp/cpp/try-finally-statement?view=msvc-170
+  *)
+  | MsTry of tok (* "__try__" *) * stmt list bracket * ms_try_handler
+  | MsLeave of tok (* "__leave" *)
   (* this should never appear! this should be only inside Switch *)
   | CaseStmt of case
+
+and ms_try_handler =
+  | MsExcept of tok (* "__except" *) * expr bracket * stmt list bracket
+  | MsFinally of tok (* "__finally" *) * stmt list bracket
 
 and case = Case of tok * expr * stmt list | Default of tok * stmt list
 
