@@ -41,7 +41,7 @@ let parse file =
         (*None, { stat with Stat.bad = stat.Stat.bad + stat.Stat.correct } *)
         Exception.reraise e
   in
-  { Parsing_result.ast; tokens; stat }
+  { Parsing_result.ast = List_.map (fun x -> Ast_c.X x) ast; tokens; stat }
 
 let parse_program file =
   let res = parse file in

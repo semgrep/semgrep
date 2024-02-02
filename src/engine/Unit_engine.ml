@@ -864,7 +864,7 @@ let mark_todo_js (test : Testo.test) =
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "full semgrep rule Java", so one can just run the Java tests
  * with ./test Java
- * alt: do like in deep-semgrep and call the toplevel engine
+ * alt: do like in semgrep-pro and call the toplevel engine
  * in a Unit_runner.ml instead of using Test_engine.make_tests
  *)
 let full_rule_semgrep_rules_regression_tests () =
