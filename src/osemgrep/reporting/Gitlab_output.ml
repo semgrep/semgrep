@@ -68,10 +68,13 @@ let format_cli_match (cli_match : OutT.cli_match) =
              )
     *)
   in
+  let id =
+    Cli_match.ci_unique_key cli_match
+    |> Uuidm.of_bytes |> Option.get |> Uuidm.to_string
+  in
   let r =
     [
-      ("id", `String "TODO");
-      (*str(rule_match.uuid),  # create UUID from sha256 hash *)
+      ("id", `String id);
       ("category", `String "sast");
       (* CVE is a required field from Gitlab schema.
          It also is part of the determination for uniqueness
