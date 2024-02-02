@@ -232,7 +232,7 @@ let%test _ =
 
 let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : (R.formula * 'a) list) :
-    (RM.t * 'a) list * ME.t list =
+    ((R.t * RM.t) * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
@@ -241,11 +241,11 @@ let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
            Formula_tbl.cached_find_opt formula_cache pf (fun () ->
                range_w_metas_of_formula xconf xtarget rule pf)
          in
-         (ranges |> List_.map (fun rwm -> (rwm, x)), expls))
+         (ranges |> List_.map (fun rwm -> ((rule, rwm), x)), expls))
 
 let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : R.taint_sanitizer list) :
-    (bool * RM.t * R.taint_sanitizer) list * ME.t list =
+    (R.t * bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
          let ranges, expls =
@@ -255,7 +255,8 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
                  sanitizer.sanitizer_formula)
          in
          ( ranges
-           |> List_.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
+           |> List_.map (fun x ->
+                  (rule, sanitizer.R.not_conflicting, x, sanitizer)),
            expls ))
 
 (* Finds all matches of `pattern-propagators`. *)
@@ -319,7 +320,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                         from.Range.start from.Range.end_ to_.Range.start
                         to_.Range.end_
                     in
-                    Some { id; rwm; from; to_; spec = p }))
+                    Some (rule, { id; rwm; from; to_; spec = p })))
 
 (*****************************************************************************)
 (* Testing whether some matches a taint spec *)
@@ -365,11 +366,11 @@ let is_exact_match ~match_range r =
   in
   Range.( $<=$ ) r r1 && overlap > 0.99
 
-let any_is_in_sources_matches rule any matches =
+let any_is_in_sources_matches any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.map_filter (fun (rwm, (ts : R.taint_source)) ->
+  |> List_.map_filter (fun ((rule, rwm), (ts : R.taint_source)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -386,13 +387,13 @@ let any_is_in_sources_matches rule any matches =
 (* Check whether `any` matches either the `from` or the `to` of any of the
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
  * taint propagation more precise and predictable. *)
-let any_is_in_propagators_matches rule any matches :
+let any_is_in_propagators_matches any matches :
     D.a_propagator Taint_smatch.t list =
   match range_of_any any with
   | None -> []
   | Some r ->
       matches
-      |> List.concat_map (fun prop ->
+      |> List.concat_map (fun (rule, prop) ->
              let var = prop.id in
              let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
              let is_from = is_exact_match ~match_range:prop.from r in
@@ -411,11 +412,11 @@ let any_is_in_propagators_matches rule any matches :
              @ (if is_to then [ mk_match `To ] else [])
              @ [])
 
-let any_is_in_sanitizers_matches rule any matches =
+let any_is_in_sanitizers_matches any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.map_filter (fun (rwm, spec) ->
+  |> List_.map_filter (fun (rule, rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -429,11 +430,11 @@ let any_is_in_sanitizers_matches rule any matches =
               })
          else None)
 
-let any_is_in_sinks_matches rule any matches =
+let any_is_in_sinks_matches any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.map_filter (fun (rwm, (spec : R.taint_sink)) ->
+  |> List_.map_filter (fun ((rule, rwm), (spec : R.taint_sink)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -584,121 +585,108 @@ let pms_of_finding ~match_on finding =
 (* Main entry points *)
 (*****************************************************************************)
 
-let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
-    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+let taint_config_of_rules ~per_file_formula_cache xconf file ast_and_errors
+    (rules : R.taint_rule list) handle_findings =
   let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
-  let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
+  (* let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in *)
+  let xconf = xconf in
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
     {
       Xtarget.file;
-      xlang = rule.target_analyzer;
+      xlang = (List.hd rules).target_analyzer;
       lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;
     }
   in
-  let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
-    find_range_w_metas formula_cache xconf xtarget rule
-      (spec.sources |> snd
-      |> List_.map (fun (src : R.taint_source) -> (src.source_formula, src)))
-  and (propagators_ranges : propagator_match list) =
-    find_propagators_matches formula_cache xconf xtarget rule spec.propagators
-  and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
-    find_range_w_metas formula_cache xconf xtarget rule
-      (spec.sinks |> snd
-      |> List_.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
+  let combine f rules =
+    let ranges, expls = rules |> List_.map f |> Common2.unzip in
+    (List.flatten ranges, List.flatten expls)
   in
-  let sanitizers_ranges, expls_sanitizers =
-    match spec.sanitizers with
-    | None -> ([], [])
-    | Some (_, sanitizers_spec) ->
-        find_sanitizers_matches formula_cache xconf xtarget rule sanitizers_spec
+
+  let (sources_ranges : ((R.t * RM.t) * R.taint_source) list), _expls_sources =
+    combine
+      (function
+        | { R.mode = `Taint spec; _ } as rule ->
+            find_range_w_metas formula_cache xconf xtarget rule
+              (spec.sources |> snd
+              |> List_.map (fun (src : R.taint_source) ->
+                     (src.source_formula, src))))
+      rules
+  and (propagators_ranges : (R.t * propagator_match) list) =
+    List.concat_map
+      (function
+        | { R.mode = `Taint spec; _ } as rule ->
+            find_propagators_matches formula_cache xconf xtarget rule
+              spec.propagators)
+      rules
+  and (sinks_ranges : ((R.t * RM.t) * R.taint_sink) list), _expls_sinks =
+    combine
+      (function
+        | { R.mode = `Taint spec; _ } as rule ->
+            find_range_w_metas formula_cache xconf xtarget rule
+              (spec.sinks |> snd
+              |> List_.map (fun (sink : R.taint_sink) ->
+                     (sink.sink_formula, sink))))
+      rules
   in
-  let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
+  let sanitizers_ranges, _expls_sanitizers =
+    combine
+      (function
+        | { R.mode = `Taint spec; _ } as rule -> (
+            match spec.R.sanitizers with
+            | None -> ([], [])
+            | Some (_, sanitizers_spec) ->
+                find_sanitizers_matches formula_cache xconf xtarget rule
+                  sanitizers_spec))
+      rules
+  in
+  let (sanitizers_ranges : (R.t * RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
      * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
     sanitizers_ranges
-    |> List_.map_filter (fun (not_conflicting, range, spec) ->
+    |> List_.map_filter (fun (rule, not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if
                not
                  (List.exists
-                    (fun (range', _) -> range'.RM.r =*= range.RM.r)
+                    (fun ((_, range'), _) -> range'.RM.r =*= range.RM.r)
                     sinks_ranges
                  || List.exists
-                      (fun (range', _) -> range'.RM.r =*= range.RM.r)
+                      (fun ((_, range'), _) -> range'.RM.r =*= range.RM.r)
                       sources_ranges)
-             then Some (range, spec)
+             then Some (rule, range, spec)
              else None
-           else Some (range, spec))
+           else Some (rule, range, spec))
   in
-  let expls =
-    if xconf.matching_explanations then
-      let ranges_to_pms ranges_and_stuff =
-        ranges_and_stuff
-        |> List_.map (fun (rwm, _) ->
-               RM.range_to_pattern_match_adjusted rule rwm)
-      in
-      [
-        {
-          ME.op = OutJ.TaintSource;
-          pos = fst spec.sources;
-          children = expls_sources;
-          matches = ranges_to_pms sources_ranges;
-        };
-        {
-          ME.op = OutJ.TaintSink;
-          pos = fst spec.sinks;
-          children = expls_sinks;
-          matches = ranges_to_pms sinks_ranges;
-        }
-        (* TODO: propagators *);
-      ]
-      @
-      match spec.sanitizers with
-      | None -> []
-      | Some (tok, _) ->
-          [
-            {
-              ME.op = OutJ.TaintSanitizer;
-              pos = tok;
-              children = expls_sanitizers;
-              (* 'sanitizer_ranges' will be affected by `not-conflicting: true`:
-               * if a sanitizer coincides exactly with a source/sink then it will
-               * be filtered out. So the sanitizer matches may not be the union of
-               * the matches of the individual sanitizers. Anyhow, not-conflicting
-               * has been deprecated for quite some time, and we will remove it at
-               * some point. *)
-              matches = ranges_to_pms sanitizers_ranges;
-            };
-          ]
-    else []
-  in
+  let expls = [] in
   let config = xconf.config in
   ( {
       Dataflow_tainting.filepath = !!file;
-      rule_id = fst rule.R.id;
+      rules;
       track_control =
-        spec.sources |> snd
-        |> List.exists (fun (src : R.taint_source) -> src.source_control);
-      is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
+        sources_ranges
+        |> List.exists (fun (_, (src : R.taint_source)) -> src.source_control);
+      is_source = (fun x -> any_is_in_sources_matches x sources_ranges);
       is_propagator =
-        (fun x -> any_is_in_propagators_matches rule x propagators_ranges);
-      is_sanitizer =
-        (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
-      is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
+        (fun x -> any_is_in_propagators_matches x propagators_ranges);
+      is_sanitizer = (fun x -> any_is_in_sanitizers_matches x sanitizers_ranges);
+      is_sink = (fun x -> any_is_in_sinks_matches x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;
     },
     {
-      sources = sources_ranges;
-      sanitizers = sanitizers_ranges |> List_.map fst;
-      sinks = sinks_ranges;
+      sources =
+        List_.map (fun ((_r, rwm), source) -> (rwm, source)) sources_ranges;
+      sanitizers =
+        List_.map (fun (_r, rwm, source) -> (rwm, source)) sanitizers_ranges
+        |> List_.map fst;
+      sinks = List_.map (fun ((_r, rwm), source) -> (rwm, source)) sinks_ranges;
     },
     expls )
 
@@ -864,7 +852,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   in
   (flow, mapping)
 
-let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
+let check_rules per_file_formula_cache (rules : R.taint_rule list) match_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
@@ -898,14 +886,15 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
              pms_of_finding ~match_on finding
              |> List.iter (fun pm -> Stack_.push pm matches))
     in
-    taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
+    taint_config_of_rules ~per_file_formula_cache xconf !!file (ast, []) rules
       handle_findings
   in
 
   (match !hook_setup_hook_function_taint_signature with
   | None -> ()
-  | Some setup_hook_function_taint_signature ->
-      setup_hook_function_taint_signature xconf rule taint_config xtarget);
+  | Some _setup_hook_function_taint_signature ->
+      failwith "TODO"
+      (* setup_hook_function_taint_signature xconf rule taint_config xtarget *));
 
   (* FIXME: This is no longer needed, now we can just check the type 'n'. *)
   let ctx = ref AST_to_IL.empty_ctx in
@@ -972,7 +961,11 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
     RP.make_match_result matches errors
-      { Core_profiling.rule_id = fst rule.R.id; parse_time; match_time }
+      {
+        Core_profiling.rule_id = fst (List.hd rules).R.id;
+        parse_time;
+        match_time;
+      }
   in
   let explanations =
     if xconf.matching_explanations then
@@ -981,7 +974,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
           ME.op = OutJ.Taint;
           children = expls;
           matches = report.matches;
-          pos = snd rule.id;
+          pos = snd (List.hd rules).id;
         };
       ]
     else []
@@ -997,6 +990,7 @@ let check_rules ~match_hook
     (rules : R.taint_rule list) (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) :
     Core_profiling.rule_profiling Core_result.match_result list =
+  let _ = per_rule_boilerplate_fn in
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks
      between rules.
@@ -1015,7 +1009,4 @@ let check_rules ~match_hook
             timing out if this rule takes too long, and returning a dummy
             result for the timed-out rule.
          *)
-         per_rule_boilerplate_fn
-           (rule :> R.rule)
-           (fun () ->
-             check_rule per_file_formula_cache rule match_hook xconf xtarget))
+         check_rules per_file_formula_cache rules match_hook xconf xtarget)

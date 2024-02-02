@@ -46,12 +46,12 @@ val hook_setup_hook_function_taint_signature :
    loop which runs over rules. This cache is only safe to share with if
    [taint_config_of_rule] is used on the same file!
 *)
-val taint_config_of_rule :
+val taint_config_of_rules :
   per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
   string (* filename *) ->
   AST_generic.program * Tok.location list ->
-  Rule.taint_rule ->
+  Rule.taint_rule list ->
   (Dataflow_tainting.var option ->
   Taint.finding list ->
   Taint_lval_env.t ->

@@ -9,7 +9,7 @@ type a_propagator = {
 
 type config = {
   filepath : string;  (** File under analysis, for Deep Semgrep. *)
-  rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
+  rules : Rule.taint_rule list;
   track_control : bool;
       (** Whether the rule requires tracking "control taint". *)
   is_source : AST_generic.any -> Rule.taint_source Taint_smatch.t list;

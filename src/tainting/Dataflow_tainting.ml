@@ -76,7 +76,7 @@ type a_propagator = {
 
 type config = {
   filepath : string;
-  rule_id : Rule_ID.t;
+  rules : R.taint_rule list;
   track_control : bool;
   is_source : G.any -> R.taint_source TM.t list;
   is_propagator : AST_generic.any -> a_propagator TM.t list;
