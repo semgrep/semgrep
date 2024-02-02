@@ -15,7 +15,7 @@
 
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 let setup ~debug ~log_config_file ~log_to_file =
   (*
@@ -47,4 +47,4 @@ let setup ~debug ~log_config_file ~log_to_file =
   | None -> ()
   | Some file ->
       Logging.load_config_file !!file;
-      logger#info "loaded %s" !!file
+      Logs.info (fun m -> m ~tags "loaded %s" !!file)

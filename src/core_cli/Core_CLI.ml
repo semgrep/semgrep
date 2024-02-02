@@ -13,9 +13,6 @@ module Flag = Flag_semgrep
 module E = Core_error
 module J = JSON
 
-(* Legacy logger *)
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (* Tags to associate with individual log messages. Optional. *)
 let tags = Logs_.create_tags [ __MODULE__; "cli" ]
 
@@ -146,7 +143,7 @@ let version = spf "semgrep-core version: %s" Version.version
  * This is why we call set_gc() only when max_memory_mb is unset.
  *)
 let set_gc () =
-  logger#info "Gc tuning";
+  Logs.info (fun m -> m ~tags "Gc tuning");
   (*
   if !Flag.debug_gc
   then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
@@ -690,12 +687,12 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
     ();
   Logs.debug (fun m -> m ~tags "Hello, Logs.");
 
-  logger#info "Executed as: %s" (argv |> String.concat " ");
-  logger#info "Version: %s" version;
+  Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
+  Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =
     if config.profile then (
-      logger#info "Profile mode On";
-      logger#info "disabling -j when in profiling mode";
+      Logs.info (fun m -> m ~tags "Profile mode On");
+      Logs.info (fun m -> m ~tags "disabling -j when in profiling mode");
       { config with ncores = 1 })
     else config
   in

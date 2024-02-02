@@ -16,7 +16,7 @@ open Common
 open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 let ( let/ ) = Result.bind
 
 (*****************************************************************************)
@@ -261,7 +261,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
       (* Print line-by-line so that each line is preceded by the logging header.
        * Looks nicer and makes it easier to mask in e2e test output. *)
       String.split_on_char '\n' msg
-      |> List.iter (fun line -> logger#info "%s" line);
+      |> List.iter (fun line -> Logs.info (fun m -> m ~tags "%s" line));
       None
 
 let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t

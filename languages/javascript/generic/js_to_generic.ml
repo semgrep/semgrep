@@ -18,7 +18,7 @@ open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -315,7 +315,7 @@ and expr (x : expr) =
       | SR_Special v ->
           G.Call (G.IdSpecial v |> G.e, bracket (List_.map G.arg) v2)
       | SR_Literal l ->
-          logger#info "Weird: literal in call position";
+          Logs.info (fun m -> m ~tags "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
           G.Call (G.L l |> G.e, bracket (List_.map G.arg) v2)
       | SR_NeedArgs f -> f (Tok.unbracket v2)

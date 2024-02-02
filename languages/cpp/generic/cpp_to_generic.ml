@@ -19,7 +19,7 @@ open Ast_cpp
 open OCaml (* for the map_of_xxx *)
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* See Parse_cpp_tree_Sitter.recover_when_partial_error *)
 let recover_when_partial_error = ref true
@@ -64,8 +64,9 @@ let error t s = raise (Parsing_error.Other_error (s, t))
 let error_unless_partial_error _env t s =
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s
-      (Tok.stringpos_of_tok t)
+    Logs.err (fun m ->
+        m ~tags "error_unless_partial_error: %s, at %s" s
+          (Tok.stringpos_of_tok t))
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x

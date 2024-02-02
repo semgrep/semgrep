@@ -15,7 +15,7 @@
 open Common
 open Xpattern_matcher
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 let regexp_matcher ?(base_offset = 0) big_str file regexp =
   let subs = Pcre_.exec_all_noerr ~rex:regexp big_str in
@@ -64,8 +64,9 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->
-                          logger#debug "not found %d substring of %s in %s" n
-                            regexp.pattern matched_str;
+                          Logs.debug (fun m ->
+                              m ~tags "not found %d substring of %s in %s" n
+                                regexp.pattern matched_str);
                           None)
          in
          let names_env =
@@ -86,8 +87,9 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
                     Some (spf "$%s" name, MV.Text (str, t, t))
                   with
                   | Not_found ->
-                      logger#debug "not found %s substring of %s in %s" name
-                        regexp.pattern matched_str;
+                      Logs.debug (fun m ->
+                          m ~tags "not found %s substring of %s in %s" name
+                            regexp.pattern matched_str);
                       None)
          in
          ((loc1, loc2), names_env @ numbers_env))

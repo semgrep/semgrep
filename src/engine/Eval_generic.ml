@@ -17,7 +17,7 @@ module G = AST_generic
 module MV = Metavariable
 module J = JSON
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -272,7 +272,7 @@ let rec eval env code =
     when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
       try Hashtbl.find env.mvars s with
       | Not_found ->
-          logger#trace "could not find a value for %s in env" s;
+          Logs.debug (fun m -> m ~tags "could not find a value for %s in env" s);
           raise (NotInEnv s))
   (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
@@ -334,7 +334,8 @@ let rec eval env code =
             | [] -> Bool false
             | _ -> Bool true
           in
-          logger#info "regexp %s on %s return %s" re str (show_value v);
+          Logs.info (fun m ->
+              m ~tags "regexp %s on %s return %s" re str (show_value v));
           v
       | _ -> raise (NotHandled e))
   | _ -> raise (NotHandled code)
@@ -471,8 +472,9 @@ let text_of_binding mvar mval =
       match AST_generic_helpers.range_of_any_opt any with
       | None ->
           (* TODO: Report a warning to the user? *)
-          logger#error "We lack range info for metavariable %s: %s" mvar
-            (G.show_any any);
+          Logs.err (fun m ->
+              m ~tags "We lack range info for metavariable %s: %s" mvar
+                (G.show_any any));
           None
       | Some (min, max) ->
           let file = min.Tok.pos.file in
@@ -567,7 +569,7 @@ let eval_opt env e =
    *)
   | NotInEnv _ -> None
   | NotHandled e ->
-      logger#trace "NotHandled: %s" (G.show_expr e);
+      Logs.debug (fun m -> m ~tags "NotHandled: %s" (G.show_expr e));
       None
 
 let eval_bool env e =
@@ -575,8 +577,8 @@ let eval_bool env e =
   match res with
   | Some (Bool b) -> b
   | Some res ->
-      logger#trace "not a boolean: %s" (show_value res);
+      Logs.debug (fun m -> m ~tags "not a boolean: %s" (show_value res));
       false
   | None ->
-      logger#trace "got exn during eval_bool";
+      Logs.debug (fun m -> m ~tags "got exn during eval_bool");
       false

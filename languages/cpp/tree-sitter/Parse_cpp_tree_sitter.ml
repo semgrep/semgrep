@@ -19,7 +19,7 @@ module HPfff = Parser_cpp_mly_helper
 open Ast_cpp
 module R = Tree_sitter_run.Raw_tree
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -62,8 +62,9 @@ let error_unless_partial_error _env t s =
    *)
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s
-      (Tok.stringpos_of_tok t)
+    Logs.err (fun m ->
+        m ~tags "error_unless_partial_error: %s, at %s" s
+          (Tok.stringpos_of_tok t))
 
 let map_fold_operator (env : env) (x : CST.fold_operator) =
   match x with
@@ -215,13 +216,16 @@ let id_of_dname_for_parameter env dname =
   match dname with
   | DN (None, [], IdIdent id) -> id
   | DN (None, [], IdTemplated (IdIdent id, _args)) ->
-      logger#error "Weird IdTemplated in id_of_dname_for_parameter";
-      logger#error "Probably tree-sitter partial error: %s"
-        (Ast_cpp.show_declarator_name dname);
+      Logs.err (fun m ->
+          m ~tags "Weird IdTemplated in id_of_dname_for_parameter");
+      Logs.err (fun m ->
+          m ~tags "Probably tree-sitter partial error: %s"
+            (Ast_cpp.show_declarator_name dname));
       id
   | _ ->
-      logger#error "Weird dname for parameter: %s"
-        (Ast_cpp.show_declarator_name dname);
+      Logs.err (fun m ->
+          m ~tags "Weird dname for parameter: %s"
+            (Ast_cpp.show_declarator_name dname));
       error_unless_partial_error env (ii_of_dname dname)
         "expecting an ident for parameter";
       let ii = ii_of_dname dname in
@@ -309,8 +313,9 @@ let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
        * any error in the file, tree-sitter still wrongly parses some
        * code as a StructuredBinding when it's not.
        *)
-      logger#error "Weird DNStructuredBinding without an init at %s"
-        (Tok.stringpos_of_tok (snd id));
+      Logs.err (fun m ->
+          m ~tags "Weird DNStructuredBinding without an init at %s"
+            (Tok.stringpos_of_tok (snd id)));
       V ({ name = name_of_id id; specs = v_specs }, { v_type; v_init })
 
 (*****************************************************************************)

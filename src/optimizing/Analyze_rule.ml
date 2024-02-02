@@ -19,7 +19,7 @@ module MV = Metavariable
 module SP = Semgrep_prefilter_t
 module MvarSet = Common2.StringSet
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 [@@@warning "-32"] (* for the unused pp_ coming from deriving show *)
 
@@ -133,14 +133,14 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
   | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
       let ys = List_.map_filter remove_not xs in
       if List_.null ys then (
-        logger#warning "null And after remove_not";
+        Logs.warn (fun m -> m ~tags "null And after remove_not");
         None)
       else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
       if List_.null ys then (
-        logger#warning "null Or after remove_not";
+        Logs.warn (fun m -> m ~tags "null Or after remove_not");
         None)
       else Some (R.Or (t, ys))
   | R.Not (_, f) -> (
@@ -154,16 +154,16 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
          failwith "Not Or" was just translated to below case, etc..
       *)
       | R.Or (_, _xs) ->
-          logger#warning "Not Or";
+          Logs.warn (fun m -> m ~tags "Not Or");
           None
       | R.And _ ->
-          logger#warning "Not And";
+          Logs.warn (fun m -> m ~tags "Not And");
           None
       | R.Inside _ ->
-          logger#warning "Not Inside";
+          Logs.warn (fun m -> m ~tags "Not Inside");
           None
       | R.Anywhere _ ->
-          logger#warning "Not Anywhere";
+          Logs.warn (fun m -> m ~tags "Not Anywhere");
           None)
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
@@ -175,7 +175,7 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
 
 let remove_not_final f =
   let final_opt = remove_not f in
-  if Option.is_none final_opt then logger#error "no formula";
+  if Option.is_none final_opt then Logs.err (fun m -> m ~tags "no formula");
   final_opt
 
 type step0 = LPat of Xpattern.t | LCond of Rule.metavar_cond
@@ -529,10 +529,12 @@ let eval_and p (And xs) =
             ignore it *)
          (try
             if not v then
-              logger#trace "this Or failed: %s" (Dumper.dump (Or xs))
+              Logs.debug (fun m ->
+                  m ~tags "this Or failed: %s" (Dumper.dump (Or xs)))
           with
          | e ->
-             logger#trace "exception while dumping: %s" (Printexc.to_string e));
+             Logs.debug (fun m ->
+                 m ~tags "exception while dumping: %s" (Printexc.to_string e)));
          v)
 
 let run_cnf_step2 cnf big_str =
@@ -541,7 +543,8 @@ let run_cnf_step2 cnf big_str =
        | Idents xs ->
            xs
            |> List.for_all (fun id ->
-                  logger#debug "check for the presence of %S" id;
+                  Logs.debug (fun m ->
+                      m ~tags "check for the presence of %S" id);
                   (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under Idents? *)
                   let re = Regexp_engine.matching_exact_string id in
@@ -571,16 +574,16 @@ let prefilter_formula_of_prefilter (pre : prefilter) :
 let compute_final_cnf ~(is_id_mvar : is_id_mvar) f =
   let* f = remove_not_final f in
   let cnf = cnf f in
-  logger#ldebug (lazy (spf "cnf0 = %s" (show_cnf_step0 cnf)));
+  Logs.debug (fun m -> m ~tags "%s" (spf "cnf0 = %s" (show_cnf_step0 cnf)));
   (* let cnf = and_step1 f in *)
   let cnf : cnf_step1 = and_step1 ~is_id_mvar cnf in
-  logger#ldebug (lazy (spf "cnf1 = %s" (show_cnf_step1 cnf)));
+  Logs.debug (fun m -> m ~tags "%s" (spf "cnf1 = %s" (show_cnf_step1 cnf)));
   (* TODO: regression on vertx-sqli.yaml
      let cnf = and_step1bis_filter_general cnf in
      logger#ldebug (lazy (spf "cnf1bis = %s" (show_cnf_step1 cnf)));
   *)
   let cnf = and_step2 cnf in
-  logger#ldebug (lazy (spf "cnf2 = %s" (show_cnf_step2 cnf)));
+  Logs.debug (fun m -> m ~tags "%s" (spf "cnf2 = %s" (show_cnf_step2 cnf)));
   Some cnf
 [@@profiling]
 
@@ -657,11 +660,13 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
     (* TODO: see tests/rules/tainted-filename.yaml,
                  tests/rules/kotlin_slow_import.yaml *)
     | CNF_exploded ->
-        logger#error "CNF size exploded on rule id %s"
-          (Rule_ID.to_string rule_id);
+        Logs.err (fun m ->
+            m ~tags "CNF size exploded on rule id %s"
+              (Rule_ID.to_string rule_id));
         None
     | Stack_overflow ->
-        logger#error "Stack overflow on rule id %s" (Rule_ID.to_string rule_id);
+        Logs.err (fun m ->
+            m ~tags "Stack overflow on rule id %s" (Rule_ID.to_string rule_id));
         None
   in
   match cache with

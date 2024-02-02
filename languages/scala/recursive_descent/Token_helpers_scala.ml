@@ -15,7 +15,7 @@
 open Token_scala
 module PI = Lib_ast_fuzzy
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Token Helpers *)
@@ -203,7 +203,7 @@ let inFirstOfStat x =
   | DEDENT _ ->
       false
   | _ ->
-      logger#info "inFirstOfStat: true for %s" (Dumper.dump x);
+      Logs.info (fun m -> m ~tags "inFirstOfStat: true for %s" (Dumper.dump x));
       true
 
 (** Can token end a statement? *)
@@ -240,7 +240,7 @@ let inLastOfStat x =
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
-      logger#info "inLastOfStat: true for %s" (Dumper.dump x);
+      Logs.info (fun m -> m ~tags "inLastOfStat: true for %s" (Dumper.dump x));
       true
   | _ -> false
 
