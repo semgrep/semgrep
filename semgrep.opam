@@ -30,8 +30,6 @@ depends: [
   "terminal_size"
   "uucp"
   "uutf"
-  "easy_logging" {= "0.8.1"}
-  "easy_logging_yojson" {= "0.8.1"}
   "logs"
   "atdgen"
   "yojson" {>= "2.0.0"}

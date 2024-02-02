@@ -17,7 +17,7 @@ open Fpath_.Operators
 module FT = File_type
 open Rule
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -306,7 +306,7 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> List_.map (fun file ->
-           logger#info "processing %s" !!file;
+           Logs.info (fun m -> m ~tags "processing %s" !!file);
            let formulas =
              fparser file
              |> List_.map (fun rule ->
@@ -331,8 +331,9 @@ let translate_files fparser xs =
         | FT.Config FT.Yaml ->
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
         | _ ->
-            logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-            logger#info "trying to parse %s as YAML" !!file;
+            Logs.err (fun m ->
+                m ~tags "wrong rule format, only JSON/YAML/JSONNET are valid");
+            Logs.info (fun m -> m ~tags "trying to parse %s as YAML" !!file);
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
       in
       match rules with

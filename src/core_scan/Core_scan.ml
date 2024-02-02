@@ -22,7 +22,7 @@ module RP = Core_result
 module In = Input_to_core_j
 module OutJ = Semgrep_output_v1_j
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
@@ -358,8 +358,10 @@ let map_targets ncores f (targets : In.target list) =
      *)
     Parmap.disable_core_pinning ();
     assert (ncores > 0);
-    let init _ = Logging.add_PID_tag () in
-    Parmap.parmap ~init ~ncores ~chunksize:1 f (Parmap.L targets))
+    (* TODO: port this functionality to Logs:
+       let init _ = Logging.add_PID_tag () in
+    *)
+    Parmap.parmap (*~init*) ~ncores ~chunksize:1 f (Parmap.L targets))
 
 (*****************************************************************************)
 (* Timeout *)
@@ -396,7 +398,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     offending_file_list
     |> List_.map (fun file ->
            (* logging useful info for rule writers *)
-           logger#info "too many matches on %s, generating exn for it" file;
+           Logs.info (fun m ->
+               m ~tags "too many matches on %s, generating exn for it" file);
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
@@ -417,9 +420,10 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              | _ -> assert false
            in
            let (id, pat), cnt = biggest_offending_rule in
-           logger#info
-             "most offending rule: id = %s, matches = %d, pattern = %s"
-             (Rule_ID.to_string id) cnt pat;
+           Logs.info (fun m ->
+               m ~tags
+                 "most offending rule: id = %s, matches = %d, pattern = %s"
+                 (Rule_ID.to_string id) cnt pat);
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
@@ -502,7 +506,8 @@ let rules_from_rule_source (config : Core_scan_config.t) :
   in
   match rule_source with
   | Some (Core_scan_config.Rule_file file) ->
-      logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (UFile.read_file file)));
+      Logs.info (fun m ->
+          m ~tags "%s" (spf "Parsing %s:\n%s" !!file (UFile.read_file file)));
       Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
   | Some (Core_scan_config.Rules rules) -> (rules, [])
   | None ->
@@ -535,7 +540,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     targets
     |> map_targets config.ncores (fun (target : In.target) ->
            let file = Fpath.v target.path in
-           logger#info "Analyzing %s" !!file;
+           Logs.info (fun m -> m ~tags "Analyzing %s" !!file);
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
                  try
@@ -567,7 +572,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         * not testing -max_memory.
                         *)
                        if config.test then Gc.full_major ();
-                       logger#trace "done with %s" !!file;
+                       Logs.debug (fun m -> m ~tags "done with %s" !!file);
 
                        (res, was_scanned))
                  with
@@ -582,15 +587,17 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      (match !Match_patterns.last_matched_rule with
                      | None -> ()
                      | Some rule ->
-                         logger#info "critical exn while matching ruleid %s"
-                           (Rule_ID.to_string rule.id);
-                         logger#info "full pattern is: %s"
-                           rule.MR.pattern_string);
+                         Logs.info (fun m ->
+                             m ~tags "critical exn while matching ruleid %s"
+                               (Rule_ID.to_string rule.id));
+                         Logs.info (fun m ->
+                             m ~tags "full pattern is: %s"
+                               rule.MR.pattern_string));
                      let loc = Tok.first_loc_of_file !!file in
                      let errors =
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
-                           logger#info "Timeout on %s" !!file;
+                           Logs.info (fun m -> m ~tags "Timeout on %s" !!file);
                            (* TODO what happened here is several rules
                               timed out while trying to scan a file.
                               Which heuristically indicates that the
@@ -606,7 +613,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                                     OutJ.Timeout)
                            |> E.ErrorSet.of_list
                        | Out_of_memory ->
-                           logger#info "OutOfMemory on %s" !!file;
+                           Logs.info (fun m ->
+                               m ~tags "OutOfMemory on %s" !!file);
                            E.ErrorSet.singleton
                              (E.mk_error !Rule.last_matched_rule loc ""
                                 OutJ.OutOfMemory)
@@ -750,7 +758,8 @@ let targets_of_config (config : Core_scan_config.t) :
       (* sanity checking *)
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
-        logger#error "if you use -targets, you should not specify files";
+        Logs.err (fun m ->
+            m ~tags "if you use -targets, you should not specify files");
       (* TODO: ugly, this is because the code path for -e/-f requires
        * a language, even with a -target, see test_target_file.py
        *)
@@ -772,8 +781,9 @@ let targets_of_config (config : Core_scan_config.t) :
 let extracted_targets_of_config (config : Core_scan_config.t)
     (extract_rules : Rule.extract_rule list) (basic_targets : In.target list) :
     In.target list * Extract.adjusters =
-  logger#info "extracting nested content from %d files"
-    (List.length basic_targets);
+  Logs.info (fun m ->
+      m ~tags "extracting nested content from %d files"
+        (List.length basic_targets));
   let match_hook str match_ =
     if !Extract.debug_extract_mode && config.output_format =*= Text then (
       UCommon.pr2 "extracted content from ";
@@ -947,8 +957,9 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   in
 
   (* Let's go! *)
-  logger#info "processing %d files, skipping %d files" (List.length all_targets)
-    (List.length skipped);
+  Logs.info (fun m ->
+      m ~tags "processing %d files, skipping %d files" (List.length all_targets)
+        (List.length skipped));
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
@@ -980,9 +991,10 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
       (List_.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
-  logger#info "found %d matches, %d errors"
-    (List.length res.processed_matches)
-    (List.length res.errors);
+  Logs.info (fun m ->
+      m ~tags "found %d matches, %d errors"
+        (List.length res.processed_matches)
+        (List.length res.errors));
 
   let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
@@ -1005,8 +1017,9 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped_targets = skipped @ new_skipped @ skipped_targets in
-        logger#info "there were %d skipped targets"
-          (List.length skipped_targets);
+        Logs.info (fun m ->
+            m ~tags "there were %d skipped targets"
+              (List.length skipped_targets));
         Core_profiling.Debug { skipped_targets; profiling }
     | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
@@ -1034,5 +1047,6 @@ let scan_with_exn_handler (config : Core_scan_config.t) :
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
-      logger#info "Uncaught exception: %s" (Exception.to_string e);
+      Logs.info (fun m ->
+          m ~tags "Uncaught exception: %s" (Exception.to_string e));
       Error (e, None)

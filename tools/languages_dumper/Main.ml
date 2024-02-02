@@ -5,7 +5,7 @@
 open Common
 module J = JSON
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
@@ -159,7 +159,7 @@ let main () =
 
   if Sys.file_exists !log_config_file then (
     Logging.load_config_file !log_config_file;
-    logger#info "loaded %s" !log_config_file);
+    Logs.info (fun m -> m ~tags "loaded %s" !log_config_file));
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->

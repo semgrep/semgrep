@@ -19,7 +19,7 @@ module H = AST_generic_helpers
 (* Provide hash_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -190,7 +190,8 @@ let program_of_mvalue : mvalue -> G.program option =
   | P _
   | XmlAt _
   | Text _ ->
-      logger#debug "program_of_mvalue: not handled '%s'" (show_mvalue mval);
+      Logs.debug (fun m ->
+          m ~tags "program_of_mvalue: not handled '%s'" (show_mvalue mval));
       None
 
 let range_of_mvalue mval =

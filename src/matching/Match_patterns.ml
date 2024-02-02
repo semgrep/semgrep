@@ -24,7 +24,7 @@ module Flag = Flag_semgrep
 module Options = Rule_options_t
 module MG = Matching_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 let profile_mini_rules = ref false
 
 (*****************************************************************************)
@@ -151,9 +151,10 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                   match AST_generic_helpers.range_of_any_opt (any x) with
                   | None ->
                       (* TODO: Report a warning to the user? *)
-                      logger#error
-                        "Cannot report match because we lack range info: %s"
-                        (show_any (any x));
+                      Logs.err (fun m ->
+                          m ~tags
+                            "Cannot report match because we lack range info: %s"
+                            (show_any (any x)));
                       ()
                   | Some range_loc ->
                       let tokens =
@@ -203,7 +204,8 @@ let list_original_tokens_stmts stmts =
  *)
 let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
     (config, equivs) rules (file, lang, ast) =
-  logger#trace "checking %s with %d mini rules" !!file (List.length rules);
+  Logs.debug (fun m ->
+      m ~tags "checking %s with %d mini rules" !!file (List.length rules));
 
   let rules =
     (* simple opti using regexps *)
@@ -307,8 +309,9 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
           |> List.iter (fun (pattern, rule) ->
                  match AST_generic_helpers.range_of_any_opt (E x) with
                  | None ->
-                     logger#debug "Skipping because we lack range info: %s"
-                       (show_expr_kind x.e);
+                     Logs.debug (fun m ->
+                         m ~tags "Skipping because we lack range info: %s"
+                           (show_expr_kind x.e));
                      ()
                  | Some range_loc when range_filter range_loc ->
                      let env =
@@ -347,12 +350,14 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                               Stack_.push pm matches;
                               hook pm)
                  | Some (start_loc, end_loc) ->
-                     logger#info
-                       "While matching pattern %s in file %s, we skipped \
-                        expression at %d:%d-%d:%d (outside any range of \
-                        interest)"
-                       rule.pattern_string start_loc.pos.file start_loc.pos.line
-                       start_loc.pos.column end_loc.pos.line end_loc.pos.column;
+                     Logs.info (fun m ->
+                         m ~tags
+                           "While matching pattern %s in file %s, we skipped \
+                            expression at %d:%d-%d:%d (outside any range of \
+                            interest)"
+                           rule.pattern_string start_loc.pos.file
+                           start_loc.pos.line start_loc.pos.column
+                           end_loc.pos.line end_loc.pos.column);
                      ());
           (* try the rules on subexpressions *)
           (* this can recurse to find nested matching inside the
@@ -381,10 +386,11 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                             with
                             | None ->
                                 (* TODO: Report a warning to the user? *)
-                                logger#error
-                                  "Cannot report match because we lack range \
-                                   info: %s"
-                                  (show_stmt x);
+                                Logs.err (fun m ->
+                                    m ~tags
+                                      "Cannot report match because we lack \
+                                       range info: %s"
+                                      (show_stmt x));
                                 ()
                             | Some range_loc ->
                                 let tokens =

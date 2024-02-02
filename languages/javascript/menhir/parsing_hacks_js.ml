@@ -20,7 +20,7 @@ module T = Parser_js
 module TH = Token_helpers_js
 module F = Ast_fuzzy
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -194,7 +194,8 @@ let fix_tokens_ASI xs =
   let push_sc_before_x x =
     let info = TH.info_of_tok x in
     let fake = Ast.fakeInfoAttach info in
-    logger#debug "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info);
+    Logs.debug (fun m ->
+        m ~tags "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info));
     Stack_.push (T.T_VIRTUAL_SEMICOLON fake) res
   in
 

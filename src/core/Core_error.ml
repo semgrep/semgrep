@@ -17,7 +17,7 @@ open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module R = Rule
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (****************************************************************************)
 (* Prelude *)
@@ -192,7 +192,8 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
   | Rule.Error err -> opt_error_of_rule_error err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
-      logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
+      Logs.err (fun m ->
+          m ~tags "WEIRD Timeout converted to exn, backtrace = %s" s);
       (* This exception should always be reraised. *)
       let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in

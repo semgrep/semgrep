@@ -13,7 +13,7 @@ doc: "https://reynir.github.io/python-str-repr"
 bug-reports: "https://github.com/reynir/python-str-repr/issues"
 depends: [
   "ocaml"
-  "dune" {>= "3.12"}
+  "dune" {>= "3.7"}
   "uutf"
   "uucp"
   "alcotest" {with-test}
