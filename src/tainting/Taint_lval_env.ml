@@ -122,6 +122,9 @@ let is_class_name (name : IL.name) =
   | _, Some _ ->
       false
 
+let lval_index_any =
+  IL.{ e = Operator (AST_generic.(Mult, fake "*"), []); eorig = NoOrig }
+
 (* Reduces an l-value into the form x.a_1. ... . a_N, the resulting l-value may
  * not represent the exact same object as the original l-value, but an
  * overapproximation. For example, the normalized l-value of `x[i]` will be `x`,
@@ -154,13 +157,11 @@ let normalize_lval lval =
   in
   let rev_offset =
     rev_offset
-    |> List.filter (fun o ->
+    |> List_.map (fun o ->
            match o.IL.o with
-           | IL.Dot _ -> true
-           (* TODO: If we check here for constant indexes we could make it index
-            * sensitive! But we also need to tweak the look up. Since you may taint
-            * `x.a` and then look for `x.a[1]` and it should tell you it's tainted. *)
-           | IL.Index _ -> false)
+           | IL.Dot _ -> o
+           | IL.Index { e = Literal (Int (Some _, _) | String _); _ } -> o
+           | IL.Index _ -> { o with o = IL.Index lval_index_any })
   in
   Some { IL.base; rev_offset }
 

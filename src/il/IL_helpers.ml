@@ -156,6 +156,15 @@ module LvalOrdered = struct
             (fun offset1 offset2 ->
               match (offset1.o, offset2.o) with
               | Dot a, Dot b -> compare_name a b
+              | Index { e = Operator ((G.Mult, _), []); _ }, Index _
+              | Index _, Index { e = Operator ((G.Mult, _), []); _ } ->
+                  0
+              | ( Index { e = Literal (Int (Some i1, _)); _ },
+                  Index { e = Literal (Int (Some i2, _)); _ } ) ->
+                  Int64.compare i1 i2
+              | ( Index { e = Literal (String (_, (s1, _), _)); _ },
+                  Index { e = Literal (String (_, (s2, _), _)); _ } ) ->
+                  String.compare s1 s2
               | Index _, _
               | _, Index _ ->
                   Stdlib.compare offset1 offset2)
