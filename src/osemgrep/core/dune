@@ -12,9 +12,6 @@
     uri
     uuidm
     lwt ; for Project_metadata.ml
-    murmur3
-    python-str-repr
-    semgrep.reporting
 
     commons
 
