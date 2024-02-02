@@ -57,7 +57,7 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
 (* Set operations *)
 (*****************************************************************************)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 let included_in config rv1 rv2 =
   (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
@@ -121,8 +121,9 @@ let intersect_ranges config ~debug_matches xs ys =
     us |> Common2.map_flatten (fun u -> vs |> List_.map_filter (fun v -> p u v))
   in
   if debug_matches then
-    logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
-      (show_ranges ys);
+    Logs.info (fun m ->
+        m ~tags "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
+          (show_ranges ys));
   merge left_merge xs ys
   (* TODO: just call merge once? *)
   @ merge (Fun.flip left_merge) xs ys

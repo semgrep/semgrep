@@ -1,4 +1,4 @@
-(lang dune 3.11)
+(lang dune 3.7)
 
 (name python-str-repr)
 

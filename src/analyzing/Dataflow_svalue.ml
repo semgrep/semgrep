@@ -22,7 +22,7 @@ module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module LV = IL_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -54,7 +54,7 @@ let hook_transfer_of_assume = ref None
 
 let warning _tok s =
   (* TODO: Report these errors as matches of a builtin_div_by_zero rule. *)
-  logger#warning "CFGError: %s" s
+  Logs.warn (fun m -> m ~tags "CFGError: %s" s)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -502,7 +502,9 @@ let set_svalue_ref id_info c' =
     match !(id_info.id_svalue) with
     | None -> id_info.id_svalue := Some c'
     | Some c -> id_info.id_svalue := Some (refine c c')
-  else logger#info "Cycle check failed for %s := ..." (G.show_id_info id_info)
+  else
+    Logs.info (fun m ->
+        m ~tags "Cycle check failed for %s := ..." (G.show_id_info id_info))
 (* (G.show_svalue c') *)
 
 (*****************************************************************************)
