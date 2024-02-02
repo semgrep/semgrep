@@ -208,7 +208,6 @@ class RuleMatch:
 
         Used for deduplication in the CLI before writing output.
         """
-        print(self.message)
         return (
             # NOTE: We include the previous scan's rules in the config for
             # consistent fixed status work. For unique hashing/grouping,
