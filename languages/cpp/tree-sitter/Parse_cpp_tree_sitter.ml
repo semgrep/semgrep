@@ -493,13 +493,6 @@ let map_ref_qualifier (env : env) (x : CST.ref_qualifier) =
       let t = token env tok (* "&&" *) in
       fun x -> (nQ, TRefRef (t, x))
 
-let map_anon_choice_pat_25b90ba_4a37f8c (env : env)
-    (x : CST.anon_choice_pat_25b90ba_4a37f8c) =
-  match x with
-  | `Pat_25b90ba tok -> Ifdef (token env tok) (* pattern #[ 	]*ifdef *)
-  (* TODO Ifndef *)
-  | `Pat_9d92f6a tok -> Ifdef (token env tok)
-
 (* pattern #[ 	]*ifndef *)
 
 let map_virtual_ (env : env) (x : CST.virtual_) =
@@ -596,13 +589,6 @@ let map_preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
   in
   let _v3 = token env v3 (* "\n" *) in
   PragmaAndCo v1
-
-let map_anon_choice_pat_0307ca2_dbf6a9d (env : env)
-    (x : CST.anon_choice_pat_0307ca2_dbf6a9d) =
-  match x with
-  | `Pat_0307ca2 tok -> IfdefElseif (* pattern #[ 	]*elifdef *) (token env tok)
-  (* TODO: elifndef *)
-  | `Pat_a6d4183 tok -> IfdefElseif (* pattern #[ 	]*elifndef *) (token env tok)
 
 let map_ms_pointer_modifier (env : env) (x : CST.ms_pointer_modifier) =
   match x with
@@ -1854,95 +1840,6 @@ and map_anon_choice_param_decl_d9083af (env : env)
       let x = token env tok in
       ParamEllipsis x
 
-(* "..." *)
-(* and map_anon_choice_prep_else_8b52b0f (env : env)
-     (x : CST.anon_choice_prep_else_8b52b0f) : toplevel list =
-   match x with
-   | `Prep_else (v1, v2) ->
-       let v1 = token env v1 (* pattern #[ 	]*else *) in
-       let v2 = List.concat_map (map_block_item env) v2 in
-       let dir = CppIfdef (IfdefElse v1) in
-       dir :: v2
-   | `Prep_elif (v1, v2, v3, v4, v5) ->
-       let v1 = token env v1 (* pattern #[ 	]*elif *) in
-       let _v2 = map_preproc_expression env v2 in
-       let _v3 = token env v3 (* "\n" *) in
-       let v4 = List.concat_map (map_block_item env) v4 in
-       let v5 =
-         match v5 with
-         | Some x -> map_anon_choice_prep_else_8b52b0f env x
-         | None -> []
-       in
-       let dir = CppIfdef (IfdefElseif v1) in
-       (dir :: v4) @ v5 *)
-
-and map_anon_choice_prep_else_in_enum_list_8258275 (env : env)
-    (x : CST.anon_choice_prep_else_in_enum_list_8258275) :
-    enum_elem sequencable list =
-  match x with
-  | `Prep_else_in_enum_list (v1, v2) ->
-      let v1 = token env v1 (* pattern #[ 	]*else *) in
-      let v2 = List_.map (fun (x, _comma) -> X (map_enumerator env x)) v2 in
-      let dir = CppIfdef (IfdefElse v1) in
-      dir :: v2
-  | `Prep_elif_in_enum_list (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* pattern #[ 	]*elif *) in
-      let _v2 = map_preproc_expression env v2 in
-      let _v3 = token env v3 (* "\n" *) in
-      let v4 = List_.map (fun (x, _comma) -> X (map_enumerator env x)) v4 in
-      let v5 =
-        match v5 with
-        | Some x -> map_anon_choice_prep_else_in_enum_list_8258275 env x
-        | None -> []
-      in
-      let dir = CppIfdef (IfdefElseif v1) in
-      (dir :: v4) @ v5
-
-and map_anon_choice_prep_else_in_enum_list_no_comma_04fd5a5 (env : env)
-    (x : CST.anon_choice_prep_else_in_enum_list_no_comma_04fd5a5) :
-    enum_elem sequencable list =
-  match x with
-  | `Prep_else_in_enum_list_no_comma (v1, v2) ->
-      let v1 = token env v1 (* pattern #[ 	]*else *) in
-      let v2 = List_.map (fun x -> X (map_enumerator env x)) v2 in
-      let dir = CppIfdef (IfdefElse v1) in
-      dir :: v2
-  | `Prep_elif_in_enum_list_no_comma (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* pattern #[ 	]*elif *) in
-      let _v2 = map_preproc_expression env v2 in
-      let _v3 = token env v3 (* "\n" *) in
-      let v4 = List_.map (fun x -> X (map_enumerator env x)) v4 in
-      let v5 =
-        match v5 with
-        | Some x ->
-            map_anon_choice_prep_else_in_enum_list_no_comma_04fd5a5 env x
-        | None -> []
-      in
-      let dir = CppIfdef (IfdefElseif v1) in
-      (dir :: v4) @ v5
-
-and map_anon_choice_prep_else_in_field_decl_list_97ea65e (env : env)
-    (x : CST.anon_choice_prep_else_in_field_decl_list_97ea65e) :
-    class_member sequencable list =
-  match x with
-  | `Prep_else_in_field_decl_list (v1, v2) ->
-      let v1 = token env v1 (* pattern #[ 	]*else *) in
-      let v2 = List.concat_map (map_field_declaration_list_item env) v2 in
-      let dir = CppIfdef (IfdefElse v1) in
-      dir :: v2
-  | `Prep_elif_in_field_decl_list (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* pattern #[ 	]*elif *) in
-      let _v2 = map_preproc_expression env v2 in
-      let _v3 = token env v3 (* "\n" *) in
-      let v4 = List.concat_map (map_field_declaration_list_item env) v4 in
-      let v5 =
-        match v5 with
-        | Some x -> map_anon_choice_prep_else_in_field_decl_list_97ea65e env x
-        | None -> []
-      in
-      let dir = CppIfdef (IfdefElseif v1) in
-      (dir :: v4) @ v5
-
 and map_anon_choice_type_desc_4d9cafa (env : env)
     (x : CST.anon_choice_type_desc_4d9cafa) : template_argument =
   match x with
@@ -2309,16 +2206,10 @@ and map_block_item (env : env) (x : CST.block_item) =
           let x = map_empty_declaration env x in
           [ X (D x) ]
       | `Prep_if x ->
-          let x =
-            x |> P.preproc_if_to_poly
-            |> preproc_if_poly ~map_item:map_block_item env
-          in
+          let x = map_preproc_if env x in
           x
       | `Prep_ifdef x ->
-          let x =
-            x |> P.preproc_ifdef_to_poly
-            |> preproc_ifdef_poly ~map_item:map_block_item env
-          in
+          let x = map_preproc_ifdef env x in
           x
       | `Prep_incl x ->
           let x = map_preproc_include env x in
@@ -2887,7 +2778,8 @@ and map_enum_base_clause (env : env) ((v1, v2) : CST.enum_base_clause) =
   in
   v2
 
-and map_enumerator (env : env) ((v1, v2) : CST.enumerator) : enum_elem =
+and map_enumerator (env : env) ((v1, v2) : CST.enumerator) :
+    enum_elem sequencable list =
   let v1 = str env v1 (* pattern [a-zA-Z_]\w* *) in
   let v2 =
     match v2 with
@@ -2897,7 +2789,7 @@ and map_enumerator (env : env) ((v1, v2) : CST.enumerator) : enum_elem =
         Some (v1, v2)
     | None -> None
   in
-  { e_name = v1; e_val = v2 }
+  [ X { e_name = v1; e_val = v2 } ]
 
 and map_enumerator_list (env : env) ((v1, v2, v3, v4) : CST.enumerator_list) :
     enum_elem sequencable list brace =
@@ -2909,14 +2801,10 @@ and map_enumerator_list (env : env) ((v1, v2, v3, v4) : CST.enumerator_list) :
         | `Enum_COMMA (v1, v2) ->
             let v1 = map_enumerator env v1 in
             let _v2 = (* "," *) token env v2 in
-            [ X v1 ]
-        | `Prep_if_in_enum_list x ->
-            x |> P.preproc_if_to_poly
-            |> preproc_if_in_enumerator_list_poly ~map_item:map_enumerator env
+            v1
+        | `Prep_if_in_enum_list x -> map_preproc_if_in_enumerator_list env x
         | `Prep_ifdef_in_enum_list x ->
-            x |> P.preproc_ifdef_to_poly
-            |> preproc_ifdef_in_enumerator_list_poly ~map_item:map_enumerator
-                 env
+            map_preproc_ifdef_in_enumerator_list env x
         | `Prep_call_COMMA (v1, v2) ->
             let v1 = map_preproc_call env v1 in
             let _v2 = (* "," *) token env v2 in
@@ -2927,7 +2815,7 @@ and map_enumerator_list (env : env) ((v1, v2, v3, v4) : CST.enumerator_list) :
     match v3 with
     | Some v1 -> (
         match v1 with
-        | `Enum x -> [ X (map_enumerator env x) ]
+        | `Enum x -> map_enumerator env x
         | `Prep_if_in_enum_list_no_comma x ->
             map_preproc_if_in_enumerator_list_no_comma env x
         | `Prep_ifdef_in_enum_list_no_comma x ->
@@ -4192,6 +4080,38 @@ and map_pointer_type_declarator (env : env)
   let v5 = map_type_declarator_to_expr env v5 in
   IdDeref (v2, v5)
 
+(* boilerplate *)
+and map_preproc_if env x =
+  x |> P.preproc_if_to_poly |> preproc_if_poly ~map_item:map_block_item env
+
+and map_preproc_if_in_field_declaration_list env x =
+  x |> P.preproc_if_in_field_declaration_list_to_poly
+  |> preproc_if_poly ~map_item:map_field_declaration_list_item env
+
+and map_preproc_if_in_enumerator_list env x =
+  x |> P.preproc_if_in_enumerator_list_to_poly
+  |> preproc_if_poly ~map_item:(fun env (e, _) -> map_enumerator env e) env
+
+and map_preproc_if_in_enumerator_list_no_comma env x =
+  x |> P.preproc_if_in_enumerator_list_no_comma_to_poly
+  |> preproc_if_poly ~map_item:map_enumerator env
+
+and map_preproc_ifdef env x =
+  x |> P.preproc_ifdef_to_poly
+  |> preproc_ifdef_poly ~map_item:map_block_item env
+
+and map_preproc_ifdef_in_field_declaration_list env x =
+  x |> P.preproc_ifdef_in_field_declaration_list_to_poly
+  |> preproc_ifdef_poly ~map_item:map_field_declaration_list_item env
+
+and map_preproc_ifdef_in_enumerator_list env x =
+  x |> P.preproc_ifdef_in_enumerator_list_to_poly
+  |> preproc_ifdef_poly ~map_item:(fun env (e, _) -> map_enumerator env e) env
+
+and map_preproc_ifdef_in_enumerator_list_no_comma env x =
+  x |> P.preproc_ifdef_in_enumerator_list_no_comma_to_poly
+  |> preproc_ifdef_poly ~map_item:map_enumerator env
+
 and map_return_statement (env : env) (x : CST.return_statement) : stmt =
   match x with
   | `Ret_opt_choice_exp_SEMI (v1, v2, v3) ->
@@ -4646,16 +4566,10 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       let x = map_empty_declaration env x in
       [ X (D x) ]
   | `Prep_if x ->
-      let x =
-        x |> P.preproc_if_to_poly
-        |> preproc_if_poly ~map_item:map_block_item env
-      in
+      let x = map_preproc_if env x in
       x
   | `Prep_ifdef x ->
-      let x =
-        x |> P.preproc_ifdef_to_poly
-        |> preproc_ifdef_poly ~map_item:map_block_item env
-      in
+      let x = map_preproc_ifdef env x in
       x
   | `Prep_incl x ->
       let x = map_preproc_include env x in

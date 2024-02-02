@@ -950,11 +950,46 @@ and map_stmt env x : G.stmt =
       and v2 = map_compound env v2
       and v3 = map_of_list (map_handler env) v3 in
       G.Try (v1, G.Block v2 |> G.s, v3, None, None) |> G.s
+  | MsTry (v1, try_, v3) ->
+      G.OtherStmtWithStmt (OSWS_SEH, [ G.Tk v1 ], map_ms_try_handler env try_ v3)
+      |> G.s
+  | MsLeave v1 -> G.OtherStmt (OS_Todo, [ G.Tk v1 ]) |> G.s
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
       let st = G.Block (Tok.unsafe_fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
+
+and map_ms_try_handler env (l, inner, r) x =
+  let inner =
+    map_of_list (map_sequencable env (map_stmt_or_decl env)) inner
+    |> List.flatten
+  in
+  let try_stmt =
+    G.OtherStmtWithStmt (OSWS_SEH, [], G.Block (l, inner, r) |> G.s) |> G.s
+  in
+  let inner_stmt =
+    match x with
+    | MsExcept (v1, (_, v2, _), (l', v3, r')) ->
+        let contents =
+          map_of_list (map_sequencable env (map_stmt_or_decl env)) v3
+          |> List.flatten
+        in
+        G.OtherStmtWithStmt
+          ( OSWS_SEH,
+            [ G.Tk v1; G.E (map_expr env v2) ],
+            G.Block (l', contents, r') |> G.s )
+        |> G.s
+    | MsFinally (v1, (l', v2, r')) ->
+        let contents =
+          map_of_list (map_sequencable env (map_stmt_or_decl env)) v2
+          |> List.flatten
+        in
+        G.OtherStmtWithStmt
+          (OSWS_SEH, [ G.Tk v1 ], G.Block (l', contents, r') |> G.s)
+        |> G.s
+  in
+  G.Block (Tok.unsafe_fake_bracket [ try_stmt; inner_stmt ]) |> G.s
 
 and map_expr_asm_operand env (v1, v2, v3) =
   let v1 =

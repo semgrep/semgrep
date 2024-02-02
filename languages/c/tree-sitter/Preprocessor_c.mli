@@ -47,20 +47,24 @@ val preproc_ifdef_to_poly :
   CST.preproc_ifdef -> CST.block_item preproc_ifdef_poly
 
 val preproc_if_in_field_declaration_list_to_poly :
-  CST.preproc_if -> CST.field_declaration_list_item preproc_if_poly
+  CST.preproc_if_in_field_declaration_list ->
+  CST.field_declaration_list_item preproc_if_poly
 
 val preproc_ifdef_in_field_declaration_list_to_poly :
-  CST.preproc_ifdef -> CST.field_declaration_list_item preproc_ifdef_poly
+  CST.preproc_ifdef_in_field_declaration_list ->
+  CST.field_declaration_list_item preproc_ifdef_poly
 
 val preproc_if_in_enumerator_list_to_poly :
-  CST.preproc_if -> (CST.enumerator * Tree_sitter_run.Token.t) preproc_if_poly
+  CST.preproc_if_in_enumerator_list ->
+  (CST.enumerator * Tree_sitter_run.Token.t) preproc_if_poly
 
 val preproc_ifdef_in_enumerator_list_to_poly :
-  CST.preproc_ifdef ->
+  CST.preproc_ifdef_in_enumerator_list ->
   (CST.enumerator * Tree_sitter_run.Token.t) preproc_ifdef_poly
 
 val preproc_if_in_enumerator_list_no_comma_to_poly :
-  CST.preproc_if -> CST.enumerator preproc_if_poly
+  CST.preproc_if_in_enumerator_list_no_comma -> CST.enumerator preproc_if_poly
 
 val preproc_ifdef_in_enumerator_list_no_comma_to_poly :
-  CST.preproc_ifdef -> CST.enumerator preproc_ifdef_poly
+  CST.preproc_ifdef_in_enumerator_list_no_comma ->
+  CST.enumerator preproc_ifdef_poly

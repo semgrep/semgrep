@@ -304,6 +304,19 @@ and onedecl env d =
 
 and initialiser env x =
   match x with
+  | InitExpr e -> InitExpr (expr env e)
+  | InitList (l, xs, r) -> A.InitList (l, List_.map (initialiser env) xs, r)
+  (* should be covered by caller *)
+  | InitDesignators _ ->
+      debug (Init x);
+      raise Todo
+  | InitIndexOld _
+  | InitFieldOld _ ->
+      debug (Init x);
+      raise Todo
+
+and initialiser_to_expr env x : A.expr =
+  match x with
   | InitExpr e -> expr env e
   | InitList xs -> (
       match xs |> unparen with
@@ -318,7 +331,7 @@ and initialiser env x =
                  |> List.map (function
                       | InitDesignators ([ DesignatorField (_, ident) ], _, init)
                         ->
-                          (ident, initialiser env init)
+                          (ident, initialiser_to_expr env init)
                       | _ ->
                           debug (Init x);
                           raise Todo))
@@ -331,11 +344,11 @@ and initialiser env x =
                  |> List_.map (function
                       (* less: todo? *)
                       | InitIndexOld ((_, idx, _), ini) ->
-                          (Some (expr env idx), initialiser env ini)
+                          (Some (expr env idx), initialiser_to_expr env ini)
                       | InitDesignators ([ DesignatorIndex (_, idx, _) ], _, ini)
                         ->
-                          (Some (expr env idx), initialiser env ini)
-                      | x -> (None, initialiser env x)))
+                          (Some (expr env idx), initialiser_to_expr env ini)
+                      | x -> (None, initialiser_to_expr env x)))
                xs))
   (* should be covered by caller *)
   | InitDesignators _ ->
@@ -405,7 +418,7 @@ and cpp_def_val for_debug env x =
         (A.CppExpr
            (A.CondExpr
               (expr env e, Some (A.Id (name env id)), A.Id (name env id))))
-  | DefineInit init -> Some (A.CppExpr (initialiser env init))
+  | DefineInit init -> Some (A.CppExpr (initialiser_to_expr env init))
   | DefineEmpty -> None
   | DefineFunction _
   | DefineType _
@@ -602,7 +615,7 @@ and expr env e =
   | ArrayAccess (e1, (l, e2, r)) -> (
       match e2 with
       | [] -> failwith "impossible: empty array access"
-      | [ x ] -> A.ArrayAccess (expr env e1, (l, initialiser env x, r))
+      | [ x ] -> A.ArrayAccess (expr env e1, (l, initialiser_to_expr env x, r))
       | _xs -> raise CplusplusConstruct)
   | Binary (e1, op, e2) -> A.Binary (expr env e1, op, expr env e2)
   | Unary (op, e) -> A.Unary (expr env e, op)
@@ -612,7 +625,7 @@ and expr env e =
       let x =
         match e2 with
         | Left x -> expr env x
-        | Right x -> initialiser env x
+        | Right x -> initialiser_to_expr env x
       in
       A.Assign (op, expr env e1, x)
   | Sequence (e1, _, e2) -> A.Sequence (expr env e1, expr env e2)
@@ -628,7 +641,9 @@ and expr env e =
   | Call (e, (t1, args, t2)) ->
       A.Call (expr env e, (t1, List_.map_filter (argument env) args, t2))
   | GccConstructor ((_, ft, _), xs) ->
-      A.GccConstructor (full_type env ft, initialiser env (InitList xs))
+      A.GccConstructor
+        ( full_type env ft,
+          Tok.unsafe_fake_bracket [ initialiser env (InitList xs) ] )
   | Generic (tk, (l, (e, args), r)) ->
       let args = List_.map (fun (t, e) -> (full_type env t, expr env e)) args in
       A.Generic (tk, (l, (expr env e, args), r))
@@ -773,7 +788,7 @@ and full_type env x =
             (s, tok)
         | Some n -> name env n
       in
-      let xs' = xs |> unparen |> enum_elems_sequencable env in
+      let xs' = xs |> unparen |> enum_elems_sequencable env |> List.flatten in
       let def = { A.e_name = name; e_type = failwith "TODO"; e_consts = xs' } in
       env.enum_defs_toadd <- def :: env.enum_defs_toadd;
       A.TEnumName name
@@ -791,7 +806,7 @@ and full_type env x =
 (* ---------------------------------------------------------------------- *)
 (* structure *)
 (* ---------------------------------------------------------------------- *)
-and class_member env x =
+and class_member env x : A.field_def list =
   match x with
   | F (DeclList (xs, _)) -> xs |> List.map (fieldkind env)
   | QualifiedIdInClass (_, _)
@@ -817,7 +832,7 @@ and enum_elems_sequencable env (xs : enum_elem sequencable list) =
 
 and enum_elem_sequencable env x =
   match x with
-  | X x -> enum_elem env x
+  | X x -> [ X (enum_elem env x) ]
   | CppDirective dir ->
       debug (Cpp dir);
       raise Todo
@@ -834,7 +849,7 @@ and enum_elem env { e_name = name; e_val = e_opt } =
 
 and class_member_sequencable env x =
   match x with
-  | X x -> class_member env x
+  | X x -> class_member env x |> List_.map (fun x -> A.X x)
   | CppDirective dir ->
       debug (Cpp dir);
       raise Todo

@@ -167,7 +167,9 @@ and expr =
   | ArrayInit of (expr option * expr) list bracket
   | RecordInit of (name * expr) list bracket
   (* gccext: kenccext: *)
-  | GccConstructor of type_ * expr (* always an ArrayInit (or RecordInit?) *)
+  | GccConstructor of
+      type_
+      * initialiser list bracket (* always an ArrayInit (or RecordInit?) *)
   (* tree-sitter-c:
    * only valid in cpp boolean expression context (e.g., #if argument).
    * This is actually not used because we skip ifdef directives anyway.
@@ -224,14 +226,16 @@ and stmt =
   (* Microsoft-specific:
      https://learn.microsoft.com/en-us/cpp/cpp/try-finally-statement?view=msvc-170
   *)
-  | MsTry of tok (* "__try__" *) * stmt list bracket * ms_try_handler
+  | MsTry of
+      tok (* "__try__" *) * stmt sequencable list bracket * ms_try_handler
   | MsLeave of tok (* "__leave" *)
   (* this should never appear! this should be only inside Switch *)
   | CaseStmt of case
 
 and ms_try_handler =
-  | MsExcept of tok (* "__except" *) * expr bracket * stmt list bracket
-  | MsFinally of tok (* "__finally" *) * stmt list bracket
+  | MsExcept of
+      tok (* "__except" *) * expr bracket * stmt sequencable list bracket
+  | MsFinally of tok (* "__finally" *) * stmt sequencable list bracket
 
 and case = Case of tok * expr * stmt list | Default of tok * stmt list
 
@@ -252,8 +256,29 @@ and var_decl = {
 }
 
 (* can have ArrayInit and RecordInit here in addition to other expr *)
-and initialiser = expr
+and initialiser =
+  (* in lhs and rhs *)
+  | InitExpr of expr
+  | InitList of initialiser list bracket
+  (* gccext: and only in lhs *)
+  | InitDesignators of designator list * tok (*=*) * initialiser
+  | InitFieldOld of name * tok (*:*) * initialiser
+  | InitIndexOld of expr bracket * initialiser
+
 and storage = Extern | Static | DefaultStorage
+
+(* ex: [2].y = x,  or .y[2]  or .y.x. They can be nested *)
+and designator =
+  (* This token is an option, because an alternate (but equivalent) form
+     (deprecated since GCC 2.5) looks like
+     { y: yvalue }
+      instead of
+     { .y = yvalue }
+     https://gcc.gnu.org/onlinedocs/gcc/Designated-Inits.html
+  *)
+  | DesignatorField of tok (* . *) option * name
+  | DesignatorIndex of expr bracket
+  | DesignatorRange of (expr * tok (*...*) * expr) bracket
 
 (*****************************************************************************)
 (* Assembler *)
@@ -308,7 +333,7 @@ and struct_def = {
   s_kind : struct_kind;
   (* gensym'ed when anonymous struct *)
   s_name : name;
-  s_flds : field_def list bracket;
+  s_flds : field_def sequencable list bracket;
 }
 
 (* less: could merge with var_decl, but field have no storage normally *)
@@ -326,7 +351,7 @@ and enum_def = {
   e_name : name;
   (* The name of the underlying type which denotes the size of the enum. *)
   e_type : name option;
-  e_consts : (name * const_expr option) list;
+  e_consts : (name * const_expr option) sequencable list;
 }
 
 and type_def = { (*t_tok: tok;*)
