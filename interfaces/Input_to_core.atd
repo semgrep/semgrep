@@ -28,14 +28,52 @@ type product
   | Secrets <json name="secrets">
 ]
 
-type target <ocaml attr="deriving show"> = {
+
+type lockfile_kind <ocaml attr="deriving show"> = string wrap <ocaml module="Lockfile_kind">
+
+type manifest_kind <ocaml attr="deriving show"> = string wrap <ocaml module="Manifest_kind">
+
+
+(* A dependency manifest, which should contain a list of direct dependencies *)
+type manifest_target <ocaml attr="deriving show"> = {
+  path : string;
+  manifest_kind : manifest_kind;
+}
+
+
+(* A lockfile to be matched against dependency patterns *)
+(* Optionally associated to a [manifest_target], which specifies which dependencies are direct *)
+type lockfile_target <ocaml attr="deriving show"> = {
+  path : string;
+  lockfile_kind : lockfile_kind;
+  manifest_target : manifest_target option;
+}
+
+
+(*
+  A normal semgrep target, optionally with an associated [lockfile_target]
+  The lockfile_target means: the code in this file has its dependencies specified by this lockfile
+  We dont' want to commit to a specific way of associating these in semgrep-core, so we leave it
+  up to the caller (pysemgrep or osemgrep) to do it.
+*)
+type code_target <ocaml attr="deriving show"> = {
   path: string (* source file *);
   (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
   *)
   analyzer: xlang;
   products: product list;
+  ?lockfile_target: lockfile_target option;
 }
+
+(* A target can either be a traditional code target (now with optional associated lockfile)
+   or it can be a lockfile target, which will be used to generate lockfile-only findings.
+   Currently *ALL TARGETS FROM OSEMGREP AND PYSEMGREP ARE CODETARGETS*
+*)
+type target <ocaml attr="deriving show"> = [
+  | CodeTarget of code_target
+  | LockfileTarget of lockfile_target
+]
 
 (* The same path can be present multiple times in targets below, with
  * different languages each time, so a Python file can be both analyzed
@@ -47,6 +85,7 @@ type target <ocaml attr="deriving show"> = {
  * "generic" and "regexp".
  *)
 type targets <ocaml attr="deriving show"> = target list
+type code_targets <ocaml attr="deriving show"> = code_target list
 
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)

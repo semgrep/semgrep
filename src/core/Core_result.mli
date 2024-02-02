@@ -54,6 +54,7 @@ type 'a match_result = {
 
 (* shortcut *)
 type matches_single_file = Core_profiling.partial_profiling match_result
+[@@deriving show]
 
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result
