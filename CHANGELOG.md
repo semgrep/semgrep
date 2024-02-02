@@ -6,6 +6,40 @@
 
 <!-- insertion point -->
 
+## [1.59.1](https://github.com/returntocorp/semgrep/releases/tag/v1.59.1) - 2024-02-02
+
+
+### Added
+
+
+- taint-mode: Pro: Semgrep can now track taint via static class fields and global
+  variables, such as in the following example:
+
+  ```c
+  static char* x;
+
+  void foo() {
+      x = "tainted";
+  }
+
+  void bar() {
+      sink(x);
+  }
+
+  void main() {
+      foo();
+      bar();
+  }
+  ``` (pa-3378)
+
+
+### Fixed
+
+
+- Pro: Make inter-file analysis more tolerant to small bugs, resorting to graceful
+  degradation and continuing with the scan, rather than crashing. (pa-3387)
+
+
 ## [1.59.0](https://github.com/returntocorp/semgrep/releases/tag/v1.59.0) - 2024-01-30
 
 

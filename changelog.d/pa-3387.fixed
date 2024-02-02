@@ -1,2 +1,0 @@
-Pro: Make inter-file analysis more tolerant to small bugs, resorting to graceful
-degradation and continuing with the scan, rather than crashing.
