@@ -100,14 +100,13 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       (* OK, because we don't need the postprocessing to report the matches. *)
       |> List_.map Core_result.mk_processed_match
       |> Either_.partition_either Core_json_output.match_to_match
-      |> fst
+      |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
             ~dryrun:conf.output_conf.dryrun hrules)
-    |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =
     cli_matches

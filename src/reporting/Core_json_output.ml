@@ -80,6 +80,100 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
+(* This is a port of the original pysemgrep cli_unique_key. This used to be in the CLI,
+   but has since been moved to core.
+*)
+let unique_key (c : OutJ.core_match) =
+  (* type-wise this is a tuple of string * string * int * int * string * string option *)
+  (* # NOTE: We include the previous scan's rules in the config for
+      # consistent fixed status work. For unique hashing/grouping,
+      # previous and current scan rules must have distinct check IDs.
+      # Hence, previous scan rules are annotated with a unique check ID,
+      # while the original ID is kept in metadata. As check_id is used
+      # for unique_key, this patch fetches the check ID from metadata
+      # for previous scan findings.
+      # TODO: Once the fixed status work is stable, all findings should
+      # fetch the check ID from metadata. This fallback prevents breaking
+      # current scan results if an issue arises.
+      self.annotated_rule_name if self.from_transient_scan else self.rule_id,
+      str(self.path),
+      self.start.offset,
+      self.end.offset,
+      self.message,
+      # TODO: Bring this back.
+      # This is necessary so we don't deduplicate taint findings which
+      # have different sources.
+      #
+      # self.match.extra.dataflow_trace.to_json_string
+      # if self.match.extra.dataflow_trace
+      # else None,
+      None,
+      # NOTE: previously, we considered self.match.extra.validation_state
+      # here, but since in some cases (e.g., with `anywhere`) we generate
+      # many matches in certain cases, we want to consider secrets
+      # matches unique under the above set of things, but with a priority
+      # associated with the validation state; i.e., a match with a
+      # confirmed valid state should replace all matches equal under the
+      # above key. We can't do that just by not considering validation
+      # state since we would pick one arbitrarily, and if we added it
+      # below then we would report _both_ valid and invalid (but we only
+      # want to report valid, if a valid one is present and unique per
+      # above fields). See also `should_report_instead`.
+  *)
+  let semgrep_dev_json =
+    match c.extra.metadata with
+    | None -> None
+    | Some json -> JSON.member "semgrep.dev" (JSON.from_yojson json)
+  in
+  let name =
+    let transient =
+      match semgrep_dev_json with
+      | Some dev -> (
+          match JSON.member "src" dev with
+          | Some (JSON.String x) -> String.equal x "previous_scan"
+          | Some _
+          | None ->
+              false)
+      | None -> false
+    in
+    let default = Rule_ID.to_string c.check_id in
+    if transient then
+      match semgrep_dev_json with
+      | Some dev -> (
+          match JSON.member "rule" dev with
+          | Some rule -> (
+              match JSON.member "rule_name" rule with
+              | Some (JSON.String rule) -> rule
+              | Some _
+              | None ->
+                  default)
+          | None -> default)
+      | None -> default
+    else Rule_ID.to_string c.check_id
+  in
+  ( name,
+    Fpath.to_string c.path,
+    c.start.offset,
+    c.end_.offset,
+    c.extra.message,
+    None )
+
+(*
+ # Sort results so as to guarantee the same results across different
+ # runs. Results may arrive in a different order due to parallelism
+ # (-j option).
+*)
+let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
+  let seen = Hashtbl.create 101 in
+  xs
+  |> List.filter (fun x ->
+         let key = unique_key x in
+         if Hashtbl.mem seen key then false
+         else (
+           Hashtbl.replace seen key true;
+           true))
+  |> OutUtils.sort_core_matches
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
@@ -217,6 +311,14 @@ let unsafe_match_to_match
       x.taint_trace
   in
   let metavars = x.env |> List_.map (metavars startp) in
+  let metadata =
+    let* json = x.rule_id.metadata in
+    let rule_metadata = JSON.to_yojson json in
+    match x.metadata_override with
+    | Some metadata_override ->
+        Some (JSON.update rule_metadata (JSON.to_yojson metadata_override))
+    | None -> Some rule_metadata
+  in
   (* message where the metavars have been interpolated *)
   (* TODO(secrets): apply masking logic here *)
   let message =
@@ -247,7 +349,7 @@ let unsafe_match_to_match
       {
         message = Some message;
         severity = x.severity_override;
-        metadata = Option.map JSON.to_yojson x.metadata_override;
+        metadata;
         metavars;
         dataflow_trace;
         fix =
@@ -413,7 +515,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
     | Core_profiling.No_info -> (None, None)
   in
   {
-    results = matches |> OutUtils.sort_core_matches;
+    results = matches |> dedup_and_sort;
     errors = errs |> List_.map error_to_error;
     paths =
       {

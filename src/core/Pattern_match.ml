@@ -163,6 +163,7 @@ and rule_id = {
    * TODO should we remove these fields and just pass around a Rule.t or
    * mini_rule? *)
   message : string;
+  metadata : JSON.t option;
   fix : string option;
   fix_regexp : Rule.fix_regexp option;
   (* ?? why we need that? *)
