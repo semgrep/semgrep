@@ -6,14 +6,14 @@ This library attempts to implement Python's str.__repr__() function. That is,
 string escaping as done in Python."""
 maintainer: ["Reynir Björnsson <reynir@reynir.dk>"]
 authors: ["Reynir Björnsson <reynir@reynir.dk>"]
-license: "BSD-2-Clause"
+license: "LGPL-2.1"
 tags: ["python"]
 homepage: "https://github.com/reynir/python-str-repr"
 doc: "https://reynir.github.io/python-str-repr"
 bug-reports: "https://github.com/reynir/python-str-repr/issues"
 depends: [
   "ocaml"
-  "dune" {>= "3.12"}
+  "dune" {>= "3.7"}
   "uutf"
   "uucp"
   "alcotest" {with-test}
