@@ -1000,13 +1000,8 @@ let check_rules ~match_hook
   *)
   let per_file_formula_cache = mk_specialized_formula_cache rules in
 
-  rules
-  |> List_.map (fun rule ->
-         let xconf =
-           Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
-         in
-         (* This boilerplate function will take care of things like
-            timing out if this rule takes too long, and returning a dummy
-            result for the timed-out rule.
-         *)
-         check_rules per_file_formula_cache rules match_hook xconf xtarget)
+  (* This boilerplate function will take care of things like
+     timing out if this rule takes too long, and returning a dummy
+     result for the timed-out rule.
+  *)
+  [ check_rules per_file_formula_cache rules match_hook xconf xtarget ]
