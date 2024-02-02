@@ -68,6 +68,7 @@ val default_skip_libs : string list
      ...
 *)
 val setup_logging :
+  ?log_to_file:Fpath.t ->
   ?skip_libs:string list ->
   ?require_one_of_these_tags:string list ->
   ?read_tags_from_env_var:string option ->

@@ -28,8 +28,6 @@ depends: [
   "ocolor"
   "ANSITerminal"
   "terminal_size"
-  "easy_logging" {= "0.8.1"}
-  "easy_logging_yojson" {= "0.8.1"}
   "logs"
   "atdgen"
   "yojson" {>= "2.0.0"}

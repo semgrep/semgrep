@@ -154,7 +154,7 @@ let read_tags_from_env_var opt_var =
    The Logs library interface makes us write this code that is frankly
    incomprehensible and excessively complicated given how little it provides.
 *)
-let reporter ?(dst = Fmt.stderr) ~require_one_of_these_tags
+let reporter ~dst ~require_one_of_these_tags
     ~read_tags_from_env_var:(opt_env_var : string option) () =
   let require_one_of_these_tags =
     match read_tags_from_env_var opt_env_var with
@@ -187,6 +187,17 @@ let reporter ?(dst = Fmt.stderr) ~require_one_of_these_tags
   in
   { Logs.report }
 
+let create_formatter opt_file =
+  match opt_file with
+  | None -> UFormat.err_formatter
+  | Some out_file ->
+      let oc =
+        (* This truncates the log file, which is usually what we want for
+           Semgrep. *)
+        UStdlib.open_out (Fpath.to_string out_file)
+      in
+      UFormat.formatter_of_out_channel oc
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -197,18 +208,21 @@ let reporter ?(dst = Fmt.stderr) ~require_one_of_these_tags
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
   Logs.set_reporter
-    (reporter ~require_one_of_these_tags:None ~read_tags_from_env_var:None ());
+    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:None
+       ~read_tags_from_env_var:None ());
   ()
 
-let setup_logging ?(skip_libs = default_skip_libs) ?require_one_of_these_tags
-    ?(read_tags_from_env_var = Some "LOG_TAGS") ~force_color ~level () =
+let setup_logging ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
+    ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
+    ~force_color ~level () =
+  let dst = create_formatter opt_file in
   let style_renderer = if force_color then Some `Ansi_tty else None in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   time_program_start := now ();
   if not !in_mock_context then
     Logs.set_reporter
-      (reporter ~require_one_of_these_tags ~read_tags_from_env_var ());
+      (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
