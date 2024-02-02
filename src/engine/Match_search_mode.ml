@@ -241,8 +241,6 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
                      mini_rule_of_pattern xlang rule (pat, b, c, d))
             in
 
-            UCommon.(pr2 (spf "minirules %s" ([%show: MR.t list] mini_rules)));
-
             if !debug_timeout || !debug_matches then
               (* debugging path *)
               debug_semgrep config mini_rules file lang ast
@@ -252,10 +250,6 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
                 ~hook:(fun _ -> ())
                 ?mvar_context ?range_filter config mini_rules (file, lang, ast))
       in
-      UCommon.(
-        pr2
-          (spf "We put in %d minirules and got %d matches"
-             (List.length patterns) (List.length matches)));
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.make_match_result matches errors
         { Core_profiling.parse_time; match_time }
