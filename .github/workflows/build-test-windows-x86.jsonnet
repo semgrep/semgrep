@@ -104,6 +104,7 @@ default: https://github.com/ocaml/opam-repository.git
     {
       name: 'Test semgrep-core',
       run: |||
+        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
         opam exec -- make core-test
       |||,
     },
