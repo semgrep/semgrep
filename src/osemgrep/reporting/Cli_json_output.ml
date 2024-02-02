@@ -428,92 +428,6 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
           };
       }
 
-let cli_unique_key (c : OutJ.cli_match) =
-  (* type-wise this is a tuple of string * string * int * int * string * string option *)
-  (* # NOTE: We include the previous scan's rules in the config for
-     # consistent fixed status work. For unique hashing/grouping,
-     # previous and current scan rules must have distinct check IDs.
-     # Hence, previous scan rules are annotated with a unique check ID,
-     # while the original ID is kept in metadata. As check_id is used
-     # for cli_unique_key, this patch fetches the check ID from metadata
-     # for previous scan findings.
-     # TODO: Once the fixed status work is stable, all findings should
-     # fetch the check ID from metadata. This fallback prevents breaking
-     # current scan results if an issue arises.
-     self.annotated_rule_name if self.from_transient_scan else self.rule_id,
-     str(self.path),
-     self.start.offset,
-     self.end.offset,
-     self.message,
-     # TODO: Bring this back.
-     # This is necessary so we don't deduplicate taint findings which
-     # have different sources.
-     #
-     # self.match.extra.dataflow_trace.to_json_string
-     # if self.match.extra.dataflow_trace
-     # else None,
-     None,
-     # NOTE: previously, we considered self.match.extra.validation_state
-     # here, but since in some cases (e.g., with `anywhere`) we generate
-     # many matches in certain cases, we want to consider secrets
-     # matches unique under the above set of things, but with a priority
-     # associated with the validation state; i.e., a match with a
-     # confirmed valid state should replace all matches equal under the
-     # above key. We can't do that just by not considering validation
-     # state since we would pick one arbitrarily, and if we added it
-     # below then we would report _both_ valid and invalid (but we only
-     # want to report valid, if a valid one is present and unique per
-     # above fields). See also `should_report_instead`.
-  *)
-  let name =
-    let transient =
-      match JSON.member "semgrep.dev" (JSON.from_yojson c.extra.metadata) with
-      | Some dev -> (
-          match JSON.member "src" dev with
-          | Some (JSON.String x) -> String.equal x "previous_scan"
-          | Some _
-          | None ->
-              false)
-      | None -> false
-    in
-    let default = Rule_ID.to_string c.check_id in
-    if transient then
-      match JSON.member "semgrep.dev" (JSON.from_yojson c.extra.metadata) with
-      | Some dev -> (
-          match JSON.member "rule" dev with
-          | Some rule -> (
-              match JSON.member "rule_name" rule with
-              | Some (JSON.String rule) -> rule
-              | Some _
-              | None ->
-                  default)
-          | None -> default)
-      | None -> default
-    else Rule_ID.to_string c.check_id
-  in
-  ( name,
-    Fpath.to_string c.path,
-    c.start.offset,
-    c.end_.offset,
-    c.extra.message,
-    None )
-
-(*
- # Sort results so as to guarantee the same results across different
- # runs. Results may arrive in a different order due to parallelism
- # (-j option).
-*)
-let dedup_and_sort (xs : OutJ.cli_match list) : OutJ.cli_match list =
-  let seen = Hashtbl.create 101 in
-  xs
-  |> List.filter (fun x ->
-         let key = cli_unique_key x in
-         if Hashtbl.mem seen key then false
-         else (
-           Hashtbl.replace seen key true;
-           true))
-  |> Semgrep_output_utils.sort_cli_matches
-
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
 (* match based ids have an index appended at the end which indicates what
  * # finding of that exact id it is in a file. This is used to dedup findings
@@ -639,12 +553,11 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
-         * TODO: handle the rule_match.cli_unique_key to dedup matches
          *)
         results =
           matches
           |> List_.map (cli_match_of_core_match ~dryrun ~applied_fixes hrules)
-          |> dedup_and_sort;
+          |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;
         skipped_rules;
