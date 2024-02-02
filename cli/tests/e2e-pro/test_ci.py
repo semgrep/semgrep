@@ -878,7 +878,7 @@ def test_full_run(
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
 
-    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.to_json_string()
+    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.value
 
     if env.get("GITLAB_CI"):
         # If in a merge pipeline, base_sha is defined, otherwise is None
