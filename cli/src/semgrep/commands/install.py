@@ -34,7 +34,7 @@ def determine_semgrep_pro_path() -> Path:
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
-            "Could not find `semgrep-core` executable so not sure where to install DeepSemgrep"
+            "Could not find `semgrep-core` executable so not sure where to install semgrep-core-proprietary"
         )
         logger.info("There is something wrong with your semgrep installation")
         sys.exit(FATAL_EXIT_CODE)
@@ -69,11 +69,11 @@ def download_semgrep_pro(
             sys.exit(INVALID_API_KEY_EXIT_CODE)
         if r.status_code == 403:
             logger.warning(
-                "Logged in deployment does not have access to Semgrep Pro Engine beta"
+                "Logged in deployment does not have access to Semgrep Pro Engine"
             )
             # FIXME: Needs to be updated before launch Feb 2023
             logger.warning(
-                "Visit https://semgrep.dev/deep-semgrep-beta for more information."
+                "Visit https://semgrep.dev/products/pro-engine/ for more information."
             )
             sys.exit(FATAL_EXIT_CODE)
         r.raise_for_status()
@@ -191,8 +191,8 @@ def install_semgrep_pro(custom_binary: Optional[str], debug: bool) -> None:
     The binary is installed in the same directory that semgrep-core
     is installed in.
 
-    Must be logged in and have access to Semgrep Pro Engine beta
-    Visit https://semgrep.dev/deep-semgrep-beta for more information
+    Must be logged in and have access to Semgrep Pro Engine.
+    Visit https://semgrep.dev/products/pro-engine/ for more information
     """
     state = get_state()
     state.terminal.configure(verbose=False, debug=debug, quiet=False, force_color=False)

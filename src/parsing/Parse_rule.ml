@@ -666,7 +666,9 @@ let parse_http_matcher_clause key env value : Rule.http_match_clause =
   in
   let content = take_opt clause env yaml_to_dict "content" in
   match (status_code, headers, content) with
-  | None, None, None -> failwith "ffff"
+  | None, None, None ->
+      error_at_key env.id key
+        "A matcher must have at least one of status-code, headers, or content"
   | _ ->
       {
         status_code;
@@ -719,39 +721,6 @@ let parse_validator key env value =
 let parse_validators env key value =
   parse_list env key (parse_validator key) value
 
-(* NOTE: For old secrets / postprocessors syntax. *)
-let parse_secrets_fields env rule_dict : R.secrets =
-  let secrets : R.formula list =
-    take_key rule_dict env
-      (fun env key expr ->
-        parse_list env key
-          (fun env dict_pair ->
-            yaml_to_dict env key dict_pair
-            |> Parse_rule_formula.parse_formula_old_from_dict env)
-          expr)
-      "postprocessor-patterns"
-  in
-  let req = take_key rule_dict env yaml_to_dict "request" in
-  let res = take_key rule_dict env yaml_to_dict "response" in
-  let url = take_key req env parse_string "url" in
-  let meth = take_key req env method_ "method" in
-  let headers : Rule.header list =
-    take_key req env yaml_to_dict "headers" |> fun { h; _ } ->
-    Hashtbl.fold
-      (fun name value lst ->
-        { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
-      h []
-  in
-  let body = take_opt req env parse_string "body" in
-  let auth = take_opt req env parse_auth "auth" in
-  let return_code = take_key res env parse_int "return_code" in
-  let regex = take_opt res env parse_string "pattern-regex" in
-  {
-    secrets;
-    request = { url; meth; headers; body; auth };
-    response = { return_code; regex };
-  }
-
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -798,11 +767,6 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
-  (* TODO: change this mode name to something more descriptive + not
-   * intentionally ambigous sometime later.
-   *)
-  | Some ("semgrep_internal_postprocessor", _), _ ->
-      `Secrets (parse_secrets_fields env rule_dict)
   (* TODO? should we use "mode: steps" instead? *)
   | Some ("step", _), _ ->
       let steps = take_key rule_dict env parse_steps "steps" in

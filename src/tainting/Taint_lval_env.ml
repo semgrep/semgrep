@@ -109,6 +109,19 @@ let union le1 le2 =
       VarMap.empty;
   }
 
+(* HACK: Because we don't have a "Class" type, classes have themselves as types. *)
+let is_class_name (name : IL.name) =
+  match (!(name.id_info.id_resolved), !(name.id_info.id_type)) with
+  | Some resolved1, Some { t = TyN (Id (_, { id_resolved; _ })); _ } -> (
+      match !id_resolved with
+      | None -> false
+      | Some resolved2 ->
+          (* If 'name' has type 'name' then we assume it's a class. *)
+          AST_generic.equal_resolved_name resolved1 resolved2)
+  | _, None
+  | _, Some _ ->
+      false
+
 (* Reduces an l-value into the form x.a_1. ... . a_N, the resulting l-value may
  * not represent the exact same object as the original l-value, but an
  * overapproximation. For example, the normalized l-value of `x[i]` will be `x`,
@@ -121,7 +134,12 @@ let normalize_lval lval =
     (* explicit dereference of `ptr` e.g. `ptr->x` *)
     | Mem { e = Fetch { base = Var x; rev_offset = [] }; _ } ->
         Some (IL.Var x, rev_offset)
-    | Var _ -> Some (base, rev_offset)
+    | Var name -> (
+        match rev_offset with
+        (* static class field, `C.x`, we normalize it to just `x` since `x` is
+         * a unique global *)
+        | [ { o = IL.Dot var; _ } ] when is_class_name name -> Some (Var var, [])
+        | __else__ -> Some (base, rev_offset))
     (* explicit dereference of `this` e.g. `this->x` *)
     | Mem { e = Fetch { base = VarSpecial (This, _); rev_offset = [] }; _ }
     | VarSpecial _ -> (

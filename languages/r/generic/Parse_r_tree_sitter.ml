@@ -601,5 +601,5 @@ let parse_pattern str =
     (fun () -> Tree_sitter_r.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = (fun _ -> raise Not_found); extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       G.Ss (map_program env cst))

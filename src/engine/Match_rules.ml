@@ -106,20 +106,6 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           (* We are planning on removing `Secret mode and adding generic
-              post processors to rules which only get run when run with secrets
-              validation enabled. Until such time, run secrets rules that haven't
-              been turned to search rule by the pro-engine as search rules, and
-              just discard the validators. *)
-           | `Secrets { secrets = [ formula ]; _ } ->
-               logger#info
-                 "Running secret rule as search rule without validation.";
-               Middle3 { r with mode = `Search formula }
-           (* Silently skip malformed secrets rules for now. *)
-           | `Secrets _ as mode ->
-               logger#error
-                 "Skipping malformed secrets rule without validation.";
-               Right3 { r with mode }
            | `Steps _ ->
                UCommon.pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
