@@ -4,24 +4,23 @@
    augmented from https://erratique.ch/software/logs/doc/Logs/index.html#usage
 
 
-      - App, this level can be used for the standard output or console
-        of an application. It should never be used by libraries.
-        Semgrep: We don't use it.
+      - App: unlike the other levels, this prints ordinary messages on
+        stderr without any special formatting. It's on in --verbose mode.
 
-      - Error ('err'), error condition that prevent the program from running
+      - Error ('err'): error condition that prevent the program from running
         normally.
 
-      - Warning ('warn'), suspicious condition that does not prevent the
+      - Warning ('warn'): suspicious condition that does not prevent the
         program from running normally but may eventually lead to an error
         condition.
 
-      - Info, condition that allows the program user to get a better
+      - Info: condition that allows the program user to get a better
         understanding of what the program is doing.
         Log messages at this level and above may not clutter up the log
         output not should they reduce performance significantly. If that's
         the case, log at the Debug level.
 
-      - Debug, condition that allows the program developer to get a
+      - Debug: condition that allows the program developer to get a
         better undersanding of what the program is doing.
         It may reduce the performance of the application or result in
         unreadable logs unless they're filtered. Use tags for filtering.

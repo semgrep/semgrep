@@ -173,14 +173,21 @@ let reporter ~dst ~require_one_of_these_tags
     in
     let r =
       msgf (fun ?header ?(tags = Logs.Tag.empty) fmt ->
-          if has_tag require_one_of_these_tags tags then
-            let current = now () in
-            Format.kfprintf k dst
-              ("@[[%05.2f]%a%a: " ^^ fmt ^^ "@]@.")
-              (current -. !time_program_start)
-              Logs_fmt.pp_header (level, header) pp_tags tags
-          else (* print nothing *)
-            Format.ikfprintf k dst fmt)
+          match level with
+          | App ->
+              (* App level: no timestamp, tags, or other decorations *)
+              Format.kfprintf k dst (fmt ^^ "@.")
+          | _ ->
+              (* Tag-based filtering *)
+              if has_tag require_one_of_these_tags tags then
+                let current = now () in
+                (* Add a header *)
+                Format.kfprintf k dst
+                  ("@[[%05.2f]%a%a: " ^^ fmt ^^ "@]@.")
+                  (current -. !time_program_start)
+                  Logs_fmt.pp_header (level, header) pp_tags tags
+              else (* print nothing *)
+                Format.ikfprintf k dst fmt)
     in
     Format.fprintf dst "%a" pp_style style_off;
     r

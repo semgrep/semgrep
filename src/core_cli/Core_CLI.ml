@@ -681,6 +681,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
     ?require_one_of_these_tags:None ~force_color:true
     ~level:(if config.debug then Some Debug else Some Info)
     ();
+  Logs.app (fun m -> m ~tags "testing the App level");
   Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =
