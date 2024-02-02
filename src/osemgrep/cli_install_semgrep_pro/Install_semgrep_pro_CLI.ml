@@ -48,8 +48,8 @@ let man : Cmdliner.Manpage.block list =
       "The binary is installed in the same directory that semgrep-core is \
        installed in.";
     `P
-      {|Must be logged in and have access to Semgrep Pro Engine beta
-Visit https://semgrep.dev/deep-semgrep-beta for more information
+      {|Must be logged in and have access to Semgrep Pro Engine
+Visit https://semgrep.dev/products/pro-engine/ for more information
 |};
   ]
   @ CLI_common.help_page_bottom

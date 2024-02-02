@@ -160,8 +160,11 @@ let default_payload =
     value =
       {
         features = [];
+        (* TODO: proFeatures *)
         proFeatures = None;
+        (* TODO: numFindings *)
         numFindings = None;
+        (* TODO: numFindingsByProduct *)
         numFindingsByProduct = None;
         numIgnored = None;
         ruleHashesWithFindings = None;

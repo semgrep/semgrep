@@ -617,7 +617,7 @@ and id_info = {
    * the same identifier can now have different flags. In fact we did not really
    * have to compare 'id_flags' anyways. *)
   id_flags : id_flags ref; [@equal fun _a _b -> true]
-  (* this is used by Naming_X in deep-semgrep *)
+  (* this is used by Naming_SAST in semgrep-pro *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
@@ -2173,7 +2173,7 @@ let p x = x
 (* Ident and names *)
 (* ------------------------------------------------------------------------- *)
 
-(* For Naming_SAST.ml in deep-semgrep.
+(* For Naming_SAST.ml in semgrep-pro.
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
  *)

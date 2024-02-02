@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Sexplib.Std
 open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -59,7 +60,9 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-type sha = string [@@deriving show]
+
+type sha = (string[@printer fun fmt -> fprintf fmt "%s"])
+[@@deriving show, eq, ord, sexp]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
@@ -623,6 +626,20 @@ let cat_file_blob ?cwd sha =
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
+
+let object_size ?cwd sha =
+  let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
+  | _ -> None
+
+let commit_timestamp ?cwd sha =
+  (* %cI - print datetime in strict ISO 8601 format *)
+  let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) ->
+      Timedesc.Timestamp.of_iso8601 s |> Result.to_option
+  | _ -> None
 
 let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
   let cmd =
