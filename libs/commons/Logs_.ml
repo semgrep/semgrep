@@ -140,13 +140,27 @@ let has_tag opt_str_list tag_set =
   | None (* = no filter *) -> true
   | Some tag_str_list -> has_nonempty_intersection tag_str_list tag_set
 
+let read_tags_from_env_var opt_var =
+  match opt_var with
+  | None -> None
+  | Some var -> (
+      match USys.getenv_opt var with
+      | None -> None
+      | Some str -> Some (String.split_on_char ',' str))
+
 (* log reporter
 
    This code was copy-pasted and derived from the example in the Logs library.
    The Logs library interface makes us write this code that is frankly
    incomprehensible and excessively complicated given how little it provides.
 *)
-let reporter ?(dst = Fmt.stderr) ~require_one_of_these_tags () =
+let reporter ?(dst = Fmt.stderr) ~require_one_of_these_tags
+    ~read_tags_from_env_var:(opt_env_var : string option) () =
+  let require_one_of_these_tags =
+    match read_tags_from_env_var opt_env_var with
+    | Some _ as some_tags -> some_tags
+    | None -> require_one_of_these_tags
+  in
   let report _src level ~over k msgf =
     let pp_style, _style, style_off =
       match color level with
@@ -182,17 +196,19 @@ let reporter ?(dst = Fmt.stderr) ~require_one_of_these_tags () =
  *)
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
-  Logs.set_reporter (reporter ~require_one_of_these_tags:None ());
+  Logs.set_reporter
+    (reporter ~require_one_of_these_tags:None ~read_tags_from_env_var:None ());
   ()
 
 let setup_logging ?(skip_libs = default_skip_libs) ?require_one_of_these_tags
-    ~force_color ~level () =
+    ?(read_tags_from_env_var = Some "LOG_TAGS") ~force_color ~level () =
   let style_renderer = if force_color then Some `Ansi_tty else None in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   time_program_start := now ();
   if not !in_mock_context then
-    Logs.set_reporter (reporter ~require_one_of_these_tags ());
+    Logs.set_reporter
+      (reporter ~require_one_of_these_tags ~read_tags_from_env_var ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
