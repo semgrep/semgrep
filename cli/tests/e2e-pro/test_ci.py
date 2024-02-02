@@ -68,7 +68,7 @@ BAD_CONFIG = dedent(
       foo: bar
 """
 ).lstrip()
-FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
+FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00Z"
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
 
