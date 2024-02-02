@@ -92,6 +92,7 @@ let (matches_of_matcher :
                               validation_state = `No_validator;
                               severity_override = None;
                               metadata_override = None;
+                              dependency = None;
                             })))
         in
         RP.make_match_result res Core_error.ErrorSet.empty

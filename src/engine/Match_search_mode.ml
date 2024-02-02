@@ -225,9 +225,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
-  let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
-    xtarget
-  in
+  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let config = (xconf.config, xconf.equivs) in
   match xlang with
   | Xlang.L (lang, _) ->
@@ -388,6 +386,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
+               dependency = None;
              })
     in
     let focused_ranges =
@@ -925,7 +924,8 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
+let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
+    xconf xtarget =
   let rule_id = fst r.id in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
@@ -938,6 +938,8 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
+      |> List.concat_map
+           (Match_dependency.annotate_pattern_match dependency_matches)
       |> before_return (fun v ->
              v
              |> List.iter (fun (m : Pattern_match.t) ->
