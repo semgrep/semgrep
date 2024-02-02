@@ -104,8 +104,7 @@ default: https://github.com/ocaml/opam-repository.git
     {
       name: 'Test semgrep-core',
       run: |||
-        echo 'print(\"foo\")' > test.py
-        _build/install/default/bin/semgrep-core.exe -e 'print($X)' -lang python -json test.py
+        opam exec -- make core-test
       |||,
     },
     {

@@ -57,8 +57,7 @@ jobs:
         > $filename.new\n          mv $filename.new $filename\n        done\n        opam
         exec -- dune build _build/install/default/bin/semgrep-core.exe\n      "
     - name: Test semgrep-core
-      run: "\n        echo 'print(\\\"foo\\\")' > test.py\n        _build/install/default/bin/semgrep-core.exe
-        -e 'print($X)' -lang python -json test.py\n      "
+      run: "\n        opam exec -- make core-test\n      "
     - name: Package semgrep-core
       run: "\n        mkdir archive\n        cp _build/install/default/bin/semgrep-core.exe
         archive/\n\n        # TODO: somehow upgrade to the latest flexdll, which should
