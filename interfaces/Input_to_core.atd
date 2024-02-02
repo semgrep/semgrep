@@ -85,6 +85,7 @@ type target <ocaml attr="deriving show"> = [
  * "generic" and "regexp".
  *)
 type targets <ocaml attr="deriving show"> = target list
+type code_targets <ocaml attr="deriving show"> = code_target list
 
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
