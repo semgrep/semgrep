@@ -156,7 +156,9 @@ let output f matches =
       ]
   in
   let start_time = Metrics_.g.payload.started_at
-  and end_time = Timedesc.now () in
+  and end_time =
+    Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
+  in
   let scan =
     `Assoc
       [
