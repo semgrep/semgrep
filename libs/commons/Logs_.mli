@@ -32,9 +32,13 @@ val default_skip_libs : string list
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
+
+   require_one_of_these_tags: if a list of tags is provided, at least one
+   these tags must be set for a log instruction to be printed.
 *)
 val setup_logging :
   ?skip_libs:string list ->
+  ?require_one_of_these_tags:string list ->
   force_color:bool ->
   level:Logs.level option ->
   unit ->
@@ -50,7 +54,28 @@ val in_mock_context : bool ref
    Logs.Error, Logs.Warning, and friends should apply the appropriate color
    and tag prefix (e.g. ERROR) to the message. For now, those functions can
    be used to prepend the colored tag manually before the log message.
+
+   Note: these have nothing to do with the tags supported by the Logs library.
+   See 'create_tag' below for those.
 *)
 val err_tag : ?tag:string -> unit -> string
 val warn_tag : ?tag:string -> unit -> string
 val success_tag : ?tag:string -> unit -> string
+
+(*
+   String tags to be included in log messages for easy filtering.
+
+   Filtering is done by setting 'require_one_of_these_tags' at setup time
+   or by running grep on the full logs.
+
+   Supported tag syntax: dot-separated alphanumeric identifiers.
+
+   Suggested usage:
+
+     let pcre_tag = Logs_.create_tag "pcre"
+     let module_tag = Logs_.create_tag __MODULE__
+     let tags = Logs_.create_tag_set [pcre_tag; module_tag]
+     ...
+     Logs.info (fun m -> m ~tags "Hello.");
+*)
+val create_tags : string list -> Logs.Tag.set

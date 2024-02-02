@@ -13,7 +13,11 @@ module Flag = Flag_semgrep
 module E = Core_error
 module J = JSON
 
+(* Legacy logger *)
 let logger = Logging.get_logger [ __MODULE__ ]
+
+(* Tags to associate with individual log messages. Optional. *)
+let tags = Logs_.create_tags [ __MODULE__; "cli" ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -676,8 +680,15 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   else if config.report_time then Core_profiling.mode := MTime
   else Core_profiling.mode := MNo_info;
 
+  (* Legacy logging mechanism using a logger object and a JSON config.
+     Prefer 'Logs' in new modules. *)
   Logging_.setup ~debug:config.debug ~log_config_file:config.log_config_file
     ~log_to_file:config.log_to_file;
+  (* Newer logging mechanism using the 'Logs' library. *)
+  Logs_.setup_logging ?require_one_of_these_tags:None ~force_color:true
+    ~level:(if config.debug then Some Debug else Some Info)
+    ();
+  Logs.debug (fun m -> m ~tags "Hello, Logs.");
 
   logger#info "Executed as: %s" (argv |> String.concat " ");
   logger#info "Version: %s" version;
