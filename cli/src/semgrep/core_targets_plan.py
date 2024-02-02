@@ -57,11 +57,16 @@ class Task:
         )
 
     def to_json(self) -> Any:
-        return {
-            "path": self.path,
-            "analyzer": self.analyzer,
-            "products": tuple(x.to_json() for x in self.products),
-        }
+        # Once we start sending supply chain rules to semgrep-core,
+        # we'll need to start sending LockfileTargets as well
+        return [
+            "CodeTarget",
+            {
+                "path": self.path,
+                "analyzer": self.analyzer,
+                "products": tuple(x.to_json() for x in self.products),
+            },
+        ]
 
 
 class TargetMappings(List[Task]):
