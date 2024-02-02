@@ -381,7 +381,7 @@ def automocks(mocker, mock_ci_api):
     mocker.patch.object(
         GitMeta,
         "commit_timestamp",
-        FROZEN_ISOTIMESTAMP,
+        out.Datetime(FROZEN_ISOTIMESTAMP),
     )
 
 
