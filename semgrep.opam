@@ -28,6 +28,8 @@ depends: [
   "ocolor"
   "ANSITerminal"
   "terminal_size"
+  "uucp"
+  "uutf"
   "logs"
   "atdgen"
   "yojson" {>= "2.0.0"}
