@@ -79,3 +79,11 @@ val success_tag : ?tag:string -> unit -> string
      Logs.info (fun m -> m ~tags "Hello.");
 *)
 val create_tags : string list -> Logs.Tag.set
+
+(*
+   Log a string directly.
+*)
+val sdebug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit

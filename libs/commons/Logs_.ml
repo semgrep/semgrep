@@ -221,3 +221,12 @@ let success_tag ?(tag = " SUCCESS ") () =
   ANSITerminal.sprintf
     [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_green ]
     "%s" tag
+
+(*****************************************************************************)
+(* Missing basic functions *)
+(*****************************************************************************)
+
+let sdebug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
+let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
+let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
+let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
