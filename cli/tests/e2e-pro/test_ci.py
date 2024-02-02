@@ -1017,7 +1017,7 @@ def test_lockfile_parse_failure_reporting(
         assert f["commit_hash"] is not None
         f["commit_hash"] = "sanitized"
         assert f["commit_timestamp"] is not None
-        f["commit_timestamp"] = out.Datetime("sanitized")
+        f["commit_timestamp"] = "sanitized"
     snapshot.assert_match(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
