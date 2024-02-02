@@ -10,6 +10,7 @@
    digestif
    xmlm
    sarif
+   python-str-repr
 
   osemgrep_configuring
    osemgrep_core

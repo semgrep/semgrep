@@ -509,7 +509,7 @@ and statements_sequencable env xs =
 
 and statement_sequencable env x =
   match x with
-  | X (S st) -> [ stmt env st ]
+  | X (S st) -> [ A.X (stmt env st) ]
   | CppDirective x ->
       debug (Cpp x);
       raise Todo
@@ -517,7 +517,7 @@ and statement_sequencable env x =
   | MacroDecl (_, _, _, _) ->
       raise Todo
   | CppIfdef _ -> raise Impossible
-  | X (D x) -> [ block_declaration env x ]
+  | X (D x) -> [ A.X (block_declaration env x) ]
 
 and cases env st =
   match st with

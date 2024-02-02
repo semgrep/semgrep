@@ -1,0 +1,4 @@
+(library
+ (name python_str_repr)
+ (public_name python-str-repr)
+ (libraries uutf uucp))
