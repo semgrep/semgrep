@@ -58,7 +58,9 @@ module Datetime = struct
 
   let () =
     Testo.test "Datetime" (fun () ->
-        let now = Timedesc.now () in
+        let now =
+          Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
+        in
         let s : string = unwrap now in
         let now' = wrap s in
         if not (now =*= now') then
