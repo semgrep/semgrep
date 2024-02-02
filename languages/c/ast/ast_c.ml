@@ -188,7 +188,7 @@ and argument =
   (* This should only appear in macro calls.
      https://github.com/tree-sitter/tree-sitter-c/blob/a2b7bac3b313efbaa683d9a276ff63cdc544d960/grammar.js#L1073
   *)
-  | ArgBlock of stmt list bracket
+  | ArgBlock of stmt sequencable list bracket
 
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
@@ -203,7 +203,7 @@ and string_component = StrLit of string wrap | StrIdent of string wrap
 (*****************************************************************************)
 and stmt =
   | ExprSt of expr * tok
-  | Block of stmt list bracket
+  | Block of stmt sequencable list bracket
   (* todo: tok * stmt option *)
   | If of tok * expr * stmt * stmt option
   | Switch of tok * expr * case list
@@ -221,7 +221,6 @@ and stmt =
   | DefStmt of definition
   | DirStmt of directive
   | AsmStmt of tok * assembler bracket * sc
-  | PreprocStmt of preproc
   (* this should never appear! this should be only inside Switch *)
   | CaseStmt of case
 
@@ -246,19 +245,6 @@ and var_decl = {
 (* can have ArrayInit and RecordInit here in addition to other expr *)
 and initialiser = expr
 and storage = Extern | Static | DefaultStorage
-
-(*****************************************************************************)
-(* Preprocessor *)
-(*****************************************************************************)
-and preproc = {
-  p_condition : preproc_condition;
-  p_stmts : stmt list;
-  p_elifs : (tok (*'elifdef' or 'elifndef'*) * expr * stmt list) list;
-  p_else : stmt list option;
-  p_endif : tok;
-}
-
-and preproc_condition = PreprocIfdef of tok * name | PreprocIf of tok * expr
 
 (*****************************************************************************)
 (* Assembler *)
@@ -304,7 +290,7 @@ and func_def = {
    * should not force function_type here and also allow typedefs.
    *)
   f_type : function_type;
-  f_body : stmt list bracket;
+  f_body : stmt sequencable list bracket;
   (* important for codegraph global name resolution to avoid conflicts *)
   f_static : bool;
 }
@@ -357,13 +343,41 @@ and define_body =
    *)
   | CppStmt of stmt
 
+(* ------------------------------------------------------------------------- *)
+(* cppext: #ifdefs *)
+(* coupling: this is the same as in Ast_cpp! *)
+(* ------------------------------------------------------------------------- *)
+and 'a sequencable =
+  | X of 'a
+  (* cppext: *)
+  | CDirective of directive
+  | CIfdef of ifdef_directive
+
+(* less: 'a ifdefed = 'a list wrap (* ifdef elsif else endif *) *)
+and ifdef_directive =
+  | Ifdef of tok (* todo? of string? *)
+  (* TODO: IfIf of formula_cpp ? *)
+  (* TODO: Ifndef *)
+  | IfdefElse of tok
+  | IfdefElseif of tok
+  | IfdefEndif of tok
+(* less:
+ * set in Parsing_hacks.set_ifdef_parenthize_info. It internally use
+ * a global so it means if you parse the same file twice you may get
+ * different id. I try now to avoid this pb by resetting it each
+ * time I parse a file.
+ *
+ *   and matching_tag =
+ *     IfdefTag of (int (* tag *) * int (* total with this tag *))
+ *)
+
 (*****************************************************************************)
 (* Program *)
 (*****************************************************************************)
 (* tree-sitter-c: used to be just DefStmt or DirStmt *)
 and toplevel = stmt [@@deriving show { with_path = false }]
 
-type program = toplevel list [@@deriving show]
+type program = toplevel sequencable list [@@deriving show]
 
 (*****************************************************************************)
 (* Any *)
