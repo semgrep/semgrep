@@ -686,55 +686,51 @@ and expr_aux env ?(void = false) e_gen =
       | _ -> exp
     in
     ident_function_call_hack exp
-  | G.Assign (
-      { e = (
-            G.N (G.Id ((n, _), lhs_info))
-          | G.DotAccess (_, _, FN (Id ((n, _), lhs_info)))
-          )
-      ; _} as lhs_e
-    , _
-    , ({e =  G.Call
-           (
-             (
-               { e = (G.N (Id (_, id_info))
-                     | G.DotAccess (_, _, FN (Id (_, id_info))));
-                 _}
-             )
-           , args)
-      ; _} as origin_exp)
-    )
-    when
-      logger#info "trying to match %s" n;
-      (match id_info.G.id_resolved.contents with
-        | Some ((G.GlobalName (ls, _)), _) ->
-          (logger#info "lang check";
-           env.lang =*= Lang.Python)
+  (* x = ClassName(args ...) in Python *)
+  (* ClassName has been resolved to __init__ by the pro engine. *)
+  (*  Identified and treated as x = New ClassName(args ...) to support
+      field sensitivity. *)
+  | G.Assign
+      ( ({
+            e =
+              ( G.N (G.Id ((_, _), lhs_info))
+              | G.DotAccess (_, _, FN (Id ((_, _), lhs_info))) );
+            _;
+          } as lhs_e),
+        _,
+        ({
+          e =
+            G.Call
+              ( {
+                e =
+                  ( G.N (Id (_, id_info))
+                  | G.DotAccess (_, _, FN (Id (_, id_info))) );
+                _;
+              },
+                args );
+          _;
+        } as origin_exp) )
+    (* Can we be tighter about side conditions here to avoid catching
+       direct calls to __init__ ? *)
+    when match id_info.G.id_resolved.contents with
+      | Some (G.GlobalName (ls, _), _) -> (
+          env.lang =*= Lang.Python
           && List.length ls >= 3 (* Module + Class + __init__ *)
-          && (logger#info "init check";
-            (match List_.last_opt ls with
+          && (match List_.last_opt ls with
               | Some "__init__" -> true
-              | _ -> false))
+              | _ -> false)
           &&
-          (logger#info "type check";
-           (match lhs_info.id_type.contents with
-              | Some { t = G.TyN _ ; _} -> true
-              | _ -> false))
-        (* TODO also check that the expected return type is the class that the init function belongs to *)
-        | Some _ ->
-          logger#info "resolved but not globalName";
-          false
-        | _ ->
-          logger#info "no global name";
-
-          false)
-    ->
-    logger#info "matched %s" n;
+          match lhs_info.id_type.contents with
+          | Some { t = G.TyN _; _ } -> true
+          | _ -> false)
+      | _ -> false ->
     let lval = lval env lhs_e in
-    let ty = match lhs_info.id_type.contents with
+    let ty =
+      match lhs_info.id_type.contents with
       | Some ty -> ty
       | _ -> failwith "Impossible: guard above checks that this exists"
     in
-    (mk_class_construction env lval origin_exp ty id_info args) |> add_stmts env;
+    mk_class_construction env lval origin_exp ty id_info args |> add_stmts env;
     mk_e (Fetch lval) (SameAs lhs_e)
   | G.Assign (e1, tok, e2) ->
     let exp = expr env e2 in
@@ -1428,11 +1424,7 @@ and mk_class_construction env lval origin_exp ty cons_id_info args : stmt list =
     let cons' = var_of_name cons in
     let cons_exp =
       mk_e
-        (Fetch
-           {
-               lval with
-               rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
-             })
+        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
         (SameAs (G.N cons |> G.e))
         (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
            * looks at the eorig, but maybe it shouldn't? *)
@@ -1442,15 +1434,14 @@ and mk_class_construction env lval origin_exp ty cons_id_info args : stmt list =
   let ss2, ty = type_with_pre_stmts env ty in
   ss1 @ ss2
   @ [
-    mk_s
-      (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
+    mk_s (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
   ]
 
 and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
     if eorig.is_implicit_return then implicit_return env eorig tok
-    else expr_stmt env eorig tok 
+    else expr_stmt env eorig tok
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
@@ -1459,7 +1450,7 @@ and stmt_aux env st =
               Some ({ e = G.New (_tok, ty, cons_id_info, args); _ } as new_exp);
             _;
           } ) ->
-   (* x = new T(args) *)
+    (* x = new T(args) *)
     (* HACK(new): Because of field-sensitivity hacks, we need to know to which
      * variable are we assigning the `new` object, so we intercept the assignment. *)
     let obj' = var_of_name obj in

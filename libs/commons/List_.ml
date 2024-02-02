@@ -225,10 +225,11 @@ let tl_exn errmsg xs =
 let rec last_exn errmsg xs =
   match xs with
   | [] -> failwith errmsg
-  | [x] -> x
+  | [ x ] -> x
   | _ :: tl -> last_exn errmsg tl
 
-let last_opt xs = try Some (last_exn "last_opt failed" xs) with
+let last_opt xs =
+  try Some (last_exn "last_opt failed" xs) with
   | Failure _ -> None
 
 let mapi f l = map2 f (List.init (List.length l) Fun.id) l
