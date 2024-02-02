@@ -163,7 +163,7 @@ let unique_key (c : OutJ.core_match) =
  # runs. Results may arrive in a different order due to parallelism
  # (-j option).
 *)
-let dedup_core_matches (xs : OutJ.core_match list) : OutJ.core_match list =
+let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
   let seen = Hashtbl.create 101 in
   xs
   |> List.filter (fun x ->
@@ -172,6 +172,7 @@ let dedup_core_matches (xs : OutJ.core_match list) : OutJ.core_match list =
          else (
            Hashtbl.replace seen key true;
            true))
+  |> OutUtils.sort_core_matches
 
 (*****************************************************************************)
 (* Converters *)
@@ -513,7 +514,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
     | Core_profiling.No_info -> (None, None)
   in
   {
-    results = matches |> dedup_core_matches |> OutUtils.sort_core_matches;
+    results = matches |> dedup_and_sort;
     errors = errs |> List_.map error_to_error;
     paths =
       {
