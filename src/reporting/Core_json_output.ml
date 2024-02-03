@@ -256,6 +256,7 @@ let unsafe_match_to_match
         (* TODO *)
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
+        historical_info = None;
         extra_extra = None;
       };
   }

@@ -16,6 +16,7 @@ open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
 module HPfff = Parser_cpp_mly_helper
+module P = Preprocessor_cpp
 open Ast_cpp
 module R = Tree_sitter_run.Raw_tree
 
@@ -942,6 +943,112 @@ and map_preproc_expression (env : env) (x : CST.preproc_expression) : expr =
       let v2 = map_preproc_expression env v2 in
       let v3 = token env v3 (* ")" *) in
       ParenExpr (v1, v2, v3)
+
+(* coupling(preproc): the below four functions are all the same as in
+   Parse_c_tree_sitter.ml
+*)
+let ifdef_token env = function
+  | `Ifdef x -> Ifdef (token env x)
+  (* TODO: ifndef *)
+  | `Ifndef x -> Ifdef (token env x)
+
+let elifdef_token env = function
+  | `Elifdef x -> IfdefElseif (token env x)
+  (* TODO: elifndef *)
+  | `Elifndef x -> IfdefElseif (token env x)
+
+let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
+    (env : env) ((v1, v2, v3, v4, v5, v6) : item P.preproc_if_poly) =
+  (* coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
+  let rec preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
+      (x : item P.preproc_else_poly) : 'out list =
+    match x with
+    | `Prep_else_poly (v1, v2) ->
+        let v1 = token env v1 (* pattern #[ 	]*else *) in
+        let v2 = List.concat_map (map_item env) v2 in
+        let dir = CppIfdef (IfdefElse v1) in
+        dir :: v2
+    | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
+        let v1 = token env v1 (* pattern #[ 	]*elif *) in
+        let _v2 = map_preproc_expression env v2 in
+        let _v3 = token env v3 (* "\n" *) in
+        let v4 = List.concat_map (map_item env) v4 in
+        let v5 =
+          match v5 with
+          | Some x -> preproc_else_poly ~map_item env x
+          | None -> []
+        in
+        let dir = CppIfdef (IfdefElseif v1) in
+        (dir :: v4) @ v5
+  in
+  let v1 = token env v1 (* pattern #[ 	]*if *) in
+  let _v2TODO = map_preproc_expression env v2 in
+  let _v3 = token env v3 (* "\n" *) in
+  let dir1 = Ifdef v1 in
+  let v4 = List.concat_map (map_item env) v4 in
+  let v5 =
+    match v5 with
+    | Some x -> preproc_else_poly ~map_item env x
+    | None -> []
+  in
+  let v6 = token env v6 (* pattern #[ 	]*endif *) in
+  let dir2 = IfdefEndif v6 in
+  (CppIfdef dir1 :: v4) @ v5 @ [ CppIfdef dir2 ]
+
+let preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
+    (env : env) ((v1, v2, v3, v4, v5) : item P.preproc_ifdef_poly) =
+  let rec preproc_elifdef_poly ~(map_item : env -> item -> 'out list)
+      (env : env) ((v1, v2, v3, v4) : item P.preproc_elifdef_poly) =
+    let v1 = elifdef_token env v1 in
+    let _v2 =
+      (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+      token env v2
+    in
+    let dir1 = v1 in
+    let v3 = List.concat_map (map_item env) v3 in
+    let v4 =
+      match v4 with
+      | Some x -> preproc_else_poly ~map_item env x
+      | None -> []
+    in
+    (CppIfdef dir1 :: v3) @ v4
+  (* coupling: This is a copy-paste of `map_preproc_else_poly` above. *)
+  and preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
+      (x : item P.preproc_else_poly) : 'out list =
+    match x with
+    | `Prep_else_poly (v1, v2) ->
+        let v1 = token env v1 (* pattern #[ 	]*else *) in
+        let v2 = List.concat_map (map_item env) v2 in
+        let dir = CppIfdef (IfdefElse v1) in
+        dir :: v2
+    | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
+        let v1 = token env v1 (* pattern #[ 	]*elif *) in
+        let _v2 = map_preproc_expression env v2 in
+        let _v3 = token env v3 (* "\n" *) in
+        let v4 = List.concat_map (map_item env) v4 in
+        let v5 =
+          match v5 with
+          | Some x -> preproc_else_poly ~map_item env x
+          | None -> []
+        in
+        let dir = CppIfdef (IfdefElseif v1) in
+        (dir :: v4) @ v5
+  in
+  let v1 = ifdef_token env v1 in
+  let dir1 = v1 in
+  let _v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v3 = List.concat_map (map_item env) v3 in
+  let v4 =
+    match v4 with
+    | Some x -> (
+        match x with
+        | `Choice_prep_else_poly x -> preproc_else_poly ~map_item env x
+        | `Prep_elif_poly x -> preproc_elifdef_poly ~map_item env x)
+    | None -> []
+  in
+  let v5 = token env v5 (* pattern #[ 	]*endif *) in
+  let dir2 = IfdefEndif v5 in
+  (CppIfdef dir1 :: v3) @ v4 @ [ CppIfdef dir2 ]
 
 let map_anon_choice_name_id_dd8d494 (env : env)
     (x : CST.anon_choice_name_id_dd8d494) =
@@ -2133,10 +2240,16 @@ and map_block_item (env : env) (x : CST.block_item) =
           let x = map_empty_declaration env x in
           [ X (D x) ]
       | `Prep_if x ->
-          let x = map_preproc_if env x in
+          let x =
+            x |> P.preproc_if_to_poly
+            |> preproc_if_poly ~map_item:map_block_item env
+          in
           x
       | `Prep_ifdef x ->
-          let x = map_preproc_ifdef env x in
+          let x =
+            x |> P.preproc_ifdef_to_poly
+            |> preproc_ifdef_poly ~map_item:map_block_item env
+          in
           x
       | `Prep_incl x ->
           let x = map_preproc_include env x in
@@ -3897,23 +4010,6 @@ and map_pointer_field_declarator (env : env)
   let v5 = map_field_declarator env v5 in
   { v5 with dt = (fun x -> x |> f1 |> v5.dt) }
 
-and map_preproc_if (env : env) ((v1, v2, v3, v4, v5, v6) : CST.preproc_if) :
-    toplevel list =
-  (* TODO: IfIf *)
-  let v1 = token env v1 (* pattern #[ 	]*if *) in
-  let _v2TODO = map_preproc_expression env v2 in
-  let _v3 = token env v3 (* "\n" *) in
-  let dir1 = Ifdef v1 in
-  let v4 = List.concat_map (map_block_item env) v4 in
-  let v5 =
-    match v5 with
-    | Some x -> map_anon_choice_prep_else_8b52b0f env x
-    | None -> []
-  in
-  let v6 = token env v6 (* pattern #[ 	]*endif *) in
-  let dir2 = IfdefEndif v6 in
-  (CppIfdef dir1 :: v4) @ v5 @ [ CppIfdef dir2 ]
-
 and map_preproc_if_in_field_declaration_list (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.preproc_if_in_field_declaration_list) :
     class_member sequencable list =
@@ -3957,21 +4053,6 @@ and map_pointer_type_declarator (env : env)
   *)
   let v5 = map_type_declarator_to_expr env v5 in
   IdDeref (v2, v5)
-
-and map_preproc_elifdef (env : env) ((v1, v2, v3, v4) : CST.preproc_elifdef) =
-  let v1 = map_anon_choice_pat_0307ca2_dbf6a9d env v1 in
-  let _v2 =
-    (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-    token env v2
-  in
-  let dir1 = v1 in
-  let v3 = List.concat_map (map_block_item env) v3 in
-  let v4 =
-    match v4 with
-    | Some x -> map_anon_choice_prep_else_8b52b0f env x
-    | None -> []
-  in
-  (CppIfdef dir1 :: v3) @ v4
 
 (* The problem here is that we use the same "preproc_elifdef" type for both
    preproc blocks in fields and outside of fields.
@@ -4019,24 +4100,6 @@ and map_preproc_elifdef_in_field (env : env)
     | None -> []
   in
   (CppIfdef dir1 :: v3) @ v4
-
-and map_preproc_ifdef (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_ifdef) :
-    toplevel list =
-  let v1 = map_anon_choice_pat_25b90ba_4a37f8c env v1 in
-  let dir1 = v1 in
-  let _v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
-  let v3 = List.concat_map (map_block_item env) v3 in
-  let v4 =
-    match v4 with
-    | Some x -> (
-        match x with
-        | `Choice_prep_else x -> map_anon_choice_prep_else_8b52b0f env x
-        | `Prep_elif x -> map_preproc_elifdef env x)
-    | None -> []
-  in
-  let v5 = token env v5 (* pattern #[ 	]*endif *) in
-  let dir2 = IfdefEndif v5 in
-  (CppIfdef dir1 :: v3) @ v4 @ [ CppIfdef dir2 ]
 
 and map_preproc_ifdef_in_field_declaration_list (env : env)
     ((v1, v2, v3, v4, v5) : CST.preproc_ifdef_in_field_declaration_list) :
@@ -4506,10 +4569,16 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       let x = map_empty_declaration env x in
       [ X (D x) ]
   | `Prep_if x ->
-      let x = map_preproc_if env x in
+      let x =
+        x |> P.preproc_if_to_poly
+        |> preproc_if_poly ~map_item:map_block_item env
+      in
       x
   | `Prep_ifdef x ->
-      let x = map_preproc_ifdef env x in
+      let x =
+        x |> P.preproc_ifdef_to_poly
+        |> preproc_ifdef_poly ~map_item:map_block_item env
+      in
       x
   | `Prep_incl x ->
       let x = map_preproc_include env x in

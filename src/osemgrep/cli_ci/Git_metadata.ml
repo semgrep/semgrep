@@ -112,9 +112,10 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
       let commit_author_name : string =
         Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%an" ]
       in
-      (* Returns epoch time as str of head commit *)
-      let commit_datetime : string =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%ct" ]
+      (* Returns strict ISO 8601 time as str of head commit *)
+      let commit_timestamp : Timedesc.t =
+        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%cI" ]
+        |> Timedesc.of_iso8601 |> Result.get_ok
       in
       {
         semgrep_version = Version.version;
@@ -130,10 +131,7 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         commit_author_username = None;
         commit_author_image_url = None;
         commit_title = Some commit_title;
-        commit_timestamp =
-          (let time = float_of_string commit_datetime in
-           let tm : Unix.tm = Unix.gmtime time in
-           Some (ATD_string_wrap.Datetime.unwrap tm));
+        commit_timestamp = Some commit_timestamp;
         on = self#event_name;
         pull_request_author_username = None;
         pull_request_author_image_url = None;
