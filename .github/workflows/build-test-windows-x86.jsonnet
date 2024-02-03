@@ -69,10 +69,10 @@ default: https://github.com/ocaml/opam-repository.git
         // CFLAGS: '-O3 -Wall -Wextra',
       },
       run: |||
-        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
         eval $(opam env)
-        opam exec -- make install-deps-WINDOWS-for-semgrep-core
-        opam exec -- make install-deps-for-semgrep-core
+        make install-deps-WINDOWS-for-semgrep-core
+        make install-deps-for-semgrep-core
       |||,
     },
     {
