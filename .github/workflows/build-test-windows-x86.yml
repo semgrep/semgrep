@@ -39,8 +39,8 @@ jobs:
       env:
         CC: x86_64-w64-mingw32-gcc
       run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        eval
-        $(opam env)\n        make install-deps-WINDOWS-for-semgrep-core\n        make
-        install-deps-for-semgrep-core\n      "
+        $(opam env)\n        opam exec -- make install-deps-WINDOWS-for-semgrep-core\n
+        \       opam exec -- make install-deps-for-semgrep-core\n      "
     - name: Build semgrep-core
       run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        # We
         have to strip rpath from the tree-sitter projects because there's no\n        #
