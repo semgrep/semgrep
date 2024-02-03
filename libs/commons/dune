@@ -17,6 +17,7 @@
    easy_logging easy_logging_yojson
    alcotest
    testo
+   timedesc
    cmdliner
    bos
    re
