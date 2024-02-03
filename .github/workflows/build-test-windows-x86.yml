@@ -8,20 +8,6 @@ jobs:
     runs-on: windows-latest
     env:
       OPAMROOT: c:\opam
+    container: ocaml/opam:windows-mingw-21H2-ocaml-4.14
     steps:
-    - id: cache-opam
-      uses: actions/cache@v4
-      with:
-        path: c:\opam
-        key: ${{ runner.os }}-opam
-    - run: |
-        Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe" -OutFile opam.exe
-        .\opam.exe init --bare --kind http
-      if: steps.cache-opam.outputs.cache-hit != 'true'
-    - run: |
-        Get-ChildItem -Recurse c:\opam
-    # - id: cache-opam-switch
-    #   uses: actions/cache@v4
-    #   with:
-    #     path: _opam
-    #     key: ${{ runner.os }}-opam-switch
+    - run: ocaml switch
