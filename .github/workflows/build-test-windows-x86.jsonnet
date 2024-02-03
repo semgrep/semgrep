@@ -61,36 +61,24 @@ default: https://github.com/ocaml/opam-repository.git
       // (vs. ~/.opam in our other workflows)
       path='_opam',
       ),
-    {
-      name: 'Build tree-sitter',
-      env: {
-        CC: 'x86_64-w64-mingw32-gcc',
-      },
-      run: |||
-        cd libs/ocaml-tree-sitter-core
-        ./configure
-        ./scripts/download-tree-sitter --lazy
-        prefix="$(pwd)/tree-sitter"
-        cd downloads/tree-sitter
-        make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
-        make PREFIX="$prefix" install
-      |||,
-    },
     // this should be mostly a noop thx to cache_opam above
     {
-      name: 'Install deps',
+      name: 'Install dependencies',
+      env: {
+        CC: 'x86_64-w64-mingw32-gcc',
+        // CFLAGS: '-O3 -Wall -Wextra',
+      },
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        opam depext conf-pkg-config conf-gmp conf-libpcre
-        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
+        eval $(opam env)
+        make install-deps-WINDOWS-for-semgrep-core
+        make install-deps-for-semgrep-core
       |||,
     },
     {
       name: 'Build semgrep-core',
       run: |||
         export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
-        export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
-        export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
         # We have to strip rpath from the tree-sitter projects because there's no
         # equivalent in Windows
         # TODO: investigate removing rpath from the tree-sitter projects
@@ -98,15 +86,13 @@ default: https://github.com/ocaml/opam-repository.git
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- dune build _build/install/default/bin/semgrep-core.exe
+        opam exec -- make core
       |||,
     },
     {
       name: 'Test semgrep-core',
       run: |||
         export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
-        export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
-        export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
         opam exec -- make core-test
       |||,
     },

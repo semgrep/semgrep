@@ -35,32 +35,22 @@ jobs:
         path: _opam
         key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{ hashFiles('semgrep.opam')
           }}
-    - name: Build tree-sitter
+    - name: Install dependencies
       env:
         CC: x86_64-w64-mingw32-gcc
-      run: "\n        cd libs/ocaml-tree-sitter-core\n        ./configure\n        ./scripts/download-tree-sitter
-        --lazy\n        prefix=\"$(pwd)/tree-sitter\"\n        cd downloads/tree-sitter\n
-        \       make PREFIX=\"$prefix\" CFLAGS=\"-O3 -Wall -Wextra\"\n        make
-        PREFIX=\"$prefix\" install\n      "
-    - name: Install deps
-      run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext
-        conf-pkg-config conf-gmp conf-libpcre\n        opam install -y ./ ./libs/ocaml-tree-sitter-core
-        --deps-only\n      "
+      run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        eval $(opam
+        env)\n        make install-deps-WINDOWS-for-semgrep-core\n        make install-deps-for-semgrep-core\n
+        \     "
     - name: Build semgrep-core
-      run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        export
-        TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
-        \       export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib\n
-        \       # We have to strip rpath from the tree-sitter projects because there's
-        no\n        # equivalent in Windows\n        # TODO: investigate removing
-        rpath from the tree-sitter projects\n        for filename in $(find ./languages/
-        ./libs/ocaml-tree-sitter-core/ -name dune); do\n          grep -v rpath $filename
-        > $filename.new\n          mv $filename.new $filename\n        done\n        opam
-        exec -- dune build _build/install/default/bin/semgrep-core.exe\n      "
+      run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        # We
+        have to strip rpath from the tree-sitter projects because there's no\n        #
+        equivalent in Windows\n        # TODO: investigate removing rpath from the
+        tree-sitter projects\n        for filename in $(find ./languages/ ./libs/ocaml-tree-sitter-core/
+        -name dune); do\n          grep -v rpath $filename > $filename.new\n          mv
+        $filename.new $filename\n        done\n        opam exec -- make core\n      "
     - name: Test semgrep-core
-      run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        export
-        TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
-        \       export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib\n
-        \       opam exec -- make core-test\n      "
+      run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        opam
+        exec -- make core-test\n      "
     - name: Package semgrep-core
       run: "\n        mkdir archive\n        cp _build/install/default/bin/semgrep-core.exe
         archive/\n\n        # TODO: somehow upgrade to the latest flexdll, which should
