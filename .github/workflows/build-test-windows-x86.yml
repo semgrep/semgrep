@@ -14,5 +14,5 @@ jobs:
         key: ${{ runner.os }}-opam
     - run: |
         Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe" -OutFile opam.exe
-        .\opam.exe init --bare --root=c:\opam
+        .\opam.exe init --bare --root=c:\opam --kind http
       if: steps.cache-opam.outputs.cache-hit != 'true'
