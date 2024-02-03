@@ -176,6 +176,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           validation_state = `No_validator;
                           severity_override = None;
                           metadata_override = None;
+                          dependency = None;
                         }
                       in
                       Stack_.push pm matches;
@@ -344,6 +345,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   validation_state = `No_validator;
                                   severity_override = None;
                                   metadata_override = None;
+                                  dependency = None;
                                 }
                               in
                               Stack_.push pm matches;
@@ -404,6 +406,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     validation_state = `No_validator;
                                     severity_override = None;
                                     metadata_override = None;
+                                    dependency = None;
                                   }
                                 in
                                 Stack_.push pm matches;
@@ -455,6 +458,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       validation_state = `No_validator;
                                       severity_override = None;
                                       metadata_override = None;
+                                      dependency = None;
                                     }
                                   in
                                   Stack_.push pm matches;
@@ -552,6 +556,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       validation_state = `No_validator;
                                       severity_override = None;
                                       metadata_override = None;
+                                      dependency = None;
                                     }
                                   in
                                   Stack_.push pm matches;

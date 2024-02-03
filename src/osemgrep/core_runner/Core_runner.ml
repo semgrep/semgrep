@@ -251,7 +251,13 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     let target_mappings =
       x.targets
       |> List_.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-             { path = !!path; analyzer = x.xlang; products = Product.all })
+             `CodeTarget
+               {
+                 path = !!path;
+                 analyzer = x.xlang;
+                 products = Product.all;
+                 lockfile_target = None;
+               })
     in
     (target_mappings, x.rules)
   in
