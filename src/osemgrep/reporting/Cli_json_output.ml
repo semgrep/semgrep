@@ -359,6 +359,7 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
        engine_kind;
        extra_extra;
        validation_state;
+       historical_info;
        fix;
        is_ignored;
        dataflow_trace;
@@ -429,6 +430,7 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
              *)
             engine_kind = Some engine_kind;
             validation_state;
+            historical_info;
             extra_extra;
           };
       }
