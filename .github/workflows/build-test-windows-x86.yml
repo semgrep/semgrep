@@ -10,8 +10,8 @@ jobs:
       run:
         shell: bash
     steps:
-    - run: curl -L --output opam.exe "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe"
     - run: |
+        curl -L --output opam.exe "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe"
         opam.exe init --bare
     # - run: git config --system core.longpaths true
     # - name: Make checkout speedy
