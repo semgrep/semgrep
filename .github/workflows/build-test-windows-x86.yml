@@ -6,6 +6,24 @@ name: build-test-windows-x86
 jobs:
   job:
     runs-on: windows-latest
-    container: ocaml/opam:windows-mingw-21H2-ocaml-4.14
+    env:
+      OPAMROOT: c:\opam
     steps:
-    - run: ocaml switch
+    - id: cache-opam
+      uses: actions/cache@v4
+      with:
+        path: |
+          c:\opam
+          _opam
+          opam.exe
+        key: ${{ runner.os }}-opam3
+    - run: |
+        Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe" -OutFile opam.exe
+        .\opam.exe init --bare
+        .\opam.exe switch create . --repos "default,mingw=https://github.com/fdopen/opam-repository-mingw.git#opam2" -c "ocaml-variants.4.14.0+mingw64c" --disable-sandboxing
+      if: steps.cache-opam.outputs.cache-hit != 'true'
+    # - id: cache-opam-switch
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: _opam
+    #     key: ${{ runner.os }}-opam-switch
