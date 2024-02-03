@@ -41,7 +41,7 @@ val default_skip_libs : string list
    calls, otherwise your log will not go anywhere (not even on stderr).
 
    'require_one_of_these_tags': if a list of tags is provided, at least one
-   these tags must be set for a log instruction to be printed.
+   of these tags must be set for a log instruction to be printed.
 
    'read_tags_from_env_var': specifies an environment variable
    from which a list of comma-separated tags will be read if the variable
