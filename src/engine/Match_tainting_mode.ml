@@ -29,7 +29,7 @@ module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -156,9 +156,10 @@ module Formula_tbl = struct
 
            just don't cache it I guess
         *)
-        logger#error
-          "Tried to compute matches for a taint formula not in the cache \
-           (impossible?)";
+        Logs.err (fun m ->
+            m ~tags
+              "Tried to compute matches for a taint formula not in the cache \
+               (impossible?)");
         compute_matches_fn ()
     | Some (None, count) ->
         let ranges, expls = compute_matches_fn () in
@@ -335,9 +336,10 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        logger#trace
-          "Cannot compute range, there are no real tokens in this AST: %s"
-          (G.show_any any);
+        Logs.debug (fun m ->
+            m ~tags
+              "Cannot compute range, there are no real tokens in this AST: %s"
+              (G.show_any any));
       None
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
@@ -502,9 +504,10 @@ let sources_of_taints taints =
   in
   if without_req <> [] then without_req
   else (
-    logger#warning
-      "Taint source without precondition wasn't found. Displaying the taint \
-       trace from the source with precondition.";
+    Logs.warn (fun m ->
+        m ~tags
+          "Taint source without precondition wasn't found. Displaying the \
+           taint trace from the source with precondition.");
     with_req)
 
 let trace_of_source source =

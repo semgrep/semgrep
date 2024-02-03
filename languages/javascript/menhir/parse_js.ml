@@ -19,7 +19,7 @@ module Ast = Ast_js
 module TH = Token_helpers_js
 module PS = Parsing_stat
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -92,7 +92,8 @@ let put_back_lookahead_token_if_needed tr item_opt =
          * all the tokens (more risky now that we use ast_js.ml instead of
          * cst_js.ml)
          *)
-        logger#debug "putting back lookahead token %s" (Dumper.dump current);
+        Logs.debug (fun m ->
+            m ~tags "putting back lookahead token %s" (Dumper.dump current));
         tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
         tr.Parsing_helpers.passed <-
           List_.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
@@ -147,7 +148,8 @@ let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
   let info = TH.info_of_tok passed_offending in
   let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
-  logger#debug "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info);
+  Logs.debug (fun m ->
+      m ~tags "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info));
 
   let toks =
     List.rev passed_after
@@ -260,8 +262,9 @@ let parse2 opt_timeout filename =
     (* EOF *)
     | Either.Left None -> []
     | Either.Left (Some x) ->
-        logger#ldebug
-          (lazy (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
+        Logs.debug (fun m ->
+            m ~tags "%s"
+              (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
 
         x :: aux tr
     | Either.Right err_tok ->
