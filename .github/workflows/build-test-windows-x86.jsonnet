@@ -32,6 +32,11 @@ local job = {
   steps: [
     gha.git_longpaths_step,
     gha.speedy_checkout_step,
+    {
+      run: |||
+        git config --global core.autocrlf input
+      |||
+    },
     actions.checkout_with_submodules(),
     {
       uses: 'ocaml/setup-ocaml@v2',
