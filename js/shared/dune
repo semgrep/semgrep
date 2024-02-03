@@ -12,6 +12,7 @@
    semgrep.data
    semgrep.language_server
    lwt_platform.js
+   tracing.js
  )
  (js_of_ocaml
   (javascript_files

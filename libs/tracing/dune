@@ -1,18 +1,9 @@
+
 (library
  (public_name tracing)
  (wrapped false)
- (libraries
-   unix
-   commons
-   trace
-   opentelemetry
-   opentelemetry.trace
-   opentelemetry-client-ocurl
-   ambient-context-lwt
- )
- (preprocess
-   (pps
-     ppx_tracing
-   )
- )
+  (libraries
+    trace
+  )
+ (virtual_modules tracing)
 )
