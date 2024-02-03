@@ -81,6 +81,7 @@ let check_rule rule target dependency_formula =
                  {
                    id = fst rule.R.id;
                    message = rule.R.message;
+                   metadata = rule.R.metadata;
                    fix = rule.R.fix;
                    fix_regexp = rule.R.fix_regexp;
                    langs = Xlang.to_langs rule.R.target_analyzer;
