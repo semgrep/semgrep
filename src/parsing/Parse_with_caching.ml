@@ -15,7 +15,7 @@
 open Common
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
@@ -67,7 +67,7 @@ type ast_cached_value =
 (*****************************************************************************)
 
 let ast_or_exn_of_file (lang, file) =
-  logger#trace "parsing %s" !!file;
+  Logs.debug (fun m -> m ~tags "parsing %s" !!file);
   try
     (* finally calling the actual function *)
     let { Parsing_result2.ast; skipped_tokens; _ } =
@@ -114,8 +114,9 @@ let ast_cached_value_of_file version lang (file : Fpath.t) : ast_cached_value =
 let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
     (file : Fpath.t) =
   if is_binary_ast_filename file then (
-    logger#info "%s is already an AST binary file, unmarshalling its value"
-      !!file;
+    Logs.debug (fun m ->
+        m ~tags "%s is already an AST binary file, unmarshalling its value"
+          !!file);
     let (v : ast_cached_value) = Common2.get_value !!file in
     let { Cache_disk.value = either; extra = version2, _lang2, _file2, _mtime2 }
         =

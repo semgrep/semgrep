@@ -14,7 +14,7 @@
  *)
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -91,27 +91,30 @@ let run_with_memory_limit ?get_context
     let stack_bytes = stat.stack_size * (Sys.word_size / 8) in
     let mem_bytes = heap_bytes + stack_bytes in
     if mem_limit > 0 && mem_bytes > mem_limit then (
-      logger#info
-        "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
-        (context ()) mem_bytes stack_bytes heap_bytes;
+      Logs.info (fun m ->
+          m ~tags
+            "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
+            (context ()) mem_bytes stack_bytes heap_bytes);
       raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if !heap_warning > 0 && heap_bytes > !heap_warning then (
-      logger#warning
-        "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \
-         follows, you could suspect OOM."
-        (context ()) (heap_bytes / mb) mem_limit_mb;
+      Logs.warn (fun m ->
+          m ~tags
+            "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \
+             follows, you could suspect OOM."
+            (context ()) (heap_bytes / mb) mem_limit_mb);
       heap_warning := max (2 * !heap_warning) !heap_warning)
     else if
       stack_warning > 0
       && stack_bytes > stack_warning
       && not !stack_already_warned
     then (
-      logger#warning
-        "%slarge stack size: %d bytes. If a crash follows, you should suspect \
-         a stack overflow. Make sure the maximum stack size is set to \
-         'unlimited' or to a value greater than %d bytes so as to obtain an \
-         exception rather than a segfault."
-        (context ()) stack_bytes mem_limit;
+      Logs.warn (fun m ->
+          m ~tags
+            "%slarge stack size: %d bytes. If a crash follows, you should \
+             suspect a stack overflow. Make sure the maximum stack size is set \
+             to 'unlimited' or to a value greater than %d bytes so as to \
+             obtain an exception rather than a segfault."
+            (context ()) stack_bytes mem_limit);
       stack_already_warned := true)
   in
   let alarm = Gc.create_alarm limit_memory in

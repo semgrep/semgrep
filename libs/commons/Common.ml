@@ -13,8 +13,6 @@
  * license.txt for more details.
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*###########################################################################*)
 (* Prelude *)
 (*###########################################################################*)
@@ -64,7 +62,8 @@ let protect ~finally work =
       (* Just re-raise whatever exception was raised during a 'finally',
        * drop 'Finally_raised'.
        *)
-      logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
+      Logs.err (fun m ->
+          m "protect: %s" (exn |> Exception.catch |> Exception.to_string));
       Exception.catch_and_reraise exn1
 
 (*****************************************************************************)

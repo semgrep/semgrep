@@ -15,7 +15,7 @@
  *)
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -145,7 +145,7 @@ module Make (F : Flow) = struct
          * fixpoint computations run for a limited amount of time. *)
         let t1 = Sys.time () in
         if t1 -. t0 >= timeout then (
-          logger#error "fixpoint_worker timed out";
+          Logs.err (fun m -> m ~tags "fixpoint_worker timed out");
           mapping)
         else
           let ni = NodeiSet.choose work in
