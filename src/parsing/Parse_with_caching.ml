@@ -114,7 +114,7 @@ let ast_cached_value_of_file version lang (file : Fpath.t) : ast_cached_value =
 let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
     (file : Fpath.t) =
   if is_binary_ast_filename file then (
-    Logs.info (fun m ->
+    Logs.debug (fun m ->
         m ~tags "%s is already an AST binary file, unmarshalling its value"
           !!file);
     let (v : ast_cached_value) = Common2.get_value !!file in

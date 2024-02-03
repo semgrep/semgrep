@@ -143,7 +143,7 @@ let version = spf "semgrep-core version: %s" Version.version
  * This is why we call set_gc() only when max_memory_mb is unset.
  *)
 let set_gc () =
-  Logs.info (fun m -> m ~tags "Gc tuning");
+  Logs.debug (fun m -> m ~tags "Gc tuning");
   (*
   if !Flag.debug_gc
   then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };

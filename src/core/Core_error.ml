@@ -37,7 +37,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
  * filter_maybe_parse_and_fatal_errors.
- * less: we should define everything in Output_from_core.atd, not just typ:
+ * less: we should define everything in semgrep_output_v1.atd, not just typ:
  *)
 type t = {
   rule_id : Rule_ID.t option;
@@ -100,8 +100,12 @@ let mk_error opt_rule_id loc msg err =
   in
   { rule_id = opt_rule_id; loc; typ = err; msg; details = None }
 
-let mk_error_tok opt_rule_id tok msg err =
-  let loc = Tok.unsafe_loc_of_tok tok in
+let mk_error_tok ?(file = "NO FILE INFO") opt_rule_id tok msg err =
+  let loc =
+    match Tok.loc_of_tok tok with
+    | Ok loc -> loc
+    | Error _ -> Tok.first_loc_of_file file
+  in
   mk_error opt_rule_id loc msg err
 
 let push_error rule_id loc msg err =
@@ -125,7 +129,7 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
   in
   mk_error_tok (Some rule_id) pos msg err
 
-let opt_error_of_rule_error (err : Rule.error) : t option =
+let opt_error_of_rule_error ~file (err : Rule.error) : t option =
   let rule_id = err.rule_id in
   match err.kind with
   | InvalidRule
@@ -147,9 +151,9 @@ let opt_error_of_rule_error (err : Rule.error) : t option =
         }
   | InvalidRule err -> Some (error_of_invalid_rule_error err)
   | InvalidYaml (msg, pos) ->
-      Some (mk_error_tok rule_id pos msg OutJ.InvalidYaml)
+      Some (mk_error_tok ~file rule_id pos msg OutJ.InvalidYaml)
   | DuplicateYamlKey (s, pos) ->
-      Some (mk_error_tok rule_id pos s OutJ.InvalidYaml)
+      Some (mk_error_tok ~file rule_id pos s OutJ.InvalidYaml)
   (* TODO?? *)
   | UnparsableYamlException _ -> None
 
@@ -171,7 +175,7 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
      module so that we can use it for the exception printers that are
      registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
-      Some (mk_error_tok rule_id tok s OutJ.LexicalError)
+      Some (mk_error_tok ~file rule_id tok s OutJ.LexicalError)
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
@@ -184,12 +188,12 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
-      Some (mk_error_tok rule_id tok msg OutJ.ParseError)
+      Some (mk_error_tok ~file rule_id tok msg OutJ.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok rule_id tok s OutJ.OtherParseError)
+      Some (mk_error_tok ~file rule_id tok s OutJ.OtherParseError)
   | AST_generic.Error (s, tok) ->
-      Some (mk_error_tok rule_id tok s OutJ.AstBuilderError)
-  | Rule.Error err -> opt_error_of_rule_error err
+      Some (mk_error_tok ~file rule_id tok s OutJ.AstBuilderError)
+  | Rule.Error err -> opt_error_of_rule_error ~file err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       Logs.err (fun m ->

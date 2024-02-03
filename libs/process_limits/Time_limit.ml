@@ -94,7 +94,7 @@ let set_timeout ~name max_duration f =
   with
   | Timeout { name; max_duration } ->
       clear_timer ();
-      Logs.info (fun m ->
+      Logs.warn (fun m ->
           m ~tags "%S timeout at %g s (we abort)" name max_duration);
       None
   | exn ->
@@ -106,7 +106,7 @@ let set_timeout ~name max_duration f =
          Maybe signals are disabled when process an exception handler ?
       *)
       clear_timer ();
-      Logs.info (fun m -> m ~tags "exn while in set_timeout");
+      Logs.err (fun m -> m ~tags "exn while in set_timeout");
       Exception.reraise e
 
 let set_timeout_opt ~name time_limit f =

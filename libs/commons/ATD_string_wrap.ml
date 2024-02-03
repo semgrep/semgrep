@@ -45,56 +45,22 @@ module Sha256 = struct
 end
 
 module Datetime = struct
-  type t = Unix.tm
+  type t = Timedesc.t
 
-  let unwrap (tm : Unix.tm) : string =
-    Common.spf "%04d-%02d-%02dT%02d:%02d:%02d+00:00" (1900 + tm.tm_year)
-      (1 + tm.tm_mon) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
+  let unwrap tm : string = Timedesc.to_rfc3339 tm
 
-  let wrap s : Unix.tm =
-    (* TODO? should the end always be +00:00 given we generate GMT/UTC time?
-     * Should we enforce it in the regexp?
-     *)
-    if
-      s
-      =~ "^\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)T\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)[-+][0-9]+:[0-9]+$"
-    then (
-      let year, mon, day, hour, min, sec = Common.matched6 s in
-      (* mostly the inverse of unwrap above *)
-      let tm =
-        Unix.
-          {
-            tm_year = int_of_string year - 1900;
-            tm_mon = int_of_string mon - 1;
-            tm_mday = int_of_string day;
-            tm_hour = int_of_string hour;
-            tm_min = int_of_string min;
-            tm_sec = int_of_string sec;
-            tm_wday = 0;
-            tm_yday = 0;
-            tm_isdst = false;
-          }
-      in
-      (* normalize *)
-      (* ugly, but this is suggested in Unix.mli to get the inverse
-       * of the gmtime function.
-       *)
-      let before = USys.getenv_opt "TZ" in
-      UUnix.putenv "TZ" "UTC";
-      let _s, tm = Unix.mktime tm in
-      (match before with
-      | None ->
-          (* argh, no unsetenv,
-           * see https://discuss.ocaml.org/t/unset-environment-variable/9025/4
-           *)
-          UUnix.putenv "TZ" ""
-      | Some old -> UUnix.putenv "TZ" old);
-      tm)
-    else failwith (spf "wrong datetime format: %s" s)
+  let wrap s =
+    (* Note that RFC 3339 is a subset of ISO 8601, so this does align with
+     * unwrap. *)
+    match Timedesc.of_iso8601 s with
+    | Ok dt -> dt
+    | Error s -> failwith (spf "wrong datetime format: %s" s)
 
   let () =
     Testo.test "Datetime" (fun () ->
-        let now = Unix.gmtime (UUnix.gettimeofday ()) in
+        let now =
+          Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
+        in
         let s : string = unwrap now in
         let now' = wrap s in
         if not (now =*= now') then

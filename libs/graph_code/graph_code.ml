@@ -260,12 +260,12 @@ let add_edgeinfo (n1, n2) e info g = Hashtbl.replace g.edgeinfo (n1, n2, e) info
 let version = 5
 
 let save g file =
-  Logs.info (fun m -> m ~tags "saving %s" file);
+  Logs.debug (fun m -> m ~tags "saving %s" file);
   (* see ocamlgraph FAQ *)
   Common2.write_value (g, !Graph.Blocks.cpt_vertex, version) file
 
 let load file =
-  Logs.info (fun m -> m ~tags "loading %s" file);
+  Logs.debug (fun m -> m ~tags "loading %s" file);
   let g, serialized_cpt_vertex, version2 = Common2.get_value file in
   if version <> version2 then
     failwith (spf "your marshalled file has an old version, delete it");

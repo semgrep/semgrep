@@ -110,7 +110,7 @@ let log_error rex subj err =
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  Logs.info (fun m ->
+  Logs.warn (fun m ->
       m ~tags "PCRE error: %s on input %S. Source regexp: %S"
         (string_of_error err) string_fragment rex.pattern)
 

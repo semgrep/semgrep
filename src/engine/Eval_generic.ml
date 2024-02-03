@@ -334,7 +334,7 @@ let rec eval env code =
             | [] -> Bool false
             | _ -> Bool true
           in
-          Logs.info (fun m ->
+          Logs.debug (fun m ->
               m ~tags "regexp %s on %s return %s" re str (show_value v));
           v
       | _ -> raise (NotHandled e))

@@ -503,7 +503,7 @@ let set_svalue_ref id_info c' =
     | None -> id_info.id_svalue := Some c'
     | Some c -> id_info.id_svalue := Some (refine c c')
   else
-    Logs.info (fun m ->
+    Logs.debug (fun m ->
         m ~tags "Cycle check failed for %s := ..." (G.show_id_info id_info))
 (* (G.show_svalue c') *)
 

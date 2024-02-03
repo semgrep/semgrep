@@ -306,7 +306,7 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> List_.map (fun file ->
-           Logs.info (fun m -> m ~tags "processing %s" !!file);
+           Logs.debug (fun m -> m ~tags "translate_files: processing %s" !!file);
            let formulas =
              fparser file
              |> List_.map (fun rule ->
@@ -332,8 +332,10 @@ let translate_files fparser xs =
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
         | _ ->
             Logs.err (fun m ->
-                m ~tags "wrong rule format, only JSON/YAML/JSONNET are valid");
-            Logs.info (fun m -> m ~tags "trying to parse %s as YAML" !!file);
+                m ~tags
+                  "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying \
+                   to parse %s as YAML"
+                  !!file);
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
       in
       match rules with

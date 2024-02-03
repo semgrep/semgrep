@@ -189,14 +189,14 @@ let erase_temp_files () =
   if not !save_tmp_files then (
     _temp_files_created
     |> Hashtbl.iter (fun s () ->
-           Logs.info (fun m -> m ~tags "erasing: %s" s);
+           Logs.debug (fun m -> m ~tags "erasing: %s" s);
            USys.remove s);
     Hashtbl.clear _temp_files_created)
 
 let erase_this_temp_file f =
   if not !save_tmp_files then (
     Hashtbl.remove _temp_files_created f;
-    Logs.info (fun m -> m ~tags "erasing: %s" f);
+    Logs.debug (fun m -> m ~tags "erasing: %s" f);
     USys.remove f)
 
 (*****************************************************************************)

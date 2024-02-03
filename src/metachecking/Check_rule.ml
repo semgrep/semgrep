@@ -257,7 +257,8 @@ let run_checks config fparser metachecks xs =
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
-               Logs.info (fun m -> m ~tags "processing %s" !!file);
+               Logs.debug (fun m ->
+                   m ~tags "run_checks: processing rule file %s" !!file);
                try
                  let rs = fparser file in
                  rs |> List.concat_map (fun file -> check file)
@@ -306,7 +307,8 @@ let stat_files fparser xs =
   let cache = Some (Hashtbl.create 101) in
   fullxs
   |> List.iter (fun file ->
-         Logs.info (fun m -> m ~tags "processing %s" !!file);
+         Logs.debug (fun m ->
+             m ~tags "stat_files: processing rule file %s" !!file);
          let rs = fparser file in
          rs
          |> List.iter (fun r ->

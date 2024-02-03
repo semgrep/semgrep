@@ -103,7 +103,7 @@ let parse_and_resolve_name lang file =
   (* Flow-sensitive constant propagation. *)
   Constant_propagation.propagate_dataflow lang ast;
 
-  Logs.info (fun m -> m ~tags "Parse_target.parse_and_resolve_name done");
+  Logs.debug (fun m -> m ~tags "Parse_target.parse_and_resolve_name done");
   res
 [@@profiling]
 

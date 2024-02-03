@@ -315,7 +315,7 @@ and expr (x : expr) =
       | SR_Special v ->
           G.Call (G.IdSpecial v |> G.e, bracket (List_.map G.arg) v2)
       | SR_Literal l ->
-          Logs.info (fun m -> m ~tags "Weird: literal in call position");
+          Logs.debug (fun m -> m ~tags "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
           G.Call (G.L l |> G.e, bracket (List_.map G.arg) v2)
       | SR_NeedArgs f -> f (Tok.unbracket v2)

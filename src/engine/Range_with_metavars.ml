@@ -121,7 +121,7 @@ let intersect_ranges config ~debug_matches xs ys =
     us |> Common2.map_flatten (fun u -> vs |> List_.map_filter (fun v -> p u v))
   in
   if debug_matches then
-    Logs.info (fun m ->
+    Logs.debug (fun m ->
         m ~tags "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
           (show_ranges ys));
   merge left_merge xs ys

@@ -166,10 +166,10 @@ let with_logging funcname f in_ =
     let save = in_.depth in
     in_.depth <- in_.depth + 1;
     let depth = n_dash in_.depth in
-    Logs.info (fun m -> m ~tags "%s>%s: %s" depth funcname (T.show in_.token));
+    Logs.debug (fun m -> m ~tags "%s>%s: %s" depth funcname (T.show in_.token));
     let res = f () in
     (* less: pass in_ ? *)
-    Logs.info (fun m -> m ~tags "%s<%s: %s" depth funcname (T.show in_.token));
+    Logs.debug (fun m -> m ~tags "%s<%s: %s" depth funcname (T.show in_.token));
     in_.depth <- save;
     res)
   else f ()
@@ -407,8 +407,8 @@ let inSepRegion tok f in_ =
  * a NEWLINE or NEWLINES *)
 let insertNL ?(newlines = false) in_ =
   if !debug_newline then (
-    Logs.info (fun m -> m ~tags "%s: %s" "insertNL" (T.show in_.token));
-    Logs.info (fun m ->
+    Logs.debug (fun m -> m ~tags "%s: %s" "insertNL" (T.show in_.token));
+    Logs.debug (fun m ->
         m ~tags "inserting back a newline:%s" (Dumper.dump in_.last_nl)));
   match in_.last_nl with
   | None -> error "IMPOSSIBLE? no last newline to insert back" in_
@@ -433,14 +433,14 @@ let afterLineEnd in_ =
             loop xs
         | _ ->
             if !debug_newline then
-              Logs.info (fun m ->
+              Logs.debug (fun m ->
                   m ~tags "%s: false because %s" "afterLineEnd" (T.show x));
             false)
     | [] -> false
   in
   loop in_.passed |> fun b ->
   if !debug_newline then
-    Logs.info (fun m ->
+    Logs.debug (fun m ->
         m ~tags "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b);
   b
 
@@ -462,7 +462,7 @@ let fetchToken in_ =
     | [] -> error "IMPOSSIBLE? fetchToken: no more tokens" in_
     | x :: xs -> (
         if !Flag.debug_lexer then
-          Logs.info (fun m -> m ~tags "fetchToken: %s" (T.show x));
+          Logs.debug (fun m -> m ~tags "fetchToken: %s" (T.show x));
 
         in_.rest <- xs;
 

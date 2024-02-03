@@ -80,7 +80,7 @@ let list path = list_with_stat path |> List_.map fst
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
   |> List_.map_filter (fun (path, (stat : Unix.stats)) ->
-         Logs.info (fun m -> m ~tags "root: %s path: %s" !!root_path !!path);
+         Logs.debug (fun m -> m ~tags "root: %s path: %s" !!root_path !!path);
          if keep_root && path = root_path then Some path
          else
            match stat.st_kind with

@@ -94,7 +94,7 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
             match doc_type with
             | Minified
             | Binary ->
-                Logs.info (fun m ->
+                Logs.debug (fun m ->
                     m ~tags "ignoring gibberish file: %s\n%!" file);
                 None
             | Text

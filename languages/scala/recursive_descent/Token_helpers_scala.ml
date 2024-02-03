@@ -203,7 +203,7 @@ let inFirstOfStat x =
   | DEDENT _ ->
       false
   | _ ->
-      Logs.info (fun m -> m ~tags "inFirstOfStat: true for %s" (Dumper.dump x));
+      Logs.debug (fun m -> m ~tags "inFirstOfStat: true for %s" (Dumper.dump x));
       true
 
 (** Can token end a statement? *)
@@ -240,7 +240,7 @@ let inLastOfStat x =
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
-      Logs.info (fun m -> m ~tags "inLastOfStat: true for %s" (Dumper.dump x));
+      Logs.debug (fun m -> m ~tags "inLastOfStat: true for %s" (Dumper.dump x));
       true
   | _ -> false
 

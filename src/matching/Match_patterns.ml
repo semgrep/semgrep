@@ -176,6 +176,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           validation_state = `No_validator;
                           severity_override = None;
                           metadata_override = None;
+                          dependency = None;
                         }
                       in
                       Stack_.push pm matches;
@@ -345,12 +346,13 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   validation_state = `No_validator;
                                   severity_override = None;
                                   metadata_override = None;
+                                  dependency = None;
                                 }
                               in
                               Stack_.push pm matches;
                               hook pm)
                  | Some (start_loc, end_loc) ->
-                     Logs.info (fun m ->
+                     Logs.debug (fun m ->
                          m ~tags
                            "While matching pattern %s in file %s, we skipped \
                             expression at %d:%d-%d:%d (outside any range of \
@@ -409,6 +411,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     validation_state = `No_validator;
                                     severity_override = None;
                                     metadata_override = None;
+                                    dependency = None;
                                   }
                                 in
                                 Stack_.push pm matches;
@@ -458,6 +461,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       validation_state = `No_validator;
                                       severity_override = None;
                                       metadata_override = None;
+                                      dependency = None;
                                     }
                                   in
                                   Stack_.push pm matches;
@@ -553,6 +557,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       validation_state = `No_validator;
                                       severity_override = None;
                                       metadata_override = None;
+                                      dependency = None;
                                     }
                                   in
                                   Stack_.push pm matches;

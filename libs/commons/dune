@@ -16,6 +16,7 @@
    logs logs.fmt
    alcotest
    testo
+   timedesc
    cmdliner
    bos
    re

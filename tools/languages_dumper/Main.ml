@@ -31,6 +31,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 let verbose = ref false
 (*e: constant [[Main.verbose]] *)
 
+(* TODO: remove since we don't use this logging library anymore *)
 let log_config_file = ref "log_config.json"
 
 (*s: constant [[Main.lang]] *)

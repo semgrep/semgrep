@@ -64,6 +64,7 @@ type 'a match_result = {
 
 (* shortcut *)
 type matches_single_file = Core_profiling.partial_profiling match_result
+[@@deriving show]
 
 (* What is postprocessing information?
    These are just match-specific information that we "after" a core scan has
