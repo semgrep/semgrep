@@ -6,8 +6,6 @@ name: build-test-windows-x86
 jobs:
   job:
     runs-on: windows-latest
-    env:
-      OPAMROOT: c:\opam
     container: ocaml/opam:windows-mingw-21H2-ocaml-4.14
     steps:
     - run: ocaml switch
