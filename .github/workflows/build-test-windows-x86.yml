@@ -19,8 +19,8 @@ jobs:
         key: ${{ runner.os }}-opam3
     - run: |
         Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe" -OutFile opam.exe
-        .\opam.exe init --bare
-        .\opam.exe switch create . --repos "default,mingw=https://github.com/fdopen/opam-repository-mingw.git#opam2" -c "ocaml-variants.4.14.0+mingw64c" --disable-sandboxing
+        .\opam.exe init --bare --disable-sandboxing
+        .\opam.exe switch create . "ocaml-variants.4.14.0+mingw64c" --repos "default,mingw=https://github.com/fdopen/opam-repository-mingw.git#opam2"
       if: steps.cache-opam.outputs.cache-hit != 'true'
     # - id: cache-opam-switch
     #   uses: actions/cache@v4
