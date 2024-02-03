@@ -133,14 +133,14 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
   | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
       let ys = List_.map_filter remove_not xs in
       if List_.null ys then (
-        Logs.warn (fun m -> m ~tags "null And after remove_not");
+        Logs.debug (fun m -> m ~tags "null And after remove_not");
         None)
       else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
       if List_.null ys then (
-        Logs.warn (fun m -> m ~tags "null Or after remove_not");
+        Logs.debug (fun m -> m ~tags "null Or after remove_not");
         None)
       else Some (R.Or (t, ys))
   | R.Not (_, f) -> (
@@ -154,16 +154,16 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
          failwith "Not Or" was just translated to below case, etc..
       *)
       | R.Or (_, _xs) ->
-          Logs.warn (fun m -> m ~tags "Not Or");
+          Logs.debug (fun m -> m ~tags "Not Or");
           None
       | R.And _ ->
-          Logs.warn (fun m -> m ~tags "Not And");
+          Logs.debug (fun m -> m ~tags "Not And");
           None
       | R.Inside _ ->
-          Logs.warn (fun m -> m ~tags "Not Inside");
+          Logs.debug (fun m -> m ~tags "Not Inside");
           None
       | R.Anywhere _ ->
-          Logs.warn (fun m -> m ~tags "Not Anywhere");
+          Logs.debug (fun m -> m ~tags "Not Anywhere");
           None)
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
