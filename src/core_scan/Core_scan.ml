@@ -553,8 +553,13 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 
 let handle_target_with_trace handle_target t =
+  let target_name =
+    match t with
+    | `CodeTarget t -> t.In.path
+    | `LockfileTarget (t : In.lockfile_target) -> t.In.path
+  in
   Tracing.run_with_span "Core_scan.handle_target"
-    ?data:(Some [ ("filename", `String t.In.path) ])
+    ?data:(Some [ ("filename", `String target_name) ])
     (fun () -> handle_target t)
 
 (*
