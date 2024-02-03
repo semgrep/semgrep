@@ -3,29 +3,31 @@
    Here are the usage conventions for the Logs library level,
    augmented from https://erratique.ch/software/logs/doc/Logs/index.html#usage
 
+   Attention: Any log message that can't be understood without context
+   will be moved to the Debug level!
 
-      - App: unlike the other levels, this prints ordinary messages on
-        stderr without any special formatting.
+   - App: unlike the other levels, this prints ordinary messages on
+     stderr without any special formatting.
 
-      - Error ('err'): error condition that prevent the program from running
-        normally.
+   - Error ('err'): error condition that prevent the program from running
+     normally.
 
-      - Warning ('warn'): suspicious condition that does not prevent the
-        program from running normally but may eventually lead to an error
-        condition.
+   - Warning ('warn'): suspicious condition that does not prevent the
+     program from running normally but may eventually lead to an error
+     condition.
 
-      - Info: condition that allows the program user to get a better
-        understanding of what the program is doing.
-        Log messages at this level and above may not clutter up the log
-        output not should they reduce performance significantly. If that's
-        the case, log at the Debug level.
-        Semgrep: activated with --verbose
+   - Info: condition that allows the program user to get a better
+     understanding of what the program is doing.
+     Log messages at this level and above may not clutter up the log
+     output not should they reduce performance significantly. If that's
+     the case, log at the Debug level.
+     Semgrep: activated with --verbose
 
-      - Debug: condition that allows the program developer to get a
-        better undersanding of what the program is doing.
-        It may reduce the performance of the application or result in
-        unreadable logs unless they're filtered. Use tags for filtering.
-        Semgrep: activated with --debug
+   - Debug: condition that allows the program developer to get a
+     better undersanding of what the program is doing.
+     It may reduce the performance of the application or result in
+     unreadable logs unless they're filtered. Use tags for filtering.
+     Semgrep: activated with --debug
 *)
 
 (* Enable basic logging (level = Logs.Warning) so that
