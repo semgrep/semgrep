@@ -45,7 +45,8 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>.json -j <MASKED> -strict -targets <MASKED> -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-<semgrep-core stderr not captured, should be printed above>
+we have match
+we have match
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
