@@ -20,7 +20,7 @@ module Resp = Semgrep_output_v1_t
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -51,9 +51,10 @@ let timeout_function (rule : Rule.t) file timeout f =
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
       AST_generic_equals.busy_with_equal := saved_busy_with_equal;
-      logger#info "timeout for rule %s on file %s"
-        (Rule_ID.to_string (fst rule.id))
-        file;
+      Logs.warn (fun m ->
+          m ~tags "timeout for rule %s on file %s"
+            (Rule_ID.to_string (fst rule.id))
+            file);
       None
 
 let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
@@ -85,13 +86,14 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
         | Some (prefilter_formula, func) ->
             let content = Lazy.force lazy_content in
             let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
-            logger#trace "looking for %s in %s" s !!file;
+            Logs.debug (fun m -> m ~tags "looking for %s in %s" s !!file);
             func content)
   in
   if not is_relevant then
-    logger#trace "skipping rule %s for %s"
-      (Rule_ID.to_string (fst r.R.id))
-      !!file;
+    Logs.debug (fun m ->
+        m ~tags "skipping rule %s for %s"
+          (Rule_ID.to_string (fst r.R.id))
+          !!file);
   is_relevant
 
 (* This function separates out rules into groups of taint rules by languages,
@@ -170,11 +172,13 @@ let check ~match_hook ~timeout ~timeout_threshold
     | None -> fun _ -> None
   in
   let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
-  logger#trace "checking %s with %d rules" !!file (List.length rules);
+  Logs.debug (fun m ->
+      m ~tags "checking %s with %d rules" !!file (List.length rules));
   (match (!Profiling.profile, xlang) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Xlang.L (_lang, []) ->
-      logger#info "forcing parsing of AST outside of rules, for better profile";
+      Logs.debug (fun m ->
+          m ~tags "forcing parsing of AST outside of rules, for better profile");
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
   let per_rule_boilerplate_fn =

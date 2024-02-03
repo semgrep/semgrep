@@ -18,7 +18,7 @@ module FT = File_type
 module R = Rule
 module E = Core_error
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -54,7 +54,8 @@ let test_rules ?(unit_testing = false) xs =
 
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing rule file %s" !!file;
+         Logs.debug (fun m ->
+             m ~tags "test_rules: processing rule file %s" !!file);
 
          (* just a sanity check *)
          (* rules |> List.iter Check_rule.check; *)
@@ -83,7 +84,8 @@ let test_rules ?(unit_testing = false) xs =
            with
            | Not_found -> failwith (spf "could not find a target for %s" !!file)
          in
-         logger#info "processing target %s" !!target;
+         Logs.debug (fun m ->
+             m ~tags "test_rules: processing target %s" !!target);
          (* expected *)
          (* not tororuleid! not ok:! *)
          let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
@@ -102,7 +104,8 @@ let test_rules ?(unit_testing = false) xs =
          in
          actual_errors
          |> List.iter (fun e ->
-                logger#info "found error: %s" (E.string_of_error e));
+                Logs.debug (fun m ->
+                    m ~tags "test_rules: found error: %s" (E.string_of_error e)));
          match
            E.compare_actual_to_expected actual_errors expected_error_lines
          with
