@@ -14,27 +14,30 @@ jobs:
       with:
         path: |
           c:\opam
+          _opam
           opam.exe
-        key: ${{ runner.os }}-opam3
+        key: ${{ runner.os }}-opam4
         restore-keys: |
           ${{ runner.os }}-opam
     - run: |
         Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe" -OutFile opam.exe
         .\opam.exe init --bare --disable-sandboxing
+        .\opam.exe switch create . "ocaml-variants.4.14.0+mingw64c" --repos "default,mingw=git+https://github.com/fdopen/opam-repository-mingw.git#opam2"
       if: steps.cache-opam.outputs.cache-hit != 'true'
-    - id: cache-opam-switch
+    - run: git config --system core.longpaths true
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - id: cache-ocaml-deps
       uses: actions/cache@v4
       with:
         path: |
           _opam
-        key: ${{ runner.os }}-switch-foo
+        key: ${{ runner.os }}-deps-${{ hashFiles('**/*.opam') }}-1
         restore-keys: |
-          ${{ runner.os }}-switch
+          ${{ runner.os }}-deps
     - run: |
-        .\opam.exe switch create . "ocaml-variants.4.14.0+mingw64c" --repos "default,mingw=git+https://github.com/fdopen/opam-repository-mingw.git#opam2"
-      if: steps.cache-opam-switch.outputs.cache-hit != 'true'
-    # - id: cache-opam-switch
-    #   uses: actions/cache@v4
-    #   with:
-    #     path: _opam
-    #     key: ${{ runner.os }}-opam-switch
+        opam install --deps-only ./
+      if: steps.cache-ocaml-deps.outputs.cache-hit != 'true'
