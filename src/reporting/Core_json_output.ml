@@ -151,6 +151,10 @@ let unique_key (c : OutJ.core_match) =
       | None -> default
     else Rule_ID.to_string c.check_id
   in
+  UCommon.(
+    pr2
+      (spf "we have match %s"
+         (String.concat "," (c.extra.metavars |> List_.map fst))));
   ( name,
     Fpath.to_string c.path,
     c.start.offset,
@@ -166,13 +170,17 @@ let unique_key (c : OutJ.core_match) =
 let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
   let seen = Hashtbl.create 101 in
   xs
+  (* We sort first, because this preserves behavior with when this step
+     was in Cli_json_output. Otherwise, we would get different matches in
+     the cases where we have matches that have the same cli_unique_key.
+  *)
+  |> OutUtils.sort_core_matches
   |> List.filter (fun x ->
          let key = unique_key x in
          if Hashtbl.mem seen key then false
          else (
            Hashtbl.replace seen key true;
            true))
-  |> OutUtils.sort_core_matches
 
 (*****************************************************************************)
 (* Converters *)
