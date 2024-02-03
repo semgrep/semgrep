@@ -6,14 +6,16 @@ name: build-test-windows-x86
 jobs:
   job:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
     steps:
+    - id: cache-cygwin
+      uses: actions/cache@v4
+      with:
+        path: c:\cygwin
+        key: ${{ runner.os }}-cygwin
     - uses: cygwin/cygwin-install-action@master
+      if: steps.cache-cygwin.outputs.cache-hit != 'true'
     - run: |
-        curl -L --output opam.exe "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe"
-        ./opam.exe init --bare --cygwin-local-install --cygwin-location=c:\\cygwin
+        Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.2.0-beta1/opam-2.2.0-beta1-x86_64-preview-for-windows.exe" -OutFile opam.exe
     # - run: git config --system core.longpaths true
     # - name: Make checkout speedy
     #   run: git config --global fetch.parallel 50
