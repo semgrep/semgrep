@@ -2583,7 +2583,7 @@ let unixname () =
    instead of caluclating the contents of the entire
    working directory. I.e. tests/**/*.extension would
    result in tests/ *)
-let dir_regex = Str.regexp "^[^\\*]*"
+let dir_regex = Str.regexp "^[^*]*"
 
 let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
