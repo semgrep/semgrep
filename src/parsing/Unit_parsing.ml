@@ -100,7 +100,7 @@ let lang_parsing_tests () =
        *)
       Testo.categorize "C++ partial parsing"
         (let dir = tests_path_parsing / "cpp" / "parsing_partial" in
-         let files = Common2.glob (spf "%s/*.cpp" !!dir) in
+         let files = Common2.glob (Filename.concat !!dir "*.cpp") in
          let lang = Lang.Cpp in
          partial_parsing_tests_for_lang files lang);
     ]
@@ -112,7 +112,7 @@ let lang_parsing_tests () =
 let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   Testo.categorize "Parsing error detection"
-    (let tests = Common2.glob (spf "%s/*" !!dir) in
+    (let tests = Common2.glob (Filename.concat !!dir "*") in
      tests |> Fpath_.of_strings
      |> List_.map (fun file ->
             t (Fpath.basename file) (fun () ->
@@ -132,10 +132,10 @@ let parsing_rules_tests () =
   let dir = tests_path / "rule_formats" in
   Testo.categorize "Parsing rules"
     (let tests =
-       Common2.glob (spf "%s/*.yaml" !!dir)
-       @ Common2.glob (spf "%s/*.json" !!dir)
+       Common2.glob (Filename.concat !!dir "*.yaml")
+       @ Common2.glob (Filename.concat !!dir "*.json")
        (* skipped for now to avoid adding jsonnet as a dependency in our
-        * CI: Common2.glob (spf "%s/*.jsonnet" dir)
+        * CI: Common2.glob (Filename.concat !!dir "*.jsonnet")
         *)
      in
      tests |> Fpath_.of_strings
@@ -145,11 +145,13 @@ let parsing_rules_tests () =
 let parsing_rules_with_atd_tests () =
   let dir = tests_path / "rules_v2" in
   let tests1 =
-    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+    Common2.glob (Filename.concat !!dir "*.yaml")
+    @ Common2.glob (Filename.concat !!dir "*.json")
   in
   let dir = tests_path / "syntax_v2" in
   let tests2 =
-    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+    Common2.glob (Filename.concat !!dir "*.yaml")
+    @ Common2.glob (Filename.concat !!dir "*.json")
   in
   Testo.categorize "Parsing rules with rule_schema_v2.atd"
     (tests1 @ tests2 |> Fpath_.of_strings

@@ -109,7 +109,9 @@ let pack_tests_for_lang
   Testo.categorize
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
+     let files =
+       Common2.glob (Filename.concat !!dir ("*" ^ ext)) |> Fpath_.of_strings
+     in
 
      lang_test_fn ~polyglot_pattern_path files lang)
 
@@ -427,7 +429,7 @@ let lang_regression_tests ~polyglot_pattern_path =
     [
       Testo.categorize "semgrep Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
-         let files = Common2.glob (spf "%s/*.js" !!dir) in
+         let files = Common2.glob (Filename.concat !!dir "*.js") in
          let files =
            List_.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
            |> Fpath_.of_strings
@@ -437,7 +439,9 @@ let lang_regression_tests ~polyglot_pattern_path =
          regression_tests_for_lang ~polyglot_pattern_path files lang);
       Testo.categorize "semgrep C++ on C tests"
         (let dir = test_pattern_path / "c" in
-         let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.c") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Cpp in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
@@ -571,7 +575,7 @@ let eval_regression_tests () =
   [
     t "eval regression testing" (fun () ->
         let dir = tests_path / "eval" in
-        let files = Common2.glob (spf "%s/*.json" !!dir) in
+        let files = Common2.glob (Filename.concat !!dir "*.json") in
         files
         |> List.iter (fun file ->
                let env, code = Eval_generic.parse_json file in
@@ -629,7 +633,7 @@ let filter_irrelevant_rules_tests () =
   Testo.categorize "filter irrelevant rules testing"
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
-       Common2.glob (spf "%s/*" !!dir)
+       Common2.glob (Filename.concat !!dir "*")
        |> Fpath_.of_strings
        |> File_type.files_of_dirs_or_files (function
             | File_type.Config File_type.Yaml -> false
@@ -758,52 +762,64 @@ let lang_tainting_tests () =
     [
       Testo.categorize "tainting Go"
         (let dir = taint_tests_path / "go" in
-         let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.go") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting PHP"
         (let dir = taint_tests_path / "php" in
-         let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.php") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Python"
         (let dir = taint_tests_path / "python" in
-         let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.py") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Java"
         (let dir = taint_tests_path / "java" in
          let files =
-           Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
+           Common2.glob (Filename.concat !!dir "*.java") |> Fpath_.of_strings
          in
 
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Javascript"
         (let dir = taint_tests_path / "js" in
-         let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.js") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
-         let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.rb") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
-         let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
+         let files =
+           Common2.glob (Filename.concat !!dir "*.ts") |> Fpath_.of_strings
+         in
 
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Scala"
         (let dir = taint_tests_path / "scala" in
          let files =
-           Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
+           Common2.glob (Filename.concat !!dir "*.scala") |> Fpath_.of_strings
          in
 
          let lang = Lang.Scala in
