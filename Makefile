@@ -113,7 +113,7 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core
+	dune build _build/install/default/bin/semgrep-core.exe
 
 
 .PHONY: minimal-build-bc

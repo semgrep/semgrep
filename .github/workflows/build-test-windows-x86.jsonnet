@@ -89,7 +89,7 @@ default: https://github.com/ocaml/opam-repository.git
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- dune build _build/install/default/bin/semgrep-core.exe
+        opam exec -- make core
       |||,
     },
     {
