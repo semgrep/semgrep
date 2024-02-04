@@ -2590,6 +2590,7 @@ let glob pattern =
   let dir = Str.matched_string pattern in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
   let files = UCommon.dir_contents dir in
+  pr (spf "glob pattern=%s, dir=%s, files=%i" pattern dir (List.length files));
   files |> List.filter (fun s -> Re.execp regex s)
 
 let sanity_check_files_and_adjust ext files =
