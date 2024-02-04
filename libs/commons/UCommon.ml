@@ -214,6 +214,7 @@ let dir_contents dir =
             logger#error "%s does not exist anymore" f;
             loop result fs
         | f when USys.is_directory f ->
+            pr (spf "calling USys.readdir %s" f);
             USys.readdir f |> Array.to_list
             |> List_.map (Filename.concat f)
             |> List.append fs |> loop result
