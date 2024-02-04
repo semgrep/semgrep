@@ -53,8 +53,8 @@ let lang_parsing_tests () =
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
     Testo.categorize slang
-      (let dir = tests_path_parsing / dir in
-       let files = Common2.glob (spf "%s/*%s" !!dir ext) in
+      (let dir_glob = tests_path_parsing / dir / ("*" ^ ext) in
+       let files = Common2.glob !!dir_glob in
        if files =*= [] then
          failwith (spf "Empty set of parsing tests for %s" slang);
        parsing_tests_for_lang files lang)
@@ -93,7 +93,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
       pack_parsing_tests_for_lang Lang.Clojure "clojure" ".clj";
       pack_parsing_tests_for_lang Lang.Protobuf "protobuf" ".proto";
-      (* pack_parsing_tests_for_lang Lang.Promql "promql" ".promql"; *)
+      pack_parsing_tests_for_lang Lang.Promql "promql" ".promql";
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
