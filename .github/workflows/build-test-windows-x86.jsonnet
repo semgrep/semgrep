@@ -89,6 +89,7 @@ default: https://github.com/ocaml/opam-repository.git
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
+        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
         opam exec -- make core
       |||,
     },
@@ -96,6 +97,7 @@ default: https://github.com/ocaml/opam-repository.git
       name: 'Test semgrep-core',
       run: |||
         export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
+        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
         opam exec -- make core-test
       |||,
     },
