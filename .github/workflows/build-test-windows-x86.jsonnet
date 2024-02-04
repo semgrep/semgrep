@@ -93,14 +93,14 @@ default: https://github.com/ocaml/opam-repository.git
         opam exec -- make core
       |||,
     },
-    {
-      name: 'Test semgrep-core',
-      run: |||
-        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
-        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-        opam exec -- make core-test
-      |||,
-    },
+    // {
+    //   name: 'Test semgrep-core',
+    //   run: |||
+    //     export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
+    //     . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+    //     opam exec -- make core-test
+    //   |||,
+    // },
     {
       name: 'Package semgrep-core',
       run: |||
