@@ -14,7 +14,7 @@ let tests =
     [
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "go/parsing" in
-          let files = Common2.glob (spf "%s/*.go" dir) in
+          let files = Common2.glob (Filename.concat dir "*.go") in
           files
           |> List.iter (fun file ->
                  Testutil.run file (fun () ->

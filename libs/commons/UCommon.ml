@@ -207,6 +207,7 @@ let erase_this_temp_file f =
  * contained in [dir]. Each file is a path starting with [dir].
   *)
 let dir_contents dir =
+  pr (spf "dir_contents dir=%s" dir);
   let rec loop result = function
     | f :: fs -> (
         match f with

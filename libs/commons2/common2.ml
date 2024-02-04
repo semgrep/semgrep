@@ -2587,10 +2587,13 @@ let dir_regex = Str.regexp "^[^*]*"
 
 let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
-  let dir = Str.matched_string pattern in
+  let dir_with_slash = Str.matched_string pattern in
+  let dir = String.sub dir_with_slash 0 (String.length dir_with_slash - 1) in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
   let files = UCommon.dir_contents dir in
-  pr (spf "glob pattern=%s, dir=%s, files=%i" pattern dir (List.length files));
+  pr
+    (spf "glob pattern=%s, dir_w_s=%s, dir=%s, files=%i" pattern dir_with_slash
+       dir (List.length files));
   files |> List.filter (fun s -> Re.execp regex s)
 
 let sanity_check_files_and_adjust ext files =
