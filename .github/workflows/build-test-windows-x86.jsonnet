@@ -71,7 +71,6 @@ default: https://github.com/ocaml/opam-repository.git
       name: 'Install dependencies',
       env: {
         CC: 'x86_64-w64-mingw32-gcc',
-        // CFLAGS: '-O3 -Wall -Wextra',
       },
       run: |||
         export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
@@ -90,7 +89,7 @@ default: https://github.com/ocaml/opam-repository.git
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- make core
+        opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       |||,
     },
     {
