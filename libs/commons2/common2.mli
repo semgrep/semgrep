@@ -95,7 +95,6 @@ val reset_pr_indent : unit -> unit
  * which corresponds to stderr.
  *)
 val _prefix_pr : string ref
-val pr : string -> unit
 val pr_no_nl : string -> unit
 val pr_xxxxxxxxxxxxxxxxx : unit -> unit
 

@@ -207,7 +207,6 @@ let erase_this_temp_file f =
  * contained in [dir]. Each file is a path starting with [dir].
   *)
 let dir_contents dir =
-  pr (spf "dir_contents dir=%s" dir);
   let rec loop result = function
     | f :: fs -> (
         match f with
@@ -215,7 +214,6 @@ let dir_contents dir =
             logger#error "%s does not exist anymore" f;
             loop result fs
         | f when USys.is_directory f ->
-            pr (spf "calling USys.readdir %s" f);
             USys.readdir f |> Array.to_list
             |> List_.map (Filename.concat f)
             |> List.append fs |> loop result
