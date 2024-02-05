@@ -179,14 +179,14 @@ let sort_code_targets_by_decreasing_size (targets : Target_location.code list) :
   targets
   |> List_.sort_by_key
        (fun (target : Target_location.code) -> UFile.filesize target.file)
-       Int.compare
+       (Fun.flip Int.compare)
 
 let sort_targets_by_decreasing_size (targets : Target_location.t list) :
     Target_location.t list =
   targets
   |> List_.sort_by_key
        (fun target -> UFile.filesize (Target_location.file target))
-       Int.compare
+       (Fun.flip Int.compare)
 
 (* In some context, a target passed in might have disappeared, or have been
  * encoded in the wrong way in the Inputs_to_core.atd (for example
@@ -816,8 +816,7 @@ let targets_of_config (config : Core_scan_config.t) :
       if lang_opt <> None && config.rule_source <> None then
         failwith "if you use -targets and -rules, you should not specify a lang";
       match target_source with
-      | Targets x ->
-          x |> filter_existing_targets
+      | Targets x -> x |> filter_existing_targets
       | Target_file target_file ->
           UFile.read_file target_file
           |> In.targets_of_string
