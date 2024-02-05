@@ -2585,11 +2585,24 @@ let unixname () =
    result in tests/ *)
 let dir_regex = Str.regexp "^[^*]*[*]"
 
+let quote_everything_except_star s =
+  let len = String.length s in
+  let buf = Buffer.create (2 * len) in
+  for i = 0 to len - 1 do
+    match s.[i] with
+    | ('[' | ']' | '.' | '\\' | '?' | '+' | '^' | '$') as c ->
+        Buffer.add_char buf '\\';
+        Buffer.add_char buf c
+    | c -> Buffer.add_char buf c
+  done;
+  Buffer.contents buf
+
 let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir_to_glob = Str.matched_string pattern in
   let dir = Filename.dirname dir_to_glob in
-  let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
+  let quoted_pattern = quote_everything_except_star pattern in
+  let regex = quoted_pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
   let files = UCommon.dir_contents dir in
   pr
     (spf "glob pattern=%s, dir_to_glob=%s, dir=%s, files=%i, regex=%s" pattern
