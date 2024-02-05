@@ -114,14 +114,20 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
     logger.debug(f"platform is {sys.platform}")
+    # TODO: cleanup and use consistent arch name like in pro-release.jsonnet
     if sys.platform.startswith("darwin"):
-        # arm64 is possible. Dunno if other arms are, so let's just check a prefix.
+        # TODO? other arms than arm64? let's just check a prefix.
         if platform.machine().startswith("arm"):
             platform_kind = "osx-arm64"
         else:
             platform_kind = "osx-x86_64"
     elif sys.platform.startswith("linux"):
-        platform_kind = "manylinux"
+        if platform.machine().startswith("arm") or platform.machine().startswith(
+            "aarch"
+        ):
+            platform_kind = "linux-arm64"
+        else:
+            platform_kind = "manylinux"
     else:
         platform_kind = "manylinux"
         logger.info(

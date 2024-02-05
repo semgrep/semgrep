@@ -124,9 +124,11 @@ minimal-build-bc:
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
 # For a fresh repo you will need at least to run first 'git submodule update --init'.
+# The 'semgrep-oss' is the name of the step in the Dockerfile, the 'semgrep'
+# the name of the docker image produced (will be semgrep:latest)
 .PHONY: build-docker
 build-docker:
-	docker build -t semgrep .
+	docker build -t semgrep --target semgrep-oss .
 
 .PHONY: build-otarzan
 build-otarzan:
