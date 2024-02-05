@@ -125,8 +125,7 @@ type t = {
   mutable payload : Semgrep_metrics_t.payload;
 }
 
-let now () : Timedesc.t =
-  Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
+let now () : Timedesc.Timestamp.t = Timedesc.Timestamp.now ()
 
 let default_payload =
   {
