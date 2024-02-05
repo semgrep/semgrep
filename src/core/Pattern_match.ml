@@ -90,6 +90,7 @@ type t = {
   engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
   (* location info *)
   file : Fpath.t;
+  source : Source.t;
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;

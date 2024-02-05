@@ -368,6 +368,10 @@ functions.
     (process_limits (>= "1.5.5"))
   )
 )
+(package (name source)
+  (synopsis "XXX")
+  (description "XXX")
+)
 
 (package
   (name tracing)

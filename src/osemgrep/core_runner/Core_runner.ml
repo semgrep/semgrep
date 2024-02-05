@@ -247,17 +247,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
 let prepare_config_for_core_scan (config : Core_scan_config.t)
     (lang_jobs : Lang_job.t list) =
   let target_mappings_of_lang_job (x : Lang_job.t) :
-      Input_to_core_t.target list * Rule.rules =
+      Target_location.t list * Rule.rules =
     let target_mappings =
       x.targets
-      |> List_.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-             `CodeTarget
-               {
-                 path = !!path;
-                 analyzer = x.xlang;
-                 products = Product.all;
-                 lockfile_target = None;
-               })
+      |> List_.map (fun (path : Fpath.t) : Target_location.t ->
+             Code (Target_location.code_of_source x.xlang Product.all (File path)))
     in
     (target_mappings, x.rules)
   in
@@ -271,7 +265,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
   in
   let target_mappings = List.concat target_mappings in
   let rules = rules |> List.rev |> List.concat in
-  let targets : Input_to_core_t.targets = target_mappings in
+  let targets : Target_location.t list = target_mappings in
   {
     config with
     target_source = Some (Targets targets);

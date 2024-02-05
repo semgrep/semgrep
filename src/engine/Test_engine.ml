@@ -83,7 +83,8 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
           assert false)
   in
   {
-    Xtarget.file = target;
+    Xtarget.source = File target;
+    file = target;
     xlang;
     lazy_content = lazy (UFile.read_file target);
     lazy_ast_and_errors;

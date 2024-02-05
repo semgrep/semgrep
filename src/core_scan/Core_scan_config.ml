@@ -23,7 +23,7 @@ type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 *)
 type target_source =
   | Target_file of Fpath.t
-  | Targets of Input_to_core_t.targets
+  | Targets of Target_location.t list
 [@@deriving show]
 
 (* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)

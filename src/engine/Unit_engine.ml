@@ -359,7 +359,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let equiv = [] in
   Match_patterns.check ~hook
     (Rule_options.default_config, equiv)
-    [ rule ] (file, lang, ast)
+    [ rule ]
+    (file, File file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -701,7 +702,8 @@ let tainting_test lang rules_file file =
     |> List.concat_map (fun rule ->
            let xtarget =
              {
-               Xtarget.file;
+               Xtarget.source = File file;
+               file;
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);

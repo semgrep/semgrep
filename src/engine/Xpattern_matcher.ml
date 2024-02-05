@@ -61,8 +61,9 @@ let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
       Fpath.t ->
+      Source.t ->
       Core_profiling.times Core_result.match_result) =
- fun xpatterns matcher file ->
+ fun xpatterns matcher file source ->
   if xpatterns =*= [] then Core_result.empty_match_result
   else
     let target_content_opt, parse_time =
@@ -84,6 +85,7 @@ let (matches_of_matcher :
                             {
                               PM.rule_id;
                               file;
+                              source;
                               range_loc = (loc1, loc2);
                               env;
                               taint_trace = None;

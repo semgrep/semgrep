@@ -188,8 +188,9 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       let files =
         target_info
         |> List_.map (function
-             | `CodeTarget (t : Input_to_core_t.code_target) -> t.path
-             | `LockfileTarget (t : Input_to_core_t.lockfile_target) -> t.path)
+               | Target_location.Code { file; _ }
+               | Lockfile { file; _ }
+               -> Fpath.to_string file)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then
@@ -210,7 +211,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
                      minirule
-                     (Fpath.v file, lang, ast)
+                     (Fpath.v file, File (Fpath.v file), lang, ast)
                    |> ignore)
              in
 
