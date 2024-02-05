@@ -108,6 +108,7 @@ let union le1 le2 =
        * at JOINs. *)
       VarMap.empty;
   }
+[@@profiling]
 
 (* HACK: Because we don't have a "Class" type, classes have themselves as types. *)
 let is_class_name (name : IL.name) =
@@ -287,6 +288,7 @@ let add lval taints
               taints_to_propagate;
               pending_propagation_dests;
             })
+  [@@profiling]
 
 let propagate_to prop_var taints env =
   (* THINK: Should we record empty propagations anyways so that we can always
@@ -308,6 +310,7 @@ let propagate_to prop_var taints env =
           ~prop:(fun ~taints_to_propagate ~pending_propagation_dests ->
             { env with taints_to_propagate; pending_propagation_dests })
           ~add
+  [@@profiling]
 
 let dumb_find { tainted; cleaned; _ } lval =
   match normalize_lval lval with
@@ -440,6 +443,7 @@ let equal_by_lval { tainted = tainted1; cleaned = cleaned1; _ }
            (cleaned2
            |> LvalSet.filter (fun lv ->
                   lval_is_prefix lval lv || lval_is_prefix lv lval))
+  [@@profiling]
 
 let to_string taint_to_str
     {

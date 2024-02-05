@@ -117,6 +117,7 @@ let range_w_metas_of_formula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     Match_search_mode.matches_of_formula xconf rule xtarget formula None
   in
   (ranges, report.explanations)
+  [@@profiling]
 
 let get_source_requires src =
   let _pm, src_spec = T.pm_of_trace src.T.call_trace in
@@ -257,6 +258,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
          ( ranges
            |> List_.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
            expls ))
+  [@@profiling]
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
@@ -320,6 +322,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                         to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))
+  [@@profiling]
 
 (*****************************************************************************)
 (* Testing whether some matches a taint spec *)
@@ -382,6 +385,7 @@ let any_is_in_sources_matches rule any matches =
                 overlap;
               })
          else None)
+[@@profiling]
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
@@ -410,6 +414,7 @@ let any_is_in_propagators_matches rule any matches :
              (if is_from then [ mk_match `From ] else [])
              @ (if is_to then [ mk_match `To ] else [])
              @ [])
+[@@profiling]
 
 let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
@@ -428,6 +433,7 @@ let any_is_in_sanitizers_matches rule any matches =
                 overlap;
               })
          else None)
+[@@profiling]
 
 let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
@@ -446,6 +452,7 @@ let any_is_in_sinks_matches rule any matches =
                 overlap;
               })
          else None)
+[@@profiling]
 
 let lazy_force x = Lazy.force x [@@profiling]
 
@@ -701,6 +708,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       sinks = sinks_ranges;
     },
     expls )
+  [@@profiling]
 
 let check_var_def lang options taint_config env id ii expr =
   let name = AST_to_IL.var_of_id_info id ii in

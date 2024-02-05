@@ -1544,6 +1544,7 @@ let check_function_signature env fun_exp args args_taints =
   | None, _
   | Some _, _ ->
       None
+  [@@profiling]
 
 let check_function_call_callee env e = check_tainted_expr env e
 
@@ -1844,6 +1845,7 @@ let transfer :
   in
   check_tainted_at_exit_sinks node { env with lval_env = out' };
   { D.in_env = in'; out_env = out' }
+  [@@profiling]
 
 (*****************************************************************************)
 (* Entry point *)
