@@ -161,6 +161,8 @@ class Rule:
                 if value == "block":
                     return True
 
+            return False
+
         return blocking
 
     @property
