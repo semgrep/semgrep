@@ -39,7 +39,7 @@
         "numTimesScanned": 0,
         "parseTime": 0.0,
         "runTime": 0.0,
-        "size": 782
+        "size": 300
       },
       {
         "matchTime": 0.0,
@@ -53,7 +53,7 @@
         "numTimesScanned": 0,
         "parseTime": 0.0,
         "runTime": 0.0,
-        "size": 300
+        "size": 782
       }
     ],
     "maxMemoryBytes": 48693248,
