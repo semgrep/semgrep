@@ -268,11 +268,11 @@ let metavar_for_capture_group = "^\\(\\$[0-9]+\\)$"
 let is_metavar_for_capture_group s = s =~ metavar_for_capture_group
 
 module Syntactic = struct
-  let equal_mvalue = AST_generic_equals.with_syntactic_equal equal_mvalue
-  let equal_bindings = AST_generic_equals.with_syntactic_equal equal_bindings
+  let equal_mvalue ~__FILE__ ~__LINE__ = AST_generic_equals.with_syntactic_equal ~__FILE__ ~__LINE__ equal_mvalue
+  let equal_bindings ~__FILE__ ~__LINE__ = AST_generic_equals.with_syntactic_equal ~__FILE__ ~__LINE__ equal_bindings
 end
 
 module Structural = struct
-  let equal_mvalue = AST_generic_equals.with_structural_equal equal_mvalue
-  let equal_bindings = AST_generic_equals.with_structural_equal equal_bindings
+  let equal_mvalue ~__FILE__ ~__LINE__ = AST_generic_equals.with_structural_equal ~__FILE__ ~__LINE__ equal_mvalue
+  let equal_bindings ~__FILE__ ~__LINE__ = AST_generic_equals.with_structural_equal ~__FILE__ ~__LINE__ equal_bindings
 end

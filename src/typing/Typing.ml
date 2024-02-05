@@ -121,7 +121,7 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
         (* LATER: in theory we should look if the types are compatible,
          * and take the lowest upper bound of the two types *)
         let eq =
-          Type.equal (AST_generic_equals.with_structural_equal G.equal_name)
+          Type.equal (AST_generic_equals.with_structural_equal ~__FILE__ ~__LINE__ G.equal_name)
         in
         if eq t1 t2 then t1 else Type.NoType
       in

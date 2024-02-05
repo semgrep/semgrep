@@ -51,7 +51,7 @@
    so as to select structural or referential equality.
 *)
 
-type busy_with_equal = Not_busy | Structural_equal | Syntactic_equal
+type busy_with_equal = Not_busy | Structural_equal of string * int | Syntactic_equal of string * int
 (* old:  | Referential_equal *)
 
 (* global state! managed by the with_equal_* functions *)
@@ -64,8 +64,8 @@ let busy_with_equal = ref Not_busy
 let equal_id_info equal a b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
-  | Syntactic_equal -> true
-  | Structural_equal -> equal a b
+  | Syntactic_equal _ -> true
+  | Structural_equal _ -> equal a b
 
 (*
    Wrap one of the generated equal_* functions into one that selects
@@ -73,28 +73,28 @@ let equal_id_info equal a b =
    fields that may be affected by code around the variable (e.g. id_resolved,
    id_type.)
 *)
-let with_syntactic_equal equal a b =
+let with_syntactic_equal ~__FILE__ ~__LINE__ equal a b =
   match !busy_with_equal with
   | Not_busy ->
-      busy_with_equal := Syntactic_equal;
+      busy_with_equal := Syntactic_equal (__FILE__, __LINE__);
       Common.protect
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
-  | Syntactic_equal
-  | Structural_equal ->
-      failwith "an equal is already in progress"
+  | Syntactic_equal (file, line)
+  | Structural_equal (file, line) ->
+      failwith (Common.spf "an equal is already in progress at %s:%d" file line)
 
 (*
    Wrap one of the generated equal_* functions into one that selects
    structural equality, ignoring node IDs and position information)
 *)
-let with_structural_equal equal a b =
+let with_structural_equal ~__FILE__ ~__LINE__ equal a b =
   match !busy_with_equal with
   | Not_busy ->
-      busy_with_equal := Structural_equal;
+      busy_with_equal := Structural_equal (__FILE__, __LINE__);
       Common.protect
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
-  | Syntactic_equal
-  | Structural_equal ->
-      failwith "an equal is already in progress"
+  | Syntactic_equal (file, line)
+  | Structural_equal (file, line) ->
+      failwith (Common.spf "an equal is already in progress at %s:%d" file line)

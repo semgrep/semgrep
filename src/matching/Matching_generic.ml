@@ -269,7 +269,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         | None, _ ->
             true
         | Some i1, Some i2 ->
-            AST_generic_equals.with_structural_equal G.equal_id_info i1 i2
+            AST_generic_equals.with_structural_equal ~__FILE__ ~__LINE__ G.equal_id_info i1 i2
         | Some _, None -> false)
     (* In Ruby, they use atoms for metaprogramming to generate fields
      * (e.g., 'serialize :tags ... post.tags') in which case we want
@@ -337,7 +337,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
          * - position information (see adhoc AST_generic.equal_tok)
          * - id_svalue (see the special @equal for id_svalue)
          *)
-        MV.Structural.equal_mvalue a b
+        MV.Structural.equal_mvalue ~__FILE__ ~__LINE__ a b
     (* TODO still needed now that we have the better MV.Id of id_info? *)
     | MV.Id _, MV.E { e = G.N (G.Id (b_id, b_id_info)); _ } ->
         (* TOFIX: regression if remove this code *)

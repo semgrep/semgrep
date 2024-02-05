@@ -92,7 +92,7 @@ let compare_metavar_env env1 env2 =
      We use Stdlib.compare in the other case because deriving
      compare is rather difficult and the specific ordering doesn't
      matter. *)
-  if Metavariable.Structural.equal_bindings env1 env2 then 0
+  if Metavariable.Structural.equal_bindings ~__FILE__ ~__LINE__ env1 env2 then 0
   else Stdlib.compare env1 env2
 
 let compare_matches pm1 pm2 =

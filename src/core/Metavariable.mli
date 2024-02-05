@@ -78,11 +78,11 @@ val program_of_mvalue : mvalue -> AST_generic.program option
  * the Syntactic and Structural equal.
  *)
 module Syntactic : sig
-  val equal_mvalue : mvalue -> mvalue -> bool
-  val equal_bindings : bindings -> bindings -> bool
+  val equal_mvalue : __FILE__:string -> __LINE__:int -> mvalue -> mvalue -> bool
+  val equal_bindings : __FILE__:string -> __LINE__:int -> bindings -> bindings -> bool
 end
 
 module Structural : sig
-  val equal_mvalue : mvalue -> mvalue -> bool
-  val equal_bindings : bindings -> bindings -> bool
+  val equal_mvalue : __FILE__:string -> __LINE__:int -> mvalue -> mvalue -> bool
+  val equal_bindings : __FILE__:string -> __LINE__:int -> bindings -> bindings -> bool
 end

@@ -168,7 +168,7 @@ and rule_id = {
 
 (* Deduplicate matches *)
 let uniq (pms : t list) : t list =
-  let eq = AST_generic_equals.with_structural_equal equal in
+  let eq = AST_generic_equals.with_structural_equal ~__FILE__ ~__LINE__ equal in
   let tbl = Hashtbl.create 1_024 in
   pms
   |> List.iter (fun match_ ->
