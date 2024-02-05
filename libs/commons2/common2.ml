@@ -2577,15 +2577,21 @@ let unixname () =
   let entry = UUnix.getpwuid uid in
   entry.pw_name
 
-(* This regex matches the directory part a glob pattern
+(* This regex matches the directory part of a glob pattern
    used below. This way we are only trying to match
    files contained in the dir specified by the pattern or subdirs,
    instead of caluclating the contents of the entire
    working directory. I.e. tests/**/*.extension would
-   result in tests/ *)
-let dir_regex = Str.regexp "^[^*]*[*]"
+   result in tests/*. We include the trailing * so that
+   Filename.dirname returns the correct value. *)
+let dir_glob_regex = Str.regexp "^[^*]*[*]"
 
-let quote_everything_except_star s =
+(* This function behaves similarly to Re.quote
+   except it does not quote asterisks. Why do this?
+   - We need asterisks to be unquoted for Re.Glob.glob to work
+   - We need all other regex characters quoted so that we can correctly filter results
+*)
+let re_quote_except_star s =
   let len = String.length s in
   let buf = Buffer.create (2 * len) in
   for i = 0 to len - 1 do
@@ -2598,20 +2604,13 @@ let quote_everything_except_star s =
   Buffer.contents buf
 
 let glob pattern =
-  Str.search_forward dir_regex pattern 0 |> ignore;
-  let dir_to_glob = Str.matched_string pattern in
-  let dir = Filename.dirname dir_to_glob in
-  let quoted_pattern = quote_everything_except_star pattern in
+  Str.search_forward dir_glob_regex pattern 0 |> ignore;
+  let dir_with_glob = Str.matched_string pattern in
+  let dir = Filename.dirname dir_with_glob in
+  let quoted_pattern = re_quote_except_star pattern in
   let regex = quoted_pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
   let files = UCommon.dir_contents dir in
-  pr
-    (spf "glob pattern=%s, dir_to_glob=%s, dir=%s, files=%i, regex=%s" pattern
-       dir_to_glob dir (List.length files) (Format.sprintf ""));
-  files
-  |> List.filter (fun s ->
-         let m = Re.execp regex s in
-         pr (spf "  file=%s match=%s" s (if m then "t" else "f"));
-         m)
+  files |> List.filter (Re.execp regex)
 
 let sanity_check_files_and_adjust ext files =
   let files =
