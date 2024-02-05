@@ -122,7 +122,9 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
         else:
             platform_kind = "osx-x86_64"
     elif sys.platform.startswith("linux"):
-        if platform.machine().startswith("arm"):
+        if platform.machine().startswith("arm") or platform.machine().startswith(
+            "aarch"
+        ):
             platform_kind = "linux-arm64"
         else:
             platform_kind = "manylinux"
