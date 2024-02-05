@@ -2583,18 +2583,22 @@ let unixname () =
    instead of caluclating the contents of the entire
    working directory. I.e. tests/**/*.extension would
    result in tests/ *)
-let dir_regex = Str.regexp "^[^*]*"
+let dir_regex = Str.regexp "^[^*]*[*]"
 
 let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir_to_glob = Str.matched_string pattern in
-  let dir = Filename.basename dir_to_glob in
+  let dir = Filename.dirname dir_to_glob in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
   let files = UCommon.dir_contents dir in
   pr
-    (spf "glob pattern=%s, dir_to_glob=%s, dir=%s, files=%i" pattern dir_to_glob
-       dir (List.length files));
-  files |> List.filter (fun s -> Re.execp regex s)
+    (spf "glob pattern=%s, dir_to_glob=%s, dir=%s, files=%i, regex=%s" pattern
+       dir_to_glob dir (List.length files) (Format.sprintf ""));
+  files
+  |> List.filter (fun s ->
+         let m = Re.execp regex s in
+         pr (spf "  file=%s match=%s" s (if m then "t" else "f"));
+         m)
 
 let sanity_check_files_and_adjust ext files =
   let files =
