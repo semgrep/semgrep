@@ -497,8 +497,6 @@ class RuleMatch:
             else:
                 return blocking
         elif self.validation_state is not None:
-            # We want no validator to inherit the actions metadata, instead
-            # of validation state actions metadata
             return self.is_validation_state_blocking
         else:
             return blocking
