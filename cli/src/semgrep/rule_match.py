@@ -466,21 +466,21 @@ class RuleMatch:
         if self.validation_state is None:
             return False
 
-        validation_state_actions = self.metadata.get(
-            "dev.semgrep.validation_state.actions", {}
-        )
+        action_map = {
+            out.ConfirmedValid: "valid",
+            out.ConfirmedInvalid: "invalid",
+            out.ValidationError: "error",
+            out.NoValidator: "valid",  # Fallback to valid action for no validator
+        }
 
-        if isinstance(self.validation_state.value, out.ConfirmedValid):
-            return validation_state_actions.get("valid") == "block"
-        elif isinstance(self.validation_state.value, out.ConfirmedInvalid):
-            return validation_state_actions.get("invalid") == "block"
-        elif isinstance(self.validation_state.value, out.ValidationError):
-            return validation_state_actions.get("error") == "block"
-        elif isinstance(self.validation_state.value, out.NoValidator):
-            # Fallback to valid action for no validator
-            return validation_state_actions.get("valid") == "block"
-        else:
-            return False
+        validation_state = action_map.get(type(self.validation_state.value))
+
+        return (
+            self.metadata.get("dev.semgrep.validation_state.actions", {}).get(
+                validation_state
+            )
+            == "block"
+        )
 
     @property
     def is_blocking(self) -> bool:
