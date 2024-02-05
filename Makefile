@@ -318,10 +318,6 @@ install-deps: install-deps-for-semgrep-core
 # Alpine
 # -------------------------------------------------
 
-# This external package needs to be installed using `-i`
-# - curl-dev: for opentelemetry, which we use for tracing
-ALPINE_APK_DEPS_CORE_INDEXES=curl-dev
-
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
@@ -363,7 +359,7 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
-UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev curl-dev
+UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev libcurl-dev
 
 install-deps-UBUNTU-for-semgrep-core:
 	apt-get install -y $(UBUNTU_DEPS)
