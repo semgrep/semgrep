@@ -155,10 +155,7 @@ class Rule:
             "dev.semgrep.validation_state.actions"
         )
         if validation_state_metadata:
-            for value in validation_state_metadata.values():
-                if value == "block":
-                    return True
-            return False
+            return "block" in validation_state_metadata.values()
 
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
