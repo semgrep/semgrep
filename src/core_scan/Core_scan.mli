@@ -60,7 +60,7 @@ val rules_from_rule_source :
 
 val targets_of_config :
   Core_scan_config.t ->
-  Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
+  Target_location.t list * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
@@ -70,8 +70,8 @@ val targets_of_config :
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.extract_rule list ->
-  Input_to_core_t.code_target list ->
-  Input_to_core_t.target list * Extract.adjusters
+  Target_location.code list ->
+  Target_location.t list * Extract.adjusters
 (**
    Generate a list of new targets, which are extracted with extract rules
    from original targets. This returns also "adjusters" which are functions
@@ -86,7 +86,7 @@ val extracted_targets_of_config :
 val select_applicable_rules_for_target :
   analyzer:Xlang.t ->
   products:Semgrep_output_v1_t.product list ->
-  path:Fpath.t ->
+  source:Source.t ->
   respect_rule_paths:bool ->
   Rule.t list ->
   Rule.t list
@@ -133,9 +133,9 @@ val xtarget_of_file :
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
 val sort_targets_by_decreasing_size :
-  Input_to_core_t.target list -> Input_to_core_t.target list
+  Target_location.t list -> Target_location.t list
 
 val sort_code_targets_by_decreasing_size :
-  Input_to_core_t.code_target list -> Input_to_core_t.code_target list
+  Target_location.code list -> Target_location.code list
 
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences
