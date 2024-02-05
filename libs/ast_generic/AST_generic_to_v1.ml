@@ -824,6 +824,7 @@ and map_other_stmt_with_stmt_operator = function
   | OSWS_Iterator -> "S_Iterator"
   | OSWS_Todo -> "S_Todo"
   | OSWS_Block _TODO -> "S_Todo"
+  | OSWS_SEH -> "S_SEH"
 
 and map_condition = function
   | Cond v1 ->
