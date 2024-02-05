@@ -116,7 +116,7 @@ jobs:
     with:
       artifact-name: image-release
       repository-name: returntocorp/semgrep
-      dry-run: ${{ inputs.dry-run == 'true' }}
+      dry-run: ${{ inputs.dry-run }}
   push-docker-nonroot:
     needs:
     - wait-for-build-test
@@ -125,7 +125,7 @@ jobs:
     with:
       artifact-name: image-release-nonroot
       repository-name: returntocorp/semgrep
-      dry-run: ${{ inputs.dry-run == 'true' }}
+      dry-run: ${{ inputs.dry-run }}
   upload-wheels:
     name: Upload Wheels to PyPI
     runs-on: ubuntu-latest

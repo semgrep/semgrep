@@ -130,7 +130,7 @@ local push_docker_job(artifact_name) = {
   with: {
     'artifact-name': artifact_name,
     'repository-name': 'returntocorp/semgrep',
-    'dry-run': "${{ inputs.dry-run == 'true' }}",
+    'dry-run': "${{ inputs.dry-run }}",
   },
 };
 
