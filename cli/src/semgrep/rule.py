@@ -150,7 +150,18 @@ class Rule:
         """
         Returns if this rule indicates matches should block CI
         """
-        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+        blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
+        validation_state_metadata = self.metadata.get(
+            "dev.semgrep.validation_state.actions"
+        )
+
+        if validation_state_metadata:
+            for value in validation_state_metadata.values():
+                if value == "block":
+                    return True
+
+        return blocking
 
     @property
     def severity(self) -> out.MatchSeverity:

@@ -355,9 +355,13 @@ class ScanHandler:
             findings_by_product[f"{name}"] += len(f)
 
         complete = out.CiScanComplete(
-            exit_code=1
-            if any(match.is_blocking and not match.is_ignored for match in all_matches)
-            else 0,
+            exit_code=(
+                1
+                if any(
+                    match.is_blocking and not match.is_ignored for match in all_matches
+                )
+                else 0
+            ),
             dependency_parser_errors=dependency_parser_errors,
             stats=out.CiScanCompleteStats(
                 findings=len(

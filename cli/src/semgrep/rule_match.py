@@ -462,6 +462,27 @@ class RuleMatch:
         return UUID(hex=self.syntactic_id)
 
     @property
+    def is_validation_state_blocking(self) -> bool:
+        if self.validation_state is None:
+            return False
+
+        validation_state_actions = self.metadata.get(
+            "dev.semgrep.validation_state.actions", {}
+        )
+
+        if isinstance(self.validation_state.value, out.ConfirmedValid):
+            return validation_state_actions.get("valid") == "block"
+        elif isinstance(self.validation_state.value, out.ConfirmedInvalid):
+            return validation_state_actions.get("invalid") == "block"
+        elif isinstance(self.validation_state.value, out.ValidationError):
+            return validation_state_actions.get("error") == "block"
+        elif isinstance(self.validation_state.value, out.NoValidator):
+            # Fallback to valid action for no validator
+            return validation_state_actions.get("valid") == "block"
+        else:
+            return False
+
+    @property
     def is_blocking(self) -> bool:
         """
         Returns if this finding indicates it should block CI
@@ -475,6 +496,10 @@ class RuleMatch:
                 return False
             else:
                 return blocking
+        elif self.validation_state is not None:
+            # We want no validator to inherit the actions metadata, instead
+            # of validation state actions metadata
+            return self.is_validation_state_blocking
         else:
             return blocking
 
