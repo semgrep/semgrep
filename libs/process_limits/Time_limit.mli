@@ -25,3 +25,5 @@ val set_timeout : name:string -> float -> (unit -> 'a) -> 'a option
    Only set a timer if a time limit is specified. Uses 'set_timeout'.
 *)
 val set_timeout_opt : name:string -> float option -> (unit -> 'a) -> 'a option
+
+val protect_retry_if_timeout : finally:(unit -> unit) -> (unit -> 'a) -> 'a

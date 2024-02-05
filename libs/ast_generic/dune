@@ -8,6 +8,7 @@
 
    commons
    lib_parsing
+   process_limits
  )
  (preprocess
    (pps

@@ -77,7 +77,7 @@ let with_syntactic_equal ~__FILE__ ~__LINE__ equal a b =
   match !busy_with_equal with
   | Not_busy ->
       busy_with_equal := Syntactic_equal (__FILE__, __LINE__);
-      Common.protect
+      Time_limit.protect_retry_if_timeout
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
   | Syntactic_equal (file, line)
@@ -92,7 +92,7 @@ let with_structural_equal ~__FILE__ ~__LINE__ equal a b =
   match !busy_with_equal with
   | Not_busy ->
       busy_with_equal := Structural_equal (__FILE__, __LINE__);
-      Common.protect
+      Time_limit.protect_retry_if_timeout
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
   | Syntactic_equal (file, line)

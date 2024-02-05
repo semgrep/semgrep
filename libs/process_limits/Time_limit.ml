@@ -112,3 +112,20 @@ let set_timeout_opt ~name time_limit f =
   match time_limit with
   | None -> Some (f ())
   | Some x -> set_timeout ~name x f
+
+
+let protect_retry_if_timeout ~finally work =
+  let finally_raised exn1 exn =
+      (* Just re-raise whatever exception was raised during a 'finally',
+       * drop 'Finally_raised'.
+       *)
+      logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
+      Exception.catch_and_reraise exn1
+  in
+  (* nosemgrep: no-fun-protect *)
+  try Fun.protect ~finally work with
+  | Fun.Finally_raised (Timeout _ as exn1) as exn ->
+      finally();
+      finally_raised exn1 exn
+  | Fun.Finally_raised exn1 as exn ->
+      finally_raised exn1 exn
