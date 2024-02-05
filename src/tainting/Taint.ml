@@ -136,12 +136,18 @@ type arg_pos = { name : string; index : int } [@@deriving show, ord]
 type arg_base = BGlob of IL.name | BThis | BArg of arg_pos
 [@@deriving show, ord]
 
-type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
+type arg_index = Ii of int | Is of string | Iany
+[@@deriving show, ord]
+
+type arg_offset = ON of IL.name | OI of arg_index
+[@@deriving show, ord]
+
+type arg = { base : arg_base; offset : arg_offset list } [@@deriving show]
 
 let compare_arg { base = base1; offset = offset1 }
     { base = base2; offset = offset2 } =
   match compare_arg_base base1 base2 with
-  | 0 -> List.compare IL_helpers.compare_name offset1 offset2
+  | 0 -> List.compare compare_arg_offset offset1 offset2
   | other -> other
 
 let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
@@ -152,12 +158,19 @@ let _show_base base =
   | BThis -> "this"
   | BArg pos -> _show_pos pos
 
+let _show_offset offset = 
+  match offset with
+  | ON n -> "." ^ fst n.IL.ident
+  | OI (Iany) -> "[*]"
+  | OI (Ii i) -> Printf.sprintf "[%d]" i
+  | OI (Is s) -> Printf.sprintf "[%s]" s
+
 let _show_arg { base; offset = os } =
   _show_base base
   ^
   if os <> [] then
     let os_str =
-      os |> List_.map (fun n -> fst n.IL.ident) |> String.concat "."
+      os |> List_.map _show_offset |> String.concat ""
     in
     "." ^ os_str
   else ""

@@ -635,21 +635,22 @@ let find_pos_in_actual_args args_taints fparams =
     taint_opt
 
 let fix_poly_taint_with_field env lval st =
-  if env.lang =*= Lang.Java || Lang.is_js env.lang then
-    match lval.rev_offset with
-    | { o = Dot n; _ } :: _ -> (
+  if env.lang =*= Lang.Java || Lang.is_js env.lang || env.lang =*= Lang.Python then
         match st with
         | `Sanitized
         | `Clean
         | `None ->
             st
         | `Tainted taints -> (
+    match lval.rev_offset with
+    | { o = Dot n; _ } :: _ -> (
             match !(n.id_info.id_type) with
             | Some { t = TyFun _; _ } ->
                 (* We have an l-value like `o.f` where `f` has a function type,
                  * so it's a method call, we do nothing here. *)
                 st
             | __else__ ->
+                let o = T.ON n in
                 (* Not a method call (to the best of our knowledge) or
                  * an unresolved Java `getX` method. *)
                 let taints' =
@@ -666,7 +667,7 @@ let fix_poly_taint_with_field env lval st =
                                    if `x` started with an `Arg` taint:
                                    while (true) { x = x.getX(); }
                                 *)
-                                (not (List.mem n offset))
+                                (not (List.mem o offset))
                                 && (* For perf reasons we don't allow offsets to get too long.
                                     * Otherwise in a long chain of function calls where each
                                     * function adds some offset, we could end up a very large
@@ -682,7 +683,7 @@ let fix_poly_taint_with_field env lval st =
                                 List.length offset
                                 < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
-                               { arg with offset = arg.offset @ [ n ] }
+                               { arg with offset = arg.offset @ [ o ] }
                              in
                              { taint with orig = Arg arg' }
                          | Src _
@@ -690,10 +691,54 @@ let fix_poly_taint_with_field env lval st =
                          | Control ->
                              taint)
                 in
-                `Tainted taints'))
+                `Tainted taints')                
+    | { o = Index { e = Literal (Int (Some i, _)); _ }; _ } :: _ -> (
+                let o = T.OI (Ii (Int64.to_int i)) in
+                (* Not a method call (to the best of our knowledge) or
+                 * an unresolved Java `getX` method. *)
+                let taints' =
+                  taints
+                  |> Taints.map (fun taint ->
+                         match taint.orig with
+                         | Arg ({ offset; _ } as arg)
+                           when (* If the offset we are trying to take is already in the
+                                   list of offsets, don't append it! This is so we don't
+                                   never-endingly loop the dataflow and make it think the
+                                   Arg taint is never-endingly changing.
+
+                                   For instance, this code example would previously loop,
+                                   if `x` started with an `Arg` taint:
+                                   while (true) { x = x.getX(); }
+                                *)
+                                (not (List.mem o offset))
+                                && (* For perf reasons we don't allow offsets to get too long.
+                                    * Otherwise in a long chain of function calls where each
+                                    * function adds some offset, we could end up a very large
+                                    * amount of polymorphic taint.
+                                    * This actually happened with rule
+                                    * semgrep.perf.rules.express-fs-filename from the Pro
+                                    * benchmarks, and file
+                                    * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
+                                    *
+                                    * TODO: This is way less likely to happen if we had better
+                                    *   type info and we used to remove taint, e.g. if Boolean
+                                    *   and integer expressions didn't propagate taint. *)
+                                List.length offset
+                                < Limits_semgrep.taint_MAX_POLY_OFFSET ->
+                             let arg' =
+                               { arg with offset = arg.offset @ [ o ] }
+                             in
+                             { taint with orig = Arg arg' }
+                         | Src _
+                         | Arg _
+                         | Control ->
+                             taint)
+                in
+                `Tainted taints')                
     | _ :: _
     | [] ->
         st
+                )
   else st
 
 (*****************************************************************************)
@@ -1267,7 +1312,13 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
      * `obj`. *)
     (lval * T.tainted_token) option =
   let os =
-    sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
+    sig_arg.offset |> List_.map (fun x -> 
+      match x with
+      | T.ON x -> { o = Dot x; oorig = NoOrig }
+      | T.OI (Ii i) -> { o = Index ({e = Literal (G.Int (Parsed_int.of_int i)); eorig = NoOrig}); oorig = NoOrig }
+      | T.OI (Is s) -> { o = Index ({e = Literal (G.String (Tok.unsafe_fake_bracket (s, Tok.unsafe_fake_tok "fake"))); eorig = NoOrig}); oorig = NoOrig }
+      | T.OI Iany -> assert false (* TODO: ... *)
+      )
   in
   let* lval, obj =
     match sig_arg.base with
@@ -1299,9 +1350,9 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
               }
             in
             Some (lval, obj)
-        | Record fields, [ o ] -> (
+        | Record fields, [ ON o ] -> (
             (* JS: The argument of a function call may be a record expression such as
-             * `{x="tainted"l, y="safe"}`, if 'sig_arg' refers to the `x` field then
+             * `{x="tainted", y="safe"}`, if 'sig_arg' refers to the `x` field then
              * we want to resolve it to `"tainted"`. *)
             match
               fields
