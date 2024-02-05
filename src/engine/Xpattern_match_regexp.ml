@@ -93,10 +93,11 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
          ((loc1, loc2), names_env @ numbers_env))
 
 let matches_of_regexs regexps lazy_content (file : string) =
+  let file = Fpath.v file in
   matches_of_matcher regexps
     {
       init = (fun _ -> Some (Lazy.force lazy_content));
       matcher = regexp_matcher;
     }
-    (Fpath.v file)
+    file (File file)
 [@@profiling]

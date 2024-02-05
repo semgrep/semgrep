@@ -88,7 +88,7 @@ let ranges_matched lang file pattern : Range.t list =
         *))
       (Rule_options.default_config, equiv)
       [ rule ]
-      (Fpath.v file, lang, ast)
+      (Fpath.v file, File (Fpath.v file), lang, ast)
   in
   List_.map extract_range matches
 

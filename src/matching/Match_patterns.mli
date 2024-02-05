@@ -17,7 +17,7 @@ val check :
   ?range_filter:(Tok.location * Tok.location -> bool) ->
   Rule_options.t * Equivalence.equivalences ->
   Mini_rule.rules ->
-  Fpath.t * Lang.t * Target.t ->
+  Fpath.t * Source.t * Lang.t * Target.t ->
   Pattern_match.t list
 
 val last_matched_rule : Mini_rule.t option ref

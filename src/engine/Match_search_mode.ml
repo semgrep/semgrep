@@ -199,7 +199,8 @@ let debug_semgrep config mini_rules file lang ast =
          let res =
            Match_patterns.check
              ~hook:(fun _ -> ())
-             config [ mr ] (file, lang, ast)
+             config [ mr ]
+             (file, File file, lang, ast)
          in
          if !debug_matches then
            (* TODO
@@ -224,8 +225,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
-  let { Xtarget.source = _; file; xlang; lazy_ast_and_errors; lazy_content = _ }
-      =
+  let { Xtarget.source; file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
   in
   let config = (xconf.config, xconf.equivs) in
@@ -249,7 +249,8 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules (file, lang, ast))
+                ?mvar_context ?range_filter config mini_rules
+                (file, source, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.make_match_result matches errors
@@ -380,6 +381,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                file = env.xtarget.file;
+               source = env.xtarget.source;
                range_loc;
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;

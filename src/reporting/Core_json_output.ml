@@ -223,23 +223,23 @@ let unsafe_match_to_match
     Metavar_replacement.interpolate_metavars x.rule_id.message
       (Metavar_replacement.of_bindings x.env)
   in
-  (* We need to do this, because in Terraform, we may end up with a `file` which
-     does not correspond to the actual location of the tokens. This `file` is
-     erroneous, and should be replaced by the location of the code of the match,
-     if possible. Not if it's fake, though.
-     In other languages, this should hopefully not happen.
-  *)
-  let file =
-    if
-      (!!(x.file) <> min_loc.pos.file || !!(x.file) <> max_loc.pos.file)
-      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
-    then min_loc.pos.file
-    else !!(x.file)
-  in
   {
     check_id = x.rule_id.id;
     (* inherited location *)
-    path = Fpath.v file;
+    path =
+      (match x.source with
+      (* We need to do this, because in Terraform, we may end up with a `file` which
+         does not correspond to the actual location of the tokens. This `file` is
+         erroneous, and should be replaced by the location of the code of the match,
+         if possible. Not if it's fake, though.
+         In other languages, this should hopefully not happen.
+      *)
+      | File path ->
+          if
+            (!!path <> min_loc.pos.file || !!path <> max_loc.pos.file)
+            && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+          then Fpath.v min_loc.pos.file
+          else path);
     start = startp;
     end_ = endp;
     (* end inherited location *)

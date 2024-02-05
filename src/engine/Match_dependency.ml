@@ -87,6 +87,7 @@ let check_rule rule (target : Lockfile_target.t) dependency_formula =
                    pattern_string = "";
                  };
                file = target.file;
+               source = target.source;
                (* TODO: should be pro? Where is this supposed to be set? *)
                engine_kind = `OSS;
                range_loc = dep.Dependency.loc;

@@ -49,6 +49,7 @@ let matches_of_aliengrep patterns lazy_contents (file : string) =
     (* TODO: preprocess and remove comments like spacegrep does *)
     Some (Lazy.force lazy_contents)
   in
+  let file = Fpath.v file in
   Xpattern_matcher.matches_of_matcher patterns
     { init; matcher = aliengrep_matcher }
-    (Fpath.v file)
+    file (File file)

@@ -211,7 +211,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
                      minirule
-                     (Fpath.v file, lang, ast)
+                     (Fpath.v file, File (Fpath.v file), lang, ast)
                    |> ignore)
              in
 

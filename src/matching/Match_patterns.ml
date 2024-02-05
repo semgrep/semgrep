@@ -139,7 +139,8 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     langs = mr.langs;
   }
 
-let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
+let match_rules_and_recurse m_env (file, source, hook, matches) rules matcher k
+    any x =
   rules
   |> List.iter (fun (pattern, rule) ->
          let matches_with_env = matcher rule pattern x m_env in
@@ -164,6 +165,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                         {
                           PM.rule_id;
                           file;
+                          source;
                           env = mv;
                           range_loc;
                           tokens;
@@ -203,7 +205,7 @@ let list_original_tokens_stmts stmts =
  * See also docs for {!check} in Match_pattern.mli.
  *)
 let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
-    (config, equivs) rules (file, lang, ast) =
+    (config, equivs) rules (file, source, lang, ast) =
   logger#trace "checking %s with %d mini rules" !!file (List.length rules);
 
   let rules =
@@ -335,6 +337,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                 {
                                   PM.rule_id;
                                   file;
+                                  source;
                                   env = mv;
                                   range_loc;
                                   tokens;
@@ -397,6 +400,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   {
                                     PM.rule_id;
                                     file;
+                                    source;
                                     env = mv;
                                     range_loc;
                                     tokens;
@@ -447,6 +451,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     {
                                       PM.rule_id;
                                       file;
+                                      source;
                                       env = mv;
                                       range_loc;
                                       tokens;
@@ -463,34 +468,39 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
           super#v_stmts env x
 
         method! visit_type_ env x =
-          match_rules_and_recurse m_env (file, hook, matches) !type_rules
-            match_t_t (super#visit_type_ env)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !type_rules match_t_t (super#visit_type_ env)
             (fun x -> T x)
             x
 
         method! visit_pattern env x =
-          match_rules_and_recurse m_env (file, hook, matches) !pattern_rules
-            match_p_p (super#visit_pattern env)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !pattern_rules match_p_p (super#visit_pattern env)
             (fun x -> P x)
             x
 
         method! visit_attribute env x =
-          match_rules_and_recurse m_env (file, hook, matches) !attribute_rules
-            match_at_at
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !attribute_rules match_at_at
             (super#visit_attribute env)
             (fun x -> At x)
             x
 
         method! visit_xml_attribute env x =
-          match_rules_and_recurse m_env (file, hook, matches)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
             !xml_attribute_rules match_xml_attribute_xml_attribute
             (super#visit_xml_attribute env)
             (fun x -> XmlAt x)
             x
 
         method! visit_field env x =
-          match_rules_and_recurse m_env (file, hook, matches) !fld_rules
-            match_fld_fld (super#visit_field env)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !fld_rules match_fld_fld (super#visit_field env)
             (fun x -> Fld x)
             x
 
@@ -543,6 +553,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     {
                                       PM.rule_id;
                                       file;
+                                      source;
                                       env = mv;
                                       range_loc;
                                       tokens;
@@ -556,27 +567,31 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   in
                                   Stack_.push pm matches;
                                   hook pm)));
-          match_rules_and_recurse m_env (file, hook, matches) !flds_rules
-            match_flds_flds (super#v_fields env)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !flds_rules match_flds_flds (super#v_fields env)
             (fun x -> Flds x)
             x
 
         method! v_partial ~recurse env x =
-          match_rules_and_recurse m_env (file, hook, matches) !partial_rules
-            match_partial_partial
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !partial_rules match_partial_partial
             (super#v_partial ~recurse env)
             (fun x -> Partial x)
             x
 
         method! visit_name env x =
-          match_rules_and_recurse m_env (file, hook, matches) !name_rules
-            match_name_name (super#visit_name env)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !name_rules match_name_name (super#visit_name env)
             (fun x -> Name x)
             x
 
         method! visit_raw_tree env x =
-          match_rules_and_recurse m_env (file, hook, matches) !raw_rules
-            match_raw_raw (super#visit_raw_tree env)
+          match_rules_and_recurse m_env
+            (file, source, hook, matches)
+            !raw_rules match_raw_raw (super#visit_raw_tree env)
             (fun x -> Raw x)
             x
       end
