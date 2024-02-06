@@ -122,7 +122,7 @@ Logging into Semgrep gets you access to:
 
 3.  Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
 
-4.  Try writing your own query interactively with `-e`. E.g., a check for Python == where the left and right hand sides are the same (potentially a bug):
+4.  Try writing your own query interactively with `-e`. For example, a check for Python == where the left and right hand sides are the same (potentially a bug):
 `$ semgrep -e '$X == $X' --lang=py path/to/src`
 
 ### Semgrep Ecosystem
