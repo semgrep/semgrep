@@ -179,6 +179,8 @@ let sort_code_targets_by_decreasing_size (targets : Target_location.code list) :
   targets
   |> List_.sort_by_key
        (fun (target : Target_location.code) -> UFile.filesize target.file)
+       (* Flip the comparison so we get descending,
+        * instead of ascending, order *)
        (Fun.flip Int.compare)
 
 let sort_targets_by_decreasing_size (targets : Target_location.t list) :
@@ -186,6 +188,8 @@ let sort_targets_by_decreasing_size (targets : Target_location.t list) :
   targets
   |> List_.sort_by_key
        (fun target -> UFile.filesize (Target_location.file target))
+       (* Flip the comparison so we get descending,
+        * instead of ascending, order *)
        (Fun.flip Int.compare)
 
 (* In some context, a target passed in might have disappeared, or have been
