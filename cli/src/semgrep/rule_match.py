@@ -496,10 +496,8 @@ class RuleMatch:
                 return False
             else:
                 return blocking
-        elif self.validation_state is not None:
-            return self.is_validation_state_blocking
         else:
-            return blocking
+            return self.is_validation_state_blocking or blocking
 
     @property
     def dataflow_trace(self) -> Optional[out.MatchDataflowTrace]:

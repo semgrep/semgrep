@@ -461,7 +461,10 @@ def create_validator_rule_match(
 ):
     return RuleMatch(
         message="message",
-        metadata={"dev.semgrep.validation_state.actions": validation_state_actions},
+        metadata={
+            "dev.semgrep.actions": ["monitor"],
+            "dev.semgrep.validation_state.actions": validation_state_actions,
+        },
         severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule.id"),
