@@ -401,14 +401,23 @@ def enable_dependency_query() -> bool:
 
 
 @pytest.fixture
+def enabled_products() -> List[str]:
+    return ["sast", "sca"]
+
+
+@pytest.fixture
 def start_scan_mock(
-    requests_mock, scan_config, mocked_scan_id, enable_dependency_query
+    requests_mock,
+    scan_config,
+    mocked_scan_id,
+    enable_dependency_query,
+    enabled_products,
 ):
     start_scan_response = out.ScanResponse.from_json(
         {
             "info": {
                 **({"id": mocked_scan_id} if mocked_scan_id else {}),
-                "enabled_products": ["sast", "sca"],
+                "enabled_products": enabled_products,
                 "deployment_id": DEPLOYMENT_ID,
                 "deployment_name": "org_name",
             },
@@ -1857,6 +1866,71 @@ def test_metrics_enabled(
         use_click_runner=True,
     )
     mock_send.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+        rules:
+          - id: secrets.my_secret
+            pattern: $X == $X
+            languages: [python]
+            severity: INFO
+            message: bad
+            metadata:
+                dev.semgrep.validation_state.actions:
+                    valid: block
+                    invalid: comment
+                    error: disabled
+            validators:
+            - http:
+                request:
+                    headers:
+                        Authorization: Bearer $REGEX
+                        Host: api.example.com
+                        User-Agent: Semgrep
+                    method: GET
+                    url: https://api.example.com/user
+                response:
+                  - match:
+                        - status-code: "200"
+                    result:
+                    metadata:
+                        confidence: HIGH
+                    validity: valid
+            """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
+@pytest.mark.parametrize("enabled_products", [["secrets"]])
+@pytest.mark.osemfail
+def test_validator_rule_finding(
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
+):
+    """
+    Test that a rule with a validation error is reported as a finding
+    """
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    # Since metadata blocks on valid/no-validator findings, the exit code should be 1
+    assert result.exit_code == 1
 
 
 @pytest.mark.parametrize(

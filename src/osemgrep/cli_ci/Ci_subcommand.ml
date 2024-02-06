@@ -322,15 +322,23 @@ let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
 let is_blocking (json : JSON.t) =
   match json with
   | JSON.Object xs -> (
-      match List.assoc_opt "dev.semgrep.actions" xs with
-      | Some (JSON.Array stuff) ->
+      match List.assoc_opt "dev.semgrep.validation_state.actions" xs with
+      | Some (JSON.Object vs) ->
           List.exists
             (function
-              | JSON.String s -> String.equal s "block"
-              | _else -> false)
-            stuff
-      | _else -> false)
-  | _else -> false
+              | _, JSON.String s -> String.equal s "block"
+              | _ -> false)
+            vs
+      | _ -> (
+          match List.assoc_opt "dev.semgrep.actions" xs with
+          | Some (JSON.Array stuff) ->
+              List.exists
+                (function
+                  | JSON.String s -> String.equal s "block"
+                  | _ -> false)
+                stuff
+          | _ -> false))
+  | _ -> false
 
 (* partition rules *)
 let partition_rules (filtered_rules : Rule.t list) =
