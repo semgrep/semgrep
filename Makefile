@@ -362,6 +362,7 @@ install-deps-ALPINE-for-pysemgrep:
 UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev libcurl4-openssl-dev
 
 install-deps-UBUNTU-for-semgrep-core:
+    sudo apt-get update
 	apt-get install -y $(UBUNTU_DEPS)
 
 # -------------------------------------------------
