@@ -108,7 +108,7 @@ jobs:
     steps:
     - name: Continue
       run: echo "All Platforms have been built and tested - proceeding!"
-  push-docker:
+  push-docker-returntocorp:
     needs:
     - wait-for-build-test
     uses: ./.github/workflows/push-docker.yaml
@@ -117,7 +117,7 @@ jobs:
       artifact-name: image-release
       repository-name: returntocorp/semgrep
       dry-run: ${{ inputs.dry-run }}
-  push-docker-nonroot:
+  push-docker-returntocorp-nonroot:
     needs:
     - wait-for-build-test
     uses: ./.github/workflows/push-docker.yaml
@@ -125,6 +125,24 @@ jobs:
     with:
       artifact-name: image-release-nonroot
       repository-name: returntocorp/semgrep
+      dry-run: ${{ inputs.dry-run }}
+  push-docker-semgrep:
+    needs:
+    - wait-for-build-test
+    uses: ./.github/workflows/push-docker.yaml
+    secrets: inherit
+    with:
+      artifact-name: image-release
+      repository-name: semgrep/semgrep
+      dry-run: ${{ inputs.dry-run }}
+  push-docker-semgrep-nonroot:
+    needs:
+    - wait-for-build-test
+    uses: ./.github/workflows/push-docker.yaml
+    secrets: inherit
+    with:
+      artifact-name: image-release-nonroot
+      repository-name: semgrep/semgrep
       dry-run: ${{ inputs.dry-run }}
   upload-wheels:
     name: Upload Wheels to PyPI
