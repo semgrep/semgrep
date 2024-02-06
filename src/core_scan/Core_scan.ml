@@ -869,7 +869,8 @@ let extracted_targets_of_config (config : Core_scan_config.t)
     extracted_targets
     |> List_.map
          (fun
-           Extract.{ extracted = Extracted file; analyzer; _ }
+           ({ extracted = Extracted file; analyzer; _ } :
+             Extract.extracted_target_and_adjuster)
            :
            Target_location.t
          ->

@@ -188,7 +188,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       let files =
         target_info
         |> List_.map (function
-               | Target_location.Code { file; _ }
+               | (Code { file; _ } : Target_location.t)
                | Lockfile { file; _ }
                -> Fpath.to_string file)
       in
