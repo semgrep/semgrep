@@ -612,11 +612,11 @@ def ci(
             )
 
         logger.info(
-            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+            f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings"
         )
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(
-                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+                f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain"
             )
 
     audit_mode = metadata.event_name in audit_on

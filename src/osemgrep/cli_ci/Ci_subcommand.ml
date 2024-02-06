@@ -611,7 +611,10 @@ let upload_findings ~dry_run (caps : < Cap.network ; .. >)
       in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m "    https://semgrep.dev/orgs/%s/findings" deployment_config.name);
+          m
+            "          (Uri.to_string \
+             !Semgrep_envvars.v.semgrep_url)/orgs/%s/findings"
+            deployment_config.name);
       if
         filtered_rules
         |> List.exists (fun r ->
@@ -619,7 +622,9 @@ let upload_findings ~dry_run (caps : < Cap.network ; .. >)
                  (Rule_ID.to_string (fst r.Rule.id)))
       then
         Logs.app (fun m ->
-            m "    https://semgrep.dev/orgs/%s/supply-chain"
+            m
+              "          (Uri.to_string \
+               !Semgrep_envvars.v.semgrep_url)/orgs/%s/supply-chain"
               deployment_config.name);
       override
   | _ -> None
