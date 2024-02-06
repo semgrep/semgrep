@@ -1,6 +1,49 @@
 module OutT = Semgrep_output_v1_t
 open Common
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Hashing functions to identify semgrep findings. This is mostly useful
+ * for the Semgrep backend to know whether a finding has already been reported
+ * because it matches the same hash than a previous finding (from a previous
+ * scan).
+ * This module provides 2 hashing functions:
+ *  - "CI/CLI unique key", using murmur, a.k.a "Syntactic ID"
+ *  - "Match-based" ID
+ *
+ * Why two hashing functions? From Austin:
+ * "
+ *  We had the original cli match hash (the one with murmur), but that one
+ *  changes whenever file formatting changes. "Match-based" ID tried to fix
+ *  this, but in the long term we noticed that it doesn't have as much
+ *  granularity as cli match, so sometimes some matches will have the same
+ *  match-based ID but not be the same. We've discussed getting rid of cli
+ *  match (it's also insecure using the murmur hash, especially for secrets...),
+ *  but it would be a big effort apparently and break some things.
+ * "
+ *
+ * For full context, see also
+ * https://www.notion.so/semgrep/Identifying-unique-findings-match_based_id-and-syntactic_id-cf1a59099c06417d96f777802050ea18#0fde2306cb7c4c5991387b458dcfb064
+ *
+ * As summarized by Pang:
+ *
+ * Hashing process:
+ * 1. Generate a hash from a combination of:
+ *  - The file path
+ *  - The rule name
+ *  - The rule pattern with the metavariables’ values substituted in
+ * 2. Tacking an index at the end _# to differentiate findings from the same
+ *    rule within the same file
+ *
+ * e.g. if we have the hash 123AVDe234 from step 1 and the finding is the first
+ * instance seen in the file, the hash we store would be 123AVDe234_0.
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (* From rule_match.py:
    # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
    # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
@@ -32,6 +75,10 @@ let name (c : OutT.cli_match) =
         | None -> default)
     | None -> default
   else default
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let cli_unique_key (c : OutT.cli_match) =
   (* type-wise this is a tuple of string * string * int * int * string * string option *)
