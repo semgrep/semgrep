@@ -486,9 +486,18 @@ and stmt =
   (* co_return and co_yield *)
   | CoStmt of co_operator wrap * expr option
   | AsmStmt of tok * assembler bracket * sc
+  (* Microsoft-specific:
+     https://learn.microsoft.com/en-us/cpp/cpp/try-finally-statement?view=msvc-170
+  *)
+  | MsTry of tok (* "__try__" *) * compound * ms_try_handler
+  | MsLeave of tok (* "__leave" *)
   (* old: c++ext: gccext: there was a DeclStmt and NestedFunc before, but they
    * are now handled by stmt_or_decl *)
   | StmtTodo of todo_category * stmt list
+
+and ms_try_handler =
+  | MsExcept of tok (* "__except" *) * expr paren * compound
+  | MsFinally of tok (* "__finally" *) * compound
 
 (* c++ext: *)
 and co_operator = Co_return | Co_yield
@@ -705,7 +714,14 @@ and initialiser =
 
 (* ex: [2].y = x,  or .y[2]  or .y.x. They can be nested *)
 and designator =
-  | DesignatorField of tok (* . *) * ident
+  (* This token is an option, because an alternate (but equivalent) form
+     (deprecated since GCC 2.5) looks like
+     { y: yvalue }
+      instead of
+     { .y = yvalue }
+     https://gcc.gnu.org/onlinedocs/gcc/Designated-Inits.html
+  *)
+  | DesignatorField of tok (* . *) option * ident
   | DesignatorIndex of expr bracket
   | DesignatorRange of (expr * tok (*...*) * expr) bracket
 
@@ -809,7 +825,7 @@ and enum_definition = {
   enum_kind : tok; (* 'enum'  TODO also enum class/struct *)
   enum_name : name option;
   (* TODO: enum_base: *)
-  enum_body : enum_elem list brace;
+  enum_body : enum_elem sequencable list brace;
 }
 
 and enum_elem = { e_name : ident; e_val : (tok (*=*) * a_const_expr) option }
@@ -1011,6 +1027,7 @@ and a_cppExpr = expr
 
 (* ------------------------------------------------------------------------- *)
 (* cppext: #ifdefs *)
+(* coupling: this is the same as in Ast_c! *)
 (* ------------------------------------------------------------------------- *)
 and 'a sequencable =
   | X of 'a

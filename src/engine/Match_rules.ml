@@ -161,8 +161,14 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
-    rules xtarget =
+let check ~match_hook ~timeout ~timeout_threshold
+    ?(dependency_match_table : Match_dependency.dependency_match_table option)
+    (xconf : Match_env.xconfig) rules xtarget =
+  let get_dep_matches =
+    match dependency_match_table with
+    | Some table -> Hashtbl.find_opt table
+    | None -> fun _ -> None
+  in
   let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
   logger#trace "checking %s with %d rules" !!file (List.length rules);
   (match (!Profiling.profile, xlang) with
@@ -188,12 +194,13 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
-           Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
-             relevant_taint_rules xconf xtarget)
+           Match_tainting_mode.check_rules ~get_dep_matches ~match_hook
+             ~per_rule_boilerplate_fn relevant_taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
     |> List_.map (fun r ->
+           let dependency_matches = get_dep_matches (fst r.R.id) in
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -203,8 +210,8 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                (* dispatching *)
                match r.R.mode with
                | `Search _ as mode ->
-                   Match_search_mode.check_rule { r with mode } match_hook xconf
-                     xtarget
+                   Match_search_mode.check_rule ?dependency_matches
+                     { r with mode } match_hook xconf xtarget
                | `Extract extract_spec ->
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
