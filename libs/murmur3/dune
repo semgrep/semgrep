@@ -1,0 +1,7 @@
+(library
+ (name murmur3)
+ (public_name murmur3)
+ (foreign_stubs
+  (language c)
+  (names MurmurHash3 Murmur3_stubs)
+  (flags (:standard))))
