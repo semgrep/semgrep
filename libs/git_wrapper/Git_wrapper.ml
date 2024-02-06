@@ -16,7 +16,7 @@ open Common
 open Sexplib.Std
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -353,7 +353,8 @@ let run_with_worktree ~commit ?(branch = None) f =
         cwd |> Fpath.to_string |> UUnix.chdir;
         let cmd = (git, [ "worktree"; "remove"; temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
-        | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
+        | Ok (`Exited 0) ->
+            Logs.info (fun m -> m ~tags "Finished cleaning up git worktree")
         | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
         | Error (`Msg e) -> raise (Error e)
       in
@@ -405,8 +406,9 @@ let status ?cwd ?commit () =
   let renamed = ref [] in
   let rec parse = function
     | _ :: file :: tail when check_dir file && check_symlink file ->
-        logger#info "Skipping %s since it is a symlink to a directory: %s" file
-          (UUnix.realpath file);
+        Logs.info (fun m ->
+            m ~tags "Skipping %s since it is a symlink to a directory: %s" file
+              (UUnix.realpath file));
         parse tail
     | "A" :: file :: tail ->
         added := file :: !added;
@@ -431,10 +433,12 @@ let status ?cwd ?commit () =
     | "!" (* ignored *) :: _ :: tail -> parse tail
     | "?" (* untracked *) :: _ :: tail -> parse tail
     | unknown :: file :: tail ->
-        logger#warning "unknown type in git status: %s, %s" unknown file;
+        Logs.warn (fun m ->
+            m ~tags "unknown type in git status: %s, %s" unknown file);
         parse tail
     | [ remain ] ->
-        logger#warning "unknown data after parsing git status: %s" remain
+        Logs.warn (fun m ->
+            m ~tags "unknown data after parsing git status: %s" remain)
     | [] -> ()
   in
   parse stats;

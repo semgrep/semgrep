@@ -24,7 +24,7 @@ module SJ = Semgrep_output_v1_j
 module Set = Set_
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -248,15 +248,17 @@ let run_checks config fparser metachecks xs =
   let _skipped_paths = more_skipped_paths @ skipped_paths in
   match rules with
   | [] ->
-      logger#error
-        "no valid yaml rules to run on (.test.yaml files are excluded)";
+      Logs.err (fun m ->
+          m ~tags
+            "no valid yaml rules to run on (.test.yaml files are excluded)");
       []
   | _ ->
       let semgrep_found_errs = semgrep_check config metachecks rules in
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
-               logger#info "processing %s" !!file;
+               Logs.debug (fun m ->
+                   m ~tags "run_checks: processing rule file %s" !!file);
                try
                  let rs = fparser file in
                  rs |> List.concat_map (fun file -> check file)
@@ -305,7 +307,8 @@ let stat_files fparser xs =
   let cache = Some (Hashtbl.create 101) in
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing %s" !!file;
+         Logs.debug (fun m ->
+             m ~tags "stat_files: processing rule file %s" !!file);
          let rs = fparser file in
          rs
          |> List.iter (fun r ->

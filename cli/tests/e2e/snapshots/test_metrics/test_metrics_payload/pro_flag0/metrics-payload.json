@@ -56,7 +56,7 @@
         "size": 300
       }
     ],
-    "maxMemoryBytes": 48693248,
+    "maxMemoryBytes": 42336256,
     "numRules": 2,
     "numTargets": 3,
     "profilingTimes": {
