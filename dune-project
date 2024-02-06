@@ -369,8 +369,9 @@ functions.
   )
 )
 (package (name source)
-  (synopsis "XXX")
-  (description "XXX")
+  (synopsis "Types for tracking the source of scanned content")
+  (authors "Cooper Pierce <cooper@semgrep.com>")
+  (license "LGPL-2.1-only")
 )
 
 (package
