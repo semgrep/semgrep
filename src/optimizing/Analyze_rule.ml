@@ -652,9 +652,7 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
           regexp_prefilter_of_formula ~xlang:r.target_analyzer f
       | `Taint spec ->
           regexp_prefilter_of_taint_rule ~xlang:r.target_analyzer r.R.id spec
-      | `Secrets _ (* TODO *)
-      | `Steps _ ->
-          (* TODO *) None
+      | `Steps _ -> (* TODO *) None
     with
     (* TODO: see tests/rules/tainted-filename.yaml,
                  tests/rules/kotlin_slow_import.yaml *)

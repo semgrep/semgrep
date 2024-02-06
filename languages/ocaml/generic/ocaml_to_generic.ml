@@ -430,6 +430,9 @@ and argument = function
   | ArgQuestion (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
       G.OtherArg (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
+  | ArgTodo t ->
+      let t = todo_category t in
+      G.OtherArg (t, [])
 
 and match_case (v1, (v3, _t, v2)) : G.pattern * G.expr =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in

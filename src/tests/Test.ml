@@ -66,16 +66,16 @@ let tests (caps : Cap.all_caps) =
       Unit_jsonnet.tests ();
       Unit_metachecking.tests ();
       (* OSemgrep tests *)
-      Unit_LS.tests;
+      Unit_LS.tests (caps :> < Cap.random ; Cap.network >);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network >);
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
-      Osemgrep_tests.tests caps;
+      Osemgrep_tests.tests (caps :> CLI.caps);
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests;
+      Test_LS_e2e.tests (caps :> < Cap.random ; Cap.network >);
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;

@@ -86,6 +86,14 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Js "js" ".js";
       pack_parsing_tests_for_lang Lang.C "c" ".c";
       pack_parsing_tests_for_lang Lang.Cpp "cpp" ".cpp";
+      pack_parsing_tests_for_lang Lang.Php "php" ".php";
+      pack_parsing_tests_for_lang Lang.Ocaml "ocaml" ".ml";
+      pack_parsing_tests_for_lang Lang.Ocaml "ocaml" ".mli";
+      (* recursive descent parser *)
+      pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
+      pack_parsing_tests_for_lang Lang.Clojure "clojure" ".clj";
+      pack_parsing_tests_for_lang Lang.Protobuf "protobuf" ".proto";
+      pack_parsing_tests_for_lang Lang.Promql "promql" ".promql";
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
@@ -94,13 +102,6 @@ let lang_parsing_tests () =
          let files = Common2.glob (spf "%s/*.cpp" !!dir) in
          let lang = Lang.Cpp in
          partial_parsing_tests_for_lang files lang);
-      pack_parsing_tests_for_lang Lang.Php "php" ".php";
-      pack_parsing_tests_for_lang Lang.Ocaml "ocaml" ".ml";
-      (* recursive descent parser *)
-      pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
-      pack_parsing_tests_for_lang Lang.Clojure "clojure" ".clj";
-      pack_parsing_tests_for_lang Lang.Protobuf "protobuf" ".proto";
-      pack_parsing_tests_for_lang Lang.Promql "promql" ".promql";
     ]
 
 (* It's important that our parsers generate classic parsing errors

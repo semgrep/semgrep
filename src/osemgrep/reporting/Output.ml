@@ -58,7 +58,7 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) (hrules : Rule.hrules) =
+    (cli_output : OutJ.cli_output) is_logged_in (hrules : Rule.hrules) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -135,16 +135,21 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
   (* matches have already been displayed in a file_match_results_hook *)
   | TextIncremental -> ()
   | Sarif ->
-      let sarif_json = Sarif_output.sarif_output hrules cli_output in
+      let sarif_json =
+        Sarif_output.sarif_output is_logged_in hrules cli_output
+      in
       Out.put (Yojson.Basic.to_string sarif_json)
   | Junit_xml ->
       let junit_xml = Junit_xml_output.junit_xml_output cli_output in
       Out.put junit_xml
-  | Gitlab_sast
+  | Gitlab_sast ->
+      let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
+      Out.put (Yojson.Basic.to_string gitlab_sast_json)
   | Gitlab_secrets ->
-      Out.put
-        (spf "TODO: output format %s not supported yet"
-           (Output_format.show output_format))
+      let gitlab_secrets_json =
+        Gitlab_output.secrets_output cli_output.results
+      in
+      Out.put (Yojson.Basic.to_string gitlab_secrets_json)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -169,7 +174,7 @@ let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
  * output.output() all at once.
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : conf) (profiler : Profiler.t)
+let output_result (conf : conf) (profiler : Profiler.t) ~is_logged_in
     (res : Core_runner.result) : OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
@@ -179,6 +184,7 @@ let output_result (conf : conf) (profiler : Profiler.t)
   let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output res.hrules;
+  dispatch_output_format conf.output_format conf cli_output is_logged_in
+    res.hrules;
   cli_output
 [@@profiling]

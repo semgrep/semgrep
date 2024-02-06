@@ -30,9 +30,9 @@ let real_fetch_tests caps =
         ~token_opt:None ~registry_caching:false caps
         (Rules_config.R (Pack "ocaml"))
     with
-    | [ { rules; _ } ] ->
+    | [ { rules; _ } ], [] ->
         Alcotest.(check bool) "fetch ocaml rules" true (not @@ List_.null rules)
-    | _ -> Alcotest.fail "fetch ocaml rules; got no rules"
+    | _ -> Alcotest.fail "fetch ocaml rules; got no rules or got rule errors"
   in
   Testo.categorize "fetch tests"
     [

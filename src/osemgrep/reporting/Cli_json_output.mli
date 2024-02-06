@@ -11,9 +11,15 @@ val cli_output_of_core_results :
 (* internals used in Scan_subcommant.ml *)
 val exit_code_of_error_type : Semgrep_output_v1_t.error_type -> Exit_code.t
 
-(* internals used also for incremental display of matches *)
+(* internals used also for incremental display of matches
+   The [applied_fixes] hash table is both in and out parameter, it is used for
+   deciding whether a fixed_lines elements is included in the cli_match. This
+   depends on whether an overlapping fix was already included in an earlier
+   cli_match in the same list of matches.
+*)
 val cli_match_of_core_match :
   dryrun:bool ->
+  ?applied_fixes:(string, (int * int) list) Hashtbl.t ->
   Rule.hrules ->
   Semgrep_output_v1_t.core_match ->
   Semgrep_output_v1_t.cli_match

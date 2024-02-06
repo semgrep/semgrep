@@ -49,8 +49,14 @@ let _ =
            let targets =
              List.map
                (fun f ->
-                 Input_to_core_t.
-                   { path = f; analyzer = xlang; products = Product.all })
+                 `CodeTarget
+                   Input_to_core_t.
+                     {
+                       path = f;
+                       analyzer = xlang;
+                       products = Product.all;
+                       lockfile_target = None;
+                     })
                source_files
            in
            let default_config = Output.default in

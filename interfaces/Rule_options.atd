@@ -39,7 +39,9 @@ type t = {
   ~symbolic_propagation <ocaml default="false"> : bool;
 
   (* metavariables common to a source and sink will be unified *)
+  (* taint_match_on is DEPRECATED and to be removed after 1.63.0 *)
   ~taint_match_on <ocaml default="`Sink">: taint_match_on;
+  ~taint_focus_on <ocaml default="`Sink">: taint_match_on;
   ~taint_unify_mvars <ocaml default="false"> : bool;
   ~taint_assume_safe_functions <ocaml default="false"> : bool;
   ~taint_assume_safe_indexes <ocaml default="false"> : bool;

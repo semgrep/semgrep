@@ -6,6 +6,174 @@
 
 <!-- insertion point -->
 
+## [1.59.1](https://github.com/returntocorp/semgrep/releases/tag/v1.59.1) - 2024-02-02
+
+
+### Added
+
+
+- taint-mode: Pro: Semgrep can now track taint via static class fields and global
+  variables, such as in the following example:
+
+  ```c
+  static char* x;
+
+  void foo() {
+      x = "tainted";
+  }
+
+  void bar() {
+      sink(x);
+  }
+
+  void main() {
+      foo();
+      bar();
+  }
+  ``` (pa-3378)
+
+
+### Fixed
+
+
+- Pro: Make inter-file analysis more tolerant to small bugs, resorting to graceful
+  degradation and continuing with the scan, rather than crashing. (pa-3387)
+
+
+## [1.59.0](https://github.com/returntocorp/semgrep/releases/tag/v1.59.0) - 2024-01-30
+
+
+### Added
+
+
+- Swift: Now supports typed metavariables, such as `($X : ty)`. (pa-3370)
+
+
+### Changed
+
+
+- Add Elixir to Pro languages list in help information. (gh-9609)
+- Removed `sg` alias to avoid naming conflicts
+  with the shadow-utils `sg` command for Linux systems. (gh-9642)
+- Prevent unnecessary computation when running scans without verbose logging enabled (gh-9661)
+- Deprecated option `taint_match_on` introduced in 1.51.0, it is being renamed
+  to `taint_focus_on`. Note that `taint_match_on` was experimental, and
+  `taint_focus_on` is experimental too. Option `taint_match_on` will continue
+  to work but it will be completely removed at some point after 1.63.0. (pa-3272)
+- Added information on product-related flags to help output, especially for Semgrep Secrets. (pa-3383)
+- taint-mode: Improve inference of best matches for exact-sources, exact-sanitizers,
+  and sinks. Now we also avoid FPs in cases such as:
+
+      dangerouslySetInnerHTML = {
+        // ok:
+        {__html: props ? DOMPurify.sanitize(props.text) : ''} // no more FPs!
+      }
+
+  where `props` is tainted and the sink specification is:
+
+      patterns:
+        - pattern: |
+           dangerouslySetInnerHTML={{__html: $X}}
+        - focus-metavariable: $X
+
+  Previously Semgrep wrongly considered the individual subexpressions of the
+  conditional as sinks, including the `props` in `props ? ...`, thus producing a
+  false positive. Now it will only consider the conditional expression as a whole
+  as the sink. (rules-6457)
+- Removed an internal legacy syntax for secrets rules (`mode: semgrep_internal_postprocessor`). (scrt-320)
+
+
+### Fixed
+
+
+- Autofix: Fixes that span multiple lines will now try to align
+  inserted fixed lines with each other. (gh-3070)
+- Matching: Try blocks with catch clauses can now match try blocks that have
+  extraneous catch clauses, as long as it matches a subset. For instance,
+  the pattern
+  ```
+  try:
+    ...
+  catch A:
+    ...
+  ```
+  can now match
+  ```
+  try:
+    ...
+  catch A:
+    ...
+  catch B:
+    ...
+  ``` (gh-3362)
+- Previously, some people got the error:
+
+  ```
+  Encountered error when running rules: Other syntax error at line NO FILE INFO YET:-1:
+  Invalid_argument: String.sub / Bytes.sub
+  ```
+
+  Semgrep should now report this error properly with a file name and line number and
+  handle it gracefully. (gh-9628)
+- Fixed Dockerfile parsing bug where multiline comments were parsed incorrectly. (gh-9628-2)
+- The language server will now properly respect findings that have been ignored via the app (lsp-fingerprints)
+- taint-mode: Pro: Semgrep will now propagate taint via instance variables when
+  calling methods within the same class, making this example work:
+
+  ```java
+  class Test {
+
+    private String str;
+
+    public setStr() {
+      this.str = "tainted";
+    }
+
+    public useStr() {
+      //ruleid: test
+      sink(this.str);
+    }
+
+    public test() {
+      setStr();
+      useStr();
+    }
+
+  }
+  ``` (pa-3372)
+- taint-mode: Pro: Taint traces will now reflect when taint is propagated via
+  class fields, such as in this example:
+
+  ```java
+  class Test {
+
+    private String str;
+
+    public setStr() {
+      this.str = "tainted";
+    }
+
+    public useStr() {
+      //ruleid: test
+      sink(this.str);
+    }
+
+    public test() {
+      setStr();
+      useStr();
+    }
+
+  }
+  ```
+
+  Previously Semgrep will report that taint originated at `this.str = "tainted"`,
+  but it would not tell you how the control flow got there. Now the taint trace
+  will indicate that we get there by calling `setStr()` inside `test()`. (pa-3373)
+- Addressed an issue related to matching top-level identifiers with meta-variable
+  qualified patterns in C++, such as matching ::foo with ::$A::$B.  This problem
+  was specific to Pro Engine-enabled scans. (pa-3375)
+
+
 ## [1.58.0](https://github.com/returntocorp/semgrep/releases/tag/v1.58.0) - 2024-01-23
 
 

@@ -167,7 +167,9 @@ and expr =
   | ArrayInit of (expr option * expr) list bracket
   | RecordInit of (name * expr) list bracket
   (* gccext: kenccext: *)
-  | GccConstructor of type_ * expr (* always an ArrayInit (or RecordInit?) *)
+  | GccConstructor of
+      type_
+      * initialiser list bracket (* always an ArrayInit (or RecordInit?) *)
   (* tree-sitter-c:
    * only valid in cpp boolean expression context (e.g., #if argument).
    * This is actually not used because we skip ifdef directives anyway.
@@ -188,7 +190,7 @@ and argument =
   (* This should only appear in macro calls.
      https://github.com/tree-sitter/tree-sitter-c/blob/a2b7bac3b313efbaa683d9a276ff63cdc544d960/grammar.js#L1073
   *)
-  | ArgBlock of stmt list bracket
+  | ArgBlock of stmt sequencable list bracket
 
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
@@ -203,7 +205,7 @@ and string_component = StrLit of string wrap | StrIdent of string wrap
 (*****************************************************************************)
 and stmt =
   | ExprSt of expr * tok
-  | Block of stmt list bracket
+  | Block of stmt sequencable list bracket
   (* todo: tok * stmt option *)
   | If of tok * expr * stmt * stmt option
   | Switch of tok * expr * case list
@@ -221,9 +223,19 @@ and stmt =
   | DefStmt of definition
   | DirStmt of directive
   | AsmStmt of tok * assembler bracket * sc
-  | PreprocStmt of preproc
+  (* Microsoft-specific:
+     https://learn.microsoft.com/en-us/cpp/cpp/try-finally-statement?view=msvc-170
+  *)
+  | MsTry of
+      tok (* "__try__" *) * stmt sequencable list bracket * ms_try_handler
+  | MsLeave of tok (* "__leave" *)
   (* this should never appear! this should be only inside Switch *)
   | CaseStmt of case
+
+and ms_try_handler =
+  | MsExcept of
+      tok (* "__except" *) * expr bracket * stmt sequencable list bracket
+  | MsFinally of tok (* "__finally" *) * stmt sequencable list bracket
 
 and case = Case of tok * expr * stmt list | Default of tok * stmt list
 
@@ -244,21 +256,29 @@ and var_decl = {
 }
 
 (* can have ArrayInit and RecordInit here in addition to other expr *)
-and initialiser = expr
+and initialiser =
+  (* in lhs and rhs *)
+  | InitExpr of expr
+  | InitList of initialiser list bracket
+  (* gccext: and only in lhs *)
+  | InitDesignators of designator list * tok (*=*) * initialiser
+  | InitFieldOld of name * tok (*:*) * initialiser
+  | InitIndexOld of expr bracket * initialiser
+
 and storage = Extern | Static | DefaultStorage
 
-(*****************************************************************************)
-(* Preprocessor *)
-(*****************************************************************************)
-and preproc = {
-  p_condition : preproc_condition;
-  p_stmts : stmt list;
-  p_elifs : (tok (*'elifdef' or 'elifndef'*) * expr * stmt list) list;
-  p_else : stmt list option;
-  p_endif : tok;
-}
-
-and preproc_condition = PreprocIfdef of tok * name | PreprocIf of tok * expr
+(* ex: [2].y = x,  or .y[2]  or .y.x. They can be nested *)
+and designator =
+  (* This token is an option, because an alternate (but equivalent) form
+     (deprecated since GCC 2.5) looks like
+     { y: yvalue }
+      instead of
+     { .y = yvalue }
+     https://gcc.gnu.org/onlinedocs/gcc/Designated-Inits.html
+  *)
+  | DesignatorField of tok (* . *) option * name
+  | DesignatorIndex of expr bracket
+  | DesignatorRange of (expr * tok (*...*) * expr) bracket
 
 (*****************************************************************************)
 (* Assembler *)
@@ -304,7 +324,7 @@ and func_def = {
    * should not force function_type here and also allow typedefs.
    *)
   f_type : function_type;
-  f_body : stmt list bracket;
+  f_body : stmt sequencable list bracket;
   (* important for codegraph global name resolution to avoid conflicts *)
   f_static : bool;
 }
@@ -313,7 +333,7 @@ and struct_def = {
   s_kind : struct_kind;
   (* gensym'ed when anonymous struct *)
   s_name : name;
-  s_flds : field_def list bracket;
+  s_flds : field_def sequencable list bracket;
 }
 
 (* less: could merge with var_decl, but field have no storage normally *)
@@ -331,7 +351,7 @@ and enum_def = {
   e_name : name;
   (* The name of the underlying type which denotes the size of the enum. *)
   e_type : name option;
-  e_consts : (name * const_expr option) list;
+  e_consts : (name * const_expr option) sequencable list;
 }
 
 and type_def = { (*t_tok: tok;*)
@@ -357,13 +377,41 @@ and define_body =
    *)
   | CppStmt of stmt
 
+(* ------------------------------------------------------------------------- *)
+(* cppext: #ifdefs *)
+(* coupling: this is the same as in Ast_cpp! *)
+(* ------------------------------------------------------------------------- *)
+and 'a sequencable =
+  | X of 'a
+  (* cppext: *)
+  | CDirective of directive
+  | CIfdef of ifdef_directive
+
+(* less: 'a ifdefed = 'a list wrap (* ifdef elsif else endif *) *)
+and ifdef_directive =
+  | Ifdef of tok (* todo? of string? *)
+  (* TODO: IfIf of formula_cpp ? *)
+  (* TODO: Ifndef *)
+  | IfdefElse of tok
+  | IfdefElseif of tok
+  | IfdefEndif of tok
+(* less:
+ * set in Parsing_hacks.set_ifdef_parenthize_info. It internally use
+ * a global so it means if you parse the same file twice you may get
+ * different id. I try now to avoid this pb by resetting it each
+ * time I parse a file.
+ *
+ *   and matching_tag =
+ *     IfdefTag of (int (* tag *) * int (* total with this tag *))
+ *)
+
 (*****************************************************************************)
 (* Program *)
 (*****************************************************************************)
 (* tree-sitter-c: used to be just DefStmt or DirStmt *)
 and toplevel = stmt [@@deriving show { with_path = false }]
 
-type program = toplevel list [@@deriving show]
+type program = toplevel sequencable list [@@deriving show]
 
 (*****************************************************************************)
 (* Any *)

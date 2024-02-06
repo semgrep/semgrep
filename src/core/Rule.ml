@@ -470,17 +470,6 @@ type response = {
 }
 [@@deriving show]
 
-type secrets = {
-  (* postprocessor-patterns:
-   * Each pattern in this list represents a piece of a "secret"; with any
-   * bindings made available in the request post matching.
-   *)
-  secrets : formula list;
-  request : request;
-  response : response;
-}
-[@@deriving show]
-
 type http_match_clause = {
   status_code : Parsed_int.t option;
   (* Optional. Empty list if not set *)
@@ -554,7 +543,6 @@ type fix_regexp = {
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract ] [@@deriving show]
-type secrets_mode = [ `Secrets of secrets ] [@@deriving show]
 
 (* Steps mode includes rules that use search_mode and taint_mode.
  * Later, if we keep it, we might want to make all rules have steps,
@@ -573,6 +561,34 @@ and step = {
 }
 
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
+
+(*****************************************************************************)
+(* Supply chain *)
+(*****************************************************************************)
+
+(* You can only do single layer deep OR *)
+type dependency_formula = dependency_pattern list
+
+(* A pattern to match against versions in a lockfile.
+   This is not like a regular code pattern! It's description of a range of *versions*.
+   For example: ">=1.0.0, <= 2.3.5", which is meant to "match" any version in that interval, e.g. 1.3.5
+
+   Here's a breakdown of how this interacts with normal patterns:
+   * Rule has only normal patterns:
+      Rule behaves as normal
+   * Rule has normal patterns and dependency patterns:
+      If *both* match, the rule produces "reachable" findings: code findings annotated with dependency findings
+      If only the code patterns match, the rule produces *no* findings
+      If only the dependency patterns match, the rule produces "lockfile-only" findings: dependency findings without code findings
+   * Rule has only dependency patterns:
+      Rule only produces "lockfile-only" findings
+*)
+and dependency_pattern = {
+  ecosystem : Semgrep_output_v1_t.ecosystem;
+  package_name : string;
+  version_constraints : Dependency.constraint_ast;
+}
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* The rule *)
@@ -672,6 +688,7 @@ type 'mode rule_info = {
      in the current version of Semgrep and wouldn't even reach this point. *)
   min_version : Version_info.t option;
   max_version : Version_info.t option;
+  dependency_formula : dependency_formula option;
 }
 [@@deriving show]
 
@@ -679,8 +696,7 @@ type 'mode rule_info = {
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
 
-type mode =
-  [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
+type mode = [ search_mode | taint_mode | extract_mode | steps_mode ]
 [@@deriving show]
 
 (* the general type *)
@@ -697,7 +713,6 @@ type hrules = (Rule_ID.t, t) Hashtbl.t
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
-type secrets_rule = secrets_mode rule_info [@@deriving show]
 type steps_rule = steps_mode rule_info [@@deriving show]
 
 (*****************************************************************************)
@@ -710,42 +725,21 @@ let hrules_of_rules (rules : 'mode rule_info list) :
   rules |> List_.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list
-    * taint_rule list
-    * extract_rule list
-    * secrets_rule list
-    * steps_rule list =
-  let rec part_rules search taint extract secrets step = function
-    | [] ->
-        ( List.rev search,
-          List.rev taint,
-          List.rev extract,
-          List.rev secrets,
-          List.rev step )
+    search_rule list * taint_rule list * extract_rule list * steps_rule list =
+  let rec part_rules search taint extract step = function
+    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev step)
     | r :: l -> (
         match r.mode with
         | `Search _ as s ->
-            part_rules
-              ({ r with mode = s } :: search)
-              taint extract secrets step l
+            part_rules ({ r with mode = s } :: search) taint extract step l
         | `Taint _ as t ->
-            part_rules search
-              ({ r with mode = t } :: taint)
-              extract secrets step l
+            part_rules search ({ r with mode = t } :: taint) extract step l
         | `Extract _ as e ->
-            part_rules search taint
-              ({ r with mode = e } :: extract)
-              secrets step l
-        | `Secrets _ as s ->
-            part_rules search taint extract
-              ({ r with mode = s } :: secrets)
-              step l
+            part_rules search taint ({ r with mode = e } :: extract) step l
         | `Steps _ as j ->
-            part_rules search taint extract secrets
-              ({ r with mode = j } :: step)
-              l)
+            part_rules search taint extract ({ r with mode = j } :: step) l)
   in
-  part_rules [] [] [] [] [] rules
+  part_rules [] [] [] [] rules
 
 (* for informational messages *)
 let show_id rule = rule.id |> fst |> Rule_ID.to_string
@@ -791,6 +785,7 @@ type error_kind =
   | InvalidYaml of string * Tok.t
   | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
+[@@deriving show]
 
 type error = {
   (* Some errors are in the YAML file before we can enter a specific rule
@@ -799,6 +794,7 @@ type error = {
   rule_id : Rule_ID.t option;
   kind : error_kind;
 }
+[@@deriving show]
 
 exception Error of error
 
@@ -954,7 +950,6 @@ let rec formula_of_mode (mode : mode) =
       @ List_.map (fun sink -> sink.sink_formula) sinks
       @ List_.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
-  | `Secrets { secrets; _ } -> secrets
   | `Steps steps ->
       List.concat_map
         (fun step -> formula_of_mode (step.step_mode :> mode))
@@ -1019,6 +1014,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     metadata = None;
     validators = None;
     product = `SAST;
+    dependency_formula = None;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and

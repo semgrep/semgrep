@@ -11,35 +11,6 @@
       "results": [
         {
           "fingerprints": {
-            "matchBasedId/v1": "62b4a09c4569768898c43c09fa0a5b95b7e93257ef3a0911a5c379b6265b4d49fa4aecd5782461632e9aef4779af02d7cad4405b9a5318a0e5ffe9a5bd8daeae_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "targets/basic/stupid.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 26,
-                  "endLine": 3,
-                  "snippet": {
-                    "text": "    return a + b == a + b"
-                  },
-                  "startColumn": 12,
-                  "startLine": 3
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
-          },
-          "properties": {},
-          "ruleId": "rules.eqeq-is-bad"
-        },
-        {
-          "fingerprints": {
             "matchBasedId/v1": "33c7ad418bcb7f83d9dcec68b2a8aa78ace93efbc20a12297ea7e15594ce23f5bca80b0958952b14dad3e874370c9ca7f991d2e1414adc33d243f133b1ff2811_0"
           },
           "locations": [
@@ -66,6 +37,35 @@
           },
           "properties": {},
           "ruleId": "rules.javascript-basic-eqeq-bad"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "62b4a09c4569768898c43c09fa0a5b95b7e93257ef3a0911a5c379b6265b4d49fa4aecd5782461632e9aef4779af02d7cad4405b9a5318a0e5ffe9a5bd8daeae_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 26,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "    return a + b == a + b"
+                  },
+                  "startColumn": 12,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
+          },
+          "properties": {},
+          "ruleId": "rules.eqeq-is-bad"
         }
       ],
       "tool": {

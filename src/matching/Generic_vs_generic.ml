@@ -471,11 +471,16 @@ let rec m_name_inner a b =
           | [] -> raise Impossible
           | _x :: xs -> List.rev xs |> List_.map (fun id -> (id, None))
         in
+        let new_middle =
+          match new_qualifier with
+          | [] -> None
+          | xs -> Some (B.QDots xs)
+        in
         m_name a
           (B.IdQualified
              {
                nameinfo with
-               name_middle = Some (B.QDots new_qualifier);
+               name_middle = new_middle;
                name_info = B.empty_id_info ();
              }))
   (* semantic! try to handle open in OCaml by querying LSP! The
@@ -2772,6 +2777,7 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_With, G.OSWS_With
   | G.OSWS_Else_in_try, G.OSWS_Else_in_try
   | G.OSWS_Iterator, G.OSWS_Iterator
+  | G.OSWS_SEH, G.OSWS_SEH
   | G.OSWS_Todo, G.OSWS_Todo ->
       return ()
   | G.OSWS_Block a, G.OSWS_Block b -> m_todo_kind a b
@@ -2779,6 +2785,7 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_Block _, _
   | G.OSWS_Else_in_try, _
   | G.OSWS_Iterator, _
+  | G.OSWS_SEH, _
   | G.OSWS_Todo, _ ->
       fail ()
 

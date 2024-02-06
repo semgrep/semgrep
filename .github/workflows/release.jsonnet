@@ -121,7 +121,7 @@ local build_test_docker_nonroot_job = {
   },
 };
 
-local push_docker_job(artifact_name) = {
+local push_docker_job(artifact_name, repository_name) = {
   needs: [
     'wait-for-build-test',
   ],
@@ -129,8 +129,8 @@ local push_docker_job(artifact_name) = {
   secrets: 'inherit',
   with: {
     'artifact-name': artifact_name,
-    'repository-name': 'returntocorp/semgrep',
-    'dry-run': "${{ inputs.dry-run == 'true' }}",
+    'repository-name': repository_name,
+    'dry-run': "${{ inputs.dry-run }}",
   },
 };
 
@@ -418,8 +418,10 @@ local homebrew_core_pr_job =
         },
       ],
     },
-    'push-docker': push_docker_job('image-release'),
-    'push-docker-nonroot': push_docker_job('image-release-nonroot'),
+    'push-docker-returntocorp': push_docker_job('image-release', 'returntocorp/semgrep'),
+    'push-docker-returntocorp-nonroot': push_docker_job('image-release-nonroot', 'returntocorp/semgrep'),
+    'push-docker-semgrep': push_docker_job('image-release', 'semgrep/semgrep'),
+    'push-docker-semgrep-nonroot': push_docker_job('image-release-nonroot', 'semgrep/semgrep'),
     'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,
