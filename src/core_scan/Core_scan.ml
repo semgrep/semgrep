@@ -909,6 +909,28 @@ let select_applicable_rules_for_lockfile_kind ~lockfile_kind rules =
              then Some (r, formula)
              else None)
 
+(* Note that filtering is applied on the basis of the target's source, not the
+ * target's "file". This is because filtering should apply to the user's
+ * perception of the file, not whatever we may transform it to internally.
+ *
+ * For instance, the "file" of a target may be a tempfile which has no meaning,
+ * and is essentially randomly generated. `paths:` filtering shouldn't apply to
+ * this!
+ *
+ * Note also that `paths:` filters are relative to the root of a project [0],
+ * so if the target's file is an absolute path, we don't want to use that for
+ * filtering: instead, we'd want the source to be the desired relative path and
+ * use that.
+ *
+ * [0]: <https://semgrep.dev/docs/writing-rules/rule-syntax/#paths>
+ *)
+let select_applicable_rules_for_source paths (source : Source.t) =
+  match paths with
+  | Some paths -> (
+      match source with
+      | File path -> Filter_target.filter_paths paths path)
+  | _else -> true
+
 (* This is also used by semgrep-proprietary. *)
 (* TODO: reduce memory allocation by using only one call to List.filter?
    or something even better to reduce the time spent on each target in
@@ -916,29 +938,32 @@ let select_applicable_rules_for_lockfile_kind ~lockfile_kind rules =
    rules? *)
 let select_applicable_rules_for_target ~analyzer ~products ~source
     ~respect_rule_paths rules =
-  select_applicable_rules_for_analyzer ~analyzer rules
-  |> List.filter (fun r ->
-         List.exists (Semgrep_output_v1_j.equal_product r.Rule.product) products)
-  |> List.filter (fun r ->
-         (* Honor per-rule include/exclude.
-            * Note that this also done in pysemgrep, but we need to do it
-            * again here for osemgrep which use a different file targeting
-            * strategy.
-         *)
-         match r.R.paths with
-         | Some paths when respect_rule_paths -> (
-             match (source : Source.t) with
-             | File path -> Filter_target.filter_paths paths path)
-         | _else -> true)
+  let rules =
+    select_applicable_rules_for_analyzer ~analyzer rules
+    |> List.filter (fun r ->
+           List.exists
+             (Semgrep_output_v1_j.equal_product r.Rule.product)
+             products)
+  in
+  if respect_rule_paths then
+    rules
+    |> List.filter (fun (r : R.rule) ->
+           (* Honor per-rule include/exclude.
+              * Note that this also done in pysemgrep, but we need to do it
+              * again here for osemgrep which use a different file targeting
+              * strategy.
+           *)
+           select_applicable_rules_for_source r.paths source)
+  else rules
 
 let select_applicable_supply_chain_rules ~lockfile_kind ~respect_rule_paths
-    ~path rules =
-  select_applicable_rules_for_lockfile_kind ~lockfile_kind rules
-  |> List.filter (fun (r, _) ->
-         match r.R.paths with
-         | Some paths when respect_rule_paths ->
-             Filter_target.filter_paths paths path
-         | _else -> true)
+    ~source rules =
+  let rules = select_applicable_rules_for_lockfile_kind ~lockfile_kind rules in
+  if respect_rule_paths then
+    rules
+    |> List.filter (fun ((r : R.rule), _) ->
+           select_applicable_rules_for_source r.paths source)
+  else rules
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
 let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
@@ -946,10 +971,10 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     (adjusters : Extract.adjusters) match_hook : target_handler =
   (* Note that this function runs in another process *)
   function
-  | Lockfile ({ file; kind; _ } as lockfile_location) ->
+  | Lockfile ({ file; kind; source; _ } as lockfile_location) ->
       let lockfile_target = lockfile_target_of_location lockfile_location in
       let applicable_supply_chain_rules =
-        select_applicable_supply_chain_rules ~lockfile_kind:kind ~path:file
+        select_applicable_supply_chain_rules ~lockfile_kind:kind ~source
           ~respect_rule_paths:config.respect_rule_paths valid_rules
       in
       let dep_matches =
