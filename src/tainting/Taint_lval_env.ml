@@ -26,6 +26,7 @@ module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
 let logger = Logging.get_logger [ __MODULE__ ]
+let ( let* ) = Option.bind
 
 type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
@@ -184,6 +185,32 @@ let lval_is_prefix lval1 lval2 =
   | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
       eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
   | __else__ -> false
+
+let replace_lval_prefix search replace lval =
+  let open IL in
+  let eq_name x y = LV.compare_name x y = 0 in
+  let rec match_prefix os1 os2 =
+    match (os1, os2) with
+    | [], l -> Some l
+    | _ :: _, []
+    | { o = Index _; _ } :: _, { o = Dot _; _ } :: _
+    | { o = Dot _; _ } :: _, { o = Index _; _ } :: _ ->
+        None
+    | { o = Index _; _ } :: os1, { o = Index _; _ } :: os2 ->
+        match_prefix os1 os2
+    | { o = Dot a; _ } :: os1, { o = Dot b; _ } :: os2 ->
+        if eq_name a b then match_prefix os1 os2 else None
+  in
+  match (search, lval) with
+  | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } -> (
+      let* after =
+        if eq_name x y then match_prefix (List.rev ro1) (List.rev ro2) else None
+      in
+      match replace with
+      | { rev_offset = []; _ } -> Some { replace with rev_offset = after }
+      | { rev_offset = offsets; _ } ->
+          Some { replace with rev_offset = List.rev after @ offsets })
+  | __else__ -> None
 
 (* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
  * some benchmarks, if we can e.g. double the limit without affecting perf then
@@ -373,6 +400,24 @@ let clean
         pending_propagation_dests;
         (* THINK: Should we clean propagations before they are executed? *)
       }
+
+let propagate_field lval exp lval_env =
+  match exp.IL.e with
+  | Composite (CArray, (_, [ { e = Fetch lval_exp; _ } ], _))
+  | Fetch lval_exp ->
+      let tainted_fields =
+        lval_env.tainted
+        |> LvalMap.filter (fun lv _ -> lval_is_prefix lval_exp lv)
+        |> LvalMap.to_seq
+        |> Seq.filter_map (fun (l, t) ->
+               let* replaced = replace_lval_prefix lval_exp lval l in
+               Some (replaced, t))
+      in
+      {
+        lval_env with
+        tainted = LvalMap.add_seq tainted_fields lval_env.tainted;
+      }
+  | _ -> lval_env
 
 let add_control_taints lval_env taints =
   if Taints.is_empty taints then lval_env

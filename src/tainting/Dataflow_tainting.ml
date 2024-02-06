@@ -1788,6 +1788,12 @@ let transfer :
                  * See [Taint_lval_env] for details. *)
                 lval_env' |> Lval_env.add lval taints
               else
+                let lval_env' =
+                  match x.i with
+                  | Assign (lval, e) ->
+                      Lval_env.propagate_field lval e lval_env'
+                  | _ -> lval_env'
+                in
                 (* The RHS returns no taint, but taint could propagate by
                  * side-effect too. So, we check whether the taint assigned
                  * to 'lval' has changed to determine whether we need to
