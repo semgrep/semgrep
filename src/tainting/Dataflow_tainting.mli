@@ -101,6 +101,7 @@ val hook_check_tainted_at_exit_sinks :
 (** Pro: support for `at-exit: true` sinks *)
 
 val fixpoint :
+  ?timeout:float ->
   ?in_env:Taint_lval_env.t ->
   ?name:var ->
   Lang.t ->

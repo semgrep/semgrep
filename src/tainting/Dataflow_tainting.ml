@@ -1852,6 +1852,7 @@ let transfer :
 (*****************************************************************************)
 
 let (fixpoint :
+      ?timeout:float ->
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
       Lang.t ->
@@ -1860,7 +1861,7 @@ let (fixpoint :
       java_props_cache ->
       F.cfg ->
       mapping) =
- fun ?in_env ?name:opt_name lang options config java_props flow ->
+ fun ?(timeout=Limits_semgrep.taint_FIXPOINT_TIMEOUT) ?in_env ?name:opt_name lang options config java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -1895,7 +1896,7 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   let end_mapping =
-    DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
+    DataflowX.fixpoint ~timeout
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
         (transfer lang options config enter_env opt_name ~flow ~best_matches
