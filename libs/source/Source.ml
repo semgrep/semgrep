@@ -12,9 +12,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+
+(* See Source.mli for top-level documentation of this module. *)
+
 type t = File of Fpath.t [@@deriving show, eq, ord]
 
-(* TODO: should be private *)
+(* Module for the purpose of implementing sexp conversions for t. We cannot
+ * derive sexp since Fpath does not have an sexp implementation, so we convert
+ * to a string and then derive sexp on the updated type.
+ *)
 module S = struct
   open Sexplib.Std
 
