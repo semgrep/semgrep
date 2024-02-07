@@ -85,6 +85,8 @@ type debug_taint = {
   sinks : (RM.t * R.taint_sink) list;
 }
 
+exception TO
+
 (*****************************************************************************)
 (* Hooks *)
 (*****************************************************************************)
@@ -231,24 +233,28 @@ let%test _ =
   concat_map_with_expls (fun x -> ([ -x; x ], [ 2 * x; 3 * x ])) [ 0; 1; 2 ]
   =*= ([ 0; 0; -1; 1; -2; 2 ], [ 0; 0; 2; 3; 4; 6 ])
 
-let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
+let find_range_w_metas ~t0 ~timeout formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : (R.formula * 'a) list) :
     (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
   |> concat_map_with_expls (fun (pf, x) ->
+         let t1 = Sys.time () in
+         if t1 -. t0 >= timeout then raise TO;
          let ranges, expls =
            Formula_tbl.cached_find_opt formula_cache pf (fun () ->
                range_w_metas_of_formula xconf xtarget rule pf)
          in
          (ranges |> List_.map (fun rwm -> (rwm, x)), expls))
 
-let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
+let find_sanitizers_matches ~t0 ~timeout formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
+         let t1 = Sys.time () in
+         if t1 -. t0 >= timeout then raise TO;
          let ranges, expls =
            Formula_tbl.cached_find_opt formula_cache sanitizer.sanitizer_formula
              (fun () ->
@@ -261,11 +267,13 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
   [@@profiling]
 
 (* Finds all matches of `pattern-propagators`. *)
-let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
+let find_propagators_matches ~t0 ~timeout formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t)
     (propagators_spec : R.taint_propagator list) =
   propagators_spec
   |> List.concat_map (fun (p : R.taint_propagator) ->
+         let t1 = Sys.time () in
+         if t1 -. t0 >= timeout then raise TO;
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars, _expsTODO =
@@ -591,7 +599,7 @@ let pms_of_finding ~match_on finding =
 (* Main entry points *)
 (*****************************************************************************)
 
-let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
+let taint_config_of_rule ?(timeout=100.0) ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
   let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
@@ -605,14 +613,16 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       lazy_ast_and_errors;
     }
   in
+  try
+  let t0 = Sys.time() in
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
-    find_range_w_metas formula_cache xconf xtarget rule
+    find_range_w_metas ~t0 ~timeout formula_cache xconf xtarget rule
       (spec.sources |> snd
       |> List_.map (fun (src : R.taint_source) -> (src.source_formula, src)))
   and (propagators_ranges : propagator_match list) =
-    find_propagators_matches formula_cache xconf xtarget rule spec.propagators
+    find_propagators_matches ~t0 ~timeout formula_cache xconf xtarget rule spec.propagators
   and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
-    find_range_w_metas formula_cache xconf xtarget rule
+    find_range_w_metas ~t0 ~timeout formula_cache xconf xtarget rule
       (spec.sinks |> snd
       |> List_.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
   in
@@ -620,7 +630,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     match spec.sanitizers with
     | None -> ([], [])
     | Some (_, sanitizers_spec) ->
-        find_sanitizers_matches formula_cache xconf xtarget rule sanitizers_spec
+        find_sanitizers_matches ~t0 ~timeout formula_cache xconf xtarget rule sanitizers_spec
   in
   let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
@@ -687,7 +697,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     else []
   in
   let config = xconf.config in
-  ( {
+  Some ( {
       Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
       track_control =
@@ -708,6 +718,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       sinks = sinks_ranges;
     },
     expls )
+  with TO -> None
   [@@profiling]
 
 let check_var_def lang options taint_config env id ii expr =
@@ -906,8 +917,10 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
              pms_of_finding ~match_on finding
              |> List.iter (fun pm -> Stack_.push pm matches))
     in
+    match
     taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
       handle_findings
+    with None -> assert false | Some x -> x
   in
 
   (match !hook_setup_hook_function_taint_signature with
