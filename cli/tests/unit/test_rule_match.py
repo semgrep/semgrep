@@ -9,7 +9,7 @@ from semgrep.config_resolver import parse_config_string
 from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchSet
+from semgrep.rule_match import RuleMatches
 
 
 def create_rule() -> Rule:
@@ -319,7 +319,7 @@ def test_rule_match_set_indexes(mocker):
             ),
         ),
     )
-    matches = RuleMatchSet(rule)
+    matches = RuleMatches(rule)
     matches.update(
         [line3, line4, line5, line6]
     )  # we do need to add them in the correct order

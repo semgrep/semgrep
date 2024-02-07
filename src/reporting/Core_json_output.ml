@@ -168,19 +168,37 @@ let core_unique_key (c : OutJ.core_match) =
  # (-j option).
 *)
 let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
+  (* Whether we prefer to report match x over match y.
+     This is currently only used for Secrets findings, which prefer a
+     finding with a confirmed validation status.
+  *)
+  let should_report_instead ((x : OutJ.core_match), (y : OutJ.core_match)) =
+    match (x, y) with
+    | { OutJ.extra = { validation_state = None; _ }; _ }, _ -> false
+    | _, { OutJ.extra = { validation_state = None; _ }; _ } -> true
+    | { OutJ.extra = { validation_state = Some `Confirmed_valid; _ }; _ }, _
+      -> (
+        match y with
+        | { OutJ.extra = { validation_state = Some `Confirmed_valid; _ }; _ } ->
+            false
+        | _ -> true)
+    | _ -> false
+  in
   let seen = Hashtbl.create 101 in
   xs
   (* We sort first, because this preserves behavior with when this step
      was in Cli_json_output. Otherwise, we would get different matches in
-     the cases where we have matches that have the same cli_unique_key.
+     the cases where we have matches that have the same core_unique_key.
   *)
   |> OutUtils.sort_core_matches
-  |> List.filter (fun x ->
+  |> List.iter (fun x ->
          let key = core_unique_key x in
-         if Hashtbl.mem seen key then false
-         else (
-           Hashtbl.replace seen key true;
-           true))
+         match Hashtbl.find_opt seen key with
+         | None -> Hashtbl.add seen key x
+         | Some y when should_report_instead (x, y) ->
+             Hashtbl.replace seen key x
+         | _ -> ());
+  Hashtbl.to_seq_values seen |> List.of_seq
 
 (*****************************************************************************)
 (* Converters *)
