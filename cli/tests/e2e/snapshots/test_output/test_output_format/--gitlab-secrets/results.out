@@ -30,7 +30,7 @@
     {
       "category": "secret_detection",
       "commit": {
-        "date": "<MASKED>Z",
+        "date": "<MASKED>",
         "sha": "0000000"
       },
       "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",

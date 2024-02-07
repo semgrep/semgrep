@@ -141,6 +141,10 @@ a few other projects developed at r2c.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name murmur3)
+  (synopsis "XXX")
+  (description "XXX")
+)
 
 (package (name lwt_platform)
   (synopsis "XXX")

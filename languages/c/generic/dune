@@ -8,6 +8,7 @@
    parser_c.ast
    tree-sitter-lang.c
    ast_generic
+   parser_cpp.ast_generic
  )
  (preprocess (pps ppx_deriving.show))
 )

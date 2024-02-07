@@ -263,6 +263,8 @@ let mvars_of_regexp_string s =
   |> Regexp_engine.pcre_regexp |> Pcre.names |> Array.to_list
   |> Common.(List_.map (fun s -> spf "$%s" s))
 
+let is_anonymous_metavar s = s =*= "$_"
+
 (* TODO: remove when we kill numeric capture groups *)
 let metavar_for_capture_group = "^\\(\\$[0-9]+\\)$"
 let is_metavar_for_capture_group s = s =~ metavar_for_capture_group

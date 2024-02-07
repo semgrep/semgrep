@@ -272,12 +272,13 @@ and expr e =
       in
       G.Record v1 |> G.e
   | GccConstructor (v1, v2) ->
-      let v1 = type_ v1 and v2 = expr v2 in
+      let v1 = type_ v1
+      and lbrace, v2, rbrace = bracket (list initialiser) v2 in
       G.New
         ( unsafe_fake "new",
           v1,
           G.empty_id_info (),
-          fb ([ v2 ] |> List_.map G.arg) )
+          (lbrace, v2 |> List_.map G.arg, rbrace) )
       |> G.e
   | Generic (tk, (_l, (e, assocs), _r)) ->
       let e = expr e in
@@ -391,11 +392,34 @@ and stmt (st : stmt) : G.stmt =
       G.OtherStmt
         ( G.OS_Asm,
           [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
-          @ a_gotos @ [ G.Tk sc ] ))
+          @ a_gotos @ [ G.Tk sc ] )
+  | MsTry (v1, (l, v2, r), v3) ->
+      G.OtherStmtWithStmt
+        (OSWS_SEH, [ G.Tk v1 ], ms_try_handler (l, stmts v2, r) v3)
+  | MsLeave v1 -> G.OtherStmt (OS_Todo, [ G.Tk v1 ]))
   |> G.s
 
 and stmts (x : stmt sequencable list) =
   list (sequencable stmt) x |> List.flatten
+
+and ms_try_handler (l, inner, r) x =
+  let try_stmt =
+    G.OtherStmtWithStmt (OSWS_SEH, [], G.Block (l, inner, r) |> G.s) |> G.s
+  in
+  let inner_stmt =
+    match x with
+    | MsExcept (v1, (_, v2, _), (l', v3, r')) ->
+        G.OtherStmtWithStmt
+          ( OSWS_SEH,
+            [ G.Tk v1; G.E (expr v2) ],
+            G.Block (l', stmts v3, r') |> G.s )
+        |> G.s
+    | MsFinally (v1, (l', v2, r')) ->
+        G.OtherStmtWithStmt
+          (OSWS_SEH, [ G.Tk v1 ], G.Block (l', stmts v2, r') |> G.s)
+        |> G.s
+  in
+  G.Block (Tok.unsafe_fake_bracket [ try_stmt; inner_stmt ]) |> G.s
 
 and expr_asm_operand (v1, v2, v3) =
   let v1 =
@@ -441,7 +465,45 @@ and var_decl
   let entity = G.basic_entity v1 ~attrs:v3 in
   (entity, G.VarDef { G.vinit = v4; vtype = Some v2 })
 
-and initialiser v = expr v
+and initialiser x =
+  match x with
+  | InitExpr v1 ->
+      let v1 = expr v1 in
+      v1
+  | InitList v1 ->
+      (* TODO: should look in xs for either and decide to build an Array
+       * or a Dict
+       *)
+      let l, xs, r = bracket (list initialiser) v1 in
+      G.Container (G.Array, (l, xs, r)) |> G.e
+  | InitDesignators (v1, v2, v3) ->
+      let _v1TODO = list designator v1
+      and _v2 = info v2
+      and v3 = initialiser v3 in
+      v3
+  | InitFieldOld (v1, v2, v3) ->
+      let _v1TODO = name v1 and _v2 = info v2 and v3 = initialiser v3 in
+      v3
+  | InitIndexOld (v1, v2) ->
+      let _v1TODO = bracket expr v1 and v2 = initialiser v2 in
+      v2
+
+and designator = function
+  | DesignatorField (v1, v2) ->
+      let _v1 = info v1 and v2 = name v2 in
+      Left3 v2
+  | DesignatorIndex v1 ->
+      let _, v1, _ = bracket expr v1 in
+      Middle3 v1
+  | DesignatorRange v1 ->
+      let _, v1, _ =
+        bracket
+          (fun (v1, v2, v3) ->
+            let v1 = expr v1 and _v2 = info v2 and v3 = expr v3 in
+            (v1, v3))
+          v1
+      in
+      Right3 v1
 
 and storage tok = function
   | Extern -> [ G.attr G.Extern (fake tok "extern") ]
@@ -473,19 +535,28 @@ and func_def { f_name; f_type; f_body; f_static } =
 
 and struct_def { s_name; s_kind; s_flds } =
   let v1 = name s_name in
-  let v3 = bracket (list field_def) s_flds in
   let entity = G.basic_entity v1 in
   match s_kind with
   | Struct ->
-      let fields =
-        bracket (List_.map (fun (n, t) -> G.basic_field n None (Some t))) v3
+      let l, fields, r =
+        bracket
+          (list
+             (sequencable_for_and_type (fun x ->
+                  let n, t = field_def x in
+                  [ G.basic_field n None (Some t) ])))
+          s_flds
       in
-      (entity, G.TypeDef { G.tbody = G.AndType fields })
+      (entity, G.TypeDef { G.tbody = G.AndType (l, List.flatten fields, r) })
   | Union ->
-      let ctors =
-        v3 |> Tok.unbracket |> List_.map (fun (n, t) -> G.OrUnion (n, t))
+      let _l, fields, _r =
+        bracket
+          (list
+             (sequencable_for_or_type (fun x ->
+                  let n, t = field_def x in
+                  G.OrConstructor (n, [ t ]))))
+          s_flds
       in
-      (entity, G.TypeDef { G.tbody = G.OrType ctors })
+      (entity, G.TypeDef { G.tbody = G.OrType (List.flatten fields) })
 
 and field_def { fld_name; fld_type } =
   let v1 = option name fld_name in
@@ -496,14 +567,13 @@ and enum_def { e_name = v1; e_type = _v2_TODO; e_consts = v3 } =
   let v1 = name v1
   and v3 =
     list
-      (fun (v1, v2) ->
-        let v1 = name v1 and v2 = option const_expr v2 in
-        (v1, v2))
+      (sequencable_for_or_type (fun (v1, v2) ->
+           let v1 = name v1 and v2 = option const_expr v2 in
+           G.OrEnum (v1, v2)))
       v3
   in
   let entity = G.basic_entity v1 in
-  let ors = v3 |> List_.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
-  (entity, G.TypeDef { G.tbody = G.OrType ors })
+  (entity, G.TypeDef { G.tbody = G.OrType (List.flatten v3) })
 
 and type_def { t_name = v1; t_type = v2 } =
   let v1 = name v1 and v2 = type_ v2 in
@@ -591,6 +661,34 @@ and sequencable : 'a. ('a -> G.stmt) -> 'a sequencable -> G.stmt list =
       [ v1 |> G.s ]
   | CIfdef v1 ->
       let _v1TODO = ifdef_directive v1 in
+      []
+
+(* mostly copy-paste of function above but with different type
+ * with the field local helper
+ *)
+and sequencable_for_and_type :
+      'a. ('a -> G.field list) -> 'a sequencable -> G.field list =
+ fun _of_a -> function
+  | X v1 ->
+      let v1 = _of_a v1 in
+      v1
+  | CDirective v1 ->
+      (* TODO: *)
+      let v1 = directive v1 in
+      [ F (v1 |> G.s) ]
+  | CIfdef v1 ->
+      let _v1 = ifdef_directive v1 in
+      []
+
+and sequencable_for_or_type :
+      'a. ('a -> G.or_type_element) -> 'a sequencable -> G.or_type_element list
+    =
+ fun _of_a -> function
+  | X v1 ->
+      let v1 = _of_a v1 in
+      [ v1 ]
+  | CDirective _
+  | CIfdef _ ->
       []
 
 let toplevel (x : stmt) = stmt x

@@ -58,6 +58,9 @@ val is_metavar_name : string -> bool
 val is_metavar_ellipsis : string -> bool
 val mvars_of_regexp_string : string -> mvar list
 
+(* metavariables like $_ *)
+val is_anonymous_metavar : string -> bool
+
 (* example: "$1" *)
 val is_metavar_for_capture_group : string -> bool
 val ii_of_mval : mvalue -> Tok.t list
