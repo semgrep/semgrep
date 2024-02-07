@@ -68,7 +68,7 @@ and manifest_target = {
    We currently use this in the parsing of some lockfiles, to determine which
    dependencies are direct and which are transitive. Future uses may include
    determining if a dependency is of a certain type, such as
-   {{https://github.com/npm/npm/blob/2e3776bf5676bc24fec6239a3420f377fe98acde/doc/files/package.json.md#devdependencies}
+   {{: https://github.com/npm/npm/blob/2e3776bf5676bc24fec6239a3420f377fe98acde/doc/files/package.json.md#devdependencies }
    only for development}.
 
    Examples of manifest files include [package.json] (javascript/npm) or

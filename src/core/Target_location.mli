@@ -58,7 +58,7 @@ and code = {
       resolve these connections as part of generating code targets. *)
 }
 [@@deriving show]
-(** The location of a "normal" semgrep target, comprising source code (or for
+(** The location of a "normal" semgrep target, comprising source code (or, for
    regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
    the target this would designate. *)
 
@@ -84,6 +84,8 @@ and lockfile = {
       (** Optionally, a manifest file associated with this lockfile. *)
 }
 [@@deriving show]
+(** A lockfile to be used during matching. See also {!Lockfile_target.t}, the
+    target this would designate. *)
 
 and manifest = {
   source : Source.t;
