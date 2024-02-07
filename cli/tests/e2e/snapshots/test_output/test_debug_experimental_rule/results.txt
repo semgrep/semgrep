@@ -119,7 +119,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](Core_scan): done with <MASKED>
 [<MASKED>][INFO](Core_scan): found 2 matches, 0 errors
 [<MASKED>][INFO](Core_scan): there were 0 skipped targets
-[<MASKED>][DEBUG](Core_command): size of returned JSON string: 1159
+[<MASKED>][DEBUG](Core_command): size of returned JSON string: 1157
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
