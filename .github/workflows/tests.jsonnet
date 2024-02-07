@@ -390,7 +390,7 @@ local benchmarks_full_job = {
 local trigger_semgrep_comparison_argo = {
   secrets: 'inherit',
   needs: [
-    'push-docker',
+    'push-docker-returntocorp',
   ],
   uses: './.github/workflows/trigger-semgrep-comparison-argo.yml',
 };
@@ -479,7 +479,7 @@ local build_test_docker_nonroot_job = {
 local right_ref_and_right_event =
   "github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))";
 
-local push_docker_job = {
+local push_docker_job(repository_name) = {
   needs: [
     'build-test-docker',
   ],
@@ -488,12 +488,12 @@ local push_docker_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test',
-    'repository-name': docker_repository_name,
+    'repository-name': repository_name,
     'dry-run': false,
   },
 };
 
-local push_docker_nonroot_job = {
+local push_docker_nonroot_job(repository_name) = {
   needs: [
     'build-test-docker-nonroot',
   ],
@@ -502,7 +502,7 @@ local push_docker_nonroot_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test-nonroot',
-    'repository-name': docker_repository_name,
+    'repository-name': repository_name,
     'dry-run': false,
   },
 };
@@ -534,7 +534,7 @@ local push_docker_performance_tests_job = push_docker_nonroot_job + {
 local test_semgrep_pro_job = {
   needs: [
     'build-test-docker',
-    'push-docker',
+    'push-docker-returntocorp',
   ],
   uses: './.github/workflows/test-semgrep-pro.yml',
   'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
@@ -578,9 +578,11 @@ local ignore_md = {
     // Docker stuff
     'build-test-docker': build_test_docker_job,
     // requires build-test-docker
-    'push-docker': push_docker_job,
+    'push-docker-returntocorp': push_docker_job('returntocorp/semgrep'),
+    'push-docker-semgrep': push_docker_job('semgrep/semgrep')
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
-    'push-docker-nonroot': push_docker_nonroot_job,
+    'push-docker-nonroot-returntocorp': push_docker_nonroot_job('returntocorp/semgrep'),
+    'push-docker-nonroot-semgrep': push_docker_nonroot_job('semgrep/semgrep'),
     'build-test-docker-performance-tests': build_test_docker_performance_tests_job,
     'push-docker-performance-tests': push_docker_performance_tests_job,
     // Semgrep-pro mismatch check

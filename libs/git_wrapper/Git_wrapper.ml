@@ -544,7 +544,7 @@ let get_project_url ?cwd () : string option =
 
 (* coupling: with semgrep_output_v1.atd contribution type *)
 let git_log_json_format =
-  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%ai\", \
+  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%aI\", \
    \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
    \"%ae\"}}"
 

@@ -20,7 +20,7 @@
     "is_full_scan": true,
     "repo_id": "4",
     "org_id": "2",
-    "commit_timestamp": "1970-01-01T00:00:00",
+    "commit_timestamp": "1970-01-01T00:00:00Z",
     "is_sca_scan": false,
     "is_code_scan": false,
     "is_secrets_scan": false,

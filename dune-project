@@ -141,6 +141,10 @@ a few other projects developed at r2c.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name murmur3)
+  (synopsis "XXX")
+  (description "XXX")
+)
 
 (package (name lwt_platform)
   (synopsis "XXX")
@@ -452,6 +456,7 @@ For more information see https://semgrep.dev
     (yojson ( >= 2.0.0 ))
     yaml
     xmlm
+    (sarif ( >= 0.3.0 ))
     ; CLI
     cmdliner
     ; PPX

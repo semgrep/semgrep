@@ -80,10 +80,14 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
+(*****************************************************************************)
+(* Deduplication *)
+(*****************************************************************************)
+
 (* This is a port of the original pysemgrep cli_unique_key. This used to be in the CLI,
    but has since been moved to core.
 *)
-let unique_key (c : OutJ.core_match) =
+let core_unique_key (c : OutJ.core_match) =
   (* type-wise this is a tuple of string * string * int * int * string * string option *)
   (* # NOTE: We include the previous scan's rules in the config for
       # consistent fixed status work. For unique hashing/grouping,
@@ -172,7 +176,7 @@ let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
   *)
   |> OutUtils.sort_core_matches
   |> List.filter (fun x ->
-         let key = unique_key x in
+         let key = core_unique_key x in
          if Hashtbl.mem seen key then false
          else (
            Hashtbl.replace seen key true;
@@ -362,6 +366,7 @@ let unsafe_match_to_match
         (* TODO *)
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
+        historical_info = None;
         extra_extra = None;
       };
   }

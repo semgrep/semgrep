@@ -1,0 +1,2 @@
+# ERROR:
+ARG a=42

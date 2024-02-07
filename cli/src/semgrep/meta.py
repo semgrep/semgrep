@@ -181,11 +181,13 @@ class GitMeta:
         return git_check_output(["git", "show", "-s", "--format=%ct"])
 
     @property
-    def commit_timestamp(self) -> str:
+    def commit_timestamp(self) -> out.Datetime:
         """
         Returns the commit timestamp as an iso-formatted datetime string.
         """
-        return datetime.fromtimestamp(int(self.commit_datetime)).isoformat()
+        return out.Datetime(
+            datetime.fromtimestamp(int(self.commit_datetime)).isoformat()
+        )
 
     @property
     def is_full_scan(self) -> bool:
