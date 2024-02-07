@@ -82,11 +82,7 @@ default: https://github.com/ocaml/opam-repository.git
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         opam depext conf-pkg-config conf-gmp conf-libpcre conf-libcurl
-        wget https://raw.githubusercontent.com/transcode-open/apt-cyg/master/apt-cyg
-        chmod +x apt-cyg
-        mv apt-cyg /usr/local/bin
-        apt-cyg install libcurl-devel
-        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
+        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only --assume-depexts
       |||,
     },
     {

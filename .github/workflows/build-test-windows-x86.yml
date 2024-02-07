@@ -45,7 +45,7 @@ jobs:
     - name: Install deps
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext
         conf-pkg-config conf-gmp conf-libpcre conf-libcurl\n        opam install -y
-        ./ ./libs/ocaml-tree-sitter-core --deps-only\n      "
+        ./ ./libs/ocaml-tree-sitter-core --deps-only --assume-depexts\n      "
     - name: Build semgrep-core
       run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        export
         TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
