@@ -1,0 +1,3 @@
+Output: Semgrep CLI now no longer sometimes interpolated metavariables twice, if
+the message that was substituted for a metavariable itself contained a valid
+metavariable to be interpolated
