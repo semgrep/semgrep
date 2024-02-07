@@ -744,11 +744,13 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
      * and "underline off" *)
+    (* TODO: use a library for conditional color formatting. *)
     let esc =
-      if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[22m\027[24m"
-      else ""
+      match Fmt.style_renderer Fmt.stderr with
+      | `Ansi_tty -> "\027[22m\027[24m"
+      | `None -> ""
     in
-    Logs.warn (fun m ->
+    Logs.app (fun m ->
         m
           "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
            reports pseudonymous rule metrics to semgrep.dev.@.To disable \

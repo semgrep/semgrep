@@ -6,8 +6,12 @@
    Attention: Any log message that can't be understood without context
    will be moved to the Debug level!
 
-   - App: unlike the other levels, this prints ordinary messages on
-     stderr without any special formatting.
+   - App: unlike the other levels, this prints ordinary messages without any
+     special formatting.
+     TODO: enable normal logging formatting and/or deprecate it
+     and convert the existing code to use 'Std_msg.print' or 'Std_msg.eprint'.
+     The issue is that right now, redirecting logs also redirects the verbose
+     stderr output because it uses 'Logs.app'.
 
    - Error ('err'): error condition that prevent the program from running
      normally.
@@ -24,7 +28,7 @@
      Semgrep: activated with --verbose
 
    - Debug: condition that allows the program developer to get a
-     better undersanding of what the program is doing.
+     better understanding of what the program is doing.
      It may reduce the performance of the application or result in
      unreadable logs unless they're filtered. Use tags for filtering.
      Semgrep: activated with --debug
@@ -41,6 +45,11 @@ val default_skip_libs : string list
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
+
+   'highlight_setting': whether the output should be formatted with color
+   and font effects. It defaults to the current setting we have for stderr
+   in Stderr_msg. This option can be useful when redirecting the logs to
+   a file with the 'log_to_file' option.
 
    'require_one_of_these_tags': if a list of tags is provided, at least one
    of these tags must be set for a log instruction to be printed.
@@ -71,11 +80,11 @@ val default_skip_libs : string list
      ...
 *)
 val setup_logging :
+  ?highlight_setting:Std_msg.highlight_setting ->
   ?log_to_file:Fpath.t ->
   ?skip_libs:string list ->
   ?require_one_of_these_tags:string list ->
   ?read_tags_from_env_var:string option ->
-  force_color:bool ->
   level:Logs.level option ->
   unit ->
   unit
@@ -85,18 +94,6 @@ val setup_logging :
  * leave the mock logs_reporter in place).
  *)
 val in_mock_context : bool ref
-
-(* TODO:
-   Logs.Error, Logs.Warning, and friends should apply the appropriate color
-   and tag prefix (e.g. ERROR) to the message. For now, those functions can
-   be used to prepend the colored tag manually before the log message.
-
-   Note: these have nothing to do with the tags supported by the Logs library.
-   See 'create_tag' below for those.
-*)
-val err_tag : ?tag:string -> unit -> string
-val warn_tag : ?tag:string -> unit -> string
-val success_tag : ?tag:string -> unit -> string
 
 (*
    String tags to be included in log messages for easy filtering.

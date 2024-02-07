@@ -69,7 +69,8 @@ let o_logging : Logs.level option Term.t =
 
 (* ugly: also partially done in CLI.ml *)
 let setup_logging ~force_color ~level =
-  Logs_.setup_logging ~force_color ~level ();
+  Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
+  Logs_.setup_logging ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist

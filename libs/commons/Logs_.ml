@@ -194,16 +194,25 @@ let reporter ~dst ~require_one_of_these_tags
   in
   { Logs.report }
 
+(* Note that writing to a freshly-opened file path can still write to
+   a terminal. Such an example is '/dev/stderr'. *)
+let isatty chan =
+  let fd = UUnix.descr_of_out_channel chan in
+  !ANSITerminal.isatty fd
+
 let create_formatter opt_file =
-  match opt_file with
-  | None -> UFormat.err_formatter
-  | Some out_file ->
-      let oc =
-        (* This truncates the log file, which is usually what we want for
-           Semgrep. *)
-        UStdlib.open_out (Fpath.to_string out_file)
-      in
-      UFormat.formatter_of_out_channel oc
+  let chan, fmt =
+    match opt_file with
+    | None -> (UStdlib.stderr, UFormat.err_formatter)
+    | Some out_file ->
+        let oc =
+          (* This truncates the log file, which is usually what we want for
+             Semgrep. *)
+          UStdlib.open_out (Fpath.to_string out_file)
+        in
+        (oc, UFormat.formatter_of_out_channel oc)
+  in
+  (isatty chan, fmt)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -219,11 +228,22 @@ let enable_logging () =
        ~read_tags_from_env_var:None ());
   ()
 
-let setup_logging ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
+let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
+    ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
     ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
-    ~force_color ~level () =
-  let dst = create_formatter opt_file in
-  let style_renderer = if force_color then Some `Ansi_tty else None in
+    ~level () =
+  let isatty, dst = create_formatter opt_file in
+  let style_renderer =
+    let highlight =
+      match highlight_setting with
+      | On -> true
+      | Off -> false
+      | Auto -> isatty
+    in
+    match highlight with
+    | true -> Some `Ansi_tty
+    | false -> None
+  in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   time_program_start := now ();
@@ -239,25 +259,6 @@ let setup_logging ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))
-
-(*****************************************************************************)
-(* TODO: remove those (see .mli) *)
-(*****************************************************************************)
-
-let err_tag ?(tag = " ERROR ") () =
-  ANSITerminal.sprintf
-    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_red ]
-    "%s" tag
-
-let warn_tag ?(tag = " WARN ") () =
-  ANSITerminal.sprintf
-    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_yellow ]
-    "%s" tag
-
-let success_tag ?(tag = " SUCCESS ") () =
-  ANSITerminal.sprintf
-    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_green ]
-    "%s" tag
 
 (*****************************************************************************)
 (* Missing basic functions *)
