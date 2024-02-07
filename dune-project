@@ -454,6 +454,7 @@ For more information see https://semgrep.dev
     ; PPX
     ppxlib
     ppx_deriving
+    ppx_deriving_yojson
     ppx_hash
     ppx_inline_test
     (ppx_sexp_conv ( = v0.16.0))
