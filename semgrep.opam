@@ -36,6 +36,7 @@ depends: [
   "yojson" {>= "2.0.0"}
   "yaml"
   "xmlm"
+  "sarif" {>= "0.3.0"}
   "cmdliner"
   "ppxlib"
   "ppx_deriving"

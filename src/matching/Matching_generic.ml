@@ -219,7 +219,11 @@ let ( let* ) o f = o >>= f
 (*****************************************************************************)
 
 let add_mv_capture key value (env : tin) =
-  { env with mv = (key, value) :: env.mv }
+  (* Anonymous metavariables do not unify, so they don't go into
+     the environment.
+  *)
+  if Metavariable.is_anonymous_metavar key then env
+  else { env with mv = (key, value) :: env.mv }
 
 let extend_stmts_matched rightmost_stmt (env : tin) =
   let stmts_matched = rightmost_stmt :: env.stmts_matched in
