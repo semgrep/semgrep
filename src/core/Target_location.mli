@@ -14,7 +14,10 @@
  *)
 
 (** Types for describing target locations, i.e., everything about a target
- * other than the actual contents. *)
+    other than the actual contents. See also {!Input_to_core_t}, which has a
+    similar set of types used when pysemgrep generates targets that have
+    slightly less information (e.g., sources and files containing contents are
+    not differentiated). *)
 
 (** The location of a Semgrep target. This contains all of the target-specific
     details needed to be able to determine how to scan a target, e.g.,
