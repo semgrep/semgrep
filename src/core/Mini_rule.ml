@@ -37,6 +37,7 @@ type rule = {
   inside : bool;
   (* originates from pattern-inside or pattern-not-inside *)
   message : string;
+  metadata : JSON.t option;
   severity : Rule.severity;
   langs : Lang.t list;
   (* at least one element *)

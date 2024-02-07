@@ -59,8 +59,8 @@ from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatches
 from semgrep.rule_match import RuleMatchMap
-from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_metrics import Any_ as AnySecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import CodeConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
@@ -234,7 +234,7 @@ def run_rules(
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw, [target.path for target in target_manager.targets]
             )
-            join_rule_matches_set = RuleMatchSet(rule)
+            join_rule_matches_set = RuleMatches(rule)
             for m in join_rule_matches:
                 join_rule_matches_set.add(m)
             join_rule_matches_by_rule = {
