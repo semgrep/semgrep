@@ -33,7 +33,7 @@ module H2 = AST_generic_helpers
 type mode = Pattern | Target
 type env = mode H.env
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 let token = H.token
 let str = H.str
 let fk tok = Tok.fake_tok tok ""
@@ -64,7 +64,7 @@ let stringify_without_quotes str =
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | s when s =~ "^\'\\(.*\\)\'$" -> Common.matched1 s
     | _ ->
-        logger#warning "weird string literal: %s" s;
+        Logs.warn (fun m -> m ~tags "weird string literal: %s" s);
         s
   in
   G.String (fb (s, t))

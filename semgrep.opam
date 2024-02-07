@@ -24,14 +24,13 @@ depends: [
   "alcotest"
   "alcotest-js"
   "alcotest-lwt"
+  "calendar"
   "fmt"
   "ocolor"
   "ANSITerminal"
   "terminal_size"
   "uucp"
   "uutf"
-  "easy_logging" {= "0.8.1"}
-  "easy_logging_yojson" {= "0.8.1"}
   "logs"
   "atdgen"
   "yojson" {>= "2.0.0"}
@@ -40,6 +39,7 @@ depends: [
   "cmdliner"
   "ppxlib"
   "ppx_deriving"
+  "ppx_deriving_yojson"
   "ppx_hash"
   "ppx_inline_test"
   "ppx_sexp_conv" {= "v0.16.0"}

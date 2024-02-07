@@ -24,7 +24,7 @@ module Set = Set_
 module MV = Metavariable
 open Parse_rule_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -822,7 +822,8 @@ let report_unparsed_fields rd =
        *)
       xs
       |> List.iter (fun (k, _v) ->
-             logger#warning "skipping unknown field: %s" k)
+             (* TODO: log in which file/loc this is happening *)
+             Logs.warn (fun m -> m ~tags "Skipping unknown field in rule: %s" k))
 
 let parse_version key value =
   let str, tok = parse_string_wrap_no_env key value in
@@ -990,8 +991,9 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
-               logger#warning "skipping rule %s, error = %s"
-                 (Rule_ID.to_string ruleid) s;
+               Logs.warn (fun m ->
+                   m ~tags "skipping rule %s, error = %s"
+                     (Rule_ID.to_string ruleid) s);
                Either.Right err)
   in
   Either_.partition_either (fun x -> x) xs
@@ -1058,9 +1060,14 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
         let value_ = Eval_jsonnet.eval_program core in
         Manifest_jsonnet_to_AST_generic.manifest_value value_
     | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
-    | _else_ ->
-        logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-        logger#info "trying to parse %s as YAML" !!file;
+    | _ ->
+        (* TODO: suspicious code duplication. The same error message
+           occurs in Translate_rule.ml *)
+        Logs.err (fun m ->
+            m ~tags
+              "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying to \
+               parse %s as YAML"
+              !!file);
         parse_yaml_rule_file ~is_target:true !!file
   in
   parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast

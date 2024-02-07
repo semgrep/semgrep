@@ -18,7 +18,7 @@ module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -93,7 +93,7 @@ let string_literal (env : env) (tok : CST.identifier) =
     match s with
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | _ ->
-        logger#warning "weird string literal: %s" s;
+        Logs.warn (fun m -> m ~tags "weird string literal: %s" s);
         s
   in
   G.L (G.String (fb (s, t))) |> G.e
