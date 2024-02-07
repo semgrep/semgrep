@@ -27,10 +27,6 @@ jobs:
 
           '
         opam-local-packages: dont_install_local_packages.opam
-    - name: install libcurl-devel
-      run: "\n        C:\\\\hostedtoolcache\\\\windows\\\\cygwin\\\\3.5.0\\\\x86_64\\\\setup-x86_64.exe
-        --quiet-mode --root D:\\cygwin --site https://mirrors.kernel.org/sourceware/cygwin
-        --packages libcurl-devel --symlink-type=sys\n      "
     - name: Set GHA cache for OPAM in _opam
       uses: actions/cache@v3
       env:
