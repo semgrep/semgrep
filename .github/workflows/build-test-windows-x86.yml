@@ -27,6 +27,10 @@ jobs:
 
           '
         opam-local-packages: dont_install_local_packages.opam
+    - name: install libcurl-devel
+      run: "\n        C:\\hostedtoolcache\\windows\\cygwin\\3.5.0\\x86_64\\setup-x86_64.exe
+        --quiet-mode --root D:\\cygwin --site https://mirrors.kernel.org/sourceware/cygwin
+        --packages libcurl-devel --symlink-type=sys\n      "
     - name: Set GHA cache for OPAM in _opam
       uses: actions/cache@v3
       env:
@@ -45,7 +49,7 @@ jobs:
     - name: Install deps
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext
         conf-pkg-config conf-gmp conf-libpcre conf-libcurl\n        opam install -y
-        ./ ./libs/ocaml-tree-sitter-core --deps-only --assume-depexts\n      "
+        ./ ./libs/ocaml-tree-sitter-core --deps-only\n      "
     - name: Build semgrep-core
       run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        export
         TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
