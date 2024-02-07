@@ -98,8 +98,6 @@ a few other projects developed at r2c.
     (alcotest (>= "1.5.0"))
     (cmdliner (>= "1.1.1" ))
     (logs (>= "0.7.0" ))
-    (easy_logging (>= "0.8.1" ))
-    (easy_logging_yojson (>= "0.8.1" ))
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
     (pcre (>= "7.5.0" ))
@@ -448,8 +446,6 @@ For more information see https://semgrep.dev
     uucp
     uutf
     ; logging
-    (easy_logging ( = 0.8.1 ))
-    (easy_logging_yojson ( = 0.8.1 ))
     logs
     ; JSON/YAML/XML
     atdgen

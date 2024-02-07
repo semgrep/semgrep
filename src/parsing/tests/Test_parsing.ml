@@ -20,7 +20,7 @@ module J = JSON
 module FT = File_type
 module Resp = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -226,7 +226,7 @@ let test_parse_tree_sitter lang root_paths =
   let stat_list = ref [] in
   paths |> Fpath_.to_strings
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
+         Logs.info (fun m -> m ~tags "processing %s" file);
          let stat =
            try
              (match lang with
@@ -343,8 +343,9 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
    *)
   Gc.set { (Gc.get ()) with Gc.space_overhead = 30 };
 
-  logger#info "running with a timeout of %f.1s" timeout_seconds;
-  logger#info "running with a memory limit of %d MiB" mem_limit_mb;
+  Logs.info (fun m -> m ~tags "running with a timeout of %f.1s" timeout_seconds);
+  Logs.info (fun m ->
+      m ~tags "running with a memory limit of %d MiB" mem_limit_mb);
 
   let paths =
     (* = absolute paths *)
@@ -571,7 +572,7 @@ let test_parse_rules roots =
   in
   targets
   |> List.iter (fun file ->
-         logger#info "processing %s" !!file;
+         Logs.info (fun m -> m ~tags "processing %s" !!file);
          let _r = Parse_rule.parse file in
          ());
-  logger#info "done test_parse_rules"
+  Logs.info (fun m -> m ~tags "done test_parse_rules")

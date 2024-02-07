@@ -274,7 +274,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
            else Fmt.any "  "
          in
          Fmt.pf ppf "  %a@."
-           Fmt.(styled (`Fg `Cyan) (esc ++ string ++ any " "))
+           Fmt.(styled (`Fg `Cyan) (esc ++ string))
            !!(cur.path));
       msg
     in

@@ -21,7 +21,7 @@ module Flag = Flag_semgrep
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -103,7 +103,7 @@ let parse_and_resolve_name lang file =
   (* Flow-sensitive constant propagation. *)
   Constant_propagation.propagate_dataflow lang ast;
 
-  logger#info "Parse_target.parse_and_resolve_name done";
+  Logs.debug (fun m -> m ~tags "Parse_target.parse_and_resolve_name done");
   res
 [@@profiling]
 

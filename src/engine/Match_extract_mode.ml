@@ -16,7 +16,7 @@ open Common
 open Fpath_.Operators
 open Extract
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
@@ -97,7 +97,7 @@ let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
 (* Unquote string *)
 (* TODO: This is not yet implemented *)
 let convert_from_unquote_to_string quoted_string =
-  logger#error "unquote_string unimplemented";
+  Logs.err (fun m -> m ~tags "unquote_string unimplemented");
   quoted_string
 
 (* Unescapes JSON array string *)
@@ -115,18 +115,20 @@ let convert_from_json_array_to_string json =
 
 let report_unbound_mvar (ruleid : Rule_ID.t) mvar m =
   let { Range.start; end_ } = Pattern_match.range m in
-  logger#warning
-    "The extract metavariable for rule %s (%s) wasn't bound in a match; \
-     skipping extraction for this match [match was at bytes %d-%d]"
-    (Rule_ID.to_string ruleid) mvar start end_
+  Logs.warn (fun m ->
+      m ~tags
+        "The extract metavariable for rule %s (%s) wasn't bound in a match; \
+         skipping extraction for this match [match was at bytes %d-%d]"
+        (Rule_ID.to_string ruleid) mvar start end_)
 
 let report_no_source_range erule =
-  logger#error
-    "In rule %s the extract metavariable (%s) did not have a corresponding \
-     source range"
-    (Rule_ID.to_string (fst erule.Rule.id))
-    (let (`Extract { Rule.extract; _ }) = erule.mode in
-     extract)
+  Logs.err (fun m ->
+      m ~tags
+        "In rule %s the extract metavariable (%s) did not have a corresponding \
+         source range"
+        (Rule_ID.to_string (fst erule.Rule.id))
+        (let (`Extract { Rule.extract; _ }) = erule.mode in
+         extract))
 
 (*****************************************************************************)
 (* Result mapping helpers *)
@@ -292,12 +294,13 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
                   | Unquote -> convert_from_unquote_to_string contents_raw
                   | __else__ -> contents_raw
                 in
-                logger#trace
-                  "Extract rule %s extracted the following from %s at bytes \
-                   %d-%d\n\
-                   %s"
-                  (Rule_ID.to_string (fst r.Rule.id))
-                  !!(xtarget.file) start_pos end_pos contents;
+                Logs.debug (fun m ->
+                    m ~tags
+                      "Extract rule %s extracted the following from %s at \
+                       bytes %d-%d\n\
+                       %s"
+                      (Rule_ID.to_string (fst r.Rule.id))
+                      !!(xtarget.file) start_pos end_pos contents);
                 ( contents,
                   map_loc start_pos start_line start_col !!(xtarget.file) ))
          (* Combine the extracted snippets *)
@@ -363,11 +366,13 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
                   raise Common.Impossible )
          |> fun (_, buf, map_loc) ->
          let contents = Buffer.contents buf in
-         logger#trace
-           "Extract rule %s combined matches from %s resulting in the following:\n\
-            %s"
-           (Rule_ID.to_string (fst r.Rule.id))
-           !!(xtarget.file) contents;
+         Logs.debug (fun m ->
+             m ~tags
+               "Extract rule %s combined matches from %s resulting in the \
+                following:\n\
+                %s"
+               (Rule_ID.to_string (fst r.Rule.id))
+               !!(xtarget.file) contents);
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let extracted_target = mk_extract_target dst_lang contents in
@@ -416,11 +421,13 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
                | Unquote -> convert_from_unquote_to_string contents_raw
                | __else__ -> contents_raw
              in
-             logger#trace
-               "Extract rule %s extracted the following from %s at bytes %d-%d\n\
-                %s"
-               (Rule_ID.to_string m.rule_id.id)
-               !!(m.file) start_extract_pos end_extract_pos contents;
+             Logs.debug (fun p ->
+                 p ~tags
+                   "Extract rule %s extracted the following from %s at bytes \
+                    %d-%d\n\
+                    %s"
+                   (Rule_ID.to_string m.rule_id.id)
+                   !!(m.file) start_extract_pos end_extract_pos contents);
              (* Write out the extracted text in a tmpfile *)
              let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
              let extracted_target = mk_extract_target dst_lang contents in
