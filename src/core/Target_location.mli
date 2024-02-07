@@ -85,7 +85,23 @@ and lockfile = {
 }
 [@@deriving show]
 
-and manifest = { source : Source.t; file : Fpath.t; kind : Manifest_kind.t }
+and manifest = {
+  source : Source.t;
+      (** The source of the data as is relevant to the user. This could be, e.g., a
+      relative (from the project root) path to a file, a git object and
+      associated information, or anything else a Source.t can designate.
+
+      This should be used when reporting a location to the user. *)
+  file : Fpath.t;
+      (** The path to a file which contains the data to be scanned. This could be
+      the same as the source, if the source is a path to a regular file (or an
+      absolute path to the same), or it could be a tempfile. This should be
+      used to obtain the contents of the target, but not for reporting to the
+      user, other than possibly for debugging purposes. *)
+  kind : Manifest_kind.t;
+      (** The type of manifest this is. Analogous to analyzer for a source code
+        target. *)
+}
 [@@deriving show]
 (** A manifest file to be used during matching. See also
     {!Lockfile_target.manifest_target}, the target this would designate. *)
