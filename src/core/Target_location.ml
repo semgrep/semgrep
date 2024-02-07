@@ -13,40 +13,12 @@
  * LICENSE for more details.
  *)
 
-type t = Code of code | Lockfile of lockfile [@@deriving show]
+(* See Target_location.mli for documentation of public items. *)
 
-(* The location of a "normal" semgrep target, comprising source code (or for
- * regex/generic, arbitrary text data) to be executed.
- *)
-and code = {
-  (* The source of the data as is relevant to the user. This could be, e.g., a
-   * relative (from the project root or scanning directory) path to a file, a
-   * git object and associated information, or anything else a Source.t can
-   * designate.
-   *
-   * This should be used when reporting a location to the user.
-   *)
-  source : Source.t;
-  (* The path to a file which contains the data to be scanned. This could be
-   * the same as the source, if the source is a path to a regular file, or it
-   * could be a tempfile
-   *
-   *)
-  file : Fpath.t;
-  analyzer : Xlang.t;
-  products : Semgrep_output_v1_t.product list;
-  (* Optional lockfile associated with this target.
-   * The association is namely that this target has its dependencies specified
-   * by the given lockfile. Core doesn't need to worry about determining these
-   * associations; rather the target selection and generation process must
-   * resolve these connections as part of generating code targets.
-   *)
-  lockfile : lockfile option;
-}
+type manifest = { source : Source.t; file : Fpath.t; kind : Manifest_kind.t }
 [@@deriving show]
 
-(* A lockfile to be matched against dependency patterns. *)
-and lockfile = {
+type lockfile = {
   source : Source.t;
   file : Fpath.t;
   kind : Lockfile_kind.t;
@@ -54,8 +26,16 @@ and lockfile = {
 }
 [@@deriving show]
 
-and manifest = { source : Source.t; file : Fpath.t; kind : Manifest_kind.t }
+type code = {
+  source : Source.t;
+  file : Fpath.t;
+  analyzer : Xlang.t;
+  products : Semgrep_output_v1_t.product list;
+  lockfile : lockfile option;
+}
 [@@deriving show]
+
+type t = Code of code | Lockfile of lockfile [@@deriving show]
 
 let code_of_source ?lockfile analyzer products (source : Source.t) : code =
   match source with
