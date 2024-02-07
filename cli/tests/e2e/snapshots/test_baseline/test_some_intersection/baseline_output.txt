@@ -4,6 +4,6 @@
 │ 1 Code Finding │
 └────────────────┘
 
-    bar.py 
+    bar.py
             1┆ y = 23478921
 
