@@ -257,7 +257,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
         result.as_snapshot(
             mask=[
                 # Hide file paths and URL paths
-                re.compile(r"(/?(?:[^ \n:\"'/]+/)+)"),
+                re.compile(r"(/?(?:[^ \n:\"'/]+/)+[^ \n:\"'/]*)"),
                 # Hide timestamps (starts with a timestamp like '[00:03]')
                 re.compile(r"\[([0-9]{2}\.[0-9]{2})\]"),
                 # Other variable debug output.
