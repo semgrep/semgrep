@@ -15,7 +15,7 @@ local semgrep_ci_job = {
   'runs-on': 'ubuntu-20.04',
   container: {
     // We're dogfooding the canary here!
-    image: 'returntocorp/semgrep:canary',
+    image: 'semgrep/semgrep:canary',
   },
   env: semgrep.secrets,
   steps: [
