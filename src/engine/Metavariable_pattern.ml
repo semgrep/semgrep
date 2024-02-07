@@ -207,7 +207,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                       let xtarget =
                         {
                           env.xtarget with
-                          file = Fpath.v file;
+                          internal_path_to_content = Fpath.v file;
                           lazy_ast_and_errors = lazy (mast', []);
                           lazy_content = lazy content;
                         }
@@ -309,10 +309,10 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                           []
                       | Ok lazy_ast_and_errors ->
                           let file = Fpath.v file in
-                          let xtarget =
+                          let xtarget : Xtarget.t =
                             {
-                              Xtarget.source = File file;
-                              file;
+                              source = File (Fpath.v mval_file);
+                              internal_path_to_content = file;
                               xlang;
                               lazy_ast_and_errors;
                               lazy_content = lazy content;

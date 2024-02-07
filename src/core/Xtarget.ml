@@ -9,7 +9,7 @@
 
 type t = {
   source : Source.t;
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
   xlang : Xlang.t;
   lazy_content : string lazy_t;
   (* This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)
@@ -35,8 +35,9 @@ let parse_file parser (analyzer : Xlang.t) path =
 let resolve parser (target : Target_location.code) : t =
   {
     source = target.source;
-    file = target.file;
+    internal_path_to_content = target.internal_path_to_content;
     xlang = target.analyzer;
-    lazy_content = lazy (UFile.read_file target.file);
-    lazy_ast_and_errors = parse_file parser target.analyzer target.file;
+    lazy_content = lazy (UFile.read_file target.internal_path_to_content);
+    lazy_ast_and_errors =
+      parse_file parser target.analyzer target.internal_path_to_content;
   }

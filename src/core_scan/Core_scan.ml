@@ -178,7 +178,8 @@ let sort_code_targets_by_decreasing_size (targets : Target_location.code list) :
     Target_location.code list =
   targets
   |> List_.sort_by_key
-       (fun (target : Target_location.code) -> UFile.filesize target.file)
+       (fun (target : Target_location.code) ->
+         UFile.filesize target.internal_path_to_content)
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
@@ -187,7 +188,8 @@ let sort_targets_by_decreasing_size (targets : Target_location.t list) :
     Target_location.t list =
   targets
   |> List_.sort_by_key
-       (fun target -> UFile.filesize (Target_location.file target))
+       (fun target ->
+         UFile.filesize (Target_location.internal_path_to_content target))
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
@@ -204,16 +206,18 @@ let filter_existing_targets (targets : Target_location.t list) :
     Target_location.t list * OutJ.skipped_target list =
   targets
   |> Either_.partition_either (fun (target : Target_location.t) ->
-         let file = Target_location.file target in
-         if Sys.file_exists (Fpath.to_string file) then Left target
+         let internal_path = Target_location.internal_path_to_content target in
+         if Sys.file_exists !!internal_path then Left target
          else
-           Right
-             {
-               Semgrep_output_v1_t.path = file;
-               reason = Nonexistent_file;
-               details = Some "File does not exist";
-               rule_id = None;
-             })
+           match Target_location.source with
+           | File path ->
+               Right
+                 {
+                   path;
+                   reason = Nonexistent_file;
+                   details = Some "File does not exist";
+                   rule_id = None;
+                 })
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     (matches : RP.matches_single_file) : RP.matches_single_file =
@@ -564,10 +568,12 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
       =
     targets
     |> map_targets config.ncores (fun (target : Target_location.t) ->
-           let file = Target_location.file target in
+           let internal_path =
+             Target_location.internal_path_to_content target
+           in
            let source = Target_location.source target in
-           logger#info "Analyzing %s (file is %s)" (Source.to_string source)
-             !!file;
+           logger#info "Analyzing %s (contents in %s)" (Source.to_string source)
+             !!internal_path;
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
                  try
@@ -577,11 +583,12 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                    let get_context () =
                      match !Rule.last_matched_rule with
                      | None ->
-                         spf "%s (file is %s)" (Source.to_string source) !!file
+                         spf "%s (contents in %s)" (Source.to_string source)
+                           !!internal_path
                      | Some rule_id ->
-                         spf "%s on %s (file is %s)"
+                         spf "%s on %s (contents is %s)"
                            (Rule_ID.to_string rule_id)
-                           (Source.to_string source) !!file
+                           (Source.to_string source) !!internal_path
                    in
                    Memory_limit.run_with_memory_limit ~get_context
                      ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -602,8 +609,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         * not testing -max_memory.
                         *)
                        if config.test then Gc.full_major ();
-                       logger#trace "done with %s (file is %s)"
-                         (Source.to_string source) !!file;
+                       logger#trace "done with %s (contents in %s)"
+                         (Source.to_string source) !!internal_path;
 
                        (res, was_scanned))
                  with
@@ -622,12 +629,12 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                            (Rule_ID.to_string rule.id);
                          logger#info "full pattern is: %s"
                            rule.MR.pattern_string);
-                     let loc = Tok.first_loc_of_file !!file in
+                     let loc = Tok.first_loc_of_file !!internal_path in
                      let errors =
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
-                           logger#info "Timeout on %s (file is %s)"
-                             (Source.to_string source) !!file;
+                           logger#info "Timeout on %s (contents in %s)"
+                             (Source.to_string source) !!internal_path;
                            (* TODO what happened here is several rules
                               timed out while trying to scan a file.
                               Which heuristically indicates that the
@@ -643,16 +650,16 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                                     OutJ.Timeout)
                            |> E.ErrorSet.of_list
                        | Out_of_memory ->
-                           logger#info "OutOfMemory on %s (file is %s)"
-                             (Source.to_string source) !!file;
+                           logger#info "OutOfMemory on %s (contents in %s)"
+                             (Source.to_string source) !!internal_path;
                            E.ErrorSet.singleton
                              (E.mk_error !Rule.last_matched_rule loc ""
                                 OutJ.OutOfMemory)
                        | _ -> raise Impossible
                      in
                      ( Core_result.make_match_result [] errors
-                         (Core_profiling.empty_partial_profiling file),
-                       Scanned (Original file) )
+                         (Core_profiling.empty_partial_profiling internal_path),
+                       Scanned (Original internal_path) )
                      (* those were converted in Main_timeout in timeout_function()*)
                      (* FIXME:
                         Actually, I managed to get this assert to trigger by running
@@ -683,11 +690,11 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      let e = Exception.catch exn in
                      let errors =
                        Core_error.ErrorSet.singleton
-                         (E.exn_to_error None !!file e)
+                         (E.exn_to_error None !!internal_path e)
                      in
                      ( Core_result.make_match_result [] errors
-                         (Core_profiling.empty_partial_profiling file),
-                       Scanned (Original file) ))
+                         (Core_profiling.empty_partial_profiling internal_path),
+                       Scanned (Original internal_path) ))
            in
            let scanned_path =
              match was_scanned with
@@ -711,29 +718,33 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 (*****************************************************************************)
 
 let lockfile_target_of_location
-    ({ source; file; kind = lockfile_kind; manifest } :
-      Target_location.lockfile) =
+    ({ source; internal_path_to_content; kind = lockfile_kind; manifest } :
+      Target_location.lockfile) : Lockfile_target.t =
   let manifest_target =
     manifest
     |> Option.map
-       @@ fun ({ source; file; kind = manifest_kind } :
+       @@ fun ({ source; internal_path_to_content; kind = manifest_kind } :
                 Target_location.manifest) : Lockfile_target.manifest_target ->
        {
          source;
-         file;
-         lazy_content = lazy (UFile.read_file file);
+         internal_path_to_content;
+         lazy_content = lazy (UFile.read_file internal_path_to_content);
          lazy_ast_and_errors =
-           lazy (Parse_lockfile.parse_manifest manifest_kind file);
+           lazy
+             (Parse_lockfile.parse_manifest manifest_kind
+                internal_path_to_content);
          kind = Manifest_kind.of_lockfile_kind lockfile_kind;
        }
   in
   {
-    Lockfile_target.source;
-    file;
+    source;
+    internal_path_to_content;
     kind = lockfile_kind;
-    lazy_content = lazy (UFile.read_file file);
+    lazy_content = lazy (UFile.read_file internal_path_to_content);
     lazy_ast_and_errors =
-      lazy (Parse_lockfile.parse_lockfile lockfile_kind manifest_target file);
+      lazy
+        (Parse_lockfile.parse_lockfile lockfile_kind manifest_target
+           internal_path_to_content);
     manifest = manifest_target;
   }
 
@@ -976,7 +987,8 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     (adjusters : Extract.adjusters) match_hook : target_handler =
   (* Note that this function runs in another process *)
   function
-  | Lockfile ({ file; kind; source; _ } as lockfile_location) ->
+  | Lockfile
+      ({ internal_path_to_content; kind; source; _ } as lockfile_location) ->
       let lockfile_target = lockfile_target_of_location lockfile_location in
       let applicable_supply_chain_rules =
         select_applicable_supply_chain_rules ~lockfile_kind:kind ~source
@@ -990,13 +1002,13 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       let was_scanned =
         match applicable_supply_chain_rules with
         | [] -> Not_scanned
-        | _ -> Scanned (Original file)
+        | _ -> Scanned (Original internal_path_to_content)
       in
       (* TODO: run all the right hooks *)
-      (RP.collate_rule_results file dep_matches, was_scanned)
+      (RP.collate_rule_results internal_path_to_content dep_matches, was_scanned)
   | Code target ->
       let source = target.source in
-      let file = target.file in
+      let file = target.internal_path_to_content in
       let analyzer = target.analyzer in
       let products = target.products in
       let applicable_rules =
@@ -1155,8 +1167,10 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
      *)
     targets
     |> List_.map_filter (fun (x : Target_location.t) ->
-           let file = Target_location.file x in
-           if Hashtbl.mem scanned_target_table !!file then Some file else None)
+           let internal_path = Target_location.internal_path_to_content x in
+           if Hashtbl.mem scanned_target_table !!internal_path then
+             Some internal_path
+           else None)
   in
   (* Since the OSS engine was invoked, there were no interfile languages
      requested *)

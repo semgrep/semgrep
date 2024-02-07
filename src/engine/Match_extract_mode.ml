@@ -278,7 +278,8 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
          (* Read the extracted text from the source file *)
          |> List_.map (fun { start_pos; start_line; start_col; end_pos } ->
                 let contents_raw =
-                  UCommon.with_open_infile !!(xtarget.Xtarget.file) (fun chan ->
+                  UCommon.with_open_infile !!(xtarget.internal_path_to_content)
+                    (fun chan ->
                       let extract_size = end_pos - start_pos in
                       seek_in chan start_pos;
                       really_input_string chan extract_size)
@@ -297,9 +298,11 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
                    %d-%d\n\
                    %s"
                   (Rule_ID.to_string (fst r.Rule.id))
-                  !!(xtarget.file) start_pos end_pos contents;
+                  !!(xtarget.internal_path_to_content)
+                  start_pos end_pos contents;
                 ( contents,
-                  map_loc start_pos start_line start_col !!(xtarget.file) ))
+                  map_loc start_pos start_line start_col
+                    !!(xtarget.internal_path_to_content) ))
          (* Combine the extracted snippets *)
          |> List.fold_left
               (fun (consumed_loc, contents, map_contents) (snippet, map_snippet) ->
@@ -367,11 +370,12 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
            "Extract rule %s combined matches from %s resulting in the following:\n\
             %s"
            (Rule_ID.to_string (fst r.Rule.id))
-           !!(xtarget.file) contents;
+           !!(xtarget.internal_path_to_content)
+           contents;
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let extracted_target = mk_extract_target dst_lang contents in
-         let original_target = Original xtarget.file in
+         let original_target = Original xtarget.internal_path_to_content in
          {
            extracted = extracted_target;
            original = original_target;
@@ -424,7 +428,7 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
              (* Write out the extracted text in a tmpfile *)
              let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
              let extracted_target = mk_extract_target dst_lang contents in
-             let original_target = Original xtarget.file in
+             let original_target = Original xtarget.internal_path_to_content in
              (* For some reason, with the concat_json_string_array option, it
               * needs a fix to point the right line
               * TODO: Find the reason of this behaviour and fix it properly
@@ -433,10 +437,10 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
                match transform with
                | ConcatJsonArray ->
                    map_loc start_extract_pos (line_offset - 1) col_offset
-                     !!(xtarget.Xtarget.file)
+                     !!(xtarget.internal_path_to_content)
                | __else__ ->
                    map_loc start_extract_pos line_offset col_offset
-                     !!(xtarget.Xtarget.file)
+                     !!(xtarget.internal_path_to_content)
              in
              Some
                {

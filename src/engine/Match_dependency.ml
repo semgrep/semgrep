@@ -86,7 +86,7 @@ let check_rule rule (target : Lockfile_target.t) dependency_formula =
                    (* TODO: What should this be? *)
                    pattern_string = "";
                  };
-               file = target.file;
+               file = target.internal_path_to_content;
                source = target.source;
                (* TODO: should be pro? Where is this supposed to be set? *)
                engine_kind = `OSS;

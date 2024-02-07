@@ -15,12 +15,16 @@
 
 (* See Target_location.mli for documentation of public items. *)
 
-type manifest = { source : Source.t; file : Fpath.t; kind : Manifest_kind.t }
+type manifest = {
+  source : Source.t;
+  internal_path_to_content : Fpath.t;
+  kind : Manifest_kind.t;
+}
 [@@deriving show]
 
 type lockfile = {
   source : Source.t;
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
   kind : Lockfile_kind.t;
   manifest : manifest option;
 }
@@ -28,7 +32,7 @@ type lockfile = {
 
 type code = {
   source : Source.t;
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
   analyzer : Xlang.t;
   products : Semgrep_output_v1_t.product list;
   lockfile : lockfile option;
@@ -39,21 +43,22 @@ type t = Code of code | Lockfile of lockfile [@@deriving show]
 
 let code_of_source ?lockfile analyzer products (source : Source.t) : code =
   match source with
-  | File file -> { source; file; analyzer; products; lockfile }
+  | File file ->
+      { source; internal_path_to_content = file; analyzer; products; lockfile }
 
 let lockfile_of_source ?manifest kind (source : Source.t) : lockfile =
   match source with
-  | File file -> { source; file; kind; manifest }
+  | File file -> { source; internal_path_to_content = file; kind; manifest }
 
 let manifest_of_source kind (source : Source.t) : manifest =
   match source with
-  | File file -> { source; file; kind }
+  | File file -> { source; internal_path_to_content = file; kind }
 
-let file (target : t) : Fpath.t =
+let internal_path_to_content (target : t) : Fpath.t =
   match target with
-  | Code { file; _ }
-  | Lockfile { file; _ } ->
-      file
+  | Code { internal_path_to_content; _ }
+  | Lockfile { internal_path_to_content; _ } ->
+      internal_path_to_content
 
 let source (target : t) : Source.t =
   match target with

@@ -40,7 +40,7 @@ and code = {
       associated information, or anything else a Source.t can designate.
 
       This should be used when reporting a location to the user. *)
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
       (** The path to a file which contains the data to be scanned. This could be
       the same as the source, if the source is a path to a regular file (or an
       absolute path to the same), or it could be a tempfile. This should be
@@ -71,7 +71,7 @@ and lockfile = {
       associated information, or anything else a Source.t can designate.
 
       This should be used when reporting a location to the user. *)
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
       (** The path to a file which contains the data to be scanned. This could be
       the same as the source, if the source is a path to a regular file (or an
       absolute path to the same), or it could be a tempfile. This should be
@@ -92,7 +92,7 @@ and manifest = {
       associated information, or anything else a Source.t can designate.
 
       This should be used when reporting a location to the user. *)
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
       (** The path to a file which contains the data to be scanned. This could be
       the same as the source, if the source is a path to a regular file (or an
       absolute path to the same), or it could be a tempfile. This should be
@@ -143,9 +143,9 @@ val manifest_of_source : Manifest_kind.t -> Source.t -> manifest
       a target from certain types of sources, such as generating a tempfile.
  *)
 
-val file : t -> Fpath.t
-(** [file target_loc] is the path to a file containing the contents of the
-    target designated by [target_loc]. *)
+val internal_path_to_content : t -> Fpath.t
+(** [internal_path_to_content target_loc] is the path to a file containing the
+    contents of the target designated by [target_loc]. *)
 
 val source : t -> Source.t
 (** [source target_loc] is the user-reportable origin of the target location

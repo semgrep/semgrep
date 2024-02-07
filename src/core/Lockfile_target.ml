@@ -5,7 +5,7 @@ type t = {
       associated information, or anything else a Source.t can designate.
 
       This should be used when reporting a location to the user. *)
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
       (** The path to a file which contains the data to be scanned. This could be
       the same as the source, if the source is a path to a regular file (or an
       absolute path to the same), or it could be a tempfile. This should be
@@ -43,7 +43,7 @@ and manifest_target = {
       associated information, or anything else a Source.t can designate.
 
       This should be used when reporting a location to the user. *)
-  file : Fpath.t;
+  internal_path_to_content : Fpath.t;
       (** The path to a file which contains the data to be scanned. This could be
       the same as the source, if the source is a path to a regular file (or an
       absolute path to the same), or it could be a tempfile. This should be
