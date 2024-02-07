@@ -51,7 +51,7 @@ default: https://github.com/ocaml/opam-repository.git
     {
       name: "install libcurl-devel",
       run: |||
-        C:\hostedtoolcache\windows\cygwin\3.5.0\x86_64\setup-x86_64.exe --quiet-mode --root D:\cygwin --site https://mirrors.kernel.org/sourceware/cygwin --packages libcurl-devel --symlink-type=sys
+        C:\\hostedtoolcache\\windows\\cygwin\\3.5.0\\x86_64\\setup-x86_64.exe --quiet-mode --root D:\cygwin --site https://mirrors.kernel.org/sourceware/cygwin --packages libcurl-devel --symlink-type=sys
       |||
     },
     // Why this cache when ocaml/setup-ocaml is already caching things?
