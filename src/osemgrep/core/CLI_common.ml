@@ -69,14 +69,8 @@ let o_logging : Logs.level option Term.t =
 
 (* ugly: also partially done in CLI.ml *)
 let setup_logging ~force_color ~level =
-  (* For osemgrep we use the Logs library instead of the Logger
-   * library in pfff. We had a few issues with Logger (which is a small
-   * wrapper around the easy_logging library), and we don't really want
-   * the logging in semgrep-core to interfere with the proper
-   * logging/output we want in osemgrep, so this is a good opportunity
-   * to evaluate a new logging library.
-   *)
-  Logs_.setup_logging ~force_color ~level ();
+  Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
+  Logs_.setup_logging ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist
@@ -91,21 +85,7 @@ let setup_logging ~force_color ~level =
   *)
   Logs.debug (fun m -> m "Logging setup for osemgrep");
   Logs.debug (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
-
-  (* Easy_logging setup. We should avoid to use Logger in osemgrep/
-   * and use Logs instead, but it is still useful to get the semgrep-core
-   * logging information at runtime, hence this call.
-   *)
-  let debug =
-    match level with
-    | Some Logs.Debug -> true
-    | _else_ -> false
-  in
-  Logging_.setup ~debug
-    ~log_config_file:(Fpath.v "log_config.json")
-    ~log_to_file:None;
-  ()
+      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
 
 (*************************************************************************)
 (* Profiling options *)

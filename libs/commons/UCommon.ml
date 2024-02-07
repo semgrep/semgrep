@@ -14,7 +14,7 @@
  *)
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Stdout *)
@@ -189,14 +189,14 @@ let erase_temp_files () =
   if not !save_tmp_files then (
     _temp_files_created
     |> Hashtbl.iter (fun s () ->
-           logger#info "erasing: %s" s;
+           Logs.debug (fun m -> m ~tags "erasing: %s" s);
            USys.remove s);
     Hashtbl.clear _temp_files_created)
 
 let erase_this_temp_file f =
   if not !save_tmp_files then (
     Hashtbl.remove _temp_files_created f;
-    logger#info "erasing: %s" f;
+    Logs.debug (fun m -> m ~tags "erasing: %s" f);
     USys.remove f)
 
 (*****************************************************************************)
@@ -211,7 +211,7 @@ let dir_contents dir =
     | f :: fs -> (
         match f with
         | f when not (USys.file_exists f) ->
-            logger#error "%s does not exist anymore" f;
+            Logs.err (fun m -> m ~tags "%s does not exist anymore" f);
             loop result fs
         | f when USys.is_directory f ->
             USys.readdir f |> Array.to_list

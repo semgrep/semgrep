@@ -51,6 +51,63 @@ let default_skip_libs =
 let in_mock_context = ref false
 
 (*****************************************************************************)
+(* String tags *)
+(*****************************************************************************)
+(*
+   The interface of the Logs.Tag module is complicated. Here we assume
+   tags are strings, that's it.
+*)
+
+(*
+   The tag syntax is a dot-separated identifier similar to pytest markers.
+   coupling: update the error message below when changing this syntax
+*)
+let tag_syntax = {|\A[A-Za-z_][A-Za-z_0-9]*(?:[.][A-Za-z_][A-Za-z_0-9]*)*\z|}
+
+let has_valid_tag_syntax =
+  let re = Re.Pcre.regexp tag_syntax in
+  fun tag -> Re.execp re tag
+
+let check_tag_syntax tag =
+  if not (has_valid_tag_syntax tag) then
+    invalid_arg
+      (spf
+         "Logs.create_tag: invalid syntax for test tag %S.\n\
+          It must be a dot-separated sequence of one or more alphanumeric\n\
+          identifiers e.g. \"foo_bar.v2.todo\" . It must match the following \
+          regexp:\n\
+         \  %s" tag tag_syntax)
+
+let create_tag (tag : string) : string Logs.Tag.def =
+  check_tag_syntax tag;
+  Logs.Tag.def tag Format.pp_print_string
+
+let create_tag_set (tag_list : string Logs.Tag.def list) : Logs.Tag.set =
+  List.fold_left
+    (fun set tag -> Logs.Tag.add tag (Logs.Tag.name tag) set)
+    Logs.Tag.empty tag_list
+
+let create_tags (tags : string list) : Logs.Tag.set =
+  tags |> List_.map create_tag |> create_tag_set
+
+let string_of_tag (Logs.Tag.V (def, _)) = Logs.Tag.name def
+
+let string_of_tags tags =
+  if Logs.Tag.is_empty tags then ""
+  else
+    let str =
+      Logs.Tag.fold (fun tag list -> string_of_tag tag :: list) tags []
+      |> String.concat ", "
+    in
+    spf "(%s)" str
+
+(* This whole logging is going to be so sloooow <sigh>.
+   In my opinion, the Format module is not suitable for logging,
+   being potentially extremely slow. -- Martin
+*)
+let pp_tags fmt tags = Format.pp_print_string fmt (string_of_tags tags)
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -71,10 +128,41 @@ let pp_sgr ppf style =
 (* alt: use Mtime_clock.now () *)
 let now () : float = UUnix.gettimeofday ()
 
-(* log reporter *)
-let reporter ?(with_timestamp = false) ?(dst = Fmt.stderr) () =
+(* a complicated way of saying (not (is_empty (inter a b))) *)
+let has_nonempty_intersection tag_str_list tag_set =
+  Logs.Tag.fold
+    (fun (V (def, _) : Logs.Tag.t) ok ->
+      ok || List.mem (Logs.Tag.name def) tag_str_list)
+    tag_set false
+
+let has_tag opt_str_list tag_set =
+  match opt_str_list with
+  | None (* = no filter *) -> true
+  | Some tag_str_list -> has_nonempty_intersection tag_str_list tag_set
+
+let read_tags_from_env_var opt_var =
+  match opt_var with
+  | None -> None
+  | Some var -> (
+      match USys.getenv_opt var with
+      | None -> None
+      | Some str -> Some (String.split_on_char ',' str))
+
+(* log reporter
+
+   This code was copy-pasted and derived from the example in the Logs library.
+   The Logs library interface makes us write this code that is frankly
+   incomprehensible and excessively complicated given how little it provides.
+*)
+let reporter ~dst ~require_one_of_these_tags
+    ~read_tags_from_env_var:(opt_env_var : string option) () =
+  let require_one_of_these_tags =
+    match read_tags_from_env_var opt_env_var with
+    | Some _ as some_tags -> some_tags
+    | None -> require_one_of_these_tags
+  in
   let report _src level ~over k msgf =
-    let pp_style, style, style_off =
+    let pp_style, _style, style_off =
       match color level with
       | None -> ((fun _ppf _style -> ()), "", "")
       | Some x -> (pp_sgr, x, "0")
@@ -84,19 +172,47 @@ let reporter ?(with_timestamp = false) ?(dst = Fmt.stderr) () =
       k ()
     in
     let r =
-      msgf @@ fun ?header ?tags:_ fmt ->
-      if with_timestamp then
-        let current = now () in
-        Format.kfprintf k dst
-          ("@[[%05.2f]%a: " ^^ fmt ^^ "@]@.")
-          (current -. !time_program_start)
-          Logs_fmt.pp_header (level, header)
-      else Format.kfprintf k dst ("@[%a" ^^ fmt ^^ "@]@.") pp_style style
+      msgf (fun ?header ?(tags = Logs.Tag.empty) fmt ->
+          match level with
+          | App ->
+              (* App level: no timestamp, tags, or other decorations *)
+              Format.kfprintf k dst (fmt ^^ "@.")
+          | _ ->
+              (* Tag-based filtering *)
+              if has_tag require_one_of_these_tags tags then
+                let current = now () in
+                (* Add a header *)
+                Format.kfprintf k dst
+                  ("@[[%05.2f]%a%a: " ^^ fmt ^^ "@]@.")
+                  (current -. !time_program_start)
+                  Logs_fmt.pp_header (level, header) pp_tags tags
+              else (* print nothing *)
+                Format.ikfprintf k dst fmt)
     in
     Format.fprintf dst "%a" pp_style style_off;
     r
   in
   { Logs.report }
+
+(* Note that writing to a freshly-opened file path can still write to
+   a terminal. Such an example is '/dev/stderr'. *)
+let isatty chan =
+  let fd = UUnix.descr_of_out_channel chan in
+  !ANSITerminal.isatty fd
+
+let create_formatter opt_file =
+  let chan, fmt =
+    match opt_file with
+    | None -> (UStdlib.stderr, UFormat.err_formatter)
+    | Some out_file ->
+        let oc =
+          (* This truncates the log file, which is usually what we want for
+             Semgrep. *)
+          UStdlib.open_out (Fpath.to_string out_file)
+        in
+        (oc, UFormat.formatter_of_out_channel oc)
+  in
+  (isatty chan, fmt)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -107,16 +223,33 @@ let reporter ?(with_timestamp = false) ?(dst = Fmt.stderr) () =
  *)
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
-  Logs.set_reporter (reporter ());
+  Logs.set_reporter
+    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:None
+       ~read_tags_from_env_var:None ());
   ()
 
-let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
-  let style_renderer = if force_color then Some `Ansi_tty else None in
+let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
+    ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
+    ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
+    ~level () =
+  let isatty, dst = create_formatter opt_file in
+  let style_renderer =
+    let highlight =
+      match highlight_setting with
+      | On -> true
+      | Off -> false
+      | Auto -> isatty
+    in
+    match highlight with
+    | true -> Some `Ansi_tty
+    | false -> None
+  in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
-  let with_timestamp = level =*= Some Logs.Debug in
   time_program_start := now ();
-  if not !in_mock_context then Logs.set_reporter (reporter ~with_timestamp ());
+  if not !in_mock_context then
+    Logs.set_reporter
+      (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
@@ -128,20 +261,10 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
          | s -> failwith ("Logs library not handled: " ^ s))
 
 (*****************************************************************************)
-(* TODO: remove those (see .mli) *)
+(* Missing basic functions *)
 (*****************************************************************************)
 
-let err_tag ?(tag = " ERROR ") () =
-  ANSITerminal.sprintf
-    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_red ]
-    "%s" tag
-
-let warn_tag ?(tag = " WARN ") () =
-  ANSITerminal.sprintf
-    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_yellow ]
-    "%s" tag
-
-let success_tag ?(tag = " SUCCESS ") () =
-  ANSITerminal.sprintf
-    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_green ]
-    "%s" tag
+let sdebug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
+let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
+let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
+let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)

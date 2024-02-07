@@ -856,7 +856,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
-    Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
+    Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
+    Logs_.setup_logging ~level:common.CLI_common.logging_level ();
     let target_roots = target_roots |> Fpath_.of_strings in
     let project_root =
       let is_git_repo remote =
