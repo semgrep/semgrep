@@ -45,7 +45,81 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>.json -j <MASKED> -strict -targets <MASKED> -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-<semgrep-core stderr not captured, should be printed above>
+[00.00][INFO](cli, Core_CLI): Executed as: /<MASKED>/semgrep-core -json -rules <MASKED>.json -j <MASKED> -strict -targets <MASKED> -timeout_threshold 3 -max_memory 0 -fast --debug
+[00.00][INFO](cli, Core_CLI): Version: semgrep-core version: <MASKED>
+[00.00][DEBUG](Core_scan): Parsing <MASKED>:
+{
+  "rules": [
+    {
+      "id": "rules.experiment.research-experiment",
+      "languages": [
+        "python"
+      ],
+      "message": "A match was found.",
+      "pattern": "print(\"...\")",
+      "severity": "EXPERIMENT"
+    }
+  ]
+}
+[00.00][DEBUG]: extracting nested content from 1 files
+[00.00][DEBUG](Match_rules): checking targets/experiment/experiment.py with 0 rules
+[00.00][INFO](Core_scan): processing 1 files, skipping 0 files
+[00.02][INFO]: Analyzing targets/experiment/experiment.py
+[00.02][DEBUG](Match_rules): checking targets/experiment/experiment.py with 1 rules
+[00.02][DEBUG](Pfff_or_tree_sitter): trying to parse with Pfff parser the pattern
+[00.02][DEBUG](Analyze_rule): cnf0 = (Analyze_rule.And
+   [(Analyze_rule.Or
+       [(Analyze_rule.LPat
+           { Xpattern.pat =
+             (Xpattern.Sem (
+                (E
+                   { e =
+                     (Call (
+                        { e =
+                          (N
+                             (Id (("print", ()),
+                                { id_resolved = ref (None);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = 7 }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false },
+                        ((),
+                         [(Arg
+                             { e = (L (String ((), ("...", ()), ())));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false })
+                           ],
+                         ())
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false }),
+                Python));
+             pstr = ("print(\"...\")", ()); pid = 1 })
+         ])
+     ])
+[00.03][DEBUG](Analyze_rule): cnf1 = (Analyze_rule.And
+   [(Analyze_rule.Or [(Analyze_rule.StringsAndMvars (["print"], []))])])
+[00.03][DEBUG](Analyze_rule): cnf2 = (Analyze_rule.And [(Analyze_rule.Or [(Analyze_rule.Idents ["print"])])])
+[00.03][DEBUG](Match_rules): looking for ["Pred",["Idents",["print"]]] in targets/experiment/experiment.py
+[00.03][DEBUG](Analyze_rule): check for the presence of "print"
+[00.03][DEBUG](Pfff_or_tree_sitter): trying to parse with Pfff parser targets/experiment/experiment.py
+[00.03][DEBUG](Naming_AST): Naming_AST.resolve program
+[00.03][DEBUG](Naming_AST): could not find 'print' in environment at targets/experiment/experiment.py:1:0
+[00.03][DEBUG](Naming_AST): could not find 'print' in environment at targets/experiment/experiment.py:3:0
+[00.03][DEBUG](Constant_propagation): Constant_propagation.propagate_basic program
+[00.04][DEBUG](Constant_propagation): Constant_propagation.propagate_dataflow program
+[00.04][DEBUG](AST_to_IL): warning: targets/experiment/experiment.py:1:0: the ident 'print' is not resolved
+[00.04][DEBUG](AST_to_IL): warning: targets/experiment/experiment.py:3:0: the ident 'print' is not resolved
+[00.04][DEBUG](Parse_target): Parse_target.parse_and_resolve_name done
+[00.04][DEBUG](Match_patterns): checking targets/experiment/experiment.py with 1 mini rules
+[00.05][DEBUG](Match_search_mode): found 2 matches
+[00.05][DEBUG](Match_search_mode): evaluating the formula
+[00.05][DEBUG](Match_search_mode): found 2 final ranges
+[00.05][DEBUG](Core_scan): done with targets/experiment/experiment.py
+[00.15][INFO](Core_scan): found 2 matches, 0 errors
+[00.15][INFO](Core_scan): there were 0 skipped targets
+[00.15][DEBUG](Core_command): size of returned JSON string: 1160
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
