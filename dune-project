@@ -433,6 +433,7 @@ For more information see https://semgrep.dev
     alcotest
     alcotest-js
     alcotest-lwt
+    calendar
     ; text and terminal formating
     fmt
     ocolor
