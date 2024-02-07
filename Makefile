@@ -124,9 +124,11 @@ minimal-build-bc:
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
 # For a fresh repo you will need at least to run first 'git submodule update --init'.
+# The 'semgrep-oss' is the name of the step in the Dockerfile, the 'semgrep'
+# the name of the docker image produced (will be semgrep:latest)
 .PHONY: build-docker
 build-docker:
-	docker build -t semgrep .
+	docker build -t semgrep --target semgrep-oss .
 
 .PHONY: build-otarzan
 build-otarzan:
@@ -278,10 +280,11 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 
 # This target is portable; it only assumes you have 'gcc', 'opam' and
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
-# Note that this target is now called from our Dockerfile, so do not
-# run 'opam update' below to not slow down things.
+# Note that we call opam update below because semgrep.opam may mention
+# new packages that are covered yet by our ocaml-layer docker image.
 .PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core: semgrep.opam
+	opam update -y
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
@@ -415,7 +418,6 @@ homebrew-setup:
 .PHONY: setup
 setup: semgrep.opam
 	./scripts/check-bash-version
-	opam update -y
 	$(MAKE) install-deps-for-semgrep-core
 
 # Install optional development dependencies in addition to build dependencies.
