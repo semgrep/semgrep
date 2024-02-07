@@ -209,11 +209,11 @@ let filter_existing_targets (targets : Target_location.t list) :
          let internal_path = Target_location.internal_path_to_content target in
          if Sys.file_exists !!internal_path then Left target
          else
-           match Target_location.source with
+           match Target_location.source target with
            | File path ->
                Right
                  {
-                   path;
+                   Semgrep_output_v1_t.path;
                    reason = Nonexistent_file;
                    details = Some "File does not exist";
                    rule_id = None;
