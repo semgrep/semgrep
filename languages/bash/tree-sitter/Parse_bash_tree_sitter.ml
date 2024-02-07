@@ -253,6 +253,12 @@ let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
 
 let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
   match x with
+  | `DOLLAR_choice_orig_simple_var_name (v1, `Choice_STAR (`X__ tok)) ->
+      let dollar_tok = token env v1 (* "$" *) in
+      let name_s, name_tok = (* "_" *) str env tok in
+      let mv_s = "$" ^ name_s in
+      let mv_tok = Tok.combine_toks dollar_tok [ name_tok ] in
+      Frag_semgrep_metavar (mv_s, mv_tok)
   | `DOLLAR_choice_orig_simple_var_name (v1, v2) -> (
       let dollar_tok = token env v1 (* "$" *) in
       let var_name =
