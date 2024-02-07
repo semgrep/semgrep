@@ -267,6 +267,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
                 re.compile(r"\"total_time\":(.*)"),
                 re.compile(r"\"commit_date\":(.*)"),
                 re.compile(r"-j ([0-9]+)"),
+                re.compile(r"size of returned JSON string: (.*)"),
             ]
         ),
         "results.txt",
