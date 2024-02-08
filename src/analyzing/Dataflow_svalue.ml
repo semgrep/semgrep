@@ -102,12 +102,6 @@ let result_of_function_call_constant lang f args =
 let eq_literal l1 l2 = G.equal_literal l1 l2
 let eq_ctype t1 t2 = t1 =*= t2
 
-let ctype_of_literal = function
-  | G.Bool _ -> G.Cbool
-  | G.Int _ -> G.Cint
-  | G.String _ -> G.Cstr
-  | ___else___ -> G.Cany
-
 let eq c1 c2 =
   match (c1, c2) with
   | G.Lit l1, G.Lit l2 -> eq_literal l1 l2
@@ -158,11 +152,11 @@ let union c1 c2 =
   | G.Sym _, _any ->
       G.NotCst
   | G.Lit l1, G.Lit l2 ->
-      let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
+      let t1 = H.ctype_of_literal l1 and t2 = H.ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
   | G.Lit l1, G.Cst t2
   | G.Cst t2, G.Lit l1 ->
-      let t1 = ctype_of_literal l1 in
+      let t1 = H.ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | G.Cst t1, G.Cst t2 -> G.Cst (union_ctype t1 t2)
 
@@ -337,7 +331,7 @@ and eval_op env wop args =
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
   | _op, [ G.Lit l1; G.Cst t2 ]
   | _op, [ G.Cst t2; G.Lit l1 ] ->
-      let t1 = ctype_of_literal l1 in
+      let t1 = H.ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | ___else___ -> G.NotCst
 
