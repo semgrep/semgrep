@@ -47,7 +47,6 @@ val hook_setup_hook_function_taint_signature :
    [taint_config_of_rule] is used on the same file!
 *)
 val taint_config_of_rule :
-  ?timeout:float ->
   per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
   string (* filename *) ->
@@ -57,7 +56,7 @@ val taint_config_of_rule :
   Taint.finding list ->
   Taint_lval_env.t ->
   unit) ->
-  (Dataflow_tainting.config * debug_taint * Matching_explanation.t list) option
+  Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 
 val mk_fun_input_env :
   Language.t ->
