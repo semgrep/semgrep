@@ -15,7 +15,7 @@ name: build-test-javascript
         description: Whether or not to upload JS artifacts to S3
 jobs:
   build:
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
     runs-on: ubuntu-latest-16-core

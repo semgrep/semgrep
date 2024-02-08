@@ -13,7 +13,7 @@ name: tests
 jobs:
   test-semgrep-core:
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
     steps:
@@ -48,7 +48,7 @@ jobs:
       run: opam exec -- make report-perf-matching
   test-osemgrep:
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
     steps:

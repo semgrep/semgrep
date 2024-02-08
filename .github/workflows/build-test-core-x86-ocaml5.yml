@@ -9,7 +9,7 @@ name: build-test-core-x86-ocaml5
 jobs:
   job:
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine5.1-2024-01-18
+    container: returntocorp/ocaml:alpine5.1-2023-11-07
     env:
       HOME: /root
     steps:

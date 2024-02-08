@@ -6,7 +6,7 @@ name: build-test-core-x86
 jobs:
   job:
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
     steps:
