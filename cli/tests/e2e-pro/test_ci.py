@@ -1884,22 +1884,6 @@ def test_metrics_enabled(
                     valid: block
                     invalid: comment
                     error: disabled
-            validators:
-            - http:
-                request:
-                    headers:
-                        Authorization: Bearer $REGEX
-                        Host: api.example.com
-                        User-Agent: Semgrep
-                    method: GET
-                    url: https://api.example.com/user
-                response:
-                  - match:
-                        - status-code: "200"
-                    result:
-                    metadata:
-                        confidence: HIGH
-                    validity: valid
             """
         ).lstrip()
     ],
@@ -1931,6 +1915,15 @@ def test_validator_rule_finding(
 
     # Since metadata blocks on valid/no-validator findings, the exit code should be 1
     assert result.exit_code == 1
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r"Using Semgrep Pro Version:.*"),
+                re.compile(r"Installed at.*"),
+            ]
+        ),
+        "output.txt",
+    )
 
 
 @pytest.mark.parametrize(
