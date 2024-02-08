@@ -44,10 +44,8 @@ jobs:
         PREFIX=\"$prefix\" install\n      "
     - name: Install deps
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        opam depext
-        conf-pkg-config conf-gmp conf-libpcre conf-libcurl\n        wget https://raw.githubusercontent.com/transcode-open/apt-cyg/master/apt-cyg\n
-        \       chmod +x apt-cyg\n        mv apt-cyg /usr/local/bin\n        apt-cyg
-        install libcurl-devel\n        opam install -y ./ ./libs/ocaml-tree-sitter-core
-        --deps-only\n      "
+        conf-pkg-config conf-gmp conf-libpcre conf-libcurl\n        opam install -y
+        ./ ./libs/ocaml-tree-sitter-core --deps-only\n      "
     - name: Build semgrep-core
       run: "\n        export PATH=\\\"${CYGWIN_ROOT_BIN}:${PATH}\\\"\n        export
         TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include\n
