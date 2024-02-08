@@ -401,23 +401,17 @@ def enable_dependency_query() -> bool:
 
 
 @pytest.fixture
-def enabled_products() -> List[str]:
-    return ["sast", "sca"]
-
-
-@pytest.fixture
 def start_scan_mock(
     requests_mock,
     scan_config,
     mocked_scan_id,
     enable_dependency_query,
-    enabled_products,
 ):
     start_scan_response = out.ScanResponse.from_json(
         {
             "info": {
                 **({"id": mocked_scan_id} if mocked_scan_id else {}),
-                "enabled_products": enabled_products,
+                "enabled_products": ["sast", "sca"],
                 "deployment_id": DEPLOYMENT_ID,
                 "deployment_name": "org_name",
             },
