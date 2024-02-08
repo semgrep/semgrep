@@ -679,11 +679,12 @@ let transfer :
 let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
  fun lang _inputs flow ->
   let enter_env = VarMap.empty in
-  DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
+  let mapping, _TO = DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
     ~eq_env:(Var_env.eq_env eq)
     ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
     ~trans:(transfer ~lang ~enter_env ~flow) (* svalue is a forward analysis! *)
-    ~forward:true ~flow
+    ~forward:true ~flow in
+  mapping
 
 let update_svalue (flow : F.cfg) mapping =
   flow.graph#nodes#keys

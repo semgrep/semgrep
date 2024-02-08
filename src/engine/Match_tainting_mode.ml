@@ -718,7 +718,7 @@ let check_var_def lang options taint_config env id ii expr =
   in
   let xs = AST_to_IL.stmt lang assign in
   let flow = CFG_build.cfg_of_stmts xs in
-  let end_mapping =
+  let end_mapping, _TO =
     let java_props_cache = D.mk_empty_java_props_cache () in
     Dataflow_tainting.fixpoint ~in_env:env lang options taint_config
       java_props_cache flow
@@ -866,7 +866,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   in
   let CFG_build.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef lang ~ctx fdef in
   let in_env = mk_fun_input_env lang options taint_config ?glob_env fdef in
-  let mapping =
+  let mapping, _TO =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
       java_props_cache flow
   in

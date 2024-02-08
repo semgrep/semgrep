@@ -1860,7 +1860,7 @@ let (fixpoint :
       config ->
       java_props_cache ->
       F.cfg ->
-      mapping) =
+      mapping * [`OK | `TO]) =
  fun ?(timeout=Limits_semgrep.taint_FIXPOINT_TIMEOUT) ?in_env ?name:opt_name lang options config java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
@@ -1895,7 +1895,7 @@ let (fixpoint :
   in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
-  let end_mapping =
+  let end_mapping, is_to =
     DataflowX.fixpoint ~timeout
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
@@ -1907,4 +1907,4 @@ let (fixpoint :
   let exit_env = end_mapping.(flow.exit).D.out_env in
   ( findings_from_arg_updates_at_exit enter_env exit_env |> fun findings ->
     if findings <> [] then config.handle_findings opt_name findings exit_env );
-  end_mapping
+  (end_mapping, is_to)
