@@ -6,6 +6,32 @@
 
 <!-- insertion point -->
 
+## [1.60.0](https://github.com/returntocorp/semgrep/releases/tag/v1.60.0) - 2024-02-08
+
+
+### Added
+
+
+- Rule syntax: Metavariables by the name of `$_` are now _anonymous_, meaning that
+  they do not unify within a single pattern or across patterns, and essentially
+  just unconditionally specify some expression.
+
+  For instance, the pattern `foo($_, $_)` may match the code `foo(1, 2)`.
+
+  This will change the behavior of existing rules that use the metavariable
+  `$_`, if they rely on unification still happening. This can be fixed by simply
+  giving the metavariable a real name like `$A`. (ea-837)
+- Added infrastructure for semgrep supply chain in semgrep-core. Not fully functional yet. (ssc-port)
+
+
+### Fixed
+
+
+- Output: Semgrep CLI now no longer sometimes interpolated metavariables twice, if
+  the message that was substituted for a metavariable itself contained a valid
+  metavariable to be interpolated (ea-838)
+
+
 ## [1.59.1](https://github.com/returntocorp/semgrep/releases/tag/v1.59.1) - 2024-02-02
 
 
