@@ -35,5 +35,5 @@ let run_with_span span_name ?data f =
 (*****************************************************************************)
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let initial_configuration () = ()
+let configure_tracing () = ()
 let with_setup f = f ()

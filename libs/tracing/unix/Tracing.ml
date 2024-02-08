@@ -72,8 +72,8 @@ let run_with_span span_name ?data f =
 (*****************************************************************************)
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let initial_configuration () =
-  Otel.Globals.service_name := "semgrep";
+let configure_tracing service_name =
+  Otel.Globals.service_name := service_name;
   Otel.GC_metrics.basic_setup ();
   Ambient_context.set_storage_provider (Ambient_context_lwt.storage ())
 

@@ -727,7 +727,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
            * TODO when osemgrep is the default entry point, we will also be able to
              instrument the pre- and post-scan code in the same way. *)
           if config.trace then (
-            Tracing.initial_configuration ();
+            Tracing.configure_tracing "semgrep";
             Tracing.with_setup (fun () ->
                 Core_command.semgrep_core_dispatch caps config))
           else Core_command.semgrep_core_dispatch caps config)
