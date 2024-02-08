@@ -1,0 +1,6 @@
+Dataflow: Simplified the IL translation for Python `with` statements to let
+symbolic propagation assume that `with foo() as x: ...` entails `x = foo()`,
+so that e.g. `Session().execute("...")` matches:
+
+    with Session() as s:
+        s.execute("SELECT * from T")
