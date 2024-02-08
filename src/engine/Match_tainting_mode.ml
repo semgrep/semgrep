@@ -85,6 +85,27 @@ type debug_taint = {
   sinks : (RM.t * R.taint_sink) list;
 }
 
+module Range_table = struct
+  module T = Hashtbl.Make (struct
+    type t = Range.t
+
+    let equal = Range.equal
+    let hash = Hashtbl.hash
+  end)
+
+  let create () = T.create 100
+
+  let push tbl k v =
+    match T.find_opt tbl k with
+    | None -> T.add tbl k [ v ]
+    | Some vs -> T.replace tbl k (v :: vs)
+
+  let get tbl k =
+    match T.find_opt tbl k with
+    | None -> []
+    | Some vs -> vs
+end
+
 (*****************************************************************************)
 (* Hooks *)
 (*****************************************************************************)
@@ -394,12 +415,12 @@ let propagators_table_of_matches rule matches =
       overlap = 1.0;
     }
   in
-  let tbl = Hashtbl.create 100 in
+  let tbl = Range_table.create () in
   matches
   |> List.iter (fun prop ->
          let var = prop.id in
-         Hashtbl_.push tbl prop.to_ (mk_match prop var `To prop.to_);
-         Hashtbl_.push tbl prop.from (mk_match prop var `From prop.from));
+         Range_table.push tbl prop.to_ (mk_match prop var `To prop.to_);
+         Range_table.push tbl prop.from (mk_match prop var `From prop.from));
   tbl
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
@@ -412,7 +433,7 @@ let propagators_table_of_matches rule matches =
 let any_is_in_propagators_matches any tbl : D.a_propagator Taint_smatch.t list =
   match range_of_any any with
   | None -> []
-  | Some r -> Hashtbl_.get_stack tbl r
+  | Some r -> Range_table.get tbl r
 
 let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
