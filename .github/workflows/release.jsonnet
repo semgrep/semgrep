@@ -41,6 +41,7 @@ local release_inputs = {
         state (like pushing to PyPI/Docker/Homebrew)
       |||,
       required: true,
+      default: false,
     },
   },
 };

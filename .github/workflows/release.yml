@@ -8,6 +8,7 @@ name: release
         description: "\n        Run the release in dry-run mode, e.g., without changing
           external\n        state (like pushing to PyPI/Docker/Homebrew)\n      "
         required: true
+        default: false
   workflow_call:
     inputs:
       dry-run:
@@ -15,6 +16,7 @@ name: release
         description: "\n        Run the release in dry-run mode, e.g., without changing
           external\n        state (like pushing to PyPI/Docker/Homebrew)\n      "
         required: true
+        default: false
   push:
     tags:
     - v*
