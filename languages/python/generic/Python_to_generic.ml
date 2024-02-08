@@ -903,14 +903,19 @@ and decorator env (t, v1) =
   in
   match dotted_name with
   | Some d_name ->
-      G.NamedAttr
-        ( t,
-          H.name_of_ids d_name,
-          Option.value ~default:(Tok.unsafe_fake_bracket []) args )
+    (match H.name_of_ids d_name, args with
+     (* Use standard static keyword for staticmethod attribute. This
+        is used by other parts of the pro-engine to check if a method
+        is static. *)
+     | (G.Id (("staticmethod", tok), _), (None | Some (_, [], _))) -> G.attr G.Static tok
+     | (name, args) ->
+       G.NamedAttr
+         ( t, name,
+           Option.value ~default:(Tok.unsafe_fake_bracket []) args ))
   | None ->
-      let v1 = expr env v1 in
-      G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])
-
+    let v1 = expr env v1 in
+    G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])
+      
 and alias env (v1, v2) =
   let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
   let imported_ident =
