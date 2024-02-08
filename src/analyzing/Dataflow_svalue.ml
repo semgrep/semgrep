@@ -39,7 +39,7 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-type constness = Constant | NotConstant [@@deriving show]
+type constness = Constant of G.const_type | NotConstant [@@deriving show]
 
 (*****************************************************************************)
 (* Hooks *)
@@ -66,7 +66,7 @@ let fb = Tok.unsafe_fake_bracket
 (* Constness *)
 (*****************************************************************************)
 
-let result_of_function_call_is_constant lang f args =
+let result_of_function_call_constant lang f args =
   match (lang, f, args) with
   (* Built-in knowledge, we know these functions return constants when
      * given constant arguments. *)
@@ -86,18 +86,18 @@ let result_of_function_call_is_constant lang f args =
         _;
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
-      true
+      Some G.Cstr
   (* Pro/Interfile: Look up inferred constness of the function *)
   | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
       match !hook_constness_of_function with
       | Some constness_of_func -> (
           match constness_of_func eorig with
-          | Some Constant -> true
+          | Some (Constant kind) -> Some kind
           | Some NotConstant
           | None ->
-              false)
-      | None -> false)
-  | __else__ -> false
+              None)
+      | None -> None)
+  | __else__ -> None
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
 let eq_ctype t1 t2 = t1 =*= t2
@@ -610,19 +610,19 @@ let transfer :
             let args_val =
               List_.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
             in
-            if result_of_function_call_is_constant lang func args_val then
-              VarMap.add (IL.str_of_name var) (G.Cst G.Cstr) inp'
-            else
-              match eval_builtin_func lang inp' func args with
-              | None
-              | Some NotCst ->
-                  (* symbolic propagation *)
-                  (* Call to an arbitrary function, we are intraprocedural so we cannot
-                   * propagate actual constants in this case, but we can propagate the
-                   * call itself as a symbolic expression. *)
-                  let ccall = sym_prop instr.iorig in
-                  update_env_with inp' var ccall
-              | Some cexp -> update_env_with inp' var cexp)
+            match result_of_function_call_constant lang func args_val with
+            | Some kind -> VarMap.add (IL.str_of_name var) (G.Cst kind) inp'
+            | None -> (
+                match eval_builtin_func lang inp' func args with
+                | None
+                | Some NotCst ->
+                    (* symbolic propagation *)
+                    (* Call to an arbitrary function, we are intraprocedural so we cannot
+                     * propagate actual constants in this case, but we can propagate the
+                     * call itself as a symbolic expression. *)
+                    let ccall = sym_prop instr.iorig in
+                    update_env_with inp' var ccall
+                | Some cexp -> update_env_with inp' var cexp))
         | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
             update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial
