@@ -2,8 +2,8 @@
    Utilities for printing user-facing messages with optional color on stderr.
 *)
 
-type highlight_setting = Auto | On | Off
-type highlight = On | Off
+type highlight_setting = Auto | On | Off [@@deriving show]
+type highlight = On | Off [@@deriving show]
 
 let highlight_setting = ref Auto
 let highlight = ref (Off : highlight)
@@ -14,21 +14,20 @@ let isatty () =
 let get_highlight_setting () = !highlight_setting
 let get_highlight () = !highlight
 
-let set_highlight ?(highlight_setting = (Auto : highlight_setting)) () =
+let setup ?highlight_setting:(hs = (Auto : highlight_setting)) () =
   let hl : highlight =
-    match highlight_setting with
+    match hs with
     | Auto -> if isatty () then On else Off
     | On -> On
     | Off -> Off
   in
+  highlight_setting := hs;
   highlight := hl
-
-let setup = set_highlight
 
 let with_highlight temp func =
   let orig = get_highlight_setting () in
-  set_highlight ~highlight_setting:temp ();
-  Common.finalize func (fun () -> set_highlight ~highlight_setting:orig ())
+  setup ~highlight_setting:temp ();
+  Common.finalize func (fun () -> setup ~highlight_setting:orig ())
 
 let highlight_error str =
   match get_highlight () with

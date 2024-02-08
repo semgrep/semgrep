@@ -29,6 +29,8 @@ module SS = Set.Make (String)
    from semgrep_main.py and core_runner.py.
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -40,6 +42,7 @@ type caps = < Cap.stdout ; Cap.network >
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
+  Logs_.sdebug ~tags "CLI_common.setup_logging";
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);

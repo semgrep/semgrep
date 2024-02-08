@@ -233,13 +233,13 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
     ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
     ~level () =
   let isatty, dst = create_formatter opt_file in
+  let highlight =
+    match highlight_setting with
+    | On -> true
+    | Off -> false
+    | Auto -> isatty
+  in
   let style_renderer =
-    let highlight =
-      match highlight_setting with
-      | On -> true
-      | Off -> false
-      | Auto -> isatty
-    in
     match highlight with
     | true -> Some `Ansi_tty
     | false -> None
@@ -250,6 +250,10 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   if not !in_mock_context then
     Logs.set_reporter
       (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
+  Logs.debug (fun m ->
+      m "setup_logging: highlight_setting=%s, highlight=%B"
+        (Std_msg.show_highlight_setting highlight_setting)
+        highlight);
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()

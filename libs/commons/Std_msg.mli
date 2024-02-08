@@ -16,10 +16,10 @@
    Whether we want terminal highlighting to be on or off,
    or detected from the properties of stdout and stderr.
 *)
-type highlight_setting = Auto | On | Off
+type highlight_setting = Auto | On | Off [@@deriving show]
 
 (* The result of applying 'highlight_setting' *)
-type highlight = On | Off
+type highlight = On | Off [@@deriving show]
 
 (*
    Set the global state indicating whether we want text to use color and

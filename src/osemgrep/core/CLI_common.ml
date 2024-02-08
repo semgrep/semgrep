@@ -8,6 +8,8 @@ open Cmdliner
    semgrep CLI.
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
@@ -69,7 +71,10 @@ let o_logging : Logs.level option Term.t =
 
 (* ugly: also partially done in CLI.ml *)
 let setup_logging ~force_color ~level =
-  Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
+  Logs.debug (fun m ->
+      m ~tags "Logging setup for osemgrep: force_color=%B level=%s" force_color
+        (Logs.level_to_string level));
+  Std_msg.setup ~highlight_setting:(if force_color then On else Auto) ();
   Logs_.setup_logging ~level ();
   (* TOPORT
         # Setup file logging
@@ -83,9 +88,8 @@ let setup_logging ~force_color ~level =
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
   *)
-  Logs.debug (fun m -> m "Logging setup for osemgrep");
   Logs.debug (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
+      m ~tags "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
 
 (*************************************************************************)
 (* Profiling options *)
