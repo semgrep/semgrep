@@ -478,6 +478,7 @@ For more information see https://semgrep.dev
     (opentelemetry (>= 0.6))
     opentelemetry-client-ocurl
     ambient-context-lwt
+    (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
     ; web stuff
     uri
     cohttp-lwt-unix
