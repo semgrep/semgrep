@@ -39,6 +39,11 @@
     }
     A major contributor to this is that [Match_search_mode] and similar
     currently require the contents of the scan target to be in a file.
+
+   This differs from {!Pos.t} and similar types ({!Loc.t}, {!Tok.location})
+   since it does not report a location/byte position within a target, but
+   rather where {e the target} came from.
+
  *)
 
 (** The type for sources.
