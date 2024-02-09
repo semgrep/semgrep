@@ -63,12 +63,25 @@ type 'a loc = {
  * We use 'deriving hash' for formula because of the
  * Match_tainting_mode.Formula_tbl formula cache.
  *)
-type formula_kind =
+type formula = {
+  f : formula_kind;
+  (* metavariable-xyz:'s *)
+  conditions : (tok * metavar_cond) list;
+  (* focus-metavariable:'s *)
+  focus : focus_mv_list list;
+}
+
+and formula_kind =
   | P of Xpattern.t (* a leaf pattern *)
   (* The conjunction must contain at least
      * one positive "term" (unless it's inside a CondNestedFormula, in which
      * case there is not such a restriction).
      * See also split_and().
+     * CAVEAT: This is not required in the metavariable-pattern case, such as
+       metavariable-pattern:
+         metavariable: $MVAR
+         patterns:
+         - pattern-not: "foo"
   *)
   | And of tok * formula list
   | Or of tok * formula list
@@ -94,15 +107,6 @@ type formula_kind =
      formula)
   *)
   | Anywhere of tok * formula
-
-and formula = {
-  (* pattern-inside:'s and pattern:'s *)
-  f : formula_kind;
-  (* metavariable-xyz:'s *)
-  conditions : (tok * metavar_cond) list;
-  (* focus-metavariable:'s *)
-  focus : focus_mv_list list;
-}
 
 and metavar_cond =
   | CondEval of AST_generic.expr (* see Eval_generic.ml *)
@@ -906,20 +910,21 @@ let () = Printexc.register_printer opt_string_of_exn
    That way, pattern leaves underneath an Inside/Anywhere will properly be
    paired with a true boolean.
 *)
-let visit_new_formula f formula =
+let visit_new_formula func formula =
   let bref = ref false in
-  let rec visit_new_formula f formula =
+  let rec visit_new_formula func formula =
     match formula.f with
-    | P p -> f p ~inside:!bref
+    | P p -> func p ~inside:!bref
     | Anywhere (_, formula)
     | Inside (_, formula) ->
-        Common.save_excursion bref true (fun () -> visit_new_formula f formula)
-    | Not (_, x) -> visit_new_formula f x
+        Common.save_excursion bref true (fun () ->
+            visit_new_formula func formula)
+    | Not (_, x) -> visit_new_formula func x
     | Or (_, xs)
     | And (_, xs) ->
-        xs |> List.iter (fun formula -> visit_new_formula f formula)
+        xs |> List.iter (visit_new_formula func)
   in
-  visit_new_formula f formula
+  visit_new_formula func formula
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
