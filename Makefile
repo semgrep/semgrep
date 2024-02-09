@@ -289,7 +289,7 @@ install-deps-for-semgrep-core: semgrep.opam
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
-         make install-opam-deps
+	make install-opam-deps
 
 # Install OCaml dependencies (globally) from *.opam files.
 # This now also installs the dev dependencies. This has the benefit
