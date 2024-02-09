@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    languages:
+      - python
+    mode: taint
+    options:
+      symbolic_propagation: true
+    pattern-sources:
+      - patterns:
+          - pattern: source()
+    pattern-sinks:
+      - patterns:
+          - pattern: sqlalchemy.orm.scoped_session(...)(...).execute($SQL, ...)
+          - focus-metavariable: $SQL
