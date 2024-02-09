@@ -34,5 +34,5 @@ let run_with_span span_name ?data f =
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-let configure_tracing (service_name: string) = ()
+let configure_tracing (service_name : string) = ()
 let with_setup f = f ()
