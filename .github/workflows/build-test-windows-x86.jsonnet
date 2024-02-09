@@ -3,8 +3,8 @@
 //
 // Eventually this will allow us to release (o)semgrep for Windows with
 // native support which will be faster and more convenient than what current
-// Semgrep users have to do which is to use Docker or the Window Subsystem
-// for Linux (WSL).
+// Semgrep users have to do which is to use Docker, or the Window Subsystem
+// for Linux (WSL), or the jsoo-transpiled semgrep used in semgrep-vscode.
 //
 // Note that if you want to build semgrep yourself on a Windows machine,
 // you'll need to imitate some of the magic done by setup-ocaml@v2:
@@ -66,6 +66,10 @@ default: https://github.com/ocaml/opam-repository.git
       env: {
         CC: 'x86_64-w64-mingw32-gcc',
       },
+      // TODO: ideally we should reuse 'make install-deps-for-semgrep-core'
+      // but we do a few things differently here for windows (same issue
+      // with our HomeBrew formula which has some special tree-sitter
+      // installation)
       run: |||
         cd libs/ocaml-tree-sitter-core
         ./configure
@@ -77,12 +81,13 @@ default: https://github.com/ocaml/opam-repository.git
       |||,
     },
     // this should be mostly a noop thx to cache_opam above
+    // TODO: we should also reuse 'make install-deps-for-semgrep-core'
     {
-      name: 'Install deps',
+      name: 'Install OPAM deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        opam depext conf-pkg-config conf-gmp conf-libpcre conf-libcurl
-        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
+        make install-deps-WINDOWS-for-semgrep-core
+        make install-opam-deps
       |||,
     },
     {

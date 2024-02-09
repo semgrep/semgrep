@@ -289,10 +289,13 @@ install-deps-for-semgrep-core: semgrep.opam
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
-	# Install OCaml dependencies (globally) from *.opam files.
-	# This now also installs the dev dependencies. This has the benefit
-	# of installing all the packages in one shot and detecting possible
-	# version conflicts.
+	make install-opam-deps
+
+# Install OCaml dependencies (globally) from *.opam files.
+# This now also installs the dev dependencies. This has the benefit
+# of installing all the packages in one shot and detecting possible
+# version conflicts.
+install-opam-deps:
 	opam install -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
@@ -317,21 +320,9 @@ install-deps: install-deps-for-semgrep-core
 # Platform-dependent dependencies installation
 # **************************************************
 
-# -------------------------------------------------
-# Alpine
-# -------------------------------------------------
-
-# Here is why we need those external packages to compile semgrep-core:
-# - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - gmp-dev: for osemgrep and its use of cohttp
-# - curl-dev: for opentelemetry, which we use for tracing
-# - openssl-libs-static: dependency of curl-static
-
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
-
-# This target is used in our Dockerfile and a few GHA workflows.
-# There are pros and cons of having those commands here instead
-# of in the Dockerfile and GHA workflows:
+# The constants and targets below are used in our Dockerfile and a few
+# GHA workflows. There are pros and cons of having those commands here
+# instead of in the Dockerfile and GHA workflows:
 # cons:
 #  - this requires the Makefile and so to checkout (COPY in Docker
 #    or actions/checkout@v3 in GHA) semgrep first,
@@ -340,15 +331,48 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zli
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
-# See the `build-static-libcurl.sh` script for why it's necessary
-install-deps-ALPINE-for-semgrep-core:
-	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
-	./scripts/build-static-libcurl.sh
+
+# -------------------------------------------------
+# Packages
+# -------------------------------------------------
+
+# Here is why we need those external packages to compile semgrep-core:
+# - pkg-config: ??
+# - pcre: for ocaml-pcre now used in semgrep-core
+# - gmp: for osemgrep and its use of cohttp
+# - libev: ??
+# - curl: for opentelemetry, which we use for tracing
+
+# - openssl-libs-static: dependency of curl-static
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests
 # - python-dev: for compiling jsonnet for pysemgrep
 ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
+
+UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
+
+#TODO: ARCH_DEPS=??
+
+# - pkg-config?
+# - coreutils?
+# - gettext?
+BREW_DEPS=pkg-config pcre gmp libev curl coreutils gettext
+
+# TODO? why we need those for Windows and not for Linux?
+# The opam "depext" are better handled in Linux?
+WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libcurl
+
+# -------------------------------------------------
+# Alpine
+# -------------------------------------------------
+
+# See the `build-static-libcurl.sh` script for why it's necessary
+install-deps-ALPINE-for-semgrep-core:
+	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
+	./scripts/build-static-libcurl.sh
+
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
@@ -363,8 +387,6 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
-UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev libcurl4-gnutls-dev
-
 install-deps-UBUNTU-for-semgrep-core:
 	sudo apt-get update
 	apt-get install -y $(UBUNTU_DEPS)
@@ -373,15 +395,6 @@ install-deps-UBUNTU-for-semgrep-core:
 # macOS (brew)
 # -------------------------------------------------
 
-# Here is why we need those external packages below:
-# - pcre: for ocaml-pcre now used in semgrep-core
-# - gmp: for osemgrep (now merged with semgrep-core) and its use of cohttp
-# - pkg-config?
-# - coreutils?
-# - gettext?
-# - curl: for opentelemetry, which we use for tracing
-BREW_DEPS=pcre gmp pkg-config coreutils gettext libev curl
-
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
@@ -389,14 +402,12 @@ install-deps-MACOS-for-semgrep-core:
 
 # Install dependencies needed for the Homebrew build.
 #
-# We don't use just 'make setup' because Homebrew installs its own version
-# of tree-sitter, globally.
+# We don't use just 'make install-deps-for-semgrep-core' because Homebrew
+# installs its own version of tree-sitter, globally.
 # The Homebrew package definition ("formula") lives at:
 #   https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-#
 # Some of this can be tested on Linux, see instructions in
 #   dockerfiles/linuxbrew.Dockerfile
-#
 .PHONY: homebrew-setup
 homebrew-setup:
 	cd libs/ocaml-tree-sitter-core \
@@ -413,6 +424,14 @@ homebrew-setup:
 # Arch Linux
 # -------------------------------------------------
 #TODO: pacman -S ...
+
+# -------------------------------------------------
+# Windows (native, via mingw)
+# -------------------------------------------------
+
+# used in build-test-windows-x86.jsonnet
+install-deps-WINDOWS-for-semgrep-core:
+	opam depext $(WINDOWS_OPAM_DEPEXT_DEPS)
 
 ###############################################################################
 # Developer targets
