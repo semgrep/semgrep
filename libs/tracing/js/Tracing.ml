@@ -34,6 +34,5 @@ let run_with_span span_name ?data f =
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-(* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing service_name = ()
+let configure_tracing (service_name: string) = ()
 let with_setup f = f ()
