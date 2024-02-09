@@ -19,6 +19,29 @@ open JSON
 let t = Testo.create
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* Helper to create JSON for validation state actions with named arguments *)
+let json_of_validation_state_actions ~valid ~invalid ~error =
+  json_of_string
+    (Printf.sprintf
+       {|{"dev.semgrep.validation_state.actions": {"valid": "%s", "invalid": "%s", "error":"%s"}}|}
+       valid invalid error)
+
+(* Helper to create JSON for findings with direct actions and validation state actions using named arguments *)
+let json_of_finding_with_actions ~validation_state ~direct_action ~valid
+    ~invalid ~error =
+  json_of_string
+    (Printf.sprintf
+       {|{"validation_state": "%s", "dev.semgrep.actions": ["%s"], "dev.semgrep.validation_state.actions": {"valid": "%s", "invalid": "%s", "error":"%s"}}|}
+       validation_state direct_action valid invalid error)
+
+(* Helper to create JSON for actions, parsed into a JSON object *)
+let json_of_actions action =
+  json_of_string (Printf.sprintf {|{"dev.semgrep.actions": ["%s"]}|} action)
+
+(*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
 
@@ -28,111 +51,96 @@ let tests =
       Testo.categorize "rule_is_blocking"
         [
           t "Rule is blocking" (fun () ->
-              let blocking_validation_state_actions_1 =
-                json_of_string
-                  {|{"dev.semgrep.validation_state.actions": {"valid": "block", "invalid": "monitor", "error":"comment"}}|}
+              let test_cases =
+                [
+                  ( "valid should block",
+                    json_of_validation_state_actions ~valid:"block"
+                      ~invalid:"monitor" ~error:"comment",
+                    true );
+                  ( "invalid should block",
+                    json_of_validation_state_actions ~valid:"monitor"
+                      ~invalid:"block" ~error:"comment",
+                    true );
+                  ( "error should block",
+                    json_of_validation_state_actions ~valid:"monitor"
+                      ~invalid:"comment" ~error:"block",
+                    true );
+                  ( "invalid/error should block",
+                    json_of_validation_state_actions ~valid:"monitor"
+                      ~invalid:"block" ~error:"block",
+                    true );
+                  ("actions should block", json_of_actions "block", true);
+                ]
               in
-              let blocking_validation_state_actions_2 =
-                json_of_string
-                  {|{"dev.semgrep.validation_state.actions": {"valid": "monitor", "invalid": "block", "error":"comment"}}|}
-              in
-              let blocking_validation_state_actions_3 =
-                json_of_string
-                  {|{"dev.semgrep.validation_state.actions": {"valid": "monitor", "invalid": "comment", "error":"block"}}|}
-              in
-              let blocking_validation_state_actions_4 =
-                json_of_string
-                  {|{"dev.semgrep.validation_state.actions": {"valid": "monitor", "invalid": "block", "error":"block"}}|}
-              in
-
-              let blocking_actions =
-                json_of_string {|{"dev.semgrep.actions": ["block"]}|}
-              in
-
-              Alcotest.(check bool)
-                "valid should block" true
-                (rule_is_blocking blocking_validation_state_actions_1);
-              Alcotest.(check bool)
-                "invalid should block" true
-                (rule_is_blocking blocking_validation_state_actions_2);
-              Alcotest.(check bool)
-                "error should block" true
-                (rule_is_blocking blocking_validation_state_actions_3);
-              Alcotest.(check bool)
-                "invalid/error should block" true
-                (rule_is_blocking blocking_validation_state_actions_4);
-
-              Alcotest.(check bool)
-                "actions should block" true
-                (rule_is_blocking blocking_actions));
+              List.iter
+                (fun (name, json, expected) ->
+                  Alcotest.(check bool) name expected (rule_is_blocking json))
+                test_cases);
           t "Rule is non blocking" (fun () ->
-              let non_blocking_validation_state_actions =
-                json_of_string
-                  {|{"dev.semgrep.validation_state.actions": {"valid": "comment", "invalid": "monitor", "error":"comment"}}|}
+              let test_cases =
+                [
+                  ( "validation_state_actions should not block",
+                    json_of_validation_state_actions "comment" "monitor"
+                      "comment",
+                    false );
+                  ("actions should not block", json_of_actions "monitor", false);
+                ]
               in
-              let non_blocking_actions =
-                json_of_string {|{"dev.semgrep.actions": ["monitor"]}|}
-              in
-
-              Alcotest.(check bool)
-                "validation_state_actions should not block" false
-                (rule_is_blocking non_blocking_validation_state_actions);
-              Alcotest.(check bool)
-                "actions should not block" false
-                (rule_is_blocking non_blocking_actions));
+              List.iter
+                (fun (name, json, expected) ->
+                  Alcotest.(check bool) name expected (rule_is_blocking json))
+                test_cases);
         ];
       Testo.categorize "finding_is_blocking"
         [
-          t "Finding with confirmed valid state is blocking" (fun () ->
-              let json =
-                json_of_string
-                  {|{"validation_state": "CONFIRMED_VALID", "dev.semgrep.validation_state.actions": {"valid": "block", "invalid": "monitor", "error":"comment"}}|}
+          t "Finding states and actions" (fun () ->
+              let test_cases =
+                [
+                  ( "confirmed valid should block",
+                    json_of_finding_with_actions
+                      ~validation_state:"CONFIRMED_VALID"
+                      ~direct_action:"monitor" ~valid:"block" ~invalid:"monitor"
+                      ~error:"comment",
+                    true );
+                  ( "confirmed invalid should block",
+                    json_of_finding_with_actions
+                      ~validation_state:"CONFIRMED_INVALID"
+                      ~direct_action:"monitor" ~valid:"monitor" ~invalid:"block"
+                      ~error:"comment",
+                    true );
+                  ( "validation error should block",
+                    json_of_finding_with_actions
+                      ~validation_state:"VALIDATION_ERROR"
+                      ~direct_action:"monitor" ~valid:"monitor"
+                      ~invalid:"comment" ~error:"block",
+                    true );
+                  ( "no validator (treated as valid) should block",
+                    json_of_finding_with_actions
+                      ~validation_state:"NO_VALIDATOR" ~direct_action:"monitor"
+                      ~valid:"block" ~invalid:"monitor" ~error:"comment",
+                    true );
+                  ( "unrelated state should not block",
+                    json_of_finding_with_actions
+                      ~validation_state:"UNRELATED_STATE"
+                      ~direct_action:"monitor" ~valid:"block" ~invalid:"block"
+                      ~error:"block",
+                    false );
+                  ( "direct action should block",
+                    json_of_finding_with_actions ~validation_state:"ANY_STATE"
+                      ~direct_action:"block" ~valid:"monitor" ~invalid:"monitor"
+                      ~error:"comment",
+                    true );
+                  ( "no blocking action or state should not block",
+                    json_of_finding_with_actions
+                      ~validation_state:"CONFIRMED_VALID"
+                      ~direct_action:"monitor" ~valid:"monitor"
+                      ~invalid:"monitor" ~error:"comment",
+                    false );
+                ]
               in
-              Alcotest.(check bool)
-                "confirmed valid should block" true (finding_is_blocking json));
-          t "Finding with confirmed invalid state is blocking" (fun () ->
-              let json =
-                json_of_string
-                  {|{"validation_state": "CONFIRMED_INVALID", "dev.semgrep.validation_state.actions": {"valid": "monitor", "invalid": "block", "error":"comment"}}|}
-              in
-              Alcotest.(check bool)
-                "confirmed invalid should block" true (finding_is_blocking json));
-          t "Finding with validation error state is blocking" (fun () ->
-              let json =
-                json_of_string
-                  {|{"validation_state": "VALIDATION_ERROR", "dev.semgrep.validation_state.actions": {"valid": "monitor", "invalid": "comment", "error":"block"}}|}
-              in
-              Alcotest.(check bool)
-                "validation error should block" true (finding_is_blocking json));
-          t "Finding with no validator state is treated as valid" (fun () ->
-              let json =
-                json_of_string
-                  {|{"validation_state": "NO_VALIDATOR", "dev.semgrep.validation_state.actions": {"valid": "block", "invalid": "monitor", "error":"comment"}}|}
-              in
-              Alcotest.(check bool)
-                "no validator (treated as valid) should block" true
-                (finding_is_blocking json));
-          t "Finding with unrelated validation state does not block" (fun () ->
-              let json =
-                json_of_string
-                  {|{"validation_state": "UNRELATED_STATE", "dev.semgrep.validation_state.actions": {"valid": "block", "invalid": "block", "error":"block"}}|}
-              in
-              Alcotest.(check bool)
-                "unrelated state should not block" false
-                (finding_is_blocking json));
-          t "Finding with direct block action" (fun () ->
-              let json =
-                json_of_string {|{"dev.semgrep.actions": ["block"]}|}
-              in
-              Alcotest.(check bool)
-                "direct action should block" true (finding_is_blocking json));
-          t "Finding with no blocking action or state" (fun () ->
-              let json =
-                json_of_string
-                  {|{"validation_state": "CONFIRMED_VALID", "dev.semgrep.validation_state.actions": {"valid": "monitor", "invalid": "monitor", "error":"comment"}, "dev.semgrep.actions": ["monitor"]}|}
-              in
-              Alcotest.(check bool)
-                "no blocking action or state should not block" false
-                (finding_is_blocking json));
+              List.iter
+                (fun (name, json, expected) ->
+                  Alcotest.(check bool) name expected (finding_is_blocking json))
+                test_cases);
         ];
     ]
