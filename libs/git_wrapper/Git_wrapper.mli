@@ -7,9 +7,12 @@ exception Error of string
 val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
 
-val temporary_remote_checkout_path : string -> Fpath.t
+val temporary_remote_checkout_path :
+  ?clone_dir:Fpath.t option -> string -> Fpath.t
 (** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"] will return
-    [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid remote repo name *)
+    [Some "<TMPDIR>/RAND_UUID/semgrep"]. Expects url to be a valid remote repo name
+    [temporary_remote_checkout_path ~clone_dir "https://github.com/semgrep/semgrep.git"] will return
+    [Some "<CLONE_DIR>/RAND_UUID/semgrep"]. *)
 
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and

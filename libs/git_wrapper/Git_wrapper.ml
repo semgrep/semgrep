@@ -176,16 +176,21 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
-let temporary_remote_checkout_path url =
+let temporary_remote_checkout_path ?(clone_dir = None) url =
   let name =
     match remote_repo_name url with
     | Some name -> name
     | None -> failwith "Could not get remote repo name"
   in
-  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
-  let name = rand_prefix ^ "_" ^ name in
-  let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
-  Fpath.add_seg tmp_dir name
+  let clone_dir =
+    match clone_dir with
+    | Some d -> d
+    | None ->
+        let rand_dir = Uuidm.v `V4 |> Uuidm.to_string |> Fpath.v in
+        let temp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
+        Fpath.append temp_dir rand_dir
+  in
+  Fpath.add_seg clone_dir name
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)

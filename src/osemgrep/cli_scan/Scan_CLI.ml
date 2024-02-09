@@ -873,7 +873,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       match (project_root, remote) with
       | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
       | None, Some url when is_git_repo url ->
-          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let clone_dir = !Semgrep_envvars.v.remote_clone_dir in
+          let checkout_path =
+            Git_wrapper.temporary_remote_checkout_path ~clone_dir url
+          in
           let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })
       | None, Some _url ->
