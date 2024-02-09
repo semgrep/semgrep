@@ -13,7 +13,7 @@ jobs:
   semgrep-ci:
     runs-on: ubuntu-20.04
     container:
-      image: returntocorp/semgrep:canary
+      image: semgrep/semgrep:canary
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
       E2E_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}

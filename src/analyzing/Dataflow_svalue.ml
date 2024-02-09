@@ -39,7 +39,7 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-type constness = Constant | NotConstant [@@deriving show]
+type constness = Constant of G.const_type | NotConstant [@@deriving show]
 
 (*****************************************************************************)
 (* Hooks *)
@@ -66,7 +66,7 @@ let fb = Tok.unsafe_fake_bracket
 (* Constness *)
 (*****************************************************************************)
 
-let result_of_function_call_is_constant lang f args =
+let result_of_function_call_constant lang f args =
   match (lang, f, args) with
   (* Built-in knowledge, we know these functions return constants when
      * given constant arguments. *)
@@ -86,27 +86,21 @@ let result_of_function_call_is_constant lang f args =
         _;
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
-      true
+      Some G.Cstr
   (* Pro/Interfile: Look up inferred constness of the function *)
   | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
       match !hook_constness_of_function with
       | Some constness_of_func -> (
           match constness_of_func eorig with
-          | Some Constant -> true
+          | Some (Constant kind) -> Some kind
           | Some NotConstant
           | None ->
-              false)
-      | None -> false)
-  | __else__ -> false
+              None)
+      | None -> None)
+  | __else__ -> None
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
 let eq_ctype t1 t2 = t1 =*= t2
-
-let ctype_of_literal = function
-  | G.Bool _ -> G.Cbool
-  | G.Int _ -> G.Cint
-  | G.String _ -> G.Cstr
-  | ___else___ -> G.Cany
 
 let eq c1 c2 =
   match (c1, c2) with
@@ -158,11 +152,11 @@ let union c1 c2 =
   | G.Sym _, _any ->
       G.NotCst
   | G.Lit l1, G.Lit l2 ->
-      let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
+      let t1 = H.ctype_of_literal l1 and t2 = H.ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
   | G.Lit l1, G.Cst t2
   | G.Cst t2, G.Lit l1 ->
-      let t1 = ctype_of_literal l1 in
+      let t1 = H.ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | G.Cst t1, G.Cst t2 -> G.Cst (union_ctype t1 t2)
 
@@ -337,7 +331,7 @@ and eval_op env wop args =
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
   | _op, [ G.Lit l1; G.Cst t2 ]
   | _op, [ G.Cst t2; G.Lit l1 ] ->
-      let t1 = ctype_of_literal l1 in
+      let t1 = H.ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | ___else___ -> G.NotCst
 
@@ -616,19 +610,19 @@ let transfer :
             let args_val =
               List_.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
             in
-            if result_of_function_call_is_constant lang func args_val then
-              VarMap.add (IL.str_of_name var) (G.Cst G.Cstr) inp'
-            else
-              match eval_builtin_func lang inp' func args with
-              | None
-              | Some NotCst ->
-                  (* symbolic propagation *)
-                  (* Call to an arbitrary function, we are intraprocedural so we cannot
-                   * propagate actual constants in this case, but we can propagate the
-                   * call itself as a symbolic expression. *)
-                  let ccall = sym_prop instr.iorig in
-                  update_env_with inp' var ccall
-              | Some cexp -> update_env_with inp' var cexp)
+            match result_of_function_call_constant lang func args_val with
+            | Some kind -> VarMap.add (IL.str_of_name var) (G.Cst kind) inp'
+            | None -> (
+                match eval_builtin_func lang inp' func args with
+                | None
+                | Some NotCst ->
+                    (* symbolic propagation *)
+                    (* Call to an arbitrary function, we are intraprocedural so we cannot
+                     * propagate actual constants in this case, but we can propagate the
+                     * call itself as a symbolic expression. *)
+                    let ccall = sym_prop instr.iorig in
+                    update_env_with inp' var ccall
+                | Some cexp -> update_env_with inp' var cexp))
         | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
             update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial
