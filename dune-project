@@ -476,10 +476,14 @@ For more information see https://semgrep.dev
     semver
     uri
     uuidm
-    trace
-    trace-tef ; will probably switch this out for a different backend
     (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
+    ; tracing
+    trace
+    (opentelemetry (>= 0.6))
+    opentelemetry-client-ocurl
+    ambient-context-lwt
+    (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
     ; web stuff
     uri
     cohttp-lwt-unix

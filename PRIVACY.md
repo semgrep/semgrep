@@ -89,6 +89,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 Performance data enable understanding of which rules and types of files are slow in the aggregate so Semgrep, Inc can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
 
 - Runtime duration
+- Duration of individual phases (e.g. parsing)
 - Total number of rules
 - Total number of files
 - Project size in bytes

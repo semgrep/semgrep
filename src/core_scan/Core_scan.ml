@@ -538,6 +538,7 @@ let rules_from_rule_source (config : Core_scan_config.t) :
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
+[@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
@@ -551,6 +552,16 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 (* Iteration helpers *)
 (*****************************************************************************)
+
+let handle_target_with_trace handle_target t =
+  let target_name =
+    match t with
+    | `CodeTarget t -> t.In.path
+    | `LockfileTarget (t : In.lockfile_target) -> t.In.path
+  in
+  Tracing.run_with_span "Core_scan.handle_target"
+    ?data:(Some [ ("filename", `String target_name) ])
+    (fun () -> handle_target t)
 
 (*
    Returns a list of match results and a separate list of scanned targets.
@@ -587,7 +598,9 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         *
                         * old: timeout_function file config.timeout ...
                         *)
-                       let res, was_scanned = handle_target target in
+                       let res, was_scanned =
+                         handle_target_with_trace handle_target target
+                       in
 
                        (* This is just to test -max_memory, to give a chance
                         * to Gc.create_alarm to run even if the program does

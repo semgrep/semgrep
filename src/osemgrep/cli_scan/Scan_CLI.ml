@@ -54,6 +54,7 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
+  trace : bool;
   ls : bool;
 }
 [@@deriving show]
@@ -139,6 +140,7 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
+    trace = false;
     ls = false;
   }
 
@@ -440,6 +442,12 @@ let o_time : bool Term.t =
     ~doc:
       {|Include a timing summary with the results. If output format is json,
  provides times for each pair (rule, target).
+|}
+
+let o_trace : bool Term.t =
+  H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
+    ~default:default.trace
+    ~doc:{|Upload a trace of the scan to our endpoint (rule, target).
 |}
 
 let o_nosem : bool Term.t =
@@ -853,7 +861,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold validate version version_check vim =
+      timeout_threshold trace validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
@@ -1162,6 +1170,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       show;
       validate;
       test;
+      trace;
       ls;
     }
   in
@@ -1183,8 +1192,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
-    $ o_version_check $ o_vim)
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
+    $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
