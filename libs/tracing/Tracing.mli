@@ -1,4 +1,4 @@
-(* Tracing library for Semgrep using several libraries.
+(** Tracing library for Semgrep using several libraries.
    See header of Tracing.ml for details
  *)
 
@@ -6,7 +6,7 @@
 (* Functions to instrument the code *)
 (*****************************************************************************)
 
-(* Expose the function to instrument code to send traces.
+(** Expose the function to instrument code to send traces.
    In general, we prefer using the ppx *)
 val with_span :
   ?__FUNCTION__:string ->
@@ -17,7 +17,7 @@ val with_span :
   (Trace_core.span -> 'a) ->
   'a
 
-(* Expose a function to instrument code to send traces with
+(** Expose a function to instrument code to send traces with
    one kind of data.
    TODO deprecate this after we switch to using the official trace ppx *)
 val run_with_span :
@@ -27,9 +27,9 @@ val run_with_span :
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-(* Before instrumenting anything, configure some settings. *)
+(** Before instrumenting anything, configure some settings. *)
 val configure_tracing : string -> unit
 
-(* Setup instrumentation and run the passed function.
+(** Setup instrumentation and run the passed function.
    Stops instrumenting once that function is finished. *)
 val with_setup : (unit -> 'a) -> 'a

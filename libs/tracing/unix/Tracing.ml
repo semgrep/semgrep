@@ -19,7 +19,7 @@ module Otel = Opentelemetry
 (* Prelude *)
 (*****************************************************************************)
 
-(* Tracing library for Semgrep using several libraries:
+(** Tracing library for Semgrep using several libraries:
  *
  * - trace (https://github.com/c-cube/ocaml-trace) for the trace
      instrumentation frontend (e.g. the annotations)

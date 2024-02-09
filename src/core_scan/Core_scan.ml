@@ -538,6 +538,7 @@ let rules_from_rule_source (config : Core_scan_config.t) :
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
+[@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
@@ -1172,10 +1173,6 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-
-let get_rules config =
-  Common.with_time (fun () -> rules_from_rule_source config)
-[@@trace]
 
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_or_exn =

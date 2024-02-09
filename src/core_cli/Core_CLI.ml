@@ -723,7 +723,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
           let config = { config with roots = Fpath_.of_strings roots } in
 
           (* Set up tracing and run it for the duration of scanning. Note that this will
-             only trace the called function.
+             only trace `semgrep_core_dispatch` and the functions it calls.
            * TODO when osemgrep is the default entry point, we will also be able to
              instrument the pre- and post-scan code in the same way. *)
           if config.trace then (

@@ -337,6 +337,7 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zli
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
+# See the `build-static-libcurl.sh` script for why it's necessary
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
 	./scripts/build-static-libcurl.sh

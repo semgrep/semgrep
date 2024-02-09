@@ -13,12 +13,12 @@
  * LICENSE for more details.
  *)
 
-(* Commentary *)
-(*  *)
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+
+(* See libs/tracing/unix/Tracing.ml. This is the virtual module to allow
+   JS to build without requiring curl to be installed *)
 
 (*****************************************************************************)
 (* Code *)
@@ -35,5 +35,5 @@ let run_with_span span_name ?data f =
 (*****************************************************************************)
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing () = ()
+let configure_tracing service_name = ()
 let with_setup f = f ()
