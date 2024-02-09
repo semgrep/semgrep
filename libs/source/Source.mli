@@ -15,17 +15,19 @@
 
 (** Sources of content which may be consumed by Semgrep.
 
-   A source is the {e user-relevant location} where content (e.g., source code)
-   originated. This should be used when storing a location which will later be
-   reported to a user.
+   A source is the {e user-relevant origin} of content (e.g., source code).
+   This should be used when reporting findings to a user.
 
    While a source may imply that content can be obtained from a given location,
-   it should generally be stored alongside the content to be consumed. This is
-   so that it can be used principally for reporting where a finding originated
-   independently of getting the content, which allows de-coupling reporting
-   where a finding originated from obtaining the contents.
+   it should generally be stored alongside the content to be consumed, rather
+   than used in lieu of it.
 
-   This is since when these uses are fused, it is more difficult to
+   This is so that sources can be used principally for {e reporting} where the
+   content from which a finding was generated originated independently of
+   getting the content of the target. This means we can de-couple reporting (1)
+   where a finding originated from (2) obtaining the contents.
+
+   This is since when (1) and (2) are fused, it is more difficult to
    {ul
       {- create a target where the contents are not the verbatim file contents}
       {- associate additional data to findings about location which we might
@@ -42,19 +44,29 @@
 (** The type for sources.
 
     {ul
-      {- [File] sources are for files, and should have as their path the
+      {- [File path] sources are for files, and should have as [path] the
         relative path from the scanned project root.}
+    }
+
+    Possible future variants:
+
+    {ul
+      {- [Stdin] sources are for content read from standard input.}
+      {- [Network uri] sources are for content obtained from [uri] over the
+      network.}
+      {- [GitBlob info] sources are for git blob objects with metadata given in
+      [info] (e.g., the blob's sha, commits the blob is present at, etc..).}
     }
  *)
 type t = File of Fpath.t [@@deriving show, eq, ord, sexp]
 
 val to_string : t -> string
-(** [to_string s] is the path [s] as a user-facing string. This is the version
-   which should be displayed to the user. Cf. the derived show implementation,
-   which is for internal debugging purposes.
+(** [to_string source] is [source] as a user-facing string. This is the version
+    which should be displayed to the user. Cf. the derived show implementation,
+    which is for internal debugging purposes.
  *)
 
 val to_string_opt : ?unspecified:string -> t option -> string
-(** [to_string_opt ~unspecified s] is the path [s] as a user-facing string, or
-   "<unspecified>", if [s] is [None].
+(** [to_string_opt ~unspecified source] is the [source] as a user-facing
+    string, or "<unspecified>", if [source] is [None].
  *)
