@@ -1177,7 +1177,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    let timed_rules = get_rules config in
+    let timed_rules = Common.with_time (fun () -> rules_from_rule_source config) in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and
