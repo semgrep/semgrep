@@ -63,7 +63,7 @@
       [info] (e.g., the blob's sha, commits the blob is present at, etc..).}
     }
  *)
-type t = File of Fpath.t [@@deriving show, eq, ord, sexp]
+type t = File of Fpath.t [@@deriving show, eq, ord]
 
 val to_string : t -> string
 (** [to_string source] is [source] as a user-facing string. This is the version
