@@ -31,9 +31,6 @@ val hd_exn : string -> 'a list -> 'a
    empty list"' apply. *)
 val tl_exn : string -> 'a list -> 'a list
 
-(* The same recommendations as for 'List_.hd_exn "unexpected empty list" apply. *)
-val last_exn : string -> 'a list -> 'a
-
 val last_opt : 'a list -> 'a option
 (** Returns the last element of the list or none if the list is empty. *)
 
