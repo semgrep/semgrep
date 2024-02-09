@@ -11,3 +11,6 @@ val main :
 (* internal *)
 val run_conf :
   < Cap.network ; Cap.stdout ; Cap.exec > -> Ci_CLI.conf -> Exit_code.t
+
+val rule_is_blocking : JSON.t -> bool
+val finding_is_blocking : JSON.t -> bool
