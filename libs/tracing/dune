@@ -6,4 +6,5 @@
     trace
   )
  (virtual_modules tracing)
+ (default_implementation tracing.unix)
 )
