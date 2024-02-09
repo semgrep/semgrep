@@ -1,0 +1,4 @@
+Added performance metrics using OpenTelemetry for better visualization.
+Users wishing to understand the performance of their Semgrep scans or
+to help optimize Semgrep can configure the backend collector created in 
+`libs/tracing/unix/Tracing.ml`.
