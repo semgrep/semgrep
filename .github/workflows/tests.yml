@@ -263,7 +263,7 @@ jobs:
       file: Dockerfile
       target: semgrep-cli
       enable-tests: true
-  push-docker:
+  push-docker-returntocorp:
     needs:
     - build-test-docker
     uses: ./.github/workflows/push-docker.yaml
@@ -273,6 +273,17 @@ jobs:
     with:
       artifact-name: image-test
       repository-name: returntocorp/semgrep
+      dry-run: false
+  push-docker-semgrep:
+    needs:
+    - build-test-docker
+    uses: ./.github/workflows/push-docker.yaml
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.head.repo.full_name != github.repository))
+    secrets: inherit
+    with:
+      artifact-name: image-test
+      repository-name: semgrep/semgrep
       dry-run: false
   build-test-docker-nonroot:
     needs:
@@ -288,7 +299,7 @@ jobs:
       file: Dockerfile
       target: nonroot
       enable-tests: false
-  push-docker-nonroot:
+  push-docker-nonroot-returntocorp:
     needs:
     - build-test-docker-nonroot
     uses: ./.github/workflows/push-docker.yaml
@@ -298,6 +309,17 @@ jobs:
     with:
       artifact-name: image-test-nonroot
       repository-name: returntocorp/semgrep
+      dry-run: false
+  push-docker-nonroot-semgrep:
+    needs:
+    - build-test-docker-nonroot
+    uses: ./.github/workflows/push-docker.yaml
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.head.repo.full_name != github.repository))
+    secrets: inherit
+    with:
+      artifact-name: image-test-nonroot
+      repository-name: semgrep/semgrep
       dry-run: false
   build-test-docker-performance-tests:
     needs:
@@ -328,7 +350,7 @@ jobs:
   test-semgrep-pro:
     needs:
     - build-test-docker
-    - push-docker
+    - push-docker-returntocorp
     uses: ./.github/workflows/test-semgrep-pro.yml
     if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name
       == github.repository
@@ -339,7 +361,7 @@ jobs:
   trigger-semgrep-comparison-argo:
     secrets: inherit
     needs:
-    - push-docker
+    - push-docker-returntocorp
     uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yml
