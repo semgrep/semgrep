@@ -1,0 +1,10 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    options:
+      symbolic_propagation: true
+    languages:
+      - python
+    pattern: Session().execute()
+

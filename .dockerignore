@@ -10,6 +10,9 @@
 # 'opam install --deps-only .':
 !semgrep.opam
 
+# local opam switch
+**/_opam/
+
 # bisect_ppx
 **/_coverage/
 **/*.coverage

@@ -60,6 +60,7 @@ let debug = ref Core_scan_config.default.debug
 (* try to continue processing files, even if one has a parse error with -e/f *)
 let error_recovery = ref Core_scan_config.default.error_recovery
 let profile = ref Core_scan_config.default.profile
+let trace = ref Core_scan_config.default.trace
 
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
@@ -238,6 +239,7 @@ let mk_config () =
     strict = !strict;
     test = !test;
     debug = !debug;
+    trace = !trace;
     profile = !profile;
     report_time = !report_time;
     error_recovery = !error_recovery;
@@ -555,6 +557,7 @@ let options caps actions =
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
+    ("-trace", Arg.Set trace, " output tracing information");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -724,7 +727,16 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots = Fpath_.of_strings roots } in
-          Core_command.semgrep_core_dispatch caps config)
+
+          (* Set up tracing and run it for the duration of scanning. Note that this will
+             only trace `semgrep_core_dispatch` and the functions it calls.
+           * TODO when osemgrep is the default entry point, we will also be able to
+             instrument the pre- and post-scan code in the same way. *)
+          if config.trace then (
+            Tracing.configure_tracing "semgrep";
+            Tracing.with_setup (fun () ->
+                Core_command.semgrep_core_dispatch caps config))
+          else Core_command.semgrep_core_dispatch caps config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

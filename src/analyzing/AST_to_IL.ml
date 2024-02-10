@@ -1732,11 +1732,18 @@ and function_body env fbody =
   let body_stmt = H.funcbody_to_stmt fbody in
   stmt env body_stmt
 
-(*
+(* We keep it really simple, very far from what would be the proper translation
+ * (see https://www.python.org/dev/peps/pep-0343/):
+ *
  *     with MANAGER as PAT:
  *         BODY
  *
  * ~>
+ *
+ *     PAT = MANAGER
+ *     BODY
+ *
+ * Previously we used this more accurate (yet not 100% accurate) translation:
  *
  *     mgr = MANAGER
  *     value = type(mgr).__enter__(mgr)
@@ -1746,8 +1753,12 @@ and function_body env fbody =
  *     finally:
  *         type(mgr).__exit__(mgr)
  *
- * This is NOT a 100% accurate translation but works for our purposes,
- * see https://www.python.org/dev/peps/pep-0343/.
+ * but to be honest we had no use for all that extra complexity, and this
+ * translated prevented symbolic propagation to match e.g.
+ * `Session(...).execute(...)` against:
+ *
+ *   with Session(engine) as s:
+ *       s.execute("<query>")
  *)
 and python_with_stmt env manager opt_pat body =
   (* mgr = MANAGER *)
@@ -1756,68 +1767,15 @@ and python_with_stmt env manager opt_pat body =
     let ss_mk_mgr, manager' = expr_with_pre_stmts env manager in
     ss_mk_mgr @ [ mk_s (Instr (mk_i (Assign (mgr, manager')) NoOrig)) ]
   in
-  (* type(mgr) *)
-  let type_mgr_var = fresh_var env G.sc in
-  let mgr_class = lval_of_base (Var type_mgr_var) in
-  let ss_mgr_class =
-    [
-      mk_s
-        (Instr
-           (mk_i
-              (CallSpecial
-                 ( Some mgr_class,
-                   (Typeof, G.sc),
-                   [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
-              NoOrig));
-    ]
+  (* PAT = mgr *)
+  let ss_def_pat =
+    match opt_pat with
+    | None -> []
+    | Some pat ->
+        pattern_assign_statements env (mk_e (Fetch mgr) NoOrig) ~eorig:NoOrig
+          pat
   in
-  (* tmp = type(mgr).__method__(mgr) *)
-  let call_mgr_method method_name =
-    let tmp = fresh_lval env G.sc in
-    let mgr_method =
-      (* type(mgr).__method___ *)
-      {
-        base = Var type_mgr_var;
-        rev_offset =
-          [ { o = Dot (fresh_var env G.sc ~str:method_name); oorig = NoOrig } ];
-      }
-    in
-    let ss =
-      [
-        mk_s
-          (Instr
-             (mk_i
-                (Call
-                   ( Some tmp,
-                     mk_e (Fetch mgr_method) NoOrig,
-                     [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
-                NoOrig));
-      ]
-    in
-    (ss, tmp)
-  in
-  let ss_enter, value = call_mgr_method "__enter__" in
-  let pre_try_stmts = ss_def_mgr @ ss_mgr_class @ ss_enter in
-  let try_body =
-    (* PAT = type(mgr).__enter__(mgr)
-     * BODY *)
-    let ss_def_pat =
-      match opt_pat with
-      | None -> []
-      | Some pat ->
-          pattern_assign_statements env
-            (mk_e (Fetch value) NoOrig)
-            ~eorig:NoOrig pat
-    in
-    ss_def_pat @ stmt env body
-  in
-  let try_catches = [] in
-  let try_else = [] in
-  let try_finally =
-    let ss_exit, _ = call_mgr_method "__exit___" in
-    ss_exit
-  in
-  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_else, try_finally)) ]
+  ss_def_mgr @ ss_def_pat @ stmt env body
 
 (*****************************************************************************)
 (* Defs *)

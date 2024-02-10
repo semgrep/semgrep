@@ -372,6 +372,12 @@ let parameter_to_catch_exn_opt p =
   | OtherParam _ ->
       None
 
+let ctype_of_literal = function
+  | G.Bool _ -> G.Cbool
+  | G.Int _ -> G.Cint
+  | G.String _ -> G.Cstr
+  | ___else___ -> G.Cany
+
 (*****************************************************************************)
 (* Abstract position and svalue for comparison *)
 (*****************************************************************************)

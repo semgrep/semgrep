@@ -36,6 +36,7 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
+  trace : bool;
   ls : bool;
 }
 [@@deriving show]

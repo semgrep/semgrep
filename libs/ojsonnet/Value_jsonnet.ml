@@ -69,9 +69,11 @@ and asserts = Core.obj_assert * env
  * In fact, this is also needed to implement the "late-bound" 'self'.
  * The environment is also neccesary to keep around and for values, since
  * there could be nested objects/arrays which also have lazy semantics
- * themselves, and thus again need to be able to modify a specifc environment
+ * themselves, and thus again need to be able to modify a specific environment.
+ * TODO: putting opaque below here because get stack overflow otherwise
+ * when printing values.
  *)
-and lazy_value = { mutable lv : lazy_value_kind }
+and lazy_value = { mutable lv : lazy_value_kind [@opaque] }
 
 and lazy_value_kind =
   (* when we know the value, which is useful to bind Self/Super *)

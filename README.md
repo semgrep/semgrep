@@ -42,7 +42,7 @@
 This repository contains the source code for Semgrep OSS (open-source software). Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time. Semgrep is a semantic grep for code: where `grep "2"` would only match the exact string _2_, Semgrep would [match `x = 1; y = x + 1` when searching for _2_](https://semgrep.dev/playground/s/5rKgj). And it does this in 30+ languages! Semgrep rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs: read more below.
 
 For companies who need SAST, SCA, and Secret scanning, we provide a product suite on top of Semgrep OSS that scans code and package dependencies for known issues, software vulnerabilities, and finds secrets with high accuracy:
-- [**Semgrep Code**](https://semgrep.dev/products/semgrep-code/) to find bugs & vulnerabilities using high-accuracy Pro rules in addition to the community rules
+- [**Semgrep Code**](https://semgrep.dev/products/semgrep-code/) to find bugs & vulnerabilities using the deeper, interfile-analysis enabled [Pro engine](https://semgrep.dev/products/pro-engine/) and high-accuracy Pro rules in addition to the community rules
 - [**Semgrep Supply Chain**](https://semgrep.dev/products/semgrep-supply-chain/) to find dependencies with known vulnerabilities function-level reachability analysis
 - [**Semgrep Secrets**](https://semgrep.dev/products/semgrep-secrets/) to find hard-coded credentials that shouldn't be checked into source code
 
