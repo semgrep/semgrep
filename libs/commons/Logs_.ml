@@ -47,9 +47,6 @@ let default_skip_libs =
     "x509";
   ]
 
-(* used for testing *)
-let in_mock_context = ref false
-
 (*****************************************************************************)
 (* String tags *)
 (*****************************************************************************)
@@ -247,9 +244,8 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   time_program_start := now ();
-  if not !in_mock_context then
-    Logs.set_reporter
-      (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
+  Logs.set_reporter
+    (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
   Logs.debug (fun m ->
       m "setup_logging: highlight_setting=%s, highlight=%B"
         (Std_msg.show_highlight_setting highlight_setting)
@@ -272,3 +268,11 @@ let sdebug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
 let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
 let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
 let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
+
+let mask_time =
+  Testo.mask_pcre_pattern ~mask:"<MASKED TIMESTAMP>"
+    {|\[([0-9]{2}\.[0-9]{2})\]|}
+
+let mask_log_lines =
+  Testo.mask_pcre_pattern ~mask:"<MASKED LOG LINE>"
+    {|\[[0-9]{2}\.[0-9]{2}\][^\n]*|}

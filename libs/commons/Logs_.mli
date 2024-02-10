@@ -89,12 +89,6 @@ val setup_logging :
   unit ->
   unit
 
-(* See Testutil_mock.with_mocked_logs(). If this global is set,
- * setup_logging() above will not call Logs.set_reporter (and so
- * leave the mock logs_reporter in place).
- *)
-val in_mock_context : bool ref
-
 (*
    String tags to be included in log messages for easy filtering.
 
@@ -119,3 +113,26 @@ val sdebug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+
+(*
+   A function that masks the timestamps in log output so that we can compare
+   logs from one run to another. To be used as:
+
+     Testo.create ~checked_output:Stderr ~mask_output:[Logs_.mask_time] ...
+
+   This is crude. Beware false positives.
+*)
+val mask_time : string -> string
+
+(*
+   Mask all lines that look like log lines. This won't work for multiline
+   logs:
+
+     Testo.create
+        ~checked_output:Stderr
+        ~mask_output:[Logs_.mask_log_lines]
+        ...
+
+   This is crude. Beware false positives.
+*)
+val mask_log_lines : string -> string
