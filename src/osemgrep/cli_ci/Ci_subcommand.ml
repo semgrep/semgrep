@@ -318,7 +318,7 @@ let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
 (*****************************************************************************)
 (* Partition rules *)
 (*****************************************************************************)
-let finding_is_blocking (json : JSON.t) =
+let finding_is_blocking (m : OutJ.cli_match) =
   let contains_blocking xs =
     List.exists
       (function
@@ -326,29 +326,28 @@ let finding_is_blocking (json : JSON.t) =
         | _ -> false)
       xs
   in
-  let validation_state_to_action = function
-    | "CONFIRMED_VALID" -> Some "valid"
-    | "CONFIRMED_INVALID" -> Some "invalid"
-    | "VALIDATION_ERROR" -> Some "error"
-    (* # Fallback to valid action for no validator *)
-    | "NO_VALIDATOR" -> Some "valid"
-    | _ -> None
+
+  let validation_state_to_action (vs : OutJ.validation_state) =
+    match vs with
+    | `Confirmed_valid -> "valid"
+    | `Confirmed_invalid -> "invalid"
+    | `Validation_error -> "error"
+    | `No_validator -> "valid" (* Fallback to valid action for no validator *)
   in
-  match json with
+
+  let metadata = JSON.from_yojson m.extra.metadata in
+
+  match metadata with
   | JSON.Object xs ->
       let validation_state_should_block =
         match
-          ( List.assoc_opt "validation_state" xs,
+          ( m.extra.validation_state,
             List.assoc_opt "dev.semgrep.validation_state.actions" xs )
         with
-        | Some (JSON.String validation_state), Some (JSON.Object actions) -> (
-            match
-              ( validation_state_to_action validation_state,
-                Option.bind (validation_state_to_action validation_state)
-                  (fun vs_action -> List.assoc_opt vs_action actions) )
-            with
-            | _, Some (JSON.String s) -> String.equal s "block"
-            | _ -> false)
+        | Some validation_state, Some (JSON.Object vs) ->
+            List.assoc_opt (validation_state_to_action validation_state) vs
+            |> Option.map (JSON.equal (JSON.String "block"))
+            |> Option.value ~default:false
         | _ -> false
       in
       let should_block =
@@ -408,7 +407,7 @@ let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
                (Str.regexp "r2c-internal-cai")
                (Rule_ID.to_string m.check_id)
            then `Cai
-           else if finding_is_blocking (JSON.from_yojson m.extra.metadata) then
+           else if finding_is_blocking m then
              (* and "sca_info" not in match.extra *)
              `Blocking
            else `Non_blocking)
@@ -465,7 +464,7 @@ let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
       hashes = None;
       (* TODO should compute start_line_hash / end_line_hash / code_hash / pattern_hash *)
       metadata = m.extra.metadata;
-      is_blocking = finding_is_blocking (JSON.from_yojson m.extra.metadata);
+      is_blocking = finding_is_blocking m;
       fixed_lines =
         None
         (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);

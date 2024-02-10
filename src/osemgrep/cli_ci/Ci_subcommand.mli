@@ -1,3 +1,5 @@
+module OutJ = Semgrep_output_v1_j
+
 (*
    Parse a semgrep-ci command, execute it and exit.
 
@@ -13,4 +15,4 @@ val run_conf :
   < Cap.network ; Cap.stdout ; Cap.exec > -> Ci_CLI.conf -> Exit_code.t
 
 val rule_is_blocking : JSON.t -> bool
-val finding_is_blocking : JSON.t -> bool
+val finding_is_blocking : OutJ.cli_match -> bool
