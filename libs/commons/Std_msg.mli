@@ -43,13 +43,20 @@ val get_highlight : unit -> highlight
 val with_highlight : highlight_setting -> (unit -> 'a) -> 'a
 
 (*
-   These functions add opening and closing markers for highlighting
-   the string in an ANSI terminal if applicable.
-   Depends on the 'highlight' setting.
+   These functions turn a string into color (red, yellow, or green)
+   if highlighting is on.
 *)
-val highlight_error : string -> string
-val highlight_warning : string -> string
-val highlight_success : string -> string
+val error : string -> string
+val warning : string -> string
+val success : string -> string
+
+(*
+   These functions turn a string into bold white face with a background
+   color (red, yellow, or green) if highlighting is on.
+*)
+val strong_error : string -> string
+val strong_warning : string -> string
+val strong_success : string -> string
 
 (* Constant messages " ERROR ", " WARNING ", etc. whose formatting depends
    on the 'highlight' setting.

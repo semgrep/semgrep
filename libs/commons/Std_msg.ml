@@ -29,32 +29,34 @@ let with_highlight temp func =
   setup ~highlight_setting:temp ();
   Common.finalize func (fun () -> setup ~highlight_setting:orig ())
 
-let highlight_error str =
+type style = Error | Warning | Success
+
+let color_of_style = function
+  | Error -> ANSITerminal.red
+  | Warning -> ANSITerminal.yellow
+  | Success -> ANSITerminal.green
+
+let style_string style str =
+  match get_highlight () with
+  | On -> ANSITerminal.sprintf [ color_of_style style ] "%s" str
+  | Off -> str
+
+let strong_style_string style str =
   match get_highlight () with
   | On ->
       ANSITerminal.sprintf
-        [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_red ]
+        [ ANSITerminal.white; ANSITerminal.Bold; color_of_style style ]
         "%s" str
   | Off -> str
 
-let highlight_warning str =
-  match get_highlight () with
-  | On ->
-      ANSITerminal.sprintf
-        [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_yellow ]
-        "%s" str
-  | Off -> str
-
-let highlight_success str =
-  match get_highlight () with
-  | On ->
-      ANSITerminal.sprintf
-        [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_green ]
-        "%s" str
-  | Off -> str
-
-let error_tag () = highlight_error " ERROR "
-let warning_tag () = highlight_warning " WARNING "
-let success_tag () = highlight_success " SUCCESS "
+let error str = style_string Error str
+let warning str = style_string Warning str
+let success str = style_string Success str
+let strong_error str = strong_style_string Error str
+let strong_warning str = strong_style_string Warning str
+let strong_success str = strong_style_string Success str
+let error_tag () = strong_error " ERROR "
+let warning_tag () = strong_warning " WARNING "
+let success_tag () = strong_success " SUCCESS "
 let print str = UPrintf.printf "%s\n%!" str
 let eprint str = UPrintf.eprintf "%s\n%!" str

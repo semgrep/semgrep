@@ -746,22 +746,34 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
-     * and "underline off" *)
-    (* TODO: use a library for conditional color formatting. *)
-    let esc =
-      match Fmt.style_renderer Fmt.stderr with
-      | `Ansi_tty -> "\027[22m\027[24m"
-      | `None -> ""
+       and "underline off". It doesn't change how the text is rendered
+       but allows us to produce the same exact output as pysemgrep.
+       Remove the insertion of pysemgrep_hack once pysemgrep is gone.
+       Tip: to visualize special characters that are otherwise invisible
+       in a diff, use something like this:
+         grep 'METRICS: Using' path/to/output | LESS="X-E"
+    *)
+    let pysemgrep_hack1, pysemgrep_hack2 =
+      (*
+         1: make the line yellow using pysemgrep's exact escape sequence
+         2: ???
+      *)
+      match Std_msg.get_highlight () with
+      | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
+      | Off -> ("", "")
     in
     Logs.app (fun m ->
         m
           "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
-           reports pseudonymous rule metrics to semgrep.dev.@.To disable \
-           Registry rule metrics, use \"--metrics=off\".@.Using configs only \
-           from local files (like --config=xyz.yml) does not enable \
-           metrics.@.@.More information: https://semgrep.dev/docs/metrics"
-          esc);
-    Logs.app (fun m -> m "");
+           reports pseudonymous rule metrics to semgrep.dev."
+          pysemgrep_hack1);
+    Logs.app (fun m ->
+        m
+          "To disable Registry rule metrics, use \"--metrics=off\".@.Using \
+           configs only from local files (like --config=xyz.yml) does not \
+           enable metrics.@.@.More information: \
+           https://semgrep.dev/docs/metrics");
+    Logs.app (fun m -> m "%s" pysemgrep_hack2);
     let settings =
       {
         settings with
