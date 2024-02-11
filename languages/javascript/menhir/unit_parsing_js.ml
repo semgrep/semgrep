@@ -15,8 +15,8 @@ let tests =
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "js/parsing" in
           let files =
-            Common2.glob (spf "%s/*.js" dir)
-            @ Common2.glob (spf "%s/jsx/*.js" dir)
+            Common2.glob (Filename.concat dir "*.js")
+            @ Common2.glob (Filename.concat dir "jsx/*.js")
             @ []
           in
           files
@@ -31,8 +31,8 @@ let tests =
       t "regression files typescript" (fun () ->
           let dir = Filename.concat tests_path "typescript/parsing" in
           let files =
-            Common2.glob (spf "%s/*.js" dir)
-            @ Common2.glob (spf "%s/*.ts" dir)
+            Common2.glob (Filename.concat dir "*.js")
+            @ Common2.glob (Filename.concat dir "*.ts")
             @ []
           in
           files

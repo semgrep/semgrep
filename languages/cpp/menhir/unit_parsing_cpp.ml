@@ -39,7 +39,8 @@ let tests =
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "cpp/parsing" in
           let files =
-            Common2.glob (spf "%s/*.cpp" dir) @ Common2.glob (spf "%s/*.h" dir)
+            Common2.glob (Filename.concat dir "*.cpp")
+            @ Common2.glob (Filename.concat dir "*.h")
           in
           files |> Fpath_.of_strings
           |> List.iter (fun file ->
@@ -51,7 +52,7 @@ let tests =
                      Alcotest.failf "it should correctly parse %s" !!file));
       t "rejecting bad code" (fun () ->
           let dir = Filename.concat tests_path "cpp/parsing_errors" in
-          let files = Common2.glob (spf "%s/*.cpp" dir) in
+          let files = Common2.glob (Filename.concat dir "*.cpp") in
           files |> Fpath_.of_strings
           |> List.iter (fun file ->
                  try
@@ -67,7 +68,7 @@ let tests =
       t "C regression files" (fun () ->
           let dir = Filename.concat tests_path "c/parsing" in
           let files =
-            Common2.glob (spf "%s/*.c" dir)
+            Common2.glob (Filename.concat dir "*.c")
             (* @ Common2.glob (spf "%s/*.h" dir) *)
           in
           files |> Fpath_.of_strings

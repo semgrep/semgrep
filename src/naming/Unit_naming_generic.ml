@@ -15,13 +15,13 @@ let tests parse_program =
     [
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "naming/python" in
-          let files1 = Common2.glob (spf "%s/*.py" dir) in
+          let files1 = Common2.glob (Filename.concat dir "*.py") in
           let dir = Filename.concat tests_path "naming/go" in
-          let files2 = Common2.glob (spf "%s/*.go" dir) in
+          let files2 = Common2.glob (Filename.concat dir "*.go") in
           let dir = Filename.concat tests_path "naming/js" in
-          let files3 = Common2.glob (spf "%s/*.js" dir) in
+          let files3 = Common2.glob (Filename.concat dir "*.js") in
           let dir = Filename.concat tests_path "naming/java" in
-          let files4 = Common2.glob (spf "%s/*.java" dir) in
+          let files4 = Common2.glob (Filename.concat dir "*.java") in
 
           files1 @ files2 @ files3 @ files4
           |> Fpath_.of_strings

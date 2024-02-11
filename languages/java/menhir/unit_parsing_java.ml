@@ -14,7 +14,7 @@ let tests =
     [
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "java/parsing" in
-          let files = Common2.glob (spf "%s/*.java" dir) in
+          let files = Common2.glob (Filename.concat dir "*.java") in
           files
           |> List.iter (fun file ->
                  Testutil.run file (fun () -> Parse_java.parse file |> ignore)));

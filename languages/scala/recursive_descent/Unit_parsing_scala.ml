@@ -14,7 +14,7 @@ let tests =
     [
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "scala/parsing" in
-          let files = Common2.glob (spf "%s/*.scala" dir) in
+          let files = Common2.glob (Filename.concat dir "*.scala") in
           files
           |> List.iter (fun file ->
                  try
@@ -26,7 +26,7 @@ let tests =
                        file (Common.exn_to_s exn)));
       t "rejecting bad code" (fun () ->
           let dir = Filename.concat tests_path "scala/parsing_errors" in
-          let files = Common2.glob (spf "%s/*.scala" dir) in
+          let files = Common2.glob (Filename.concat dir "*.scala") in
           files
           |> List.iter (fun file ->
                  try

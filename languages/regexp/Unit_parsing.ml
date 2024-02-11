@@ -11,7 +11,7 @@ let tests_path = "tests"
 
 let test_valid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in
-  let files = Common2.glob (spf "%s/*.regexp" dir) in
+  let files = Common2.glob (Filename.concat dir "*.regexp") in
   files
   |> List.iter (fun file ->
          try
@@ -24,7 +24,7 @@ let test_valid_files dialect rel_path () =
 
 let test_invalid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in
-  let files = Common2.glob (spf "%s/*.regexp" dir) in
+  let files = Common2.glob (Filename.concat dir "*.regexp") in
   files
   |> List.iter (fun file ->
          try

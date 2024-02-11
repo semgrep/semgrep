@@ -32,7 +32,7 @@ let tests_path = Fpath.v "tests"
 let metachecker_checks_tests () =
   Testo.categorize "metachecker checks testing"
     (let dir = tests_path / "errors" in
-     let files = Common2.glob (spf "%s/*.yaml" !!dir) in
+     let files = Common2.glob (Filename.concat !!dir "*.yaml") in
      files
      |> List_.map (fun file ->
             let file = Fpath.v file in

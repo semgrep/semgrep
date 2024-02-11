@@ -14,7 +14,7 @@ let tests =
     [
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "json/parsing" in
-          let files = Common2.glob (spf "%s/*.json" dir) in
+          let files = Common2.glob (Filename.concat dir "*.json") in
           files
           |> List.iter (fun file ->
                  try

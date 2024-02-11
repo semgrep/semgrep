@@ -167,7 +167,7 @@ let tests parse_program parse_pattern =
       (* TODO?? why this is here? should be in Unit_parsing. ml *)
       t "java_pattern_files" (fun () ->
           let dir = tests_path / "parsing_patterns" / "java" in
-          let files = Common2.glob (spf "%s/*.sgrep" !!dir) in
+          let files = Common2.glob (Filename.concat !!dir "*.sgrep") in
           files
           |> List.iter (fun file ->
                  try
@@ -178,7 +178,7 @@ let tests parse_program parse_pattern =
                      Alcotest.failf "it should correctly parse %s" file));
       t "go_pattern_files" (fun () ->
           let dir = tests_path / "parsing_patterns" / "go" in
-          let files = Common2.glob (spf "%s/*.sgrep" !!dir) in
+          let files = Common2.glob (Filename.concat !!dir "*.sgrep") in
           files
           |> List.iter (fun file ->
                  try
