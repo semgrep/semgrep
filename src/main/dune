@@ -36,7 +36,7 @@
  (section bin)
  ; LATER: at some point we should copy it as osemgrep instead
  (files
-  (Main.exe as semgrep-core)
+  (Main.exe as semgrep-core.exe)
   (Main.bc as semgrep-core.bc)
   (Main.bc as osemgrep.bc)
  )
