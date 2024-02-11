@@ -90,7 +90,7 @@ default: https://github.com/ocaml/opam-repository.git
         # gets screwed by windows' backslash paths
         . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 
-        opam exec -- make core
+        opam exec -- make core EXE=.exe
       |||,
     },
     {

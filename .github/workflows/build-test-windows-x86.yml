@@ -50,7 +50,7 @@ jobs:
         $filename.new $filename\n        done\n\n        # we have to explicitly source
         this file because the makefile include\n        # gets screwed by windows'
         backslash paths\n        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh\n\n
-        \       opam exec -- make core\n      "
+        \       opam exec -- make core EXE=.exe\n      "
     - name: Test semgrep-core
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh\n\n
         \       opam exec -- make core-test || true\n      "
