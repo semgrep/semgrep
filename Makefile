@@ -5,7 +5,7 @@
 # Many targets in this Makefile assume some commands have been run before to
 # setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
+#  - for OCaml: 'opam' and the right OCaml version (currently 4.14.1)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for Python: 'python3', 'pip', 'pipenv'
 #
