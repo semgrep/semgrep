@@ -21,7 +21,7 @@ module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -363,9 +363,9 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     | _, _ -> false
   in
   if not res then
-    logger#ldebug
-      (lazy
-        (spf "A != B\nA = %s\nB = %s\n" (MV.str_of_mval a) (MV.str_of_mval b)));
+    Logs.debug (fun m ->
+        m ~tags "%s"
+          (spf "A != B\nA = %s\nB = %s\n" (MV.str_of_mval a) (MV.str_of_mval b)));
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
@@ -387,11 +387,12 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
  fun (mvar, _imvar) any tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
-      logger#ldebug (lazy (spf "envf: fail, %s (%s)" mvar (MV.str_of_mval any)));
+      Logs.debug (fun m ->
+          m ~tags "%s" (spf "envf: fail, %s (%s)" mvar (MV.str_of_mval any)));
       fail tin
   | Some new_binding ->
-      logger#ldebug
-        (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
+      Logs.debug (fun m ->
+          m ~tags "%s" (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
 let default_environment lang config =
@@ -497,7 +498,7 @@ let regexp_matcher_of_regexp_string s =
     let re = Pcre_.regexp ~flags x in
     fun s2 ->
       Pcre_.pmatch_noerr ~rex:re s2 |> fun b ->
-      logger#debug "regexp match: %s on %s, result = %b" s s2 b;
+      Logs.debug (fun m -> m ~tags "regexp match: %s on %s, result = %b" s s2 b);
       b)
   else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 
@@ -770,7 +771,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         (s, info)
       with
       | Not_found ->
-          logger#error "could not find %s in %s" s raw_str;
+          Logs.err (fun m -> m ~tags "could not find %s in %s" s raw_str);
           (* return original token ... better than failwith? *)
           (s, info))
 

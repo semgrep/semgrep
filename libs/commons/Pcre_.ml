@@ -12,7 +12,7 @@ type t = {
 }
 [@@deriving show, eq]
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*
    Provide missing error->string conversion
@@ -110,8 +110,9 @@ let log_error rex subj err =
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  logger#info "PCRE error: %s on input %S. Source regexp: %S"
-    (string_of_error err) string_fragment rex.pattern
+  Logs.warn (fun m ->
+      m ~tags "PCRE error: %s on input %S. Source regexp: %S"
+        (string_of_error err) string_fragment rex.pattern)
 
 let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
   match pmatch ?iflags ?flags ~rex ?pos ?callout subj with

@@ -13,7 +13,8 @@ module Flag = Flag_semgrep
 module E = Core_error
 module J = JSON
 
-let logger = Logging.get_logger [ __MODULE__ ]
+(* Tags to associate with individual log messages. Optional. *)
+let tags = Logs_.create_tags [ __MODULE__; "cli" ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -143,7 +144,7 @@ let version = spf "semgrep-core version: %s" Version.version
  * This is why we call set_gc() only when max_memory_mb is unset.
  *)
 let set_gc () =
-  logger#info "Gc tuning";
+  Logs.debug (fun m -> m ~tags "Gc tuning");
   (*
   if !Flag.debug_gc
   then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
@@ -679,15 +680,20 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   else if config.report_time then Core_profiling.mode := MTime
   else Core_profiling.mode := MNo_info;
 
-  Logging_.setup ~debug:config.debug ~log_config_file:config.log_config_file
-    ~log_to_file:config.log_to_file;
-
-  logger#info "Executed as: %s" (argv |> String.concat " ");
-  logger#info "Version: %s" version;
+  Std_msg.setup ~highlight_setting:On ();
+  Logs_.setup_logging ?log_to_file:config.log_to_file
+    ?require_one_of_these_tags:None
+    ~level:
+      (if config.debug then Some Debug
+         (* else if config.verbose then Some App *)
+       else None)
+    ();
+  Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
+  Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =
     if config.profile then (
-      logger#info "Profile mode On";
-      logger#info "disabling -j when in profiling mode";
+      Logs.info (fun m -> m ~tags "Profile mode On");
+      Logs.info (fun m -> m ~tags "disabling -j when in profiling mode");
       { config with ncores = 1 })
     else config
   in

@@ -99,7 +99,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
              Semgrep servers. Please check your internet connection and try \
              again. If this issue persists, please reach out to Semgrep \
              support at @{<cyan;ul>%s@}"
-            (Logs_.err_tag ()) support_url
+            (Std_msg.error_tag ()) support_url
         in
         Lwt.return (Error msg)
     | n -> (
@@ -142,7 +142,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                      code %d).\n\
                      Please try again or reach out to Semgrep support at \
                      @{<cyan;ul>%s@}"
-                    (Logs_.err_tag ()) (Uri.to_string url) status_code
+                    (Std_msg.error_tag ()) (Uri.to_string url) status_code
                     support_url
                 in
                 Logs.info (fun m -> m "HTTP error: %s" err);

@@ -40,7 +40,7 @@ module E = Core_error
  * LATER: it would be good to remove some intermediate types.
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -344,8 +344,9 @@ let make_final_result
     | Debug { skipped_targets = _skipped_targets; profiling } -> profiling
     | Time { profiling } -> profiling
     | No_info ->
-        logger#debug
-          "Mismatch between mode and result while creating final result";
+        Logs.debug (fun m ->
+            m ~tags
+              "Mismatch between mode and result while creating final result");
         empty_file_profiling
   in
   let extra =

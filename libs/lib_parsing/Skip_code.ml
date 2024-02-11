@@ -15,7 +15,7 @@
 open Common
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -157,7 +157,7 @@ let filter_files_if_skip_list ~root xs =
   match find_skip_file_from_root root with
   | Some skip_file ->
       let skip_list = load skip_file in
-      logger#info "using skip list in %s" !!skip_file;
+      Logs.debug (fun m -> m ~tags "using skip list in %s" !!skip_file);
       filter_files skip_list root xs
   | None -> (xs, [])
 

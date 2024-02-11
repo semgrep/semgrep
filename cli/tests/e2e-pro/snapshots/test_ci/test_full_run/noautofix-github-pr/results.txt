@@ -109,3 +109,11 @@ CI scan completed successfully.
 === stderr - plain
 
 === end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color
