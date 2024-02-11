@@ -2,8 +2,6 @@
    Test regexp parsing on individual files in /tests
 *)
 
-open Common
-
 let t = Testo.create
 
 (* ran from the root of the semgrep repository *)

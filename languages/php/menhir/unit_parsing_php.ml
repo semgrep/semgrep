@@ -1,5 +1,4 @@
 (*s: unit_parsing_php.ml *)
-open Common
 open Cst_php
 module Ast = Cst_php
 module Flag = Flag_parsing
