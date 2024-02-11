@@ -32,6 +32,7 @@ local job = {
   steps: [
     gha.git_longpaths_step,
     gha.speedy_checkout_step,
+    gha.git_set_core_autocrlf("input"),
     actions.checkout_with_submodules(),
     {
       uses: 'ocaml/setup-ocaml@v2',
@@ -62,40 +63,21 @@ default: https://github.com/ocaml/opam-repository.git
       path='_opam',
       ),
     {
-      name: 'Build tree-sitter',
+      name: 'Install dependencies',
       env: {
         CC: 'x86_64-w64-mingw32-gcc',
       },
-      // TODO: ideally we should reuse 'make install-deps-for-semgrep-core'
-      // but we do a few things differently here for windows (same issue
-      // with our HomeBrew formula which has some special tree-sitter
-      // installation)
-      run: |||
-        cd libs/ocaml-tree-sitter-core
-        ./configure
-        ./scripts/download-tree-sitter --lazy
-        prefix="$(pwd)/tree-sitter"
-        cd downloads/tree-sitter
-        make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
-        make PREFIX="$prefix" install
-      |||,
-    },
-    // this should be mostly a noop thx to cache_opam above
-    // TODO: we should also reuse 'make install-deps-for-semgrep-core'
-    {
-      name: 'Install OPAM deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         make install-deps-WINDOWS-for-semgrep-core
-        make install-opam-deps
+        make install-deps-for-semgrep-core
       |||,
     },
     {
       name: 'Build semgrep-core',
       run: |||
-        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
-        export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
-        export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
+        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+
         # We have to strip rpath from the tree-sitter projects because there's no
         # equivalent in Windows
         # TODO: investigate removing rpath from the tree-sitter projects
@@ -103,14 +85,20 @@ default: https://github.com/ocaml/opam-repository.git
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- dune build _build/install/default/bin/semgrep-core.exe
+
+        # we have to explicitly source this file because the makefile include
+        # gets screwed by windows' backslash paths
+        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+
+        make core
       |||,
     },
     {
       name: 'Test semgrep-core',
       run: |||
-        echo 'print(\"foo\")' > test.py
-        _build/install/default/bin/semgrep-core.exe -e 'print($X)' -lang python -json test.py
+        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+        make core-test
       |||,
     },
     {
