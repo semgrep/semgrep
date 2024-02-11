@@ -50,10 +50,10 @@ jobs:
         $filename.new $filename\n        done\n\n        # we have to explicitly source
         this file because the makefile include\n        # gets screwed by windows'
         backslash paths\n        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh\n\n
-        \       make core\n      "
+        \       opam exec -- make core\n      "
     - name: Test semgrep-core
-      run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh\n
-        \       make core-test\n      "
+      run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh\n\n
+        \       opam exec -- make core-test\n      "
     - name: Package semgrep-core
       run: "\n        mkdir archive\n        cp _build/install/default/bin/semgrep-core.exe
         archive/\n\n        # TODO: somehow upgrade to the latest flexdll, which should

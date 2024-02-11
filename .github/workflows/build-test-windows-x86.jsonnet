@@ -90,7 +90,7 @@ default: https://github.com/ocaml/opam-repository.git
         # gets screwed by windows' backslash paths
         . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 
-        make core
+        opam exec -- make core
       |||,
     },
     {
@@ -98,7 +98,8 @@ default: https://github.com/ocaml/opam-repository.git
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-        make core-test
+
+        opam exec -- make core-test
       |||,
     },
     {
