@@ -54,7 +54,7 @@ let lang_parsing_tests () =
     let slang = Lang.show lang in
     Testo.categorize slang
       (let dir = tests_path_parsing / dir in
-       let files = Common2.glob (spf "%s/*%s" !!dir ext) in
+       let files = Common2.glob (Filename.concat !!dir ("*" ^ ext)) in
        if files =*= [] then
          failwith (spf "Empty set of parsing tests for %s" slang);
        parsing_tests_for_lang files lang)
