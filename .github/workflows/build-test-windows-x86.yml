@@ -53,7 +53,7 @@ jobs:
         \       opam exec -- make core EXE=.exe\n      "
     - name: Test semgrep-core
       run: "\n        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"\n        . libs/ocaml-tree-sitter-core/tree-sitter-config.sh\n\n
-        \       opam exec -- make core-test || true\n      "
+        \       opam exec -- make core-test\n      "
     - name: Package semgrep-core
       run: "\n        mkdir archive\n        cp _build/install/default/bin/semgrep-core.exe
         archive/\n\n        # TODO: somehow upgrade to the latest flexdll, which should

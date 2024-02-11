@@ -109,7 +109,9 @@ let pack_tests_for_lang
   Testo.categorize
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
+     let files =
+       Common2.glob (Filename.concat !!dir ("*" ^ ext)) |> Fpath_.of_strings
+     in
 
      lang_test_fn ~polyglot_pattern_path files lang)
 
