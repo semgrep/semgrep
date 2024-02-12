@@ -593,8 +593,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   (* TODO: should this function just take a target, rather than a file? *)
   let xtarget : Xtarget.t =
     {
-      source = File file;
-      internal_path_to_content = file;
+      path = { source = File file; internal_path_to_content = file };
       xlang = rule.target_analyzer;
       lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;
@@ -870,7 +869,8 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
     match_hook (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
-  let { internal_path_to_content; xlang; lazy_ast_and_errors; _ } : Xtarget.t =
+  let { path = { internal_path_to_content; _ }; xlang; lazy_ast_and_errors; _ }
+      : Xtarget.t =
     xtarget
   in
   let lang =

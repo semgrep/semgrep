@@ -69,26 +69,13 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
 
 (* TODO: factorize with Core_scan.xtarget_of_file *)
 let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
-  let lazy_ast_and_errors =
-    lazy
-      (match xlang with
-      | L (lang, _) ->
-          let { Parsing_result2.ast; skipped_tokens; _ } =
-            Parse_target.parse_and_resolve_name lang !!target
-          in
-          (ast, skipped_tokens)
-      | LRegex
-      | LSpacegrep
-      | LAliengrep ->
-          assert false)
+  let parser xlang file =
+    let { ast; skipped_tokens; _ } : Parsing_result2.t =
+      Parse_target.parse_and_resolve_name xlang !!file
+    in
+    (ast, skipped_tokens)
   in
-  {
-    source = File target;
-    internal_path_to_content = target;
-    xlang;
-    lazy_content = lazy (UFile.read_file target);
-    lazy_ast_and_errors;
-  }
+  Xtarget.resolve parser (Target.code_of_source xlang Product.all (File target))
 
 (*****************************************************************************)
 (* target helpers *)

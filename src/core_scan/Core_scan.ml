@@ -148,7 +148,7 @@ type was_scanned = Scanned of Extract.original_target | Not_scanned
 
    Remember that a target handler runs in another process (via Parmap).
 *)
-type target_handler = Target_location.t -> RP.matches_single_file * was_scanned
+type target_handler = Target.t -> RP.matches_single_file * was_scanned
 
 (*****************************************************************************)
 (* Helpers *)
@@ -174,22 +174,20 @@ let replace_named_pipe_by_regular_file path =
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-let sort_code_targets_by_decreasing_size (targets : Target_location.code list) :
-    Target_location.code list =
+let sort_code_targets_by_decreasing_size (targets : Target.code list) :
+    Target.code list =
   targets
   |> List_.sort_by_key
-       (fun (target : Target_location.code) ->
-         UFile.filesize target.internal_path_to_content)
+       (fun (target : Target.code) ->
+         UFile.filesize target.path.internal_path_to_content)
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
 
-let sort_targets_by_decreasing_size (targets : Target_location.t list) :
-    Target_location.t list =
+let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
   targets
   |> List_.sort_by_key
-       (fun target ->
-         UFile.filesize (Target_location.internal_path_to_content target))
+       (fun target -> UFile.filesize (Target.internal_path_to_content target))
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
@@ -202,14 +200,14 @@ let sort_targets_by_decreasing_size (targets : Target_location.t list) :
  * big try. This is why it's better to filter those problematic targets
  * early on.
  *)
-let filter_existing_targets (targets : Target_location.t list) :
-    Target_location.t list * OutJ.skipped_target list =
+let filter_existing_targets (targets : Target.t list) :
+    Target.t list * OutJ.skipped_target list =
   targets
-  |> Either_.partition_either (fun (target : Target_location.t) ->
-         let internal_path = Target_location.internal_path_to_content target in
+  |> Either_.partition_either (fun (target : Target.t) ->
+         let internal_path = Target.internal_path_to_content target in
          if Sys.file_exists !!internal_path then Left target
          else
-           match Target_location.source target with
+           match Target.source target with
            | File path ->
                Right
                  {
@@ -354,7 +352,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
 (*
    Run jobs in parallel, using number of cores specified with -j.
 *)
-let map_targets ncores f (targets : Target_location.t list) =
+let map_targets ncores f (targets : Target.t list) =
   (*
      Sorting the targets by decreasing size is based on the assumption
      that larger targets will take more time to process. Starting with
@@ -560,18 +558,16 @@ let parse_equivalences equivalences_file =
    Returns a list of match results and a separate list of scanned targets.
 *)
 let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
-    (handle_target : target_handler) (targets : Target_location.t list) :
+    (handle_target : target_handler) (targets : Target.t list) :
     Core_profiling.file_profiling RP.match_result list * Fpath.t list =
   (* The path in match_and_path_list is None when the file was not scanned *)
   let (match_and_path_list
         : (Core_profiling.file_profiling RP.match_result * Fpath.t option) list)
       =
     targets
-    |> map_targets config.ncores (fun (target : Target_location.t) ->
-           let internal_path =
-             Target_location.internal_path_to_content target
-           in
-           let source = Target_location.source target in
+    |> map_targets config.ncores (fun (target : Target.t) ->
+           let internal_path = Target.internal_path_to_content target in
+           let source = Target.source target in
            logger#info "Analyzing %s (contents in %s)" (Source.to_string source)
              !!internal_path;
            let (res, was_scanned), run_time =
@@ -717,60 +713,30 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let lockfile_target_of_location
-    ({ source; internal_path_to_content; kind = lockfile_kind; manifest } :
-      Target_location.lockfile) : Lockfile_target.t =
-  let manifest_target =
-    manifest
-    |> Option.map
-       @@ fun ({ source; internal_path_to_content; kind = manifest_kind } :
-                Target_location.manifest) : Lockfile_target.manifest_target ->
-       {
-         source;
-         internal_path_to_content;
-         lazy_content = lazy (UFile.read_file internal_path_to_content);
-         lazy_ast_and_errors =
-           lazy
-             (Parse_lockfile.parse_manifest manifest_kind
-                internal_path_to_content);
-         kind = Manifest_kind.of_lockfile_kind lockfile_kind;
-       }
-  in
-  {
-    source;
-    internal_path_to_content;
-    kind = lockfile_kind;
-    lazy_content = lazy (UFile.read_file internal_path_to_content);
-    lazy_ast_and_errors =
-      lazy
-        (Parse_lockfile.parse_lockfile lockfile_kind manifest_target
-           internal_path_to_content);
-    manifest = manifest_target;
-  }
+let lockfile_target_of_location (_ : Target.lockfile) : Lockfile_xtarget.t =
+  failwith "todo"
 
 let manifest_target_location_of_input_to_code
-    ({ path; manifest_kind = kind } : In.manifest_target) :
-    Target_location.manifest =
-  Target_location.manifest_of_source kind (File (Fpath.v path))
+    ({ path; manifest_kind = kind } : In.manifest_target) : Target.manifest =
+  Target.manifest_of_source kind (File (Fpath.v path))
 
 let lockfile_target_location_of_input_to_code
     ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
-    Target_location.lockfile =
+    Target.lockfile =
   let manifest =
     Option.map manifest_target_location_of_input_to_code manifest_target
   in
-  Target_location.lockfile_of_source ?manifest kind (File (Fpath.v path))
+  Target.lockfile_of_source ?manifest kind (File (Fpath.v path))
 
 let code_target_location_of_input_to_code
     ({ path; analyzer; products; lockfile_target } : In.code_target) :
-    Target_location.code =
+    Target.code =
   let lockfile =
     Option.map lockfile_target_location_of_input_to_code lockfile_target
   in
-  Target_location.code_of_source ?lockfile analyzer products
-    (File (Fpath.v path))
+  Target.code_of_source ?lockfile analyzer products (File (Fpath.v path))
 
-let target_location_of_input_to_code (input : In.target) : Target_location.t =
+let target_location_of_input_to_code (input : In.target) : Target.t =
   match input with
   | `CodeTarget x -> Code (code_target_location_of_input_to_code x)
   | `LockfileTarget x -> Lockfile (lockfile_target_location_of_input_to_code x)
@@ -786,7 +752,7 @@ let target_location_of_input_to_code (input : In.target) : Target_location.t =
  * by using the include/exclude fields.).
  *)
 let targets_of_config (config : Core_scan_config.t) :
-    Target_location.t list * OutJ.skipped_target list =
+    Target.t list * OutJ.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without
@@ -812,10 +778,8 @@ let targets_of_config (config : Core_scan_config.t) :
       in
       let target_mappings =
         files
-        |> List_.map (fun file : Target_location.t ->
-               Code
-                 (Target_location.code_of_source xlang Product.all
-                    (Source.File file)))
+        |> List_.map (fun file : Target.t ->
+               Code (Target.code_of_source xlang Product.all (Source.File file)))
       in
       (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
@@ -844,9 +808,8 @@ let targets_of_config (config : Core_scan_config.t) :
 
 (* Extract new targets using the extractors *)
 let extracted_targets_of_config (config : Core_scan_config.t)
-    (extract_rules : Rule.extract_rule list)
-    (basic_targets : Target_location.code list) :
-    Target_location.t list * Extract.adjusters =
+    (extract_rules : Rule.extract_rule list) (basic_targets : Target.code list)
+    : Target.t list * Extract.adjusters =
   logger#info "extracting nested content from %d files"
     (List.length basic_targets);
   let match_hook str match_ =
@@ -856,7 +819,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   in
   let (extracted_targets : Extract.extracted_target_and_adjuster list) =
     basic_targets
-    |> List.concat_map (fun (t : Target_location.code) ->
+    |> List.concat_map (fun (t : Target.code) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let xtarget =
@@ -876,18 +839,17 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            extracted_targets)
   in
   let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
-  let in_targets : Target_location.t list =
+  let in_targets : Target.t list =
     extracted_targets
     |> List_.map
          (fun
            ({ extracted = Extracted file; analyzer; _ } :
              Extract.extracted_target_and_adjuster)
            :
-           Target_location.t
+           Target.t
          ->
            (* Extract mode targets work with any product? *)
-           Code
-             (Target_location.code_of_source analyzer Product.all (File file)))
+           Code (Target.code_of_source analyzer Product.all (File file)))
   in
   (in_targets, adjusters)
 
@@ -988,7 +950,8 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
   (* Note that this function runs in another process *)
   function
   | Lockfile
-      ({ internal_path_to_content; kind; source; _ } as lockfile_location) ->
+      ({ path = { internal_path_to_content; source }; kind; _ } as
+       lockfile_location) ->
       let lockfile_target = lockfile_target_of_location lockfile_location in
       let applicable_supply_chain_rules =
         select_applicable_supply_chain_rules ~lockfile_kind:kind ~source
@@ -1007,8 +970,8 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       (* TODO: run all the right hooks *)
       (RP.collate_rule_results internal_path_to_content dep_matches, was_scanned)
   | Code target ->
-      let source = target.source in
-      let file = target.internal_path_to_content in
+      let source = target.path.source in
+      let file = target.path.internal_path_to_content in
       let analyzer = target.analyzer in
       let products = target.products in
       let applicable_rules =
@@ -1112,7 +1075,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let basic_code_targets, _basic_lockfile_targets =
     Either_.partition_either
       (function
-        | (Code x : Target_location.t) -> Left x
+        | (Code x : Target.t) -> Left x
         | Lockfile x -> Right x)
       basic_targets
   in
@@ -1166,8 +1129,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
      * the extracted targets
      *)
     targets
-    |> List_.map_filter (fun (x : Target_location.t) ->
-           let internal_path = Target_location.internal_path_to_content x in
+    |> List_.map_filter (fun (x : Target.t) ->
+           let internal_path = Target.internal_path_to_content x in
            if Hashtbl.mem scanned_target_table !!internal_path then
              Some internal_path
            else None)

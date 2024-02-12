@@ -48,7 +48,7 @@ let match_dependency_pattern (deps : Dependency.t list)
 
 (* Return the set of dependency/pattern pairs that matched *)
 let match_dependency_formula :
-    Lockfile_target.t ->
+    Lockfile_xtarget.t ->
     Rule.dependency_formula ->
     Pattern_match.dependency_match list =
  fun { lazy_ast_and_errors; _ } ->
@@ -63,13 +63,13 @@ let match_dependencies lockfile_target rule =
 let match_all_dependencies lockfile_target =
   List_.map (fun rule -> (rule, match_dependencies lockfile_target rule))
 
-let check_rule rule (target : Lockfile_target.t) dependency_formula =
+let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
   let _, parse_time =
-    Common.with_time (fun () -> Lazy.force target.lazy_ast_and_errors)
+    Common.with_time (fun () -> Lazy.force xtarget.lazy_ast_and_errors)
   in
   let matches, match_time =
     Common.with_time (fun () ->
-        match_dependency_formula target dependency_formula)
+        match_dependency_formula xtarget dependency_formula)
   in
   let matches =
     matches
@@ -86,8 +86,8 @@ let check_rule rule (target : Lockfile_target.t) dependency_formula =
                    (* TODO: What should this be? *)
                    pattern_string = "";
                  };
-               file = target.internal_path_to_content;
-               source = target.source;
+               file = xtarget.target.path.internal_path_to_content;
+               source = xtarget.target.path.source;
                (* TODO: should be pro? Where is this supposed to be set? *)
                engine_kind = `OSS;
                range_loc = dep.Dependency.loc;

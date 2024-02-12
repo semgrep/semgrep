@@ -59,8 +59,7 @@ val rules_from_rule_source :
 (** Get the rules *)
 
 val targets_of_config :
-  Core_scan_config.t ->
-  Target_location.t list * Semgrep_output_v1_t.skipped_target list
+  Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
@@ -70,8 +69,8 @@ val targets_of_config :
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.extract_rule list ->
-  Target_location.code list ->
-  Target_location.t list * Extract.adjusters
+  Target.code list ->
+  Target.t list * Extract.adjusters
 (**
    Generate a list of new targets, which are extracted with extract rules
    from original targets. This returns also "adjusters" which are functions
@@ -129,10 +128,6 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-val sort_targets_by_decreasing_size :
-  Target_location.t list -> Target_location.t list
-
-val sort_code_targets_by_decreasing_size :
-  Target_location.code list -> Target_location.code list
-
+val sort_targets_by_decreasing_size : Target.t list -> Target.t list
+val sort_code_targets_by_decreasing_size : Target.code list -> Target.code list
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences

@@ -226,8 +226,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
   let {
-    source;
-    internal_path_to_content;
+    path = { source; internal_path_to_content };
     xlang;
     lazy_ast_and_errors;
     lazy_content = _;
@@ -386,8 +385,8 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> List_.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               file = env.xtarget.internal_path_to_content;
-               source = env.xtarget.source;
+               file = env.xtarget.path.internal_path_to_content;
+               source = env.xtarget.path.source;
                range_loc;
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
@@ -463,7 +462,8 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
-  let ({ internal_path_to_content; lazy_content; source; _ } : Xtarget.t) =
+  let ({ path = { internal_path_to_content; source }; lazy_content; _ }
+        : Xtarget.t) =
     xtarget
   in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
@@ -553,7 +553,7 @@ let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
-  let file = env.xtarget.internal_path_to_content in
+  let file = env.xtarget.path.internal_path_to_content in
   xs
   |> List_.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in

@@ -48,10 +48,9 @@ let _ =
            in
            let targets =
              List.map
-               (fun f : Target_location.t ->
+               (fun f : Target.t ->
                  Code
-                   (Target_location.code_of_source xlang Product.all
-                      (File (Fpath.v f))))
+                   (Target.code_of_source xlang Product.all (File (Fpath.v f))))
                source_files
            in
            let default_config = Output.default in

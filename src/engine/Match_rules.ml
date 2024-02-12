@@ -67,14 +67,16 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
          (Rule_ID.to_string rule_id))
   in
   {
-    path = file_and_more.internal_path_to_content;
+    path = file_and_more.path.internal_path_to_content;
     reason = Irrelevant_rule;
     details;
     rule_id = Some rule_id;
   }
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
-  let { internal_path_to_content; lazy_content; _ } : Xtarget.t = xtarget in
+  let { path = { internal_path_to_content; _ }; lazy_content; _ } : Xtarget.t =
+    xtarget
+  in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let is_relevant =
     match xconf.filter_irrelevant_rules with
@@ -169,7 +171,8 @@ let check ~match_hook ~timeout ~timeout_threshold
     | Some table -> Hashtbl.find_opt table
     | None -> fun _ -> None
   in
-  let { internal_path_to_content; lazy_ast_and_errors; xlang; _ } : Xtarget.t =
+  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
+      : Xtarget.t =
     xtarget
   in
   logger#trace "checking %s with %d rules" !!internal_path_to_content
@@ -224,7 +227,7 @@ let check ~match_hook ~timeout ~timeout_threshold
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res =
-    RP.collate_rule_results xtarget.internal_path_to_content res_total
+    RP.collate_rule_results xtarget.path.internal_path_to_content res_total
   in
   let extra =
     match res.extra with

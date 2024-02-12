@@ -1,19 +1,33 @@
-(* eXtended target.
+(* Yoann Padioleau, Cooper Pierce
  *
- * This type is mostly used in the engine, to pass around extra information
- * associated to each target.
+ * Copyright (c) Semgrep Inc.
  *
- * related: Input_to_core.target, which is what is passed
- * to semgrep-core via -target.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
+(** eXtended target.
+
+   This type is mostly used in the engine to pass around extra information
+   (e.g., contents, the AST) associated with each {{!Target.code}target}.
+
+   See also {!Input_to_core_t.target}, which is what is passed to
+   [semgrep-core] via [-target].
  *)
 
 type t = {
-  source : Source.t;
-  internal_path_to_content : Fpath.t;
-  xlang : Xlang.t;
+  path : Target.target_path;
+  xlang : Xlang.t;  (** The analyzer to use when scanning this target. *)
   lazy_content : string lazy_t;
-  (* This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) lazy_t;
+      (** This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)
 }
 
 let parse_file parser (analyzer : Xlang.t) path =
@@ -32,12 +46,11 @@ let parse_file parser (analyzer : Xlang.t) path =
      in
      parser lang path)
 
-let resolve parser (target : Target_location.code) : t =
+let resolve parser (target : Target.code) : t =
   {
-    source = target.source;
-    internal_path_to_content = target.internal_path_to_content;
+    path = target.path;
     xlang = target.analyzer;
-    lazy_content = lazy (UFile.read_file target.internal_path_to_content);
+    lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
     lazy_ast_and_errors =
-      parse_file parser target.analyzer target.internal_path_to_content;
+      parse_file parser target.analyzer target.path.internal_path_to_content;
   }
