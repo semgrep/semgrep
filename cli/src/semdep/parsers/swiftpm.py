@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -8,30 +9,27 @@ from typing import Tuple
 from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
-from semdep.external.parsy import success
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
-from semdep.parsers.util import upto
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageResolved
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageSwift
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
 
 
-package_name = string('"') >> upto('"').bind(lambda url: success(url))
+package_name = regex(r'"(.*?)"', group=1)
 
 package_section = (
     any_char.until(string("url: "), consume_other=True)
@@ -45,16 +43,13 @@ package_swift_parser = (
     any_char.until(regex(r"dependencies\s*:\s*\[.*?\n"))
     >> (comment | package_section)
     .sep_by(string("\n"))
-    .map(lambda xs: [x for x in xs if isinstance(x, tuple)])
+    .map(lambda xs: filter_on_marked_lines(xs))
     << any_char.many()
 )
 
 
-def get_transitivity(package_name: str, direct_deps: Set[str]) -> Transitivity:
-    if package_name in direct_deps:
-        return Transitivity(Direct())
-    else:
-        return Transitivity(Transitive())
+def filter_on_marked_lines(result: list[Any]) -> list[tuple]:
+    return [x for x in result if isinstance(x, tuple)]
 
 
 def parse_swiftpm_v2(
@@ -89,7 +84,7 @@ def parse_swiftpm_v2(
                 version=version.as_str(),
                 ecosystem=Ecosystem(SwiftPM()),
                 allowed_hashes={},
-                transitivity=get_transitivity(package_name, direct_deps),
+                transitivity=transitivity(direct_deps, [package_name]),
                 line_number=version.line_number,
             )
         )
@@ -129,7 +124,7 @@ def parse_swiftpm_v1(
                 version=version.as_str(),
                 ecosystem=Ecosystem(SwiftPM()),
                 allowed_hashes={},
-                transitivity=get_transitivity(package_name, direct_deps),
+                transitivity=transitivity(direct_deps, [package_name]),
                 line_number=version.line_number,
             )
         )
@@ -138,6 +133,7 @@ def parse_swiftpm_v1(
 
 
 def extract_package_name(package_uri: str) -> str:
+    # todo maybe use https://www.debuggex.com/r/H4kRw1G0YPyBFjfm for validation
     return package_uri.split("/")[-1].replace(".git", "")
 
 
@@ -169,6 +165,13 @@ def parse_package_resolved(
     lockfile_version = lockfile_json.get("version")
     if lockfile_version is None:
         logger.info("no version in lockfile %s", lockfile_path)
+        errors.append(
+            DependencyParserError(
+                str(lockfile_path),
+                ScaParserName(PackageResolved()),
+                "Unable to determine version of swift lockfile",
+            )
+        )
         return [], errors
 
     if not lockfile_version.as_int():
@@ -179,5 +182,13 @@ def parse_package_resolved(
         all_deps = parse_swiftpm_v1(lockfile_json, direct_deps)
     elif lockfile_version == 2:
         all_deps = parse_swiftpm_v2(lockfile_json, direct_deps)
+    else:
+        errors.append(
+            DependencyParserError(
+                str(lockfile_path),
+                ScaParserName(PackageResolved()),
+                "Invalid lockfile version. Expected 1 or 2.",
+            )
+        )
 
     return all_deps, errors
