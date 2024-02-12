@@ -728,9 +728,10 @@ and expr_aux env ?(void = false) e_gen =
          } as origin_exp) )
     when is_constructor env ret_ty id_info ->
       let obj' = var_of_name obj in
-      let lval = lval_of_base (Var obj') in
-      mk_class_construction env lval origin_exp ret_ty id_info args
-      |> add_stmts env;
+      let lval, ss =
+        mk_class_construction env obj' origin_exp ret_ty id_info args
+      in
+      add_stmts env ss;
       mk_e (Fetch lval) (SameAs obj_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
@@ -1414,18 +1415,19 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
       [ mk_s (Instr fake_i) ]
   | ss'' -> ss''
 
-and mk_class_construction env x origin_exp ty cons_id_info args : stmt list =
-  (* We encode `x = new T(args)` as `x = new x.T(args)` so that taint
+and mk_class_construction env obj origin_exp ty cons_id_info args :
+    lval * stmt list =
+  (* We encode `obj = new T(args)` as `obj = new obj.T(args)` so that taint
      analysis knows that the reciever when calling `T` is the variable
-     `x`. It's kinda tacky but works for now. *)
-  (* NB: x is an lval but must currently be a `Var` variant according to Iago. *)
+     `obj`. It's kinda tacky but works for now. *)
+  let lval = lval_of_base (Var obj) in
   let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
   let opt_cons =
     let* cons = mk_class_constructor_name ty cons_id_info in
     let cons' = var_of_name cons in
     let cons_exp =
       mk_e
-        (Fetch { x with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
+        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
         (SameAs (G.N cons |> G.e))
       (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
          * looks at the eorig, but maybe it shouldn't? *)
@@ -1433,8 +1435,12 @@ and mk_class_construction env x origin_exp ty cons_id_info args : stmt list =
     Some cons_exp
   in
   let ss2, ty = type_with_pre_stmts env ty in
-  ss1 @ ss2
-  @ [ mk_s (Instr (mk_i (New (x, ty, opt_cons, args')) (SameAs origin_exp))) ]
+  ( lval,
+    ss1 @ ss2
+    @ [
+        mk_s
+          (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
+      ] )
 
 and stmt_aux env st =
   match st.G.s with
@@ -1453,8 +1459,7 @@ and stmt_aux env st =
       (* HACK(new): Because of field-sensitivity hacks, we need to know to which
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
-      let lval = lval_of_base (Var obj') in
-      mk_class_construction env lval new_exp ty cons_id_info args
+      mk_class_construction env obj' new_exp ty cons_id_info args |> snd
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
