@@ -1,0 +1,22 @@
+Adds support for python constructors to taint analysis.
+
+If interfile naming resolves that a python constructor is called taint
+will now track these objects with less heuristics. Without interfile
+analysis these changes have no effect on the behavior of tainting.
+The overall result is that in the following program the oss analysis
+would match both calls to sink while the interfile analysis would only
+match the second call to sink.
+
+```
+class A:
+    untainted = "not"
+    tainted = "not"
+    def __init__(self, x):
+    	self.tainted = x
+
+a = A("tainted")
+# OK:
+sink(a.untainted)
+# MATCH:
+sink(a.tainted)
+```

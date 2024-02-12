@@ -267,6 +267,22 @@ let def_expr_evaluates_to_value (lang : Lang.t) =
   | Elixir -> true
   | _else_ -> false
 
+let is_constructor env ret_ty id_info =
+  match id_info.G.id_resolved.contents with
+  | Some (G.GlobalName (ls, _), _) -> (
+      (* TODO this condition is a little too loose, but should work in
+         practice could we tighten this up? *)
+      env.lang =*= Lang.Python
+      && List.length ls >= 3 (* Module + Class + __init__ *)
+      && (match List_.last_opt ls with
+         | Some "__init__" -> true
+         | _ -> false)
+      &&
+      match ret_ty with
+      | { G.t = G.TyN _; _ } -> true
+      | _ -> false)
+  | _ -> false
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -688,14 +704,15 @@ and expr_aux env ?(void = false) e_gen =
   (* x = ClassName(args ...) in Python *)
   (* ClassName has been resolved to __init__ by the pro engine. *)
   (* Identified and treated as x = New ClassName(args ...) to support
-     field sensitivity. *)
+     field sensitivity. See HACK(new) *)
   | G.Assign
       ( ({
            e =
-             ( G.N (G.Id ((_, _), lhs_info))
-             | G.DotAccess (_, _, FN (Id ((_, _), lhs_info))) );
+             G.N
+               (G.Id ((_, _), { id_type = { contents = Some ret_ty }; _ }) as
+                obj);
            _;
-         } as lhs_e),
+         } as obj_e),
         _,
         ({
            e =
@@ -709,28 +726,12 @@ and expr_aux env ?(void = false) e_gen =
                  args );
            _;
          } as origin_exp) )
-  (* Can we be tighter about side conditions here to avoid catching
-     direct calls to __init__ ? *)
-    when match id_info.G.id_resolved.contents with
-         | Some (G.GlobalName (ls, _), _) -> (
-             env.lang =*= Lang.Python
-             && List.length ls >= 3 (* Module + Class + __init__ *)
-             && (match List_.last_opt ls with
-                | Some "__init__" -> true
-                | _ -> false)
-             &&
-             match lhs_info.id_type.contents with
-             | Some { t = G.TyN _; _ } -> true
-             | _ -> false)
-         | _ -> false ->
-      let lval = lval env lhs_e in
-      let ty =
-        match lhs_info.id_type.contents with
-        | Some ty -> ty
-        | _ -> failwith "Impossible: guard above checks that this exists"
-      in
-      mk_class_construction env lval origin_exp ty id_info args |> add_stmts env;
-      mk_e (Fetch lval) (SameAs lhs_e)
+    when is_constructor env ret_ty id_info ->
+      let obj' = var_of_name obj in
+      let lval = lval_of_base (Var obj') in
+      mk_class_construction env lval origin_exp ret_ty id_info args
+      |> add_stmts env;
+      mk_e (Fetch lval) (SameAs obj_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
@@ -1413,17 +1414,18 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
       [ mk_s (Instr fake_i) ]
   | ss'' -> ss''
 
-and mk_class_construction env lval origin_exp ty cons_id_info args : stmt list =
-  (* x = new T(args) *)
-  (* HACK(new): Because of field-sensitivity hacks, we need to know to which
-     * variable are we assigning the `new` object, so we intercept the assignment. *)
+and mk_class_construction env x origin_exp ty cons_id_info args : stmt list =
+  (* We encode `x = new T(args)` as `x = new x.T(args)` so that taint
+     analysis knows that the reciever when calling `T` is the variable
+     `x`. It's kinda tacky but works for now. *)
+  (* NB: x is an lval but must currently be a `Var` variant according to Iago. *)
   let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
   let opt_cons =
     let* cons = mk_class_constructor_name ty cons_id_info in
     let cons' = var_of_name cons in
     let cons_exp =
       mk_e
-        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
+        (Fetch { x with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
         (SameAs (G.N cons |> G.e))
       (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
          * looks at the eorig, but maybe it shouldn't? *)
@@ -1432,9 +1434,7 @@ and mk_class_construction env lval origin_exp ty cons_id_info args : stmt list =
   in
   let ss2, ty = type_with_pre_stmts env ty in
   ss1 @ ss2
-  @ [
-      mk_s (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
-    ]
+  @ [ mk_s (Instr (mk_i (New (x, ty, opt_cons, args')) (SameAs origin_exp))) ]
 
 and stmt_aux env st =
   match st.G.s with
