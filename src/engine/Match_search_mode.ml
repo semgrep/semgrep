@@ -226,7 +226,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
   let {
-    path = { source; internal_path_to_content };
+    path = { origin; internal_path_to_content };
     xlang;
     lazy_ast_and_errors;
     lazy_content = _;
@@ -255,7 +255,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
               Match_patterns.check
                 ~hook:(fun _ -> ())
                 ?mvar_context ?range_filter config mini_rules
-                (internal_path_to_content, source, lang, ast))
+                (internal_path_to_content, origin, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.make_match_result matches errors
@@ -386,7 +386,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                file = env.xtarget.path.internal_path_to_content;
-               source = env.xtarget.path.source;
+               source = env.xtarget.path.origin;
                range_loc;
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
@@ -462,7 +462,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
-  let ({ path = { internal_path_to_content; source }; lazy_content; _ }
+  let ({ path = { internal_path_to_content; origin }; lazy_content; _ }
         : Xtarget.t) =
     xtarget
   in
@@ -480,11 +480,11 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     [
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps
-        !!internal_path_to_content source;
+        !!internal_path_to_content origin;
       Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
-        !!internal_path_to_content source;
+        !!internal_path_to_content origin;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content
-        !!internal_path_to_content source;
+        !!internal_path_to_content origin;
     ]
 [@@profiling]
 

@@ -74,15 +74,15 @@ and manifest = {
     {!Lockfile_xtarget.manifest_target}, which also has the contents. *)
 
 and target_path = {
-  source : Source.t;
+  origin : Origin.t;
       (** The source of the data as is relevant to the user. This could be, e.g., a
     relative (from the project root) path to a file, a git object and
-    associated information, or anything else a Source.t can designate.
+    associated information, or anything else a Origin.t can designate.
 
     This should be used when reporting a location to the user. *)
   internal_path_to_content : Fpath.t;
       (** The path to a file which contains the data to be scanned. This could be
-    the same as the source, if the source is a path to a regular file (or an
+    the same as the origin, if the origin is a path to a regular file (or an
     absolute path to the same), or it could be a tempfile. This should be
     used to obtain the contents of the target, but not for reporting to the
     user, other than possibly for debugging purposes. *)
@@ -94,46 +94,46 @@ and target_path = {
     {- obtaining the contents: [internal_path_to_content]}
   } *)
 
-val code_of_source :
+val code_of_origin :
   ?lockfile:lockfile ->
   Xlang.t ->
   Semgrep_output_v1_t.product list ->
-  Source.t ->
+  Origin.t ->
   code
-(** [code_of_source analyzer products source] is the target
-      location for a source code target originating from [source] to be
+(** [code_of_origin analyzer products origin] is the target
+      location for a source code target originating from [origin] to be
       analyzed with [analyzer] for [products]. If [lockfile] is specified then
       it shall be used as the associated lockfile if dependency patterns are
       to be ran.
 
       This function should be generally preferred over creating a record
       directly, since it can peform actions which may be required when creating
-      a target from certain types of sources, such as generating a tempfile.
+      a target from certain types of origins, such as generating a tempfile.
  *)
 
-val lockfile_of_source :
-  ?manifest:manifest -> Lockfile_kind.t -> Source.t -> lockfile
-(** [lockfile_of_source k source] is the target
-      location for a lockfile target originating from [source] of kind [k].
+val lockfile_of_origin :
+  ?manifest:manifest -> Lockfile_kind.t -> Origin.t -> lockfile
+(** [lockfile_of_origin k origin] is the target
+      location for a lockfile target originating from [origin] of kind [k].
       If [manifest] is specified, it shall be used as the associated manifest.
 
       This function should be generally preferred over creating a record
       directly, since it can peform actions which may be required when creating
-      a target from certain types of sources, such as generating a tempfile.
+      a target from certain types of origins, such as generating a tempfile.
  *)
 
-val manifest_of_source : Manifest_kind.t -> Source.t -> manifest
-(** [manifest_of_source k source] is the target
-      location for a manifest target originating from [source] of kind [k].
+val manifest_of_origin : Manifest_kind.t -> Origin.t -> manifest
+(** [manifest_of_origin k origin] is the target
+      location for a manifest target originating from [origin] of kind [k].
 
       This function should be generally preferred over creating a record
       directly, since it can peform actions which may be required when creating
-      a target from certain types of sources, such as generating a tempfile.
+      a target from certain types of origins, such as generating a tempfile.
  *)
 
 val internal_path_to_content : t -> Fpath.t
 (** [internal_path_to_content target] is the path to a file containing the
     contents of [target]. *)
 
-val source : t -> Source.t
-(** [source target] is the user-reportable origin of [target]. *)
+val origin : t -> Origin.t
+(** [origin target] is the user-reportable origin of [target]. *)

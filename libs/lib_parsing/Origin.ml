@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 
-(* See Source.mli for top-level documentation of this module. *)
+(* See Origin.mli for top-level documentation of this module. *)
 
 type t = File of Fpath.t [@@deriving show, eq, ord]
 

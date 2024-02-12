@@ -317,7 +317,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                             {
                               path =
                                 {
-                                  source = File (Fpath.v mval_file);
+                                  origin = File (Fpath.v mval_file);
                                   internal_path_to_content = file;
                                 };
                               xlang;

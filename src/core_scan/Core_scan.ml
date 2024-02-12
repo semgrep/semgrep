@@ -207,7 +207,7 @@ let filter_existing_targets (targets : Target.t list) :
          let internal_path = Target.internal_path_to_content target in
          if Sys.file_exists !!internal_path then Left target
          else
-           match Target.source target with
+           match Target.origin target with
            | File path ->
                Right
                  {
@@ -567,8 +567,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     targets
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path_to_content target in
-           let source = Target.source target in
-           logger#info "Analyzing %s (contents in %s)" (Source.to_string source)
+           let origin = Target.origin target in
+           logger#info "Analyzing %s (contents in %s)" (Origin.to_string origin)
              !!internal_path;
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -579,12 +579,12 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                    let get_context () =
                      match !Rule.last_matched_rule with
                      | None ->
-                         spf "%s (contents in %s)" (Source.to_string source)
+                         spf "%s (contents in %s)" (Origin.to_string origin)
                            !!internal_path
                      | Some rule_id ->
                          spf "%s on %s (contents is %s)"
                            (Rule_ID.to_string rule_id)
-                           (Source.to_string source) !!internal_path
+                           (Origin.to_string origin) !!internal_path
                    in
                    Memory_limit.run_with_memory_limit ~get_context
                      ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -606,7 +606,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         *)
                        if config.test then Gc.full_major ();
                        logger#trace "done with %s (contents in %s)"
-                         (Source.to_string source) !!internal_path;
+                         (Origin.to_string origin) !!internal_path;
 
                        (res, was_scanned))
                  with
@@ -630,7 +630,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
                            logger#info "Timeout on %s (contents in %s)"
-                             (Source.to_string source) !!internal_path;
+                             (Origin.to_string origin) !!internal_path;
                            (* TODO what happened here is several rules
                               timed out while trying to scan a file.
                               Which heuristically indicates that the
@@ -647,7 +647,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                            |> E.ErrorSet.of_list
                        | Out_of_memory ->
                            logger#info "OutOfMemory on %s (contents in %s)"
-                             (Source.to_string source) !!internal_path;
+                             (Origin.to_string origin) !!internal_path;
                            E.ErrorSet.singleton
                              (E.mk_error !Rule.last_matched_rule loc ""
                                 OutJ.OutOfMemory)
@@ -718,7 +718,7 @@ let lockfile_target_of_location (_ : Target.lockfile) : Lockfile_xtarget.t =
 
 let manifest_target_location_of_input_to_code
     ({ path; manifest_kind = kind } : In.manifest_target) : Target.manifest =
-  Target.manifest_of_source kind (File (Fpath.v path))
+  Target.manifest_of_origin kind (File (Fpath.v path))
 
 let lockfile_target_location_of_input_to_code
     ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
@@ -726,7 +726,7 @@ let lockfile_target_location_of_input_to_code
   let manifest =
     Option.map manifest_target_location_of_input_to_code manifest_target
   in
-  Target.lockfile_of_source ?manifest kind (File (Fpath.v path))
+  Target.lockfile_of_origin ?manifest kind (File (Fpath.v path))
 
 let code_target_location_of_input_to_code
     ({ path; analyzer; products; lockfile_target } : In.code_target) :
@@ -734,7 +734,7 @@ let code_target_location_of_input_to_code
   let lockfile =
     Option.map lockfile_target_location_of_input_to_code lockfile_target
   in
-  Target.code_of_source ?lockfile analyzer products (File (Fpath.v path))
+  Target.code_of_origin ?lockfile analyzer products (File (Fpath.v path))
 
 let target_location_of_input_to_code (input : In.target) : Target.t =
   match input with
@@ -779,7 +779,7 @@ let targets_of_config (config : Core_scan_config.t) :
       let target_mappings =
         files
         |> List_.map (fun file : Target.t ->
-               Code (Target.code_of_source xlang Product.all (Source.File file)))
+               Code (Target.code_of_origin xlang Product.all (Origin.File file)))
       in
       (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
@@ -849,7 +849,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            Target.t
          ->
            (* Extract mode targets work with any product? *)
-           Code (Target.code_of_source analyzer Product.all (File file)))
+           Code (Target.code_of_origin analyzer Product.all (File file)))
   in
   (in_targets, adjusters)
 
@@ -887,7 +887,7 @@ let select_applicable_rules_for_lockfile_kind ~lockfile_kind rules =
              then Some (r, formula)
              else None)
 
-(* Note that filtering is applied on the basis of the target's source, not the
+(* Note that filtering is applied on the basis of the target's origin, not the
  * target's "file". This is because filtering should apply to the user's
  * perception of the file, not whatever we may transform it to internally.
  *
@@ -897,15 +897,15 @@ let select_applicable_rules_for_lockfile_kind ~lockfile_kind rules =
  *
  * Note also that `paths:` filters are relative to the root of a project [0],
  * so if the target's file is an absolute path, we don't want to use that for
- * filtering: instead, we'd want the source to be the desired relative path and
+ * filtering: instead, we'd want the origin to be the desired relative path and
  * use that.
  *
  * [0]: <https://semgrep.dev/docs/writing-rules/rule-syntax/#paths>
  *)
-let select_applicable_rules_for_source paths (source : Source.t) =
+let select_applicable_rules_for_origin paths (origin : Origin.t) =
   match paths with
   | Some paths -> (
-      match source with
+      match origin with
       | File path -> Filter_target.filter_paths paths path)
   | _else -> true
 
@@ -914,7 +914,7 @@ let select_applicable_rules_for_source paths (source : Source.t) =
    or something even better to reduce the time spent on each target in
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
-let select_applicable_rules_for_target ~analyzer ~products ~source
+let select_applicable_rules_for_target ~analyzer ~products ~origin
     ~respect_rule_paths rules =
   let rules =
     select_applicable_rules_for_analyzer ~analyzer rules
@@ -931,16 +931,16 @@ let select_applicable_rules_for_target ~analyzer ~products ~source
               * again here for osemgrep which use a different file targeting
               * strategy.
            *)
-           select_applicable_rules_for_source r.paths source)
+           select_applicable_rules_for_origin r.paths origin)
   else rules
 
 let select_applicable_supply_chain_rules ~lockfile_kind ~respect_rule_paths
-    ~source rules =
+    ~origin rules =
   let rules = select_applicable_rules_for_lockfile_kind ~lockfile_kind rules in
   if respect_rule_paths then
     rules
     |> List.filter (fun ((r : R.rule), _) ->
-           select_applicable_rules_for_source r.paths source)
+           select_applicable_rules_for_origin r.paths origin)
   else rules
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
@@ -950,11 +950,11 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
   (* Note that this function runs in another process *)
   function
   | Lockfile
-      ({ path = { internal_path_to_content; source }; kind; _ } as
+      ({ path = { internal_path_to_content; origin }; kind; _ } as
        lockfile_location) ->
       let lockfile_target = lockfile_target_of_location lockfile_location in
       let applicable_supply_chain_rules =
-        select_applicable_supply_chain_rules ~lockfile_kind:kind ~source
+        select_applicable_supply_chain_rules ~lockfile_kind:kind ~origin
           ~respect_rule_paths:config.respect_rule_paths valid_rules
       in
       let dep_matches =
@@ -970,12 +970,12 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       (* TODO: run all the right hooks *)
       (RP.collate_rule_results internal_path_to_content dep_matches, was_scanned)
   | Code target ->
-      let source = target.path.source in
+      let origin = target.path.origin in
       let file = target.path.internal_path_to_content in
       let analyzer = target.analyzer in
       let products = target.products in
       let applicable_rules =
-        select_applicable_rules_for_target ~analyzer ~products ~source
+        select_applicable_rules_for_target ~analyzer ~products ~origin
           ~respect_rule_paths:config.respect_rule_paths valid_rules
       in
       let was_scanned =

@@ -139,7 +139,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     langs = mr.langs;
   }
 
-type target_info = { internal_path_to_content : Fpath.t; source : Source.t }
+type target_info = { internal_path_to_content : Fpath.t; source : Origin.t }
 
 let match_rules_and_recurse m_env
     ({ internal_path_to_content; source } : target_info) hook matches rules

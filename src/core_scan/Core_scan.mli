@@ -85,7 +85,7 @@ val extracted_targets_of_config :
 val select_applicable_rules_for_target :
   analyzer:Xlang.t ->
   products:Semgrep_output_v1_t.product list ->
-  source:Source.t ->
+  origin:Origin.t ->
   respect_rule_paths:bool ->
   Rule.t list ->
   Rule.t list

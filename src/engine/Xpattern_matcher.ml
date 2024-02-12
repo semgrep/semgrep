@@ -61,7 +61,7 @@ let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
       Fpath.t ->
-      Source.t ->
+      Origin.t ->
       Core_profiling.times Core_result.match_result) =
  fun xpatterns matcher file source ->
   if xpatterns =*= [] then Core_result.empty_match_result

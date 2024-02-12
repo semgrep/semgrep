@@ -368,11 +368,6 @@ functions.
     (process_limits (>= "1.5.5"))
   )
 )
-(package (name source)
-  (synopsis "Types for tracking the source of scanned content")
-  (authors "Cooper Pierce <cooper@semgrep.com>")
-  (license "LGPL-2.1-only")
-)
 
 (package
   (name tracing)

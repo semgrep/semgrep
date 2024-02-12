@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 
-(** Sources of content which may be consumed by Semgrep.
+(** Origins of content which may be consumed by Semgrep.
 
    A source is the {e user-relevant origin} of content (e.g., source code).
    This should be used when reporting findings to a user.
@@ -66,12 +66,12 @@
 type t = File of Fpath.t [@@deriving show, eq, ord]
 
 val to_string : t -> string
-(** [to_string source] is [source] as a user-facing string. This is the version
+(** [to_string origin] is [origin] as a user-facing string. This is the version
     which should be displayed to the user. Cf. the derived show implementation,
     which is for internal debugging purposes.
  *)
 
 val to_string_opt : ?unspecified:string -> t option -> string
-(** [to_string_opt ~unspecified source] is the [source] as a user-facing
-    string, or "<unspecified>", if [source] is [None].
+(** [to_string_opt ~unspecified origin] is [origin] as a user-facing
+    string, or "<unspecified>", if [origin] is [None].
  *)

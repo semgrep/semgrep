@@ -50,7 +50,7 @@ let _ =
              List.map
                (fun f : Target.t ->
                  Code
-                   (Target.code_of_source xlang Product.all (File (Fpath.v f))))
+                   (Target.code_of_origin xlang Product.all (File (Fpath.v f))))
                source_files
            in
            let default_config = Output.default in
