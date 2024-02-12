@@ -338,7 +338,7 @@ let is_sink_func_with_focus sink_formula =
         false
   in
   let rec is_call_pattern = function
-    | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
+    | P { pat = Sem (E { e = Call _; _ }, _); _ } -> true
     | Or (_tok, formulas) ->
         (* Each case in an 'Or' is independent, all must be call patterns. *)
         List.for_all is_call_pattern formulas

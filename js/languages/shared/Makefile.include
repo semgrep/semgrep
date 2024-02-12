@@ -53,27 +53,12 @@ VERSION ?= 0.0.1
 .PHONY: default
 default: build
 
-# We should get rid of this when https://github.com/llvm/llvm-project/pull/67715 is released (or if you've built clang yourself)
-ifdef TEST_EXPECTS_FAST_CLANG # Skip testing these targets when testing with EMCC_TEST_OPTIMIZATION
-
-.PHONY: test
-test:
-	echo "Skipping tests"
-
-.PHONY: build
-build:
-	echo "Skipping build"
-else
-
 .PHONY: test
 test: build
 	npm test
 
 .PHONY: build
 build: dist/index.cjs dist/index.mjs dist/index.d.ts
-
-
-endif
 
 .PHONY: package
 package: build

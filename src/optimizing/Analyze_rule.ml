@@ -270,7 +270,7 @@ let id_mvars_of_formula f =
   f
   |> R.visit_new_formula (fun xp ~inside:_ ->
          match xp with
-         | { pat = XP.Sem ((lazy pat), lang); _ } ->
+         | { pat = XP.Sem (pat, lang); _ } ->
              id_mvars :=
                Analyze_pattern.extract_mvars_in_id_position ~lang pat
                |> MvarSet.union !id_mvars
@@ -328,7 +328,7 @@ and leaf_step1 ~is_id_mvar f =
 
 and xpat_step1 pat =
   match pat.XP.pat with
-  | XP.Sem ((lazy pat), lang) ->
+  | XP.Sem (pat, lang) ->
       let ids, mvars = Analyze_pattern.extract_strings_and_mvars ~lang pat in
       Some (StringsAndMvars (ids, mvars))
   (* less: could also extract ids and mvars, but maybe no need to

@@ -4,5 +4,9 @@ Configuration is invalid - found 1 configuration error(s), and 2 rule(s).
 --- pattern ---
 print..);
 --- end pattern ---
-Pattern error: Stdlib.Parsing.Parse_error
+Pattern error: invalid rule print, rules/invalid-rules/invalid-pattern.yaml:8:11: Invalid pattern for Python: Stdlib.Parsing.Parse_error
+----- pattern -----
+print..);
+----- end pattern -----
+
 

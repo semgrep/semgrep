@@ -1,0 +1,1 @@
+Improved error handling for rules with invalid patterns. Now, scans will still complete and findings from other rules will be reported.

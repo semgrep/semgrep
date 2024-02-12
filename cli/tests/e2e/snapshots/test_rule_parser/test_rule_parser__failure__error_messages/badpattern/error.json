@@ -3,54 +3,26 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: Stdlib.Parsing.Parse_error\n",
+      "message": "Rule parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python: invalid rule rules.syntax.eqeq-is-bad, <MASKED>:11:21: Invalid pattern for Python: Stdlib.Parsing.Parse_error\n----- pattern -----\n$X == $X 3\n----- end pattern -----\n\n----- pattern -----\n$X == $X 3\n----- end pattern -----\n",
       "rule_id": "rules.syntax.eqeq-is-bad",
-      "spans": [
-        {
-          "config_end": {
-            "col": 13,
-            "line": 0,
-            "offset": -1
-          },
-          "config_path": [
-            "rules",
-            "0",
-            "patterns",
-            "0",
-            "pattern"
-          ],
-          "config_start": {
-            "col": 1,
-            "line": 0,
-            "offset": -1
-          },
-          "end": {
-            "col": 34,
-            "line": 11,
-            "offset": 222
-          },
-          "file": "<MASKED>",
-          "start": {
-            "col": 22,
-            "line": 11,
-            "offset": 210
-          }
-        }
-      ],
-      "type": [
-        "PatternParseError",
-        [
-          "pattern",
-          "0",
-          "patterns",
-          "0",
-          "rules"
-        ]
-      ]
+      "type": "Rule parse error"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
-    "scanned": []
+    "scanned": [
+      "targets/basic/inside.py",
+      "targets/basic/metavariable-comparison-bad-content.py",
+      "targets/basic/metavariable-comparison-base.py",
+      "targets/basic/metavariable-comparison-strip.py",
+      "targets/basic/metavariable-comparison.py",
+      "targets/basic/metavariable-regex-multi-regex.py",
+      "targets/basic/metavariable-regex-multi-rule.py",
+      "targets/basic/metavariable-regex.py",
+      "targets/basic/nosem.py",
+      "targets/basic/regex.py",
+      "targets/basic/stupid.py"
+    ]
   },
   "results": [],
   "skipped_rules": [],
