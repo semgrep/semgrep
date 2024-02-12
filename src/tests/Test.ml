@@ -69,6 +69,7 @@ let tests (caps : Cap.all_caps) =
       Unit_LS.tests (caps :> < Cap.random ; Cap.network >);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network >);
+      Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Osemgrep_tests.tests (caps :> CLI.caps);

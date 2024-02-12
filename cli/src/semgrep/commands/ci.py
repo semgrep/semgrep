@@ -598,9 +598,11 @@ def ci(
             # console.print() would go to stderr; here we print() directly to stdout
             print(
                 json.dumps(
-                    scan_handler.ci_scan_results.to_json()
-                    if scan_handler.ci_scan_results
-                    else {},
+                    (
+                        scan_handler.ci_scan_results.to_json()
+                        if scan_handler.ci_scan_results
+                        else {}
+                    ),
                     sort_keys=True,
                     default=lambda x: x.to_json(),
                 )

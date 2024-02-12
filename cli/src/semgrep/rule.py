@@ -150,6 +150,13 @@ class Rule:
         """
         Returns if this rule indicates matches should block CI
         """
+
+        validation_state_metadata = self.metadata.get(
+            "dev.semgrep.validation_state.actions"
+        )
+        if validation_state_metadata:
+            return "block" in validation_state_metadata.values()
+
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
     @property
