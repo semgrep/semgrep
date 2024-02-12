@@ -1,15 +1,21 @@
 class A:
     #MATCH:
     @staticmethod
-    def f():
+    def f0():
         pass
+
+    # Not dynamically correct python, but just showing how it behaves
+    # for pattern matching.
 
     #MATCH:
     @staticmethod()
-    def f():
+    def f1():
         pass
 
-    #OK:
+    # Not dynamically correct python, but just showing how it behaves
+    #for pattern matching.
+
+    # OK:
     @staticmethod("A ERROR")
-    def f():
+    def f2():
         pass
