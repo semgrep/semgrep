@@ -192,7 +192,7 @@ let map_res map_loc (Extracted tmpfile) (Original file) :
     |> List_.map (fun (m : Pattern_match.t) ->
            {
              m with
-             file;
+             path = { internal_path_to_content = file; origin = File file };
              range_loc = Common2.pair map_loc m.range_loc;
              taint_trace =
                Option.map (Lazy.map_val (map_taint_trace map_loc)) m.taint_trace;
@@ -406,7 +406,7 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
              in
              (* Read the extracted text from the source file *)
              let contents_raw =
-               UFile.with_open_in m.file (fun chan ->
+               UFile.with_open_in m.path.internal_path_to_content (fun chan ->
                    let extract_size = end_extract_pos - start_extract_pos in
                    seek_in chan start_extract_pos;
                    really_input_string chan extract_size)
@@ -424,7 +424,8 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"
                (Rule_ID.to_string m.rule_id.id)
-               !!(m.file) start_extract_pos end_extract_pos contents;
+               !!(m.path.internal_path_to_content)
+               start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
              let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
              let extracted_target = mk_extract_target dst_lang contents in

@@ -16,7 +16,7 @@
 (* See Target.mli for documentation of public items. *)
 
 type target_path = { origin : Origin.t; internal_path_to_content : Fpath.t }
-[@@deriving show]
+[@@deriving show, eq]
 
 type manifest = { path : target_path; kind : Manifest_kind.t } [@@deriving show]
 

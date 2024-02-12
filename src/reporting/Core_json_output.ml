@@ -227,7 +227,7 @@ let unsafe_match_to_match
     check_id = x.rule_id.id;
     (* inherited location *)
     path =
-      (match x.source with
+      (match x.path.origin with
       (* We need to do this, because in Terraform, we may end up with a `file` which
          does not correspond to the actual location of the tokens. This `file` is
          erroneous, and should be replaced by the location of the code of the match,
@@ -270,7 +270,7 @@ let match_to_match (x : Core_result.processed_match) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file !!(x.pm.file) in
+      let loc = Tok.first_loc_of_file !!(x.pm.path.internal_path_to_content) in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in

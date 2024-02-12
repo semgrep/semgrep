@@ -86,8 +86,7 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                    (* TODO: What should this be? *)
                    pattern_string = "";
                  };
-               file = xtarget.target.path.internal_path_to_content;
-               source = xtarget.target.path.origin;
+               path = xtarget.target.path;
                (* TODO: should be pro? Where is this supposed to be set? *)
                engine_kind = `OSS;
                range_loc = dep.Dependency.loc;

@@ -409,7 +409,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let per_files =
     matches
     |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-           (!!(pm.file), pm))
+           (!!(pm.path.internal_path_to_content), pm))
     |> Assoc.group_assoc_bykey_eff
   in
 
@@ -422,7 +422,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let new_matches =
     matches
     |> List_.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
-           Hashtbl.mem offending_files !!(pm.file))
+           Hashtbl.mem offending_files !!(pm.path.internal_path_to_content))
   in
   let new_errors, new_skipped =
     offending_file_list

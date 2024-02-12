@@ -385,8 +385,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> List_.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               file = env.xtarget.path.internal_path_to_content;
-               source = env.xtarget.path.origin;
+               path = env.xtarget.path;
                range_loc;
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;

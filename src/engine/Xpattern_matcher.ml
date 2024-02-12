@@ -63,11 +63,11 @@ let (matches_of_matcher :
       Fpath.t ->
       Origin.t ->
       Core_profiling.times Core_result.match_result) =
- fun xpatterns matcher file source ->
+ fun xpatterns matcher internal_path origin ->
   if xpatterns =*= [] then Core_result.empty_match_result
   else
     let target_content_opt, parse_time =
-      Common.with_time (fun () -> matcher.init !!file)
+      Common.with_time (fun () -> matcher.init !!internal_path)
     in
     match target_content_opt with
     | None ->
@@ -77,15 +77,20 @@ let (matches_of_matcher :
           Common.with_time (fun () ->
               xpatterns
               |> List.concat_map (fun (xpat, id, pstr) ->
-                     let xs = matcher.matcher target_content !!file xpat in
+                     let xs =
+                       matcher.matcher target_content !!internal_path xpat
+                     in
                      xs
                      |> List_.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {
                               PM.rule_id;
-                              file;
-                              source;
+                              path =
+                                {
+                                  internal_path_to_content = internal_path;
+                                  origin;
+                                };
                               range_loc = (loc1, loc2);
                               env;
                               taint_trace = None;

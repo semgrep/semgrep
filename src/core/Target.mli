@@ -90,9 +90,14 @@ and target_path = {
 [@@deriving show]
 (** Information about where a target from for both the purpose of
    {ul
-    {- informing the user: [source]}
+    {- informing the user: [origin]}
     {- obtaining the contents: [internal_path_to_content]}
   } *)
+
+(* deriving eq appears to not work on mutual definitions with and. See also
+   <https://github.com/ocaml-ppx/ppx_deriving/issues/272>, for deriving make,
+   which may be relevant. Therefore, we just define it here. *)
+val equal_target_path : target_path -> target_path -> bool
 
 val code_of_origin :
   ?lockfile:lockfile ->
