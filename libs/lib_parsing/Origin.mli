@@ -46,7 +46,7 @@
 
  *)
 
-(** The type for origns.
+(** The type for origins.
 
     {ul
       {- [File path] origins are for files, and should have as [path] the
