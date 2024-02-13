@@ -51,6 +51,15 @@ jobs:
           opam install -y ocamlformat.0.26.1
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
+  check-workflows-up-to-date:
+    runs-on: ubuntu-latest
+    working-directory: .github/workflows
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check GitHub workflow files are up to date
+        run: |
+          make && git diff --exit-code
+
 name: lint
 "on":
   pull_request: null
