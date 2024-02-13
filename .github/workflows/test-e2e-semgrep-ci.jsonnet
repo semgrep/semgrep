@@ -222,7 +222,7 @@ local semgrep_ci_on_pr_job = {
     {
       uses: 'actions/checkout@v3',
       with: {
-	repository: 'returntocorp/e2e',
+        repository: 'returntocorp/e2e',
         ref: '${{ github.event.repository.default_branch }}',
         token: semgrep.github_bot.token_ref,
       },
@@ -230,7 +230,7 @@ local semgrep_ci_on_pr_job = {
     {
       name: 'Prepare the PR',
       run: |||
-	git checkout -b e2e-test-pr-${{ github.run_id }}
+        git checkout -b e2e-test-pr-${{ github.run_id }}
         scripts/change-version.sh %s
         %s
         git add --all
