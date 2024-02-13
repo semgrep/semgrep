@@ -115,8 +115,8 @@ class GitMeta:
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        # Using the 'or' for the typechecker
+        return os.getenv("SEMGREP_REPO_DISPLAY_NAME") or self.repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -273,8 +273,7 @@ class GithubMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -672,8 +671,7 @@ class GitlabMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -780,8 +778,7 @@ class CircleCIMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -847,8 +844,7 @@ class JenkinsMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -907,8 +903,7 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -975,8 +970,7 @@ class AzurePipelinesMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -1062,8 +1056,7 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -1135,8 +1128,7 @@ class TravisMeta(GitMeta):
 
     @property
     def repo_display_name(self) -> str:
-        repo_display_name = os.getenv("SEMGREP_REPO_DISPLAY_NAME", self.repo_name)
-        return repo_display_name or self.repo_name
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
