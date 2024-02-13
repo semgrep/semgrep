@@ -19,21 +19,51 @@
     pysemgrep generates targets that have slightly less information (e.g.,
     these types have expanded information about the targets' locations). *)
 
-(** A Semgrep target. This contains all of the details needed to be able to
-    determine how to scan a target, e.g.,
+type path = {
+  origin : Origin.t;
+      (** The origin of the data as is relevant to the user. This could be,
+          e.g., a relative (from the project root) path to a file, a git object
+          and associated information, or anything else a Origin.t can
+          designate.
 
-    {ul
-      {- What products should we select rules from?}
-      {- Where can we get the contents of the target?}
-      {- What language should we analyze the target as?}
-    }
+          This should be used when reporting a location to the user. *)
+  internal_path_to_content : Fpath.t;
+      (** The path to a file which contains the data to be scanned. This could
+          be the same as the origin, if the origin is a path to a regular file
+          (or an absolute path to the same), or it could be a tempfile. This
+          should be used to obtain the contents of the target, but not for
+          reporting to the user, other than possibly for debugging purposes. *)
+}
+[@@deriving show, eq]
+(** Information about where a target from for both the purpose of
+   {ul
+    {- informing the user: [origin]}
+    {- obtaining the contents: [internal_path_to_content]}
+  } *)
 
-    However, it does not contain the actual contents (parsed or otherwise) of
-    the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
- *)
-type t = Regular of regular | Lockfile of lockfile [@@deriving show]
+type manifest = {
+  path : path;
+  kind : Manifest_kind.t;
+      (** The type of manifest this is. Analogous to analyzer for a source code
+        target. *)
+}
+[@@deriving show]
+(** A manifest file to be used during matching. See also
+    {!Lockfile_xtarget.manifest}, which also has the contents. *)
 
-and regular = {
+type lockfile = {
+  path : path;
+  kind : Lockfile_kind.t;
+      (** The type of lockfile this is. Analogous to analyzer for a source code
+          target. *)
+  manifest : manifest option;
+      (** Optionally, a manifest file associated with this lockfile. *)
+}
+[@@deriving show]
+(** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
+    augmented version with the contents of the lockfile. *)
+
+type regular = {
   path : path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
   products : Semgrep_output_v1_t.product list;
@@ -53,54 +83,19 @@ and regular = {
    regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
    an augmented version which also has the contents. *)
 
-and lockfile = {
-  path : path;
-  kind : Lockfile_kind.t;
-      (** The type of lockfile this is. Analogous to analyzer for a source code
-          target. *)
-  manifest : manifest option;
-      (** Optionally, a manifest file associated with this lockfile. *)
-}
-[@@deriving show]
-(** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
-    augmented version with the contents of the lockfile. *)
+(** A Semgrep target. This contains all of the details needed to be able to
+    determine how to scan a target, e.g.,
 
-and manifest = {
-  path : path;
-  kind : Manifest_kind.t;
-      (** The type of manifest this is. Analogous to analyzer for a source code
-        target. *)
-}
-[@@deriving show]
-(** A manifest file to be used during matching. See also
-    {!Lockfile_xtarget.manifest}, which also has the contents. *)
+    {ul
+      {- What products should we select rules from?}
+      {- Where can we get the contents of the target?}
+      {- What language should we analyze the target as?}
+    }
 
-and path = {
-  origin : Origin.t;
-      (** The origin of the data as is relevant to the user. This could be,
-          e.g., a relative (from the project root) path to a file, a git object
-          and associated information, or anything else a Origin.t can
-          designate.
-
-          This should be used when reporting a location to the user. *)
-  internal_path_to_content : Fpath.t;
-      (** The path to a file which contains the data to be scanned. This could
-          be the same as the origin, if the origin is a path to a regular file
-          (or an absolute path to the same), or it could be a tempfile. This
-          should be used to obtain the contents of the target, but not for
-          reporting to the user, other than possibly for debugging purposes. *)
-}
-[@@deriving show]
-(** Information about where a target from for both the purpose of
-   {ul
-    {- informing the user: [origin]}
-    {- obtaining the contents: [internal_path_to_content]}
-  } *)
-
-(* deriving eq appears to not work on mutual definitions with and. See also
-   <https://github.com/ocaml-ppx/ppx_deriving/issues/272>, for deriving make,
-   which may be relevant. Therefore, we just define it here. *)
-val equal_path : path -> path -> bool
+    However, it does not contain the actual contents (parsed or otherwise) of
+    the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
+ *)
+type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 
 val mk_regular :
   ?lockfile:lockfile ->
