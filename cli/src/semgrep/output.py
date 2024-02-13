@@ -172,6 +172,7 @@ class OutputHandler:
 
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
+        missing_plugin_errors = []
         for err in errors:
             if (
                 isinstance(err, SemgrepCoreError)
@@ -189,12 +190,26 @@ class OutputHandler:
                     timeout_errors[Path(err.core.location.path.value)].append(
                         err.core.rule_id.value
                     )
+            elif (
+                isinstance(err, SemgrepCoreError)
+                and err.is_missing_plugin()
+                and err not in self.error_set
+            ):
+                # THINK: These perhaps should not be errors but reported as "skipped"
+                self.semgrep_structured_errors.append(err)
+                self.error_set.add(err)
+
+                if err.core.rule_id:
+                    missing_plugin_errors.append(err.core.rule_id.value)
             else:
                 self._handle_semgrep_error(err)
 
         if timeout_errors and self.settings.output_format == OutputFormat.TEXT:
             t_errors = dict(timeout_errors)  # please mypy
             self._handle_semgrep_timeout_errors(t_errors)
+
+        if missing_plugin_errors and self.settings.output_format == OutputFormat.TEXT:
+            self._handle_semgrep_missing_plugin_errors(missing_plugin_errors)
 
     def _handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
         self.has_output = True
@@ -218,6 +233,13 @@ class OutputHandler:
                     f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
                 )
             )
+
+    def _handle_semgrep_missing_plugin_errors(self, errors: List[str]) -> None:
+        self.has_output = True
+        num_errs = len(errors)
+        if num_errs >= 1:
+            error_msg = f"Warning: {num_errs} rule(s) were skipped because they require Pro (try `--pro`), for example: {errors[0]}"
+            logger.error(with_color(Colors.red, terminal_wrap(error_msg)))
 
     def _handle_semgrep_error(self, error: SemgrepError) -> None:
         """
