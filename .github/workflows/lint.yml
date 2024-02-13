@@ -58,7 +58,10 @@ jobs:
       - name: Check GitHub workflow files are up to date
         working-directory: .github/workflows
         run: |
-          make && git diff --exit-code
+          sudo apt-get update
+          sudo apt-get install jsonnet yq
+          make
+          git diff --exit-code
 
 name: lint
 "on":
