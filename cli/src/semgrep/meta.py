@@ -207,8 +207,8 @@ class GitMeta:
             semgrep_version=out.Version(__VERSION__),
             # REQUIRED for semgrep-app backend
             repository=self.repo_name,
-            # OPTIONAL for semgrep-app backend
             repo_display_name=self.repo_display_name,
+            # OPTIONAL for semgrep-app backend
             repo_url=uri_opt(self.repo_url),
             branch=self.branch,
             ci_job_url=uri_opt(self.ci_job_url),
