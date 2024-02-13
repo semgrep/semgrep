@@ -131,6 +131,7 @@ local build_test_docker_nonroot_job = {
     // type=semver,pattern={{major}}.{{minor}}
     'docker-tags': |||
       type=raw,value=canary
+      type=raw,value=foo
       type=semver,pattern={{version}}
       type=semver,pattern={{major}}.{{minor}}
     |||,
