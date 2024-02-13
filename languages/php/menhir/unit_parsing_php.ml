@@ -1,5 +1,4 @@
 (*s: unit_parsing_php.ml *)
-open Common
 open Cst_php
 module Ast = Cst_php
 module Flag = Flag_parsing
@@ -119,7 +118,7 @@ let tests =
           | Parsing_error.Syntax_error _ -> ());
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "php/parsing" in
-          let files = Common2.glob (spf "%s/*.php" dir) in
+          let files = Common2.glob (Filename.concat dir "*.php") in
           files
           |> List.iter (fun file ->
                  try

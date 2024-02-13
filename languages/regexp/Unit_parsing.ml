@@ -2,8 +2,6 @@
    Test regexp parsing on individual files in /tests
 *)
 
-open Common
-
 let t = Testo.create
 
 (* ran from the root of the semgrep repository *)
@@ -11,7 +9,7 @@ let tests_path = "tests"
 
 let test_valid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in
-  let files = Common2.glob (spf "%s/*.regexp" dir) in
+  let files = Common2.glob (Filename.concat dir "*.regexp") in
   files
   |> List.iter (fun file ->
          try
@@ -24,7 +22,7 @@ let test_valid_files dialect rel_path () =
 
 let test_invalid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in
-  let files = Common2.glob (spf "%s/*.regexp" dir) in
+  let files = Common2.glob (Filename.concat dir "*.regexp") in
   files
   |> List.iter (fun file ->
          try

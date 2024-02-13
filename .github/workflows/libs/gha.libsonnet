@@ -55,6 +55,12 @@
     run: 'git config --system core.longpaths true'
   },
 
+  git_set_core_autocrlf(mode): {
+      run: |||
+        git config --global core.autocrlf %s
+      ||| % mode
+    },
+
   // stay away dependabot, bad dog.
   dependabot_guard: {
     'if': "(github.actor != 'dependabot[bot]')",

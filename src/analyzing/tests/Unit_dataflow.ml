@@ -18,7 +18,7 @@ let tests parse_program =
       (* Just checking that it terminates without crashing. *)
       t "regression files" (fun () ->
           let dir = Filename.concat tests_path "dataflow/python" in
-          let files = Common2.glob (spf "%s/*.py" dir) in
+          let files = Common2.glob (Filename.concat dir "*.py") in
           files |> Fpath_.of_strings
           |> List.iter (fun file ->
                  let ast = parse_program !!file in
