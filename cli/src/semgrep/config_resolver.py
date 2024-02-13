@@ -262,7 +262,7 @@ class ConfigLoader:
             semgrep_version=out.Version(__VERSION__),
             scan_environment="semgrep-scan",
             repository=repo_name,
-            repository_display=repo_display_name,
+            repo_display_name=repo_display_name,
             repo_url=None,
             branch=None,
             commit=None,

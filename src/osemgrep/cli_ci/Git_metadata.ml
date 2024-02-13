@@ -42,10 +42,15 @@ let env : env Term.t =
       value & opt (some string) None & info [ "semgrep-repo-name" ] ~env ~doc)
   in
   let semgrep_repo_display_name =
-    let doc = "The name the repository should be displayed as for this scan. Setting it allows users to scan individual repos in one monorepo separately." in
+    let doc =
+      "The name the repository should be displayed as for this scan. Setting \
+       it allows users to scan individual repos in one monorepo separately."
+    in
     let env = XCmd.Env.info "SEMGREP_REPO_DISPLAY_NAME" in
     Arg.(
-      value & opt (some string) None & info [ " semgrep-repo-display-name" ] ~env ~doc)
+      value
+      & opt (some string) None
+      & info [ " semgrep-repo-display-name" ] ~env ~doc)
   in
   let semgrep_repo_url =
     let doc = "The URL of the Git repository." in
@@ -86,8 +91,9 @@ let env : env Term.t =
     let env = XCmd.Env.info "SEMGREP_BRANCH" in
     Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
   in
-  let run _SEMGREP_REPO_NAME _SEMGREP_REPO_DISPLAY_NAME _SEMGREP_REPO_URL _SEMGREP_COMMIT _SEMGREP_JOB_URL
-      _SEMGREP_PR_ID _SEMGREP_PR_TITLE _SEMGREP_BRANCH =
+  let run _SEMGREP_REPO_NAME _SEMGREP_REPO_DISPLAY_NAME _SEMGREP_REPO_URL
+      _SEMGREP_COMMIT _SEMGREP_JOB_URL _SEMGREP_PR_ID _SEMGREP_PR_TITLE
+      _SEMGREP_BRANCH =
     {
       _SEMGREP_REPO_NAME;
       _SEMGREP_REPO_DISPLAY_NAME;
@@ -100,8 +106,9 @@ let env : env Term.t =
     }
   in
   Term.(
-    const run $ semgrep_repo_name $ semgrep_repo_display_name $ semgrep_repo_url $ semgrep_commit
-    $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title $ semgrep_branch)
+    const run $ semgrep_repo_name $ semgrep_repo_display_name $ semgrep_repo_url
+    $ semgrep_commit $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title
+    $ semgrep_branch)
 
 (*****************************************************************************)
 (* Entry point *)
