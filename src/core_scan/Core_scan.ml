@@ -715,19 +715,19 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 
 let manifest_target_of_input_to_core
     ({ path; manifest_kind = kind } : In.manifest_target) : Target.manifest =
-  Target.manifest_of_origin kind (File (Fpath.v path))
+  Target.mk_manifest kind (File (Fpath.v path))
 
 let lockfile_target_of_input_to_core
     ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
     Target.lockfile =
   let manifest = Option.map manifest_target_of_input_to_core manifest_target in
-  Target.lockfile_of_origin ?manifest kind (File (Fpath.v path))
+  Target.mk_lockfile ?manifest kind (File (Fpath.v path))
 
 let code_target_location_of_input_to_core
     ({ path; analyzer; products; lockfile_target } : In.code_target) :
     Target.code =
   let lockfile = Option.map lockfile_target_of_input_to_core lockfile_target in
-  Target.code_of_origin ?lockfile analyzer products (File (Fpath.v path))
+  Target.mk_code ?lockfile analyzer products (File (Fpath.v path))
 
 let target_of_input_to_core (input : In.target) : Target.t =
   match input with
@@ -772,7 +772,7 @@ let targets_of_config (config : Core_scan_config.t) :
       let target_mappings =
         files
         |> List_.map (fun file : Target.t ->
-               Code (Target.code_of_origin xlang Product.all (Origin.File file)))
+               Code (Target.mk_code xlang Product.all (Origin.File file)))
       in
       (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
@@ -842,7 +842,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            Target.t
          ->
            (* Extract mode targets work with any product? *)
-           Code (Target.code_of_origin analyzer Product.all (File file)))
+           Code (Target.mk_code analyzer Product.all (File file)))
   in
   (in_targets, adjusters)
 

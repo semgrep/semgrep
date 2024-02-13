@@ -41,13 +41,13 @@ let target_path_of_origin (origin : Origin.t) : target_path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
 
-let code_of_origin ?lockfile analyzer products (origin : Origin.t) : code =
+let mk_code ?lockfile analyzer products (origin : Origin.t) : code =
   { path = target_path_of_origin origin; analyzer; products; lockfile }
 
-let lockfile_of_origin ?manifest kind (origin : Origin.t) : lockfile =
+let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
   { path = target_path_of_origin origin; kind; manifest }
 
-let manifest_of_origin kind (origin : Origin.t) : manifest =
+let mk_manifest kind (origin : Origin.t) : manifest =
   { path = target_path_of_origin origin; kind }
 
 let internal_path_to_content (target : t) : Fpath.t =

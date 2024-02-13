@@ -99,13 +99,13 @@ and target_path = {
    which may be relevant. Therefore, we just define it here. *)
 val equal_target_path : target_path -> target_path -> bool
 
-val code_of_origin :
+val mk_code :
   ?lockfile:lockfile ->
   Xlang.t ->
   Semgrep_output_v1_t.product list ->
   Origin.t ->
   code
-(** [code_of_origin analyzer products origin] is the target
+(** [mk_code analyzer products origin] is the target
       location for a source code target originating from [origin] to be
       analyzed with [analyzer] for [products]. If [lockfile] is specified then
       it shall be used as the associated lockfile if dependency patterns are
@@ -116,9 +116,8 @@ val code_of_origin :
       a target from certain types of origins, such as generating a tempfile.
  *)
 
-val lockfile_of_origin :
-  ?manifest:manifest -> Lockfile_kind.t -> Origin.t -> lockfile
-(** [lockfile_of_origin k origin] is the target
+val mk_lockfile : ?manifest:manifest -> Lockfile_kind.t -> Origin.t -> lockfile
+(** [mk_lockfile k origin] is the target
       location for a lockfile target originating from [origin] of kind [k].
       If [manifest] is specified, it shall be used as the associated manifest.
 
@@ -127,8 +126,8 @@ val lockfile_of_origin :
       a target from certain types of origins, such as generating a tempfile.
  *)
 
-val manifest_of_origin : Manifest_kind.t -> Origin.t -> manifest
-(** [manifest_of_origin k origin] is the target
+val mk_manifest : Manifest_kind.t -> Origin.t -> manifest
+(** [mk_manifest k origin] is the target
       location for a manifest target originating from [origin] of kind [k].
 
       This function should be generally preferred over creating a record
