@@ -864,7 +864,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       timeout_threshold trace validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
-    Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
+    Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
+    Logs_.setup_logging ~level:common.CLI_common.logging_level ();
     let target_roots = target_roots |> Fpath_.of_strings in
     let project_root =
       let is_git_repo remote =
@@ -873,7 +874,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       match (project_root, remote) with
       | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
       | None, Some url when is_git_repo url ->
-          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let checkout_path =
+            match !Semgrep_envvars.v.remote_clone_dir with
+            | Some dir -> dir
+            | None -> Git_wrapper.temporary_remote_checkout_path url
+          in
           let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })
       | None, Some _url ->

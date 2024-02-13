@@ -80,6 +80,7 @@ type t = {
   user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
+  remote_clone_dir : Fpath.t option;
   no_color : bool;
   is_ci : bool;
   in_docker : bool;
@@ -145,6 +146,7 @@ let of_current_sys_env () : t =
     user_settings_file =
       env_or Fpath.v "SEMGREP_SETTINGS_FILE"
         (user_dot_semgrep_dir / settings_filename);
+    remote_clone_dir = env_opt "SEMGREP_REMOTE_CLONE_DIR" |> Option.map Fpath.v;
     no_color = env_truthy "NO_COLOR" || env_truthy "SEMGREP_COLOR_NO_COLOR";
     is_ci = in_env "CI";
     in_docker = in_env "SEMGREP_IN_DOCKER";

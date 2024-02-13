@@ -1,9 +1,0 @@
-Rule syntax: Metavariables by the name of `$_` are now _anonymous_, meaning that
-they do not unify within a single pattern or across patterns, and essentially
-just unconditionally specify some expression.
-
-For instance, the pattern `foo($_, $_)` may match the code `foo(1, 2)`.
-
-This will change the behavior of existing rules that use the metavariable
-`$_`, if they rely on unification still happening. This can be fixed by simply
-giving the metavariable a real name like `$A`.

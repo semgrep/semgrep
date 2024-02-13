@@ -17,7 +17,7 @@ open Either_
 open Ast_cpp
 module A = Ast_c
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -66,7 +66,7 @@ let empty_env () =
 
 let gensym_struct cnt = spf "__anon_struct_%d" cnt
 let gensym_enum cnt = spf "__anon_enum_%d" cnt
-let debug any = logger#debug "%s" (Ast_cpp.show_any any)
+let debug any = Logs.debug (fun m -> m ~tags "%s" (Ast_cpp.show_any any))
 
 let rec ifdef_skipper xs f =
   match xs with
@@ -77,7 +77,8 @@ let rec ifdef_skipper xs f =
       | Some ifdef -> (
           match ifdef with
           | Ifdef tok -> (
-              logger#info "skipping: %s" (Tok.content_of_tok tok);
+              Logs.debug (fun m ->
+                  m ~tags "skipping: %s" (Tok.content_of_tok tok));
               try
                 let _, x, rest =
                   xs
@@ -649,7 +650,7 @@ and expr env e =
       A.Generic (tk, (l, (expr env e, args), r))
   | IdSpecial (SizeOf, tk) -> A.IdSpecial (SizeOf, tk)
   | ConstructedObject (_, _) ->
-      logger#error "BUG PARSING LOCAL DECL PROBABLY";
+      Logs.err (fun m -> m ~tags "BUG PARSING LOCAL DECL PROBABLY");
       debug (Expr e);
       raise CplusplusConstruct
   | Throw _
@@ -699,7 +700,8 @@ and argument env x =
   | ArgType x -> Some (A.ArgType (full_type env x))
   | ArgBlock x -> Some (A.ArgBlock (compound env x))
   | ArgAction _ ->
-      logger#error "type argument, maybe wrong typedef inference!";
+      Logs.err (fun m ->
+          m ~tags "type argument, maybe wrong typedef inference!");
       debug (Argument x);
       None
   | ArgInits _ -> raise CplusplusConstruct

@@ -28,7 +28,7 @@ module H = AST_generic_helpers
  *  - a lot ...
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -82,8 +82,11 @@ let locate opt_tok s =
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
-let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
-let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
+let log_warning opt_tok msg =
+  Logs.debug (fun m -> m ~tags "warning: %s" (locate opt_tok msg))
+
+let log_error opt_tok msg =
+  Logs.err (fun m -> m ~tags "%s" (locate opt_tok msg))
 
 let log_fixme kind gany =
   let toks = AST_generic_helpers.ii_of_any gany in
@@ -1060,7 +1063,8 @@ and record env ((_tok, origfields, _) as record_def) =
                 IL translation engine will brick the whole record if it is encountered.
                 To avoid this, we will just ignore any unrecognized fields for HCL specifically.
              *)
-             logger#warning "Skipping HCL record field during IL translation";
+             Logs.warn (fun m ->
+                 m ~tags "Skipping HCL record field during IL translation");
              None
          | G.F _ -> todo (G.E e_gen))
   in

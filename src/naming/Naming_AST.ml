@@ -17,7 +17,7 @@ open AST_generic
 open Naming_utils
 module H = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* see error() below *)
 let error_report = false
@@ -329,7 +329,7 @@ let lookup_scope_opt ?(class_attr = false) (s, _) env =
 
 let error tok s =
   if error_report then raise (Parsing_error.Other_error (s, tok))
-  else logger#trace "%s at %s" s (Tok.stringpos_of_tok tok)
+  else Logs.debug (fun m -> m ~tags "%s at %s" s (Tok.stringpos_of_tok tok))
 
 (*****************************************************************************)
 (* Typing Helpers *)
@@ -489,7 +489,7 @@ let assign_implicitly_declares lang =
 (*****************************************************************************)
 
 let resolve lang prog =
-  logger#trace "Naming_AST.resolve program";
+  Logs.debug (fun m -> m ~tags "Naming_AST.resolve program");
   let env = default_env lang in
 
   (* coupling: we do similar things in Constant_propagation.ml so if you

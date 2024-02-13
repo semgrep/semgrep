@@ -13,6 +13,9 @@ val pp : Format.formatter -> t -> unit
 
 exception NotValidRange of string
 
+val equal : t -> t -> bool
+val compare : t -> t -> int
+
 (* included or equal *)
 val ( $<=$ ) : t -> t -> bool
 

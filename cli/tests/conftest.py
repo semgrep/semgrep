@@ -331,8 +331,8 @@ class SemgrepResult:
             sections["stdout - plain"] == sections["stdout - color"]
             and sections["stderr - plain"] == sections["stderr - color"]
         ):
-            del sections["stdout - color"]
-            del sections["stderr - color"]
+            sections["stdout - color"] = "<same as above: stdout - plain>"
+            sections["stderr - color"] = "<same as above: stderr - plain>"
         return "\n\n".join(
             f"=== {title}\n{text}\n=== end of {title}"
             for title, text in sections.items()

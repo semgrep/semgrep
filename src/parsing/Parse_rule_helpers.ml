@@ -17,7 +17,7 @@ module R = Rule
 module G = AST_generic
 module J = JSON
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -398,10 +398,11 @@ let parse_regexp env (s, t) =
     Metavariable.mvars_of_regexp_string s
     |> List.iter (fun mvar ->
            if not (Metavariable.is_metavar_name mvar) then
-             logger#warning
-               "Found invalid metavariable capture group name `%s` for regexp \
-                `%s` -- no binding produced"
-               mvar s);
+             Logs.warn (fun m ->
+                 m ~tags
+                   "Found invalid metavariable capture group name `%s` for \
+                    regexp `%s` -- no binding produced"
+                   mvar s));
     s
   with
   | Pcre.Error exn ->
