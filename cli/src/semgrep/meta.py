@@ -209,6 +209,7 @@ class GitMeta:
             # REQUIRED for semgrep-app backend
             repository=self.repo_name,
             # OPTIONAL for semgrep-app backend
+            repo_display_name=self.repo_display_name,
             repo_url=uri_opt(self.repo_url),
             branch=self.branch,
             ci_job_url=uri_opt(self.ci_job_url),
