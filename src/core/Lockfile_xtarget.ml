@@ -11,7 +11,7 @@ type t = {
 
    A lockfile is a file which specifies exact versions of every dependency,
    including transitive dependencies, which belong to the "locked" package.
-   Typically this is generated from a more general {{!manifest_target}
+   Typically this is generated from a more general {{!manifest}
    "manifest" file}.
 
    Examples of lockfiles include [package-lock.json] (javascript/npm) or

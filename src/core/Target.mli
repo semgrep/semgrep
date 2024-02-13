@@ -73,7 +73,7 @@ and manifest = {
 }
 [@@deriving show]
 (** A manifest file to be used during matching. See also
-    {!Lockfile_xtarget.manifest_target}, which also has the contents. *)
+    {!Lockfile_xtarget.manifest}, which also has the contents. *)
 
 and path = {
   origin : Origin.t;
