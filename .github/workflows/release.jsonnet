@@ -46,7 +46,7 @@ local release_inputs = {
 };
 
 local unless_dry_run = {
-  if: "${{ ! inputs.dry-run }}"
+  'if': "${{ ! inputs.dry-run }}"
 };
 
 // This is ugly, but you can't just use "${{ inputs.dry-run }}" because GHA
