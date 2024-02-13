@@ -89,7 +89,7 @@ type t = {
    *)
   engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
   (* location info *)
-  path : Target.target_path;
+  path : Target.path;
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;

@@ -296,9 +296,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                failwith
                  "only expr/stmt(s)/type/pattern/annotation/field(s)/partial \
                   patterns are supported");
-    let target_path : Target.target_path =
-      { internal_path_to_content; origin }
-    in
+    let path : Target.path = { internal_path_to_content; origin } in
 
     let visitor =
       object (_self : 'self)
@@ -338,7 +336,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                               let pm =
                                 {
                                   PM.rule_id;
-                                  path = target_path;
+                                  path;
                                   env = mv;
                                   range_loc;
                                   tokens;
@@ -400,7 +398,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                 let pm =
                                   {
                                     PM.rule_id;
-                                    path = target_path;
+                                    path;
                                     env = mv;
                                     range_loc;
                                     tokens;
@@ -450,7 +448,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   let pm =
                                     {
                                       PM.rule_id;
-                                      path = target_path;
+                                      path;
                                       env = mv;
                                       range_loc;
                                       tokens;
@@ -467,33 +465,33 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
           super#v_stmts env x
 
         method! visit_type_ env x =
-          match_rules_and_recurse m_env target_path hook matches !type_rules
-            match_t_t (super#visit_type_ env)
+          match_rules_and_recurse m_env path hook matches !type_rules match_t_t
+            (super#visit_type_ env)
             (fun x -> T x)
             x
 
         method! visit_pattern env x =
-          match_rules_and_recurse m_env target_path hook matches !pattern_rules
+          match_rules_and_recurse m_env path hook matches !pattern_rules
             match_p_p (super#visit_pattern env)
             (fun x -> P x)
             x
 
         method! visit_attribute env x =
-          match_rules_and_recurse m_env target_path hook matches
-            !attribute_rules match_at_at
+          match_rules_and_recurse m_env path hook matches !attribute_rules
+            match_at_at
             (super#visit_attribute env)
             (fun x -> At x)
             x
 
         method! visit_xml_attribute env x =
-          match_rules_and_recurse m_env target_path hook matches
-            !xml_attribute_rules match_xml_attribute_xml_attribute
+          match_rules_and_recurse m_env path hook matches !xml_attribute_rules
+            match_xml_attribute_xml_attribute
             (super#visit_xml_attribute env)
             (fun x -> XmlAt x)
             x
 
         method! visit_field env x =
-          match_rules_and_recurse m_env target_path hook matches !fld_rules
+          match_rules_and_recurse m_env path hook matches !fld_rules
             match_fld_fld (super#visit_field env)
             (fun x -> Fld x)
             x
@@ -546,7 +544,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   let pm =
                                     {
                                       PM.rule_id;
-                                      path = target_path;
+                                      path;
                                       env = mv;
                                       range_loc;
                                       tokens;
@@ -560,26 +558,26 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   in
                                   Stack_.push pm matches;
                                   hook pm)));
-          match_rules_and_recurse m_env target_path hook matches !flds_rules
+          match_rules_and_recurse m_env path hook matches !flds_rules
             match_flds_flds (super#v_fields env)
             (fun x -> Flds x)
             x
 
         method! v_partial ~recurse env x =
-          match_rules_and_recurse m_env target_path hook matches !partial_rules
+          match_rules_and_recurse m_env path hook matches !partial_rules
             match_partial_partial
             (super#v_partial ~recurse env)
             (fun x -> Partial x)
             x
 
         method! visit_name env x =
-          match_rules_and_recurse m_env target_path hook matches !name_rules
+          match_rules_and_recurse m_env path hook matches !name_rules
             match_name_name (super#visit_name env)
             (fun x -> Name x)
             x
 
         method! visit_raw_tree env x =
-          match_rules_and_recurse m_env target_path hook matches !raw_rules
+          match_rules_and_recurse m_env path hook matches !raw_rules
             match_raw_raw (super#visit_raw_tree env)
             (fun x -> Raw x)
             x

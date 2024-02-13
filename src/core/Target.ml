@@ -15,20 +15,20 @@
 
 (* See Target.mli for documentation of public items. *)
 
-type target_path = { origin : Origin.t; internal_path_to_content : Fpath.t }
+type path = { origin : Origin.t; internal_path_to_content : Fpath.t }
 [@@deriving show, eq]
 
-type manifest = { path : target_path; kind : Manifest_kind.t } [@@deriving show]
+type manifest = { path : path; kind : Manifest_kind.t } [@@deriving show]
 
 type lockfile = {
-  path : target_path;
+  path : path;
   kind : Lockfile_kind.t;
   manifest : manifest option;
 }
 [@@deriving show]
 
 type code = {
-  path : target_path;
+  path : path;
   analyzer : Xlang.t;
   products : Semgrep_output_v1_t.product list;
   lockfile : lockfile option;
@@ -37,18 +37,18 @@ type code = {
 
 type t = Code of code | Lockfile of lockfile [@@deriving show]
 
-let target_path_of_origin (origin : Origin.t) : target_path =
+let path_of_origin (origin : Origin.t) : path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
 
 let mk_code ?lockfile analyzer products (origin : Origin.t) : code =
-  { path = target_path_of_origin origin; analyzer; products; lockfile }
+  { path = path_of_origin origin; analyzer; products; lockfile }
 
 let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
-  { path = target_path_of_origin origin; kind; manifest }
+  { path = path_of_origin origin; kind; manifest }
 
 let mk_manifest kind (origin : Origin.t) : manifest =
-  { path = target_path_of_origin origin; kind }
+  { path = path_of_origin origin; kind }
 
 let internal_path_to_content (target : t) : Fpath.t =
   match target with

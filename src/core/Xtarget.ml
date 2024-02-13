@@ -23,7 +23,7 @@
  *)
 
 type t = {
-  path : Target.target_path;
+  path : Target.path;
   xlang : Xlang.t;  (** The analyzer to use when scanning this target. *)
   lazy_content : string lazy_t;
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) lazy_t;

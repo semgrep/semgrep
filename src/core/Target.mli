@@ -34,7 +34,7 @@
 type t = Code of code | Lockfile of lockfile [@@deriving show]
 
 and code = {
-  path : target_path;
+  path : path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
   products : Semgrep_output_v1_t.product list;
       (** The products which should scan this target. This is used for
@@ -54,7 +54,7 @@ and code = {
    an augmented version which also has the contents. *)
 
 and lockfile = {
-  path : target_path;
+  path : path;
   kind : Lockfile_kind.t;
       (** The type of lockfile this is. Analogous to analyzer for a source code
           target. *)
@@ -66,7 +66,7 @@ and lockfile = {
     augmented version with the contents of the lockfile. *)
 
 and manifest = {
-  path : target_path;
+  path : path;
   kind : Manifest_kind.t;
       (** The type of manifest this is. Analogous to analyzer for a source code
         target. *)
@@ -75,7 +75,7 @@ and manifest = {
 (** A manifest file to be used during matching. See also
     {!Lockfile_xtarget.manifest_target}, which also has the contents. *)
 
-and target_path = {
+and path = {
   origin : Origin.t;
       (** The origin of the data as is relevant to the user. This could be,
           e.g., a relative (from the project root) path to a file, a git object
@@ -100,7 +100,7 @@ and target_path = {
 (* deriving eq appears to not work on mutual definitions with and. See also
    <https://github.com/ocaml-ppx/ppx_deriving/issues/272>, for deriving make,
    which may be relevant. Therefore, we just define it here. *)
-val equal_target_path : target_path -> target_path -> bool
+val equal_path : path -> path -> bool
 
 val mk_code :
   ?lockfile:lockfile ->
