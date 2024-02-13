@@ -317,6 +317,8 @@ class SemgrepResult:
         stderr = mask_variable_text(
             self.raw_stderr, mask, clean_fingerprint=self.clean_fingerprint
         )
+        # This is a list of pairs (title, data) containing different
+        # kinds of output to put into the snapshot.
         sections = {
             "command": mask_variable_text(
                 self.command, mask, clean_fingerprint=self.clean_fingerprint
@@ -331,6 +333,7 @@ class SemgrepResult:
             sections["stdout - plain"] == sections["stdout - color"]
             and sections["stderr - plain"] == sections["stderr - color"]
         ):
+            # Minimize duplicate output.
             sections["stdout - color"] = "<same as above: stdout - plain>"
             sections["stderr - color"] = "<same as above: stderr - plain>"
         return "\n\n".join(
