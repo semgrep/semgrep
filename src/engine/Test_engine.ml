@@ -75,7 +75,7 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
     in
     (ast, skipped_tokens)
   in
-  Xtarget.resolve parser (Target.mk_code xlang Product.all (File target))
+  Xtarget.resolve parser (Target.mk_regular xlang Product.all (File target))
 
 (*****************************************************************************)
 (* target helpers *)

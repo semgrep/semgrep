@@ -31,9 +31,9 @@
     However, it does not contain the actual contents (parsed or otherwise) of
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
-type t = Code of code | Lockfile of lockfile [@@deriving show]
+type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 
-and code = {
+and regular = {
   path : path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
   products : Semgrep_output_v1_t.product list;
@@ -46,10 +46,10 @@ and code = {
           specified by the given lockfile. Core doesn't need to worry about
           determining these associations; rather, the target selection and
           generation process must resolve these connections as part of
-          generating code targets. *)
+          generating regular targets. *)
 }
 [@@deriving show]
-(** A "normal" semgrep target, comprising source code (or, for
+(** A regular semgrep target, comprising source code (or, for
    regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
    an augmented version which also has the contents. *)
 
@@ -102,13 +102,13 @@ and path = {
    which may be relevant. Therefore, we just define it here. *)
 val equal_path : path -> path -> bool
 
-val mk_code :
+val mk_regular :
   ?lockfile:lockfile ->
   Xlang.t ->
   Semgrep_output_v1_t.product list ->
   Origin.t ->
-  code
-(** [mk_code analyzer products origin] is a {!code} target
+  regular
+(** [mk_regular analyzer products origin] is a {!regular} target
       originating from [origin] to be analyzed with [analyzer] for [products].
       If [lockfile] is specified then it shall be used as the associated
       lockfile if dependency patterns are to be ran.

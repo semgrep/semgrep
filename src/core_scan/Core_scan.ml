@@ -174,11 +174,11 @@ let replace_named_pipe_by_regular_file path =
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-let sort_code_targets_by_decreasing_size (targets : Target.code list) :
-    Target.code list =
+let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
+    Target.regular list =
   targets
   |> List_.sort_by_key
-       (fun (target : Target.code) ->
+       (fun (target : Target.regular) ->
          UFile.filesize target.path.internal_path_to_content)
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
@@ -725,13 +725,13 @@ let lockfile_target_of_input_to_core
 
 let code_target_location_of_input_to_core
     ({ path; analyzer; products; lockfile_target } : In.code_target) :
-    Target.code =
+    Target.regular =
   let lockfile = Option.map lockfile_target_of_input_to_core lockfile_target in
-  Target.mk_code ?lockfile analyzer products (File (Fpath.v path))
+  Target.mk_regular ?lockfile analyzer products (File (Fpath.v path))
 
 let target_of_input_to_core (input : In.target) : Target.t =
   match input with
-  | `CodeTarget x -> Code (code_target_location_of_input_to_core x)
+  | `CodeTarget x -> Regular (code_target_location_of_input_to_core x)
   | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
 
 (* Compute the set of targets, either by reading what was passed
@@ -772,7 +772,7 @@ let targets_of_config (config : Core_scan_config.t) :
       let target_mappings =
         files
         |> List_.map (fun file : Target.t ->
-               Code (Target.mk_code xlang Product.all (Origin.File file)))
+               Regular (Target.mk_regular xlang Product.all (Origin.File file)))
       in
       (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
@@ -801,8 +801,8 @@ let targets_of_config (config : Core_scan_config.t) :
 
 (* Extract new targets using the extractors *)
 let extracted_targets_of_config (config : Core_scan_config.t)
-    (extract_rules : Rule.extract_rule list) (basic_targets : Target.code list)
-    : Target.t list * Extract.adjusters =
+    (extract_rules : Rule.extract_rule list)
+    (basic_targets : Target.regular list) : Target.t list * Extract.adjusters =
   logger#info "extracting nested content from %d files"
     (List.length basic_targets);
   let match_hook str match_ =
@@ -812,7 +812,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   in
   let (extracted_targets : Extract.extracted_target_and_adjuster list) =
     basic_targets
-    |> List.concat_map (fun (t : Target.code) ->
+    |> List.concat_map (fun (t : Target.regular) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let xtarget =
@@ -842,7 +842,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            Target.t
          ->
            (* Extract mode targets work with any product? *)
-           Code (Target.mk_code analyzer Product.all (File file)))
+           Regular (Target.mk_regular analyzer Product.all (File file)))
   in
   (in_targets, adjusters)
 
@@ -965,7 +965,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       in
       (* TODO: run all the right hooks *)
       (RP.collate_rule_results internal_path_to_content dep_matches, was_scanned)
-  | Code target ->
+  | Regular target ->
       let origin = target.path.origin in
       let file = target.path.internal_path_to_content in
       let analyzer = target.analyzer in
@@ -1074,7 +1074,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let basic_code_targets, _basic_lockfile_targets =
     Either_.partition_either
       (function
-        | (Code x : Target.t) -> Left x
+        | (Regular x : Target.t) -> Left x
         | Lockfile x -> Right x)
       basic_targets
   in

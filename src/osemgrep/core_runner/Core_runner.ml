@@ -251,7 +251,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     let target_mappings =
       x.targets
       |> List_.map (fun (path : Fpath.t) : Target.t ->
-             Code (Target.mk_code x.xlang Product.all (File path)))
+             Regular (Target.mk_regular x.xlang Product.all (File path)))
     in
     (target_mappings, x.rules)
   in

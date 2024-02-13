@@ -69,7 +69,7 @@ val targets_of_config :
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.extract_rule list ->
-  Target.code list ->
+  Target.regular list ->
   Target.t list * Extract.adjusters
 (**
    Generate a list of new targets, which are extracted with extract rules
@@ -129,5 +129,8 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
 val sort_targets_by_decreasing_size : Target.t list -> Target.t list
-val sort_code_targets_by_decreasing_size : Target.code list -> Target.code list
+
+val sort_code_targets_by_decreasing_size :
+  Target.regular list -> Target.regular list
+
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences

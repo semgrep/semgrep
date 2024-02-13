@@ -16,7 +16,7 @@
 (** eXtended target.
 
    This type is mostly used in the engine to pass around extra information
-   (e.g., contents, the AST) associated with each {{!Target.code}target}.
+   (e.g., contents, the AST) associated with each {{!Target.regular}target}.
 
    See also {!Input_to_core_t.target}, which is what is passed to
    [semgrep-core] via [-target].
@@ -46,7 +46,7 @@ let parse_file parser (analyzer : Xlang.t) path =
      in
      parser lang path)
 
-let resolve parser (target : Target.code) : t =
+let resolve parser (target : Target.regular) : t =
   {
     path = target.path;
     xlang = target.analyzer;

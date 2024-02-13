@@ -27,7 +27,7 @@ type lockfile = {
 }
 [@@deriving show]
 
-type code = {
+type regular = {
   path : path;
   analyzer : Xlang.t;
   products : Semgrep_output_v1_t.product list;
@@ -35,13 +35,13 @@ type code = {
 }
 [@@deriving show]
 
-type t = Code of code | Lockfile of lockfile [@@deriving show]
+type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 
 let path_of_origin (origin : Origin.t) : path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
 
-let mk_code ?lockfile analyzer products (origin : Origin.t) : code =
+let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
 
 let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
@@ -52,12 +52,12 @@ let mk_manifest kind (origin : Origin.t) : manifest =
 
 let internal_path_to_content (target : t) : Fpath.t =
   match target with
-  | Code { path = { internal_path_to_content; _ }; _ }
+  | Regular { path = { internal_path_to_content; _ }; _ }
   | Lockfile { path = { internal_path_to_content; _ }; _ } ->
       internal_path_to_content
 
 let origin (target : t) : Origin.t =
   match target with
-  | Code { path = { origin; _ }; _ }
+  | Regular { path = { origin; _ }; _ }
   | Lockfile { path = { origin; _ }; _ } ->
       origin
