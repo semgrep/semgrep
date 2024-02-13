@@ -15,14 +15,14 @@
 
 (** Origins of content which may be consumed by Semgrep.
 
-   A source is the {e user-relevant origin} of content (e.g., source code).
+   An origin is the {e user-relevant origin} of content (e.g., source code).
    This should be used when reporting findings to a user.
 
-   While a source may imply that content can be obtained from a given location,
-   it should generally be stored alongside the content to be consumed, rather
-   than used in lieu of it.
+   While an origin may imply that content can be obtained from a given
+   location, it should generally be stored alongside the content to be
+   consumed, rather than used in lieu of it.
 
-   This is so that sources can be used principally for {e reporting} where the
+   This is so that origins can be used principally for {e reporting} where the
    content from which a finding was generated originated independently of
    getting the content of the target. This means we can de-couple reporting (1)
    where a finding originated from (2) obtaining the contents.
@@ -46,20 +46,20 @@
 
  *)
 
-(** The type for sources.
+(** The type for origns.
 
     {ul
-      {- [File path] sources are for files, and should have as [path] the
+      {- [File path] origins are for files, and should have as [path] the
         relative path from the scanned project root.}
     }
 
     Possible future variants:
 
     {ul
-      {- [Stdin] sources are for content read from standard input.}
-      {- [Network uri] sources are for content obtained from [uri] over the
+      {- [Stdin] origins are for content read from standard input.}
+      {- [Network uri] origins are for content obtained from [uri] over the
       network.}
-      {- [GitBlob info] sources are for git blob objects with metadata given in
+      {- [GitBlob info] origins are for git blob objects with metadata given in
       [info] (e.g., the blob's sha, commits the blob is present at, etc..).}
     }
  *)

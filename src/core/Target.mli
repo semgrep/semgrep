@@ -37,14 +37,16 @@ and code = {
   path : target_path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
   products : Semgrep_output_v1_t.product list;
-      (** The products which should scan this target. This is used for selecting
-      the relevant set of rules. *)
+      (** The products which should scan this target. This is used for
+          selecting the relevant set of rules. *)
   lockfile : lockfile option;
       (** Optional lockfile associated with this target.
-      The association is namely that this target has its dependencies specified
-      by the given lockfile. Core doesn't need to worry about determining these
-      associations; rather, the target selection and generation process must
-      resolve these connections as part of generating code targets. *)
+
+          The association is namely that this target has its dependencies
+          specified by the given lockfile. Core doesn't need to worry about
+          determining these associations; rather, the target selection and
+          generation process must resolve these connections as part of
+          generating code targets. *)
 }
 [@@deriving show]
 (** A "normal" semgrep target, comprising source code (or, for
@@ -55,7 +57,7 @@ and lockfile = {
   path : target_path;
   kind : Lockfile_kind.t;
       (** The type of lockfile this is. Analogous to analyzer for a source code
-        target. *)
+          target. *)
   manifest : manifest option;
       (** Optionally, a manifest file associated with this lockfile. *)
 }
@@ -75,17 +77,18 @@ and manifest = {
 
 and target_path = {
   origin : Origin.t;
-      (** The source of the data as is relevant to the user. This could be, e.g., a
-    relative (from the project root) path to a file, a git object and
-    associated information, or anything else a Origin.t can designate.
+      (** The origin of the data as is relevant to the user. This could be,
+          e.g., a relative (from the project root) path to a file, a git object
+          and associated information, or anything else a Origin.t can
+          designate.
 
-    This should be used when reporting a location to the user. *)
+          This should be used when reporting a location to the user. *)
   internal_path_to_content : Fpath.t;
-      (** The path to a file which contains the data to be scanned. This could be
-    the same as the origin, if the origin is a path to a regular file (or an
-    absolute path to the same), or it could be a tempfile. This should be
-    used to obtain the contents of the target, but not for reporting to the
-    user, other than possibly for debugging purposes. *)
+      (** The path to a file which contains the data to be scanned. This could
+          be the same as the origin, if the origin is a path to a regular file
+          (or an absolute path to the same), or it could be a tempfile. This
+          should be used to obtain the contents of the target, but not for
+          reporting to the user, other than possibly for debugging purposes. *)
 }
 [@@deriving show]
 (** Information about where a target from for both the purpose of
