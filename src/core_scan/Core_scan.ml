@@ -713,33 +713,26 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let lockfile_target_of_location (_ : Target.lockfile) : Lockfile_xtarget.t =
-  failwith "todo"
-
-let manifest_target_location_of_input_to_code
+let manifest_target_of_input_to_core
     ({ path; manifest_kind = kind } : In.manifest_target) : Target.manifest =
   Target.manifest_of_origin kind (File (Fpath.v path))
 
-let lockfile_target_location_of_input_to_code
+let lockfile_target_of_input_to_core
     ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
     Target.lockfile =
-  let manifest =
-    Option.map manifest_target_location_of_input_to_code manifest_target
-  in
+  let manifest = Option.map manifest_target_of_input_to_core manifest_target in
   Target.lockfile_of_origin ?manifest kind (File (Fpath.v path))
 
-let code_target_location_of_input_to_code
+let code_target_location_of_input_to_core
     ({ path; analyzer; products; lockfile_target } : In.code_target) :
     Target.code =
-  let lockfile =
-    Option.map lockfile_target_location_of_input_to_code lockfile_target
-  in
+  let lockfile = Option.map lockfile_target_of_input_to_core lockfile_target in
   Target.code_of_origin ?lockfile analyzer products (File (Fpath.v path))
 
-let target_location_of_input_to_code (input : In.target) : Target.t =
+let target_of_input_to_core (input : In.target) : Target.t =
   match input with
-  | `CodeTarget x -> Code (code_target_location_of_input_to_code x)
-  | `LockfileTarget x -> Lockfile (lockfile_target_location_of_input_to_code x)
+  | `CodeTarget x -> Code (code_target_location_of_input_to_core x)
+  | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
 
 (* Compute the set of targets, either by reading what was passed
  * in -target, or by using our poor's man file targeting with
@@ -799,7 +792,7 @@ let targets_of_config (config : Core_scan_config.t) :
       | Target_file target_file ->
           UFile.read_file target_file
           |> In.targets_of_string
-          |> List_.map target_location_of_input_to_code
+          |> List_.map target_of_input_to_core
           |> filter_existing_targets)
 
 (*****************************************************************************)
@@ -952,7 +945,10 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
   | Lockfile
       ({ path = { internal_path_to_content; origin }; kind; _ } as
        lockfile_location) ->
-      let lockfile_target = lockfile_target_of_location lockfile_location in
+      let lockfile_target =
+        Lockfile_xtarget.resolve Parse_lockfile.parse_manifest
+          Parse_lockfile.parse_lockfile lockfile_location
+      in
       let applicable_supply_chain_rules =
         select_applicable_supply_chain_rules ~lockfile_kind:kind ~origin
           ~respect_rule_paths:config.respect_rule_paths valid_rules
@@ -1002,7 +998,10 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
           target
       in
       let lockfile_target =
-        Option.map lockfile_target_of_location target.lockfile
+        Option.map
+          (Lockfile_xtarget.resolve Parse_lockfile.parse_manifest
+             Parse_lockfile.parse_lockfile)
+          target.lockfile
       in
       let default_match_hook str match_ =
         if config.output_format =*= Text then

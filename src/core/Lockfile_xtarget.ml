@@ -63,5 +63,5 @@ let resolve manifest_parser parser (target : Target.lockfile) : t =
     manifest;
     lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
     lazy_ast_and_errors =
-      parser target.kind manifest target.path.internal_path_to_content;
+      lazy (parser target.kind manifest target.path.internal_path_to_content);
   }
