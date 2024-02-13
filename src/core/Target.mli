@@ -19,8 +19,8 @@
     pysemgrep generates targets that have slightly less information (e.g.,
     these types have expanded information about the targets' locations). *)
 
-(** The location of a Semgrep target. This contains all of the target-specific
-    details needed to be able to determine how to scan a target, e.g.,
+(** A Semgrep target. This contains all of the details needed to be able to
+    determine how to scan a target, e.g.,
 
     {ul
       {- What products should we select rules from?}
@@ -29,7 +29,7 @@
     }
 
     However, it does not contain the actual contents (parsed or otherwise) of
-    the target itself.
+    the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
 type t = Code of code | Lockfile of lockfile [@@deriving show]
 
@@ -108,11 +108,10 @@ val mk_code :
   Semgrep_output_v1_t.product list ->
   Origin.t ->
   code
-(** [mk_code analyzer products origin] is the target
-      location for a source code target originating from [origin] to be
-      analyzed with [analyzer] for [products]. If [lockfile] is specified then
-      it shall be used as the associated lockfile if dependency patterns are
-      to be ran.
+(** [mk_code analyzer products origin] is a {!code} target
+      originating from [origin] to be analyzed with [analyzer] for [products].
+      If [lockfile] is specified then it shall be used as the associated
+      lockfile if dependency patterns are to be ran.
 
       This function should be generally preferred over creating a record
       directly, since it can peform actions which may be required when creating
@@ -120,9 +119,9 @@ val mk_code :
  *)
 
 val mk_lockfile : ?manifest:manifest -> Lockfile_kind.t -> Origin.t -> lockfile
-(** [mk_lockfile k origin] is the target
-      location for a lockfile target originating from [origin] of kind [k].
-      If [manifest] is specified, it shall be used as the associated manifest.
+(** [mk_lockfile k origin] is the a {!lockfile} target
+      originating from [origin] of kind [k]. If [manifest] is specified, it
+      shall be used as the associated manifest.
 
       This function should be generally preferred over creating a record
       directly, since it can peform actions which may be required when creating
@@ -130,12 +129,12 @@ val mk_lockfile : ?manifest:manifest -> Lockfile_kind.t -> Origin.t -> lockfile
  *)
 
 val mk_manifest : Manifest_kind.t -> Origin.t -> manifest
-(** [mk_manifest k origin] is the target
-      location for a manifest target originating from [origin] of kind [k].
+(** [mk_manifest k origin] is a {!manifest} target
+    originating from [origin] of kind [k].
 
-      This function should be generally preferred over creating a record
-      directly, since it can peform actions which may be required when creating
-      a target from certain types of origins, such as generating a tempfile.
+    This function should be generally preferred over creating a record
+    directly, since it can peform actions which may be required when creating a
+    target from certain types of origins, such as generating a tempfile.
  *)
 
 val internal_path_to_content : t -> Fpath.t
