@@ -412,7 +412,12 @@ class OutputHandler:
                     missed_rule_count
                     and state.get_cli_ux_flavor() != DesignTreatment.LEGACY
                 ):
-                    stats_line = f"{stats_line}\n💎 Missed out on {unit_str(missed_rule_count, 'pro rule')} since you aren't logged in!"
+                    missed_count_line = f"💎 Missed out on {unit_str(missed_rule_count, 'pro rule')} since you aren't logged in!"
+                    learn_more_url = with_color(
+                        Colors.cyan, "https://sg.run/rules", underline=True
+                    )
+                    learn_more_line = f"⚡ Supercharge Semgrep OSS when you create a free account at {learn_more_url}."
+                    stats_line = f"{stats_line}\n{missed_count_line}\n{learn_more_line}"
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
 
