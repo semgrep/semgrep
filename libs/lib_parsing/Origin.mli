@@ -64,6 +64,8 @@
     }
  *)
 type t = File of Fpath.t [@@deriving show, eq, ord]
+(* TODO: Evaluate futher using Ppath.t instead of Fpath.t, since it documents
+   we want this to be a relative path from the project root. *)
 
 val to_string : t -> string
 (** [to_string origin] is [origin] as a user-facing string. This is the version

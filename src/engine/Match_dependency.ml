@@ -51,9 +51,9 @@ let match_dependency_formula :
     Lockfile_xtarget.t ->
     Rule.dependency_formula ->
     Pattern_match.dependency_match list =
- fun { lazy_ast_and_errors; _ } ->
+ fun { lazy_dependencies; _ } ->
   List.concat_map (fun pat ->
-      match_dependency_pattern (Lazy.force lazy_ast_and_errors) pat)
+      match_dependency_pattern (Lazy.force lazy_dependencies) pat)
 
 let match_dependencies lockfile_target rule =
   match rule.Rule.dependency_formula with
@@ -65,7 +65,7 @@ let match_all_dependencies lockfile_target =
 
 let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
   let _, parse_time =
-    Common.with_time (fun () -> Lazy.force xtarget.lazy_ast_and_errors)
+    Common.with_time (fun () -> Lazy.force xtarget.lazy_dependencies)
   in
   let matches, match_time =
     Common.with_time (fun () ->

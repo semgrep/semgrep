@@ -40,6 +40,8 @@ type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 let path_of_origin (origin : Origin.t) : path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
+(* This may create tempfile in the future if still required by
+   Match_seach_mode et al., e.g., in the case of a GitBlob origin *)
 
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
@@ -50,7 +52,7 @@ let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
 let mk_manifest kind (origin : Origin.t) : manifest =
   { path = path_of_origin origin; kind }
 
-let internal_path_to_content (target : t) : Fpath.t =
+let internal_path (target : t) : Fpath.t =
   match target with
   | Regular { path = { internal_path_to_content; _ }; _ }
   | Lockfile { path = { internal_path_to_content; _ }; _ } ->

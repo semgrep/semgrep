@@ -190,7 +190,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       let files =
         target_info
         |> List_.map (fun (t : Target.t) ->
-               Target.internal_path_to_content t |> Fpath.to_string)
+               Target.internal_path t |> Fpath.to_string)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then

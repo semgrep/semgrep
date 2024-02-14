@@ -3,7 +3,7 @@ type t = {
   manifest : manifest option;
   lazy_content : string lazy_t;
       (** The contents of the lockfile, as a string. *)
-  lazy_ast_and_errors : Dependency.t list lazy_t;
+  lazy_dependencies : Dependency.t list lazy_t;
       (** The parsed contents of the lockfile, comprising the list of specified
           dependencies and their versions. *)
 }
@@ -25,7 +25,7 @@ and manifest = {
   target : Target.manifest;
   lazy_content : string lazy_t;
       (** The contents of the manifest, as a string. *)
-  lazy_ast_and_errors : Dependency.manifest_dependency list lazy_t;
+  lazy_dependencies : Dependency.manifest_dependency list lazy_t;
 }
 (** A manifest file to be scanned. This can only ever be attached to a
    {{!t}lockfile target}.
@@ -50,7 +50,7 @@ let resolve_manifest parser (target : Target.manifest) : manifest =
   {
     target;
     lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
-    lazy_ast_and_errors =
+    lazy_dependencies =
       lazy (parser target.kind target.path.internal_path_to_content);
   }
 
@@ -62,6 +62,6 @@ let resolve manifest_parser parser (target : Target.lockfile) : t =
     target;
     manifest;
     lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
-    lazy_ast_and_errors =
+    lazy_dependencies =
       lazy (parser target.kind manifest target.path.internal_path_to_content);
   }

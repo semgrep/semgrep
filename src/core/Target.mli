@@ -132,8 +132,8 @@ val mk_manifest : Manifest_kind.t -> Origin.t -> manifest
     target from certain types of origins, such as generating a tempfile.
  *)
 
-val internal_path_to_content : t -> Fpath.t
-(** [internal_path_to_content target] is the path to a file containing the
+val internal_path : t -> Fpath.t
+(** [internal_path target] is the path to a file containing the
     contents of [target]. *)
 
 val origin : t -> Origin.t

@@ -187,7 +187,7 @@ let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
 let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
   targets
   |> List_.sort_by_key
-       (fun target -> UFile.filesize (Target.internal_path_to_content target))
+       (fun target -> UFile.filesize (Target.internal_path target))
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
@@ -204,7 +204,7 @@ let filter_existing_targets (targets : Target.t list) :
     Target.t list * OutJ.skipped_target list =
   targets
   |> Either_.partition_either (fun (target : Target.t) ->
-         let internal_path = Target.internal_path_to_content target in
+         let internal_path = Target.internal_path target in
          if Sys.file_exists !!internal_path then Left target
          else
            match Target.origin target with
@@ -561,7 +561,7 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 
 let handle_target_with_trace handle_target t =
-  let target_name = Target.internal_path_to_content t in
+  let target_name = Target.internal_path t in
   Tracing.run_with_span "Core_scan.handle_target"
     ?data:(Some [ ("filename", `String !!target_name) ])
     (fun () -> handle_target t)
@@ -578,7 +578,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
       =
     targets
     |> map_targets config.ncores (fun (target : Target.t) ->
-           let internal_path = Target.internal_path_to_content target in
+           let internal_path = Target.internal_path target in
            let origin = Target.origin target in
            Logs.info (fun m ->
                m "Analyzing %s (contents in %s)" (Origin.to_string origin)
@@ -1151,7 +1151,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
      *)
     targets
     |> List_.map_filter (fun (x : Target.t) ->
-           let internal_path = Target.internal_path_to_content x in
+           let internal_path = Target.internal_path x in
            if Hashtbl.mem scanned_target_table !!internal_path then
              Some internal_path
            else None)
