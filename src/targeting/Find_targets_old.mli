@@ -3,7 +3,7 @@
  *)
 val get_targets :
   Find_targets.conf ->
-  Fpath.t list (* scanning roots *) ->
+  Rfpath.t list (* scanning roots *) ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (*

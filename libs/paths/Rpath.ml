@@ -38,7 +38,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type t = Rpath of Fpath.t [@@deriving show, eq]
+type t = Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
@@ -49,3 +49,14 @@ let of_string s = Rpath (Unix.realpath s |> Fpath.v)
 let to_fpath (Rpath x) = x
 let to_string (Rpath x) = Fpath.to_string x
 let canonical s = to_string (of_string s)
+
+let getcwd () =
+  try Rpath (Unix.getcwd () |> Fpath.v) with
+  | Unix.Unix_error (err, _, _) ->
+      failwith
+        ("getcwd() failed to return a valid current working directory: "
+       ^ Unix.error_message err)
+
+let parent (Rpath path) =
+  let res = Fpath.parent path |> Fpath.rem_empty_seg in
+  if res <> path then Some (Rpath res) else None
