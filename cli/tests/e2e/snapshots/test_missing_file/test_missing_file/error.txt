@@ -1,0 +1,17 @@
+[00.00][ERROR]: Error: exception Unix_error: No such file or directory stat targets/stupid-does-not-exist.p
+Raised by primitive operation at UTmp.replace_named_pipe_by_regular_file_if_needed in file "libs/commons/UTmp.ml", line 53, characters 10-29
+Called from Scan_CLI.replace_target_roots_by_regular_files_where_needed.(fun) in file "src/osemgrep/cli_scan/Scan_CLI.ml", line 860, characters 19-134
+Called from List_.fast_map in file "libs/commons/List_.ml", line 86, characters 17-20
+Called from Scan_CLI.replace_target_roots_by_regular_files_where_needed in file "src/osemgrep/cli_scan/Scan_CLI.ml", line 850, characters 4-733
+Called from Scan_CLI.cmdline_term.combine in file "src/osemgrep/cli_scan/Scan_CLI.ml", line 897, characters 6-69
+Called from Cmdliner_term.app.(fun) in file "cmdliner_term.ml", line 24, characters 19-24
+Called from Cmdliner_eval.run_parser in file "cmdliner_eval.ml", line 34, characters 37-44
+Called from Cmdliner_eval.eval_value in file "cmdliner_eval.ml", line 202, characters 14-39
+Called from CLI_common.eval_value in file "src/osemgrep/core/CLI_common.ml", line 135, characters 8-45
+Called from Scan_subcommand.main in file "src/osemgrep/cli_scan/Scan_subcommand.ml", line 943, characters 13-37
+Called from CLI.dispatch_subcommand in file "src/osemgrep/cli/CLI.ml", line 200, characters 12-111
+Called from CLI.safe_run in file "src/osemgrep/cli/CLI.ml", line 243, characters 8-12
+
+Error: fatal error
+Exiting with error status 2: osemgrep --strict --config rules/nosem.yaml --json targets/stupid-does-not-exist.p
+[0m
