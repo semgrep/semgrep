@@ -510,3 +510,6 @@ name: start-release
           (branches, tags, images, or PyPI packages).
         required: true
         type: boolean
+permissions:
+  contents: read
+  id-token: write

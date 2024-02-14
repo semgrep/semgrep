@@ -572,6 +572,11 @@ local ignore_md = {
       ],
     } + ignore_md,
   },
+  // These extra permissions are needed by some of the jobs, e.g. build-test-javascript.
+  permissions: {
+    contents: 'write',
+    'id-token': 'write',
+  },
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
