@@ -102,7 +102,7 @@ type core_run_for_osemgrep = {
  * and executed by osemgrep-pro. When linked from osemgrep-pro, this
  * hook below will be set.
  *)
-let (hook_pro_scan_func_for_osemgrep :
+let (hook_pro_core_run_for_osemgrep :
       (?diff_config:Differential_scan_config.t ->
       roots:Rfpath.t list ->
       Engine_type.t ->

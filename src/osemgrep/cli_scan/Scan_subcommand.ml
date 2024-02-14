@@ -282,7 +282,7 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
     | OSS ->
         Core_runner.mk_core_run_for_osemgrep Core_scan.scan_with_exn_handler
     | PRO _ -> (
-        match !Core_runner.hook_pro_scan_func_for_osemgrep with
+        match !Core_runner.hook_pro_core_run_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
              * instructions should be *)

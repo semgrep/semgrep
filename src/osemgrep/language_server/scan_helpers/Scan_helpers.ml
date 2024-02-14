@@ -60,7 +60,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         (* This is currently just ripped from Scan_subcommand. *)
         let core_run_func =
           let pro_intrafile = session.user_settings.pro_intrafile in
-          match !Core_runner.hook_pro_scan_func_for_osemgrep with
+          match !Core_runner.hook_pro_core_run_for_osemgrep with
           | Some pro_scan_func when pro_intrafile ->
               (* THINK: files or folders?
                  Note that converting many target files to scanning roots
