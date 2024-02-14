@@ -12,6 +12,7 @@
      timedesc
 
      commons
+     paths
   )
   (preprocess (pps
      ppx_deriving.show

@@ -167,8 +167,17 @@ type target_handler = In.target -> RP.matches_single_file * was_scanned
 
    coupling: this functionality is implemented also in semgrep-python.
 *)
-let replace_named_pipe_by_regular_file path =
-  UTmp.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
+let replace_named_pipe_by_regular_file (path : Fpath.t) =
+  match
+    UTmp.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-"
+      path
+  with
+  | Some new_path -> new_path
+  | None -> path
+
+let replace_named_pipe_by_regular_file_rfpath (path : Rfpath.t) =
+  path |> Rfpath.to_fpath |> replace_named_pipe_by_regular_file
+  |> Rfpath.of_fpath
 
 let target_path : In.target -> Fpath.t = function
   | `CodeTarget x -> Fpath.v x.path
@@ -795,7 +804,9 @@ let targets_of_config (config : Core_scan_config.t) :
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots = roots |> List_.map replace_named_pipe_by_regular_file in
+      let roots =
+        roots |> List_.map replace_named_pipe_by_regular_file_rfpath
+      in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -807,7 +818,8 @@ let targets_of_config (config : Core_scan_config.t) :
         | Xlang.L (_, _) -> assert false
       in
       let files, skipped =
-        Find_targets_old.files_of_dirs_or_files lang_opt roots
+        roots |> List_.map Rfpath.to_fpath
+        |> Find_targets_old.files_of_dirs_or_files lang_opt
       in
       let target_mappings =
         files
@@ -942,9 +954,9 @@ let select_applicable_rules_for_target ~analyzer ~products ~path
             * strategy.
          *)
          match r.R.paths with
-         | Some paths when respect_rule_paths ->
-             Filter_target.filter_paths paths path
-         | _else -> true)
+         | Some filter when respect_rule_paths ->
+             Filter_target.filter_paths filter path
+         | _ -> true)
 
 let select_applicable_supply_chain_rules ~lockfile_kind ~respect_rule_paths
     ~path rules =

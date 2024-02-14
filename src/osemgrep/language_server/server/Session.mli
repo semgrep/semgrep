@@ -21,8 +21,8 @@ type session_cache = {
 
 type t = {
   capabilities : ServerCapabilities.t;
-  workspace_folders : Fpath.t list;
-  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t;
+  workspace_folders : Rfpath.t list;
+  cached_workspace_targets : (Rfpath.t, Fpath.t list) Hashtbl.t;
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
@@ -95,6 +95,6 @@ val record_results :
     used when generating code actions (such as autofix) *)
 
 val update_workspace_folders :
-  ?added:Fpath.t list -> ?removed:Fpath.t list -> t -> t
+  ?added:Rfpath.t list -> ?removed:Rfpath.t list -> t -> t
 (** [update_workspace_folders ?added ?removed t] updates the workspace folders in the session.
     This is used when the client sends a [workspace/didChangeWorkspaceFolders] notification *)
