@@ -11,6 +11,18 @@ jobs:
           go-version: "1.19"
       - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
       - run: actionlint -shellcheck=''
+  jsonnet-gha:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check GitHub workflow files are up to date
+        run: |
+          sudo apt-get update
+          sudo apt-get install jsonnet
+          cd .github/workflows
+          make clean
+          make
+          git diff --exit-code
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -51,21 +63,6 @@ jobs:
           opam install -y ocamlformat.0.26.1
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
-  check-workflows-up-to-date:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Check GitHub workflow files are up to date
-        # yq (the good one) is actually pre-installed in GHA ubuntu image, see
-        # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
-        run: |
-          sudo apt-get update
-          sudo apt-get install jsonnet
-          cd .github/workflows
-          make clean
-          make
-          git diff --exit-code
-
 name: lint
 "on":
   pull_request: null
