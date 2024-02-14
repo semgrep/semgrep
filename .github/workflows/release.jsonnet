@@ -25,7 +25,10 @@ local version = "${{ steps.get-version.outputs.VERSION }}";
 local get_version_step = {
   name: 'Get the version',
   id: 'get-version',
-  run: 'echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT',
+  // Note the double escape on this single-line command. If this got updated
+  // to a multi-line command, i.e., with |||, then we would only need
+  // a single backslash to escape.
+  run: 'echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT',
 };
 
 // ----------------------------------------------------------------------------
