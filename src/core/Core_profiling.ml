@@ -50,7 +50,7 @@
  * LATER: remove some intermediate types.
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Debug/Profile choice *)
@@ -97,7 +97,7 @@ let merge_debug_info merge_profiling a b =
   | Debug _, _
   | Time _, _
   | No_info, _ ->
-      logger#error "Impossible: Mode mismatch";
+      Logs.err (fun m -> m ~tags "Impossible: Mode mismatch");
       No_info
 
 let mode = ref MNo_info

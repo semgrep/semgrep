@@ -10,12 +10,14 @@
    osemgrep_core
    osemgrep_core_runner
    osemgrep_networking
+   ppx_deriving_yojson
  )
  (preprocess
   (pps
     lwt_ppx
     profiling.ppx
     ppx_deriving.show
+    ppx_deriving_yojson
   )
  )
 )

@@ -604,9 +604,9 @@ def print_text_output(
             if last_file is not None:
                 console.print()
             console.print(
-                f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}"
+                f"\n{with_color(Colors.cyan, f'  {current_file}', bold=False)}"
                 + (
-                    f"with lockfile {with_color(Colors.cyan, f'{lockfile}')}"
+                    f" with lockfile {with_color(Colors.cyan, f'{lockfile}')}"
                     if lockfile
                     else ""
                 )

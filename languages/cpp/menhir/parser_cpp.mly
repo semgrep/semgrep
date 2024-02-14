@@ -1453,7 +1453,7 @@ member_declarator:
 enum_specifier:
  | enum_head "{" listc(enumerator) ","? "}"
      { EnumDef ({enum_kind = fst $1; enum_name = snd $1;
-                enum_body = ($2, $3, $5)}) (*$4*) }
+                enum_body = ($2, List.flatten $3, $5)}) (*$4*) }
  (* c++0x: *)
  | enum_head "{" "}"
      { EnumDef ({enum_kind = fst $1; enum_name = snd $1;
@@ -1464,8 +1464,8 @@ enum_head:
      { $1, $2 |> Option.map name_of_id }
 
 enumerator:
- | ident                { { e_name = $1; e_val = None; } }
- | ident "=" const_expr { { e_name = $1; e_val = Some ($2, $3); } }
+ | ident                { [ X { e_name = $1; e_val = None; } ] }
+ | ident "=" const_expr { [ X { e_name = $1; e_val = Some ($2, $3); } ] }
 
 (*-----------------------------------------------------------------------*)
 (* c++ext: constructor special case *)
@@ -1617,7 +1617,7 @@ initialize2:
 
 (* they can be nested, can have a .x.[3].y *)
 designator:
- | TDot ident   { DesignatorField ($1, $2) }
+ | TDot ident   { DesignatorField (Some $1, $2) }
 (* conflict with kenccext
  | "[" const_expr "]"     %prec LOW_PRIORITY_RULE
      { DesignatorIndex ($1, $2, $3) }

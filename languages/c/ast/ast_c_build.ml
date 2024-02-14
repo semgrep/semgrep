@@ -17,7 +17,7 @@ open Either_
 open Ast_cpp
 module A = Ast_c
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -66,7 +66,7 @@ let empty_env () =
 
 let gensym_struct cnt = spf "__anon_struct_%d" cnt
 let gensym_enum cnt = spf "__anon_enum_%d" cnt
-let debug any = logger#debug "%s" (Ast_cpp.show_any any)
+let debug any = Logs.debug (fun m -> m ~tags "%s" (Ast_cpp.show_any any))
 
 let rec ifdef_skipper xs f =
   match xs with
@@ -77,7 +77,8 @@ let rec ifdef_skipper xs f =
       | Some ifdef -> (
           match ifdef with
           | Ifdef tok -> (
-              logger#info "skipping: %s" (Tok.content_of_tok tok);
+              Logs.debug (fun m ->
+                  m ~tags "skipping: %s" (Tok.content_of_tok tok));
               try
                 let _, x, rest =
                   xs
@@ -304,6 +305,19 @@ and onedecl env d =
 
 and initialiser env x =
   match x with
+  | InitExpr e -> InitExpr (expr env e)
+  | InitList (l, xs, r) -> A.InitList (l, List_.map (initialiser env) xs, r)
+  (* should be covered by caller *)
+  | InitDesignators _ ->
+      debug (Init x);
+      raise Todo
+  | InitIndexOld _
+  | InitFieldOld _ ->
+      debug (Init x);
+      raise Todo
+
+and initialiser_to_expr env x : A.expr =
+  match x with
   | InitExpr e -> expr env e
   | InitList xs -> (
       match xs |> unparen with
@@ -318,7 +332,7 @@ and initialiser env x =
                  |> List.map (function
                       | InitDesignators ([ DesignatorField (_, ident) ], _, init)
                         ->
-                          (ident, initialiser env init)
+                          (ident, initialiser_to_expr env init)
                       | _ ->
                           debug (Init x);
                           raise Todo))
@@ -331,11 +345,11 @@ and initialiser env x =
                  |> List_.map (function
                       (* less: todo? *)
                       | InitIndexOld ((_, idx, _), ini) ->
-                          (Some (expr env idx), initialiser env ini)
+                          (Some (expr env idx), initialiser_to_expr env ini)
                       | InitDesignators ([ DesignatorIndex (_, idx, _) ], _, ini)
                         ->
-                          (Some (expr env idx), initialiser env ini)
-                      | x -> (None, initialiser env x)))
+                          (Some (expr env idx), initialiser_to_expr env ini)
+                      | x -> (None, initialiser_to_expr env x)))
                xs))
   (* should be covered by caller *)
   | InitDesignators _ ->
@@ -405,7 +419,7 @@ and cpp_def_val for_debug env x =
         (A.CppExpr
            (A.CondExpr
               (expr env e, Some (A.Id (name env id)), A.Id (name env id))))
-  | DefineInit init -> Some (A.CppExpr (initialiser env init))
+  | DefineInit init -> Some (A.CppExpr (initialiser_to_expr env init))
   | DefineEmpty -> None
   | DefineFunction _
   | DefineType _
@@ -483,6 +497,8 @@ and stmt env st =
           debug (Stmt st);
           raise Todo
       | Return (_tok, Some _) -> raise CplusplusConstruct)
+  | MsTry (v1, v2, v3) -> A.MsTry (v1, compound env v2, ms_try_handler env v3)
+  | MsLeave tok -> A.MsLeave tok
   | Try (_, _, _)
   | If (_, _, (_, _, _), _, _)
   | While (_, (_, _, _), _)
@@ -494,6 +510,11 @@ and stmt env st =
   | MacroStmt _ ->
       debug (Stmt st);
       raise Todo
+
+and ms_try_handler env = function
+  | MsExcept (v1, v2, v3) ->
+      A.MsExcept (v1, bracket_keep (expr env) v2, compound env v3)
+  | MsFinally (v1, v2) -> MsFinally (v1, compound env v2)
 
 and ident_asm_operand _env (v1, v2, v3) = (v1, v2, v3)
 and expr_asm_operand env (v1, v2, v3) = (v1, v2, bracket_keep (expr env) v3)
@@ -595,7 +616,7 @@ and expr env e =
   | ArrayAccess (e1, (l, e2, r)) -> (
       match e2 with
       | [] -> failwith "impossible: empty array access"
-      | [ x ] -> A.ArrayAccess (expr env e1, (l, initialiser env x, r))
+      | [ x ] -> A.ArrayAccess (expr env e1, (l, initialiser_to_expr env x, r))
       | _xs -> raise CplusplusConstruct)
   | Binary (e1, op, e2) -> A.Binary (expr env e1, op, expr env e2)
   | Unary (op, e) -> A.Unary (expr env e, op)
@@ -605,7 +626,7 @@ and expr env e =
       let x =
         match e2 with
         | Left x -> expr env x
-        | Right x -> initialiser env x
+        | Right x -> initialiser_to_expr env x
       in
       A.Assign (op, expr env e1, x)
   | Sequence (e1, _, e2) -> A.Sequence (expr env e1, expr env e2)
@@ -621,13 +642,15 @@ and expr env e =
   | Call (e, (t1, args, t2)) ->
       A.Call (expr env e, (t1, List_.map_filter (argument env) args, t2))
   | GccConstructor ((_, ft, _), xs) ->
-      A.GccConstructor (full_type env ft, initialiser env (InitList xs))
+      A.GccConstructor
+        ( full_type env ft,
+          Tok.unsafe_fake_bracket [ initialiser env (InitList xs) ] )
   | Generic (tk, (l, (e, args), r)) ->
       let args = List_.map (fun (t, e) -> (full_type env t, expr env e)) args in
       A.Generic (tk, (l, (expr env e, args), r))
   | IdSpecial (SizeOf, tk) -> A.IdSpecial (SizeOf, tk)
   | ConstructedObject (_, _) ->
-      logger#error "BUG PARSING LOCAL DECL PROBABLY";
+      Logs.err (fun m -> m ~tags "BUG PARSING LOCAL DECL PROBABLY");
       debug (Expr e);
       raise CplusplusConstruct
   | Throw _
@@ -677,7 +700,8 @@ and argument env x =
   | ArgType x -> Some (A.ArgType (full_type env x))
   | ArgBlock x -> Some (A.ArgBlock (compound env x))
   | ArgAction _ ->
-      logger#error "type argument, maybe wrong typedef inference!";
+      Logs.err (fun m ->
+          m ~tags "type argument, maybe wrong typedef inference!");
       debug (Argument x);
       None
   | ArgInits _ -> raise CplusplusConstruct
@@ -766,15 +790,7 @@ and full_type env x =
             (s, tok)
         | Some n -> name env n
       in
-      let xs' =
-        xs |> unparen
-        |> List.map (fun eelem ->
-               let name, e_opt = (eelem.e_name, eelem.e_val) in
-               ( name,
-                 match e_opt with
-                 | None -> None
-                 | Some (_tok, e) -> Some (expr env e) ))
-      in
+      let xs' = xs |> unparen |> enum_elems_sequencable env |> List.flatten in
       let def = { A.e_name = name; e_type = failwith "TODO"; e_consts = xs' } in
       env.enum_defs_toadd <- def :: env.enum_defs_toadd;
       A.TEnumName name
@@ -792,7 +808,7 @@ and full_type env x =
 (* ---------------------------------------------------------------------- *)
 (* structure *)
 (* ---------------------------------------------------------------------- *)
-and class_member env x =
+and class_member env x : A.field_def list =
   match x with
   | F (DeclList (xs, _)) -> xs |> List.map (fieldkind env)
   | QualifiedIdInClass (_, _)
@@ -810,9 +826,32 @@ and class_members_sequencable env xs =
     | _ -> None)
   |> List.map (class_member_sequencable env)
 
+and enum_elems_sequencable env (xs : enum_elem sequencable list) =
+  ifdef_skipper xs (function
+    | CppIfdef x -> Some x
+    | _ -> None)
+  |> List.map (enum_elem_sequencable env)
+
+and enum_elem_sequencable env x =
+  match x with
+  | X x -> [ X (enum_elem env x) ]
+  | CppDirective dir ->
+      debug (Cpp dir);
+      raise Todo
+  | CppIfdef _ -> raise Impossible
+  | MacroVar (_, _)
+  | MacroDecl (_, _, _, _) ->
+      raise Todo
+
+and enum_elem env { e_name = name; e_val = e_opt } =
+  ( name,
+    match e_opt with
+    | None -> None
+    | Some (_tok, e) -> Some (expr env e) )
+
 and class_member_sequencable env x =
   match x with
-  | X x -> class_member env x
+  | X x -> class_member env x |> List_.map (fun x -> A.X x)
   | CppDirective dir ->
       debug (Cpp dir);
       raise Todo

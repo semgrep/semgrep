@@ -479,6 +479,7 @@ class CoreRunner:
         max_memory: int,
         timeout_threshold: int,
         interfile_timeout: int,
+        trace: bool,
         optimizations: str,
         allow_untrusted_validators: bool,
         respect_rule_paths: bool = True,
@@ -490,6 +491,7 @@ class CoreRunner:
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
+        self._trace = trace
         self._optimizations = optimizations
         self._allow_untrusted_validators = allow_untrusted_validators
         self._respect_rule_paths = respect_rule_paths
@@ -834,6 +836,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             if self._optimizations != "none":
                 cmd.append("-fast")
+
+            if self._trace:
+                cmd.append("-trace")
 
             if run_secrets and not disable_secrets_validation:
                 cmd += ["-secrets"]

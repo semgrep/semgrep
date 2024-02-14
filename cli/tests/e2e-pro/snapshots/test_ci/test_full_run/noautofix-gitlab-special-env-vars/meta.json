@@ -18,6 +18,7 @@
     "pull_request_id": "unused-iid-test-placeholder",
     "pull_request_title": "unused-merge-request-title-test-placeholder",
     "is_full_scan": false,
+    "repo_display_name": "project_name/project_name",
     "commit_timestamp": "1970-01-01T00:00:00Z",
     "base_sha": "sanitized",
     "start_sha": "unused-commit-test-placeholder",

@@ -17,7 +17,7 @@ open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* TODO: Remove duplication between the Generic-based and IL-based passes,
    ideally we should have a single pass, the IL-based. *)
@@ -177,7 +177,8 @@ let add_constant_env ident (sid, svalue) env =
   | Lit _
   | Cst _
   | Sym _ ->
-      logger#trace "adding constant in env %s" (H.str_of_ident ident);
+      Logs.debug (fun m ->
+          m ~tags "adding constant in env %s" (H.str_of_ident ident));
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
   | NotCst -> ()
 
@@ -198,7 +199,8 @@ let is_assigned_just_once stats var =
   match Hashtbl.find_opt stats var with
   | Some stats -> !(stats.lvalue) = 1
   | None ->
-      logger#debug "No stats for (%s,%s)" id_str (G.SId.show sid);
+      Logs.debug (fun m ->
+          m ~tags "No stats for (%s,%s)" id_str (G.SId.show sid));
       false
 
 let incr_num_constructors stats cid =
@@ -216,7 +218,7 @@ let has_just_one_constructor stats cstr =
   match Hashtbl.find_opt stats cstr with
   | Some stats -> stats.num_constructors = 1
   | None ->
-      logger#debug "No stats for %s" cstr;
+      Logs.debug (fun m -> m ~tags "No stats for %s" cstr);
       false
 
 (*****************************************************************************)
@@ -456,7 +458,8 @@ let stats_of_prog prog : stats =
         | _, FuncDef _ when ctx.in_constructor -> (
             match ctx.in_class with
             | None ->
-                logger#warning "stats_of_prog: in constructor but not in class";
+                Logs.warn (fun m ->
+                    m ~tags "stats_of_prog: in constructor but not in class");
                 ()
             | Some cid -> incr_num_constructors env cid)
         | ( {
@@ -633,7 +636,8 @@ let add_special_constants env lang prog =
     |> List.iter (fun (id, v) ->
            match v.e with
            | L literal ->
-               logger#trace "adding special terraform constant for %s" (fst id);
+               Logs.debug (fun m ->
+                   m ~tags "adding special terraform constant for %s" (fst id));
                add_constant_env id (terraform_sid, Lit literal) env
            | _ -> ())
 
@@ -651,7 +655,7 @@ let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref =
 
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
-  logger#trace "Constant_propagation.propagate_basic program";
+  Logs.debug (fun m -> m ~tags "Constant_propagation.propagate_basic program");
   let env = default_env (Some lang) in
 
   (* right now this is used only for Terraform *)
@@ -836,7 +840,8 @@ let propagate_dataflow_one_function lang inputs flow =
   Dataflow_svalue.update_svalue flow mapping
 
 let propagate_dataflow lang ast =
-  logger#trace "Constant_propagation.propagate_dataflow program";
+  Logs.debug (fun m ->
+      m ~tags "Constant_propagation.propagate_dataflow program");
   match lang with
   | Lang.Dockerfile ->
       (* Dockerfile has no functions. The whole file is just a single scope *)

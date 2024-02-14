@@ -34,6 +34,7 @@ type t = {
   test : bool;
   debug : bool;
   profile : bool;
+  trace : bool;
   report_time : bool;
   error_recovery : bool;
   profile_start : float;
@@ -96,6 +97,7 @@ let default =
     test = false;
     debug = false;
     profile = false;
+    trace = false;
     report_time = false;
     error_recovery = false;
     profile_start = 0.;

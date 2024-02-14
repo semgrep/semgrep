@@ -246,7 +246,8 @@ ALWAYS_MASK: Maskers = (
     re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
-    re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
+    # Dates
+    re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:(?:\.\d+)?Z)?"),
     # Hide any substring that resembles a temporary file path.
     # This may be a little too broad but it's simpler than inspecting
     # specific JSON fields on case-per-case basis.
@@ -316,6 +317,8 @@ class SemgrepResult:
         stderr = mask_variable_text(
             self.raw_stderr, mask, clean_fingerprint=self.clean_fingerprint
         )
+        # This is a list of pairs (title, data) containing different
+        # kinds of output to put into the snapshot.
         sections = {
             "command": mask_variable_text(
                 self.command, mask, clean_fingerprint=self.clean_fingerprint
@@ -330,8 +333,9 @@ class SemgrepResult:
             sections["stdout - plain"] == sections["stdout - color"]
             and sections["stderr - plain"] == sections["stderr - color"]
         ):
-            del sections["stdout - color"]
-            del sections["stderr - color"]
+            # Minimize duplicate output.
+            sections["stdout - color"] = "<same as above: stdout - plain>"
+            sections["stderr - color"] = "<same as above: stderr - plain>"
         return "\n\n".join(
             f"=== {title}\n{text}\n=== end of {title}"
             for title, text in sections.items()

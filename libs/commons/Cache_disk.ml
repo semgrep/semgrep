@@ -15,7 +15,7 @@
 open Common
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -145,8 +145,8 @@ let cache_lwt compute_value methods input =
 let cache_computation ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
   else if not (USys.file_exists file) then (
-    logger#error "WARNING: cache_computation: can't find %s" file;
-    logger#error "defaulting to calling the function";
+    Logs.err (fun m -> m ~tags "WARNING: cache_computation: can't find %s" file);
+    Logs.err (fun m -> m ~tags "defaulting to calling the function");
     f ())
   else
     let file_cache = file ^ ext_cache in
@@ -154,7 +154,7 @@ let cache_computation ?(use_cache = true) file ext_cache f =
       USys.file_exists file_cache
       && UFile.filemtime (Fpath.v file_cache) >= UFile.filemtime (Fpath.v file)
     then (
-      logger#info "using cache: %s" file_cache;
+      Logs.info (fun m -> m ~tags "using cache: %s" file_cache);
       get_value file_cache)
     else
       let res = f () in

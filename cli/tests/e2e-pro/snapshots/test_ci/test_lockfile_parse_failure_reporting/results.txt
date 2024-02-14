@@ -114,3 +114,11 @@ CI scan completed successfully.
   semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

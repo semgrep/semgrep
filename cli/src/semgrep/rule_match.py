@@ -462,6 +462,27 @@ class RuleMatch:
         return UUID(hex=self.syntactic_id)
 
     @property
+    def is_validation_state_blocking(self) -> bool:
+        if self.validation_state is None:
+            return False
+
+        action_map = {
+            out.ConfirmedValid: "valid",
+            out.ConfirmedInvalid: "invalid",
+            out.ValidationError: "error",
+            out.NoValidator: "valid",  # Fallback to valid action for no validator
+        }
+
+        validation_state = action_map.get(type(self.validation_state.value))
+
+        return (
+            self.metadata.get("dev.semgrep.validation_state.actions", {}).get(
+                validation_state
+            )
+            == "block"
+        )
+
+    @property
     def is_blocking(self) -> bool:
         """
         Returns if this finding indicates it should block CI
@@ -476,7 +497,7 @@ class RuleMatch:
             else:
                 return blocking
         else:
-            return blocking
+            return self.is_validation_state_blocking or blocking
 
     @property
     def dataflow_trace(self) -> Optional[out.MatchDataflowTrace]:

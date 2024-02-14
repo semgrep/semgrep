@@ -27,7 +27,7 @@ module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
 module TM = Taint_smatch
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* TODO: Rename things to make clear that there are "sub-matches" and there are
  * "best matches". *)
@@ -611,9 +611,10 @@ let find_pos_in_actual_args args_taints fparams =
          (fun (i, remaining_params) taints ->
            match remaining_params with
            | [] ->
-               logger#error
-                 "More args to function than there are positional arguments in \
-                  function signature";
+               Logs.err (fun m ->
+                   m ~tags
+                     "More args to function than there are positional \
+                      arguments in function signature");
                (i + 1, [])
            | _ :: rest ->
                Hashtbl.add idx_to_taints i taints;
@@ -630,8 +631,9 @@ let find_pos_in_actual_args args_taints fparams =
       | __else__ -> None
     in
     if Option.is_none taint_opt then
-      logger#error
-        "cannot match taint variable with function arguments (%i: %s)" i s;
+      Logs.err (fun m ->
+          m ~tags "cannot match taint variable with function arguments (%i: %s)"
+            i s);
     taint_opt
 
 let fix_poly_taint_with_field env lval st =

@@ -18,7 +18,7 @@ module MV = Metavariable
 module RM = Range_with_metavars
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -95,8 +95,9 @@ let get_persistent_bindings revert_loc r nested_matches =
                     |> MV.mvalue_of_any
                   with
                   | None ->
-                      logger#error "Failed to convert mvar %s to and from any"
-                        mvar;
+                      Logs.err (fun m ->
+                          m ~tags "Failed to convert mvar %s to and from any"
+                            mvar);
                       None
                   | Some mval -> Some (mvar, mval))
          in
@@ -255,15 +256,17 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                    * `$STRING` binds to some text (except when using language:
                    * generic, see above) but it can naturally bind to other
                    * string expressions. *)
-                  logger#debug
-                    "metavariable-pattern failed because the content of %s is \
-                     not text: %s"
-                    mvar (MV.show_mvalue mval);
+                  Logs.debug (fun m ->
+                      m ~tags
+                        "metavariable-pattern failed because the content of %s \
+                         is not text: %s"
+                        mvar (MV.show_mvalue mval));
                   []
               | Some content ->
                   let content = adjust_content_for_language xlang content in
-                  logger#debug "nested analysis of |||%s||| with lang '%s'"
-                    content (Xlang.to_string xlang);
+                  Logs.debug (fun m ->
+                      m ~tags "nested analysis of |||%s||| with lang '%s'"
+                        content (Xlang.to_string xlang));
                   (* We re-parse the matched text as `xlang`. *)
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->

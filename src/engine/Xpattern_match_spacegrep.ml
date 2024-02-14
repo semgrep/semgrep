@@ -14,7 +14,7 @@
  *)
 open Xpattern_matcher
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 let lexing_pos_to_loc file (x : Lexing.position) str =
   (* almost like Spacegrep.Semgrep.semgrep_pos() *)
@@ -94,7 +94,8 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file origin =
             match doc_type with
             | Minified
             | Binary ->
-                logger#info "ignoring gibberish file: %s\n%!" file;
+                Logs.debug (fun m ->
+                    m ~tags "ignoring gibberish file: %s\n%!" file);
                 None
             | Text
             | Short ->

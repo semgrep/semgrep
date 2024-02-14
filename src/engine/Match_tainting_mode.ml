@@ -29,7 +29,7 @@ module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -84,6 +84,27 @@ type debug_taint = {
   sanitizers : RM.ranges;
   sinks : (RM.t * R.taint_sink) list;
 }
+
+module Range_table = struct
+  module T = Hashtbl.Make (struct
+    type t = Range.t
+
+    let equal = Range.equal
+    let hash = Hashtbl.hash
+  end)
+
+  let create () = T.create 100
+
+  let push tbl k v =
+    match T.find_opt tbl k with
+    | None -> T.add tbl k [ v ]
+    | Some vs -> T.replace tbl k (v :: vs)
+
+  let get tbl k =
+    match T.find_opt tbl k with
+    | None -> []
+    | Some vs -> vs
+end
 
 (*****************************************************************************)
 (* Hooks *)
@@ -156,9 +177,10 @@ module Formula_tbl = struct
 
            just don't cache it I guess
         *)
-        logger#error
-          "Tried to compute matches for a taint formula not in the cache \
-           (impossible?)";
+        Logs.err (fun m ->
+            m ~tags
+              "Tried to compute matches for a taint formula not in the cache \
+               (impossible?)");
         compute_matches_fn ()
     | Some (None, count) ->
         let ranges, expls = compute_matches_fn () in
@@ -335,9 +357,10 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        logger#trace
-          "Cannot compute range, there are no real tokens in this AST: %s"
-          (G.show_any any);
+        Logs.debug (fun m ->
+            m ~tags
+              "Cannot compute range, there are no real tokens in this AST: %s"
+              (G.show_any any));
       None
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
@@ -354,16 +377,6 @@ let overlap_with ~match_range r =
   let r1 = match_range in
   float_of_int (r.Range.end_ - r.Range.start + 1)
   /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
-
-let is_exact_match ~match_range r =
-  let r1 = match_range in
-  let overlap =
-    (* We want to know how well the AST node `any' is matching
-       * the taint-annotated code range, this is a ratio in [0.0, 1.0]. *)
-    float_of_int (r.Range.end_ - r.Range.start + 1)
-    /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
-  in
-  Range.( $<=$ ) r r1 && overlap > 0.99
 
 let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
@@ -383,33 +396,46 @@ let any_is_in_sources_matches rule any matches =
               })
          else None)
 
+(* Builds a table to quickly look up for propagator matches, taking advantage of
+ * the requirement that propagators must be exact matches.
+ *
+ * OBS: Previously we allowed these matches if they had an overlap of >0.99, but
+ *   to be honest that was arbitrary and fragile (the overlap largely depends on
+ *   the amount of text being matched). Typically propagators from/to match
+ *   l-values and those typically we can count as being 100% perfect matches.
+ *   If this causes problems we can always roll back, but all tests still work.
+ *)
+let propagators_table_of_matches rule matches =
+  let mk_match prop var kind r =
+    let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
+    let spec : D.a_propagator = { kind; prop = prop.spec; var } in
+    {
+      Taint_smatch.spec;
+      spec_id = prop.spec.propagator_id;
+      spec_pm;
+      range = r;
+      overlap = 1.0;
+    }
+  in
+  let tbl = Range_table.create () in
+  matches
+  |> List.iter (fun prop ->
+         let var = prop.id in
+         Range_table.push tbl prop.to_ (mk_match prop var `To prop.to_);
+         Range_table.push tbl prop.from (mk_match prop var `From prop.from));
+  tbl
+
 (* Check whether `any` matches either the `from` or the `to` of any of the
- * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
- * taint propagation more precise and predictable. *)
-let any_is_in_propagators_matches rule any matches :
-    D.a_propagator Taint_smatch.t list =
+ * `pattern-propagators`. Matches must be exact to make taint propagation
+ * more precise and predictable.
+ *
+ * THINK: Now that we have "Best_matches" we could perhaps use that for
+ *   propagators too?
+ *)
+let any_is_in_propagators_matches any tbl : D.a_propagator Taint_smatch.t list =
   match range_of_any any with
   | None -> []
-  | Some r ->
-      matches
-      |> List.concat_map (fun prop ->
-             let var = prop.id in
-             let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
-             let is_from = is_exact_match ~match_range:prop.from r in
-             let is_to = is_exact_match ~match_range:prop.to_ r in
-             let mk_match kind =
-               let spec : D.a_propagator = { kind; prop = prop.spec; var } in
-               {
-                 Taint_smatch.spec;
-                 spec_id = prop.spec.propagator_id;
-                 spec_pm;
-                 range = r;
-                 overlap = 1.0;
-               }
-             in
-             (if is_from then [ mk_match `From ] else [])
-             @ (if is_to then [ mk_match `To ] else [])
-             @ [])
+  | Some r -> Range_table.get tbl r
 
 let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
@@ -502,9 +528,10 @@ let sources_of_taints taints =
   in
   if without_req <> [] then without_req
   else (
-    logger#warning
-      "Taint source without precondition wasn't found. Displaying the taint \
-       trace from the source with precondition.";
+    Logs.warn (fun m ->
+        m ~tags
+          "Taint source without precondition wasn't found. Displaying the \
+           taint trace from the source with precondition.");
     with_req)
 
 let trace_of_source source =
@@ -680,6 +707,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           ]
     else []
   in
+  let propagators_tbl = propagators_table_of_matches rule propagators_ranges in
   let config = xconf.config in
   ( {
       Dataflow_tainting.filepath = !!file;
@@ -688,8 +716,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
         spec.sources |> snd
         |> List.exists (fun (src : R.taint_source) -> src.source_control);
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
-      is_propagator =
-        (fun x -> any_is_in_propagators_matches rule x propagators_ranges);
+      is_propagator = (fun x -> any_is_in_propagators_matches x propagators_tbl);
       is_sanitizer =
         (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
       is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
