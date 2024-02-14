@@ -33,6 +33,9 @@
   <a href="https://hub.docker.com/r/semgrep/semgrep">
     <img src="https://img.shields.io/docker/pulls/semgrep/semgrep.svg?style=flat-square" alt="Docker Pulls" />
   </a>
+  <a href="https://hub.docker.com/r/returntocorp/semgrep">
+    <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls (Old)" />
+  </a>
   <a href="https://twitter.com/intent/follow?screen_name=semgrep">
     <img src="https://img.shields.io/twitter/follow/semgrep?label=Follow%20semgrep&style=social&color=blue" alt="Follow @semgrep on Twitter" />
   </a>
