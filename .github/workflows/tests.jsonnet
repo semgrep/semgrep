@@ -572,6 +572,9 @@ local ignore_md = {
       ],
     } + ignore_md,
   },
+  permissions: {
+    'id-token': 'write',
+  },
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
