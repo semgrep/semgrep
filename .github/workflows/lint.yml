@@ -56,10 +56,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Check GitHub workflow files are up to date
-        working-directory: .github/workflows
         run: |
           sudo apt-get update
           sudo apt-get install jsonnet
+          cd .github/workflows
+          make clean
           make
           git diff --exit-code
 
