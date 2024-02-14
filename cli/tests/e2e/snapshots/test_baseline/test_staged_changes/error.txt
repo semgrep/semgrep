@@ -3,19 +3,11 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
-  Current version has 2 findings.
+  Scanning 0 files tracked by git with 1 Code rule:
+  Nothing to scan.
+  Current version has 0 findings.
 
-Creating git worktree from '4b63ca493df05e223404a80ac5f30d2aa830a704' to scan baseline.
-
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+Skipping baseline scan, because there are no current findings.
 
 
 ┌──────────────┐
@@ -24,4 +16,4 @@ Creating git worktree from '4b63ca493df05e223404a80ac5f30d2aa830a704' to scan ba
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
-Ran 1 rule on 1 file: 1 finding.
+Ran 1 rule on 0 files: 0 findings.
