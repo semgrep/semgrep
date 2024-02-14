@@ -58,7 +58,7 @@ jobs:
       - name: Check GitHub workflow files are up to date
         run: |
           sudo apt-get update
-          sudo apt-get install jsonnet
+          sudo apt-get install jsonnet yq
           cd .github/workflows
           make clean
           make
