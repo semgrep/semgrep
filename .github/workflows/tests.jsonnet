@@ -572,8 +572,9 @@ local ignore_md = {
       ],
     } + ignore_md,
   },
+  // These extra permissions are needed by some of the jobs, e.g. build-test-javascript.
   permissions: {
-    'contents': 'read',
+    contents: 'write',
     'id-token': 'write',
   },
   jobs: {

@@ -390,6 +390,11 @@ local homebrew_core_pr_job =
       ],
     },
   },
+  // These extra permissions are needed by some of the jobs, e.g. build-test-docker.
+  permissions: {
+    contents: 'read',
+    'id-token': 'write',
+  },
   jobs: {
     'park-pypi-packages': park_pypi_packages_job,
     'build-test-docker': build_test_docker_job,

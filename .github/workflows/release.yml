@@ -253,3 +253,6 @@ name: release
           state (like pushing to PyPI/Docker/Homebrew)
         required: true
         type: boolean
+permissions:
+  contents: read
+  id-token: write
