@@ -426,3 +426,6 @@ name: tests
     paths-ignore:
       - '**.md'
   workflow_dispatch: null
+permissions:
+  contents: write
+  id-token: write

@@ -1,2 +1,0 @@
-"Missing plugin" errors (i.e., rules that cannot be run without `--pro`) will now
-be grouped and reported as a single warning.

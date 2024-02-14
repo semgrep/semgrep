@@ -6,6 +6,34 @@
 
 <!-- insertion point -->
 
+## [1.61.1](https://github.com/returntocorp/semgrep/releases/tag/v1.61.1) - 2024-02-14
+
+
+### Added
+
+
+- Added performance metrics using OpenTelemetry for better visualization.
+  Users wishing to understand the performance of their Semgrep scans or
+  to help optimize Semgrep can configure the backend collector created in
+  `libs/tracing/unix/Tracing.ml`.
+
+  This is experimental and both the implementation and flags are likely to
+  change. (ea-320)
+- Created a new environment variable SEMGREP_REPO_DISPLAY_NAME for use in semgrep CI.
+  Currently, this does nothing. The goal is to provide a way to override the display
+  name of a repo in the Semgrep App. (gh-8953)
+- The OCaml/C executable (`semgrep-core` or `osemgrep`) is now passed through
+  the `strip` utility, which reduces its size by 10-25% depending on the
+  platform. Contribution by Filipe Pina (@fopina). (gh-9471)
+
+
+### Changed
+
+
+- "Missing plugin" errors (i.e., rules that cannot be run without `--pro`) will now
+  be grouped and reported as a single warning. (ea-842)
+
+
 ## [1.60.1](https://github.com/returntocorp/semgrep/releases/tag/v1.60.1) - 2024-02-09
 
 

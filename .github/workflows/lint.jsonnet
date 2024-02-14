@@ -105,7 +105,7 @@ local pre_commit_ocaml_job(submodules=false) =
           HOME: '/root',
         },
         // coupling: the version below must be the same than in dev/dev.opam
-	//
+        //
         // Without the 'git config' command below, we would get this error in CI:
         //   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
         //   To add an exception for this directory, call:
@@ -116,12 +116,12 @@ local pre_commit_ocaml_job(submodules=false) =
         // does not fail.
         // TODO: Not sure why we need to do that here but have no issue in the
         // other pre-commit jobs. Maybe because pre-commit/action@v3.0.0 does extra stuff?
-	//
+        //
         // to debug errors in pre-commit, use instead:
-	// opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
-	//
-	// TODO: get rid of apt-get autconf and opam update which is slow
-	// but need a more recent container: above
+        // opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
+        //
+        // TODO: get rid of apt-get autconf and opam update which is slow
+        // but need a more recent container: above
         run: |||
           # When installing ocamlformat.0.26.1 OPAM will try to rebuild some packages
           # and for that it requires 'autoconf'.
@@ -155,6 +155,26 @@ local action_lint_job = {
   ],
 };
 
+local jsonnet_gha_job = {
+  'runs-on': 'ubuntu-latest',
+  steps: [
+    actions.checkout(),
+    {
+      name: 'Check GitHub workflow files are up to date',
+      // yq (the good one) is actually pre-installed in GHA ubuntu image, see
+      // https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
+      run: |||
+        sudo apt-get update
+        sudo apt-get install jsonnet
+        cd .github/workflows
+        make clean
+        make
+        git diff --exit-code
+      |||,
+    },
+  ],
+};
+
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
@@ -167,6 +187,7 @@ local action_lint_job = {
     'pre-commit-manual': pre_commit_manual_job,
     'pre-commit-ocaml': pre_commit_ocaml_job(),
     'github-actions': action_lint_job,
+    'jsonnet-gha': jsonnet_gha_job,
   },
   export::{
     // reused in semgrep-pro

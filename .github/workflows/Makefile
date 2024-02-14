@@ -2,7 +2,7 @@
 # to .yml (GHA accepts only the YAML format).
 #
 # To convert more yml files to jsonnet, install 'yq' and 'jsonnetfmt'
-# and run `jsonnetfmt <(cat foo.yml | yq)` to get a first draft.
+# and run `jsonnetfmt <(cat foo.yml | yq -p yml -o json)` to get a first draft.
 
 LIBS = \
   libs/actions.libsonnet \

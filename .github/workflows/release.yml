@@ -59,7 +59,7 @@ jobs:
     steps:
       - id: get-version
         name: Get the version
-        run: echo "VERSION=${GITHUB_REF/refs/tags//}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: wait-draft-release
@@ -99,7 +99,7 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - id: get-version
         name: Get the version
-        run: echo "VERSION=${GITHUB_REF/refs/tags//}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -253,3 +253,6 @@ name: release
           state (like pushing to PyPI/Docker/Homebrew)
         required: true
         type: boolean
+permissions:
+  contents: read
+  id-token: write
