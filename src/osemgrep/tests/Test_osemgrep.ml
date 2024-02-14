@@ -67,7 +67,6 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
                      (caps :> < Cap.stdout ; Cap.network >)
                      [| "semgrep-login" |]
                  in
-                 (* assert (res.logs =~ "[.\n]*Saved access token"); *)
                  assert (exit_code =*= Exit_code.ok)));
 
          (* Even if we are allowed to login with a fake token (because

@@ -160,6 +160,12 @@ class SemgrepCoreError(SemgrepError):
         """
         return isinstance(self.core.error_type.value, out.Timeout)
 
+    def is_missing_plugin(self) -> bool:
+        """
+        Return if this error is due to a missing plugin
+        """
+        return isinstance(self.core.error_type.value, out.MissingPlugin)
+
     @property
     def _error_message(self) -> str:
         """

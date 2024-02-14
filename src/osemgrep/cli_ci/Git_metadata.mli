@@ -4,6 +4,7 @@
 
 type env = {
   _SEMGREP_REPO_NAME : string option;
+  _SEMGREP_REPO_DISPLAY_NAME : string option;
   _SEMGREP_REPO_URL : Uri.t option;
   _SEMGREP_COMMIT : Digestif.SHA1.t option;
   _SEMGREP_JOB_URL : Uri.t option;
@@ -37,6 +38,7 @@ object
   method pr_id : string option
   method pr_title : string option
   method repo_name : string
+  method repo_display_name : string
   method repo_url : Uri.t option
   method merge_base_ref : Digestif.SHA1.t option
 end

@@ -118,12 +118,10 @@ let test_login_with_env_token caps : Testo.test =
                  let exit_code =
                    Login_subcommand.main caps [| "semgrep-login" |]
                  in
-                 (* assert (res.logs =~ "[.\n]*Saved access token"); *)
                  assert (exit_code =*= Exit_code.ok));
 
              (* login should fail on second call *)
              let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
-             (* assert (res.logs =~ ".*You're already logged in"); *)
              assert (exit_code =*= Exit_code.fatal));
 
          (* clear login (by logging out) *)
@@ -132,7 +130,6 @@ let test_login_with_env_token caps : Testo.test =
              (caps :> < Cap.stdout >)
              [| "semgrep-logout" |]
          in
-         (* assert (res.logs =~ ".*Logged out!"); *)
          assert (exit_code =*= Exit_code.ok);
 
          (* logout twice should work *)
@@ -141,7 +138,6 @@ let test_login_with_env_token caps : Testo.test =
              (caps :> < Cap.stdout >)
              [| "semgrep-logout" |]
          in
-         (* assert (res.logs =~ ".*You are not logged in"); *)
          assert (exit_code =*= Exit_code.ok)))
 
 (*****************************************************************************)

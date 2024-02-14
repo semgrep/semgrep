@@ -1,0 +1,3 @@
+Created a new environment variable SEMGREP_REPO_DISPLAY_NAME for use in semgrep CI.
+Currently, this does nothing. The goal is to provide a way to override the display
+name of a repo in the Semgrep App.
