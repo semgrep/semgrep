@@ -853,8 +853,8 @@ let targets_of_config (config : Core_scan_config.t) :
 
 (* Extract new targets using the extractors *)
 let extracted_targets_of_config (config : Core_scan_config.t)
-    (extract_rules : Rule.extract_rule list) (basic_targets : In.target list) :
-    In.target list * Extract.adjusters =
+    (extract_rules : Rule.extract_rule list)
+    (basic_targets : In.code_target list) : In.target list * Extract.adjusters =
   Logs.debug (fun m ->
       m "extracting nested content from %d files" (List.length basic_targets));
   let match_hook str match_ =

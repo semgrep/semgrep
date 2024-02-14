@@ -60,15 +60,11 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+type sha = SHA of string [@@deriving eq, ord, sexp] [@@unboxed]
 
-(* TODO: use a dedicated type, not an alias because it results in confusing
-   error messages when the compiler uses e.g. 'sha' to refer to a
-   string message or other string data:
-
-   type sha = SHA of string [@@unboxed]
-*)
-type sha = (string[@printer fun fmt -> fprintf fmt "%s"])
-[@@deriving show, eq, ord, sexp]
+(* print no quotes *)
+let show_sha (SHA str) = str
+let pp_sha fmt sha = Format.fprintf fmt "%s" (show_sha sha)
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
@@ -706,13 +702,13 @@ let cat_file_blob ?cwd (SHA sha) =
   | Error (`Msg s) ->
       Error s
 
-let object_size ?cwd sha =
+let object_size ?cwd (SHA sha) =
   let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
   | _ -> None
 
-let commit_timestamp ?cwd sha =
+let commit_timestamp ?cwd (SHA sha) =
   (* %cI - print datetime in strict ISO 8601 format *)
   let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
@@ -720,7 +716,7 @@ let commit_timestamp ?cwd sha =
       Timedesc.Timestamp.of_iso8601 s |> Result.to_option
   | _ -> None
 
-let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
+let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
   let cmd =
     ( git,
       cd cwd

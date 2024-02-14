@@ -17,11 +17,11 @@ let mask_temp_git_hash =
 let mask_test_dirname =
   Testo.mask_pcre_pattern ~mask:"test-<HEX>" "test-[a-f0-9]{1,8}"
 
-let mask_output =
+let normalize =
   [ mask_temp_git_hash; mask_test_dirname; Testo.mask_temp_paths () ]
 
 let t = Testo.create
-let capture = Testo.create ~checked_output:Stdout ~mask_output
+let capture = Testo.create ~checked_output:Stdout ~normalize
 
 (*
    List repo files relative to 'cwd' which can be the root of the git repo,

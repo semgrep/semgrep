@@ -906,7 +906,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | None, Some url when is_git_repo url ->
           let checkout_path =
             match !Semgrep_envvars.v.remote_clone_dir with
-            | Some dir -> dir
+            | Some dir -> Rfpath.of_fpath dir
             | None ->
                 Git_wrapper.temporary_remote_checkout_path url
                 |> Rfpath.of_fpath
