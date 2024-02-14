@@ -1,3 +1,0 @@
-The OCaml/C executable (`semgrep-core` or `osemgrep`) is now passed through
-the `strip` utility, which reduces its size by 10-25% depending on the
-platform. Contribution by Filipe Pina (@fopina).
