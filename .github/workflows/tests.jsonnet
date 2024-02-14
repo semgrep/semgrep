@@ -573,6 +573,7 @@ local ignore_md = {
     } + ignore_md,
   },
   permissions: {
+    'contents': 'read',
     'id-token': 'write',
   },
   jobs: {

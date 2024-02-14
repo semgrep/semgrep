@@ -427,4 +427,5 @@ name: tests
       - '**.md'
   workflow_dispatch: null
 permissions:
+  contents: read
   id-token: write
