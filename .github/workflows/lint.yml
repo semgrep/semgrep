@@ -56,9 +56,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Check GitHub workflow files are up to date
+        # yq (the good one) is actually pre-installed in GHA ubuntu image, see
+        # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
         run: |
           sudo apt-get update
-          sudo apt-get install jsonnet yq
+          sudo apt-get install jsonnet
           cd .github/workflows
           make clean
           make
