@@ -273,15 +273,17 @@ let def_expr_evaluates_to_value (lang : Lang.t) =
 let is_constructor env ret_ty id_info =
   match id_info.G.id_resolved.contents with
   | Some (G.GlobalName (ls, _), _) -> (
-      (* TODO this condition is a little too loose, but should work in
-         practice could we tighten this up? *)
       env.lang =*= Lang.Python
       && List.length ls >= 3 (* Module + Class + __init__ *)
       && (match List_.last_opt ls with
-         | Some "__init__" -> true
-         | _ -> false)
+          | Some "__init__" -> true
+          | _ -> false)
       &&
       match ret_ty with
+      (* It would be nice if we can check that this type actually
+         corresponds to a class, but I am uncertain if this is
+         possible. Istead we just check if it is a nominal typed.
+         TODO could we somehow guarentee this type is a class? *)
       | { G.t = G.TyN _; _ } -> true
       | _ -> false)
   | _ -> false
@@ -723,6 +725,9 @@ and expr_aux env ?(void = false) e_gen =
                ( {
                    e =
                      ( G.N (Id (_, id_info))
+                     (* Module paths are currently parsed into
+                        dotaccess so m.ClassName() is completely
+                        valid. *)
                      | G.DotAccess (_, _, FN (Id (_, id_info))) );
                    _;
                  },
@@ -1423,7 +1428,7 @@ and mk_class_construction env obj origin_exp ty cons_id_info args :
     lval * stmt list =
   (* We encode `obj = new T(args)` as `obj = new obj.T(args)` so that taint
      analysis knows that the reciever when calling `T` is the variable
-     `obj`. It's kinda tacky but works for now. *)
+     `obj`. It's kinda hacky but works for now. *)
   let lval = lval_of_base (Var obj) in
   let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
   let opt_cons =

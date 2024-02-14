@@ -1,4 +1,4 @@
-Adds support for python constructors to taint analysis.
+Pro: Adds support for python constructors to taint analysis.
 
 If interfile naming resolves that a python constructor is called taint
 will now track these objects with less heuristics. Without interfile
