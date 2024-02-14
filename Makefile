@@ -94,6 +94,12 @@ core:
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
 	ln -s semgrep-core bin/osemgrep
+	# Remove all symbols with GNU strip. It saves 10-25% on the executable
+	# size and it doesn't seem to reduce the functionality or
+	# debuggability of OCaml executables.
+	# See discussion at https://github.com/semgrep/semgrep/pull/9471
+	chmod +w bin/semgrep-core
+	strip bin/semgrep-core
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core-bc
