@@ -12,8 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Printf
-open Common
 module TL = Test_login_subcommand
 
 (*****************************************************************************)
@@ -33,14 +31,6 @@ module TL = Test_login_subcommand
 (* Tests *)
 (*****************************************************************************)
 
-let log_command argv =
-  printf "cwd: %s\n" (Sys.getcwd ());
-  printf "command: %s\n"
-    (argv |> Array.to_list
-    |> List_.map (fun x -> sprintf "%S" x)
-    |> String.concat " ");
-  flush stdout
-
 (* no need for a token to access public rules in the registry *)
 let test_scan_config_registry_no_token (caps : CLI.caps) =
   Testo.create __FUNCTION__ (fun () ->
@@ -56,7 +46,7 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
                 "r/python.lang.correctness.useless-eqeq.useless-eqeq";
               |]
           in
-          Exit_code.Check.ok res.exit_code))
+          Exit_code.Check.ok exit_code))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Testo.test =
