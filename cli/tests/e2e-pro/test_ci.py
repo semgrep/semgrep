@@ -68,7 +68,7 @@ BAD_CONFIG = dedent(
       foo: bar
 """
 ).lstrip()
-FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
+FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
 
@@ -402,7 +402,10 @@ def enable_dependency_query() -> bool:
 
 @pytest.fixture
 def start_scan_mock(
-    requests_mock, scan_config, mocked_scan_id, enable_dependency_query
+    requests_mock,
+    scan_config,
+    mocked_scan_id,
+    enable_dependency_query,
 ):
     start_scan_response = out.ScanResponse.from_json(
         {
@@ -878,7 +881,7 @@ def test_full_run(
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
 
-    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP
+    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.value
 
     if env.get("GITLAB_CI"):
         # If in a merge pipeline, base_sha is defined, otherwise is None

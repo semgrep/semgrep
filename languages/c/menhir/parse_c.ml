@@ -14,7 +14,7 @@
  *)
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,12 +36,13 @@ let parse file =
     try (Ast_c_build.program ast, stat) with
     | exn ->
         let e = Exception.catch exn in
-        logger#error "PB: Ast_c_build, on %s (exn = %s)" !!file
-          (Common.exn_to_s exn);
+        Logs.err (fun m ->
+            m ~tags "PB: Ast_c_build, on %s (exn = %s)" !!file
+              (Common.exn_to_s exn));
         (*None, { stat with Stat.bad = stat.Stat.bad + stat.Stat.correct } *)
         Exception.reraise e
   in
-  { Parsing_result.ast; tokens; stat }
+  { Parsing_result.ast = List_.map (fun x -> Ast_c.X x) ast; tokens; stat }
 
 let parse_program file =
   let res = parse file in

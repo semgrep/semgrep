@@ -102,7 +102,7 @@ let repos_with_tests : repo_with_tests list =
     };
   ]
 
-let mask_output =
+let normalize =
   [
     Testo.mask_line ~after:"Initialized empty Git repository in" ();
     Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ();
@@ -119,7 +119,7 @@ let tests caps : Testo.test list =
          |> List_.map (fun (test_name, test_func) ->
                 Testo.create
                   ~category:[ "target selection on real git repos"; repo_name ]
-                  ~checked_output:Stdout ~mask_output test_name (fun () ->
+                  ~checked_output:Stdout ~normalize test_name (fun () ->
                     Git_wrapper.with_git_repo repo_files (fun () ->
                         test_func caps))))
   |> List_.flatten

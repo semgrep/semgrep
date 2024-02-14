@@ -28,7 +28,7 @@ module GG = Generic_vs_generic
 module OutJ = Semgrep_output_v1_j
 open Match_env
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* Debugging flags.
  * Note that semgrep-core -matching_explanations can also be useful to debug.
@@ -192,10 +192,11 @@ let (mini_rule_of_pattern :
 
 let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
-  logger#info "DEBUG SEMGREP MODE!";
+  Logs.debug (fun m -> m ~tags "DEBUG SEMGREP MODE!");
   mini_rules
   |> List.concat_map (fun mr ->
-         logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
+         Logs.debug (fun m ->
+             m ~tags "Checking mini rule with pattern %s" mr.MR.pattern_string);
          let res =
            Match_patterns.check
              ~hook:(fun _ -> ())
@@ -213,7 +214,9 @@ let debug_semgrep config mini_rules file lang ast =
                 "Found %d mini rule matches (uniq = %d) (json_uniq = %d)"
                 (List.length res) (List.length res_uniq) (List.length json_uniq);
            *)
-           res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
+           res
+           |> List.iter (fun m ->
+                  Logs.debug (fun p -> p ~tags "match = %s" (PM.show m)));
          res)
 
 (*****************************************************************************)
@@ -224,9 +227,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
-  let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
-    xtarget
-  in
+  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let config = (xconf.config, xconf.equivs) in
   match xlang with
   | Xlang.L (lang, _) ->
@@ -329,8 +330,9 @@ let run_selector_on_ranges env selector_opt ranges =
         matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
           patterns
       in
-      logger#info "run_selector_on_ranges: found %d matches"
-        (List.length res.matches);
+      Logs.debug (fun m ->
+          m ~tags "run_selector_on_ranges: found %d matches"
+            (List.length res.matches));
       res.matches
       |> List_.map RM.match_result_to_range
       |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
@@ -387,6 +389,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
+               dependency = None;
              })
     in
     let focused_ranges =
@@ -634,9 +637,10 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              match !hook_pro_entropy_analysis with
              (* TODO - nice UX handling of this - tell the user that they ran a rule in OSS w/o Pro hook and so their rule didn't do anything *)
              | None ->
-                 logger#error
-                   "EntropyV2 rule encountered without loading proprietary \
-                    plugin";
+                 Logs.err (fun m ->
+                     m ~tags
+                       "EntropyV2 rule encountered without loading proprietary \
+                        plugin");
                  None
              | Some f ->
                  let bindings = r.mvars in
@@ -651,23 +655,27 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
-               logger#debug
-                 "Analyze regexp captured by %s for ReDoS vulnerability: %s"
-                 mvar re_str;
+               Logs.debug (fun m ->
+                   m ~tags
+                     "Analyze regexp captured by %s for ReDoS vulnerability: %s"
+                     mvar re_str);
                match ReDoS.find_vulnerable_subpatterns re_str with
                | Ok [] -> false
                | Ok subpatterns ->
                    subpatterns
                    |> List.iter (fun pat ->
-                          logger#info
-                            "The following subpattern was predicted to be \
-                             vulnerable to ReDoS attacks: %s"
-                            pat);
+                          Logs.debug (fun m ->
+                              m ~tags
+                                "The following subpattern was predicted to be \
+                                 vulnerable to ReDoS attacks: %s"
+                                pat));
                    true
                | Error () ->
-                   logger#debug
-                     "Failed to parse metavariable %s's value as a regexp: %s"
-                     mvar re_str;
+                   Logs.debug (fun m ->
+                       m ~tags
+                         "Failed to parse metavariable %s's value as a regexp: \
+                          %s"
+                         mvar re_str);
                    false
              in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
@@ -894,7 +902,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     matches_of_xpatterns mvar_context rule xconf xtarget xpatterns
     |> RP.add_rule rule
   in
-  logger#trace "found %d matches" (List.length res.matches);
+  Logs.debug (fun m -> m ~tags "found %d matches" (List.length res.matches));
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
@@ -907,9 +915,10 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       errors = ref E.ErrorSet.empty;
     }
   in
-  logger#trace "evaluating the formula";
+  Logs.debug (fun m -> m ~tags "evaluating the formula");
   let final_ranges, expl = evaluate_formula env opt_context formula in
-  logger#trace "found %d final ranges" (List.length final_ranges);
+  Logs.debug (fun m ->
+      m ~tags "found %d final ranges" (List.length final_ranges));
   let res' =
     {
       res with
@@ -924,7 +933,8 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
+let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
+    xconf xtarget =
   let rule_id = fst r.id in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
@@ -937,6 +947,8 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
+      |> List.concat_map
+           (Match_dependency.annotate_pattern_match dependency_matches)
       |> before_return (fun v ->
              v
              |> List.iter (fun (m : Pattern_match.t) ->

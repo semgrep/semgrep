@@ -23,6 +23,7 @@ on:
         options:
           - returntocorp/semgrep-test # testing image, we will eventually remove the option and hardcode to returntocorp/semgrep
           - returntocorp/semgrep
+          - semgrep/semgrep
       docker_tag:
         description: "Docker tag to update"
         type: choice

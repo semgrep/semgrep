@@ -19,7 +19,7 @@ open Ast_cpp
 open OCaml (* for the map_of_xxx *)
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* See Parse_cpp_tree_Sitter.recover_when_partial_error *)
 let recover_when_partial_error = ref true
@@ -64,8 +64,9 @@ let error t s = raise (Parsing_error.Other_error (s, t))
 let error_unless_partial_error _env t s =
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s
-      (Tok.stringpos_of_tok t)
+    Logs.err (fun m ->
+        m ~tags "error_unless_partial_error: %s, at %s" s
+          (Tok.stringpos_of_tok t))
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x
@@ -950,11 +951,46 @@ and map_stmt env x : G.stmt =
       and v2 = map_compound env v2
       and v3 = map_of_list (map_handler env) v3 in
       G.Try (v1, G.Block v2 |> G.s, v3, None, None) |> G.s
+  | MsTry (v1, try_, v3) ->
+      G.OtherStmtWithStmt (OSWS_SEH, [ G.Tk v1 ], map_ms_try_handler env try_ v3)
+      |> G.s
+  | MsLeave v1 -> G.OtherStmt (OS_Todo, [ G.Tk v1 ]) |> G.s
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
       let st = G.Block (Tok.unsafe_fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
+
+and map_ms_try_handler env (l, inner, r) x =
+  let inner =
+    map_of_list (map_sequencable env (map_stmt_or_decl env)) inner
+    |> List.flatten
+  in
+  let try_stmt =
+    G.OtherStmtWithStmt (OSWS_SEH, [], G.Block (l, inner, r) |> G.s) |> G.s
+  in
+  let inner_stmt =
+    match x with
+    | MsExcept (v1, (_, v2, _), (l', v3, r')) ->
+        let contents =
+          map_of_list (map_sequencable env (map_stmt_or_decl env)) v3
+          |> List.flatten
+        in
+        G.OtherStmtWithStmt
+          ( OSWS_SEH,
+            [ G.Tk v1; G.E (map_expr env v2) ],
+            G.Block (l', contents, r') |> G.s )
+        |> G.s
+    | MsFinally (v1, (l', v2, r')) ->
+        let contents =
+          map_of_list (map_sequencable env (map_stmt_or_decl env)) v2
+          |> List.flatten
+        in
+        G.OtherStmtWithStmt
+          (OSWS_SEH, [ G.Tk v1 ], G.Block (l', contents, r') |> G.s)
+        |> G.s
+  in
+  G.Block (Tok.unsafe_fake_bracket [ try_stmt; inner_stmt ]) |> G.s
 
 and map_expr_asm_operand env (v1, v2, v3) =
   let v1 =
@@ -1771,13 +1807,16 @@ and map_enum_definition env
       enum_body = v_enum_body;
     } : G.name option * G.type_definition =
   let _l, v_enum_body, _r =
-    map_brace env (map_of_list (map_enum_elem env)) v_enum_body
+    map_brace env
+      (map_of_list (map_sequencable_for_or_type env (map_enum_elem env)))
+      v_enum_body
   in
   let v_enum_name = map_of_option (map_name env) v_enum_name in
   let _v_enum_kindTODO = map_tok env v_enum_kind in
-  (v_enum_name, { G.tbody = G.OrType v_enum_body })
+  (v_enum_name, { G.tbody = G.OrType (List.flatten v_enum_body) })
 
-and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } =
+and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } : G.or_type_element
+    =
   let v_e_val =
     map_of_option
       (fun (v1, v2) ->
@@ -2157,6 +2196,22 @@ and map_sequencable_for_field :
         let ent = G.basic_entity v1 in
         let def = G.OtherDef (("MacroVar", snd v1), [ G.Tk v2 ]) in
         [ G.DefStmt (ent, def) |> G.s |> field ]
+
+and map_sequencable_for_or_type :
+      'a.
+      env ->
+      ('a -> G.or_type_element) ->
+      'a sequencable ->
+      G.or_type_element list =
+ fun _env _of_a -> function
+  | X v1 ->
+      let v1 = _of_a v1 in
+      [ v1 ]
+  | CppDirective _
+  | CppIfdef _
+  | MacroDecl _
+  | MacroVar _ ->
+      []
 
 and map_ifdef_directive env = function
   | Ifdef v1 ->

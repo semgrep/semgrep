@@ -97,7 +97,7 @@ type status = {
 }
 [@@deriving show]
 
-type sha [@@deriving show]
+type sha [@@deriving show, eq, ord, sexp]
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
@@ -196,6 +196,18 @@ val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
  * - [Error message] where [message] is a brief message indicating why git
  *   could not perform the action, e.g., [sha] is not the sha of a blob or
  *   [sha] does not designate an object.
+ *)
+
+val object_size : ?cwd:Fpath.t -> sha -> int option
+(** [object_size sha] evaluates to [Some s] where [s] is the size of the object
+  * designated by [sha] in bytes, or [None] if an error occured (e.g. the
+  * object didn't exist).
+  *)
+
+val commit_timestamp : ?cwd:Fpath.t -> sha -> Timedesc.Timestamp.t option
+(** [commit_datetime sha] evaluates to [Some dt] where [dt] is the date and
+ * time of the commit designated by [sha] or [None] if an error occured (e.g.,
+ * the sha was for another object type).
  *)
 
 val ls_tree :

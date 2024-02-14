@@ -24,20 +24,23 @@ depends: [
   "alcotest"
   "alcotest-js"
   "alcotest-lwt"
+  "calendar"
   "fmt"
   "ocolor"
   "ANSITerminal"
   "terminal_size"
-  "easy_logging" {= "0.8.1"}
-  "easy_logging_yojson" {= "0.8.1"}
+  "uucp"
+  "uutf"
   "logs"
   "atdgen"
   "yojson" {>= "2.0.0"}
   "yaml"
   "xmlm"
+  "sarif" {>= "0.3.0"}
   "cmdliner"
   "ppxlib"
   "ppx_deriving"
+  "ppx_deriving_yojson"
   "ppx_hash"
   "ppx_inline_test"
   "ppx_sexp_conv" {= "v0.16.0"}
@@ -50,9 +53,13 @@ depends: [
   "semver"
   "uri"
   "uuidm"
-  "trace"
-  "trace-tef"
+  "timedesc" {>= "2.0.0"}
   "lsp" {= "1.15.1-5.0"}
+  "trace"
+  "opentelemetry" {>= "0.6"}
+  "opentelemetry-client-ocurl"
+  "ambient-context-lwt"
+  "conf-libcurl" {= "1"}
   "uri"
   "cohttp-lwt-unix"
   "cohttp-lwt-jsoo"

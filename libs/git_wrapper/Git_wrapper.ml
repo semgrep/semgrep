@@ -13,7 +13,10 @@
  * LICENSE for more details.
  *)
 open Common
+open Sexplib.Std
 open Fpath_.Operators
+
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -57,7 +60,15 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-type sha = SHA of string [@@unboxed] [@@deriving show]
+
+(* TODO: use a dedicated type, not an alias because it results in confusing
+   error messages when the compiler uses e.g. 'sha' to refer to a
+   string message or other string data:
+
+   type sha = SHA of string [@@unboxed]
+*)
+type sha = (string[@printer fun fmt -> fprintf fmt "%s"])
+[@@deriving show, eq, ord, sexp]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
@@ -418,7 +429,7 @@ let run_with_worktree ~commit ?(branch = None) f =
         let cmd = (git, [ "worktree"; "remove"; temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
         | Ok (`Exited 0) ->
-            Logs.info (fun m -> m "Finished cleaning up git worktree")
+            Logs.info (fun m -> m ~tags "Finished cleaning up git worktree")
         | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
         | Error (`Msg e) -> raise (Error e)
       in
@@ -471,7 +482,7 @@ let status ?cwd ?commit () =
   let rec parse = function
     | _ :: file :: tail when check_dir file && check_symlink file ->
         Logs.info (fun m ->
-            m "Skipping %s since it is a symlink to a directory: %s" file
+            m ~tags "Skipping %s since it is a symlink to a directory: %s" file
               (UUnix.realpath file));
         parse tail
     | "A" :: file :: tail ->
@@ -497,11 +508,12 @@ let status ?cwd ?commit () =
     | "!" (* ignored *) :: _ :: tail -> parse tail
     | "?" (* untracked *) :: _ :: tail -> parse tail
     | unknown :: file :: tail ->
-        Logs.warn (fun m -> m "unknown type in git status: %s, %s" unknown file);
+        Logs.warn (fun m ->
+            m ~tags "unknown type in git status: %s, %s" unknown file);
         parse tail
     | [ remain ] ->
         Logs.warn (fun m ->
-            m "unknown data after parsing git status: %s" remain)
+            m ~tags "unknown data after parsing git status: %s" remain)
     | [] -> ()
   in
   parse stats;
@@ -611,7 +623,7 @@ let get_project_url ?cwd () : string option =
 
 (* coupling: with semgrep_output_v1.atd contribution type *)
 let git_log_json_format =
-  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%ai\", \
+  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%aI\", \
    \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
    \"%ae\"}}"
 
@@ -694,7 +706,21 @@ let cat_file_blob ?cwd (SHA sha) =
   | Error (`Msg s) ->
       Error s
 
-let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
+let object_size ?cwd sha =
+  let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
+  | _ -> None
+
+let commit_timestamp ?cwd sha =
+  (* %cI - print datetime in strict ISO 8601 format *)
+  let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
+  match UCmd.string_of_run ~trim:false cmd with
+  | Ok (s, (_, `Exited 0)) ->
+      Timedesc.Timestamp.of_iso8601 s |> Result.to_option
+  | _ -> None
+
+let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
   let cmd =
     ( git,
       cd cwd

@@ -202,8 +202,8 @@ def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.TEXT,
         force_color=True,
         quiet=True,
-        # Pass named temporary file to force metric notice behavior on first scan
-        # (but should not see anything cause of --quiet)
+        # Pass named temporary file to force metric notice behavior
+        # on first scan (but should not see anything cause of --quiet)
         env={"SEMGREP_SETTINGS_FILE": tempfile.NamedTemporaryFile().name},
     )
     snapshot.assert_match(results.as_snapshot(), "results.txt")

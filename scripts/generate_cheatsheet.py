@@ -5,7 +5,7 @@
 # Usage:
 #   $ ./scripts/generate-cheatsheet
 #
-# or more explicitely:
+# or more explicitly:
 #   $ cd cli
 #   $ pipenv run ../scripts/generate_cheatsheet.py --json --directory \
 #     ../tests --output-file cheatsheet.json

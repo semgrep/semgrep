@@ -322,19 +322,66 @@ let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
 (*****************************************************************************)
 (* Partition rules *)
 (*****************************************************************************)
+let finding_is_blocking (m : OutJ.cli_match) =
+  let contains_blocking xs =
+    List.exists
+      (function
+        | JSON.String s -> String.equal s "block"
+        | _ -> false)
+      xs
+  in
 
-let is_blocking (json : JSON.t) =
+  let validation_state_to_action (vs : OutJ.validation_state) =
+    match vs with
+    | `Confirmed_valid -> "valid"
+    | `Confirmed_invalid -> "invalid"
+    | `Validation_error -> "error"
+    | `No_validator -> "valid" (* Fallback to valid action for no validator *)
+  in
+
+  let metadata = JSON.from_yojson m.extra.metadata in
+
+  match metadata with
+  | JSON.Object xs ->
+      let validation_state_should_block =
+        match
+          ( m.extra.validation_state,
+            List.assoc_opt "dev.semgrep.validation_state.actions" xs )
+        with
+        | Some validation_state, Some (JSON.Object vs) ->
+            List.assoc_opt (validation_state_to_action validation_state) vs
+            |> Option.map (JSON.equal (JSON.String "block"))
+            |> Option.value ~default:false
+        | _ -> false
+      in
+      let should_block =
+        match List.assoc_opt "dev.semgrep.actions" xs with
+        | Some (JSON.Array actions) -> contains_blocking actions
+        | _ -> false
+      in
+      validation_state_should_block || should_block
+  | _ -> false
+
+let rule_is_blocking (json : JSON.t) =
   match json with
   | JSON.Object xs -> (
-      match List.assoc_opt "dev.semgrep.actions" xs with
-      | Some (JSON.Array stuff) ->
+      match List.assoc_opt "dev.semgrep.validation_state.actions" xs with
+      | Some (JSON.Object vs) ->
           List.exists
             (function
-              | JSON.String s -> String.equal s "block"
-              | _else -> false)
-            stuff
-      | _else -> false)
-  | _else -> false
+              | _, JSON.String s -> String.equal s "block"
+              | _ -> false)
+            vs
+      | _ -> (
+          match List.assoc_opt "dev.semgrep.actions" xs with
+          | Some (JSON.Array stuff) ->
+              List.exists
+                (function
+                  | JSON.String s -> String.equal s "block"
+                  | _ -> false)
+                stuff
+          | _ -> false))
+  | _ -> false
 
 (* partition rules *)
 let partition_rules (filtered_rules : Rule.t list) =
@@ -348,7 +395,8 @@ let partition_rules (filtered_rules : Rule.t list) =
   let blocking_rules, non_blocking_rules =
     rest
     |> List.partition (fun r ->
-           Option.value ~default:false (Option.map is_blocking r.Rule.metadata))
+           Option.value ~default:false
+             (Option.map rule_is_blocking r.Rule.metadata))
   in
   (cai_rules, blocking_rules, non_blocking_rules)
 
@@ -363,7 +411,7 @@ let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
                (Str.regexp "r2c-internal-cai")
                (Rule_ID.to_string m.check_id)
            then `Cai
-           else if is_blocking (JSON.from_yojson m.extra.metadata) then
+           else if finding_is_blocking m then
              (* and "sca_info" not in match.extra *)
              `Blocking
            else `Non_blocking)
@@ -420,7 +468,7 @@ let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
       hashes = None;
       (* TODO should compute start_line_hash / end_line_hash / code_hash / pattern_hash *)
       metadata = m.extra.metadata;
-      is_blocking = is_blocking (JSON.from_yojson m.extra.metadata);
+      is_blocking = finding_is_blocking m;
       fixed_lines =
         None
         (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);

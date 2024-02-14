@@ -1,0 +1,8 @@
+rules:
+  - id: interpolated-message
+    patterns:
+      - pattern: foo($X)
+    languages: [python]
+    severity: ERROR
+    message: |
+      Arg to `foo` is $X

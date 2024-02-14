@@ -82,7 +82,7 @@ local homebrew_core_pr_job(version) = {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
       // this is run only in dry-mode
-      if: "${{ inputs.dry-run }}",
+      'if': "${{ inputs.dry-run }}",
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep 99.99.99" \
@@ -118,7 +118,7 @@ local homebrew_core_pr_job(version) = {
         cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
         git status
         git diff
-	%s
+        %s
         gh auth setup-git
         git remote add r2c https://github.com/semgrep-release/homebrew-core.git
         git checkout -b bump-semgrep-%s

@@ -61,6 +61,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         is_ignored = false;
         engine_kind = `OSS;
         validation_state = Some `No_validator;
+        historical_info = None;
         extra_extra = None;
         severity = None;
         metadata = None;

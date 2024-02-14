@@ -1015,6 +1015,7 @@ module Format = struct
   let fprintf = Format.fprintf
   let sprintf = Format.sprintf
   let kfprintf = Format.kfprintf
+  let ikfprintf = Format.ikfprintf
 
   (* pp_xxx are safe *)
   let pp_print_int = Format.pp_print_int

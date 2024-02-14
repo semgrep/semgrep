@@ -69,7 +69,7 @@ val targets_of_config :
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.extract_rule list ->
-  Input_to_core_t.target list ->
+  Input_to_core_t.code_target list ->
   Input_to_core_t.target list * Extract.adjusters
 (**
    Generate a list of new targets, which are extracted with extract rules
@@ -133,5 +133,8 @@ val xtarget_of_file :
 *)
 val sort_targets_by_decreasing_size :
   Input_to_core_t.target list -> Input_to_core_t.target list
+
+val sort_code_targets_by_decreasing_size :
+  Input_to_core_t.code_target list -> Input_to_core_t.code_target list
 
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences

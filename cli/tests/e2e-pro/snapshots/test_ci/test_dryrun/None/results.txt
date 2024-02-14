@@ -760,3 +760,11 @@ Would have sent complete blob: {
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

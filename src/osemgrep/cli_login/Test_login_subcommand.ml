@@ -31,26 +31,6 @@ let t = Testo.create
 (* Helpers *)
 (*****************************************************************************)
 
-type result = { exit_code : Exit_code.t; logs : string }
-
-let with_logs ~f ~final =
-  Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
-      UCommon.pr2 (spf "logs = %s" log_content);
-      let code =
-        match res with
-        | Ok code -> code
-        | Error (Error.Exit_code code) -> code
-        | Error exn ->
-            (* never, ever, ignore errors without logging them first *)
-            Logs.err (fun m ->
-                m "Fatal exception without a trace: %s\n"
-                  (Printexc.to_string exn));
-            Exit_code.fatal ~__LOC__
-      in
-      UCommon.pr2
-        (spf "exit_code = %d, meaning = %s" code.code code.description);
-      final { exit_code = code; logs = log_content })
-
 (* we return a fun () to match Testo.test second element *)
 let with_login_test_env f () =
   Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
@@ -78,31 +58,28 @@ let with_fake_deployment_response return_value f =
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
 let test_logout_not_logged_in caps : Testo.test =
-  t __FUNCTION__
+  t ~checked_output:Stderr
+    ~normalize:[ Testo.mask_not_substring "You are not logged in" ]
+    __FUNCTION__
     (with_login_test_env (fun () ->
-         with_logs
-           ~f:(fun () -> Logout_subcommand.main caps [| "semgrep-logout" |])
-           ~final:(fun res ->
-             assert (res.logs =~ ".*You are not logged in");
-             Exit_code.Check.ok res.exit_code)))
+         let exit_code = Logout_subcommand.main caps [| "semgrep-logout" |] in
+         Exit_code.Check.ok res.exit_code))
 
 let test_login_no_tty caps : Testo.test =
-  t __FUNCTION__
+  t ~checked_output:Stderr
+    ~normalize:
+      [ Testo.mask_not_substring "meant to be run in an interactive terminal" ]
+    __FUNCTION__
     (with_login_test_env (fun () ->
-         with_logs
-           ~f:(fun () ->
-             (* make stdin non-interactive so Unix.isatty Unix.stdin
-              * called in Login_subcommand.run returns false
-              *)
-             let old_stdin = Unix.dup Unix.stdin in
-             let in_, _out_ = Unix.pipe () in
-             Unix.dup2 in_ Unix.stdin;
-             let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
-             Unix.dup2 old_stdin Unix.stdin;
-             exit_code)
-           ~final:(fun res ->
-             assert (res.logs =~ ".*meant to be run in an interactive terminal");
-             Exit_code.Check.fatal res.exit_code)))
+         (* make stdin non-interactive so Unix.isatty Unix.stdin
+            called in Login_subcommand.run returns false
+         *)
+         let old_stdin = Unix.dup Unix.stdin in
+         let in_, _out_ = Unix.pipe () in
+         Unix.dup2 in_ Unix.stdin;
+         let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
+         Unix.dup2 old_stdin Unix.stdin;
+         Exit_code.Check.fatal res.exit_code))
 
 (* This token does not have to be valid because we mock the deployment
  * request and response that is supposed to come from our endpoint and
@@ -123,45 +100,45 @@ let fake_deployment =
 |}
 
 let test_login_with_env_token caps : Testo.test =
-  t __FUNCTION__
+  t ~checked_output:Stderr
+    ~normalize:
+      [
+        Testo.mask_not_substrings ~mask:"[...]\n"
+          [
+            "Saved access token";
+            "You're already logged in";
+            "Logged out!";
+            "You are not logged in";
+          ];
+      ]
+    __FUNCTION__
     (with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
              with_fake_deployment_response fake_deployment (fun () ->
-                 (* login with env token *)
-                 with_logs
-                   ~f:(fun () ->
-                     Login_subcommand.main caps [| "semgrep-login" |])
-                   ~final:(fun res ->
-                     assert (res.logs =~ "[.\n]*Saved access token");
-                     Exit_code.Check.ok res.exit_code);
+                 let exit_code =
+                   Login_subcommand.main caps [| "semgrep-login" |]
+                 in
+                 Exit_code.Check.ok res.exit_code);
 
-                 (* login should fail on second call *)
-                 with_logs
-                   ~f:(fun () ->
-                     Login_subcommand.main caps [| "semgrep-login" |])
-                   ~final:(fun res ->
-                     assert (res.logs =~ ".*You're already logged in");
-                     Exit_code.Check.fatal res.exit_code);
+             (* login should fail on second call *)
+             let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
+             Exit_code.Check.fatal res.exit_code);
 
-                 (* clear login (by logging out) *)
-                 with_logs
-                   ~f:(fun () ->
-                     Logout_subcommand.main
-                       (caps :> < Cap.stdout >)
-                       [| "semgrep-logout" |])
-                   ~final:(fun res ->
-                     assert (res.logs =~ ".*Logged out!");
-                     Exit_code.Check.ok res.exit_code);
+         (* clear login (by logging out) *)
+         let exit_code =
+           Logout_subcommand.main
+             (caps :> < Cap.stdout >)
+             [| "semgrep-logout" |]
+         in
+         Exit_code.Check.ok res.exit_code;
 
-                 (* logout twice should work *)
-                 with_logs
-                   ~f:(fun () ->
-                     Logout_subcommand.main
-                       (caps :> < Cap.stdout >)
-                       [| "semgrep-logout" |])
-                   ~final:(fun res ->
-                     assert (res.logs =~ ".*You are not logged in");
-                     Exit_code.Check.ok res.exit_code)))))
+         (* logout twice should work *)
+         let exit_code =
+           Logout_subcommand.main
+             (caps :> < Cap.stdout >)
+             [| "semgrep-logout" |]
+         in
+         Exit_code.Check.ok res.exit_code))
 
 (*****************************************************************************)
 (* Entry point *)

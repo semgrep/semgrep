@@ -114,6 +114,11 @@ class GitMeta:
         return str(os.path.basename(repo_root_str))
 
     @property
+    def repo_display_name(self) -> str:
+        # Using the 'or' for the typechecker
+        return os.getenv("SEMGREP_REPO_DISPLAY_NAME") or self.repo_name
+
+    @property
     def repo_url(self) -> Optional[str]:
         env = get_state().env
         repo_url = os.getenv("SEMGREP_REPO_URL")
@@ -181,11 +186,13 @@ class GitMeta:
         return git_check_output(["git", "show", "-s", "--format=%ct"])
 
     @property
-    def commit_timestamp(self) -> str:
+    def commit_timestamp(self) -> out.Datetime:
         """
         Returns the commit timestamp as an iso-formatted datetime string.
         """
-        return datetime.fromtimestamp(int(self.commit_datetime)).isoformat()
+        return out.Datetime(
+            datetime.fromtimestamp(int(self.commit_datetime)).isoformat()
+        )
 
     @property
     def is_full_scan(self) -> bool:
@@ -200,6 +207,7 @@ class GitMeta:
             semgrep_version=out.Version(__VERSION__),
             # REQUIRED for semgrep-app backend
             repository=self.repo_name,
+            repo_display_name=self.repo_display_name,
             # OPTIONAL for semgrep-app backend
             repo_url=uri_opt(self.repo_url),
             branch=self.branch,
@@ -262,6 +270,10 @@ class GithubMeta(GitMeta):
             return repo_name
         else:
             raise Exception("Could not get repo_name when running in GithubAction")
+
+    @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -658,6 +670,10 @@ class GitlabMeta(GitMeta):
         return super().repo_name
 
     @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
+
+    @property
     def repo_url(self) -> Optional[str]:
         project_url = os.getenv("SEMGREP_REPO_URL", os.getenv("CI_PROJECT_URL"))
 
@@ -761,6 +777,10 @@ class CircleCIMeta(GitMeta):
         return f"{project_name}/{repo_name}"
 
     @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
+
+    @property
     def repo_url(self) -> Optional[str]:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
@@ -823,6 +843,10 @@ class JenkinsMeta(GitMeta):
         return name if name else super().repo_name
 
     @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
+
+    @property
     def repo_url(self) -> Optional[str]:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
@@ -876,6 +900,10 @@ class BitbucketMeta(GitMeta):
             # try pulling from url
             name = get_repo_name_from_repo_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
         return name if name else super().repo_name
+
+    @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -939,6 +967,10 @@ class AzurePipelinesMeta(GitMeta):
 
         name = get_repo_name_from_repo_url(self.repo_url)
         return name if name else super().repo_name
+
+    @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -1023,6 +1055,10 @@ class BuildkiteMeta(GitMeta):
         return name if name else super().repo_name
 
     @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
+
+    @property
     def repo_url(self) -> Optional[str]:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if repo_url:
@@ -1089,6 +1125,10 @@ class TravisMeta(GitMeta):
 
         repo_name = os.getenv("TRAVIS_REPO_SLUG")
         return repo_name if repo_name else super().repo_name
+
+    @property
+    def repo_display_name(self) -> str:
+        return super().repo_display_name
 
     @property
     def repo_url(self) -> Optional[str]:

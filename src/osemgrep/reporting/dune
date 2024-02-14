@@ -9,8 +9,11 @@
    terminal_size
    digestif
    xmlm
+   sarif
+   python-str-repr
 
-  osemgrep_configuring
+   murmur3
+   osemgrep_configuring
    osemgrep_core
    osemgrep_core_runner
    semgrep.reporting

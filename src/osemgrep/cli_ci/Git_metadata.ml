@@ -18,6 +18,7 @@ module XCmd = Cmdliner.Cmd
 
 type env = {
   _SEMGREP_REPO_NAME : string option;
+  _SEMGREP_REPO_DISPLAY_NAME : string option;
   _SEMGREP_REPO_URL : Uri.t option;
   _SEMGREP_COMMIT : Digestif.SHA1.t option;
   _SEMGREP_JOB_URL : Uri.t option;
@@ -39,6 +40,17 @@ let env : env Term.t =
     let env = XCmd.Env.info "SEMGREP_REPO_NAME" in
     Arg.(
       value & opt (some string) None & info [ "semgrep-repo-name" ] ~env ~doc)
+  in
+  let semgrep_repo_display_name =
+    let doc =
+      "The name the repository should be displayed as for this scan. Setting \
+       it allows users to scan individual repos in one monorepo separately."
+    in
+    let env = XCmd.Env.info "SEMGREP_REPO_DISPLAY_NAME" in
+    Arg.(
+      value
+      & opt (some string) None
+      & info [ " semgrep-repo-display-name" ] ~env ~doc)
   in
   let semgrep_repo_url =
     let doc = "The URL of the Git repository." in
@@ -79,10 +91,12 @@ let env : env Term.t =
     let env = XCmd.Env.info "SEMGREP_BRANCH" in
     Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
   in
-  let run _SEMGREP_REPO_NAME _SEMGREP_REPO_URL _SEMGREP_COMMIT _SEMGREP_JOB_URL
-      _SEMGREP_PR_ID _SEMGREP_PR_TITLE _SEMGREP_BRANCH =
+  let run _SEMGREP_REPO_NAME _SEMGREP_REPO_DISPLAY_NAME _SEMGREP_REPO_URL
+      _SEMGREP_COMMIT _SEMGREP_JOB_URL _SEMGREP_PR_ID _SEMGREP_PR_TITLE
+      _SEMGREP_BRANCH =
     {
       _SEMGREP_REPO_NAME;
+      _SEMGREP_REPO_DISPLAY_NAME;
       _SEMGREP_REPO_URL;
       _SEMGREP_COMMIT;
       _SEMGREP_JOB_URL;
@@ -92,8 +106,9 @@ let env : env Term.t =
     }
   in
   Term.(
-    const run $ semgrep_repo_name $ semgrep_repo_url $ semgrep_commit
-    $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title $ semgrep_branch)
+    const run $ semgrep_repo_name $ semgrep_repo_display_name $ semgrep_repo_url
+    $ semgrep_commit $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title
+    $ semgrep_branch)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -112,9 +127,10 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
       let commit_author_name : string =
         Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%an" ]
       in
-      (* Returns epoch time as str of head commit *)
-      let commit_datetime : string =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%ct" ]
+      (* Returns strict ISO 8601 time as str of head commit *)
+      let commit_timestamp : Timedesc.t =
+        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%cI" ]
+        |> Timedesc.of_iso8601 |> Result.get_ok
       in
       {
         semgrep_version = Version.version;
@@ -122,6 +138,7 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         repository = self#repo_name;
         (* OPTIONAL for semgrep backed *)
         repo_url = self#repo_url;
+        repo_display_name = Some self#repo_display_name;
         branch = self#branch;
         ci_job_url = self#ci_job_url;
         commit = self#commit_sha;
@@ -130,10 +147,7 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         commit_author_username = None;
         commit_author_image_url = None;
         commit_title = Some commit_title;
-        commit_timestamp =
-          (let time = float_of_string commit_datetime in
-           let tm : Unix.tm = Unix.gmtime time in
-           Some (ATD_string_wrap.Datetime.unwrap tm));
+        commit_timestamp = Some commit_timestamp;
         on = self#event_name;
         pull_request_author_username = None;
         pull_request_author_image_url = None;
@@ -163,6 +177,11 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
               [ "rev-parse"; "--show-toplevel" ]
           in
           Fpath.basename (Fpath.v str)
+
+    method repo_display_name =
+      match env._SEMGREP_REPO_DISPLAY_NAME with
+      | Some repo_display_name -> repo_display_name
+      | None -> self#repo_name
 
     method repo_url =
       match env._SEMGREP_REPO_URL with

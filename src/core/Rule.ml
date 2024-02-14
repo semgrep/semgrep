@@ -16,7 +16,7 @@ open Common
 module MV = Metavariable
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 open Ppx_hash_lib.Std.Hash.Builtin
 
@@ -563,6 +563,34 @@ and step = {
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
+(* Supply chain *)
+(*****************************************************************************)
+
+(* You can only do single layer deep OR *)
+type dependency_formula = dependency_pattern list
+
+(* A pattern to match against versions in a lockfile.
+   This is not like a regular code pattern! It's description of a range of *versions*.
+   For example: ">=1.0.0, <= 2.3.5", which is meant to "match" any version in that interval, e.g. 1.3.5
+
+   Here's a breakdown of how this interacts with normal patterns:
+   * Rule has only normal patterns:
+      Rule behaves as normal
+   * Rule has normal patterns and dependency patterns:
+      If *both* match, the rule produces "reachable" findings: code findings annotated with dependency findings
+      If only the code patterns match, the rule produces *no* findings
+      If only the dependency patterns match, the rule produces "lockfile-only" findings: dependency findings without code findings
+   * Rule has only dependency patterns:
+      Rule only produces "lockfile-only" findings
+*)
+and dependency_pattern = {
+  ecosystem : Semgrep_output_v1_t.ecosystem;
+  package_name : string;
+  version_constraints : Dependency.constraint_ast;
+}
+[@@deriving show, eq]
+
+(*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
 
@@ -660,6 +688,7 @@ type 'mode rule_info = {
      in the current version of Semgrep and wouldn't even reach this point. *)
   min_version : Version_info.t option;
   max_version : Version_info.t option;
+  dependency_formula : dependency_formula option;
 }
 [@@deriving show]
 
@@ -984,6 +1013,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     metadata = None;
     validators = None;
     product = `SAST;
+    dependency_formula = None;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
