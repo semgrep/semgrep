@@ -172,6 +172,7 @@ class BaselineHandler:
             "--ignore-submodules",
             "--relative",
             self._base_commit,
+            "--",  # end of options, start of file paths
         ]
         try:
             if self._is_mergebase:
