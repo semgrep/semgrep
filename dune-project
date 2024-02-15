@@ -478,6 +478,7 @@ For more information see https://semgrep.dev
     (lsp (= 1.15.1-5.0))
     ; tracing
     trace
+    ppx-trace
     (opentelemetry (>= 0.6))
     opentelemetry-client-ocurl
     ambient-context-lwt
