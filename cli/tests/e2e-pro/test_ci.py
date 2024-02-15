@@ -406,7 +406,6 @@ def start_scan_mock(
     requests_mock, scan_config, mocked_scan_id, enable_dependency_query
 ):
     def _start_scan_func(semgrep_url: str = "https://semgrep.dev"):
-
         start_scan_response = out.ScanResponse.from_json(
             {
                 "info": {
@@ -417,7 +416,9 @@ def start_scan_mock(
                 },
                 "config": {
                     "rules": YAML(typ="safe").load(scan_config),
-                    "triage_ignored_syntactic_ids": ["f3b21c38bc22a1f1f870d49fc3a40244"],
+                    "triage_ignored_syntactic_ids": [
+                        "f3b21c38bc22a1f1f870d49fc3a40244"
+                    ],
                     "triage_ignored_match_based_ids": [
                         "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
                     ],
@@ -430,27 +431,34 @@ def start_scan_mock(
         return requests_mock.post(
             f"{semgrep_url}/api/cli/scans", json=start_scan_response.to_json()
         )
+
     return _start_scan_func
 
 
 @pytest.fixture
 def upload_results_mock(requests_mock, mocked_scan_id, mocked_task_id):
-    results_response = out.CiScanResultsResponse(errors=[], task_id=mocked_task_id)
-    return requests_mock.post(
-        f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/results",
-        json=results_response.to_json(),
-    )
+    def _upload_results_func(semgrep_url: str = "https://semgrep.dev"):
+        results_response = out.CiScanResultsResponse(errors=[], task_id=mocked_task_id)
+        return requests_mock.post(
+            f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/results",
+            json=results_response.to_json(),
+        )
+
+    return _upload_results_func
 
 
 @pytest.fixture
 def complete_scan_mock(requests_mock, mocked_scan_id):
-    complete_response = out.CiScanCompleteResponse(
-        success=True, app_block_override=True, app_block_reason="Test Reason"
-    )
-    return requests_mock.post(
-        f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/complete",
-        json=complete_response.to_json(),
-    )
+    def _complete_scan_func(semgrep_url: str = "https://semgrep.dev"):
+        complete_response = out.CiScanCompleteResponse(
+            success=True, app_block_override=True, app_block_reason="Test Reason"
+        )
+        return requests_mock.post(
+            f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/complete",
+            json=complete_response.to_json(),
+        )
+
+    return _complete_scan_func
 
 
 @pytest.fixture
@@ -879,7 +887,9 @@ def test_full_run(
     )
 
     # Check correct metadata
-    scan_create_json = start_scan_mock("https://tenantname.semgrep.dev").last_request.json()
+    scan_create_json = start_scan_mock(
+        "https://tenantname.semgrep.dev"
+    ).last_request.json()
     meta_json = scan_create_json["meta"]
 
     if "SEMGREP_COMMIT" in env:
@@ -909,7 +919,7 @@ def test_full_run(
     del scan_create_json["scan_metadata"]
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
-    findings_and_ignores_json = upload_results_mock.last_request.json()
+    findings_and_ignores_json = upload_results_mock().last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -925,7 +935,7 @@ def test_full_run(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = complete_scan_mock.last_request.json()
+    complete_json = complete_scan_mock().last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -1020,7 +1030,7 @@ def test_lockfile_parse_failure_reporting(
     )
 
     # Check correct metadata
-    findings_and_ignores_json = upload_results_mock.last_request.json()
+    findings_and_ignores_json = upload_results_mock().last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -1036,7 +1046,7 @@ def test_lockfile_parse_failure_reporting(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = complete_scan_mock.last_request.json()
+    complete_json = complete_scan_mock().last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     complete_json["stats"]["lockfile_scan_info"] = {}
     assert len(complete_json["dependency_parser_errors"]) > 0
@@ -1325,7 +1335,7 @@ def test_shallow_wrong_merge_base(
         ),
         "bad_results.txt",
     )
-    findings_json = upload_results_mock.last_request.json()
+    findings_json = upload_results_mock().last_request.json()
     assert (
         len(findings_json["findings"]) == 2
     ), "Test might be invalid since we expect this to scan the wrong thing"
@@ -1349,7 +1359,7 @@ def test_shallow_wrong_merge_base(
         "results.txt",
     )
 
-    findings_json = upload_results_mock.last_request.json()
+    findings_json = upload_results_mock().last_request.json()
     assert (
         len(findings_json["findings"]) == 1
     ), "Potentially scanning wrong files/commits"
@@ -1842,12 +1852,12 @@ def test_query_dependency(
         "output.txt",
     )
 
-    results_json = upload_results_mock.last_request.json()
+    results_json = upload_results_mock().last_request.json()
     snapshot.assert_match(
         json.dumps(results_json["dependencies"], indent=2), "dependencies.json"
     )
 
-    complete_json = complete_scan_mock.last_request.json()
+    complete_json = complete_scan_mock().last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -1926,7 +1936,7 @@ def test_existing_supply_chain_finding(
         "base_output.txt",
     )
 
-    findings_json = upload_results_mock.last_request.json()
+    findings_json = upload_results_mock().last_request.json()
     assert len(findings_json["findings"]) == 1
 
     lockfile1 = repo_copy_base / "poetry.lock"
@@ -1994,7 +2004,7 @@ def test_existing_supply_chain_finding(
         ),
         "new_output.txt",
     )
-    findings_json = upload_results_mock.last_request.json()
+    findings_json = upload_results_mock().last_request.json()
     assert len(findings_json["findings"]) == 0
 
 
