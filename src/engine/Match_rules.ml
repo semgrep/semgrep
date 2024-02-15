@@ -68,14 +68,16 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
          (Rule_ID.to_string rule_id))
   in
   {
-    path = file_and_more.file;
+    path = file_and_more.path.internal_path_to_content;
     reason = Irrelevant_rule;
     details;
     rule_id = Some rule_id;
   }
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
-  let { Xtarget.file; lazy_content; _ } = xtarget in
+  let { path = { internal_path_to_content; _ }; lazy_content; _ } : Xtarget.t =
+    xtarget
+  in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let is_relevant =
     match xconf.filter_irrelevant_rules with
@@ -86,14 +88,15 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
         | Some (prefilter_formula, func) ->
             let content = Lazy.force lazy_content in
             let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
-            Logs.debug (fun m -> m ~tags "looking for %s in %s" s !!file);
+            Logs.debug (fun m ->
+                m ~tags "looking for %s in %s" s !!internal_path_to_content);
             func content)
   in
   if not is_relevant then
     Logs.debug (fun m ->
         m ~tags "skipping rule %s for %s"
           (Rule_ID.to_string (fst r.R.id))
-          !!file);
+          !!internal_path_to_content);
   is_relevant
 
 (* This function separates out rules into groups of taint rules by languages,
@@ -171,9 +174,13 @@ let check ~match_hook ~timeout ~timeout_threshold
     | Some table -> Hashtbl.find_opt table
     | None -> fun _ -> None
   in
-  let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
+  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
+      : Xtarget.t =
+    xtarget
+  in
   Logs.debug (fun m ->
-      m ~tags "checking %s with %d rules" !!file (List.length rules));
+      m ~tags "checking %s with %d rules" !!internal_path_to_content
+        (List.length rules));
   (match (!Profiling.profile, xlang) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Xlang.L (_lang, []) ->
@@ -182,7 +189,8 @@ let check ~match_hook ~timeout ~timeout_threshold
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
   let per_rule_boilerplate_fn =
-    per_rule_boilerplate_fn ~timeout ~timeout_threshold !!file
+    per_rule_boilerplate_fn ~timeout ~timeout_threshold
+      !!internal_path_to_content
   in
 
   (* We separate out the taint rules specifically, because we may want to
@@ -223,7 +231,9 @@ let check ~match_hook ~timeout ~timeout_threshold
                | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
+  let res =
+    RP.collate_rule_results xtarget.path.internal_path_to_content res_total
+  in
   let extra =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->

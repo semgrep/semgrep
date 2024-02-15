@@ -5,6 +5,7 @@
  (libraries
    fpath
    sexplib
+   paths
 
    commons
    commons2

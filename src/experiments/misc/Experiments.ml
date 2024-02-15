@@ -19,7 +19,8 @@ let stat_matches file =
   UCommon.pr2 (spf "matched: %d" (List.length matches));
   let per_files =
     matches
-    |> List_.map (fun m -> (m.Pattern_match.file, m))
+    |> List_.map (fun (m : Pattern_match.t) ->
+           (m.path.internal_path_to_content, m))
     |> Assoc.group_assoc_bykey_eff
     |> List_.map (fun (file, xs) -> (file, List.length xs))
     |> Assoc.sort_by_val_highfirst |> List_.take_safe 10
