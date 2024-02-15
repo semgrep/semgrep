@@ -71,6 +71,7 @@ BAD_CONFIG = dedent(
 FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
+SEMGREP_URL = "https://semgrep.dev"
 
 # To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
 # the app code uses, so the tests can enforce the env is mocked appropriately.
@@ -425,7 +426,7 @@ def start_scan_mock(
         }
     )
     return requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", json=start_scan_response.to_json()
+        f"{SEMGREP_URL}/api/cli/scans", json=start_scan_response.to_json()
     )
 
 
@@ -433,7 +434,7 @@ def start_scan_mock(
 def upload_results_mock(requests_mock, mocked_scan_id, mocked_task_id):
     results_response = out.CiScanResultsResponse(errors=[], task_id=mocked_task_id)
     return requests_mock.post(
-        f"https://semgrep.dev/api/agent/scans/{mocked_scan_id}/results",
+        f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/results",
         json=results_response.to_json(),
     )
 
@@ -444,7 +445,7 @@ def complete_scan_mock(requests_mock, mocked_scan_id):
         success=True, app_block_override=True, app_block_reason="Test Reason"
     )
     return requests_mock.post(
-        f"https://semgrep.dev/api/agent/scans/{mocked_scan_id}/complete",
+        f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/complete",
         json=complete_response.to_json(),
     )
 
@@ -479,6 +480,15 @@ def mock_autofix(request, mocker):
             "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
             "GITHUB_BASE_REF": "",
             "GITHUB_HEAD_REF": "",
+        },
+        {  # Github full scan with custom tenant
+            "CI": "true",
+            **DEFAULT_GITHUB_VARS,
+            "GITHUB_EVENT_NAME": "push",
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
+            "SEMGREP_URL": "https://tenantname.semgrep.dev",
         },
         {  # Github full scan with SEMGREP env vars set
             "CI": "true",
@@ -738,6 +748,7 @@ def mock_autofix(request, mocker):
     ids=[
         "local",
         "github-push",
+        "github-push-with-app-url",
         "github-push-special-env-vars",
         "github-enterprise",
         "github-pr",
