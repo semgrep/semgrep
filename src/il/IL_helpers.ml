@@ -19,6 +19,7 @@ open IL
 (* Prelude *)
 (*****************************************************************************)
 
+(* DUPLICATE WITH IL.compare_name *)
 let compare_name x y =
   let ident_cmp = String.compare (fst x.ident) (fst y.ident) in
   if ident_cmp <> 0 then ident_cmp else AST_generic.SId.compare x.sid y.sid
@@ -156,6 +157,19 @@ module LvalOrdered = struct
             (fun offset1 offset2 ->
               match (offset1.o, offset2.o) with
               | Dot a, Dot b -> compare_name a b
+              | Index { e = Operator ((G.Mult, _), []); _ }, Index _
+              | Index _, Index { e = Operator ((G.Mult, _), []); _ } ->
+                  (* This stands for an arbitrary index, like '[*]',
+                   * see 'Pro_taint_lval_env.lval_index_any'. *)
+                  0
+              | ( Index { e = Literal (Int (Some i1, _)); _ },
+                  Index { e = Literal (Int (Some i2, _)); _ } ) ->
+                  (* [n] *)
+                  Int64.compare i1 i2
+              | ( Index { e = Literal (String (_, (s1, _), _)); _ },
+                  Index { e = Literal (String (_, (s2, _), _)); _ } ) ->
+                  (* ["..."] *)
+                  String.compare s1 s2
               | Index _, _
               | _, Index _ ->
                   Stdlib.compare offset1 offset2)

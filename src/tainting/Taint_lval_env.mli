@@ -41,6 +41,9 @@ val hook_propagate_to :
   ref
 (** Pro hook, this is a bit complicated to avoid exposing `t`s internals. *)
 
+val hook_normalize_rev_offset : (IL.offset list -> IL.offset list) option ref
+(** Pro index sensitivity *)
+
 val empty : env
 val empty_inout : env Dataflow_core.inout
 
