@@ -650,8 +650,13 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
     ( git,
       cd cwd
       @ ("ls-tree" :: (if recurse then [ "-r" ] else []))
-      @ [ "--full-tree"; "--format=%(objecttype) %(objectname) %(path)"; sha ]
-    )
+      (* NOTE: We use 0x00 to delimit the fields since other characters may
+         appear in path *)
+      @ [
+          "--full-tree";
+          "--format=%(objecttype)%x00%(objectname)%x00%(path)";
+          sha;
+        ] )
   in
   let* objects =
     match UCmd.lines_of_run ~trim:true cmd with
@@ -661,30 +666,21 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
   let objects =
     List.filter_map
       (fun obj ->
-        let parsed_obj =
-          match String.split_on_char ' ' obj with
-          | [ "commit"; sha; path ] -> (
-              (* possible for submodules *)
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Commit; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "tree"; sha; path ] -> (
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tree; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "blob"; sha; path ] -> (
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Blob; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "tag"; sha; path ] -> (
-              (* possible, but we probably don't care. *)
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tag; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
+        let obj_info =
+          (* NOTE: We split on 0x00 here since we've chosen that as the
+             delimiter in the format string for ls-tree's output above. *)
+          match String.split_on_char '\x00' obj with
+          (* possible for submodules *)
+          | [ "commit"; sha; path ] -> Ok (Fpath.of_string path, sha, Commit)
+          | [ "tree"; sha; path ] -> Ok (Fpath.of_string path, sha, Tree)
+          | [ "blob"; sha; path ] -> Ok (Fpath.of_string path, sha, Blob)
+          (* possible, but we probably don't care. *)
+          | [ "tag"; sha; path ] -> Ok (Fpath.of_string path, sha, Tag)
           | _ -> Error "invalid syntax"
         in
-        match parsed_obj with
-        | Ok obj -> Some obj
+        match obj_info with
+        | Ok (Ok path, sha, kind) -> Some { kind; sha; extra = { path } }
+        | Ok (Error (`Msg s), _, _)
         | Error s ->
             Logs.warn (fun m ->
                 m
