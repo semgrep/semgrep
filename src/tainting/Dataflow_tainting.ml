@@ -1282,6 +1282,13 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
         } ->
             (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
+        | {
+         e = Fetch { base = (Mem { e = (Fetch { base = Var obj_var; rev_offset = [ ] }) ; _} as obj_base);
+          rev_offset = [ { o = Dot _method; _ } ] };
+         _;
+        } ->
+            (* We're calling `obj->method`, so `this->x` is actually `obj->x` *)
+            Some ({ base = obj_base; rev_offset = List.rev os }, obj_var)
         | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
             (* We're calling a `method` on the same instace of the caller,
              * and `this.x` is just `this.x` *)
