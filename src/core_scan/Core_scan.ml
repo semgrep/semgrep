@@ -219,8 +219,7 @@ let filter_existing_targets (targets : Target.t list) :
            | GitBlob { sha; _ } ->
                Right
                  {
-                   Semgrep_output_v1_t.path =
-                     Target.internal_path_to_content target;
+                   Semgrep_output_v1_t.path = Target.internal_path target;
                    reason = Nonexistent_file;
                    details =
                      Some
