@@ -21,9 +21,7 @@ type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
    targets but doesn't have to put them in a file since we stay in the
    same process and we bypass the semgrep-core CLI.
 *)
-type target_source =
-  | Target_file of Fpath.t
-  | Targets of Input_to_core_t.targets
+type target_source = Target_file of Fpath.t | Targets of Target.t list
 [@@deriving show]
 
 (* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)

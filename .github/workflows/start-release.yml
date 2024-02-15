@@ -511,5 +511,5 @@ name: start-release
         required: true
         type: boolean
 permissions:
-  contents: read
+  contents: write
   id-token: write

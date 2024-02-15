@@ -217,7 +217,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
            | Dir ->
                (* skipping submodules.
                   TODO? should we add a skip_reason for it? pysemgrep
-                  though was using `git ls-files` which implicitely does
+                  though was using `git ls-files` which implicitly does
                   not even consider submodule files, so those files/dirs
                   were not mentioned in the skip list
                *)

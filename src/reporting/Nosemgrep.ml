@@ -96,15 +96,15 @@ let recognise_and_collect ~rex (line_num, line) =
    ID which is not equal to the rule's ID.
 *)
 let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
+  let path = pm.path.internal_path_to_content in
   let lines =
     (* Minus one, because we need the preceding line. *)
     let start, end_ = pm.range_loc in
     let start_line = max 0 (start.pos.line - 1) in
-    UFile.lines_of_file (start_line, end_.pos.line) pm.file
+    UFile.lines_of_file (start_line, end_.pos.line) path
     |> List_.mapi (fun idx x -> (start_line + idx, x))
   in
 
-  let path = pm.file in
   let linecol_to_bytepos_fun =
     (Pos.full_converters_large !!path).linecol_to_bytepos_fun
   in
