@@ -24,15 +24,13 @@
 (* Code *)
 (*****************************************************************************)
 
-let with_span = Trace_core.with_span
-
-let run_with_span span_name ?data f =
-  let data = Option.map (fun d () -> d) data in
-  Trace_core.with_span ?data ~__FILE__ ~__LINE__ span_name @@ fun _sp -> f ()
+let add_data_to_span (_i : int64) (_data : (string * Trace_core.user_data) list)
+    =
+  ()
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-let configure_tracing (service_name : string) = ()
+let configure_tracing (_service_name : string) = ()
 let with_setup f = f ()

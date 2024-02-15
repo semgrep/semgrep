@@ -522,7 +522,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 (*****************************************************************************)
 
 (* for -rules *)
-let rules_from_rule_source (config : Core_scan_config.t) :
+let%trace rules_from_rule_source (config : Core_scan_config.t) :
     Rule.t list * Rule.invalid_rule_error list =
   let rule_source =
     match config.rule_source with
@@ -543,7 +543,6 @@ let rules_from_rule_source (config : Core_scan_config.t) :
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
-[@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
@@ -564,9 +563,10 @@ let handle_target_with_trace handle_target t =
     | `CodeTarget t -> t.In.path
     | `LockfileTarget (t : In.lockfile_target) -> t.In.path
   in
-  Tracing.run_with_span "Core_scan.handle_target"
-    ?data:(Some [ ("filename", `String target_name) ])
-    (fun () -> handle_target t)
+  let%trace span = "Core_scan.handle_target" in
+  let res = handle_target t in
+  Tracing.add_data_to_span span [ ("filename", `String target_name) ];
+  res
 
 (*
    Returns a list of match results and a separate list of scanned targets.

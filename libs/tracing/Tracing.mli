@@ -6,22 +6,8 @@
 (* Functions to instrument the code *)
 (*****************************************************************************)
 
-val with_span :
-  ?__FUNCTION__:string ->
-  __FILE__:string ->
-  __LINE__:int ->
-  ?data:(unit -> (string * Trace_core.user_data) list) ->
-  string ->
-  (Trace_core.span -> 'a) ->
-  'a
-(** Expose the function to instrument code to send traces.
-   In general, we prefer using the ppx *)
-
-val run_with_span :
-  string -> ?data:(string * Trace_core.user_data) list -> (unit -> 'a) -> 'a
-(** Expose a function to instrument code to send traces with
-   one kind of data.
-   TODO deprecate this after we switch to using the official trace ppx *)
+val add_data_to_span : int64 -> (string * Trace_core.user_data) list -> unit
+(** Expose the Trace function to add data to a span *)
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
