@@ -6,8 +6,8 @@ authors = ["ninjas"]
 
 
 [[tool.poetry.source]]
-name = 'jumo-libs'
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+name = 'libs1-libs'
+url = "https://example.com"
 
 
 [tool.poetry.dependencies]

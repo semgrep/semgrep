@@ -1,6 +1,6 @@
 [[package]]
 category = "main"
-description = "Low-level AMQP client for Python (fork of amqplib)."
+description = "Low-level AMQP client for Python."
 name = "amqp"
 optional = false
 python-versions = ">=3.6"
@@ -10,9 +10,9 @@ version = "5.1.1"
 vine = ">=5.0.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -23,9 +23,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "0.6.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -41,9 +41,9 @@ python = "<3.11"
 version = ">=4"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -55,9 +55,9 @@ python-versions = ">=3.7"
 version = "23.1.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -68,9 +68,9 @@ python-versions = "*"
 version = "3.6.4.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -86,9 +86,9 @@ jmespath = ">=0.7.1,<1.0.0"
 s3transfer = ">=0.3.0,<0.4.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -104,9 +104,9 @@ python-dateutil = ">=2.1,<3.0.0"
 urllib3 = ">=1.25.4,<1.27"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -123,9 +123,9 @@ python = "<3.10"
 version = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -148,9 +148,9 @@ python = "<3.11"
 version = ">=4.1.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -171,9 +171,9 @@ pytz = ">0.0-dev"
 vine = ">=5.0.0,<6.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -184,9 +184,9 @@ python-versions = ">=3.6"
 version = "2023.7.22"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -201,9 +201,9 @@ version = "1.16.0"
 pycparser = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -214,9 +214,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "4.0.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -227,9 +227,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "7.1.2"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -243,9 +243,9 @@ version = "0.3.0"
 click = ">=7"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -259,9 +259,9 @@ version = "1.1.1"
 click = ">=4.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -276,9 +276,9 @@ click = ">=7.0"
 prompt-toolkit = ">=3.0.36"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -289,9 +289,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 version = "5.4"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -305,9 +305,9 @@ version = "0.47.0"
 requests = ">=2.6.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -325,9 +325,9 @@ python = ">=3.7"
 version = ">=3.0.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -365,9 +365,9 @@ python = ">=3.7"
 version = ">=3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -378,9 +378,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "0.7.1"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -395,9 +395,9 @@ version = "1.2.14"
 wrapt = ">=1.10,<2"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -408,9 +408,9 @@ python-versions = "*"
 version = "0.5.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -426,9 +426,9 @@ pytz = "*"
 sqlparse = ">=0.2.2"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -439,9 +439,9 @@ python-versions = "*"
 version = "2.7.1"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -456,9 +456,9 @@ Django = ">=1.6"
 django-fsm = ">=2.1.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -475,9 +475,9 @@ future = ">=0.16.0"
 pytz = ">=2016.10"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -491,9 +491,9 @@ version = "3.12.2"
 django = ">=2.2"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -507,9 +507,9 @@ version = "2.0.0"
 defusedxml = ">=0.6.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -520,9 +520,9 @@ python-versions = ">=2.7"
 version = "0.4.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -534,9 +534,9 @@ python-versions = ">=3.7"
 version = "1.1.3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -547,9 +547,9 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "0.18.3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -569,9 +569,9 @@ python = "<3.11"
 version = ">=2.0.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -582,9 +582,9 @@ python-versions = ">=3.7"
 version = "3.0.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -598,9 +598,9 @@ version = "20.0.4"
 setuptools = ">=3.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -623,9 +623,9 @@ singledispatch = "3.4.0.3"
 six = ">=1.11.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -636,9 +636,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.10"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -653,9 +653,9 @@ version = "6.8.0"
 zipp = ">=0.5"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -669,9 +669,9 @@ version = "0.0.1"
 jinja2 = ">=2.7.2"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -685,9 +685,9 @@ version = "2.10.1"
 MarkupSafe = ">=0.23"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -698,9 +698,9 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "0.10.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -719,9 +719,9 @@ python = "<3.10"
 version = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -732,9 +732,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, != 3.4.*"
 version = "4.9.3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -745,9 +745,9 @@ python-versions = ">=3.6"
 version = "2.0.1"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -758,9 +758,9 @@ python-versions = ">=3.6"
 version = "4.0.3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -776,9 +776,9 @@ deprecated = ">=1.2.6"
 importlib-metadata = ">=6.0,<7.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -789,9 +789,9 @@ python-versions = "*"
 version = "1.1.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -802,9 +802,9 @@ python-versions = "*"
 version = "0.9"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -815,9 +815,9 @@ python-versions = ">=3.6"
 version = "0.17.1"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -831,9 +831,9 @@ version = "3.0.39"
 wcwidth = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -845,9 +845,9 @@ python-versions = ">=3.7"
 version = "4.24.3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -858,9 +858,9 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "5.8.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -871,9 +871,9 @@ python-versions = ">=3.6"
 version = "2.9.8"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -885,9 +885,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.21"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -901,9 +901,9 @@ version = "2.7.0"
 six = ">=1.5"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -917,9 +917,9 @@ version = "0.7.1"
 click = ">=5.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -930,9 +930,9 @@ python-versions = "*"
 version = "2021.1"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -943,9 +943,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "3.5.3"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -962,9 +962,9 @@ idna = ">=2.5,<3"
 urllib3 = ">=1.21.1,<1.27"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -978,9 +978,9 @@ version = "0.3.7"
 botocore = ">=1.12.36,<2.0a.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "dev"
@@ -991,9 +991,9 @@ python-versions = "*"
 version = "2.53.6"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1007,9 +1007,9 @@ version = "3.4.0.3"
 six = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1020,9 +1020,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "1.16.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1033,9 +1033,9 @@ python-versions = ">=3.5"
 version = "0.4.4"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1046,9 +1046,9 @@ python-versions = ">=3.6"
 version = "20.2.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1059,9 +1059,9 @@ python-versions = "*"
 version = "1.4.5.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1072,9 +1072,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "1.7.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1085,9 +1085,9 @@ python-versions = ">=3.8"
 version = "4.8.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1098,9 +1098,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 version = "1.26.17"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1111,9 +1111,9 @@ python-versions = ">=3.6"
 version = "5.0.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1124,9 +1124,9 @@ python-versions = "*"
 version = "0.2.8"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1138,9 +1138,9 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 version = "1.15.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1151,9 +1151,9 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.12.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1165,9 +1165,9 @@ python-versions = ">=3.8"
 version = "3.17.0"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1181,9 +1181,9 @@ version = "5.0"
 setuptools = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [[package]]
 category = "main"
@@ -1197,9 +1197,9 @@ version = "6.0"
 setuptools = "*"
 
 [package.source]
-reference = 'jumo-libs'
+reference = 'libs-libs'
 type = "legacy"
-url = "https://nexus.jumo.world/repository/jumo-pypi/simple"
+url = "https://example.com"
 
 [metadata]
 content-hash = "ef01297f024628704c1559952c6cf60f082af89edd8eeeca52dfc45dca66a884"
