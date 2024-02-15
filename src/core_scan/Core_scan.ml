@@ -560,7 +560,7 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 
 let handle_target_with_trace handle_target t =
-  let target_name = Target.internal_path t in
+  let target_name = Target.internal_path t |> Fpath.to_string in
   let%trace span = "Core_scan.handle_target" in
   let res = handle_target t in
   Tracing.add_data_to_span span [ ("filename", `String target_name) ];
