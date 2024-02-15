@@ -67,8 +67,18 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
 (* Xtarget helpers *)
 (*****************************************************************************)
 
-(* TODO: factorize with Core_scan.xtarget_of_file *)
 let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
+  let xlang : Xlang.t =
+    match xlang with
+    (* Required to be able to factorize with Xtarget.resolve; it cannot handle
+       non-nil lists at least as of 2024-02-14. *)
+    | L (lang, _) -> L (lang, [])
+    (* would cause an issue if we asserted false here since it isn't lazy. *)
+    | LRegex
+    | LSpacegrep
+    | LAliengrep ->
+        xlang
+  in
   let parser xlang file =
     let { ast; skipped_tokens; _ } : Parsing_result2.t =
       Parse_target.parse_and_resolve_name xlang !!file
