@@ -405,29 +405,32 @@ def enable_dependency_query() -> bool:
 def start_scan_mock(
     requests_mock, scan_config, mocked_scan_id, enable_dependency_query
 ):
-    start_scan_response = out.ScanResponse.from_json(
-        {
-            "info": {
-                **({"id": mocked_scan_id} if mocked_scan_id else {}),
-                "enabled_products": ["sast", "sca"],
-                "deployment_id": DEPLOYMENT_ID,
-                "deployment_name": "org_name",
-            },
-            "config": {
-                "rules": YAML(typ="safe").load(scan_config),
-                "triage_ignored_syntactic_ids": ["f3b21c38bc22a1f1f870d49fc3a40244"],
-                "triage_ignored_match_based_ids": [
-                    "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
-                ],
-            },
-            "engine_params": {
-                "dependency_query": enable_dependency_query,
-            },
-        }
-    )
-    return requests_mock.post(
-        f"{SEMGREP_URL}/api/cli/scans", json=start_scan_response.to_json()
-    )
+    def _start_scan_func(semgrep_url: str = "https://semgrep.dev"):
+
+        start_scan_response = out.ScanResponse.from_json(
+            {
+                "info": {
+                    **({"id": mocked_scan_id} if mocked_scan_id else {}),
+                    "enabled_products": ["sast", "sca"],
+                    "deployment_id": DEPLOYMENT_ID,
+                    "deployment_name": "org_name",
+                },
+                "config": {
+                    "rules": YAML(typ="safe").load(scan_config),
+                    "triage_ignored_syntactic_ids": ["f3b21c38bc22a1f1f870d49fc3a40244"],
+                    "triage_ignored_match_based_ids": [
+                        "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
+                    ],
+                },
+                "engine_params": {
+                    "dependency_query": enable_dependency_query,
+                },
+            }
+        )
+        return requests_mock.post(
+            f"{semgrep_url}/api/cli/scans", json=start_scan_response.to_json()
+        )
+    return _start_scan_func
 
 
 @pytest.fixture
@@ -876,7 +879,7 @@ def test_full_run(
     )
 
     # Check correct metadata
-    scan_create_json = start_scan_mock.last_request.json()
+    scan_create_json = start_scan_mock("https://tenantname.semgrep.dev").last_request.json()
     meta_json = scan_create_json["meta"]
 
     if "SEMGREP_COMMIT" in env:
@@ -1448,7 +1451,7 @@ def test_dryrun(
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
-    assert start_scan_mock.last_request.json()["scan_metadata"]["dry_run"] == True
+    assert start_scan_mock().last_request.json()["scan_metadata"]["dry_run"] == True
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
