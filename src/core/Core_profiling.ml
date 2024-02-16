@@ -107,6 +107,12 @@ let merge a b : t =
     max_memory_bytes = Int.max a.max_memory_bytes b.max_memory_bytes;
   }
 
+let add_times (a : times) (b : times) : times =
+  {
+    match_time = a.match_time +. b.match_time;
+    parse_time = a.parse_time +. b.parse_time;
+  }
+
 (*****************************************************************************)
 (* Create empty versions of profiling objects *)
 (*****************************************************************************)

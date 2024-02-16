@@ -152,8 +152,12 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
 
 (* Create a match result *)
 let mk_match_result matches errors profiling =
-  let profiling = Core_profiling.profiling_opt profiling in
-  { matches; errors; profiling; explanations = [] }
+  {
+    matches;
+    errors;
+    profiling = Core_profiling.profiling_opt profiling;
+    explanations = [];
+  }
 
 (*****************************************************************************)
 (* Augment reported information with profiling info *)
@@ -226,25 +230,10 @@ let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
 let collate_pattern_results (results : Core_profiling.times match_result list) :
     Core_profiling.times match_result =
   let init : Core_profiling.times = { parse_time = 0.0; match_time = 0.0 } in
-
-  (* TODO: move to Core_profiling.ml and call it add_times *)
-  let unzip_profiling (a : Core_profiling.times) (b : Core_profiling.times) :
-      Core_profiling.times =
-    let ({ match_time; parse_time } : Core_profiling.times) = a in
-    let ({ match_time = all_match_time; parse_time = all_parse_time }
-          : Core_profiling.times) =
-      b
-    in
-    {
-      match_time = match_time +. all_match_time;
-      parse_time = parse_time +. all_parse_time;
-    }
-  in
-
   let combine extra all_profiling =
     match extra with
     | None -> all_profiling
-    | Some profiling -> unzip_profiling profiling all_profiling
+    | Some profiling -> Core_profiling.add_times profiling all_profiling
   in
   let final = Core_profiling.profiling_opt in
   collate_results init combine final results
@@ -254,7 +243,6 @@ let collate_rule_results (file : Fpath.t)
     (results : Core_profiling.rule_profiling match_result list) :
     Core_profiling.partial_profiling match_result =
   let init = [] in
-
   let combine extra all_profiling =
     match extra with
     | None -> all_profiling
