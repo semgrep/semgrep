@@ -1,6 +1,6 @@
-(* See the .ml file for why we have this instead of just matches. *)
 type processed_match = {
   pm : Pattern_match.t;
+  (* semgrep-core is now responsible for the nosemgrep and autofix *)
   is_ignored : bool;
   autofix_edit : Textedit.t option;
 }
@@ -10,16 +10,6 @@ type processed_match = {
 type t = {
   processed_matches : processed_match list;
   errors : Core_error.t list;
-  (* extra information useful to also give to the user (in JSON or
-   * in textual reports) or for tools (e.g., the playground).
-   *)
-  skipped_rules : Rule.invalid_rule_error list;
-  rules_with_targets : Rule.rule list;
-  (* may contain skipped_target info *)
-  extra : Core_profiling.t Core_profiling.debug_info;
-  explanations : Matching_explanation.t list option;
-  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
-  interfile_languages_used : Xlang.t list;
   (* The targets are all the files that were considered valid targets for the
    * semgrep scan. This excludes files that were filtered out on purpose
    * due to being in the wrong language, too big, etc.
@@ -30,6 +20,16 @@ type t = {
    * but I'm not sure we're doing it.
    *)
   scanned : Fpath.t list;
+  (* extra information useful to also give to the user (in JSON or
+   * in textual reports) or for tools (e.g., the playground).
+   *)
+  skipped_targets : Semgrep_output_v1_t.skipped_target list;
+  skipped_rules : Rule.invalid_rule_error list;
+  rules_with_targets : Rule.rule list;
+  extra : Core_profiling.t Core_profiling.debug_info;
+  explanations : Matching_explanation.t list option;
+  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
+  interfile_languages_used : Xlang.t list;
 }
 [@@deriving show]
 

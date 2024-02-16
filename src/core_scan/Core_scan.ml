@@ -1078,7 +1078,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       (matches, was_scanned)
 
 (* This is the main function used by pysemgrep right now.
- * This is also called now from osemgrep.
+ * This is also now called from osemgrep.
  * It takes a set of rules and a set of targets and iteratively process those
  * targets.
  * coupling: If you modify this function, you probably need also to modify
@@ -1181,21 +1181,15 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   (* concatenate all errors *)
   let errors = rule_errors @ new_errors @ res.errors in
 
-  (* Concatenate all the skipped targets
-   * TODO: maybe we should move skipped_target out of Debug and always
-   * do it?
+  (* Concatenate all the skipped targets *)
+  let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
+  Logs.info (fun m ->
+      m ~tags "there were %d skipped targets" (List.length skipped_targets));
+  (* TODO: returning, or not skipped_targets does not seem to have any impact
+   * on our testsuite, weird. We need to add more tests. Maybe because
+   * both pysemgrep and osemgrep do their own skip targets management.
    *)
-  let extra =
-    match res.extra with
-    | Core_profiling.Debug { skipped_targets; profiling } ->
-        let skipped_targets = skipped @ new_skipped @ skipped_targets in
-        Logs.info (fun m ->
-            m ~tags "there were %d skipped targets"
-              (List.length skipped_targets));
-        Core_profiling.Debug { skipped_targets; profiling }
-    | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
-  in
-  { res with processed_matches; errors; extra }
+  { res with processed_matches; errors; skipped_targets }
 
 (*****************************************************************************)
 (* Entry point *)
