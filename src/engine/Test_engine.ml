@@ -152,27 +152,23 @@ let check_can_marshall (rule_file : Fpath.t) (res : RP.matches_single_file) :
 
 let check_profiling (rule_file : Fpath.t) (target : Fpath.t)
     (res : RP.matches_single_file) : unit =
-  match res.extra with
-  | Debug _
-  | No_info ->
-      failwith
-        "Impossible; type of res should match Report.mode, which we force to \
-         be MTime"
-  | Time { profiling } ->
-      profiling.rule_times
+  match res.profiling with
+  | None -> failwith "Impossible; profiling should be on"
+  | Some profiling ->
+      profiling.p_rule_times
       |> List.iter (fun (rule_time : Core_profiling.rule_profiling) ->
-             if not (rule_time.match_time >= 0.) then
-               (* match_time could be 0.0 if the rule contains no pattern or if the
-                  rules are skipped. Otherwise it's positive.
+             if not (rule_time.rule_match_time >= 0.) then
+               (* match_time could be 0.0 if the rule contains no pattern or
+                  if the rules are skipped. Otherwise it's positive.
                *)
                failwith
                  (spf "invalid value for match time: %g (rule: %s, target: %s)"
-                    rule_time.match_time !!rule_file !!target);
-             if not (rule_time.parse_time >= 0.) then
+                    rule_time.rule_match_time !!rule_file !!target);
+             if not (rule_time.rule_parse_time >= 0.) then
                (* same for parse time *)
                failwith
                  (spf "invalid value for parse time: %g (rule: %s, target: %s)"
-                    rule_time.parse_time !!rule_file !!target))
+                    rule_time.rule_parse_time !!rule_file !!target))
 
 let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
     unit =
@@ -270,7 +266,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         let rules, extract_rules = Extract.partition_rules rules in
 
         E.g_errors := [];
-        Core_profiling.mode := MTime;
+        Core_profiling.profiling := true;
         let res =
           try
             (* !!!!let's go!!!! *)

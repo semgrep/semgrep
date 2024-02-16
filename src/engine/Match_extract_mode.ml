@@ -206,15 +206,11 @@ let map_res map_loc (Extracted _tmpfile) (Original file) :
       (fun (e : Core_error.t) -> { e with loc = map_loc e.loc })
       mr.errors
   in
-  let extra =
-    match mr.extra with
-    | Core_profiling.Debug { profiling } ->
-        Core_profiling.Debug { profiling = { profiling with file } }
-    | Core_profiling.Time { profiling } ->
-        Core_profiling.Time { profiling = { profiling with file } }
-    | Core_profiling.No_info -> Core_profiling.No_info
+  let profiling =
+    mr.profiling
+    |> Option.map (fun prof -> { prof with Core_profiling.p_file = file })
   in
-  { Core_result.matches; errors; extra; explanations = [] }
+  { Core_result.matches; errors; profiling; explanations = [] }
 
 (*****************************************************************************)
 (* Main logic *)

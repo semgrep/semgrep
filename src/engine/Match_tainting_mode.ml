@@ -1003,8 +1003,12 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
-    RP.make_match_result matches errors
-      { Core_profiling.rule_id = fst rule.R.id; parse_time; match_time }
+    RP.mk_match_result matches errors
+      {
+        Core_profiling.rule_id = fst rule.R.id;
+        rule_parse_time = parse_time;
+        rule_match_time = match_time;
+      }
   in
   let explanations =
     if xconf.matching_explanations then

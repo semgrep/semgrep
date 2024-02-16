@@ -261,7 +261,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
                 (internal_path_to_content, origin, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-      RP.make_match_result matches errors
+      RP.mk_match_result matches errors
         { Core_profiling.parse_time; match_time }
   | _ -> Core_result.empty_match_result
 

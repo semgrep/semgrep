@@ -676,10 +676,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Core_profiling.mode := MDebug
-  else if config.report_time then Core_profiling.mode := MTime
-  else Core_profiling.mode := MNo_info;
-
+  Core_profiling.profiling := config.debug || config.report_time;
   Std_msg.setup ~highlight_setting:On ();
   Logs_.setup_logging ?log_to_file:config.log_to_file
     ?require_one_of_these_tags:None
