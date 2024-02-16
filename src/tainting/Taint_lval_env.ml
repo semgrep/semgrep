@@ -169,7 +169,7 @@ let normalize_lval lval =
 (* Test whether 'lval1' is the same as, or a prefix of, 'lval2'. *)
 let lval_is_prefix lval1 lval2 =
   let open IL in
-  let eq_name x y = LV.compare_name x y = 0 in
+  let eq_name x y = IL.compare_name x y = 0 in
   let rec offset_prefix os1 os2 =
     match (os1, os2) with
     | [], _ -> true
