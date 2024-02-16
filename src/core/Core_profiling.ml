@@ -10,7 +10,7 @@
  * Another challenge we face is that the extra information can take a lot
  * of memory, which scales with both the number of rules and files. On
  * large repos, this is the most significant factor driving semgrep's
- * memory consumption. Therefore, if the skipped targets (for example) are
+ * memory consumption. Therefore, if the parsing times (for example) are
  * not being used, we don't want to save them. On the other hand, we want
  * to feel confident in the correctness of the code and make it easy to
  * know what is or isn't being saved. And we want our code to be relatively
@@ -63,15 +63,12 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  *  be the same as the mode's variant *)
 type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
-(* TODO? do we want to always return skipped_target, not only
- * in debug mode?
+(* TODO: merge Debug and Time and make this an option type and update
+ * comment at the toplevel to simplify things.
  *)
 type 'a debug_info =
   (* -debug: save all the information that could be useful *)
-  | Debug of {
-      skipped_targets : Semgrep_output_v1_t.skipped_target list;
-      profiling : 'a;
-    }
+  | Debug of { profiling : 'a }
   (* -json_time: save just profiling info; currently our metrics record this *)
   | Time of { profiling : 'a }
   (* save nothing else *)
@@ -79,18 +76,14 @@ type 'a debug_info =
 [@@deriving show]
 
 let debug_info_to_option = function
-  | Debug { profiling; _ } -> Some profiling
+  | Debug { profiling } -> Some profiling
   | Time { profiling } -> Some profiling
   | No_info -> None
 
 let merge_debug_info merge_profiling a b =
   match (a, b) with
   | Debug a_extra, Debug b_extra ->
-      Debug
-        {
-          skipped_targets = a_extra.skipped_targets @ b_extra.skipped_targets;
-          profiling = merge_profiling a_extra.profiling b_extra.profiling;
-        }
+      Debug { profiling = merge_profiling a_extra.profiling b_extra.profiling }
   | Time a_extra, Time b_extra ->
       Time { profiling = merge_profiling a_extra.profiling b_extra.profiling }
   | No_info, No_info -> No_info
@@ -110,7 +103,6 @@ let mode = ref MNo_info
 type times = { parse_time : float; match_time : float }
 
 (* Save time information as we run each rule *)
-
 type rule_profiling = {
   rule_id : Rule_ID.t;
   parse_time : float;
@@ -119,7 +111,6 @@ type rule_profiling = {
 [@@deriving show]
 
 (* Save time information as we run each file *)
-
 type file_profiling = {
   file : Fpath.t;
   rule_times : rule_profiling list;
@@ -172,6 +163,6 @@ let empty_rule_profiling rule =
 
 let empty_extra profiling =
   match !mode with
-  | MDebug -> Debug { skipped_targets = []; profiling }
+  | MDebug -> Debug { profiling }
   | MTime -> Time { profiling }
   | MNo_info -> No_info

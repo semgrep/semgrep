@@ -74,6 +74,8 @@ let hook_propagate_to :
     ref =
   ref None
 
+let hook_normalize_rev_offset = ref None
+
 let empty =
   {
     tainted = LvalMap.empty;
@@ -153,21 +155,21 @@ let normalize_lval lval =
     | Mem _ -> None
   in
   let rev_offset =
-    rev_offset
-    |> List.filter (fun o ->
-           match o.IL.o with
-           | IL.Dot _ -> true
-           (* TODO: If we check here for constant indexes we could make it index
-            * sensitive! But we also need to tweak the look up. Since you may taint
-            * `x.a` and then look for `x.a[1]` and it should tell you it's tainted. *)
-           | IL.Index _ -> false)
+    match !hook_normalize_rev_offset with
+    | None ->
+        rev_offset
+        |> List_.map_filter (fun o ->
+               match o.IL.o with
+               | IL.Dot _ -> Some o
+               | IL.Index _ -> (* no index-sensitivity in OSS *) None)
+    | Some normalize_rev_offset -> normalize_rev_offset rev_offset
   in
   Some { IL.base; rev_offset }
 
 (* Test whether 'lval1' is the same as, or a prefix of, 'lval2'. *)
 let lval_is_prefix lval1 lval2 =
   let open IL in
-  let eq_name x y = LV.compare_name x y = 0 in
+  let eq_name x y = IL.compare_name x y = 0 in
   let rec offset_prefix os1 os2 =
     match (os1, os2) with
     | [], _ -> true

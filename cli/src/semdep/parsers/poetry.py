@@ -147,7 +147,7 @@ poetry = (
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
     .sep_by(new_lines.optional())
     .map(lambda xs: [x for x in xs if x])
-    << string("\n").optional()
+    << new_lines.optional()
 )
 
 
@@ -174,7 +174,7 @@ manifest = (
     >> (manifest_deps | manifest_sections_extra | poetry_source_extra)
     .sep_by(new_lines.optional())
     .map(lambda xs: {y for x in xs if x for y in x})
-    << string("\n").optional()
+    << new_lines.optional()
 )
 
 

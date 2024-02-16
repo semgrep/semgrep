@@ -116,6 +116,7 @@ type env = {
 
 let hook_function_taint_signature = ref None
 let hook_find_attribute_in_class = ref None
+let hook_arg_offset_of_il_offset = ref None
 let hook_check_tainted_at_exit_sinks = ref None
 
 (*****************************************************************************)
@@ -637,21 +638,41 @@ let find_pos_in_actual_args args_taints fparams =
     taint_opt
 
 let fix_poly_taint_with_field env lval st =
-  if env.lang =*= Lang.Java || Lang.is_js env.lang then
-    match lval.rev_offset with
-    | { o = Dot n; _ } :: _ -> (
-        match st with
-        | `Sanitized
-        | `Clean
-        | `None ->
-            st
-        | `Tainted taints -> (
-            match !(n.id_info.id_type) with
-            | Some { t = TyFun _; _ } ->
+  let type_of_il_offset il_offset =
+    match il_offset.IL.o with
+    | Dot n -> !(n.id_info.id_type)
+    | Index _ -> None
+  in
+  let arg_offset_of_il_offset il_offset =
+    match !hook_arg_offset_of_il_offset with
+    | None -> (
+        match il_offset.IL.o with
+        | Dot n -> Some (T.Ofld n)
+        | Index _ ->
+            (* no index-sensitivity in OSS *)
+            None)
+    | Some arg_offset_of_il_offset -> arg_offset_of_il_offset il_offset
+  in
+  (* TODO: Aren't we missing here C# and Go ? *)
+  if env.lang =*= Lang.Java || Lang.is_js env.lang || env.lang =*= Lang.Python
+  then
+    match st with
+    | `Sanitized
+    | `Clean
+    | `None ->
+        st
+    | `Tainted taints -> (
+        match lval.rev_offset with
+        | o :: _ -> (
+            match (type_of_il_offset o, arg_offset_of_il_offset o) with
+            | Some { t = TyFun _; _ }, _ ->
                 (* We have an l-value like `o.f` where `f` has a function type,
                  * so it's a method call, we do nothing here. *)
                 st
-            | __else__ ->
+            | _, None ->
+                (* Cannot handle this offset. *)
+                st
+            | __any__, Some o ->
                 (* Not a method call (to the best of our knowledge) or
                  * an unresolved Java `getX` method. *)
                 let taints' =
@@ -668,7 +689,7 @@ let fix_poly_taint_with_field env lval st =
                                    if `x` started with an `Arg` taint:
                                    while (true) { x = x.getX(); }
                                 *)
-                                (not (List.mem n offset))
+                                (not (List.mem o offset))
                                 && (* For perf reasons we don't allow offsets to get too long.
                                     * Otherwise in a long chain of function calls where each
                                     * function adds some offset, we could end up a very large
@@ -684,7 +705,7 @@ let fix_poly_taint_with_field env lval st =
                                 List.length offset
                                 < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
-                               { arg with offset = arg.offset @ [ n ] }
+                               { arg with offset = arg.offset @ [ o ] }
                              in
                              { taint with orig = Arg arg' }
                          | Src _
@@ -692,10 +713,8 @@ let fix_poly_taint_with_field env lval st =
                          | Control ->
                              taint)
                 in
-                `Tainted taints'))
-    | _ :: _
-    | [] ->
-        st
+                `Tainted taints')
+        | [] -> st)
   else st
 
 (*****************************************************************************)
@@ -1269,7 +1288,29 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
      * `obj`. *)
     (lval * T.tainted_token) option =
   let os =
-    sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
+    sig_arg.offset
+    |> List_.map (function
+         | T.Ofld x -> { o = Dot x; oorig = NoOrig }
+         | T.Oint i ->
+             {
+               o =
+                 Index
+                   { e = Literal (G.Int (Parsed_int.of_int i)); eorig = NoOrig };
+               oorig = NoOrig;
+             }
+         | T.Ostr s ->
+             {
+               o =
+                 Index
+                   {
+                     e =
+                       Literal
+                         (G.String
+                            (Tok.unsafe_fake_bracket (s, Tok.unsafe_fake_tok s)));
+                     eorig = NoOrig;
+                   };
+               oorig = NoOrig;
+             })
   in
   let* lval, obj =
     match sig_arg.base with
@@ -1301,9 +1342,9 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
               }
             in
             Some (lval, obj)
-        | Record fields, [ o ] -> (
+        | Record fields, [ Ofld o ] -> (
             (* JS: The argument of a function call may be a record expression such as
-             * `{x="tainted"l, y="safe"}`, if 'sig_arg' refers to the `x` field then
+             * `{x="tainted", y="safe"}`, if 'sig_arg' refers to the `x` field then
              * we want to resolve it to `"tainted"`. *)
             match
               fields

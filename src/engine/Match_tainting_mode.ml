@@ -617,9 +617,10 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
-  let xtarget =
+  (* TODO: should this function just take a target, rather than a file? *)
+  let xtarget : Xtarget.t =
     {
-      Xtarget.file;
+      path = { origin = File file; internal_path_to_content = file };
       xlang = rule.target_analyzer;
       lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;
@@ -895,7 +896,10 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
     match_hook (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
-  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
+  let { path = { internal_path_to_content; _ }; xlang; lazy_ast_and_errors; _ }
+      : Xtarget.t =
+    xtarget
+  in
   let lang =
     match xlang with
     | L (lang, _) -> lang
@@ -925,8 +929,8 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
              pms_of_finding ~match_on finding
              |> List.iter (fun pm -> Stack_.push pm matches))
     in
-    taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
-      handle_findings
+    taint_config_of_rule ~per_file_formula_cache xconf
+      !!internal_path_to_content (ast, []) rule handle_findings
   in
 
   (match !hook_setup_hook_function_taint_signature with

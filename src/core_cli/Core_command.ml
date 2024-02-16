@@ -189,9 +189,8 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       let target_info, _skipped = Core_scan.targets_of_config config in
       let files =
         target_info
-        |> List_.map (function
-             | `CodeTarget (t : Input_to_core_t.code_target) -> t.path
-             | `LockfileTarget (t : Input_to_core_t.lockfile_target) -> t.path)
+        |> List_.map (fun (t : Target.t) ->
+               Target.internal_path t |> Fpath.to_string)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then
@@ -206,6 +205,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                      Parse_target.parse_and_resolve_name_warn_if_partial lang
                        file
                    in
+                   let path = Fpath.v file in
                    Match_patterns.check
                      ~hook:(fun match_ ->
                        Core_scan.print_match config match_
@@ -213,7 +213,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
                      minirule
-                     (Fpath.v file, lang, ast)
+                     (path, File path, lang, ast)
                    |> ignore)
              in
 

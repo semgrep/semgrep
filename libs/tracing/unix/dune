@@ -11,9 +11,4 @@
    ambient-context-lwt
  )
  (implements tracing)
- (preprocess
-   (pps
-     ppx_tracing
-   )
- )
 )

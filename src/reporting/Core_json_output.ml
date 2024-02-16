@@ -223,23 +223,23 @@ let unsafe_match_to_match
     Metavar_replacement.interpolate_metavars x.rule_id.message
       (Metavar_replacement.of_bindings x.env)
   in
-  (* We need to do this, because in Terraform, we may end up with a `file` which
-     does not correspond to the actual location of the tokens. This `file` is
-     erroneous, and should be replaced by the location of the code of the match,
-     if possible. Not if it's fake, though.
-     In other languages, this should hopefully not happen.
-  *)
-  let file =
-    if
-      (!!(x.file) <> min_loc.pos.file || !!(x.file) <> max_loc.pos.file)
-      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
-    then min_loc.pos.file
-    else !!(x.file)
-  in
   {
     check_id = x.rule_id.id;
     (* inherited location *)
-    path = Fpath.v file;
+    path =
+      (match x.path.origin with
+      (* We need to do this, because in Terraform, we may end up with a `file` which
+         does not correspond to the actual location of the tokens. This `file` is
+         erroneous, and should be replaced by the location of the code of the match,
+         if possible. Not if it's fake, though.
+         In other languages, this should hopefully not happen.
+      *)
+      | File path ->
+          if
+            (!!path <> min_loc.pos.file || !!path <> max_loc.pos.file)
+            && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+          then Fpath.v min_loc.pos.file
+          else path);
     start = startp;
     end_ = endp;
     (* end inherited location *)
@@ -270,7 +270,7 @@ let match_to_match (x : Core_result.processed_match) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file !!(x.pm.file) in
+      let loc = Tok.first_loc_of_file !!(x.pm.path.internal_path_to_content) in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in
@@ -405,22 +405,21 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];
-  let skipped_targets, profiling =
+  let profiling =
     match res.extra with
-    | Core_profiling.Debug { skipped_targets; profiling } ->
-        (Some skipped_targets, Some profiling)
-    | Core_profiling.Time { profiling } -> (None, Some profiling)
-    | Core_profiling.No_info -> (None, None)
+    | Core_profiling.Debug { profiling } -> Some profiling
+    | Core_profiling.Time { profiling } -> Some profiling
+    | Core_profiling.No_info -> None
   in
   {
     results = matches |> OutUtils.sort_core_matches;
     errors = errs |> List_.map error_to_error;
     paths =
       {
-        skipped = skipped_targets;
         (* TODO: those are set later in Cli_json_output.ml,
-         * but should we compute scanned here instead?
+         * but should we compute skipped and scanned here instead?
          *)
+        skipped = None;
         scanned = [];
       };
     skipped_rules =

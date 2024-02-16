@@ -54,6 +54,14 @@ val exclude : ('a -> bool) -> 'a list -> 'a list
 
 (* Sort in a polymorphic way. You should really use 'deriving ord' instead *)
 val sort : 'a list -> 'a list
+
+val sort_by_key : ('a -> 'b) -> ('b -> 'b -> int) -> 'a list -> 'a list
+(** [sort_by_key key cmp xs] is [xs] sorted (in ascending order) according to
+    the [cmp]-based order of [key] applied to each element.
+
+    [key] is applied only once per element.
+  *)
+
 val uniq_by : ('a -> 'a -> bool) -> 'a list -> 'a list
 
 (* options and lists *)
