@@ -672,7 +672,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                                 OutJ.OutOfMemory)
                        | _ -> raise Impossible
                      in
-                     ( Core_result.make_match_result [] errors
+                     ( Core_result.mk_match_result [] errors
                          (Core_profiling.empty_partial_profiling internal_path),
                        Scanned (Original internal_path) )
                      (* those were converted in Main_timeout in timeout_function()*)
@@ -707,7 +707,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                        Core_error.ErrorSet.singleton
                          (E.exn_to_error None !!internal_path e)
                      in
-                     ( Core_result.make_match_result [] errors
+                     ( Core_result.mk_match_result [] errors
                          (Core_profiling.empty_partial_profiling internal_path),
                        Scanned (Original internal_path) ))
            in

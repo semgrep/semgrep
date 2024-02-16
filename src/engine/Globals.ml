@@ -86,7 +86,7 @@ let save_pro_hooks_and_reset f0 =
  *)
 let reset () =
   Core_error.g_errors := [];
-  Core_profiling.mode := Core_profiling.MNo_info;
+  Core_profiling.profiling := false;
   AST_generic_equals.busy_with_equal := AST_generic_equals.Not_busy;
   Rule.last_matched_rule := None;
   reset_pro_hooks ();

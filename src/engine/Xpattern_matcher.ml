@@ -102,7 +102,7 @@ let (matches_of_matcher :
                               dependency = None;
                             })))
         in
-        RP.make_match_result res Core_error.ErrorSet.empty
+        RP.mk_match_result res Core_error.ErrorSet.empty
           { Core_profiling.parse_time; match_time }
 
 (* todo: same, we should not need that *)

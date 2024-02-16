@@ -100,8 +100,12 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                dependency = Some (LockfileOnlyMatch (dep, pat));
              })
   in
-  Core_result.make_match_result matches Core_error.ErrorSet.empty
-    { Core_profiling.parse_time; match_time; rule_id = fst rule.R.id }
+  Core_result.mk_match_result matches Core_error.ErrorSet.empty
+    {
+      Core_profiling.rule_parse_time = parse_time;
+      rule_match_time = match_time;
+      rule_id = fst rule.R.id;
+    }
 
 let annotate_pattern_match dep_matches pm =
   match dep_matches with

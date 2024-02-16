@@ -339,7 +339,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
                             in
-                            rprof.match_time
+                            rprof.rule_match_time
                           with
                           | Not_found -> 0.);
                  (* TODO: we could probably just aggregate in a single
@@ -353,7 +353,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
                             in
-                            rprof.parse_time
+                            rprof.rule_parse_time
                           with
                           | Not_found -> 0.);
                  num_bytes = UFile.filesize target;
@@ -405,12 +405,6 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];
-  let profiling =
-    match res.extra with
-    | Core_profiling.Debug { profiling } -> Some profiling
-    | Core_profiling.Time { profiling } -> Some profiling
-    | Core_profiling.No_info -> None
-  in
   {
     results = matches |> OutUtils.sort_core_matches;
     errors = errs |> List_.map error_to_error;
@@ -432,7 +426,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
                  details = Rule.string_of_invalid_rule_error_kind kind;
                  position = OutUtils.position_of_token_location loc;
                });
-    time = profiling |> Option.map profiling_to_profiling;
+    time = res.profiling |> Option.map profiling_to_profiling;
     explanations =
       res.explanations |> Option.map (List_.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;

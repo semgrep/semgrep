@@ -142,7 +142,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
           raise (File_timeout !rule_timeouts);
         let loc = Tok.first_loc_of_file file in
         let error = E.mk_error (Some rule_id) loc "" OutJ.Timeout in
-        RP.make_match_result []
+        RP.mk_match_result []
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
@@ -188,7 +188,7 @@ let check ~match_hook ~timeout ~timeout_threshold
 
      The taint rules are "grouped", see [group_rule] for more.
 
-     TODO: skipped_rules?
+     TODO: use skipped_rules to call the commented skipped_target_of_rule?
   *)
   let relevant_taint_rules_groups, relevant_nontaint_rules, _skipped_rules =
     group_rules xconf rules xtarget
@@ -222,10 +222,6 @@ let check ~match_hook ~timeout ~timeout_threshold
                | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res =
-    RP.collate_rule_results xtarget.path.internal_path_to_content res_total
-  in
-
   (* TODO: detect if a target was fully skipped because no rule
    * were irrelevant.
    * We used to report that for each rule independently via
@@ -251,10 +247,4 @@ let check ~match_hook ~timeout ~timeout_threshold
    * skipped_target is only in the Core_result.t (and not in the
    * intermediate match_result).
    *)
-  let extra =
-    match res.extra with
-    | Core_profiling.Debug { profiling } -> Core_profiling.Debug { profiling }
-    | Core_profiling.Time profiling -> Core_profiling.Time profiling
-    | Core_profiling.No_info -> Core_profiling.No_info
-  in
-  { res with extra }
+  RP.collate_rule_results xtarget.path.internal_path_to_content res_total
