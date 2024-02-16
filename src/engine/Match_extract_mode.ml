@@ -186,7 +186,7 @@ let map_bindings map_loc bindings =
   let map_binding (mvar, mval) = (mvar, map_tokens map_loc mval) in
   List_.map map_binding bindings
 
-let map_res map_loc (Extracted tmpfile) (Original file) :
+let map_res map_loc (Extracted _tmpfile) (Original file) :
     match_result_location_adjuster =
  fun (mr : Core_result.matches_single_file) : Core_result.matches_single_file ->
   let matches =
@@ -208,15 +208,8 @@ let map_res map_loc (Extracted tmpfile) (Original file) :
   in
   let extra =
     match mr.extra with
-    | Core_profiling.Debug { skipped_targets; profiling } ->
-        let skipped_targets =
-          List_.map
-            (fun (st : Semgrep_output_v1_t.skipped_target) ->
-              { st with path = (if st.path =*= tmpfile then file else st.path) })
-            skipped_targets
-        in
-        Core_profiling.Debug
-          { skipped_targets; profiling = { profiling with file } }
+    | Core_profiling.Debug { profiling } ->
+        Core_profiling.Debug { profiling = { profiling with file } }
     | Core_profiling.Time { profiling } ->
         Core_profiling.Time { profiling = { profiling with file } }
     | Core_profiling.No_info -> Core_profiling.No_info

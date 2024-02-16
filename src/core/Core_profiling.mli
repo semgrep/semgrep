@@ -3,10 +3,7 @@
 type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
 type 'a debug_info =
-  | Debug of {
-      skipped_targets : Semgrep_output_v1_t.skipped_target list;
-      profiling : 'a;
-    }
+  | Debug of { profiling : 'a }
   | Time of { profiling : 'a }
   | No_info
 [@@deriving show]

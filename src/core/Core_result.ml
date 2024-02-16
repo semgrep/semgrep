@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,8 +21,8 @@ module E = Core_error
 (*****************************************************************************)
 (* (Core) Scan result information.
  *
- * In addition to the results (matches + errors), we may also report extra
- * information, such as the skipped targets or the profiling times.
+ * In addition to the results (matches + errors), we report extra
+ * information such as the skipped targets or optional profiling times.
  *
  * Yet another way to store matches/findings.
  * Just like for Core_error.ml, "core" results are translated at some point in
@@ -32,6 +32,7 @@ module E = Core_error
  *
  * From the simplest matches to the most complex we have:
  * Pattern_match.t (and its alias Rule_match.t)
+ * -> processed_match
  * -> Core_result.xxx (this file)
  * -> Semgrep_output_v1.core_output
  *  -> Core_runner.result
@@ -66,8 +67,8 @@ type 'a match_result = {
 type matches_single_file = Core_profiling.partial_profiling match_result
 [@@deriving show]
 
-(* What is postprocessing information?
-   These are just match-specific information that we "after" a core scan has
+(* What is a processsed match?
+   These are just match-specific information that we add "after" a scan has
    occurred. This information is initially set to a nullary value, but will be
    filled in by Pre_post_core_scan.
 
@@ -79,10 +80,10 @@ type matches_single_file = Core_profiling.partial_profiling match_result
    These edits start as all None, but will be filled in by
    `Autofix.produce_autofixes`, and the associated Autofix_processor step.
 
-   alt: we could have added this to `Pattern_match.t`, but that felt a bit early.
-   alt: we could have produced this information when going from Core_result.t to
-   Out.core_output, but this would require us to do autofixing and ignoring at
-   the same time as output, which conflates process of producing output and
+   alt: we could have added this to `Pattern_match.t`, but felt a bit early.
+   alt: we could have produced this information when going from Core_result.t
+   to Out.core_output, but this would require us to do autofixing and ignoring
+   at the same time as output, which conflates process of producing output and
    side-effectively applying autofixes / filtering. In addition, the `Autofix`
    and `Nosemgrep` modules are not available from that directory.
 *)
@@ -94,21 +95,17 @@ type processed_match = {
 [@@deriving show]
 
 type t = {
-  (* old: matches : Pattern_match.t list
-     Why did we add `postprocessing_info` here?
-
-     See the `postprocessing_info` type for more.
-  *)
+  (* old: matches : Pattern_match.t list *)
   processed_matches : processed_match list;
   errors : Core_error.t list;
+  scanned : Fpath.t list;
+  skipped_targets : Semgrep_output_v1_t.skipped_target list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
-  (* may contain also skipped_target information *)
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   interfile_languages_used : Xlang.t list;
-  scanned : Fpath.t list;
 }
 [@@deriving show]
 
@@ -143,19 +140,20 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
     (* default values *)
     processed_matches = [];
     rules_with_targets = [];
+    skipped_targets = [];
+    scanned = [];
     skipped_rules = [];
     extra = No_info;
     explanations = None;
     rules_by_engine = [];
     interfile_languages_used = [];
-    scanned = [];
   }
 
 (* Create a match result *)
 let make_match_result matches errors profiling =
   let extra =
     match !mode with
-    | MDebug -> Debug { skipped_targets = []; profiling }
+    | MDebug -> Debug { profiling }
     | MTime -> Time { profiling }
     | MNo_info -> No_info
   in
@@ -169,8 +167,7 @@ let modify_match_result_profiling (result : _ match_result) f : _ match_result =
   let extra =
     (* should match mode *)
     match result.extra with
-    | Debug { skipped_targets; profiling } ->
-        Debug { skipped_targets; profiling = f profiling }
+    | Debug { profiling } -> Debug { profiling = f profiling }
     | Time { profiling } -> Time { profiling = f profiling }
     | No_info -> No_info
   in
@@ -195,25 +192,23 @@ let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
 let collate_results init_extra unzip_extra base_case_extra final_extra results :
     _ match_result =
   let unzip_results l =
-    let rec unzip all_matches all_errors (all_skipped_targets, all_profiling)
-        all_explanations (l : _ match_result list) =
+    let rec unzip all_matches all_errors all_profiling all_explanations
+        (l : _ match_result list) =
       match l with
       | { matches; errors; extra; explanations } :: l ->
           unzip (matches :: all_matches) (errors :: all_errors)
-            (unzip_extra extra all_skipped_targets all_profiling)
+            (unzip_extra extra all_profiling)
             (explanations :: all_explanations)
             l
       | [] ->
           ( List.rev all_matches,
             List.rev all_errors,
-            base_case_extra all_skipped_targets all_profiling,
+            base_case_extra all_profiling,
             List.rev all_explanations )
     in
     unzip [] [] init_extra [] l
   in
-  let matches, errors, (skipped_targets, profiling), explanations =
-    unzip_results results
-  in
+  let matches, errors, profiling, explanations = unzip_results results in
   {
     matches = List.flatten matches;
     (* We deduplicate errors here to avoid repeat PartialParsing errors
@@ -224,14 +219,14 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results :
        See also the note in semgrep_output_v1.atd.
     *)
     errors = List.fold_left E.ErrorSet.union E.ErrorSet.empty errors;
-    extra = final_extra skipped_targets profiling;
+    extra = final_extra profiling;
     explanations = List.flatten explanations;
   }
 
 (* Aggregate a list of pattern results into one result *)
 let collate_pattern_results (results : Core_profiling.times match_result list) :
     Core_profiling.times match_result =
-  let init_extra = ([], { parse_time = 0.0; match_time = 0.0 }) in
+  let init_extra = { parse_time = 0.0; match_time = 0.0 } in
 
   let unzip_profiling (a : Core_profiling.times) (b : Core_profiling.times) =
     let ({ match_time; parse_time } : Core_profiling.times) = a in
@@ -245,62 +240,47 @@ let collate_pattern_results (results : Core_profiling.times match_result list) :
     }
   in
 
-  let unzip_extra extra all_skipped_targets all_profiling =
+  let unzip_extra extra all_profiling =
     (* should match mode *)
     match extra with
-    | Core_profiling.Debug { skipped_targets; profiling } ->
-        ( skipped_targets :: all_skipped_targets,
-          unzip_profiling profiling all_profiling )
+    | Core_profiling.Debug { profiling } ->
+        unzip_profiling profiling all_profiling
     | Core_profiling.Time { profiling } ->
-        (all_skipped_targets, unzip_profiling profiling all_profiling)
-    | Core_profiling.No_info -> (all_skipped_targets, all_profiling)
+        unzip_profiling profiling all_profiling
+    | Core_profiling.No_info -> all_profiling
   in
+  (* TODO: remove this once Core_profiling is fully cleaned up *)
+  let base_case_extra all_profiling = all_profiling in
 
-  let base_case_extra all_skipped_targets all_profiling =
-    (List.rev all_skipped_targets, all_profiling)
-  in
-
-  let final_extra skipped_targets profiling =
+  let final_extra profiling =
     match !mode with
-    | Core_profiling.MDebug ->
-        Core_profiling.Debug
-          { skipped_targets = List.flatten skipped_targets; profiling }
+    | Core_profiling.MDebug -> Core_profiling.Debug { profiling }
     | Core_profiling.MTime -> Core_profiling.Time { profiling }
     | Core_profiling.MNo_info -> Core_profiling.No_info
   in
-
   collate_results init_extra unzip_extra base_case_extra final_extra results
 
 (* Aggregate a list of rule results into one result for the target *)
 let collate_rule_results (file : Fpath.t)
     (results : rule_profiling match_result list) :
     partial_profiling match_result =
-  let init_extra = ([], []) in
+  let init_extra = [] in
 
-  let unzip_extra extra all_skipped_targets all_profiling =
+  let unzip_extra extra all_profiling =
     match extra with
-    | Debug { skipped_targets; profiling } ->
-        (skipped_targets :: all_skipped_targets, profiling :: all_profiling)
-    | Time { profiling } -> (all_skipped_targets, profiling :: all_profiling)
-    | No_info -> (all_skipped_targets, all_profiling)
+    | Debug { profiling } -> profiling :: all_profiling
+    | Time { profiling } -> profiling :: all_profiling
+    | No_info -> all_profiling
   in
 
-  let base_case_extra all_skipped_targets all_profiling =
-    (List.rev all_skipped_targets, List.rev all_profiling)
-  in
+  let base_case_extra all_profiling = List.rev all_profiling in
 
-  let final_extra skipped_targets profiling =
+  let final_extra profiling =
     match !mode with
-    | MDebug ->
-        Debug
-          {
-            skipped_targets = List.flatten skipped_targets;
-            profiling = { file; rule_times = profiling };
-          }
+    | MDebug -> Debug { profiling = { file; rule_times = profiling } }
     | MTime -> Time { profiling = { file; rule_times = profiling } }
     | MNo_info -> No_info
   in
-
   collate_results init_extra unzip_extra base_case_extra final_extra results
 
 (*****************************************************************************)
@@ -312,8 +292,8 @@ let make_final_result
     (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
-    (interfile_languages_used : Xlang.t list) ~rules_parse_time =
-  (* contenating information from the match_result list *)
+    (interfile_languages_used : Xlang.t list) ~rules_parse_time : t =
+  (* concatenating information from the match_result list *)
   let unprocessed_matches =
     results
     |> List.concat_map (fun (x : _ match_result) -> x.matches)
@@ -332,16 +312,9 @@ let make_final_result
   in
 
   (* Create extra *)
-  let get_skipped_targets (result : _ match_result) =
-    (* TODO? shouldn't we always compute the skipped_target? *)
-    match result.extra with
-    | Debug { skipped_targets; profiling = _profiling } -> skipped_targets
-    | Time _profiling -> []
-    | No_info -> []
-  in
   let get_profiling (result : _ match_result) =
     match result.extra with
-    | Debug { skipped_targets = _skipped_targets; profiling } -> profiling
+    | Debug { profiling } -> profiling
     | Time { profiling } -> profiling
     | No_info ->
         Logs.debug (fun m ->
@@ -365,11 +338,7 @@ let make_final_result
       }
     in
     match !mode with
-    | MDebug ->
-        let skipped_targets =
-          results |> List.concat_map (fun x -> get_skipped_targets x)
-        in
-        Debug { skipped_targets; profiling = mk_profiling () }
+    | MDebug -> Debug { profiling = mk_profiling () }
     | MTime -> Time { profiling = mk_profiling () }
     | MNo_info -> No_info
   in
@@ -377,11 +346,12 @@ let make_final_result
     processed_matches = unprocessed_matches;
     errors;
     extra;
+    scanned;
+    skipped_targets = [];
     skipped_rules;
     rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
       rules_with_engine |> List_.map (fun (r, ek) -> (fst r.Rule.id, ek));
     interfile_languages_used;
-    scanned;
   }

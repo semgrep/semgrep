@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,7 +16,6 @@ open Common
 open Fpath_.Operators
 module R = Rule
 module RP = Core_result
-module Resp = Semgrep_output_v1_t
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
@@ -25,8 +24,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Small wrapper around Match_search_mode and Match_tainting_mode
- *)
+(* Small wrapper around Match_search_mode and Match_tainting_mode *)
 
 (*****************************************************************************)
 (* Types *)
@@ -36,6 +34,7 @@ exception File_timeout of Rule_ID.t list
 
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -57,25 +56,9 @@ let timeout_function (rule : Rule.t) file timeout f =
             file);
       None
 
-let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
-    Resp.skipped_target =
-  let rule_id, _ = rule.id in
-  let details =
-    Some
-      (spf
-         "No need to perform deeper matching because target does not contain \
-          some elements necessary for the rule to match '%s'"
-         (Rule_ID.to_string rule_id))
-  in
-  {
-    path = file_and_more.path.internal_path_to_content;
-    reason = Irrelevant_rule;
-    details;
-    rule_id = Some rule_id;
-  }
-
 let is_relevant_rule_for_xtarget r xconf xtarget =
-  let { path = { internal_path_to_content; _ }; lazy_content; _ } : Xtarget.t =
+  let { Xtarget.path = { internal_path_to_content; _ }; lazy_content; _ }
+      (* : Xtarget.t *) =
     xtarget
   in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
@@ -127,15 +110,16 @@ let group_rules xconf rules xtarget =
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
 
-(* Given a thunk [f] that computes the results of running the engine on a single
-    rule, this function simply instruments the computation on a single rule with
-    some boilerplate logic, like setting the last matched rule, timing out if
-    it takes too long, and producing a faulty match result in that case.
-
-    In particular, we need this to call [Match_tainting_mode.check_rules], which
-    will iterate over each rule in a different place, and so needs access to this
-    logic.
-*)
+(* Given a thunk [f] that computes the results of running the engine on a
+ * single rule, this function simply instruments the computation on a single
+ * rule with some boilerplate logic, like setting the last matched rule,
+ * timing out if it takes too long, and producing a faulty match result in
+ * that case.
+ *
+ * In particular, we need this to call [Match_tainting_mode.check_rules],
+ * which will iterate over each rule in a different place, and so needs
+ * access to this logic.
+ *)
 let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
   let cnt_timeout = ref 0 in
   let rule_timeouts = ref [] in
@@ -168,14 +152,19 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 
 let check ~match_hook ~timeout ~timeout_threshold
     ?(dependency_match_table : Match_dependency.dependency_match_table option)
-    (xconf : Match_env.xconfig) rules xtarget =
+    (xconf : Match_env.xconfig) (rules : Rule.rules) (xtarget : Xtarget.t) :
+    Core_result.matches_single_file =
   let get_dep_matches =
     match dependency_match_table with
     | Some table -> Hashtbl.find_opt table
     | None -> fun _ -> None
   in
-  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
-      : Xtarget.t =
+  let {
+    Xtarget.path = { internal_path_to_content; _ };
+    lazy_ast_and_errors;
+    xlang;
+    _;
+  } (* : Xtarget.t *) =
     xtarget
   in
   Logs.debug (fun m ->
@@ -198,8 +187,10 @@ let check ~match_hook ~timeout ~timeout_threshold
      just one rule at once.
 
      The taint rules are "grouped", see [group_rule] for more.
+
+     TODO: skipped_rules?
   *)
-  let relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules =
+  let relevant_taint_rules_groups, relevant_nontaint_rules, _skipped_rules =
     group_rules xconf rules xtarget
   in
 
@@ -234,14 +225,35 @@ let check ~match_hook ~timeout ~timeout_threshold
   let res =
     RP.collate_rule_results xtarget.path.internal_path_to_content res_total
   in
+
+  (* TODO: detect if a target was fully skipped because no rule
+   * were irrelevant.
+   * We used to report that for each rule independently via
+   *
+   * let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
+   *     OutJ.skipped_target =
+   *   let rule_id, _ = rule.id in
+   *   let details =
+   *     Some
+   *       (spf
+   *          "No need to perform matching because target does not contain \
+   *           some elements necessary for the rule to match '%s'"
+   *          (Rule_ID.to_string rule_id))
+   *   in
+   *   {
+   *     path = file_and_more.path.internal_path_to_content;
+   *     reason = Irrelevant_rule;
+   *     details;
+   *     rule_id = Some rule_id;
+   *   }
+   *
+   * when skipped_target was part of profiling info, but now
+   * skipped_target is only in the Core_result.t (and not in the
+   * intermediate match_result).
+   *)
   let extra =
     match res.extra with
-    | Core_profiling.Debug { skipped_targets; profiling } ->
-        let skipped =
-          List_.map (skipped_target_of_rule xtarget) skipped_rules
-        in
-        Core_profiling.Debug
-          { skipped_targets = skipped @ skipped_targets; profiling }
+    | Core_profiling.Debug { profiling } -> Core_profiling.Debug { profiling }
     | Core_profiling.Time profiling -> Core_profiling.Time profiling
     | Core_profiling.No_info -> Core_profiling.No_info
   in
