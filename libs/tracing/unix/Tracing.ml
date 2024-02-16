@@ -55,6 +55,7 @@ module Otel = Opentelemetry
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
 
+let with_span = Trace_core.with_span
 let add_data_to_span = Trace_core.add_data_to_span
 
 (*****************************************************************************)
@@ -66,6 +67,7 @@ let configure_tracing service_name =
   Otel.Globals.service_name := service_name;
   Otel.GC_metrics.basic_setup ();
   Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
+
   let otel_backend =
     Opentelemetry_client_ocurl.create_backend
       (* TODO configure this to use a permanent endpoint *) ()

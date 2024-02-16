@@ -24,6 +24,8 @@
 (* Code *)
 (*****************************************************************************)
 
+let with_span = Trace_core.with_span
+
 let add_data_to_span (_i : int64) (_data : (string * Trace_core.user_data) list)
     =
   ()
