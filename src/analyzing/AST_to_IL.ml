@@ -270,6 +270,24 @@ let def_expr_evaluates_to_value (lang : Lang.t) =
   | Elixir -> true
   | _else_ -> false
 
+let is_constructor env ret_ty id_info =
+  match id_info.G.id_resolved.contents with
+  | Some (G.GlobalName (ls, _), _) -> (
+      env.lang =*= Lang.Python
+      && List.length ls >= 3 (* Module + Class + __init__ *)
+      && (match List_.last_opt ls with
+         | Some "__init__" -> true
+         | _ -> false)
+      &&
+      match ret_ty with
+      (* It would be nice if we can check that this type actually
+         corresponds to a class, but I am uncertain if this is
+         possible. Istead we just check if it is a nominal typed.
+         TODO could we somehow guarentee this type is a class? *)
+      | { G.t = G.TyN _; _ } -> true
+      | _ -> false)
+  | _ -> false
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -688,6 +706,41 @@ and expr_aux env ?(void = false) e_gen =
         | _ -> exp
       in
       ident_function_call_hack exp
+  (* x = ClassName(args ...) in Python *)
+  (* ClassName has been resolved to __init__ by the pro engine. *)
+  (* Identified and treated as x = New ClassName(args ...) to support
+     field sensitivity. See HACK(new) *)
+  | G.Assign
+      ( ({
+           e =
+             G.N
+               (G.Id ((_, _), { id_type = { contents = Some ret_ty }; _ }) as
+                obj);
+           _;
+         } as obj_e),
+        _,
+        ({
+           e =
+             G.Call
+               ( {
+                   e =
+                     ( G.N (Id (_, id_info))
+                     (* Module paths are currently parsed into
+                        dotaccess so m.ClassName() is completely
+                        valid. *)
+                     | G.DotAccess (_, _, FN (Id (_, id_info))) );
+                   _;
+                 },
+                 args );
+           _;
+         } as origin_exp) )
+    when is_constructor env ret_ty id_info ->
+      let obj' = var_of_name obj in
+      let lval, ss =
+        mk_class_construction env obj' origin_exp ret_ty id_info args
+      in
+      add_stmts env ss;
+      mk_e (Fetch lval) (SameAs obj_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
@@ -1371,6 +1424,33 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
       [ mk_s (Instr fake_i) ]
   | ss'' -> ss''
 
+and mk_class_construction env obj origin_exp ty cons_id_info args :
+    lval * stmt list =
+  (* We encode `obj = new T(args)` as `obj = new obj.T(args)` so that taint
+     analysis knows that the reciever when calling `T` is the variable
+     `obj`. It's kinda hacky but works for now. *)
+  let lval = lval_of_base (Var obj) in
+  let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
+  let opt_cons =
+    let* cons = mk_class_constructor_name ty cons_id_info in
+    let cons' = var_of_name cons in
+    let cons_exp =
+      mk_e
+        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
+        (SameAs (G.N cons |> G.e))
+      (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+         * looks at the eorig, but maybe it shouldn't? *)
+    in
+    Some cons_exp
+  in
+  let ss2, ty = type_with_pre_stmts env ty in
+  ( lval,
+    ss1 @ ss2
+    @ [
+        mk_s
+          (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
+      ] )
+
 and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
@@ -1388,30 +1468,7 @@ and stmt_aux env st =
       (* HACK(new): Because of field-sensitivity hacks, we need to know to which
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
-      let obj_lval = lval_of_base (Var obj') in
-      let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
-      let opt_cons =
-        let* cons = mk_class_constructor_name ty cons_id_info in
-        let cons' = var_of_name cons in
-        let cons_exp =
-          mk_e
-            (Fetch
-               {
-                 obj_lval with
-                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
-               })
-            (SameAs (G.N cons |> G.e))
-          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
-           * looks at the eorig, but maybe it shouldn't? *)
-        in
-        Some cons_exp
-      in
-      let ss2, ty = type_with_pre_stmts env ty in
-      ss1 @ ss2
-      @ [
-          mk_s
-            (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp)));
-        ]
+      mk_class_construction env obj' new_exp ty cons_id_info args |> snd
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in

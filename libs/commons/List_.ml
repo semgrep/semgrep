@@ -222,6 +222,12 @@ let tl_exn errmsg xs =
   | [] -> failwith errmsg
   | _ :: tail -> tail
 
+let rec last_opt xs =
+  match xs with
+  | [] -> None
+  | [ x ] -> Some x
+  | _ :: tl -> last_opt tl
+
 let mapi f l = map2 f (List.init (List.length l) Fun.id) l
 
 let rec drop n xs =
