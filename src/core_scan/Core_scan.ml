@@ -1186,7 +1186,11 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
   Logs.info (fun m ->
       m ~tags "there were %d skipped targets" (List.length skipped_targets));
-  { res with processed_matches; errors }
+  (* TODO: returning, or not skipped_targets does not seem to have any impact
+   * on our testsuite, weird. We need to add more tests. Maybe because
+   * both pysemgrep and osemgrep do their own skip targets management.
+   *)
+  { res with processed_matches; errors; skipped_targets }
 
 (*****************************************************************************)
 (* Entry point *)
