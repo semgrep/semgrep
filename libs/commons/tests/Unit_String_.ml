@@ -21,7 +21,7 @@ let test_safe_sub () =
   check "abc" 0 3 "abc";
   check "abc" 0 2 "ab";
   check "abc" 1 2 "bc";
-  check "abc" 2 2 "b";
+  check "abc" 2 2 "c";
   check "abc" (-1) 2 "a";
   check "abc" (-10) 5 "";
   check "abc" (-10) 20 "abc";
