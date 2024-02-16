@@ -163,11 +163,7 @@ let _show_offset offset =
 
 let _show_arg { base; offset = os } =
   _show_base base
-  ^
-  if os <> [] then
-    let os_str = os |> List_.map _show_offset |> String.concat "" in
-    os_str
-  else ""
+  ^ if os <> [] then os |> List_.map _show_offset |> String.concat "" else ""
 
 (*****************************************************************************)
 (* Taint *)

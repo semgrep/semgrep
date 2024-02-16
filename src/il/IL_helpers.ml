@@ -155,7 +155,9 @@ module LvalOrdered = struct
               | Index { e = Operator ((G.Mult, _), []); _ }, Index _
               | Index _, Index { e = Operator ((G.Mult, _), []); _ } ->
                   (* This stands for an arbitrary index, like '[*]',
-                   * see 'Pro_taint_lval_env.lval_index_any'. *)
+                   * see 'Pro_taint_lval_env.lval_index_any' and
+                   * 'Pro_taint_lval_lva.normalize_rev_offset'.
+                   * Any index will be considered equals to '[*]'. *)
                   0
               | ( Index { e = Literal (Int (Some i1, _)); _ },
                   Index { e = Literal (Int (Some i2, _)); _ } ) ->

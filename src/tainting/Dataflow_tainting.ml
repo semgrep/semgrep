@@ -1289,33 +1289,28 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
     (lval * T.tainted_token) option =
   let os =
     sig_arg.offset
-    |> List_.map (fun x ->
-           match x with
-           | T.Ofld x -> { o = Dot x; oorig = NoOrig }
-           | T.Oint i ->
-               {
-                 o =
-                   Index
-                     {
-                       e = Literal (G.Int (Parsed_int.of_int i));
-                       eorig = NoOrig;
-                     };
-                 oorig = NoOrig;
-               }
-           | T.Ostr s ->
-               {
-                 o =
-                   Index
-                     {
-                       e =
-                         Literal
-                           (G.String
-                              (Tok.unsafe_fake_bracket
-                                 (s, Tok.unsafe_fake_tok s)));
-                       eorig = NoOrig;
-                     };
-                 oorig = NoOrig;
-               })
+    |> List_.map (function
+         | T.Ofld x -> { o = Dot x; oorig = NoOrig }
+         | T.Oint i ->
+             {
+               o =
+                 Index
+                   { e = Literal (G.Int (Parsed_int.of_int i)); eorig = NoOrig };
+               oorig = NoOrig;
+             }
+         | T.Ostr s ->
+             {
+               o =
+                 Index
+                   {
+                     e =
+                       Literal
+                         (G.String
+                            (Tok.unsafe_fake_bracket (s, Tok.unsafe_fake_tok s)));
+                     eorig = NoOrig;
+                   };
+               oorig = NoOrig;
+             })
   in
   let* lval, obj =
     match sig_arg.base with
