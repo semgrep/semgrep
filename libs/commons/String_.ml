@@ -16,8 +16,14 @@ let safe_sub str virtual_start virtual_sublen =
   let len = String.length str in
   (* Treat negative length as zero length *)
   let virtual_sublen = max 0 virtual_sublen in
-  (* Convert possibly out-of-range start and end to legal start and end *)
+  (* Convert possibly out-of-range start and end to legal start and end. *)
   let virtual_end = virtual_start + virtual_sublen in
+  let virtual_end =
+    if virtual_end < virtual_start then
+      (* int overflow from the addition above *)
+      max_int
+    else virtual_end
+  in
   let real_start = max 0 (min virtual_start len) in
   let real_end = max 0 (min len virtual_end) in
   let real_sublen = real_end - real_start in

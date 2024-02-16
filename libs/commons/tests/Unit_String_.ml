@@ -7,6 +7,7 @@ let t = Testo.create
 (* Try hard to raise an exception *)
 let test_safe_sub () =
   let check str pos len expected =
+    Printf.printf "safe_sub %S pos=%i len=%i\n%!" str pos len;
     Alcotest.(check string) __LOC__ expected (String_.safe_sub str pos len)
   in
   check "" 0 0 "";
@@ -25,7 +26,11 @@ let test_safe_sub () =
   check "abc" (-1) 2 "a";
   check "abc" (-10) 5 "";
   check "abc" (-10) 20 "abc";
-  check "abc" 10 5 ""
+  check "abc" 10 5 "";
+  check "abc" max_int 1 "";
+  check "abc" 0 max_int "abc";
+  check "abc" 1 max_int "bc";
+  check "abc" min_int 1 ""
 
 (* The output should look reasonably truncated *)
 let test_show () =
