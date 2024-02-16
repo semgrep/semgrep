@@ -172,7 +172,6 @@ class BaselineHandler:
             "--ignore-submodules",
             "--relative",
             self._base_commit,
-            "--",  # end of options, start of file paths
         ]
         try:
             if self._is_mergebase:
@@ -181,7 +180,7 @@ class BaselineHandler:
                 cmd = [*status_cmd, "--merge-base"]
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
-                cmd,
+                cmd + ["--"],  # -- is a sentinel to avoid ambiguity with file names
                 timeout=env.git_command_timeout,
                 capture_output=True,
                 encoding="utf-8",
@@ -195,7 +194,7 @@ class BaselineHandler:
                 )
                 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
                 raw_output = subprocess.run(
-                    status_cmd,
+                    status_cmd + ["--"],  # -- is a sentinel to avoid ambiguity with file names
                     timeout=env.git_command_timeout,
                     capture_output=True,
                     encoding="utf-8",
