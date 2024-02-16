@@ -276,8 +276,8 @@ let is_constructor env ret_ty id_info =
       env.lang =*= Lang.Python
       && List.length ls >= 3 (* Module + Class + __init__ *)
       && (match List_.last_opt ls with
-          | Some "__init__" -> true
-          | _ -> false)
+         | Some "__init__" -> true
+         | _ -> false)
       &&
       match ret_ty with
       (* It would be nice if we can check that this type actually
