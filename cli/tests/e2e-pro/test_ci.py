@@ -71,7 +71,6 @@ BAD_CONFIG = dedent(
 FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
-SEMGREP_URL = "https://semgrep.dev"
 
 # To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
 # the app code uses, so the tests can enforce the env is mocked appropriately.
@@ -440,7 +439,7 @@ def upload_results_mock(requests_mock, mocked_scan_id, mocked_task_id):
     def _upload_results_func(semgrep_url: str = "https://semgrep.dev"):
         results_response = out.CiScanResultsResponse(errors=[], task_id=mocked_task_id)
         return requests_mock.post(
-            f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/results",
+            f"{semgrep_url}/api/agent/scans/{mocked_scan_id}/results",
             json=results_response.to_json(),
         )
 
@@ -454,7 +453,7 @@ def complete_scan_mock(requests_mock, mocked_scan_id):
             success=True, app_block_override=True, app_block_reason="Test Reason"
         )
         return requests_mock.post(
-            f"{SEMGREP_URL}/api/agent/scans/{mocked_scan_id}/complete",
+            f"{semgrep_url}/api/agent/scans/{mocked_scan_id}/complete",
             json=complete_response.to_json(),
         )
 
@@ -888,7 +887,7 @@ def test_full_run(
 
     # Check correct metadata
     scan_create_json = start_scan_mock(
-        "https://tenantname.semgrep.dev"
+        env.get("SEMGREP_URL", "https://semgrep.dev")
     ).last_request.json()
     meta_json = scan_create_json["meta"]
 
@@ -919,7 +918,9 @@ def test_full_run(
     del scan_create_json["scan_metadata"]
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
-    findings_and_ignores_json = upload_results_mock().last_request.json()
+    findings_and_ignores_json = upload_results_mock(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    ).last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -935,7 +936,9 @@ def test_full_run(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = complete_scan_mock().last_request.json()
+    complete_json = complete_scan_mock(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    ).last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -1030,7 +1033,9 @@ def test_lockfile_parse_failure_reporting(
     )
 
     # Check correct metadata
-    findings_and_ignores_json = upload_results_mock().last_request.json()
+    findings_and_ignores_json = upload_results_mock(
+        "https://semgrep.dev"
+    ).last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -1046,7 +1051,7 @@ def test_lockfile_parse_failure_reporting(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = complete_scan_mock().last_request.json()
+    complete_json = complete_scan_mock("https://semgrep.dev").last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     complete_json["stats"]["lockfile_scan_info"] = {}
     assert len(complete_json["dependency_parser_errors"]) > 0
@@ -1335,7 +1340,9 @@ def test_shallow_wrong_merge_base(
         ),
         "bad_results.txt",
     )
-    findings_json = upload_results_mock().last_request.json()
+    findings_json = upload_results_mock(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    ).last_request.json()
     assert (
         len(findings_json["findings"]) == 2
     ), "Test might be invalid since we expect this to scan the wrong thing"
@@ -1359,7 +1366,9 @@ def test_shallow_wrong_merge_base(
         "results.txt",
     )
 
-    findings_json = upload_results_mock().last_request.json()
+    findings_json = upload_results_mock(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    ).last_request.json()
     assert (
         len(findings_json["findings"]) == 1
     ), "Potentially scanning wrong files/commits"
@@ -1461,7 +1470,12 @@ def test_dryrun(
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
-    assert start_scan_mock().last_request.json()["scan_metadata"]["dry_run"] == True
+    assert (
+        start_scan_mock("https://semgrep.dev").last_request.json()["scan_metadata"][
+            "dry_run"
+        ]
+        == True
+    )
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
