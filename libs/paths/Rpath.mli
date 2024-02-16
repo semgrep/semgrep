@@ -45,18 +45,27 @@
 *)
 type t = private Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 
-(* only way to build a Rpath *)
-val of_fpath : Fpath.t -> t
-val of_string : string -> t
+(*
+   Resolve a path into physical path i.e. a path that's free of symbolic links.
+   This requires the path to exist!
+
+   'Error msg' is returned if the physical path can't be determined.
+   This is the case if the file doesn't exist at all, its resolution
+   leads a broken symlink, or insufficient permissions.
+*)
+val of_fpath : Fpath.t -> (t, string) Result.t
+val of_string : string -> (t, string) Result.t
+
+(* For tests only. This raises an unspecified exception if the path can't
+   be resolved. *)
+val of_fpath_exn : Fpath.t -> t
+val of_string_exn : string -> t
 
 (* converters *)
 val to_fpath : t -> Fpath.t
 
 (* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
 val to_string : t -> string
-
-(* <=> to_string (of_string s) *)
-val canonical : string -> string
 
 (*
    Get the current working directory from the system.

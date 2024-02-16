@@ -26,7 +26,7 @@ let find_any_project_root ?fallback_root ?force_root (rfpath : Rfpath.t) =
       | Some project_root ->
           (* note: this project_root returned by git appears to be
              a physical path already. *)
-          let project_root = Rfpath.of_fpath project_root in
+          let project_root = Rfpath.of_fpath_exn project_root in
           let inproject_path =
             match Ppath.in_project ~root:project_root rfpath with
             | Ok x -> x

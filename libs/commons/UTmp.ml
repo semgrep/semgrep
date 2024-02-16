@@ -23,6 +23,8 @@ open Fpath_.Operators
  * This is mainly a wrapper over UCommon similar functions but using Fpath.t
  *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
@@ -43,6 +45,8 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
   Common.protect
     ~finally:(fun () -> close_out_noerr oc)
     (fun () -> output_string oc data);
+  Logs.debug (fun m ->
+      m ~tags "wrote %i bytes to %s" (String.length data) tmp_path);
   Fpath.v tmp_path
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
@@ -59,5 +63,5 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
 
 let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   let data = In_channel.input_all stdin in
-  Logs.debug (fun m -> m "stdin data: %S" data);
+  Logs.debug (fun m -> m ~tags "stdin data: %s" (*String_.show*) data);
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data

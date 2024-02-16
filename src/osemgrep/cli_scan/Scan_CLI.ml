@@ -67,7 +67,7 @@ type conf = {
 let default : conf =
   {
     rules_source = Configs [ "auto" ];
-    target_roots = [ Rfpath.of_string "." ];
+    target_roots = [ Rfpath.of_string_exn "." ];
     targeting_conf = Find_targets.default_conf;
     (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
@@ -842,20 +842,31 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
    Stdin and named pipes are converted to temporary regular files.
    The bool indicates that some paths were converted to temporary files without
    a particular file name or extension.
+
+   experimental = we're sure that we won't invoke pysemgrep later with the
+   same argv; allows us to consume stdin and named pipes.
 *)
-let replace_target_roots_by_regular_files_where_needed
-    (target_roots : string list) : Rfpath.t list * bool =
+let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
+    (target_roots : string list) :
+    Rfpath.t list * (Fpath.t * string) list * bool =
   let imply_always_select_explicit_targets = ref false in
-  let target_roots =
+  let target_roots, invalid_roots =
     target_roots
     |> List_.map (fun str ->
-           let fpath =
-             match str with
-             | "-" ->
-                 imply_always_select_explicit_targets := true;
+           match str with
+           | "-" ->
+               imply_always_select_explicit_targets := true;
+               if experimental then
+                 (* consumes stdin, preventing command-line forwarding to
+                    pysemgrep or another osemgrep! *)
                  UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
-             | str -> (
-                 let orig_path = Fpath.v str in
+               else
+                 (* remove this hack when no longer forward the command line
+                    to another program *)
+                 Fpath.v "/dev/stdin"
+           | str ->
+               let orig_path = Fpath.v str in
+               if experimental then (
                  match
                    UTmp.replace_named_pipe_by_regular_file_if_needed
                      ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
@@ -864,15 +875,15 @@ let replace_target_roots_by_regular_files_where_needed
                  | Some new_path ->
                      imply_always_select_explicit_targets := true;
                      new_path)
-           in
-           Rfpath.of_fpath fpath)
+               else orig_path)
+    |> Rfpath.of_fpaths
   in
   if !imply_always_select_explicit_targets then
     Logs.info (fun m ->
         m
           "Implying --scan-unknown-extensions due to explicit targets being \
            stdin or named pipes");
-  (target_roots, !imply_always_select_explicit_targets)
+  (target_roots, invalid_roots, !imply_always_select_explicit_targets)
 
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
@@ -893,8 +904,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
     Logs_.setup_logging ~level:common.CLI_common.logging_level ();
-    let target_roots, imply_always_select_explicit_targets =
-      replace_target_roots_by_regular_files_where_needed target_roots
+    (* TODO: report invalid roots *)
+    let target_roots, _invalid_roots, imply_always_select_explicit_targets =
+      replace_target_roots_by_regular_files_where_needed
+        ~experimental:(common.maturity =*= Maturity.Experimental)
+        target_roots
     in
     let project_root =
       let is_git_repo remote =
@@ -902,14 +916,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       in
       match (project_root, remote) with
       | Some root, None ->
-          Some (Find_targets.Filesystem (Rfpath.of_string root))
+          Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
       | None, Some url when is_git_repo url ->
           let checkout_path =
             match !Semgrep_envvars.v.remote_clone_dir with
-            | Some dir -> Rfpath.of_fpath dir
+            | Some dir -> Rfpath.of_fpath_exn dir
             | None ->
                 Git_wrapper.temporary_remote_checkout_path url
-                |> Rfpath.of_fpath
+                |> Rfpath.of_fpath_exn
           in
           let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })

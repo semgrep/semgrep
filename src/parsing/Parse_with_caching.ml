@@ -90,7 +90,7 @@ let ast_or_exn_of_file (lang, file) =
 
 (* Cache_disk methods reused in a few places *)
 let cache_extra_for_input version (lang, file) =
-  (version, lang, Rpath.of_fpath file, UFile.filemtime file)
+  (version, lang, Rpath.of_fpath_exn file, UFile.filemtime file)
 
 (* this is used for semgrep-core -generate_ast_binary done for Snowflake *)
 let binary_suffix : Fpath.ext = ".ast.binary"
@@ -144,7 +144,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
             Cache_disk.cache_file_for_input =
               (fun (lang, file) ->
                 (* canonicalize to reduce cache misses *)
-                let file = Rpath.of_fpath file in
+                let file = Rpath.of_fpath_exn file in
                 (* we may use different parsers for the same file
                  * (e.g., in Python3 or Python2 mode), so we put the lang as
                  * part of the cache "dependency".
@@ -174,7 +174,9 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                  * - "Not the same file! Md5sum collision! Clean the cache file"
                  *)
                 version = version2
-                && Rpath.equal (Rpath.of_fpath file) file2
+                (* TODO: careful: Unix.realpath can be expensive.
+                   Use Rfpath.t early instead of Fpath.t? *)
+                && Rpath.equal (Rpath.of_fpath_exn file) file2
                 && Lang.equal lang lang2
                 && UFile.filemtime file =*= mtime2);
             input_to_string =

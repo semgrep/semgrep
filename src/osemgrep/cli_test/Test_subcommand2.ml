@@ -133,7 +133,9 @@ let get_expected_and_reported_lines result test_files =
   let ruleid_lines, ok_lines, todo_ok_lines, todo_ruleid_lines =
     List.fold_left
       (fun (ruleid_lines, ok_lines, todo_ok_lines, todo_ruleid_lines) test_file ->
-        let test_file_resolved = Rpath.of_fpath test_file |> Rpath.to_string in
+        let test_file_resolved =
+          Rpath.of_fpath_exn test_file |> Rpath.to_string
+        in
         let all_lines = UFile.cat test_file in
         snd
         @@ List.fold_left

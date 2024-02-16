@@ -54,7 +54,7 @@ let initialize_server server
     { res with do_hover; pro_intrafile }
   in
   (* Semgrep scanning roots *)
-  let workspace_folders =
+  let workspace_folders, _errors =
     (match (workspaceFolders, rootUri) with
     | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders
     | _, Some uri -> [ Uri.to_path uri |> Fpath.v ]
@@ -62,7 +62,7 @@ let initialize_server server
     | None, None ->
         Logs.warn (fun m -> m "No workspace folders or rootUri provided");
         [])
-    |> List_.map Rfpath.of_fpath
+    |> Rfpath.of_fpaths
   in
   let is_intellij =
     match initializationOptions |> member "metrics" with

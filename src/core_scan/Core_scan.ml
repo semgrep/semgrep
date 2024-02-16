@@ -177,7 +177,7 @@ let replace_named_pipe_by_regular_file (path : Fpath.t) =
 
 let replace_named_pipe_by_regular_file_rfpath (path : Rfpath.t) =
   path |> Rfpath.to_fpath |> replace_named_pipe_by_regular_file
-  |> Rfpath.of_fpath
+  |> Rfpath.of_fpath_exn
 
 let target_path : In.target -> Fpath.t = function
   | `CodeTarget x -> Fpath.v x.path

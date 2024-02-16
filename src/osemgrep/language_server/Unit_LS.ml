@@ -110,7 +110,7 @@ let mock_workspace ?(git = false) () : Rfpath.t =
   let workspace = rand_dir () in
   let workspace = Fpath.v workspace in
   if git then setup_git workspace |> ignore;
-  Rfpath.of_fpath workspace
+  Rfpath.of_fpath_exn workspace
 
 (* TODO: make sure to delete temporary files when done.
    Use Testutil.with_tempdir for this. *)

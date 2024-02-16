@@ -62,28 +62,28 @@ let tests =
     capture "ls-files from outside the project, relative scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
-           project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath)
+           project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath_exn)
          ~mk_scanning_root:(fun ~project_root ->
            project_root |> Rpath.to_fpath |> Fpath.basename |> Fpath.v));
     capture "ls-files from outside the project, absolute scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
-           project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath)
+           project_root |> Rpath.to_fpath |> Fpath.parent |> Rpath.of_fpath_exn)
          ~mk_scanning_root:(fun ~project_root -> project_root |> Rpath.to_fpath));
     capture "ls-files from project subfolder"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
-           Fpath.((project_root |> Rpath.to_fpath) / "a") |> Rpath.of_fpath)
+           Fpath.((project_root |> Rpath.to_fpath) / "a") |> Rpath.of_fpath_exn)
          ~mk_scanning_root:(fun ~project_root:_ -> Fpath.v "."));
     capture "ls-files from project subfolder, relative scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
-           Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath)
+           Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath_exn)
          ~mk_scanning_root:(fun ~project_root:_ -> Fpath.v "../a"));
     capture "ls-files from project subfolder, absolute scanning root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root ->
-           Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath)
+           Fpath.((project_root |> Rpath.to_fpath) / "x") |> Rpath.of_fpath_exn)
          ~mk_scanning_root:(fun ~project_root ->
            Fpath.(Rpath.to_fpath project_root / "a")));
     t "get git project root" (fun () ->

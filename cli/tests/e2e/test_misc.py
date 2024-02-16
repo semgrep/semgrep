@@ -209,6 +209,8 @@ def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
+# Feed 'a' to semgrep's stdin and search for the pattern 'a', expecting
+# one finding.
 @pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_stdin_input(snapshot):
