@@ -524,7 +524,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 (*****************************************************************************)
 
 (* for -rules *)
-let rules_from_rule_source (config : Core_scan_config.t) :
+let%trace rules_from_rule_source (config : Core_scan_config.t) :
     Rule.t list * Rule.invalid_rule_error list =
   let rule_source =
     match config.rule_source with
@@ -545,7 +545,6 @@ let rules_from_rule_source (config : Core_scan_config.t) :
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
-[@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
@@ -561,10 +560,10 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 
 let handle_target_with_trace handle_target t =
-  let target_name = Target.internal_path t in
-  Tracing.run_with_span "Core_scan.handle_target"
-    ?data:(Some [ ("filename", `String !!target_name) ])
-    (fun () -> handle_target t)
+  let target_name = Target.internal_path t |> Fpath.to_string in
+  let%trace span = "Core_scan.handle_target" in
+  Tracing.add_data_to_span span [ ("filename", `String target_name) ];
+  handle_target t
 
 (*
    Returns a list of match results and a separate list of scanned targets.
