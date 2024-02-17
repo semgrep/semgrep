@@ -158,12 +158,8 @@ let check ~match_hook ~timeout ~timeout_threshold
     | Some table -> Hashtbl.find_opt table
     | None -> fun _ -> None
   in
-  let {
-    Xtarget.path = { internal_path_to_content; _ };
-    lazy_ast_and_errors;
-    xlang;
-    _;
-  } (* : Xtarget.t *) =
+  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
+      : Xtarget.t =
     xtarget
   in
   Logs.debug (fun m ->
