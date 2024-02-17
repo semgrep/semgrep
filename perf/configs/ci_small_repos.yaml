@@ -5,14 +5,14 @@ runs:
         commit_hash: 829f9272d2c4299a0c0a37a09802248d8136c0a8
     rule_configs:
       - rules/zulip/semgrep.yml
-    opts: [--trace]
+    opts: []
   - name: dropbox # flask rulepack on a python repo
     repos:
       - url: https://github.com/dropbox/pytest-flakefinder
         commit_hash: a502101f4bc3c65cc32931218addc315b876cecb
     rule_configs:
       - r2c-rules/flask.yml
-    opts: [--trace]
+    opts: []
   - name: coinbase # r2c-ci and r2c-security-audit packs on a go/ruby repo
     repos:
       - url: https://github.com/coinbase/bifrost
@@ -20,28 +20,28 @@ runs:
     rule_configs:
       - r2c-rules/r2c-ci.yml
       - r2c-rules/r2c-security-audit.yml
-    opts: [--trace]
+    opts: []
   - name: njs-django # njsscan rules on a JS/other repo
     repos:
       - url: https://github.com/django/django
         commit_hash: 9ee693bd6cf4074f04ec51c6f3cfe87cad392f12
     rule_configs:
       - njsscan
-    opts: [--trace]
+    opts: []
   - name: apache # django rulepack on a large python repo
     repos:
       - url: https://github.com/apache/libcloud
         commit_hash: cc5987b5f79d4bca9c9139f24878686224b75425
     rule_configs:
       - r2c-rules/django.yml
-    opts: [--trace]
+    opts: []
   - name: 0c34 # golang rulepack on a go/html repo
     repos:
       - url: https://github.com/0c34/govwa
         commit_hash: 59c1b725bc562aea279b8eeb9af440c6ad41d69d
     rule_configs:
       - r2c-rules/golang.yml
-    opts: [--trace]
+    opts: []
   - name: lodash # javascript and eslint-plugin-security packs on a large JS repo
     repos:
       - url: https://github.com/lodash/lodash
@@ -49,7 +49,7 @@ runs:
     rule_configs:
       - r2c-rules/javascript.yml
       - r2c-rules/eslint-plugin-security.yml
-    opts: [--trace]
+    opts: []
   # See https://owasp.org/www-project-vulnerable-web-applications-directory/
   # for a full list of vulnerable apps
   - name: DVWA # r2c-ci packs (but not r2c-security-audit) on a vulnerable app
@@ -58,21 +58,21 @@ runs:
         commit_hash: e645a31a7bb7d775d4a89baf3a86d807a0992a6c
     rule_configs:
       - r2c-rules/r2c-ci.yml
-    opts: [--trace]
+    opts: []
   - name: juice-shop # r2c-ci packs (but not r2c-security-audit) on a vulnerable app
     repos:
       - url: https://github.com/bkimminich/juice-shop
         commit_hash: aa4bfe15c55a01008e033ddab4d2532b3e2c9760
     rule_configs:
       - r2c-rules/r2c-ci.yml
-    opts: [--trace]
+    opts: []
   - name: Vulnerable-Flask-App # r2c-ci packs (but not r2c-security-audit) on a vulnerable app
     repos:
       - url: https://github.com/we45/Vulnerable-Flask-App
         commit_hash: aa415e4e9557469772b1a07ea7cb3b331ce6bd60
     rule_configs:
       - r2c-rules/r2c-ci.yml
-    opts: [--trace]
+    opts: []
   # Gitlab small repos
   - name: pallets # python and flask rules on a python repo
     repos:
@@ -81,7 +81,7 @@ runs:
     rule_configs:
       - r2c-rules/python.yml
       - r2c-rules/flask.yml
-    opts: [--trace]
+    opts: []
   # For more comprehensive rule timing information
   - name: coolMenu # small java corpus
     repos:
@@ -89,7 +89,7 @@ runs:
         commit_hash: 9a58c821583b7e54c08901e810e7eb779152c55b
     rule_configs:
       - r2c-rules/java.yml
-    opts: [--trace]
+    opts: []
   - name: t00sh # small c corpus
     repos:
       - url: https://github.com/t00sh/rop-tool
@@ -97,18 +97,18 @@ runs:
     rule_configs:
       - r2c-rules/r2c-ci.yml
       - r2c-rules/r2c-security-audit.yml
-    opts: [--trace]
+    opts: []
   - name: grpc # small repository of dockerfiles
     repos:
       - url: https://github.com/grpc/grpc-docker-library
         commit_hash: 2ef4dc22614a5e82fad25ae33e5a8520773eca10
     rule_configs:
       - r2c-rules/docker.yml
-    opts: [--trace]
+    opts: []
   - name: kotlinPrefilterTest # testing rules that cause blowup with the prefilter
     repos:
       - url: https://github.com/square/leakcanary
         commit_hash: bf5086da26952e3627f18865bb232963e4d019c5
     rule_configs:
       - r2c-rules/slow-prefilter.yml
-    opts: [--trace]
+    opts: []
