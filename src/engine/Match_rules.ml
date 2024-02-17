@@ -57,8 +57,7 @@ let timeout_function (rule : Rule.t) file timeout f =
       None
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
-  let { Xtarget.path = { internal_path_to_content; _ }; lazy_content; _ }
-      (* : Xtarget.t *) =
+  let { path = { internal_path_to_content; _ }; lazy_content; _ } : Xtarget.t =
     xtarget
   in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
