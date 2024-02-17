@@ -116,7 +116,7 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
       tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
   | File path ->
       let file = Fpath.to_string path in
-      UCommon.with_open_infile file (fun chan ->
+      UFile.Legacy.with_open_infile file (fun chan ->
           let lexbuf = Lexing.from_channel chan in
           let table = Pos.full_converters_large file in
           tokenize_and_adjust_pos lexbuf table file tokenizer visitor_tok is_eof)
@@ -164,7 +164,7 @@ let (info_from_charpos : int -> string (* filename *) -> int * int * string) =
    *      (pos.pos_cnum - pos.pos_bol) in
    * Hence this function to overcome the previous limitation.
    *)
-  UCommon.with_open_infile filename (fun chan ->
+  UFile.Legacy.with_open_infile filename (fun chan ->
       let linen = ref 0 in
       let posl = ref 0 in
       let rec charpos_to_pos_aux last_valid =

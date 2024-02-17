@@ -13,3 +13,15 @@ val erase_this_temp_file : Fpath.t -> unit
 *)
 val replace_named_pipe_by_regular_file_if_needed :
   ?prefix:string -> Fpath.t -> Fpath.t
+
+(* To not erase tmp files after they have been used (can be useful to
+ * help debug failures). Usually set via a -keep_tmp_files CLI flag) *)
+val save_tmp_files : bool ref
+
+(* Deprecated! *)
+module Legacy : sig
+  val new_temp_file :
+    string (* prefix *) -> string (* suffix *) -> string (* filename *)
+
+  val erase_this_temp_file : string (* filename *) -> unit
+end

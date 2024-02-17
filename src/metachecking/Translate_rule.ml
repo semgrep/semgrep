@@ -38,7 +38,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 let rec range_to_string (range : (Tok.location * Tok.location) option) =
   match range with
   | Some (start, end_) ->
-      UCommon.with_open_infile start.pos.file (fun chan ->
+      UFile.Legacy.with_open_infile start.pos.file (fun chan ->
           let extract_size = end_.pos.bytepos - start.pos.bytepos in
           seek_in chan start.pos.bytepos;
           really_input_string chan extract_size)

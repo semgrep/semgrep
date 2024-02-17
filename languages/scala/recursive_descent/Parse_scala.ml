@@ -78,7 +78,7 @@ let parse filename =
         UCommon.pr2
           ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
         let filelines = UFile.cat_array (Fpath.v filename) in
-        let checkpoint2 = UCommon.cat filename |> List.length in
+        let checkpoint2 = UFile.Legacy.cat filename |> List.length in
         let line_error = Tok.line_of_tok cur in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;

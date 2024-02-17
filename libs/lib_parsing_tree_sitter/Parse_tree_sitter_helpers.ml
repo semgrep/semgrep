@@ -41,7 +41,7 @@ type 'a env = {
 let line_col_to_pos file =
   let size = UFile.filesize (Fpath.v file) + 2 in
   let h = Hashtbl.create size in
-  UCommon.with_open_infile file (fun chan ->
+  UFile.Legacy.with_open_infile file (fun chan ->
       let charpos = ref 0 in
       let line = ref 0 in
 

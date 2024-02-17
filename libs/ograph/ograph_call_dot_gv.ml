@@ -11,7 +11,7 @@ open Common
 (*****************************************************************************)
 
 let generate_ograph_generic g label fnode filename =
-  UCommon.with_open_outfile filename (fun (xpr, _) ->
+  UFile.Legacy.with_open_outfile filename (fun (xpr, _) ->
       xpr "digraph misc {\n";
       xpr "size = \"10,10\";\n";
       (match label with
@@ -47,7 +47,7 @@ let generate_ograph_generic g label fnode filename =
   ()
 
 let generate_ograph_xxx g filename =
-  UCommon.with_open_outfile filename (fun (xpr, _) ->
+  UFile.Legacy.with_open_outfile filename (fun (xpr, _) ->
       xpr "digraph misc {\n";
       xpr "size = \"10,10\";\n";
 

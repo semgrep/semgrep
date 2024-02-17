@@ -632,5 +632,5 @@ let any str =
   make_pattern_expr xs
 
 let program file =
-  let str = mask_unicode (UCommon.read_file file) in
+  let str = mask_unicode (UFile.Legacy.read_file file) in
   parse_yaml_file ~is_target:true file str

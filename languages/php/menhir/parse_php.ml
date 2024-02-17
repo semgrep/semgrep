@@ -131,7 +131,7 @@ let parse filename =
 
       if !Flag.show_parsing_error then
         UCommon.pr2 ("parse error\n = " ^ error_msg_tok cur);
-      let checkpoint2 = UCommon.cat filename |> List.length in
+      let checkpoint2 = UFile.Legacy.cat filename |> List.length in
 
       if !Flag.show_parsing_error then
         Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;
@@ -173,8 +173,8 @@ let any_of_string s =
  *)
 let (expr_of_string : string -> Cst_php.expr) =
  fun s ->
-  let tmpfile = UCommon.new_temp_file "pfff_expr_of_s" "php" in
-  UCommon.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
+  let tmpfile = UTmp.Legacy.new_temp_file "pfff_expr_of_s" "php" in
+  UFile.Legacy.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
 
   let ast = parse_program tmpfile in
 
@@ -183,7 +183,7 @@ let (expr_of_string : string -> Cst_php.expr) =
     | [ Ast.TopStmt (Ast.ExprStmt (e, _tok)); Ast.FinalDef _ ] -> e
     | _ -> failwith "only expr pattern are supported for now"
   in
-  UCommon.erase_this_temp_file tmpfile;
+  UTmp.Legacy.erase_this_temp_file tmpfile;
   res
 
 (* It is clearer for our testing code to programmatically build source files
@@ -193,16 +193,16 @@ let (expr_of_string : string -> Cst_php.expr) =
  *)
 let (program_of_string : string -> Cst_php.program) =
  fun s ->
-  let tmpfile = UCommon.new_temp_file "pfff_expr_of_s" "php" in
-  UCommon.write_file tmpfile ("<?php \n" ^ s ^ "\n");
+  let tmpfile = UTmp.Legacy.new_temp_file "pfff_expr_of_s" "php" in
+  UFile.Legacy.write_file tmpfile ("<?php \n" ^ s ^ "\n");
   let ast = parse_program tmpfile in
-  UCommon.erase_this_temp_file tmpfile;
+  UTmp.Legacy.erase_this_temp_file tmpfile;
   ast
 
 (* use program_of_string when you can *)
 let tmp_php_file_from_string ?(header = "<?php\n") s =
-  let tmp_file = UCommon.new_temp_file "test" ".php" in
-  UCommon.write_file ~file:tmp_file (header ^ s);
+  let tmp_file = UTmp.Legacy.new_temp_file "test" ".php" in
+  UFile.Legacy.write_file ~file:tmp_file (header ^ s);
   tmp_file
 
 (* this function is useful mostly for our unit tests *)

@@ -572,7 +572,7 @@ let options caps actions =
             profile := true),
         " output profiling information" );
       ( "-keep_tmp_files",
-        Arg.Set UCommon.save_tmp_files,
+        Arg.Set UTmp.save_tmp_files,
         " keep temporary generated files" );
     ]
   @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)

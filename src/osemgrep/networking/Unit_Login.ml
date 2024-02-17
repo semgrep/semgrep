@@ -45,7 +45,7 @@ let with_mock_normal_responses =
           | _ -> failwith "Unexpected token"
         in
         let body =
-          body_path |> UCommon.read_file |> Cohttp_lwt.Body.of_string
+          body_path |> UFile.Legacy.read_file |> Cohttp_lwt.Body.of_string
         in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
