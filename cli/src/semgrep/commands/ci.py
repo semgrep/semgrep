@@ -616,7 +616,7 @@ def ci(
             )
 
         logger.info(
-            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings?&repo={scan_handler.deployment_name}/{metadata.repo_display_name}"
         )
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(
