@@ -655,6 +655,20 @@ changes to the console. This lets you see the changes before you commit to
 them. Only works with the --autofix flag. Otherwise does nothing.
 |}
 
+let o_error : bool Term.t =
+  H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
+    ~default:default.error_on_findings
+    ~doc:{|Exit 1 if there are findings. Useful for CI and scripts.|}
+
+let o_strict : bool Term.t =
+  H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
+    ~default:default.output_conf.strict
+    ~doc:
+      {|Return a nonzero exit code when WARN level errors are encountered.
+Fails early if invalid configuration files are present.
+Defaults to --no-strict.
+|}
+
 (* In theory we should also accept EXPERIMENT and INVENTORY *)
 let o_severity : Rule.severity list Term.t =
   let info =
@@ -704,6 +718,11 @@ let o_show_supported_languages : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
+let o_test : bool Term.t =
+  let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
+  Arg.value (Arg.flag info)
+
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_validate : bool Term.t =
   let info =
     Arg.info [ "validate" ]
@@ -745,28 +764,6 @@ let o_dump_command_for_core : bool Term.t =
 (* ------------------------------------------------------------------ *)
 (* Test and debug options *)
 (* ------------------------------------------------------------------ *)
-
-(* alt: could be in the "alternate modes" section
- * ugly: this should be a separate subcommand, not a flag of semgrep scan
- *)
-let o_test : bool Term.t =
-  let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
-  Arg.value (Arg.flag info)
-
-(* alt: in configuration option *)
-let o_error : bool Term.t =
-  H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
-    ~default:default.error_on_findings
-    ~doc:{|Exit 1 if there are findings. Useful for CI and scripts.|}
-
-let o_strict : bool Term.t =
-  H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
-    ~default:default.output_conf.strict
-    ~doc:
-      {|Return a nonzero exit code when WARN level errors are encountered.
-Fails early if invalid configuration files are present.
-Defaults to --no-strict.
-|}
 
 (* ------------------------------------------------------------------ *)
 (* Positional arguments *)

@@ -556,7 +556,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --strict --exclude tests
 # you can add --verbose for debugging
 
 #Dogfooding osemgrep!
