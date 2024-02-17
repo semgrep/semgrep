@@ -67,11 +67,7 @@ let configure_tracing service_name =
   Otel.Globals.service_name := service_name;
   Otel.GC_metrics.basic_setup ();
   Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
-
-  let otel_backend =
-    Opentelemetry_client_ocurl.create_backend
-      (* TODO configure this to use a permanent endpoint *) ()
-  in
+  let otel_backend = Opentelemetry_client_ocurl.create_backend () in
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
@@ -83,7 +79,12 @@ let with_setup f =
    * ALT: we could also have wrapped this with a `Otel.Scope.with_ambient_scope`
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
-  Opentelemetry_client_ocurl.with_setup () @@ fun () ->
+  let config =
+    Some
+      (Opentelemetry_client_ocurl.Config.make
+         ?url:(Some "https://telemetry.dev2.semgrep.dev") ())
+  in
+  Opentelemetry_client_ocurl.with_setup ?config () @@ fun () ->
   Trace_core.with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
 
 (* Alt: using cohttp_lwt
