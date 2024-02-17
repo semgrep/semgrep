@@ -61,12 +61,11 @@ and write_one root file =
   match file with
   | Dir (name, entries) ->
       let dir = root / name in
-      let dir_s = Fpath.to_string dir in
-      if not (USys.file_exists dir_s) then UUnix.mkdir dir_s 0o777;
+      if not (USys.file_exists !!dir) then UUnix.mkdir !!dir 0o777;
       write dir entries
   | File (name, contents) ->
       let path = root / name |> Fpath.to_string in
-      UCommon.write_file ~file:path contents
+      UFile.Legacy.write_file ~file:path contents
   | Symlink (name, dest) ->
       let path = root / name |> Fpath.to_string in
       let dest_path = Fpath.v dest |> Fpath.to_string in
@@ -99,7 +98,7 @@ let read root =
     | S_DIR ->
         let names = get_dir_entries path in
         Dir (name, List_.map (fun name -> read (path / name)) names)
-    | S_REG -> File (name, UCommon.read_file (Fpath.to_string path))
+    | S_REG -> File (name, UFile.Legacy.read_file (Fpath.to_string path))
     | S_LNK -> Symlink (name, UUnix.readlink (Fpath.to_string path))
     | _other ->
         failwith

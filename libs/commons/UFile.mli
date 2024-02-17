@@ -1,18 +1,24 @@
 (*
    Operations on files in the general sense (regular file, folder, etc.).
 
-   Migration note:
-   - step 1: here, we expose the same functions as in Common but using the
-             Fpath.t type.
-   - step 2: move the original implementation from Common.ml to here
-             and stop using 'string' for file paths.
+   As opposed to Fpath.ml, which is purely syntactical, the functions below
+   actually relies on the filesystem.
+
+   TODO: you should use the capability-aware functions in CapFS.ml
+   instead of the functions in this unsafe (hence the U prefix) module.
 *)
 
-(* For realpath, use Unix.realpath in OCaml >= 4.13, or Rpath.mli *)
-(*
-   Check that the file exists and produce a valid absolute path for the file.
-*)
+(*****************************************************************************)
+(* Paths *)
+(*****************************************************************************)
+
+(* Check that the file exists and produce a valid absolute path for the file.
+ * Deprecated: use Unix.realpath in OCaml >= 4.13, or Rpath.mli
+ *)
 val fullpath : Fpath.t -> Fpath.t
+
+(* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
+val follow_symlinks : bool ref
 
 (* use the command 'find' internally and tries to skip files in
  * version control system (vcs) (e.g., .git, _darcs, etc.).
@@ -32,7 +38,7 @@ val cat : Fpath.t -> string list
 
 (* this is 1-based access, line 1 is at res.[1] *)
 val cat_array : Fpath.t -> string array
-val write_file : Fpath.t -> string -> unit
+val write_file : file:Fpath.t -> string -> unit
 
 (* [lines_of_file (start_line, end_line) file] returns
  * the list of lines from start_line to end_line included.
@@ -97,3 +103,28 @@ val lfile_exists : Fpath.t -> bool
 
 (* no raised Unix_error if the directory does not exist *)
 val dir_exists : Fpath.t -> bool
+
+(*****************************************************************************)
+(* Legacy API using 'string' for filenames instead of Fpath.t *)
+(*****************************************************************************)
+
+(* Deprecated! *)
+module Legacy : sig
+  val fullpath : string (* filename *) -> string (* filename *)
+
+  val files_of_dir_or_files_no_vcs_nofilter :
+    string (* root *) list -> string (* filename *) list
+
+  val cat : string (* filename *) -> string list
+  val write_file : file:string (* filename *) -> string -> unit
+  val read_file : ?max_len:int -> string (* filename *) -> string
+
+  val with_open_outfile :
+    string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a
+
+  val with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a
+
+  (* NOT IN MAIN API *)
+  val dir_contents : string (* filename *) -> string (* filename *) list
+  (** [dir_contents dir] will return a recursive list of all files in a dir *)
+end

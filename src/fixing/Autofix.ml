@@ -377,7 +377,7 @@ let produce_autofixes (matches : Core_result.processed_match list) =
     matches
 
 let apply_fixes_to_file edits ~file =
-  let file_text = UCommon.read_file file in
+  let file_text = UFile.Legacy.read_file file in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->

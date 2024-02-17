@@ -1,6 +1,6 @@
 (* Martin Jambon
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,24 +12,61 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open Fpath_.Operators
+
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Operations dealing with files in /tmp (or whatever tmp directory is
  * in your OS).
- *
- * This is mainly a wrapper over UCommon similar functions but using Fpath.t
  *)
 
 (*****************************************************************************)
-(* API *)
+(* Globals *)
 (*****************************************************************************)
 
-let new_temp_file prefix suffix = UCommon.new_temp_file prefix suffix |> Fpath.v
-let erase_temp_files = UCommon.erase_temp_files
-let erase_this_temp_file path = UCommon.erase_this_temp_file !!path
+let _temp_files_created = Hashtbl.create 101
+let save_tmp_files = ref false
+
+let erase_temp_files () =
+  if not !save_tmp_files then (
+    _temp_files_created
+    |> Hashtbl.iter (fun s () ->
+           Logs.debug (fun m -> m ~tags "erasing: %s" s);
+           USys.remove s);
+    Hashtbl.clear _temp_files_created)
+
+(*****************************************************************************)
+(* Legacy API using 'string' for filenames *)
+(*****************************************************************************)
+
+module Legacy = struct
+  (* ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c" *)
+  let new_temp_file prefix suffix =
+    let pid = if !Common.jsoo then 42 else UUnix.getpid () in
+    let processid = i_to_s pid in
+    let tmp_file =
+      UFilename.temp_file (prefix ^ "-" ^ processid ^ "-") suffix
+    in
+    Hashtbl.add _temp_files_created tmp_file ();
+    tmp_file
+
+  let erase_this_temp_file f =
+    if not !save_tmp_files then (
+      Hashtbl.remove _temp_files_created f;
+      Logs.debug (fun m -> m ~tags "erasing: %s" f);
+      USys.remove f)
+end
+
+(*****************************************************************************)
+(* API using Fpath.t for filenames *)
+(*****************************************************************************)
+
+let new_temp_file prefix suffix = Legacy.new_temp_file prefix suffix |> Fpath.v
+let erase_this_temp_file path = Legacy.erase_this_temp_file !!path
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     (path : Fpath.t) : Fpath.t =

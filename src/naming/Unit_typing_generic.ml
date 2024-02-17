@@ -171,7 +171,9 @@ let tests parse_program parse_pattern =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = parse_pattern Lang.Java (UCommon.read_file file) in
+                   let _ =
+                     parse_pattern Lang.Java (UFile.Legacy.read_file file)
+                   in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
@@ -182,7 +184,9 @@ let tests parse_program parse_pattern =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = parse_pattern Lang.Go (UCommon.read_file file) in
+                   let _ =
+                     parse_pattern Lang.Go (UFile.Legacy.read_file file)
+                   in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->

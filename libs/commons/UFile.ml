@@ -15,6 +15,8 @@
 open Common
 open Fpath_.Operators
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -30,21 +32,171 @@ open Fpath_.Operators
 *)
 
 (*****************************************************************************)
-(* API *)
+(* Globals and constants *)
 (*****************************************************************************)
 
-let fullpath file = UCommon.fullpath !!file |> Fpath.v
+let follow_symlinks = ref false
+
+let vcs_re =
+  "(^((\\.hg)|(CVS)|(\\.git)|(_darcs)|(\\.svn))$)|(.*\\.git_annot$)|(.*\\.marshall$)"
+  |> Re.Posix.re |> Re.compile
+
+(*****************************************************************************)
+(* Legacy API using 'string' for filenames *)
+(*****************************************************************************)
+
+module Legacy = struct
+  let cat file =
+    let acc = ref [] in
+    let chan = UStdlib.open_in_bin file in
+    try
+      while true do
+        acc := input_text_line chan :: !acc
+      done;
+      assert false
+    with
+    | End_of_file ->
+        close_in chan;
+        List.rev !acc
+
+  (*
+   This implementation works even with Linux files like /dev/fd/63
+   created by bash's process substitution e.g.
+
+     my-ocaml-program <(echo contents)
+
+   See https://www.gnu.org/software/bash/manual/html_node/Process-Substitution.html
+
+   In bash, '<(echo contents)' is replaced by something like
+   '/dev/fd/63' which is a special file of apparent size 0 (as
+   reported by `Unix.stat`) but contains data (here,
+   "contents\n"). So we can't use 'Unix.stat' or 'in_channel_length'
+   to obtain the length of the file contents. Instead, we read the file
+   chunk by chunk until there's nothing left to read.
+
+   Why such a function is not provided by the ocaml standard library is
+   unclear.
+*)
+  let read_file ?(max_len = max_int) path =
+    if !jsoo then (
+      let ic = UStdlib.open_in_bin path in
+      let s = really_input_string ic (in_channel_length ic) in
+      close_in ic;
+      s)
+    else
+      let buf_len = 4096 in
+      let extbuf = Buffer.create 4096 in
+      let buf = Bytes.create buf_len in
+      let rec loop fd =
+        match Unix.read fd buf 0 buf_len with
+        | 0 -> Buffer.contents extbuf
+        | num_bytes ->
+            assert (num_bytes > 0);
+            assert (num_bytes <= buf_len);
+            Buffer.add_subbytes extbuf buf 0 num_bytes;
+            if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
+            else loop fd
+      in
+      let fd = UUnix.openfile path [ Unix.O_RDONLY ] 0 in
+      Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
+
+  let write_file ~file s =
+    let chan = UStdlib.open_out_bin file in
+    output_string chan s;
+    close_out chan
+
+  let fullpath file =
+    if not (USys.file_exists file) then
+      failwith (spf "fullpath: file (or directory) %s does not exist" file);
+    let dir, base =
+      if USys.is_directory file then (file, None)
+      else (Filename.dirname file, Some (Filename.basename file))
+    in
+    (* save *)
+    let old = USys.getcwd () in
+
+    USys.chdir dir;
+    let here = USys.getcwd () in
+
+    (* restore *)
+    USys.chdir old;
+
+    match base with
+    | None -> here
+    | Some x -> Filename.concat here x
+
+  (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
+  let (with_open_outfile :
+        string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
+   fun file f ->
+    let chan = UStdlib.open_out_bin file in
+    let xpr s = output_string chan s in
+    unwind_protect
+      (fun () ->
+        let res = f (xpr, chan) in
+        close_out chan;
+        res)
+      (fun _e -> close_out chan)
+
+  let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
+   fun file f ->
+    let chan = UStdlib.open_in_bin file in
+    unwind_protect
+      (fun () ->
+        let res = f chan in
+        close_in chan;
+        res)
+      (fun _e ->
+        (* TODO? use close_in_noerr? *)
+        close_in chan)
+
+  (* Directories *)
+
+  (** [dir_contents] returns the paths of all regular files that are
+ * contained in [dir]. Each file is a path starting with [dir].
+  *)
+  let dir_contents dir =
+    let rec loop result = function
+      | f :: fs -> (
+          match f with
+          | f when not (USys.file_exists f) ->
+              Logs.err (fun m -> m ~tags "%s does not exist anymore" f);
+              loop result fs
+          | f when USys.is_directory f ->
+              USys.readdir f |> Array.to_list
+              |> List_.map (Filename.concat f)
+              |> List.append fs |> loop result
+          | f -> loop (f :: result) fs)
+      | [] -> result
+    in
+    loop [] [ dir ]
+
+  let files_of_dir_or_files_no_vcs_nofilter xs =
+    xs
+    |> List_.map (fun x ->
+           if USys.is_directory x then
+             let files = dir_contents x in
+             List.filter (fun x -> not (Re.execp vcs_re x)) files
+           else [ x ])
+    |> List_.flatten
+end
+
+(*****************************************************************************)
+(* Using Fpath.t *)
+(*****************************************************************************)
+
+let fullpath file = Legacy.fullpath !!file |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
+  xs |> Fpath_.to_strings |> Legacy.files_of_dir_or_files_no_vcs_nofilter
   |> Fpath_.of_strings
 
-let cat path = UCommon.cat !!path
+let cat path = Legacy.cat !!path
 let cat_array file = "" :: cat file |> Array.of_list
-let write_file path data = UCommon.write_file !!path data
-let read_file ?max_len path = UCommon.read_file ?max_len !!path
-let with_open_out path func = UCommon.with_open_outfile !!path func
-let with_open_in path func = UCommon.with_open_infile !!path func
+let write_file ~file data = Legacy.write_file ~file:!!file data
+let read_file ?max_len path = Legacy.read_file ?max_len !!path
+let with_open_out path func = Legacy.with_open_outfile !!path func
+let with_open_in path func = Legacy.with_open_infile !!path func
 
 let filesize file =
   if not !Common.jsoo (* this does not work well with jsoo *) then

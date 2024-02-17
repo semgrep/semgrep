@@ -347,8 +347,8 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     else (roots, [])
   in
   let paths =
-    paths |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
-    |> Fpath_.of_strings
+    paths |> Fpath_.to_strings
+    |> UFile.Legacy.files_of_dir_or_files_no_vcs_nofilter |> Fpath_.of_strings
   in
 
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in

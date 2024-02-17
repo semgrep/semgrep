@@ -230,7 +230,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
          * under the directory
          *)
         let targets =
-          UCommon.files_of_dir_or_files_no_vcs_nofilter [ !!path ]
+          UFile.Legacy.files_of_dir_or_files_no_vcs_nofilter [ !!path ]
           |> Fpath_.of_strings
         in
 

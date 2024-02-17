@@ -319,7 +319,7 @@ let save_local_skipped_fingerprints session =
   let save_file = save_dir / save_file_name |> Fpath.to_string in
   let skipped_fingerprints = skipped_fingerprints session in
   let skipped_fingerprints = String.concat "\n" skipped_fingerprints in
-  UCommon.with_open_outfile save_file (fun (_pr, chan) ->
+  UFile.Legacy.with_open_outfile save_file (fun (_pr, chan) ->
       output_string chan skipped_fingerprints)
 
 let load_local_skipped_fingerprints session =
@@ -332,7 +332,7 @@ let load_local_skipped_fingerprints session =
   if not (Sys.file_exists save_file) then session
   else
     let skipped_local_fingerprints =
-      UCommon.read_file save_file
+      UFile.Legacy.read_file save_file
       |> String.split_on_char '\n'
       |> List.filter (fun s -> s <> "")
     in

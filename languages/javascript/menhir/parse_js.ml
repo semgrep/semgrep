@@ -268,7 +268,7 @@ let parse2 opt_timeout filename =
 
         x :: aux tr
     | Either.Right err_tok ->
-        let max_line = UCommon.cat filename |> List.length in
+        let max_line = UFile.Legacy.cat filename |> List.length in
         (if !Flag.show_parsing_error then
            let filelines = UFile.cat_array (Fpath.v filename) in
            let cur = tr.Parsing_helpers.current in

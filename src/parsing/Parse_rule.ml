@@ -1006,7 +1006,7 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
  * because we don't want parsing/other/ to depend on core/.
  *)
 let parse_yaml_rule_file file =
-  let str = UCommon.read_file file in
+  let str = UFile.Legacy.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
   | Parsing_error.Other_error (s, t) ->
       Rule.raise_error None (InvalidYaml (s, t))

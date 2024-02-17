@@ -77,7 +77,7 @@ let test_cat () =
   let oc = open_out_bin file in
   output_string oc contents;
   close_out oc;
-  match UCommon.cat file with
+  match UFile.Legacy.cat file with
   | [ "hello"; "world"; "!" ] -> ()
   | lines ->
       List.iteri (fun i line -> eprintf "line %i: %S\n" i line) lines;
@@ -120,23 +120,23 @@ let with_file contents f =
 let test_read_file () =
   (* test file smaller than one filesystem block (most likely) *)
   let data = String.make 200 'A' in
-  with_file data (fun file -> assert (UCommon.read_file file = data));
+  with_file data (fun file -> assert (UFile.Legacy.read_file file = data));
   (* test file larger than one filesystem block (most likely) *)
   let data = String.make 100_000 'A' in
-  with_file data (fun file -> assert (UCommon.read_file file = data));
+  with_file data (fun file -> assert (UFile.Legacy.read_file file = data));
   (* test empty file *)
   let data = "" in
-  with_file data (fun file -> assert (UCommon.read_file file = data));
+  with_file data (fun file -> assert (UFile.Legacy.read_file file = data));
   (* test partial read *)
   let data = String.make 8192 'A' in
   let max_len = 100 in
   with_file data (fun file ->
-      assert (UCommon.read_file ~max_len file = String.sub data 0 max_len));
+      assert (UFile.Legacy.read_file ~max_len file = String.sub data 0 max_len));
   (* test 0-length read *)
   let data = String.make 8192 'A' in
   let max_len = 0 in
   with_file data (fun file ->
-      assert (UCommon.read_file ~max_len file = String.sub data 0 max_len))
+      assert (UFile.Legacy.read_file ~max_len file = String.sub data 0 max_len))
 
 let tests =
   Testo.categorize_suites "commons"
