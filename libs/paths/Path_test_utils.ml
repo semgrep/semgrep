@@ -38,7 +38,7 @@ let rec delete_files parent (x : file_tree) =
 *)
 let with_file_trees trees func =
   let workspace =
-    Fpath.v (Filename.get_temp_dir_name ())
+    UTmp.get_temp_dir_name ()
     (* This is meant only to be used in test code. *)
     (* nosemgrep: forbid-random *)
     / sprintf "test-list_files-%i" (Random.bits ())

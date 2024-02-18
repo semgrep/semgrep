@@ -48,11 +48,11 @@ let erase_temp_files () =
 
 module Legacy = struct
   (* ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c" *)
-  let new_temp_file prefix suffix =
+  let new_temp_file ?temp_dir prefix suffix =
     let pid = if !Common.jsoo then 42 else UUnix.getpid () in
     let processid = i_to_s pid in
     let tmp_file =
-      UFilename.temp_file (prefix ^ "-" ^ processid ^ "-") suffix
+      UFilename.temp_file ?temp_dir (prefix ^ "-" ^ processid ^ "-") suffix
     in
     Hashtbl.add _temp_files_created tmp_file ();
     tmp_file
@@ -79,7 +79,12 @@ end
 (* API using Fpath.t for filenames *)
 (*****************************************************************************)
 
-let new_temp_file prefix suffix = Legacy.new_temp_file prefix suffix |> Fpath.v
+let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())
+
+let new_temp_file ?(temp_dir = get_temp_dir_name ()) prefix suffix =
+  let temp_dir = !!temp_dir in
+  Legacy.new_temp_file ~temp_dir prefix suffix |> Fpath.v
+
 let erase_this_temp_file path = Legacy.erase_this_temp_file !!path
 
 let with_tmp_file ~str ~ext f =
