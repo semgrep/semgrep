@@ -19,6 +19,9 @@ val replace_named_pipe_by_regular_file_if_needed :
  * help debug failures). Usually set via a -keep_tmp_files CLI flag) *)
 val save_tmp_files : bool ref
 
+(* fpath wrapper to Filename.get_temp_dir_name() *)
+val get_temp_dir_name : unit -> Fpath.t
+
 (* Deprecated! *)
 module Legacy : sig
   val new_temp_file :

@@ -109,3 +109,5 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
           (fun () -> output_string oc data);
         Fpath.v tmp_path
     | _ -> path
+
+let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())
