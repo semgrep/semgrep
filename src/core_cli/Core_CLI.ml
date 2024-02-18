@@ -380,19 +380,19 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_1_arg Experiments.stat_matches );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
-      Arg_.mk_action_1_arg Experiments.ebnf_to_menhir );
+      Arg_.mk_action_1_conv Fpath.v Experiments.ebnf_to_menhir );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
             (Xlang.lang_of_opt_xlang_exn !lang)
-            xs) );
+            (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.test_parse_tree_sitter
             (Xlang.lang_of_opt_xlang_exn !lang)
-            xs) );
+            (Fpath_.of_strings xs)) );
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
@@ -412,8 +412,11 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
     ( "-datalog_experiment",
       " <file> <dir>",
-      Arg_.mk_action_2_arg Datalog_experiment.gen_facts );
-    ("-postmortem", " <log file", Arg_.mk_action_1_arg Statistics_report.stat);
+      Arg_.mk_action_2_arg (fun a b ->
+          Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
+    ( "-postmortem",
+      " <log file",
+      Arg_.mk_action_1_conv Fpath.v Statistics_report.stat );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program

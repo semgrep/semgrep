@@ -4,6 +4,7 @@
 val new_temp_file : string (* prefix *) -> string (* suffix *) -> Fpath.t
 val erase_temp_files : unit -> unit
 val erase_this_temp_file : Fpath.t -> unit
+val with_tmp_file : str:string -> ext:string -> (Fpath.t -> 'a) -> 'a
 
 (* If the file is a named pipe (e.g., created with <(echo 'foo')), copy it
    into a temporary regular file (with prefix [prefix]) and return the path
@@ -25,9 +26,10 @@ module Legacy : sig
 
   val erase_this_temp_file : string (* filename *) -> unit
 
-  (* NOT IN MAIN API *)
   val with_tmp_file :
     str:string -> ext:string -> (string (* filename*) -> 'a) -> 'a
+
+  (* NOT IN MAIN API *)
 
   (* Runs just before a tmp file is deleted. Multiple hooks can be added,
    * but the order in which they are called is unspecified.

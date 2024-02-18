@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open IL
 module G = AST_generic
 module H = AST_generic_helpers
@@ -105,8 +106,8 @@ let facts_of_function lang def =
 (* Entry point *)
 (*****************************************************************************)
 let gen_facts file outdir =
-  let ast = Parse_target.parse_program file in
-  let lang = Lang.lang_of_filename_exn (Fpath.v file) in
+  let ast = Parse_target.parse_program !!file in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
 
   (* less: use treesitter also later
@@ -125,5 +126,5 @@ let gen_facts file outdir =
   v#visit_program () ast;
 
   let facts = !facts |> List.rev |> List.flatten in
-  UCommon.pr2 (spf "generating %d facts in %s" (List.length facts) outdir);
+  UCommon.pr2 (spf "generating %d facts in %s" (List.length facts) !!outdir);
   Datalog_io.write_facts_for_doop facts outdir

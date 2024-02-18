@@ -112,7 +112,7 @@ val dir_exists : Fpath.t -> bool
 module Legacy : sig
   val fullpath : string (* filename *) -> string (* filename *)
 
-  val files_of_dir_or_files_no_vcs_nofilter :
+  val files_of_dirs_or_files_no_vcs_nofilter :
     string (* root *) list -> string (* filename *) list
 
   val cat : string (* filename *) -> string list

@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 open Common
+open Fpath_.Operators
 module Ast = Cst_php
 module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
@@ -173,17 +174,17 @@ let any_of_string s =
  *)
 let (expr_of_string : string -> Cst_php.expr) =
  fun s ->
-  let tmpfile = UTmp.Legacy.new_temp_file "pfff_expr_of_s" "php" in
-  UFile.Legacy.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
+  let tmpfile = UTmp.new_temp_file "pfff_expr_of_s" "php" in
+  UFile.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
 
-  let ast = parse_program tmpfile in
+  let ast = parse_program !!tmpfile in
 
   let res =
     match ast with
     | [ Ast.TopStmt (Ast.ExprStmt (e, _tok)); Ast.FinalDef _ ] -> e
     | _ -> failwith "only expr pattern are supported for now"
   in
-  UTmp.Legacy.erase_this_temp_file tmpfile;
+  UTmp.erase_this_temp_file tmpfile;
   res
 
 (* It is clearer for our testing code to programmatically build source files
@@ -193,16 +194,16 @@ let (expr_of_string : string -> Cst_php.expr) =
  *)
 let (program_of_string : string -> Cst_php.program) =
  fun s ->
-  let tmpfile = UTmp.Legacy.new_temp_file "pfff_expr_of_s" "php" in
-  UFile.Legacy.write_file tmpfile ("<?php \n" ^ s ^ "\n");
-  let ast = parse_program tmpfile in
-  UTmp.Legacy.erase_this_temp_file tmpfile;
+  let tmpfile = UTmp.new_temp_file "pfff_expr_of_s" "php" in
+  UFile.write_file tmpfile ("<?php \n" ^ s ^ "\n");
+  let ast = parse_program !!tmpfile in
+  UTmp.erase_this_temp_file tmpfile;
   ast
 
 (* use program_of_string when you can *)
 let tmp_php_file_from_string ?(header = "<?php\n") s =
-  let tmp_file = UTmp.Legacy.new_temp_file "test" ".php" in
-  UFile.Legacy.write_file ~file:tmp_file (header ^ s);
+  let tmp_file = UTmp.new_temp_file "test" ".php" in
+  UFile.write_file ~file:tmp_file (header ^ s);
   tmp_file
 
 (* this function is useful mostly for our unit tests *)

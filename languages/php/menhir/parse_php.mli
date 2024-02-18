@@ -10,7 +10,7 @@ val xdebug_expr_of_string : string -> Cst_php.expr
 val expr_of_string : string -> Cst_php.expr
 val program_of_string : string -> Cst_php.program
 val tokens_of_string : string -> Parser_php.token list
-val tmp_php_file_from_string : ?header:string -> string -> string (* filename *)
+val tmp_php_file_from_string : ?header:string -> string -> Fpath.t
 
 val tokens :
   ?init_state:Lexer_php.state_mode ->

@@ -263,9 +263,9 @@ let mk_import_callback ~registry_caching (caps : < Cap.network ; .. >) base str
               * header mimetype when downloading the URL to decide how to
               * convert it further?
               *)
-             UTmp.Legacy.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+             UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
-                 parse_yaml_for_jsonnet file))
+                 parse_yaml_for_jsonnet !!file))
 [@@profiling]
 
 (* Performs modification to metadata for non-registry/app originating rules.
@@ -399,8 +399,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
       | _failure -> (ext, content)
     else (ext, content)
   in
-  UTmp.Legacy.with_tmp_file ~str:content ~ext (fun file ->
-      let file = Fpath.v file in
+  UTmp.with_tmp_file ~str:content ~ext (fun file ->
       load_rules_from_file ~rewrite_rule_ids:false ~origin
         ~registry_caching:false caps file)
   |> Lwt.return
@@ -452,8 +451,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
         fetch_content_from_registry_url_async ~token_opt ~registry_caching caps
           url
       in
-      UTmp.Legacy.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-          let file = Fpath.v file in
+      UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
           [
             load_rules_from_file ~rewrite_rule_ids ~origin:Registry
               ~registry_caching caps file;

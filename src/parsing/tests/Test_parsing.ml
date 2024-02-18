@@ -219,7 +219,7 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = List_.map UFile.Legacy.fullpath root_paths |> Fpath_.of_strings in
+  let paths = List_.map UFile.fullpath root_paths in
   let paths, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
@@ -349,7 +349,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    List_.map UFile.Legacy.fullpath files_or_dirs |> Fpath_.of_strings
+    List_.map UFile.fullpath files_or_dirs
   in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
@@ -524,11 +524,10 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  List_.map
-    (fun dir ->
-      let name = dir in
-      parse_project ~verbose lang name [ dir ])
-    project_dirs
+  project_dirs
+  |> List_.map (fun dir ->
+         let name = dir in
+         parse_project ~verbose lang name [ Fpath.v dir ])
 
 let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects ~verbose lang project_dirs in
@@ -556,9 +555,9 @@ let diff_pfff_tree_sitter xs =
          in
          let s1 = AST_generic.show_program ast1 in
          let s2 = AST_generic.show_program ast2 in
-         UTmp.Legacy.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-             UTmp.Legacy.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
-                 let xs = Common2.unix_diff file1 file2 in
+         UTmp.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+             UTmp.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+                 let xs = Common2.unix_diff !!file1 !!file2 in
                  xs |> List.iter UCommon.pr2)))
 
 (*****************************************************************************)

@@ -82,6 +82,9 @@ end
 let new_temp_file prefix suffix = Legacy.new_temp_file prefix suffix |> Fpath.v
 let erase_this_temp_file path = Legacy.erase_this_temp_file !!path
 
+let with_tmp_file ~str ~ext f =
+  Legacy.with_tmp_file ~str ~ext (fun file -> f (Fpath.v file))
+
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     (path : Fpath.t) : Fpath.t =
   if !Common.jsoo then path
