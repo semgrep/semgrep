@@ -1,3 +1,5 @@
+open Fpath_.Operators
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -128,14 +130,14 @@ let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   try
-    let dir = Fpath.(to_string (parent settings)) in
-    if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
-    let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
-    if Sys.file_exists tmp then Sys.remove tmp;
-    UFile.write_file (Fpath.v tmp) str;
+    let dir = Fpath.parent settings in
+    if not (Sys.file_exists !!dir) then Sys.mkdir !!dir 0o755;
+    let tmp = UTmp.new_temp_file ~temp_dir:dir "settings" "yml" in
+    if Sys.file_exists !!tmp then Sys.remove !!tmp;
+    UFile.write_file tmp str;
     (* Create a temporary file and rename to have a consistent settings file,
        even if the power fails (or a Ctrl-C happens) during the write_file. *)
-    Unix.rename tmp (Fpath.to_string settings);
+    Unix.rename !!tmp (Fpath.to_string settings);
     true
   with
   | Sys_error e ->
