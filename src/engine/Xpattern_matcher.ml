@@ -114,11 +114,10 @@ let line_col_of_charpos file charpos =
   in
   conv.bytepos_to_linecol_fun charpos
 
-(* Like Common2.with_tmp_file but also invalidates the hmemo cache when finished
- *
- * https://github.com/returntocorp/semgrep/issues/5277 *)
+(* Like UTmp.with_tmp_file but also invalidates the hmemo cache when finished.
+ * See https://github.com/returntocorp/semgrep/issues/5277 for more info *)
 let with_tmp_file ~str ~ext f =
-  Common2.with_tmp_file ~str ~ext (fun file ->
+  UTmp.Legacy.with_tmp_file ~str ~ext (fun file ->
       Common.protect
         ~finally:(fun () -> Hashtbl.remove hmemo file)
         (fun () -> f file))

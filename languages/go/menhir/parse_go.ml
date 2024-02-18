@@ -97,7 +97,7 @@ let parse_program file =
 
 let (program_of_string : string -> Ast_go.program) =
  fun s ->
-  Common2.with_tmp_file ~str:s ~ext:"go" (fun file -> parse_program file)
+  UTmp.Legacy.with_tmp_file ~str:s ~ext:"go" (fun file -> parse_program file)
 
 (* for sgrep/spatch *)
 let any_of_string s =

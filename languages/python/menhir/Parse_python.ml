@@ -170,7 +170,7 @@ let parse_program ?parsing_mode file =
 
 let (program_of_string : string -> AST_python.program) =
  fun s ->
-  Common2.with_tmp_file ~str:s ~ext:"py" (fun file -> parse_program file)
+  UTmp.Legacy.with_tmp_file ~str:s ~ext:"py" (fun file -> parse_program file)
 
 let type_of_string ?(parsing_mode = Python) s =
   let lexbuf = Lexing.from_string s in

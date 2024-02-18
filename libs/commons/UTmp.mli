@@ -24,4 +24,13 @@ module Legacy : sig
     string (* prefix *) -> string (* suffix *) -> string (* filename *)
 
   val erase_this_temp_file : string (* filename *) -> unit
+
+  (* NOT IN MAIN API *)
+  val with_tmp_file :
+    str:string -> ext:string -> (string (* filename*) -> 'a) -> 'a
+
+  (* Runs just before a tmp file is deleted. Multiple hooks can be added,
+   * but the order in which they are called is unspecified.
+   *)
+  val register_tmp_file_cleanup_hook : (string (* filename *) -> unit) -> unit
 end

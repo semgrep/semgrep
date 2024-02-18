@@ -99,7 +99,8 @@ let parse_program file =
   let res = parse file in
   res.Parsing_result.ast
 
-let parse_string (w : string) = Common2.with_tmp_file ~str:w ~ext:"java" parse
+let parse_string (w : string) =
+  UTmp.Legacy.with_tmp_file ~str:w ~ext:"java" parse
 
 (*****************************************************************************)
 (* Sub parsers *)

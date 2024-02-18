@@ -556,8 +556,8 @@ let diff_pfff_tree_sitter xs =
          in
          let s1 = AST_generic.show_program ast1 in
          let s2 = AST_generic.show_program ast2 in
-         Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-             Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+         UTmp.Legacy.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+             UTmp.Legacy.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
                  let xs = Common2.unix_diff file1 file2 in
                  xs |> List.iter UCommon.pr2)))
 

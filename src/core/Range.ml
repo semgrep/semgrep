@@ -138,7 +138,8 @@ let range_of_tokens xs =
 let hmemo = Hashtbl.create 101
 
 let () =
-  Common2.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
+  UTmp.Legacy.register_tmp_file_cleanup_hook (fun file ->
+      Hashtbl.remove hmemo file)
 
 let content_at_range file r =
   let str =
