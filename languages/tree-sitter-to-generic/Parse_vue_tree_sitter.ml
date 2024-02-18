@@ -389,7 +389,7 @@ let map_component (env : env) (xs : CST.component) : stmt list =
 
 (* TODO: move in Parse_tree_sitter_helpers.ml *)
 let parse_string_and_adjust_wrt_base content tbase fparse =
-  Common2.with_tmp_file ~str:content ~ext:"js" (fun file ->
+  UTmp.Legacy.with_tmp_file ~str:content ~ext:"js" (fun file ->
       let x = fparse file in
 
       let visitor =

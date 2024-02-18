@@ -2647,19 +2647,6 @@ let (with_open_outfile_append :
       res)
     (fun _e -> close_out chan)
 
-let tmp_file_cleanup_hooks = ref []
-
-let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
-  let tmpfile = UTmp.Legacy.new_temp_file "tmp" ("." ^ ext) in
-  UFile.Legacy.write_file ~file:tmpfile str;
-  Common.finalize
-    (fun () -> f tmpfile)
-    (fun () ->
-      !tmp_file_cleanup_hooks |> List.iter (fun f -> f tmpfile);
-      UTmp.Legacy.erase_this_temp_file tmpfile)
-
-let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
-
 let uncat xs file =
   UFile.Legacy.with_open_outfile file (fun (pr, _chan) ->
       xs

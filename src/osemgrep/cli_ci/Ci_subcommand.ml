@@ -177,7 +177,7 @@ let at_url_maybe ppf () : unit =
  * TODO: factorize with Session.decode_rules()
  *)
 let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
-  Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
+  UTmp.Legacy.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App

@@ -75,7 +75,7 @@ let dirty_files_of_folder folder =
   else None
 
 let decode_rules caps data =
-  Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
+  UTmp.Legacy.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App

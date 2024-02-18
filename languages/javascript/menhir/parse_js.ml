@@ -307,7 +307,7 @@ let parse_program file =
   res.Parsing_result.ast
 
 let parse_string (w : string) : Ast.a_program =
-  Common2.with_tmp_file ~str:w ~ext:"js" parse_program
+  UTmp.Legacy.with_tmp_file ~str:w ~ext:"js" parse_program
 
 (*****************************************************************************)
 (* Sub parsers *)
@@ -315,7 +315,7 @@ let parse_string (w : string) : Ast.a_program =
 
 let (program_of_string : string -> Ast_js.a_program) =
  fun s ->
-  Common2.with_tmp_file ~str:s ~ext:"js" (fun file -> parse_program file)
+  UTmp.Legacy.with_tmp_file ~str:s ~ext:"js" (fun file -> parse_program file)
 
 let type_of_string s =
   let lexbuf = Lexing.from_string s in
