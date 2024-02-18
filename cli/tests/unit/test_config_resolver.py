@@ -150,9 +150,7 @@ class TestConfigLoaderForProducts:
                 requested_products=products,
                 dry_run=True,
             ),
-            project_metadata=config_loader._project_metadata_for_standalone_scan(
-                require_repo_name=False
-            ),
+            project_metadata=config_loader._project_metadata_for_standalone_scan(),
         )
 
         return request
@@ -223,20 +221,9 @@ class TestConfigLoaderForProducts:
         self, config_loader: ConfigLoader, monkeypatch
     ):
         monkeypatch.setenv("SEMGREP_REPO_NAME", "test_repo")
-        metadata = config_loader._project_metadata_for_standalone_scan(
-            require_repo_name=True
-        )
+        metadata = config_loader._project_metadata_for_standalone_scan()
         assert isinstance(metadata, out.ProjectMetadata)
         assert metadata.repository == "test_repo"
-
-    @pytest.mark.quick
-    @pytest.mark.osemfail
-    def test__project_metadata_for_standalone_scan__no_repo_throws(
-        self, config_loader: ConfigLoader, monkeypatch
-    ):
-        monkeypatch.delenv("SEMGREP_REPO_NAME", raising=False)
-        with pytest.raises(SemgrepError):
-            config_loader._project_metadata_for_standalone_scan(require_repo_name=True)
 
     @pytest.mark.quick
     @pytest.mark.osemfail
@@ -244,9 +231,7 @@ class TestConfigLoaderForProducts:
         self, config_loader: ConfigLoader, monkeypatch
     ):
         monkeypatch.delenv("SEMGREP_REPO_NAME", raising=False)
-        metadata = config_loader._project_metadata_for_standalone_scan(
-            require_repo_name=False
-        )
+        metadata = config_loader._project_metadata_for_standalone_scan()
         assert metadata.repository == "unknown"
 
 
