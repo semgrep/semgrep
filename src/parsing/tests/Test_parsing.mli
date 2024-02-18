@@ -13,13 +13,13 @@ val parsing_stats :
   ?json:bool -> ?verbose:bool -> Lang.t -> string (* filename *) list -> unit
 
 (* TODO: parsing regressions as in pfff (unfinished) *)
-val parsing_regressions : Lang.t -> string (* filename *) list -> unit
+val parsing_regressions : Lang.t -> Fpath.t list -> unit
 
 (* Similar to [parsing_stats], but uses only tree-sitter parsers,
  * and stop the parsing at the tree-sitter CST level (it does not
  * try to convert this CST in the generic AST).
  *)
-val test_parse_tree_sitter : Lang.t -> string (* filename *) list -> unit
+val test_parse_tree_sitter : Lang.t -> Fpath.t list -> unit
 
 (* Dump the tree-sitter CST of the given file (it automatically detects
  * the language and parser to use based on the filename extension). *)

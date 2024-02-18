@@ -75,8 +75,7 @@ let dirty_files_of_folder folder =
   else None
 
 let decode_rules caps data =
-  UTmp.Legacy.with_tmp_file ~str:data ~ext:"json" (fun file ->
-      let file = Fpath.v file in
+  UTmp.with_tmp_file ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           ~registry_caching:true caps file
@@ -316,10 +315,10 @@ let save_local_skipped_fingerprints session =
     String.concat "_" (List_.map Fpath.basename session.workspace_folders)
     ^ ".txt"
   in
-  let save_file = save_dir / save_file_name |> Fpath.to_string in
+  let save_file = save_dir / save_file_name in
   let skipped_fingerprints = skipped_fingerprints session in
   let skipped_fingerprints = String.concat "\n" skipped_fingerprints in
-  UFile.Legacy.with_open_outfile save_file (fun (_pr, chan) ->
+  UFile.with_open_out save_file (fun (_pr, chan) ->
       output_string chan skipped_fingerprints)
 
 let load_local_skipped_fingerprints session =
@@ -328,12 +327,11 @@ let load_local_skipped_fingerprints session =
     String.concat "_" (List_.map Fpath.basename session.workspace_folders)
     ^ ".txt"
   in
-  let save_file = save_dir / save_file_name |> Fpath.to_string in
-  if not (Sys.file_exists save_file) then session
+  let save_file = save_dir / save_file_name in
+  if not (Sys.file_exists !!save_file) then session
   else
     let skipped_local_fingerprints =
-      UFile.Legacy.read_file save_file
-      |> String.split_on_char '\n'
+      UFile.read_file save_file |> String.split_on_char '\n'
       |> List.filter (fun s -> s <> "")
     in
     { session with skipped_local_fingerprints }

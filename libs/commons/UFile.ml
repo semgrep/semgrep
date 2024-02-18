@@ -171,7 +171,7 @@ module Legacy = struct
     in
     loop [] [ dir ]
 
-  let files_of_dir_or_files_no_vcs_nofilter xs =
+  let files_of_dirs_or_files_no_vcs_nofilter xs =
     xs
     |> List_.map (fun x ->
            if USys.is_directory x then
@@ -188,7 +188,7 @@ end
 let fullpath file = Legacy.fullpath !!file |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Fpath_.to_strings |> Legacy.files_of_dir_or_files_no_vcs_nofilter
+  xs |> Fpath_.to_strings |> Legacy.files_of_dirs_or_files_no_vcs_nofilter
   |> Fpath_.of_strings
 
 let cat path = Legacy.cat !!path

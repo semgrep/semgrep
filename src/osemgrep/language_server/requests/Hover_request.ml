@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Fpath_.Operators
 open Lsp
 open Types
 open RPC_server
@@ -35,10 +35,10 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
     *)
     (Some `Null, server)
   else
-    let file = Uri.to_path textDocument.uri in
+    let file = Uri.to_path textDocument.uri |> Fpath.v in
     (* Add 1 to each list for the newline! *)
     let base_charpos =
-      let contents = UFile.Legacy.cat file in
+      let contents = UFile.cat file in
       let lines =
         contents |> List_.index_list
         |> List.filter (fun (_, idx) -> idx < position.line)
@@ -48,10 +48,10 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
       |> List.fold_left ( + ) 0
     in
     let charpos = base_charpos + position.character in
-    let lang = Lang.lang_of_filename_exn (Fpath.v file) in
+    let lang = Lang.lang_of_filename_exn file in
     (* copied from -dump_ast *)
     let { Parsing_result2.ast; _ } =
-      Parse_target.parse_and_resolve_name lang file
+      Parse_target.parse_and_resolve_name lang !!file
       (* else Parse_target.just_parse_with_lang lang file
         *)
     in
