@@ -35,7 +35,7 @@ let t = Testo.create
  *)
 let check lang { target; pattern; fix_pattern; expected } =
   let ext = List_.hd_exn "unexpected empty list" (Lang.ext_of_lang lang) in
-  Common2.with_tmp_file ~str:target ~ext (fun target_file ->
+  UTmp.Legacy.with_tmp_file ~str:target ~ext (fun target_file ->
       let target_file = Fpath.v target_file in
       let matches =
         Unit_engine.match_pattern ~lang
