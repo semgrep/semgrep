@@ -1,9 +1,10 @@
+open Common
 (**
    Boilerplate to be used as a template when mapping the bash CST
    to another type of tree.
 *)
 
-open Common
+open Fpath_.Operators
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
 open AST_bash
@@ -1476,19 +1477,19 @@ and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_bash.Parse.file file)
+    (fun () -> Tree_sitter_bash.Parse.file !!file)
     (fun cst ->
       let env =
         { H.file; conv = H.line_col_to_pos file; extra = AST_bash.Program }
       in
-      let tok = Tok.first_tok_of_file file in
+      let tok = Tok.first_tok_of_file !!file in
       program env ~tok cst)
 
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         {
           H.file;
@@ -1496,5 +1497,5 @@ let parse_pattern str =
           extra = AST_bash.Pattern;
         }
       in
-      let tok = Tok.first_tok_of_file file in
+      let tok = Tok.first_tok_of_file !!file in
       program env ~tok cst)

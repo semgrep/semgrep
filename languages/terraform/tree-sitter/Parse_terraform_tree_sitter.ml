@@ -14,6 +14,7 @@
  *)
 open Common
 open Either_
+open Fpath_.Operators
 module CST = Tree_sitter_hcl.CST
 module H = Parse_tree_sitter_helpers
 open AST_terraform
@@ -630,7 +631,7 @@ let map_config_file (env : env) (x : CST.config_file) : any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_hcl.Parse.file file)
+    (fun () -> Tree_sitter_hcl.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_config_file env cst with
@@ -650,6 +651,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       map_config_file env cst)

@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 open Lsp
 open Types
 open RPC_server
@@ -51,7 +50,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
     let lang = Lang.lang_of_filename_exn file in
     (* copied from -dump_ast *)
     let { Parsing_result2.ast; _ } =
-      Parse_target.parse_and_resolve_name lang !!file
+      Parse_target.parse_and_resolve_name lang file
       (* else Parse_target.just_parse_with_lang lang file
         *)
     in

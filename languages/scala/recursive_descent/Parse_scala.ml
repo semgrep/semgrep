@@ -12,6 +12,7 @@
  * license.txt for more details.
  *
  *)
+open Fpath_.Operators
 module Flag = Flag_parsing
 module TH = Token_helpers_scala
 module PS = Parsing_stat
@@ -52,9 +53,9 @@ let tokens input_source =
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-let parse filename =
-  let stat = Parsing_stat.default_stat filename in
-  let toks = tokens (Parsing_helpers.file filename) in
+let parse (filename : Fpath.t) =
+  let stat = Parsing_stat.default_stat !!filename in
+  let toks = tokens (Parsing_helpers.file !!filename) in
 
   (*
   let tr, lexer, lexbuf_fake =
@@ -77,8 +78,8 @@ let parse filename =
       if !Flag.show_parsing_error then (
         UCommon.pr2
           ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
-        let filelines = UFile.cat_array (Fpath.v filename) in
-        let checkpoint2 = UFile.Legacy.cat filename |> List.length in
+        let filelines = UFile.cat_array filename in
+        let checkpoint2 = UFile.cat filename |> List.length in
         let line_error = Tok.line_of_tok cur in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;

@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
 open AST_ocaml
@@ -3279,7 +3280,7 @@ let map_compilation_unit (env : env) (x : CST.compilation_unit) =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_ocaml.Parse.file file)
+    (fun () -> Tree_sitter_ocaml.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_compilation_unit env cst)

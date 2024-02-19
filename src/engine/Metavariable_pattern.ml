@@ -275,7 +275,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                         | L (lang, _) -> (
                             try
                               let { Parsing_result2.ast; skipped_tokens; _ } =
-                                Parse_target.parse_and_resolve_name lang file
+                                Parse_target.parse_and_resolve_name lang
+                                  (Fpath.v file)
                               in
                               (* Reposition the errors to the original source
                                * text, so that we don't report them to the end

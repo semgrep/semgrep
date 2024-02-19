@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 module CST = Tree_sitter_dart.CST
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
@@ -3844,7 +3845,7 @@ let () =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_dart.Parse.file file)
+    (fun () -> Tree_sitter_dart.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       let any = map_program env cst in
@@ -3865,7 +3866,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

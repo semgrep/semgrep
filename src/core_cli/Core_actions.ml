@@ -47,7 +47,7 @@ let json_of_v (v : OCaml.v) =
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
-  let ast = Parse_target.parse_program !!file in
+  let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
@@ -56,7 +56,7 @@ let dump_il_all file =
 
 let dump_il file =
   let module G = AST_generic in
-  let ast = Parse_target.parse_program !!file in
+  let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let report_func_def_with_name ent_opt fdef =
@@ -95,7 +95,7 @@ let dump_v1_json file =
   | lang :: _ ->
       E.try_with_print_exn_and_reraise !!file (fun () ->
           let { Parsing_result2.ast; skipped_tokens; _ } =
-            Parse_target.parse_and_resolve_name lang !!file
+            Parse_target.parse_and_resolve_name lang file
           in
           let v1 = AST_generic_to_v1.program ast in
           let s = Ast_generic_v1_j.string_of_program v1 in
@@ -108,9 +108,7 @@ let dump_v1_json file =
 let generate_ast_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
-      let ast =
-        Parse_target.parse_and_resolve_name_warn_if_partial lang !!file
-      in
+      let ast = Parse_target.parse_and_resolve_name_warn_if_partial lang file in
       let v1 = AST_generic_to_v1.program ast in
       let s = Ast_generic_v1_j.string_of_program v1 in
       let file = !!file ^ ".ast.json" |> Fpath.v in

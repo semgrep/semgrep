@@ -18,7 +18,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_ml.parse_program file in
+                   let _ = Parse_ml.parse_program (Fpath.v file) in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
@@ -28,8 +28,8 @@ let tests =
        * sub-sub expressions inside parenthesis).
        *)
       t "visitor" (fun () ->
-          UTmp.Legacy.with_tmp_file ~ext:".ml"
-            ~str:"open Foo1\nmodule A = Foo2\n" (fun file ->
+          UTmp.with_tmp_file ~ext:".ml" ~str:"open Foo1\nmodule A = Foo2\n"
+            (fun file ->
               let _ast = Parse_ml.parse_program file in
               let _cnt = ref 0 in
               (* TODO use Visitor_AST of ml_to_generic

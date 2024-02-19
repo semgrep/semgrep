@@ -106,7 +106,7 @@ let facts_of_function lang def =
 (* Entry point *)
 (*****************************************************************************)
 let gen_facts file outdir =
-  let ast = Parse_target.parse_program !!file in
+  let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
 

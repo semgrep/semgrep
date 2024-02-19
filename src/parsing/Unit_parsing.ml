@@ -26,7 +26,8 @@ let parsing_tests_for_lang files lang =
   |> List_.map (fun file ->
          Testo.create ~tags:(Test_tags.tags_of_lang lang)
            (Filename.basename file) (fun () ->
-             Parse_target.parse_and_resolve_name_fail_if_partial lang file
+             Parse_target.parse_and_resolve_name_fail_if_partial lang
+               (Fpath.v file)
              |> ignore))
 
 let partial_parsing_tests_for_lang files lang =
@@ -35,7 +36,7 @@ let partial_parsing_tests_for_lang files lang =
          Testo.create ~tags:(Test_tags.tags_of_lang lang)
            (Filename.basename file) (fun () ->
              let { Parsing_result2.skipped_tokens = errs; _ } =
-               Parse_target.parse_and_resolve_name lang file
+               Parse_target.parse_and_resolve_name lang (Fpath.v file)
              in
              if errs =*= [] then
                Alcotest.fail
@@ -117,7 +118,7 @@ let parsing_error_tests () =
             t (Fpath.basename file) (fun () ->
                 try
                   let lang = Lang.lang_of_filename_exn file in
-                  let res = Parse_target.just_parse_with_lang lang !!file in
+                  let res = Parse_target.just_parse_with_lang lang file in
                   if res.skipped_tokens =*= [] then
                     Alcotest.fail
                       "it should raise a standard parsing error exn or return \

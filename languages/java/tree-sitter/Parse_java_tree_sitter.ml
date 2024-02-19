@@ -14,6 +14,7 @@
  *)
 open Common
 open Either
+open Fpath_.Operators
 module AST = Ast_java
 module CST = Tree_sitter_java.CST
 open Ast_java
@@ -1922,10 +1923,10 @@ let partials (env : env) (x : CST.partials) =
              m_body = v3;
            })
 
-let program (env : env) file (x : CST.program) =
+let program (env : env) (file : Fpath.t) (x : CST.program) =
   match x with
   | `Rep_stmt xs ->
-      let tok = Tok.first_tok_of_file file in
+      let tok = Tok.first_tok_of_file !!file in
       AProgram (List_.map (statement env ~tok) xs)
   | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
   | `Exp x -> AExpr (expression env x)
@@ -1937,7 +1938,7 @@ let program (env : env) file (x : CST.program) =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_java.Parse.file file)
+    (fun () -> Tree_sitter_java.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match program env file cst with
@@ -1948,6 +1949,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_java.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       program env file cst)

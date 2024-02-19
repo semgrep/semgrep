@@ -24,6 +24,9 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
+(* TODO: merge with Src_file.ml in spacegrep and ocaml-tree-sitter-core,
+ * and Origin.ml
+ *)
 type input_source = Str of string | File of Fpath.t
 
 let file s = File (Fpath.v s)

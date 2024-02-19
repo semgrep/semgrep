@@ -1008,8 +1008,8 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
  * Note that we can't generate a Rule.Err in Yaml_to_generic directly
  * because we don't want parsing/other/ to depend on core/.
  *)
-let parse_yaml_rule_file file =
-  let str = UFile.Legacy.read_file file in
+let parse_yaml_rule_file (file : Fpath.t) =
+  let str = UFile.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
   | Parsing_error.Other_error (s, t) ->
       Rule.raise_error None (InvalidYaml (s, t))
@@ -1042,7 +1042,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program !!file)
+          (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         (* old: via external jsonnet program
            Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
@@ -1062,7 +1062,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
         let core = Desugar_jsonnet.desugar_program file ast in
         let value_ = Eval_jsonnet.eval_program core in
         Manifest_jsonnet_to_AST_generic.manifest_value value_
-    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true file
     | _ ->
         (* TODO: suspicious code duplication. The same error message
            occurs in Translate_rule.ml *)
@@ -1071,7 +1071,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
               "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying to \
                parse %s as YAML"
               !!file);
-        parse_yaml_rule_file ~is_target:true !!file
+        parse_yaml_rule_file ~is_target:true file
   in
   parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast
 

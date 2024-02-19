@@ -87,10 +87,10 @@ let is_comment v =
 (*****************************************************************************)
 
 let parse filename =
-  let stat = Parsing_stat.default_stat filename in
-  let filelines = UFile.cat_array (Fpath.v filename) in
+  let stat = Parsing_stat.default_stat !!filename in
+  let filelines = UFile.cat_array filename in
 
-  let toks = tokens (Parsing_helpers.file filename) in
+  let toks = tokens (Parsing_helpers.file !!filename) in
   let toks = Parsing_hacks_php.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =
@@ -132,7 +132,7 @@ let parse filename =
 
       if !Flag.show_parsing_error then
         UCommon.pr2 ("parse error\n = " ^ error_msg_tok cur);
-      let checkpoint2 = UFile.Legacy.cat filename |> List.length in
+      let checkpoint2 = UFile.cat filename |> List.length in
 
       if !Flag.show_parsing_error then
         Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;
@@ -177,7 +177,7 @@ let (expr_of_string : string -> Cst_php.expr) =
   let tmpfile = UTmp.new_temp_file "pfff_expr_of_s" "php" in
   UFile.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
 
-  let ast = parse_program !!tmpfile in
+  let ast = parse_program tmpfile in
 
   let res =
     match ast with
@@ -196,7 +196,7 @@ let (program_of_string : string -> Cst_php.program) =
  fun s ->
   let tmpfile = UTmp.new_temp_file "pfff_expr_of_s" "php" in
   UFile.write_file tmpfile ("<?php \n" ^ s ^ "\n");
-  let ast = parse_program !!tmpfile in
+  let ast = parse_program tmpfile in
   UTmp.erase_this_temp_file tmpfile;
   ast
 

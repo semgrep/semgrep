@@ -87,7 +87,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parsing_result2.ast; skipped_tokens = _; _ } =
-        Parse_target.just_parse_with_lang lang (Fpath.to_string file)
+        Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)

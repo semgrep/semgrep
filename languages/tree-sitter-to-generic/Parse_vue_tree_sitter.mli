@@ -1,6 +1,5 @@
+(* the first argument is to parse the JS inside <script> *)
 val parse :
-  ((* to parse the JS inside <script> *)
-   string (* filename *) ->
-  AST_generic.program) ->
-  string (* filename *) ->
+  (Fpath.t -> AST_generic.program) ->
+  Fpath.t ->
   AST_generic.program Tree_sitter_run.Parsing_result.t
