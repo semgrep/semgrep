@@ -57,7 +57,7 @@ val setJustParseWithLang : (jstring -> jstring -> Parsing_result2.t) -> unit
   *)
 
 val make_js_module :
-  ?parse_target_ts_only:(string -> 'a) option ->
+  ?parse_target_ts_only:(Fpath.t -> 'a) option ->
   Language.t list ->
   (Language.t -> Fpath.t -> 'b) ->
   (bool -> Language.t -> string -> 'c) ->
