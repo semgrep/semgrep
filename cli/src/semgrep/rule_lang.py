@@ -450,7 +450,6 @@ def parse_config_preserve_spans(contents: str, filename: Optional[str]) -> YamlT
     data = parse_yaml_preserve_spans(contents, filename)
     if not data:
         raise EmptyYamlException()
-    validate_yaml(data)
     return data
 
 
