@@ -395,14 +395,18 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     let sink_at_exit =
       take_opt dict env parse_bool "at-exit" |> Option.value ~default:false
     in
+    let sink_exact =
+      take_opt dict env parse_bool "exact" |> Option.value ~default:true
+    in
     let sink_formula = f env dict in
-    let sink_is_func_with_focus = Rule.is_sink_func_with_focus sink_formula in
+    let sink_has_focus = Rule.is_formula_with_focus sink_formula in
     {
       R.sink_id;
       sink_formula;
+      sink_exact;
       sink_requires;
       sink_at_exit;
-      sink_is_func_with_focus;
+      sink_has_focus;
     }
   in
   if is_old then
@@ -414,15 +418,14 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
         let sink_formula =
           R.P (Parse_rule_formula.parse_rule_xpattern env value)
         in
-        let sink_is_func_with_focus =
-          Rule.is_sink_func_with_focus sink_formula
-        in
+        let sink_has_focus = Rule.is_formula_with_focus sink_formula in
         {
           sink_id;
           sink_formula;
+          sink_exact = true;
           sink_requires = None;
           sink_at_exit = false;
-          sink_is_func_with_focus;
+          sink_has_focus;
         }
     | Right dict ->
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
