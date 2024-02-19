@@ -1039,7 +1039,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program !!file)
+          (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         (* old: via external jsonnet program
            Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->

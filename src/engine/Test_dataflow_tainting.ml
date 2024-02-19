@@ -59,7 +59,7 @@ let test_dfg_tainting rules_file file =
              (Common.exn_to_s exn))
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang !!file with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
     | exn ->
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))

@@ -205,12 +205,12 @@ let dump_patterns_of_rule (file : Fpath.t) =
     xpats
 [@@action]
 
-let dump_ast ?(naming = false) caps lang file =
+let dump_ast ?(naming = false) caps (lang : Language.t) (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
       let res =
-        if naming then Parse_target.parse_and_resolve_name lang !!file
-        else Parse_target.just_parse_with_lang lang !!file
+        if naming then Parse_target.parse_and_resolve_name lang file
+        else Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr res.ast) in
       (* 80 columns is too little *)
@@ -351,11 +351,12 @@ let all_actions (caps : Cap.all_caps) () =
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
           let file = Core_scan.replace_named_pipe_by_regular_file file in
-          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
+          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
     );
     ( "-diff_pfff_tree_sitter",
       " <file>",
-      Arg_.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+      Arg_.mk_action_n_arg (fun xs ->
+          Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
     ( "-dump_contributions",
       " dump on stdout the commit contributions in JSON",
       Arg_.mk_action_0_arg Core_actions.dump_contributions );
@@ -409,7 +410,7 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_conv Fpath.v (Core_actions.test_rules caps) );
     ( "-parse_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
+      Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );
     ( "-datalog_experiment",
       " <file> <dir>",
       Arg_.mk_action_2_arg (fun a b ->

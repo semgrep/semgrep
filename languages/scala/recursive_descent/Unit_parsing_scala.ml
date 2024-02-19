@@ -18,7 +18,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_scala.parse file in
+                   let _ = Parse_scala.parse (Fpath.v file) in
                    ()
                  with
                  | exn ->
@@ -30,7 +30,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ast = Parse_scala.parse file in
+                   let _ast = Parse_scala.parse (Fpath.v file) in
                    Alcotest.failf "it should have thrown a Parse_error %s" file
                  with
                  | Parsing_error.Syntax_error _ -> ()

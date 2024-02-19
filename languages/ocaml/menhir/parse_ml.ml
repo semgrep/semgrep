@@ -13,6 +13,7 @@
  *
  *)
 open Common
+open Fpath_.Operators
 module Flag = Flag_parsing
 module TH = Token_helpers_ml
 module PS = Parsing_stat
@@ -38,6 +39,7 @@ let tokens input_source =
 (* Main entry point *)
 (*****************************************************************************)
 let parse filename =
+  let filename = !!filename in
   let stat = Parsing_stat.default_stat filename in
   let toks = tokens (Parsing_helpers.file filename) in
 

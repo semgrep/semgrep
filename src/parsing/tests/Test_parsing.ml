@@ -288,9 +288,9 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
   | Lang.Ocaml ->
       let (ast : AST_ocaml.program) =
         if !Flag_semgrep.tree_sitter_only then
-          let res = Parse_ocaml_tree_sitter.parse !!file in
+          let res = Parse_ocaml_tree_sitter.parse file in
           res.program |> List_.optlist_to_list
-        else Parse_ml.parse_program !!file
+        else Parse_ml.parse_program file
       in
       let s = AST_ocaml.show_program ast in
       UCommon.pr2 s
@@ -355,12 +355,12 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stats =
-    paths |> Fpath_.to_strings
+    paths
     |> List.rev_map (fun file ->
            UCommon.pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
                 (Lang.to_capitalized_alnum lang)
-                file);
+                !!file);
            let stat =
              try
                match
@@ -373,16 +373,16 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                    let ast_stat = AST_stat.stat res.ast in
                    { res.Parsing_result2.stat with ast_stat = Some ast_stat }
                | None ->
-                   { (Parsing_stat.bad_stat file) with have_timeout = true }
+                   { (Parsing_stat.bad_stat !!file) with have_timeout = true }
              with
              | Time_limit.Timeout _ -> assert false
              | exn ->
-                 if verbose then print_exn file exn;
+                 if verbose then print_exn !!file exn;
                  (* bugfix: bad_stat() could actually triggering some
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
                  *)
-                 Parsing_stat.bad_stat file
+                 Parsing_stat.bad_stat !!file
            in
            if verbose && stat.PS.error_line_count > 0 then
              UCommon.pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
@@ -565,7 +565,6 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
-  let roots = Fpath_.of_strings roots in
   let targets, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
   in

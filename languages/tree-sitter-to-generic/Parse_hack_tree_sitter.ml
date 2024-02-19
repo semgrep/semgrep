@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common.Operators
+open Fpath_.Operators
 
 (*
    Map a Hack CST obtained from the tree-sitter parser directly to the generic
@@ -2951,7 +2952,7 @@ let script (env : env) ((v1, v2) : CST.script) : G.program =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_hack.Parse.file file)
+    (fun () -> Tree_sitter_hack.Parse.file !!file)
     (fun cst ->
       let extra = Target in
       let env = { H.file; conv = H.line_col_to_pos file; extra } in
@@ -2975,7 +2976,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       (* TODO: do we need a special mode to convert $FOO in the
        * right construct? Is $XXX ambiguous in a semgrep context?
        * Imitate what we do in php_to_generic.ml?

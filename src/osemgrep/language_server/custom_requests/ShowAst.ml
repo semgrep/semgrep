@@ -61,8 +61,8 @@ let on_request _server (params : Jsonrpc.Structured.t option) =
   let { Request_params.document_uri; named } =
     Request_params.of_jsonrpc_params_exn params
   in
-  let file = Uri.to_path document_uri in
-  let lang = Lang.lang_of_filename_exn (Fpath.v file) in
+  let file = Uri.to_path document_uri |> Fpath.v in
+  let lang = Lang.lang_of_filename_exn file in
   (* copied from -dump_ast *)
   let { Parsing_result2.ast; _ } =
     if named then Parse_target.parse_and_resolve_name lang file

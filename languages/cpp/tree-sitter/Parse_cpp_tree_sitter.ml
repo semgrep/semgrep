@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
@@ -4980,7 +4981,7 @@ and map_variadic_parameter_declaration (env : env)
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_cpp.Parse.file file)
+    (fun () -> Tree_sitter_cpp.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_program_or_expr env cst with
@@ -4999,7 +5000,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let x = map_program_or_expr env cst in
       match x with

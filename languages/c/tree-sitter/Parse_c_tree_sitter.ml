@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open Either_
 module AST = Ast_c
 module CST = Tree_sitter_c.CST
@@ -2474,7 +2475,7 @@ and translation_unit (env : env) (xs : CST.translation_unit) : program =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_c.Parse.file file)
+    (fun () -> Tree_sitter_c.Parse.file !!file)
     (fun cst ->
       let env =
         { H.file; conv = H.line_col_to_pos file; extra = default_extra_env }

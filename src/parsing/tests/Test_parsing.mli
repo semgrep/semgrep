@@ -26,7 +26,7 @@ val test_parse_tree_sitter : Lang.t -> Fpath.t list -> unit
 val dump_tree_sitter_cst : Lang.t -> string (* filename *) -> unit
 
 (* Dump the generic AST of the given file but only use a pfff parser *)
-val dump_pfff_ast : Lang.t -> string (* filename *) -> unit
+val dump_pfff_ast : Lang.t -> Fpath.t -> unit
 
 (* Dump the lang-specific AST of the given file *)
 val dump_lang_ast : Lang.t -> Fpath.t -> unit
@@ -36,10 +36,10 @@ val dump_lang_ast : Lang.t -> Fpath.t -> unit
  * in the generic ASTs produced (internally using the Unix diff program
  * on the dumped ASTs).
  *)
-val diff_pfff_tree_sitter : string (* filename *) list -> unit
+val diff_pfff_tree_sitter : Fpath.t list -> unit
 
 (* [test_parse_rules paths] recursively explores [paths] to
  * find YAML files containing rules and check if they
  * parse correctly using Parse_rule.parse.
  *)
-val test_parse_rules : string (* filename *) list -> unit
+val test_parse_rules : Fpath.t list -> unit

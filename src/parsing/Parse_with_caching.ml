@@ -71,7 +71,7 @@ let ast_or_exn_of_file (lang, file) =
   try
     (* finally calling the actual function *)
     let { Parsing_result2.ast; skipped_tokens; _ } =
-      Parse_target.parse_and_resolve_name lang !!file
+      Parse_target.parse_and_resolve_name lang file
     in
     Either.Left (ast, skipped_tokens)
   with
@@ -135,7 +135,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
     | None ->
         (* simply calling the wrapped function *)
         let { Parsing_result2.ast; skipped_tokens; _ } =
-          Parse_target.parse_and_resolve_name lang !!file
+          Parse_target.parse_and_resolve_name lang file
         in
         (ast, skipped_tokens)
     | Some parsing_cache_dir -> (

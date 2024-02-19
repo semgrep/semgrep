@@ -53,18 +53,18 @@ let just_parse_with_lang lang file =
         Scala_to_generic.program
   | Lang.Yaml ->
       {
-        ast = Yaml_to_generic.program file;
+        ast = Yaml_to_generic.program !!file;
         errors = [];
         skipped_tokens = [];
         inserted_tokens = [];
-        stat = Parsing_stat.default_stat file;
+        stat = Parsing_stat.default_stat !!file;
       }
   (* Menhir and Tree-sitter *)
   | Lang.C ->
       run file
         [
           (* this internally uses the CST for C++ *)
-          Pfff (throw_tokens (fun file -> Parse_c.parse (Fpath.v file)));
+          Pfff (throw_tokens Parse_c.parse);
           TreeSitter Parse_c_tree_sitter.parse;
         ]
         C_to_generic.program
@@ -72,7 +72,7 @@ let just_parse_with_lang lang file =
       run file
         [
           TreeSitter Parse_cpp_tree_sitter.parse;
-          Pfff (throw_tokens (fun file -> Parse_cpp.parse (Fpath.v file)));
+          Pfff (throw_tokens Parse_cpp.parse);
         ]
         Cpp_to_generic.program
   | Lang.Go ->
@@ -110,7 +110,7 @@ let just_parse_with_lang lang file =
         [
           Pfff
             (fun file ->
-              (Parse_json.parse_program file, Parsing_stat.correct_stat file));
+              (Parse_json.parse_program file, Parsing_stat.correct_stat !!file));
         ]
         Json_to_generic.program
   | Lang.Ocaml ->
@@ -158,10 +158,7 @@ let just_parse_with_lang lang file =
         Dockerfile_to_generic.program
   | Lang.Jsonnet ->
       run file
-        [
-          TreeSitter
-            (fun file -> Parse_jsonnet_tree_sitter.parse (Fpath.v file));
-        ]
+        [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
         Jsonnet_to_generic.program
   | Lang.Terraform ->
       run file
