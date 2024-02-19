@@ -41,13 +41,9 @@ val test_eval : string (* filename *) -> unit
 (* used in regression testing code *)
 val parse_json : string (* filename *) -> env * code
 
-(* for metavariable-comparison and also for metavariable-regex with constant-propagation: true *)
-val bindings_to_env_just_strings :
-  Rule_options.t -> file:Fpath.t -> Metavariable.bindings -> env
-
 (* For entropy analysis and other string analyzers.
    The mvar is only for making an error message. *)
 val text_of_binding : Metavariable.mvar -> Metavariable.mvalue -> string option
 
 val bindings_to_env :
-  Rule_options.t -> file:Fpath.t -> Metavariable.bindings -> env
+  match_env:Match_env.env -> const_prop:bool -> Metavariable.bindings -> env

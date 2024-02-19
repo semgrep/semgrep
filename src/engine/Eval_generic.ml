@@ -62,6 +62,9 @@ type env = {
         matches that have position data localized to the originating file,
         rather than the originating match.
       *)
+  report_error : string -> unit;
+      (* Expected to register the error in 'Match_env.errors', but carrying
+       * a the 'Match_env.env' here is more problematic e.g. due to 'test_eval'. *)
 }
 
 (* we restrict ourselves to simple expressions for now *)
@@ -113,6 +116,7 @@ let parse_json (file : string) : env * code =
               mvars = Hashtbl_.hash_of_list metavars;
               constant_propagation = true;
               file = Fpath.v file;
+              report_error = Fun.const ();
             }
           in
           (env, code)
@@ -485,53 +489,61 @@ let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
   Some (mvar, AST x)
 
-let bindings_to_env (config : Rule_options.t) ~file bindings =
+let bindings_to_env ~(match_env : Match_env.env) ~const_prop bindings =
+  let file = match_env.xtarget.path.internal_path_to_content in
+  let config = match_env.xconf.config in
   let constant_propagation = config.constant_propagation in
   let mvars =
-    bindings
-    |> List_.map_filter (fun (mvar, mval) ->
-           let try_bind_to_exp e =
-             try
-               Some
-                 ( mvar,
-                   eval
-                     { mvars = Hashtbl.create 0; constant_propagation; file }
-                     e )
-             with
-             | NotHandled _
-             | NotInEnv _ ->
-                 (* These are expressions like `x` or `os.getenv("FOO")` that cannot
-                  * be evaluated. Previously we just filtered out all these cases, but
-                  * in some cases it's interesting to make comparisons based on the
-                  * string representation of these expressions. For example, given
-                  * $X and $Y binding to two code variables we may want to check
-                  * whether both code variables have the same name (even if they are
-                  *  in fact different variables). So, if we can obtain such a
-                  * string representation, we add it to the environment here. *)
-                 string_of_binding mvar mval
-           in
-           match mval with
-           (* this way we can leverage the constant propagation analysis
-              * in metavariable-comparison: too! This simplifies some rules.
-           *)
-           | MV.Id (i, Some id_info) ->
-               try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
-           | MV.E e -> try_bind_to_exp e
-           | MV.Text (s, _, _) -> Some (mvar, String s)
-           | x -> string_of_binding mvar x)
+    (if const_prop && constant_propagation then
+       bindings
+       |> List_.map_filter (fun (mvar, mval) ->
+              let try_bind_to_exp e =
+                try
+                  Some
+                    ( mvar,
+                      eval
+                        {
+                          mvars = Hashtbl.create 0;
+                          constant_propagation;
+                          file;
+                          report_error = Match_env.error match_env;
+                        }
+                        e )
+                with
+                | NotHandled _
+                | NotInEnv _ ->
+                    (* These are expressions like `x` or `os.getenv("FOO")` that cannot
+                     * be evaluated. Previously we just filtered out all these cases, but
+                     * in some cases it's interesting to make comparisons based on the
+                     * string representation of these expressions. For example, given
+                     * $X and $Y binding to two code variables we may want to check
+                     * whether both code variables have the same name (even if they are
+                     *  in fact different variables). So, if we can obtain such a
+                     * string representation, we add it to the environment here. *)
+                    string_of_binding mvar mval
+              in
+              match mval with
+              (* this way we can leverage the constant propagation analysis
+                 * in metavariable-comparison: too! This simplifies some rules.
+              *)
+              | MV.Id (i, Some id_info) ->
+                  try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
+              | MV.E e -> try_bind_to_exp e
+              | MV.Text (s, _, _) -> Some (mvar, String s)
+              | x -> string_of_binding mvar x)
+     else
+       (* for metavariable-regex with constant-propagation: false *)
+       bindings
+       |> List_.map_filter (fun (mvar, mval) -> string_of_binding mvar mval))
     |> Hashtbl_.hash_of_list
   in
 
-  { mvars; constant_propagation; file }
-
-let bindings_to_env_just_strings (config : Rule_options.t) ~file xs =
-  let mvars =
-    xs
-    |> List_.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
-    |> Hashtbl_.hash_of_list
-  in
-
-  { mvars; constant_propagation = config.constant_propagation; file }
+  {
+    mvars;
+    constant_propagation;
+    file;
+    report_error = Match_env.error match_env;
+  }
 
 (*****************************************************************************)
 (* Entry points *)
@@ -567,9 +579,16 @@ let eval_opt env e =
    * in which case it's filtered in bindings_to_env(), in which case
    * it generates a NotInEnv when we run eval with such an environment.
    *)
-  | NotInEnv _ -> None
+  | NotInEnv mvar ->
+      env.report_error
+        (spf
+           "Failed to evaluate expression because %s is not in scope, please \
+            check your rule"
+           mvar);
+      None
   | NotHandled e ->
       Logs.debug (fun m -> m ~tags "NotHandled: %s" (G.show_expr e));
+      env.report_error "Failed to evaluate expression, please file bug a report";
       None
 
 let eval_bool env e =
@@ -578,6 +597,9 @@ let eval_bool env e =
   | Some (Bool b) -> b
   | Some res ->
       Logs.debug (fun m -> m ~tags "not a boolean: %s" (show_value res));
+      env.report_error
+        "Failed to evaluate expression, expected a Boolean result, please \
+         check your rule";
       false
   | None ->
       Logs.debug (fun m -> m ~tags "got exn during eval_bool");

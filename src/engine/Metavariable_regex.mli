@@ -9,8 +9,8 @@
    to the originating file, rather than the match.
 *)
 val get_metavar_regex_capture_bindings :
+  match_env:Match_env.env ->
   Eval_generic.env ->
-  file:Fpath.t ->
   Range_with_metavars.t ->
   (* mvar, regex string *)
   Metavariable.mvar * string ->

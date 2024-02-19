@@ -32,15 +32,20 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (* Entry point *)
 (*****************************************************************************)
 
-let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
+let get_metavar_regex_capture_bindings ~(match_env : Match_env.env) env r
+    (mvar, re_str) =
+  let file = match_env.xtarget.path.internal_path_to_content in
   let bindings = r.RM.mvars in
   (* If anything goes wrong, we just quit out and fail the condition.
      But, by precondition, this should succeed.
   *)
   match List.assoc_opt mvar bindings with
   | None ->
-      Logs.err (fun m ->
-          m ~tags "Attempted to regex capture on unbound metavar %s" mvar);
+      Match_env.error match_env
+        (spf
+           "metavariable-regex failed because %s is not in scope, please check \
+            your rule"
+           mvar);
       None
   | Some mval -> (
       (* Piggy-back off of the Eval_generic logic so that we can get the

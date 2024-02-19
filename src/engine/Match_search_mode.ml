@@ -556,7 +556,6 @@ let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
-  let file = env.xtarget.path.internal_path_to_content in
   xs
   |> List_.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
@@ -564,7 +563,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          match cond with
          | R.CondEval e ->
              let env =
-               Eval_generic.bindings_to_env env.xconf.config ~file bindings
+               Eval_generic.bindings_to_env ~match_env:env ~const_prop:true
+                 bindings
              in
              Eval_generic.eval_bool env e |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
@@ -629,17 +629,13 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, re_str, const_prop) -> (
-             let config = env.xconf.config in
-             let env =
-               if const_prop && config.constant_propagation then
-                 Eval_generic.bindings_to_env config ~file bindings
-               else
-                 Eval_generic.bindings_to_env_just_strings config ~file bindings
+             let eval_env =
+               Eval_generic.bindings_to_env ~match_env:env ~const_prop bindings
              in
              (* TODO: could return expl for nested matching! *)
              match
-               Metavariable_regex.get_metavar_regex_capture_bindings env ~file r
-                 (mvar, re_str)
+               Metavariable_regex.get_metavar_regex_capture_bindings
+                 ~match_env:env eval_env r (mvar, re_str)
              with
              | None -> None
              (* The bindings we get back are solely the new capture group metavariables. We need
