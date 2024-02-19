@@ -7,7 +7,7 @@ let parse_target _ file =
     [
       Pfff
         (fun file ->
-          (Parse_json.parse_program file, Parsing_stat.correct_stat file));
+          (Parse_json.parse_program file, Parsing_stat.correct_stat !!file));
     ]
     Json_to_generic.program
 

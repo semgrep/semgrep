@@ -75,7 +75,7 @@ let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
 
 let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
   Parse_target.just_parse_with_lang_ref :=
-    fun lang filename ->
+    fun (lang : Lang.t) (filename : Fpath.t) ->
       match lang with
       (* The Yaml and JSON parsers are embedded in the engine because it's a
          core component needed to parse rules *)

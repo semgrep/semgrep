@@ -200,8 +200,8 @@ let fetch_content_from_registry_url ~token_opt ~registry_caching caps url =
 (* Registry and yaml aware jsonnet *)
 (*****************************************************************************)
 
-let parse_yaml_for_jsonnet (file : string) : AST_jsonnet.program =
-  Logs.debug (fun m -> m "loading yaml file %s, converting to jsonnet" file);
+let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
+  Logs.debug (fun m -> m "loading yaml file %s, converting to jsonnet" !!file);
   (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
    * to be used to parse semgrep rules?
    *)
@@ -220,7 +220,7 @@ let mk_import_callback ~registry_caching (caps : < Cap.network ; .. >) base str
       (* On the fly conversion from yaml to jsonnet. We can do
        * 'local x = import "foo.yml";'!
        *)
-      let final_path = Filename.concat base str in
+      let final_path = Fpath.v base / str in
       Some (parse_yaml_for_jsonnet final_path)
   | s ->
       let url_opt =
@@ -265,7 +265,7 @@ let mk_import_callback ~registry_caching (caps : < Cap.network ; .. >) base str
               *)
              UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
-                 parse_yaml_for_jsonnet !!file))
+                 parse_yaml_for_jsonnet file))
 [@@profiling]
 
 (* Performs modification to metadata for non-registry/app originating rules.

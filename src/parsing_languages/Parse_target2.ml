@@ -53,7 +53,7 @@ let just_parse_with_lang lang file =
         Scala_to_generic.program
   | Lang.Yaml ->
       {
-        ast = Yaml_to_generic.program !!file;
+        ast = Yaml_to_generic.program file;
         errors = [];
         skipped_tokens = [];
         inserted_tokens = [];
