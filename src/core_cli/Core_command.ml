@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module E = Core_error
 
@@ -37,7 +38,7 @@ let timeout_function file timeout f =
   with
   | Some res -> res
   | None ->
-      let loc = Tok.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file !!file in
       let err = E.mk_error None loc "" OutJ.Timeout in
       Stack_.push err E.g_errors
 
@@ -187,19 +188,14 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       in
       (* simpler code path than in scan() *)
       let target_info, _skipped = Core_scan.targets_of_config config in
-      let files =
-        target_info
-        |> List_.map (function
-             | `CodeTarget (t : Input_to_core_t.code_target) -> t.path
-             | `LockfileTarget (t : Input_to_core_t.lockfile_target) -> t.path)
-      in
+      let files = target_info |> List_.map Target.internal_path in
       (* sanity check *)
       if config.filter_irrelevant_rules then
         Logs.warn (fun m ->
             m ~tags "-fast does not work with -f/-e, or you need also -json");
       files
-      |> List.iter (fun file ->
-             Logs.debug (fun m -> m ~tags "processing: %s" file);
+      |> List.iter (fun (file : Fpath.t) ->
+             Logs.debug (fun m -> m ~tags "processing: %s" !!file);
              let process file =
                timeout_function file config.timeout (fun () ->
                    let ast =
@@ -213,13 +209,13 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
                      minirule
-                     (Fpath.v file, lang, ast)
+                     (file, File file, lang, ast)
                    |> ignore)
              in
 
              if not config.error_recovery then
-               E.try_with_print_exn_and_reraise file (fun () -> process file)
-             else E.try_with_exn_to_error file (fun () -> process file));
+               E.try_with_print_exn_and_reraise !!file (fun () -> process file)
+             else E.try_with_exn_to_error !!file (fun () -> process file));
 
       let n = List.length !E.g_errors in
       if n > 0 then UCommon.pr2 (spf "error count: %d" n)

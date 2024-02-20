@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
@@ -793,7 +794,7 @@ let map_program (env : env) ((v1, v2) : CST.program) : G.program =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_lua.Parse.file file)
+    (fun () -> Tree_sitter_lua.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
@@ -804,7 +805,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_lua.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let xs = map_program env cst in
       G.Ss xs)

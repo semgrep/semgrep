@@ -14,6 +14,7 @@
  *)
 open Common
 open Either_
+open Fpath_.Operators
 module CST = Tree_sitter_julia.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
@@ -2438,7 +2439,7 @@ and map_where_clause (env : env) ((v1, v2) : CST.where_clause) : G.attribute =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_julia.Parse.file file)
+    (fun () -> Tree_sitter_julia.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       map_source_file env cst)
@@ -2447,7 +2448,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_julia.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

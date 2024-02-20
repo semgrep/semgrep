@@ -268,17 +268,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
 let prepare_config_for_core_scan (config : Core_scan_config.t)
     (lang_jobs : Lang_job.t list) =
   let targets_and_rules_of_lang_job (x : Lang_job.t) :
-      Input_to_core_t.target list * Rule.rules =
+      Target.t list * Rule.rules =
     let targets =
       x.targets
-      |> List_.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-             `CodeTarget
-               {
-                 path = !!path;
-                 analyzer = x.xlang;
-                 products = Product.all;
-                 lockfile_target = None;
-               })
+      |> List_.map (fun (path : Fpath.t) : Target.t ->
+             Regular (Target.mk_regular x.xlang Product.all (File path)))
     in
     (targets, x.rules)
   in
@@ -410,10 +404,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
            semgrep-core but we should. However, if we implement a way to collect
            metrics, we will just need to set [final_result.extra] to
            [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
-        Metrics_.add_max_memory_bytes
-          (Core_profiling.debug_info_to_option res.extra);
-        Metrics_.add_targets_stats scanned
-          (Core_profiling.debug_info_to_option res.extra);
+        Metrics_.add_max_memory_bytes res.profiling;
+        Metrics_.add_targets_stats scanned res.profiling;
         Ok res
   in
   { run }

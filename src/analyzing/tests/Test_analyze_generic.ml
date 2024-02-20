@@ -1,10 +1,8 @@
 open AST_generic
-open Fpath_.Operators
 module H = AST_generic_helpers
 
 let test_typing_generic ~parse_program file =
-  let file = Fpath.v file in
-  let ast = parse_program !!file in
+  let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
 
@@ -25,8 +23,7 @@ let test_typing_generic ~parse_program file =
   v#visit_program () ast
 
 let test_constant_propagation ~parse_program file =
-  let file = Fpath.v file in
-  let ast = parse_program !!file in
+  let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
@@ -34,8 +31,7 @@ let test_constant_propagation ~parse_program file =
   UCommon.pr2 s
 
 let test_il_generic ~parse_program file =
-  let file = Fpath.v file in
-  let ast = parse_program !!file in
+  let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
 
@@ -57,8 +53,7 @@ let test_il_generic ~parse_program file =
   v#visit_program () ast
 
 let test_cfg_il ~parse_program file =
-  let file = Fpath.v file in
-  let ast = parse_program !!file in
+  let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   Visit_function_defs.visit
@@ -78,8 +73,7 @@ module DataflowY = Dataflow_core.Make (struct
 end)
 
 let test_dfg_svalue ~parse_program file =
-  let file = Fpath.v file in
-  let ast = parse_program !!file in
+  let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let v =
@@ -105,15 +99,18 @@ let actions ~parse_program =
   [
     ( "-typing_generic",
       " <file>",
-      Arg_.mk_action_1_arg (test_typing_generic ~parse_program) );
+      Arg_.mk_action_1_conv Fpath.v (test_typing_generic ~parse_program) );
     ( "-constant_propagation",
       " <file>",
-      Arg_.mk_action_1_arg (test_constant_propagation ~parse_program) );
+      Arg_.mk_action_1_conv Fpath.v (test_constant_propagation ~parse_program)
+    );
     ( "-il_generic",
       " <file>",
-      Arg_.mk_action_1_arg (test_il_generic ~parse_program) );
-    ("-cfg_il", " <file>", Arg_.mk_action_1_arg (test_cfg_il ~parse_program));
+      Arg_.mk_action_1_conv Fpath.v (test_il_generic ~parse_program) );
+    ( "-cfg_il",
+      " <file>",
+      Arg_.mk_action_1_conv Fpath.v (test_cfg_il ~parse_program) );
     ( "-dfg_svalue",
       " <file>",
-      Arg_.mk_action_1_arg (test_dfg_svalue ~parse_program) );
+      Arg_.mk_action_1_conv Fpath.v (test_dfg_svalue ~parse_program) );
   ]

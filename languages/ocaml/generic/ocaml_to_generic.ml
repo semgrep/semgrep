@@ -714,11 +714,11 @@ and item { i; iattrs } =
       let ent = G.basic_entity v1 ~attrs in
       let def = G.Exception (v1, v2) in
       [ G.DefStmt (ent, G.TypeDef { G.tbody = def }) |> G.s ]
-  | External (t, v1, v2, v3) ->
-      let v1 = ident v1 and v2 = type_ v2 and _v3 = list (wrap string) v3 in
-      let attrs = [ G.KeywordAttr (G.Extern, t) ] @ attrs in
-      let ent = G.basic_entity v1 ~attrs in
-      let def = G.Signature v2 in
+  | External (texternal, v1, v2, v3) ->
+      let id = ident v1 and ty = type_ v2 and _strs = list (wrap string) v3 in
+      let attrs = [ G.KeywordAttr (G.Extern, texternal) ] @ attrs in
+      let ent = G.basic_entity id ~attrs in
+      let def = G.Signature { sig_tok = texternal; sig_type = ty } in
       [ G.DefStmt (ent, def) |> G.s ]
   | Open (t, v1) ->
       let v1 = module_name v1 in
@@ -726,10 +726,10 @@ and item { i; iattrs } =
         { G.d = G.ImportAll (t, G.DottedName v1, fake "*"); d_attrs = attrs }
       in
       [ G.DirectiveStmt dir |> G.s ]
-  | Val (_t, v1, v2) ->
-      let v1 = ident v1 and v2 = type_ v2 in
-      let ent = G.basic_entity v1 ~attrs in
-      let def = G.Signature v2 in
+  | Val (tval, v1, v2) ->
+      let id = ident v1 and ty = type_ v2 in
+      let ent = G.basic_entity id ~attrs in
+      let def = G.Signature { sig_tok = tval; sig_type = ty } in
       [ G.DefStmt (ent, def) |> G.s ]
   | Let (tlet, v1, v2) ->
       let _v1 = rec_opt v1 and v2 = list let_binding v2 in

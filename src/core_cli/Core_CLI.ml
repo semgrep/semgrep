@@ -205,12 +205,12 @@ let dump_patterns_of_rule (file : Fpath.t) =
     xpats
 [@@action]
 
-let dump_ast ?(naming = false) caps lang file =
+let dump_ast ?(naming = false) caps (lang : Language.t) (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
       let res =
-        if naming then Parse_target.parse_and_resolve_name lang !!file
-        else Parse_target.just_parse_with_lang lang !!file
+        if naming then Parse_target.parse_and_resolve_name lang file
+        else Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr res.ast) in
       (* 80 columns is too little *)
@@ -351,11 +351,12 @@ let all_actions (caps : Cap.all_caps) () =
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
           let file = Core_scan.replace_named_pipe_by_regular_file file in
-          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
+          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
     );
     ( "-diff_pfff_tree_sitter",
       " <file>",
-      Arg_.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+      Arg_.mk_action_n_arg (fun xs ->
+          Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
     ( "-dump_contributions",
       " dump on stdout the commit contributions in JSON",
       Arg_.mk_action_0_arg Core_actions.dump_contributions );
@@ -380,19 +381,19 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_1_arg Experiments.stat_matches );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
-      Arg_.mk_action_1_arg Experiments.ebnf_to_menhir );
+      Arg_.mk_action_1_conv Fpath.v Experiments.ebnf_to_menhir );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
             (Xlang.lang_of_opt_xlang_exn !lang)
-            xs) );
+            (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.test_parse_tree_sitter
             (Xlang.lang_of_opt_xlang_exn !lang)
-            xs) );
+            (Fpath_.of_strings xs)) );
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
@@ -409,11 +410,14 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_conv Fpath.v (Core_actions.test_rules caps) );
     ( "-parse_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
+      Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );
     ( "-datalog_experiment",
       " <file> <dir>",
-      Arg_.mk_action_2_arg Datalog_experiment.gen_facts );
-    ("-postmortem", " <log file", Arg_.mk_action_1_arg Statistics_report.stat);
+      Arg_.mk_action_2_arg (fun a b ->
+          Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
+    ( "-postmortem",
+      " <log file",
+      Arg_.mk_action_1_conv Fpath.v Statistics_report.stat );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
@@ -584,7 +588,7 @@ let options caps actions =
             profile := true),
         " output profiling information" );
       ( "-keep_tmp_files",
-        Arg.Set UCommon.save_tmp_files,
+        Arg.Set UTmp.save_tmp_files,
         " keep temporary generated files" );
     ]
   @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
@@ -688,10 +692,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Core_profiling.mode := MDebug
-  else if config.report_time then Core_profiling.mode := MTime
-  else Core_profiling.mode := MNo_info;
-
+  Core_profiling.profiling := config.debug || config.report_time;
   Std_msg.setup ~highlight_setting:On ();
   Logs_.setup_logging ?log_to_file:config.log_to_file
     ?require_one_of_these_tags:None

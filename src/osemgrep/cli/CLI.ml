@@ -267,7 +267,7 @@ let before_exit ~profile () : unit =
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.print_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)
-  UCommon.erase_temp_files ();
+  UTmp.erase_temp_files ();
   ()
 
 (*****************************************************************************)

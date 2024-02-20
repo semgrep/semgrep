@@ -351,7 +351,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
     }
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_fail_if_partial lang !!file with
+    try Parse_target.parse_and_resolve_name_fail_if_partial lang file with
     | exn ->
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
@@ -359,7 +359,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let equiv = [] in
   Match_patterns.check ~hook
     (Rule_options.default_config, equiv)
-    [ rule ] (file, lang, ast)
+    [ rule ]
+    (file, File file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -676,7 +677,7 @@ let tainting_test lang rules_file file =
              (Common.exn_to_s exn))
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang !!file with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
     | exn ->
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
@@ -699,9 +700,9 @@ let tainting_test lang rules_file file =
   let matches =
     taint_rules
     |> List.concat_map (fun rule ->
-           let xtarget =
+           let xtarget : Xtarget.t =
              {
-               Xtarget.file;
+               path = { origin = File file; internal_path_to_content = file };
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);

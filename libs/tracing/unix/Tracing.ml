@@ -52,20 +52,11 @@ module Otel = Opentelemetry
  *)
 
 (*****************************************************************************)
-(* Functions to instrument the code *)
+(* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
 
-(* TODO Now that `ppx_trace` exists, I'm going to use that instead. However, I'm
-   still fighting libraries how to make that work, so I'm starting with these helpers *)
-
-(* TODO this doesn't work with multiple processes. I suspect we're going to have
-   to set it up for each process *)
-
 let with_span = Trace_core.with_span
-
-let run_with_span span_name ?data f =
-  let data = Option.map (fun d () -> d) data in
-  Trace_core.with_span ?data ~__FILE__ ~__LINE__ span_name @@ fun _sp -> f ()
+let add_data_to_span = Trace_core.add_data_to_span
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
@@ -75,16 +66,16 @@ let run_with_span span_name ?data f =
 let configure_tracing service_name =
   Otel.Globals.service_name := service_name;
   Otel.GC_metrics.basic_setup ();
-  Ambient_context.set_storage_provider (Ambient_context_lwt.storage ())
+  Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
 
-let with_setup f =
   let otel_backend =
     Opentelemetry_client_ocurl.create_backend
       (* TODO configure this to use a permanent endpoint *) ()
   in
   (* This forwards the spans from Trace to the Opentelemetry collector *)
-  Opentelemetry_trace.setup_with_otel_backend otel_backend;
+  Opentelemetry_trace.setup_with_otel_backend otel_backend
 
+let with_setup f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -93,7 +84,7 @@ let with_setup f =
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
   Opentelemetry_client_ocurl.with_setup () @@ fun () ->
-  run_with_span "All time" f
+  Trace_core.with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
 
 (* Alt: using cohttp_lwt
 

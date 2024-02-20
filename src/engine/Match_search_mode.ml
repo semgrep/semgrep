@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
@@ -200,7 +199,8 @@ let debug_semgrep config mini_rules file lang ast =
          let res =
            Match_patterns.check
              ~hook:(fun _ -> ())
-             config [ mr ] (file, lang, ast)
+             config [ mr ]
+             (file, File file, lang, ast)
          in
          if !debug_matches then
            (* TODO
@@ -227,7 +227,14 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
-  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
+  let {
+    path = { origin; internal_path_to_content };
+    xlang;
+    lazy_ast_and_errors;
+    lazy_content = _;
+  } : Xtarget.t =
+    xtarget
+  in
   let config = (xconf.config, xconf.equivs) in
   match xlang with
   | Xlang.L (lang, _) ->
@@ -244,15 +251,16 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
 
             if !debug_timeout || !debug_matches then
               (* debugging path *)
-              debug_semgrep config mini_rules file lang ast
+              debug_semgrep config mini_rules internal_path_to_content lang ast
             else
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules (file, lang, ast))
+                ?mvar_context ?range_filter config mini_rules
+                (internal_path_to_content, origin, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-      RP.make_match_result matches errors
+      RP.mk_match_result matches errors
         { Core_profiling.parse_time; match_time }
   | _ -> Core_result.empty_match_result
 
@@ -380,7 +388,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> List_.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               file = env.xtarget.file;
+               path = env.xtarget.path;
                range_loc;
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
@@ -456,7 +464,10 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
-  let { Xtarget.file; lazy_content; _ } = xtarget in
+  let ({ path = { internal_path_to_content; origin }; lazy_content; _ }
+        : Xtarget.t) =
+    xtarget
+  in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -470,10 +481,12 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
   RP.collate_pattern_results
     [
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
-      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps !!file;
+      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps
+        internal_path_to_content origin;
       Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
-        !!file;
-      Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
+        internal_path_to_content origin;
+      Xpattern_match_regexp.matches_of_regexs regexps lazy_content
+        internal_path_to_content origin;
     ]
 [@@profiling]
 
@@ -542,7 +555,7 @@ let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
-  let file = env.xtarget.file in
+  let file = env.xtarget.path.internal_path_to_content in
   xs
   |> List_.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in

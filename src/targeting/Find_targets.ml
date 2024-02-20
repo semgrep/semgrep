@@ -158,9 +158,7 @@ type filter_result =
   | Ignore_silently (* ignore and don't report this file *)
 
 let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
-  let { Fppath.fpath; ppath } (* TODO(tree-sitter-ocaml fail) : Fppath.t *) =
-    fppath
-  in
+  let { fpath; ppath } : Fppath.t = fppath in
   let status, selection_events = Semgrepignore.select ign ppath in
   match status with
   | Ignored ->
@@ -255,10 +253,11 @@ let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
            | Keep -> add fppath
            | Skip skipped -> skip skipped
            | Dir ->
-               (* TODO? if a dir, then try Git_filter.select() again
-                  with a trailing '/'!
-                  (it would be detected though anyway in the children of
-                  the dir at least, but better to skip the dir ASAP)
+               (* skipping submodules.
+                  TODO? should we add a skip_reason for it? pysemgrep
+                  though was using `git ls-files` which implicitly does
+                  not even consider submodule files, so those files/dirs
+                  were not mentioned in the skip list
                *)
                aux fppath
            | Ignore_silently -> ())

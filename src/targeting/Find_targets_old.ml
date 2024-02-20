@@ -356,10 +356,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
              Sys.file_exists !!path && not (Sys.is_directory !!path))
     else (roots, [])
   in
-  let paths =
-    paths |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
-    |> Fpath_.of_strings
-  in
+  let paths = UFile.files_of_dirs_or_files_no_vcs_nofilter paths in
 
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in

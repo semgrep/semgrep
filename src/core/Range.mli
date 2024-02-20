@@ -36,4 +36,4 @@ val range_of_tokens : Tok.t list -> t option
 (* Note that the file content is memoized, so multiple calls to
  * content_at_range will not read_file again and again the same file.
  *)
-val content_at_range : string (* filename *) -> t -> string
+val content_at_range : Fpath.t -> t -> string

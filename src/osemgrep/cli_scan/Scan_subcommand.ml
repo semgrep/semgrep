@@ -351,20 +351,20 @@ let trim_core_match_fix (r : OutJ.core_match) =
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (head : Core_result.t)
     (renamed : (string (* filename *) * string (* filename *)) list) =
-  let extract_sig renamed m =
-    let rule_id = m.Pattern_match.rule_id in
+  let extract_sig renamed (m : Pattern_match.t) =
+    let rule_id = m.rule_id in
     let path =
-      !!(m.Pattern_match.file) |> fun p ->
+      !!(m.path.internal_path_to_content) |> fun p ->
       Option.bind renamed
         (List_.find_some_opt (fun (before, after) ->
              if after = p then Some before else None))
       |> Option.value ~default:p
     in
-    let start_range, end_range = m.Pattern_match.range_loc in
+    let start_range, end_range = m.range_loc in
     let syntactic_ctx =
       UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
-        m.Pattern_match.file
+        m.path.internal_path_to_content
     in
     (rule_id, path, syntactic_ctx)
   in
@@ -461,7 +461,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     r.processed_matches
                     |> List_.map
                          (fun ({ pm; _ } : Core_result.processed_match) ->
-                           !!(pm.Pattern_match.file))
+                           !!(pm.path.internal_path_to_content))
                     |> prepare_targets
                   in
                   let paths_in_scanned =

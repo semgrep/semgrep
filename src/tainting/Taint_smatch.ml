@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 module PM = Pattern_match
 
 type overlap = float
@@ -28,7 +27,9 @@ type 'spec t = {
 
 let is_exact x = x.overlap > 0.99
 let sink_of_match x = { Taint.pm = x.spec_pm; rule_sink = x.spec }
-let _show x = Range.content_at_range !!(x.spec_pm.file) x.range
+
+let _show x =
+  Range.content_at_range x.spec_pm.path.internal_path_to_content x.range
 
 type any = Any : 'a t -> any
 
@@ -95,7 +96,9 @@ module Best_matches = struct
   let _debug xs =
     xs |> S.elements
     |> List_.map (fun (Any m) ->
-           m.spec_id ^ ":" ^ Range.content_at_range !!(m.spec_pm.file) m.range)
+           m.spec_id ^ ":"
+           ^ Range.content_at_range m.spec_pm.path.internal_path_to_content
+               m.range)
     |> String.concat " ; "
 
   let rec add (Any m' as x') best_matches =

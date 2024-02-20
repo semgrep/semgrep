@@ -536,7 +536,7 @@ let display_with_gv g = OG.display_with_gv g.og
 
 let print_graph_generic ?(launch_gv = true) ?(extra_string = "") ~str_of_key
     filename g =
-  UCommon.with_open_outfile filename (fun (xpr, _) ->
+  UFile.Legacy.with_open_outfile filename (fun (xpr, _) ->
       xpr "digraph misc {\n";
       (* pr "size = \"10,10\";\n" ; *)
       xpr extra_string;

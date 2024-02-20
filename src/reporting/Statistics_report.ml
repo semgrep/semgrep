@@ -115,7 +115,7 @@ let parse_run (rule, xs) =
 
 let stat file =
   (* parsing *)
-  let xs = UCommon.cat file in
+  let xs = UFile.cat file in
   let ys = xs |> Common2.split_list_regexp "^Running rule" in
   let runs = ys |> List_.map parse_run in
 
