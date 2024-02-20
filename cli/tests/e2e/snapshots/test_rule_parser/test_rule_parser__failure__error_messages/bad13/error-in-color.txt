@@ -1,13 +1,7 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/bad13.yaml:2
-[94m[22m[24m2 | [0m  - id: tainty
-[94m[22m[24m3 | [0m    message: Hi
-[94m[22m[24m4 | [0m    languages: [python]
-[94m[22m[24m5 | [0m    severity: WARNING
-[94m[22m[24m6 | [0m    mode: taint
-[94m[22m[24m7 | [0m    # Can't use taint
-[94m[22m[24m8 | [0m    pattern: $X == $X
 
-[31m[22m[24mOne of these properties is missing: 'pattern-sinks'[0m
+[31m[22m[24mError parsing rule (0) `tainty`:
+  - received `{'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}`
+  - Check Taint Has Required Fields: Expected `id`, `message`, `languages`, `severity`, `pattern-sinks`, `pattern-sources` to be present[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

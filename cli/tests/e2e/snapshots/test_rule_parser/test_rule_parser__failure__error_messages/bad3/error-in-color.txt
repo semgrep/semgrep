@@ -1,8 +1,7 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/bad3.yaml:4
-[94m[22m[24m4 | [0m      - pattern: "$D = {}"
-[94m[22m[24m5 | [0m    message: "test"
 
-[31m[22m[24m[{'pattern': '$D = {}'}] is not of type 'string'[0m
+[31m[22m[24mError parsing rule (0) `test-pattern`:
+  - received `[{'pattern': '$D = {}'}]`
+  - Input should be a valid string[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

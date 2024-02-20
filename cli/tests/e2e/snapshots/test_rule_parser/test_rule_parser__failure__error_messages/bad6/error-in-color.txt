@@ -1,8 +1,7 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/bad6.yaml:5
-[94m[22m[24m5 | [0m      - pattern-either: "$X == $X"
-[94m[22m[24m6 | [0m    message: "$X is being assigned to one or two"
 
-[31m[22m[24m'$X == $X' is not of type 'array'[0m
+[31m[22m[24mError parsing rule (0) `arg-reassign`:
+  - received `$X == $X`
+  - List Type: Input should be a valid list[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

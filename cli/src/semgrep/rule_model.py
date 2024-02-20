@@ -821,7 +821,9 @@ class Rule(BaseModel):
     )
     version: Optional[str] = Field(None, title="Version of rule")
     message: Optional[str] = Field(None, title="Description to attach to findings")
-    mode: Optional[Mode] = Field(Mode.search, title="Mode of the rule")
+    mode: Optional[Mode] = Field(
+        Mode.search, title="Mode of the rule"
+    )  # NOTE: I don't quite follow why we have a default value here
     languages: Optional[
         Annotated[Union[Languages, List[Languages]], Tag("languages")]
     ] = Field(None, title="Language")
@@ -1013,7 +1015,7 @@ class Rule(BaseModel):
                 ]
             ):
                 raise PydanticCustomError(
-                    "check_search_has_required_fields",
+                    "check_has_required_fields",
                     "Expected `id`, `languages`, `message`, `severity`, to be present",
                 )
             if not any(
@@ -1023,10 +1025,13 @@ class Rule(BaseModel):
                     self.pattern_either,
                     self.pattern_regex,
                     self.patterns,
+                    # EXPERIMENTAL
+                    self.r2c_internal_project_depends_on,
+                    self.match,
                 ]
             ):
                 raise PydanticCustomError(
-                    "check_search_has_pattern", missing_pattern_error_message
+                    "check_has_pattern", missing_pattern_error_message
                 )
         elif not any(
             [
@@ -1038,9 +1043,9 @@ class Rule(BaseModel):
                 self.r2c_internal_project_depends_on,
                 self.match,
             ]
-        ):
+        ):  # NOTE: This case should be unreachable
             raise PydanticCustomError(
-                "check_has_pattern", missing_pattern_error_message
+                "check_fallback_has_pattern", missing_pattern_error_message
             )
         return self
 
