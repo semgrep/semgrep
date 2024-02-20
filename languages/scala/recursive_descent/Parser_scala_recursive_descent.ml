@@ -21,7 +21,7 @@ open Token_scala
 open AST_scala
 module AST = AST_scala
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -166,10 +166,10 @@ let with_logging funcname f in_ =
     let save = in_.depth in
     in_.depth <- in_.depth + 1;
     let depth = n_dash in_.depth in
-    logger#info "%s>%s: %s" depth funcname (T.show in_.token);
+    Logs.debug (fun m -> m ~tags "%s>%s: %s" depth funcname (T.show in_.token));
     let res = f () in
     (* less: pass in_ ? *)
-    logger#info "%s<%s: %s" depth funcname (T.show in_.token);
+    Logs.debug (fun m -> m ~tags "%s<%s: %s" depth funcname (T.show in_.token));
     in_.depth <- save;
     res)
   else f ()
@@ -407,8 +407,9 @@ let inSepRegion tok f in_ =
  * a NEWLINE or NEWLINES *)
 let insertNL ?(newlines = false) in_ =
   if !debug_newline then (
-    logger#info "%s: %s" "insertNL" (T.show in_.token);
-    logger#info "inserting back a newline:%s" (Dumper.dump in_.last_nl));
+    Logs.debug (fun m -> m ~tags "%s: %s" "insertNL" (T.show in_.token));
+    Logs.debug (fun m ->
+        m ~tags "inserting back a newline:%s" (Dumper.dump in_.last_nl)));
   match in_.last_nl with
   | None -> error "IMPOSSIBLE? no last newline to insert back" in_
   | Some x ->
@@ -432,13 +433,15 @@ let afterLineEnd in_ =
             loop xs
         | _ ->
             if !debug_newline then
-              logger#info "%s: false because %s" "afterLineEnd" (T.show x);
+              Logs.debug (fun m ->
+                  m ~tags "%s: false because %s" "afterLineEnd" (T.show x));
             false)
     | [] -> false
   in
   loop in_.passed |> fun b ->
   if !debug_newline then
-    logger#info "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b;
+    Logs.debug (fun m ->
+        m ~tags "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b);
   b
 
 (* ------------------------------------------------------------------------- *)
@@ -458,7 +461,8 @@ let fetchToken in_ =
     match in_.rest with
     | [] -> error "IMPOSSIBLE? fetchToken: no more tokens" in_
     | x :: xs -> (
-        if !Flag.debug_lexer then logger#info "fetchToken: %s" (T.show x);
+        if !Flag.debug_lexer then
+          Logs.debug (fun m -> m ~tags "fetchToken: %s" (T.show x));
 
         in_.rest <- xs;
 

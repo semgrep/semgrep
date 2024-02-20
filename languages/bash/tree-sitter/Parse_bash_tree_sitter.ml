@@ -1,9 +1,10 @@
+open Common
 (**
    Boilerplate to be used as a template when mapping the bash CST
    to another type of tree.
 *)
 
-open Common
+open Fpath_.Operators
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
 open AST_bash
@@ -253,6 +254,12 @@ let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
 
 let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
   match x with
+  | `DOLLAR_choice_orig_simple_var_name (v1, `Choice_STAR (`X__ tok)) ->
+      let dollar_tok = token env v1 (* "$" *) in
+      let name_s, name_tok = (* "_" *) str env tok in
+      let mv_s = "$" ^ name_s in
+      let mv_tok = Tok.combine_toks dollar_tok [ name_tok ] in
+      Frag_semgrep_metavar (mv_s, mv_tok)
   | `DOLLAR_choice_orig_simple_var_name (v1, v2) -> (
       let dollar_tok = token env v1 (* "$" *) in
       let var_name =
@@ -1470,19 +1477,19 @@ and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_bash.Parse.file file)
+    (fun () -> Tree_sitter_bash.Parse.file !!file)
     (fun cst ->
       let env =
         { H.file; conv = H.line_col_to_pos file; extra = AST_bash.Program }
       in
-      let tok = Tok.first_tok_of_file file in
+      let tok = Tok.first_tok_of_file !!file in
       program env ~tok cst)
 
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         {
           H.file;
@@ -1490,5 +1497,5 @@ let parse_pattern str =
           extra = AST_bash.Pattern;
         }
       in
-      let tok = Tok.first_tok_of_file file in
+      let tok = Tok.first_tok_of_file !!file in
       program env ~tok cst)

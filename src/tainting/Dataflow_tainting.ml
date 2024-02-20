@@ -27,7 +27,7 @@ module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
 module TM = Taint_smatch
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* TODO: Rename things to make clear that there are "sub-matches" and there are
  * "best matches". *)
@@ -116,6 +116,7 @@ type env = {
 
 let hook_function_taint_signature = ref None
 let hook_find_attribute_in_class = ref None
+let hook_arg_offset_of_il_offset = ref None
 let hook_check_tainted_at_exit_sinks = ref None
 
 (*****************************************************************************)
@@ -611,9 +612,10 @@ let find_pos_in_actual_args args_taints fparams =
          (fun (i, remaining_params) taints ->
            match remaining_params with
            | [] ->
-               logger#error
-                 "More args to function than there are positional arguments in \
-                  function signature";
+               Logs.err (fun m ->
+                   m ~tags
+                     "More args to function than there are positional \
+                      arguments in function signature");
                (i + 1, [])
            | _ :: rest ->
                Hashtbl.add idx_to_taints i taints;
@@ -630,26 +632,47 @@ let find_pos_in_actual_args args_taints fparams =
       | __else__ -> None
     in
     if Option.is_none taint_opt then
-      logger#error
-        "cannot match taint variable with function arguments (%i: %s)" i s;
+      Logs.err (fun m ->
+          m ~tags "cannot match taint variable with function arguments (%i: %s)"
+            i s);
     taint_opt
 
 let fix_poly_taint_with_field env lval st =
-  if env.lang =*= Lang.Java || Lang.is_js env.lang then
-    match lval.rev_offset with
-    | { o = Dot n; _ } :: _ -> (
-        match st with
-        | `Sanitized
-        | `Clean
-        | `None ->
-            st
-        | `Tainted taints -> (
-            match !(n.id_info.id_type) with
-            | Some { t = TyFun _; _ } ->
+  let type_of_il_offset il_offset =
+    match il_offset.IL.o with
+    | Dot n -> !(n.id_info.id_type)
+    | Index _ -> None
+  in
+  let arg_offset_of_il_offset il_offset =
+    match !hook_arg_offset_of_il_offset with
+    | None -> (
+        match il_offset.IL.o with
+        | Dot n -> Some (T.Ofld n)
+        | Index _ ->
+            (* no index-sensitivity in OSS *)
+            None)
+    | Some arg_offset_of_il_offset -> arg_offset_of_il_offset il_offset
+  in
+  (* TODO: Aren't we missing here C# and Go ? *)
+  if env.lang =*= Lang.Java || Lang.is_js env.lang || env.lang =*= Lang.Python
+  then
+    match st with
+    | `Sanitized
+    | `Clean
+    | `None ->
+        st
+    | `Tainted taints -> (
+        match lval.rev_offset with
+        | o :: _ -> (
+            match (type_of_il_offset o, arg_offset_of_il_offset o) with
+            | Some { t = TyFun _; _ }, _ ->
                 (* We have an l-value like `o.f` where `f` has a function type,
                  * so it's a method call, we do nothing here. *)
                 st
-            | __else__ ->
+            | _, None ->
+                (* Cannot handle this offset. *)
+                st
+            | __any__, Some o ->
                 (* Not a method call (to the best of our knowledge) or
                  * an unresolved Java `getX` method. *)
                 let taints' =
@@ -666,7 +689,7 @@ let fix_poly_taint_with_field env lval st =
                                    if `x` started with an `Arg` taint:
                                    while (true) { x = x.getX(); }
                                 *)
-                                (not (List.mem n offset))
+                                (not (List.mem o offset))
                                 && (* For perf reasons we don't allow offsets to get too long.
                                     * Otherwise in a long chain of function calls where each
                                     * function adds some offset, we could end up a very large
@@ -682,7 +705,7 @@ let fix_poly_taint_with_field env lval st =
                                 List.length offset
                                 < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
-                               { arg with offset = arg.offset @ [ n ] }
+                               { arg with offset = arg.offset @ [ o ] }
                              in
                              { taint with orig = Arg arg' }
                          | Src _
@@ -690,10 +713,8 @@ let fix_poly_taint_with_field env lval st =
                          | Control ->
                              taint)
                 in
-                `Tainted taints'))
-    | _ :: _
-    | [] ->
-        st
+                `Tainted taints')
+        | [] -> st)
   else st
 
 (*****************************************************************************)
@@ -1267,7 +1288,29 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
      * `obj`. *)
     (lval * T.tainted_token) option =
   let os =
-    sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
+    sig_arg.offset
+    |> List_.map (function
+         | T.Ofld x -> { o = Dot x; oorig = NoOrig }
+         | T.Oint i ->
+             {
+               o =
+                 Index
+                   { e = Literal (G.Int (Parsed_int.of_int i)); eorig = NoOrig };
+               oorig = NoOrig;
+             }
+         | T.Ostr s ->
+             {
+               o =
+                 Index
+                   {
+                     e =
+                       Literal
+                         (G.String
+                            (Tok.unsafe_fake_bracket (s, Tok.unsafe_fake_tok s)));
+                     eorig = NoOrig;
+                   };
+               oorig = NoOrig;
+             })
   in
   let* lval, obj =
     match sig_arg.base with
@@ -1299,9 +1342,9 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
               }
             in
             Some (lval, obj)
-        | Record fields, [ o ] -> (
+        | Record fields, [ Ofld o ] -> (
             (* JS: The argument of a function call may be a record expression such as
-             * `{x="tainted"l, y="safe"}`, if 'sig_arg' refers to the `x` field then
+             * `{x="tainted", y="safe"}`, if 'sig_arg' refers to the `x` field then
              * we want to resolve it to `"tainted"`. *)
             match
               fields
@@ -1566,13 +1609,17 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let e_taints, lval_env =
           check_function_call_callee { env with lval_env } e
         in
-        (* After we introduced Top_sinks, we need to explicitly support sinks like
-         * `sink(...)` by considering that all of the parameters are sinks. To make
-         * sure that we are backwards compatible, we do this for any sink that does
-         * not match the `Rule.is_func_sink_with_focus` form.
+        (* NOTE(sink_has_focus):
+         * After we made sink specs "exact" by default, we need this trick to
+         * be backwards compatible wrt to specifications like `sink(...)`. Even
+         * if the sink is "exact", if it has NO focus, then we consider that all
+         * of the parameters of the function are sinks. So, even if
+         * `taint_assume_safe_functions: true`, if the spec is `sink(...)`, we
+         * still report `sink(tainted)`.
          *)
         check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
-          ~filter_sinks:(fun m -> not m.spec.sink_is_func_with_focus);
+          ~filter_sinks:(fun m ->
+            not (m.spec.sink_exact && m.spec.sink_has_focus));
         let call_taints, lval_env =
           match
             check_function_signature { env with lval_env } e args args_taints
@@ -1885,7 +1932,9 @@ let (fixpoint :
           |> Seq.map (fun m -> TM.Any m)
         in
         let sinks =
-          orig_is_sink config orig |> List.to_seq |> Seq.map (fun m -> TM.Any m)
+          orig_is_sink config orig |> List.to_seq
+          |> Seq.filter (fun (m : R.taint_sink TM.t) -> m.spec.sink_exact)
+          |> Seq.map (fun m -> TM.Any m)
         in
         sources |> Seq.append sanitizers |> Seq.append sinks)
       flow

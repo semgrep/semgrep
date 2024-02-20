@@ -1657,7 +1657,7 @@ and definition_kind =
   | ModuleDef of module_definition
   | MacroDef of macro_definition
   (* in a header file (e.g., .mli in OCaml or 'module sig') *)
-  | Signature of type_
+  | Signature of signature_definition
   (* Only used inside a function.
    * Needed for languages without local VarDef (e.g., Python/PHP)
    * where the first use is also its declaration. In that case when we
@@ -1956,6 +1956,15 @@ and module_definition_kind =
  * an empty list of parameters, but they are not MacroVar
  *)
 and macro_definition = { macroparams : ident list; macrobody : any list }
+
+(* ------------------------------------------------------------------------- *)
+(* Signature definition *)
+(* ------------------------------------------------------------------------- *)
+and signature_definition = {
+  (* ex: 'val' in OCaml *)
+  sig_tok : tok;
+  sig_type : type_;
+}
 
 (*****************************************************************************)
 (* Directives (Module import/export, package) *)

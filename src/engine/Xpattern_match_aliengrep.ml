@@ -1,12 +1,13 @@
 (*
    Wrapper around the aliengrep matcher (a generic mode variant)
 *)
+open Fpath_.Operators
 
 let convert_pos ~file (loc : Aliengrep.Match.loc) =
   (* single "token" spanning the whole match *)
   let bytepos = loc.start in
   let line, column = Xpattern_matcher.line_col_of_charpos file bytepos in
-  let pos = Pos.make ~file ~line ~column bytepos in
+  let pos = Pos.make ~file:!!file ~line ~column bytepos in
   { Tok.str = loc.substring; pos }
 
 let convert_loc ~file (loc : Aliengrep.Match.loc) =
@@ -17,7 +18,7 @@ let convert_loc ~file (loc : Aliengrep.Match.loc) =
   let end_pos =
     let bytepos = loc.start + loc.length in
     let line, column = Xpattern_matcher.line_col_of_charpos file bytepos in
-    let pos = Pos.make ~file ~line ~column bytepos in
+    let pos = Pos.make ~file:!!file ~line ~column bytepos in
     { Tok.str = ""; pos }
   in
   (start_pos, end_pos)
@@ -43,7 +44,7 @@ let convert_match ~file (match_ : Aliengrep.Match.match_) =
 let aliengrep_matcher target_str file pat =
   Aliengrep.Match.search pat target_str |> List_.map (convert_match ~file)
 
-let matches_of_aliengrep patterns lazy_contents (file : string) =
+let matches_of_aliengrep patterns lazy_contents (file : Fpath.t) origin =
   let init _ =
     (* TODO: ignore binary files like spacegrep? *)
     (* TODO: preprocess and remove comments like spacegrep does *)
@@ -51,4 +52,4 @@ let matches_of_aliengrep patterns lazy_contents (file : string) =
   in
   Xpattern_matcher.matches_of_matcher patterns
     { init; matcher = aliengrep_matcher }
-    (Fpath.v file)
+    file origin

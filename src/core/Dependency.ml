@@ -2,21 +2,23 @@ module Out = Semgrep_output_v1_j
 
 (* The "core of a version": a dot separated list of numbers, like 4.1.6.2.7 *)
 type version_core = { major : int; minor : int; incrementals : int list }
+[@@deriving show, eq]
 
 (* Versions are sometimes listed as arbitrary strings, like a github URL *)
-and version = Version of version_core | Other of string
-and constraint_ = Eq | Gte | Lte | Gt | Lt
+type version = Version of version_core | Other of string [@@deriving show, eq]
+type constraint_ = Eq | Gte | Lte | Gt | Lt [@@deriving show, eq]
 
 (* Something like (>= 2.0.0) or (== 5.1.7) *)
-and version_constraint = { version : version; constraint_ : constraint_ }
+type version_constraint = { version : version; constraint_ : constraint_ }
+[@@deriving show, eq]
 
 (* An intersection of constraints, like (>= 1.0.0, < 3.0.0), meaning "greater than or equal 1.0.0 and less than 3.0.0" *)
 (* We don't have union/an actual tree of constraints because of the historical baggage of the structure of supply chain rules,
    which only have top-level union.
 *)
-and constraint_ast = And of version_constraint list
+type constraint_ast = And of version_constraint list [@@deriving show, eq]
 
-and t = {
+type t = {
   package_name : string;
   package_version : version;
   package_version_string : string;

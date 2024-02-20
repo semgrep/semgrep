@@ -28,7 +28,7 @@ module H = AST_generic_helpers
  *  - a lot ...
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -82,8 +82,11 @@ let locate opt_tok s =
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
-let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
-let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
+let log_warning opt_tok msg =
+  Logs.debug (fun m -> m ~tags "warning: %s" (locate opt_tok msg))
+
+let log_error opt_tok msg =
+  Logs.err (fun m -> m ~tags "%s" (locate opt_tok msg))
 
 let log_fixme kind gany =
   let toks = AST_generic_helpers.ii_of_any gany in
@@ -266,6 +269,24 @@ let def_expr_evaluates_to_value (lang : Lang.t) =
   match lang with
   | Elixir -> true
   | _else_ -> false
+
+let is_constructor env ret_ty id_info =
+  match id_info.G.id_resolved.contents with
+  | Some (G.GlobalName (ls, _), _) -> (
+      env.lang =*= Lang.Python
+      && List.length ls >= 3 (* Module + Class + __init__ *)
+      && (match List_.last_opt ls with
+         | Some "__init__" -> true
+         | _ -> false)
+      &&
+      match ret_ty with
+      (* It would be nice if we can check that this type actually
+         corresponds to a class, but I am uncertain if this is
+         possible. Istead we just check if it is a nominal typed.
+         TODO could we somehow guarentee this type is a class? *)
+      | { G.t = G.TyN _; _ } -> true
+      | _ -> false)
+  | _ -> false
 
 (*****************************************************************************)
 (* lvalue *)
@@ -685,6 +706,41 @@ and expr_aux env ?(void = false) e_gen =
         | _ -> exp
       in
       ident_function_call_hack exp
+  (* x = ClassName(args ...) in Python *)
+  (* ClassName has been resolved to __init__ by the pro engine. *)
+  (* Identified and treated as x = New ClassName(args ...) to support
+     field sensitivity. See HACK(new) *)
+  | G.Assign
+      ( ({
+           e =
+             G.N
+               (G.Id ((_, _), { id_type = { contents = Some ret_ty }; _ }) as
+                obj);
+           _;
+         } as obj_e),
+        _,
+        ({
+           e =
+             G.Call
+               ( {
+                   e =
+                     ( G.N (Id (_, id_info))
+                     (* Module paths are currently parsed into
+                        dotaccess so m.ClassName() is completely
+                        valid. *)
+                     | G.DotAccess (_, _, FN (Id (_, id_info))) );
+                   _;
+                 },
+                 args );
+           _;
+         } as origin_exp) )
+    when is_constructor env ret_ty id_info ->
+      let obj' = var_of_name obj in
+      let lval, ss =
+        mk_class_construction env obj' origin_exp ret_ty id_info args
+      in
+      add_stmts env ss;
+      mk_e (Fetch lval) (SameAs obj_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
@@ -1012,7 +1068,8 @@ and record env ((_tok, origfields, _) as record_def) =
                 IL translation engine will brick the whole record if it is encountered.
                 To avoid this, we will just ignore any unrecognized fields for HCL specifically.
              *)
-             logger#warning "Skipping HCL record field during IL translation";
+             Logs.warn (fun m ->
+                 m ~tags "Skipping HCL record field during IL translation");
              None
          | G.F _ -> todo (G.E e_gen))
   in
@@ -1367,6 +1424,33 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
       [ mk_s (Instr fake_i) ]
   | ss'' -> ss''
 
+and mk_class_construction env obj origin_exp ty cons_id_info args :
+    lval * stmt list =
+  (* We encode `obj = new T(args)` as `obj = new obj.T(args)` so that taint
+     analysis knows that the reciever when calling `T` is the variable
+     `obj`. It's kinda hacky but works for now. *)
+  let lval = lval_of_base (Var obj) in
+  let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
+  let opt_cons =
+    let* cons = mk_class_constructor_name ty cons_id_info in
+    let cons' = var_of_name cons in
+    let cons_exp =
+      mk_e
+        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
+        (SameAs (G.N cons |> G.e))
+      (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+         * looks at the eorig, but maybe it shouldn't? *)
+    in
+    Some cons_exp
+  in
+  let ss2, ty = type_with_pre_stmts env ty in
+  ( lval,
+    ss1 @ ss2
+    @ [
+        mk_s
+          (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
+      ] )
+
 and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
@@ -1384,30 +1468,7 @@ and stmt_aux env st =
       (* HACK(new): Because of field-sensitivity hacks, we need to know to which
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
-      let obj_lval = lval_of_base (Var obj') in
-      let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
-      let opt_cons =
-        let* cons = mk_class_constructor_name ty cons_id_info in
-        let cons' = var_of_name cons in
-        let cons_exp =
-          mk_e
-            (Fetch
-               {
-                 obj_lval with
-                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
-               })
-            (SameAs (G.N cons |> G.e))
-          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
-           * looks at the eorig, but maybe it shouldn't? *)
-        in
-        Some cons_exp
-      in
-      let ss2, ty = type_with_pre_stmts env ty in
-      ss1 @ ss2
-      @ [
-          mk_s
-            (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp)));
-        ]
+      mk_class_construction env obj' new_exp ty cons_id_info args |> snd
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
@@ -1728,11 +1789,18 @@ and function_body env fbody =
   let body_stmt = H.funcbody_to_stmt fbody in
   stmt env body_stmt
 
-(*
+(* We keep it really simple, very far from what would be the proper translation
+ * (see https://www.python.org/dev/peps/pep-0343/):
+ *
  *     with MANAGER as PAT:
  *         BODY
  *
  * ~>
+ *
+ *     PAT = MANAGER
+ *     BODY
+ *
+ * Previously we used this more accurate (yet not 100% accurate) translation:
  *
  *     mgr = MANAGER
  *     value = type(mgr).__enter__(mgr)
@@ -1742,8 +1810,12 @@ and function_body env fbody =
  *     finally:
  *         type(mgr).__exit__(mgr)
  *
- * This is NOT a 100% accurate translation but works for our purposes,
- * see https://www.python.org/dev/peps/pep-0343/.
+ * but to be honest we had no use for all that extra complexity, and this
+ * translated prevented symbolic propagation to match e.g.
+ * `Session(...).execute(...)` against:
+ *
+ *   with Session(engine) as s:
+ *       s.execute("<query>")
  *)
 and python_with_stmt env manager opt_pat body =
   (* mgr = MANAGER *)
@@ -1752,68 +1824,15 @@ and python_with_stmt env manager opt_pat body =
     let ss_mk_mgr, manager' = expr_with_pre_stmts env manager in
     ss_mk_mgr @ [ mk_s (Instr (mk_i (Assign (mgr, manager')) NoOrig)) ]
   in
-  (* type(mgr) *)
-  let type_mgr_var = fresh_var env G.sc in
-  let mgr_class = lval_of_base (Var type_mgr_var) in
-  let ss_mgr_class =
-    [
-      mk_s
-        (Instr
-           (mk_i
-              (CallSpecial
-                 ( Some mgr_class,
-                   (Typeof, G.sc),
-                   [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
-              NoOrig));
-    ]
+  (* PAT = mgr *)
+  let ss_def_pat =
+    match opt_pat with
+    | None -> []
+    | Some pat ->
+        pattern_assign_statements env (mk_e (Fetch mgr) NoOrig) ~eorig:NoOrig
+          pat
   in
-  (* tmp = type(mgr).__method__(mgr) *)
-  let call_mgr_method method_name =
-    let tmp = fresh_lval env G.sc in
-    let mgr_method =
-      (* type(mgr).__method___ *)
-      {
-        base = Var type_mgr_var;
-        rev_offset =
-          [ { o = Dot (fresh_var env G.sc ~str:method_name); oorig = NoOrig } ];
-      }
-    in
-    let ss =
-      [
-        mk_s
-          (Instr
-             (mk_i
-                (Call
-                   ( Some tmp,
-                     mk_e (Fetch mgr_method) NoOrig,
-                     [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
-                NoOrig));
-      ]
-    in
-    (ss, tmp)
-  in
-  let ss_enter, value = call_mgr_method "__enter__" in
-  let pre_try_stmts = ss_def_mgr @ ss_mgr_class @ ss_enter in
-  let try_body =
-    (* PAT = type(mgr).__enter__(mgr)
-     * BODY *)
-    let ss_def_pat =
-      match opt_pat with
-      | None -> []
-      | Some pat ->
-          pattern_assign_statements env
-            (mk_e (Fetch value) NoOrig)
-            ~eorig:NoOrig pat
-    in
-    ss_def_pat @ stmt env body
-  in
-  let try_catches = [] in
-  let try_else = [] in
-  let try_finally =
-    let ss_exit, _ = call_mgr_method "__exit___" in
-    ss_exit
-  in
-  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_else, try_finally)) ]
+  ss_def_mgr @ ss_def_pat @ stmt env body
 
 (*****************************************************************************)
 (* Defs *)

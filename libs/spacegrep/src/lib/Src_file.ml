@@ -74,7 +74,7 @@ let of_file ?source ?max_len file =
      It's convenient for testing using the spacegrep command line:
      $ spacegrep hello <(echo 'hello')
   *)
-  let contents = UCommon.read_file ?max_len file in
+  let contents = UFile.Legacy.read_file ?max_len file in
   { source; contents }
 
 let to_lexbuf x = Lexing.from_string x.contents

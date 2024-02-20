@@ -5,11 +5,11 @@ let parse_pattern print_errors _ str =
   in
   Jsonnet_to_generic.any pattern
 
-let parse_target_ts_only file = Parse_jsonnet_tree_sitter.parse (Fpath.v file)
+let parse_target_ts_only = Parse_jsonnet_tree_sitter.parse
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
-    [ TreeSitter (fun file -> Parse_jsonnet_tree_sitter.parse (Fpath.v file)) ]
+    [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
     Jsonnet_to_generic.program
 
 let _ =

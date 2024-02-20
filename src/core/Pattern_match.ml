@@ -89,7 +89,7 @@ type t = {
    *)
   engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
   (* location info *)
-  file : Fpath.t;
+  path : Target.path;
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
@@ -198,7 +198,8 @@ let range pm =
 
 (* Is [pm1] a submatch of [pm2] ? *)
 let submatch pm1 pm2 =
-  pm1.rule_id = pm2.rule_id && pm1.file = pm2.file
+  pm1.rule_id = pm2.rule_id
+  && pm1.path.internal_path_to_content = pm2.path.internal_path_to_content
   (* THINK: && "pm1.bindings = pm2.bindings" ? *)
   && Range.( $<$ ) (range pm1) (range pm2)
 
@@ -210,7 +211,7 @@ let no_submatches pms =
          (* This is mainly for removing taint-tracking duplicates and
           * there should not be too many matches per file; but if perf
           * is a problem, consider using a specialized data structure. *)
-         let k = (pm.rule_id, pm.file) in
+         let k = (pm.rule_id, pm.path.internal_path_to_content) in
          match Hashtbl.find_opt tbl k with
          | None -> Hashtbl.add tbl k [ pm ]
          | Some ys -> (

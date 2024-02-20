@@ -9,6 +9,7 @@
    terminal_size
    digestif
    xmlm
+   sarif
    python-str-repr
 
    murmur3

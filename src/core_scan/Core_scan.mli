@@ -59,8 +59,7 @@ val rules_from_rule_source :
 (** Get the rules *)
 
 val targets_of_config :
-  Core_scan_config.t ->
-  Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
+  Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
@@ -70,8 +69,8 @@ val targets_of_config :
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.extract_rule list ->
-  Input_to_core_t.code_target list ->
-  Input_to_core_t.target list * Extract.adjusters
+  Target.regular list ->
+  Target.t list * Extract.adjusters
 (**
    Generate a list of new targets, which are extracted with extract rules
    from original targets. This returns also "adjusters" which are functions
@@ -86,7 +85,7 @@ val extracted_targets_of_config :
 val select_applicable_rules_for_target :
   analyzer:Xlang.t ->
   products:Semgrep_output_v1_t.product list ->
-  path:Fpath.t ->
+  origin:Origin.t ->
   respect_rule_paths:bool ->
   Rule.t list ->
   Rule.t list
@@ -125,17 +124,13 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-val xtarget_of_file :
-  parsing_cache_dir:Fpath.t option -> Xlang.t -> Fpath.t -> Xtarget.t
-
 (*
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-val sort_targets_by_decreasing_size :
-  Input_to_core_t.target list -> Input_to_core_t.target list
+val sort_targets_by_decreasing_size : Target.t list -> Target.t list
 
 val sort_code_targets_by_decreasing_size :
-  Input_to_core_t.code_target list -> Input_to_core_t.code_target list
+  Target.regular list -> Target.regular list
 
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences

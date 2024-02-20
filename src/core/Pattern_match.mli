@@ -4,7 +4,7 @@ type t = {
   rule_id : rule_id;
   engine_kind : Engine_kind.t;
   (* location info *)
-  file : Fpath.t;
+  path : Target.path;
   range_loc : Tok.location * Tok.location;
   tokens : Tok.t list Lazy.t;
   env : Metavariable.bindings;

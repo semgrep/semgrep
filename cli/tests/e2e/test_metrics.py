@@ -171,10 +171,14 @@ def test_flags_actual_send(run_semgrep_in_tmp: RunSemgrep):
     assert "Failed to send pseudonymous metrics" not in stderr
 
 
-def _mask_version(value: str) -> str:
-    return re.sub(r"\d+", "x", value)
+# This is meant to test a specific JSON string field.
+# Make this simpler, coarser?
+def _mask_digits(value: str) -> str:
+    return re.sub(r"\d+", "<MASKED DIGITS>", value)
 
 
+# What calls this? What's the type of the argument? Why are they not the
+# same arguments as the other test functions?
 @pytest.mark.quick
 @pytest.mark.freeze_time("2017-03-03")
 @pytest.mark.skipif(
@@ -225,9 +229,14 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
         + pro_flag,
     )
 
+    # TODO: simplify - use regexps on the raw output, such as
+    # one that hides any number with more than 5 digits.
     payload = json.loads(mock_post.call_args.kwargs["data"])
-    payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
+    payload["environment"]["version"] = _mask_digits(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
+    payload["performance"]["maxMemoryBytes"] = _mask_digits(
+        str(payload["performance"]["maxMemoryBytes"])
+    )
 
     snapshot.assert_match(
         json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"
