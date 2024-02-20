@@ -2,6 +2,6 @@
 
 [31m[22m[24mError parsing rule (0) `arg-reassign`:
   - received `{'id': 'arg-reassign', 'message': '$X is being assigned to one or two', 'languages': ['python'], 'severity': 'WARNING'}`
-  - Check Search Has Pattern: Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, `match` to be present[0m
+  - Check Has Pattern: Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, `match` to be present[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)
