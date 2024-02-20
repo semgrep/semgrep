@@ -975,7 +975,7 @@ class Rule(BaseModel):
             if not all(
                 [
                     self.id,
-                    self.message,
+                    self.message is not None,
                     self.languages,
                     self.severity,
                     self.pattern_sinks,
@@ -992,7 +992,7 @@ class Rule(BaseModel):
             if not all(
                 [
                     self.id,
-                    self.message,
+                    self.message is not None,
                     self.languages,
                     self.severity,
                     self.taint,
@@ -1006,7 +1006,7 @@ class Rule(BaseModel):
             if not all(
                 [
                     self.id,
-                    self.message,
+                    self.message is not None,
                     self.severity,
                     self.join,
                 ]
@@ -1020,7 +1020,7 @@ class Rule(BaseModel):
                 [
                     self.id,
                     self.languages,
-                    self.message,
+                    self.message is not None,
                     self.severity,
                 ]
             ):
