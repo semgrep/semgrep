@@ -173,8 +173,28 @@ class HttpResult(BaseModel):
     validity: Optional[SecretValidity] = None
 
 
+def http_status_discriminator(value: Any) -> str:
+    if isinstance(value, str):
+        return "str"
+    elif isinstance(value, int):
+        return "int"
+    else:
+        raise ValueError(f"Unsupported type: {type(value)}")
+
+
 class HttpResponseMatch(BaseModel):
-    status_code: Optional[int] = Field(None, alias="status-code")
+    # NOTE: Why do we support strings here? These should be integers.
+    #       Coupling due to create_validator_rule in test_validator_rule_is_blocking
+    #       of test_rule.py
+    status_code: Annotated[
+        Union[
+            Annotated[str, Tag("str")],
+            Annotated[int, Tag("int")],
+        ],
+        Discriminator(
+            http_status_discriminator,
+        ),
+    ] = Field(None, alias="status-code")
     headers: Optional[List[Header]] = None
     content: Optional[GeneralPatternContent] = None
 
