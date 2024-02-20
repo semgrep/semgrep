@@ -461,7 +461,9 @@ def complete_scan_mock_maker(requests_mock, mocked_scan_id):
 
 
 @pytest.fixture
-def mock_ci_api(start_scan_mock, upload_results_mock, complete_scan_mock):
+def mock_ci_api(
+    start_scan_mock_maker, upload_results_mock_maker, complete_scan_mock_maker
+):
     # just for easier access to all mocks in tests that want them.
     pass
 
@@ -1870,12 +1872,12 @@ def test_query_dependency(
         "output.txt",
     )
 
-    results_json = upload_results_mock().last_request.json()
+    results_json = upload_results_mock.last_request.json()
     snapshot.assert_match(
         json.dumps(results_json["dependencies"], indent=2), "dependencies.json"
     )
 
-    complete_json = complete_scan_mock().last_request.json()
+    complete_json = complete_scan_mock.last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -1954,7 +1956,7 @@ def test_existing_supply_chain_finding(
         "base_output.txt",
     )
 
-    findings_json = upload_results_mock().last_request.json()
+    findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 1
 
     lockfile1 = repo_copy_base / "poetry.lock"
@@ -2022,7 +2024,7 @@ def test_existing_supply_chain_finding(
         ),
         "new_output.txt",
     )
-    findings_json = upload_results_mock().last_request.json()
+    findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 0
 
 
