@@ -1,10 +1,25 @@
-Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
-semgrep error: Invalid rule schema
-  --> rules/invalid-rules/string-pattern-under-patterns.yaml:4
-4 |     - "foo"
-  |       ^^^^^
-
-'foo' is not of type 'object'
-
-[ERROR] Rule parse error in rule eqeq:
- Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?
+Unknown type for pattern: foo
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 595, in scan
+    resolved_configs, config_errors = semgrep.config_resolver.get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 976, in get_config
+    config, errors = Config.from_config_list(config_strs, project_url)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 542, in from_config_list
+    resolved_config = resolve_config(config, project_url)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 470, in resolve_config
+    config = parse_config_files(config_loader.load_config())
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 449, in parse_config_files
+    config.update(parse_config_string(config_id, contents, filename))
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 816, in parse_config_string
+    data = parse_config_preserve_spans(contents, filename)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 455, in parse_config_preserve_spans
+    validate_yaml(data)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_lang.py", line 603, in validate_yaml
+    Model.model_validate(normalized_data)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/pydantic/main.py", line 509, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_model.py", line 620, in pattern_discriminator
+    raise ValueError(f"Unknown type for pattern: {value}")
+ValueError: Unknown type for pattern: foo

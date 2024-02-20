@@ -1,8 +1,15 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/bad12.yaml:5
+  --> rules/syntax/bad12.yaml:2
+[94m[22m[24m2 | [0m  - id: bad12
+[94m[22m[24m3 | [0m    pattern-either:
+[94m[22m[24m4 | [0m      - pattern: $X
 [94m[22m[24m5 | [0m      - pattern-not: $Y
 [94m[22m[24m6 | [0m    severity: ERROR
+[94m[22m[24m7 | [0m    languages: [python]
+[94m[22m[24m8 | [0m    message: Hi
 
-[31m[22m[24mAdditional properties are not allowed ('pattern-not' was unexpected)[0m
+[31m[22m[24mError parsing rule (0) `bad12`:
+  - received `{'pattern-not': '$Y'}`
+  - Field required[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

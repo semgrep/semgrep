@@ -12,6 +12,8 @@
 [94m[22m[24m11 | [0m    # Can't use pattern in taint
 [94m[22m[24m12 | [0m    pattern: $X == $X
 
-[31m[22m[24mThese properties are invalid in the current mode: 'pattern'[0m
+[31m[22m[24mError parsing rule (0) `tainty`:
+  - received `$X`
+  - Input should be a valid dictionary or instance of TaintContentPattern[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

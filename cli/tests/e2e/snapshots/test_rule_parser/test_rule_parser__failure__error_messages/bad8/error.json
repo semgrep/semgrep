@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'",
+      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `{'id': 'arg-reassign', 'message': '$X is being assigned to one or two', 'languages': ['python'], 'severity': 'WARNING'}`\n  - Value error, Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, `match` to be present",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

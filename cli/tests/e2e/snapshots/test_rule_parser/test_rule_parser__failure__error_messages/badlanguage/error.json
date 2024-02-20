@@ -1,37 +1,33 @@
 {
   "errors": [
     {
-      "code": 8,
+      "code": 4,
       "level": "error",
-      "long_msg": "unsupported language: intercal. supported languages are: apex, bash, c, c#, c++, cairo, clojure, cpp, csharp, dart, docker, dockerfile, elixir, ex, generic, go, golang, hack, hcl, html, java, javascript, js, json, jsonnet, julia, kotlin, kt, lisp, lua, none, ocaml, php, promql, proto, proto3, protobuf, py, python, python2, python3, r, regex, ruby, rust, scala, scheme, sh, sol, solidity, swift, terraform, tf, ts, typescript, vue, xml, yaml\n\nYou may need to update your version of Semgrep, if you are on an old version that does not yet support this language.",
-      "short_msg": "invalid language: intercal",
+      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `['intercal']`\n  - Input should be a valid string",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 0,
-            "line": 8,
-            "offset": -1
-          },
-          "context_start": {
-            "col": 0,
-            "line": 6,
-            "offset": -1
-          },
           "end": {
-            "col": 26,
-            "line": 7,
+            "col": 1,
+            "line": 9,
             "offset": -1
           },
           "file": "rules/syntax/badlanguage.yaml",
           "source_hash": "a586ed585e5f1676161a6663c037292f13a97ff02aeb7fa9c62517732cc00766",
           "start": {
-            "col": 16,
-            "line": 7,
+            "col": 5,
+            "line": 2,
             "offset": -1
           }
         }
       ],
-      "type": "UnknownLanguageError"
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
     }
   ],
   "paths": {

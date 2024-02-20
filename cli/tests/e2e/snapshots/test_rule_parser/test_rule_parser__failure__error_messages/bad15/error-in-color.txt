@@ -9,6 +9,8 @@
 [94m[22m[24m8  | [0m    patterns:
 [94m[22m[24m9  | [0m      - pattern: $X != $X
 
-[31m[22m[24mThese options were both specified, but they are mutually exclusive: 'pattern', 'patterns'[0m
+[31m[22m[24mError parsing rule (0) `too many`:
+  - received `too many`
+  - String should match pattern '^[a-zA-Z0-9._-]*$'[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

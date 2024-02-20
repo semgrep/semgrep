@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "These options were both specified, but they are mutually exclusive: 'pattern', 'patterns'",
+      "long_msg": "Error parsing rule (0) `too many`:\n  - received `too many`\n  - String should match pattern '^[a-zA-Z0-9._-]*$'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

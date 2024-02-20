@@ -6,7 +6,9 @@ semgrep error: Invalid rule schema
 4 |     languages: [python]
 5 |     pattern: $X == $X
 
-One of these properties is missing: 'severity'
+Error parsing rule (0) `blah`:
+  - received `{'id': 'blah', 'message': 'blah', 'languages': ['python'], 'pattern': '$X == $X'}`
+  - Value error, Expected `id`, `languages`, `message`, `severity`, to be present
 
 [ERROR] Rule parse error in rule blah:
  Missing required field severity

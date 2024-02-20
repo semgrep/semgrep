@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "These properties are invalid in the current mode: 'pattern'",
+      "long_msg": "Error parsing rule (0) `tainty`:\n  - received `$X`\n  - Input should be a valid dictionary or instance of TaintContentPattern",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'pattern-sinks'",
+      "long_msg": "Error parsing rule (0) `tainty`:\n  - received `{'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}`\n  - Value error, Expected `id`, `message`, `languages`, `severity`, `pattern-sinks`, `pattern-sources` to be present",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
