@@ -34,12 +34,9 @@ type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : string (* filename *) -> 'target_content option;
+  init : Fpath.t -> 'target_content option;
   matcher :
-    'target_content ->
-    string (* filename *) ->
-    'xpattern ->
-    (match_range * MV.bindings) list;
+    'target_content -> Fpath.t -> 'xpattern -> (match_range * MV.bindings) list;
 }
 
 (* bugfix: I used to just report one token_location, and if the match
@@ -67,7 +64,7 @@ let (matches_of_matcher :
   if xpatterns =*= [] then Core_result.empty_match_result
   else
     let target_content_opt, parse_time =
-      Common.with_time (fun () -> matcher.init !!internal_path)
+      Common.with_time (fun () -> matcher.init internal_path)
     in
     match target_content_opt with
     | None ->
@@ -78,7 +75,7 @@ let (matches_of_matcher :
               xpatterns
               |> List.concat_map (fun (xpat, id, pstr) ->
                      let xs =
-                       matcher.matcher target_content !!internal_path xpat
+                       matcher.matcher target_content internal_path xpat
                      in
                      xs
                      |> List_.map (fun ((loc1, loc2), env) ->
@@ -108,16 +105,16 @@ let (matches_of_matcher :
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101
 
-let line_col_of_charpos file charpos =
+let line_col_of_charpos (file : Fpath.t) (charpos : int) : int * int =
   let conv =
-    Common.memoized hmemo file (fun () -> Pos.full_converters_large file)
+    Common.memoized hmemo file (fun () -> Pos.full_converters_large !!file)
   in
   conv.bytepos_to_linecol_fun charpos
 
 (* Like UTmp.with_tmp_file but also invalidates the hmemo cache when finished.
  * See https://github.com/returntocorp/semgrep/issues/5277 for more info *)
 let with_tmp_file ~str ~ext f =
-  UTmp.Legacy.with_tmp_file ~str ~ext (fun file ->
+  UTmp.with_tmp_file ~str ~ext (fun file ->
       Common.protect
         ~finally:(fun () -> Hashtbl.remove hmemo file)
         (fun () -> f file))

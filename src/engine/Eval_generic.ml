@@ -231,8 +231,7 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
   *)
   let regexp = Regexp_engine.pcre_compile_with_flags ~flags:[ `ANCHORED ] re in
   let matches =
-    Xpattern_match_regexp.regexp_matcher ~base_offset str (Fpath.to_string file)
-      regexp
+    Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
   in
   matches
 

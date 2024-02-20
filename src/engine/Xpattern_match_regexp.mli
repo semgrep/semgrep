@@ -4,13 +4,13 @@
 val regexp_matcher :
   ?base_offset:int ->
   (* str *) string ->
-  (* file *) string ->
+  Fpath.t ->
   Regexp_engine.t ->
   ((Tok.location * Tok.location) * (string * Metavariable.mvalue) list) list
 
 val matches_of_regexs :
   (Regexp_engine.t * Xpattern.pattern_id * string) list ->
   string Lazy.t ->
-  string (* filename *) ->
+  Fpath.t ->
   Origin.t ->
   Core_profiling.times Core_result.match_result
