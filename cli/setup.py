@@ -119,6 +119,7 @@ install_requires = [
     "jsonschema~=4.6",
     "packaging>=21.0",
     "peewee~=3.14",
+    "pydantic~=2.6",
     "requests~=2.22",
     "rich>=12.6.0",
     "ruamel.yaml>=0.16.0,<0.18",
