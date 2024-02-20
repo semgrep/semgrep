@@ -12,6 +12,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stderr - plain
 [<MASKED>][DEBUG]: setup_logging: highlight_setting=Std_msg.Auto, highlight=false
+[<MASKED>][INFO]: execute pysemgrep: "osemgrep" "--debug" "--strict" "--config" "<MASKED>" "<MASKED>"
 semgrep version <MASKED>
 Failed to get project url from 'git ls-remote': Command failed with exit code: 128
 -----
@@ -178,6 +179,7 @@ Not sending pseudonymous metrics since metrics are configured to OFF and registr
 
 === stderr - color
 [<MASKED>][DEBUG]: setup_logging: highlight_setting=Std_msg.Auto, highlight=false
+[<MASKED>][INFO]: execute pysemgrep: "osemgrep" "--debug" "--strict" "--config" "<MASKED>" "<MASKED>"
 semgrep version <MASKED>
 Failed to get project url from 'git ls-remote': Command failed with exit code: 128
 -----
