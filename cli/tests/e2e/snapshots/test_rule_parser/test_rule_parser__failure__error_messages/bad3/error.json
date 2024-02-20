@@ -3,24 +3,9 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "[{'pattern': '$D = {}'}] is not of type 'string'",
+      "long_msg": "Error parsing rule (0) `test-pattern`:\n  - received `[{'pattern': '$D = {}'}]`\n  - Input should be a valid string",
       "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 5,
-            "line": 5,
-            "offset": -1
-          },
-          "file": "rules/syntax/bad3.yaml",
-          "source_hash": "97733e185fa4cbd70969a362e968e43dd266202401e7a68a23b52c8d1cf3e547",
-          "start": {
-            "col": 7,
-            "line": 4,
-            "offset": -1
-          }
-        }
-      ],
+      "spans": [],
       "type": "InvalidRuleSchemaError"
     },
     {

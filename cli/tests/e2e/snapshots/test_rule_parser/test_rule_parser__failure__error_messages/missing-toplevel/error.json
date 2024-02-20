@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'rules'",
+      "long_msg": "Missing: Field required",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

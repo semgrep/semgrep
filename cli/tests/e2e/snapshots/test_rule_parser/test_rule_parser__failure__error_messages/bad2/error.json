@@ -3,24 +3,9 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'severity'",
+      "long_msg": "Error parsing rule (0) `eqeq-is-bad`:\n  - received `{'id': 'eqeq-is-bad', 'patterns': [{'pattern-not': '1 == 1'}], 'message': 'useless comparison operation `$X == $X` or `$X != $X`; possible bug?', 'languages': ['python'], 'severit': 'ERROR'}`\n  - Check Search Has Required Fields: Expected `id`, `languages`, `message`, `severity`, to be present",
       "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 8,
-            "offset": -1
-          },
-          "file": "rules/syntax/bad2.yaml",
-          "source_hash": "8861f46f4219927c24d0ba57521a2b46d60f7367eca308fa7efb623c5a8b17bc",
-          "start": {
-            "col": 5,
-            "line": 2,
-            "offset": -1
-          }
-        }
-      ],
+      "spans": [],
       "type": "InvalidRuleSchemaError"
     },
     {

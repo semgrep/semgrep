@@ -3,24 +3,9 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'",
+      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `{'id': 'arg-reassign', 'message': '$X is being assigned to one or two', 'languages': ['python'], 'severity': 'WARNING'}`\n  - Check Search Has Pattern: Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, `match` to be present",
       "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 1,
-            "line": 7,
-            "offset": -1
-          },
-          "file": "rules/syntax/bad8.yaml",
-          "source_hash": "f821234ba9175efc8d66b3226996144ba05bdc0aea35a50321cbb9c6f349f6a0",
-          "start": {
-            "col": 5,
-            "line": 2,
-            "offset": -1
-          }
-        }
-      ],
+      "spans": [],
       "type": "InvalidRuleSchemaError"
     },
     {

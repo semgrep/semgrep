@@ -1,8 +1,7 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/bad9.yaml:4
-[94m[22m[24m4 | [0m      - patter: $X = 1
-[94m[22m[24m5 | [0m      - pattern: $X = 2
 
-[31m[22m[24mAdditional properties are not allowed ('patter' was unexpected)[0m
+[31m[22m[24mError parsing rule (0) `arg-reassign`:
+  - received `{'patter': '$X = 1'}`
+  - Missing: Field required[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

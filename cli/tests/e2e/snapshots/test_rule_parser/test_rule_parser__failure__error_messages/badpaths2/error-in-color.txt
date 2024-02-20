@@ -1,8 +1,7 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/badpaths2.yaml:8
-[94m[22m[24m8 | [0m      filename: "*.py"
-[94m[22m[24m9 | [0m    message: "$X is being assigned to one or two"
 
-[31m[22m[24mAdditional properties are not allowed ('filename' was unexpected)[0m
+[31m[22m[24mError parsing rule (0) `arg-reassign`:
+  - received `*.py`
+  - Extra Forbidden: Extra inputs are not permitted[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)
