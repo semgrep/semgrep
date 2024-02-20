@@ -1,0 +1,12 @@
+rules:
+- id: mvar-regex-interpolated-var
+  patterns:
+  - pattern: |
+      x = $Z
+  - metavariable-regex:
+      metavariable: $Z
+      constant-propagation: true
+      regex: "150"
+  message: Working!
+  severity: WARNING
+  languages: [python]
