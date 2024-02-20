@@ -751,6 +751,7 @@ and vof_keyword_attribute = function
   | Private -> OCaml.VSum ("Private", [])
   | Protected -> OCaml.VSum ("Protected", [])
   | Abstract -> OCaml.VSum ("Abstract", [])
+  | ThreadLocal -> OCaml.VSum ("ThreadLocal", [])
   | Final -> OCaml.VSum ("Final", [])
   | Override -> OCaml.VSum ("Override", [])
   | Var -> OCaml.VSum ("Var", [])

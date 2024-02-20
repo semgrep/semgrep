@@ -672,6 +672,7 @@ and map_keyword_attribute = function
   | Private -> Left `Private
   | Protected -> Left `Protected
   | Abstract -> Left `Abstract
+  | ThreadLocal -> Left `ThreadLocal
   | Final -> Left `Final
   | Override -> Left `Override
   | Var -> Left `Var
