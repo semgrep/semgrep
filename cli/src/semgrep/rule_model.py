@@ -68,6 +68,7 @@ class Languages(str, Enum):
     kt = "kt"
     lisp = "lisp"
     lua = "lua"
+    none = "none"
     ocaml = "ocaml"
     php = "php"
     promql = "promql"
