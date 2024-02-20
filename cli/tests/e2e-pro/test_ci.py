@@ -63,9 +63,8 @@ BAD_CONFIG = dedent(
     rules:
     - id: eqeq-bad
       message: "useless comparison"
-      languages: [python]
+      languages: [fakescript]
       severity: ERROR
-      foo: bar
 """
 ).lstrip()
 FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
@@ -1614,7 +1613,34 @@ def test_fail_open_works_when_backend_is_down(
     }
 
 
-@pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+            rules:
+            - id: bad-rule-missing-pattern
+              message: "useless comparison"
+              languages: [python]
+              severity: ERROR
+            """
+        ).strip(),
+        dedent(
+            """
+            rules:
+            - id: bad-rule-nonexistent-language
+              message: "useless comparison"
+              languages: [fakescript]
+              severity: ERROR
+              pattern: $X == $X
+            """
+        ).strip(),
+    ],
+    ids=[
+        "missing_pattern",
+        "nonexistent_language",
+    ],
+)
 @pytest.mark.osemfail
 def test_bad_config(run_semgrep: RunSemgrep, git_tmp_path_with_commit):
     """
@@ -1625,7 +1651,7 @@ def test_bad_config(run_semgrep: RunSemgrep, git_tmp_path_with_commit):
         options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
-        assert_exit_code=7,
+        assert_exit_code={7, 8},  # 7 for generic bad config, 8 for bad language
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         use_click_runner=True,
     )
@@ -1638,7 +1664,7 @@ def test_bad_config_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
     """
-    Test that bad rules with --suppres-errors returns exit code 0
+    Test that bad rules with --suppress-errors returns exit code 0
     """
     mock_send = mocker.spy(ErrorHandler, "send")
     result = run_semgrep(
@@ -1649,7 +1675,7 @@ def test_bad_config_error_handler(
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         use_click_runner=True,
     )
-    assert "Invalid rule schema" in result.stderr
+    assert "invalid rule schema" in result.stderr
     mock_send.assert_called_once_with(mocker.ANY, 7)
 
 

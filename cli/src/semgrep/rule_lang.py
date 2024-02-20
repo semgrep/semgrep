@@ -21,6 +21,7 @@ import jsonschema.exceptions
 from attrs import evolve
 from attrs import frozen
 from jsonschema.validators import Draft7Validator
+from pydantic import ValidationError
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -28,6 +29,7 @@ from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.rule_model import Model
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
@@ -450,6 +452,8 @@ def parse_config_preserve_spans(contents: str, filename: Optional[str]) -> YamlT
     data = parse_yaml_preserve_spans(contents, filename)
     if not data:
         raise EmptyYamlException()
+    validate_yaml(data)
+    # validate_yaml_original(data)
     return data
 
 
@@ -541,7 +545,7 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
         required = required - RuleValidation.PATTERN_KEYS
     if required:
         keys = ", ".join(f"'{k}'" for k in sorted(required))
-        outs.append(f"One of these properties is missing: {keys}")
+        outs.append(f"{context.message}")
     if redundant_keys:
         for mutex_set in sorted(redundant_keys):
             keys = ", ".join(f"'{k}'" for k in sorted(mutex_set))
@@ -554,7 +558,96 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     return contexts[0].message
 
 
+def validate_yaml_fastjsonschema(data: YamlTree) -> None:
+    from semgrep.error import InvalidRuleSchemaError
+
+    # NOTE: We're importing fastjsonschema inline here as we don't want to plan
+    # to commit this as an actual dependency, but is useful for comparison.
+    import fastjsonschema  # type: ignore
+
+    schema = RuleSchema.get()
+    """
+    NOTE: The generated code was not working with the schema, so I saved the broken
+    schema to a file, figured out the issue, and then fixed the code-gen source code.
+
+    The following code was used to generate the schema:
+    ```
+    code = fastjsonschema.compile_to_code(schema)
+    import os
+    dest = os.path.expanduser('~/Downloads/rule_schema.py')
+    with open(dest, 'w') as f:
+        f.write(code)
+    exit(0)
+    ```
+
+    The fix involved fixing a logical comparison in the builder code to check
+    for falsey values (instead of only 0) when iterating over required fields of
+    different types.
+    """
+    validator = fastjsonschema.compile(schema)
+    try:
+        validator(data.unroll())
+    except fastjsonschema.JsonSchemaException as e:
+        raise InvalidRuleSchemaError(
+            short_msg="Invalid rule schema",
+            long_msg=e.message,
+            spans=[data.span],
+        )
+
+
 def validate_yaml(data: YamlTree) -> None:
+    from semgrep.error import InvalidRuleSchemaError
+
+    # Unroll the data to a more normal datastructure
+    normalized_data = data.unroll()
+    try:
+        Model.model_validate(normalized_data)
+    except ValidationError as e:
+        rules = data.value["rules"]
+        readable_errors = []
+        spans: List[Span] = []
+        seen_lines = (
+            set()
+        )  # Workaround to avoid Type Union errors that lack Discriminator
+        # See https://docs.pydantic.dev/latest/concepts/unions/#union-validation-errors
+        for error in e.errors():
+            # breakpoint()
+            loc = error.get("loc")
+            received = error.get("input", "")
+            if not loc or len(loc) < 2:
+                readable_errors.append(f"{error['msg']}")
+                continue
+            elif len(loc) >= 2:
+                line_no = loc[1]
+                if line_no in seen_lines:
+                    continue
+                rule = rules.value[line_no] or None
+                rule_id_box = rule.value["id"] if rule else None
+                rule_id = (
+                    f"({line_no}) `{rule_id_box.value}`"
+                    if rule_id_box
+                    else f"({line_no})"
+                )
+                readable_errors.append(
+                    f"Error parsing rule {rule_id}:\n  - received `{received}`\n  - {error['msg']}"
+                )
+                seen_lines.add(loc[1])
+        if rules:
+            for line in seen_lines:
+                item = rules.value[line]
+                if not item:
+                    continue
+                spans.append(item.span)
+        else:
+            spans.append(data.span)
+        raise InvalidRuleSchemaError(
+            short_msg="Invalid rule schema",
+            long_msg="\n".join(readable_errors),
+            spans=spans,
+        )
+
+
+def validate_yaml_original(data: YamlTree) -> None:
     from semgrep.error import InvalidRuleSchemaError
 
     try:

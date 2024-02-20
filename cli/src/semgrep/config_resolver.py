@@ -43,6 +43,9 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
 from semgrep.rule_lang import Span
+from semgrep.rule_lang import validate_yaml as validate_yaml_pydantic
+from semgrep.rule_lang import validate_yaml_fastjsonschema
+from semgrep.rule_lang import validate_yaml_original
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
@@ -771,6 +774,31 @@ def parse_config_string(
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
+        """
+        NOTE: To debug the validation of the default config, uncomment the following code:
+        ```
+        dest = os.path.expanduser("~/Downloads/semgrep-default-config.json")
+        with open(dest, "w") as f:
+            f.write(contents)
+        exit(0)
+        ```
+        This config file should contain ~1751 rules for logged in users.
+        """
+        start_t = time.time()
+        validate_yaml_pydantic(data)
+        elapsed_ms = (time.time() - start_t) * 1000
+        logger.info(f"validate_yaml_pydantic {config_id} in {elapsed_ms:.2f}ms")
+
+        start_t = time.time()
+        validate_yaml_fastjsonschema(data)
+        elapsed_ms = (time.time() - start_t) * 1000
+        logger.info(f"validate_yaml_fastjsonschema {config_id} in {elapsed_ms:.2f}ms")
+
+        start_t = time.time()
+        validate_yaml_original(data)
+        elapsed_ms = (time.time() - start_t) * 1000
+        logger.info(f"validate_yaml_original {config_id} in {elapsed_ms:.2f}ms")
+
         return {config_id: data}
     except json.decoder.JSONDecodeError:
         pass
