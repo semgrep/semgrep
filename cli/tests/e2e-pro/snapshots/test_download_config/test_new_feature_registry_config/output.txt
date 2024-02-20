@@ -1,4 +1,4 @@
-METRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev.
+wMETRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev.
 To disable Registry rule metrics, use "--metrics=off".
 Using configs only from local files (like --config=xyz.yml) does not enable metrics.
 
@@ -17,6 +17,8 @@ semgrep error: Invalid rule schema
 5 |   languages: [python]
 6 |   severity: ERROR
 
-One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'
+Error parsing rule (0) `eqeq-bad`:
+  - received `{'id': 'eqeq-bad', 'pattern-new-feature': '$X == $X', 'message': 'useless comparison', 'languages': ['python'], 'severity': 'ERROR'}`
+  - Check Has Pattern: Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, `match` to be present
 
 [ERROR] invalid configuration file found (1 configs were invalid)
