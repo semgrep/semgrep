@@ -5,7 +5,22 @@
       "level": "error",
       "long_msg": "Error parsing rule (0) `tainty`:\n  - received `{'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}`\n  - Check Taint Has Required Fields: Expected `id`, `message`, `languages`, `severity`, `pattern-sinks`, `pattern-sources` to be present",
       "short_msg": "Invalid rule schema",
-      "spans": [],
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 9,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad13.yaml",
+          "source_hash": "358a5e8907bbb75166d11a3e3347b3750abde97709ce141a6f5d67f82879822a",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
       "type": "InvalidRuleSchemaError"
     },
     {

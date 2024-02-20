@@ -1,4 +1,12 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
+  --> rules/syntax/bad5.yaml:2
+[94m[22m[24m2 | [0m  - id: arg-reassign
+[94m[22m[24m3 | [0m    patterns:
+[94m[22m[24m4 | [0m      # should be a dict, not a string
+[94m[22m[24m5 | [0m      - "4"
+[94m[22m[24m6 | [0m    message: "$X is being reassigned"
+[94m[22m[24m7 | [0m    languages: [python]
+[94m[22m[24m8 | [0m    severity: WARNING
 
 [31m[22m[24mError parsing rule (0) `arg-reassign`:
   - received `4`

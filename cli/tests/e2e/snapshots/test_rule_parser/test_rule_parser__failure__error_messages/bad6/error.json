@@ -5,7 +5,22 @@
       "level": "error",
       "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `$X == $X`\n  - List Type: Input should be a valid list",
       "short_msg": "Invalid rule schema",
-      "spans": [],
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 9,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad6.yaml",
+          "source_hash": "ebcad6ecc6d2264e00fcdeeee54e8997c92b2862d3fb66a0066b2bbdde796b2e",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
       "type": "InvalidRuleSchemaError"
     },
     {

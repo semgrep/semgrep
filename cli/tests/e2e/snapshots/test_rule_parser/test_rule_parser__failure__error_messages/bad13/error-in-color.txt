@@ -1,4 +1,12 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
+  --> rules/syntax/bad13.yaml:2
+[94m[22m[24m2 | [0m  - id: tainty
+[94m[22m[24m3 | [0m    message: Hi
+[94m[22m[24m4 | [0m    languages: [python]
+[94m[22m[24m5 | [0m    severity: WARNING
+[94m[22m[24m6 | [0m    mode: taint
+[94m[22m[24m7 | [0m    # Can't use taint
+[94m[22m[24m8 | [0m    pattern: $X == $X
 
 [31m[22m[24mError parsing rule (0) `tainty`:
   - received `{'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}`

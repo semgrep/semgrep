@@ -3,9 +3,24 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Error parsing rule (0) `eqeq-is-bad`:\n  - received `{'id': 'eqeq-is-bad', 'pattern': '$X == $X', 'message': 'useless comparison operation `$X == $X` or `$X != $X`; possible bug?', 'severity': 'ERROR'}`\n  - Check Search Has Required Fields: Expected `id`, `languages`, `message`, `severity`, to be present",
+      "long_msg": "Error parsing rule (0) `eqeq-is-bad`:\n  - received `{'id': 'eqeq-is-bad', 'pattern': '$X == $X', 'message': 'useless comparison operation `$X == $X` or `$X != $X`; possible bug?', 'severity': 'ERROR'}`\n  - Check Has Required Fields: Expected `id`, `languages`, `message`, `severity`, to be present",
       "short_msg": "Invalid rule schema",
-      "spans": [],
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 6,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad16.yaml",
+          "source_hash": "1ce0f2de3de6530b53d80ba25a34ed2b84cbb056bb75faadf85d715ce2349709",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
       "type": "InvalidRuleSchemaError"
     },
     {

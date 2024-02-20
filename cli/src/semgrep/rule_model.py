@@ -472,15 +472,42 @@ class PatternEither(BaseModel):
     )
 
 
+def pattern_either_discriminator(value: Any) -> Union[str, None]:
+    if "patterns" in value:
+        return "Patterns"
+    elif "pattern-either" in value:
+        return "PatternEither"
+    elif "pattern-inside" in value:
+        return "PatternInside"
+    elif "semgrep-internal-pattern-anywhere" in value:
+        return "SemgrepInternalPatternAnywhere"
+    elif "pattern" in value:
+        return "Pattern"
+    elif "pattern-regex" in value:
+        return "PatternRegex"
+    else:
+        # NOTE: Pydantic will create a better error message for us
+        #      if we return None here instead of raising a ValueError
+        return None
+
+
 class PatternEitherContent(RootModel):
     root: List[
-        Union[
-            Patterns,
-            PatternEither,
-            PatternInside,
-            SemgrepInternalPatternAnywhere,
-            Pattern,
-            PatternRegex,
+        Annotated[
+            Union[
+                Annotated["Patterns", Tag("Patterns")],
+                Annotated["PatternEither", Tag("PatternEither")],
+                Annotated["PatternInside", Tag("PatternInside")],
+                Annotated[
+                    "SemgrepInternalPatternAnywhere",
+                    Tag("SemgrepInternalPatternAnywhere"),
+                ],
+                Annotated["Pattern", Tag("Pattern")],
+                Annotated["PatternRegex", Tag("PatternRegex")],
+            ],
+            Discriminator(
+                pattern_either_discriminator,
+            ),
         ]
     ] = Field(..., title="Return finding where any of the nested conditions are true")
 

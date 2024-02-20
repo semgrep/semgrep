@@ -3,9 +3,24 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `{'patter': '$X = 1'}`\n  - Missing: Field required",
+      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `{'patter': '$X = 1'}`\n  - Union Tag Not Found: Unable to extract tag using discriminator pattern_either_discriminator()",
       "short_msg": "Invalid rule schema",
-      "spans": [],
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 9,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad9.yaml",
+          "source_hash": "22b38817e2ddc7b6ad25b80aaf6a01451159c7a0233eaef3ed58642355a05379",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
       "type": "InvalidRuleSchemaError"
     },
     {

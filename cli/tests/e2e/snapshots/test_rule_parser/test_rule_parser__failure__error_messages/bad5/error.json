@@ -5,7 +5,22 @@
       "level": "error",
       "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `4`\n  - Union Tag Not Found: Unable to extract tag using discriminator pattern_discriminator()",
       "short_msg": "Invalid rule schema",
-      "spans": [],
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 9,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad5.yaml",
+          "source_hash": "5c4f00f11940b0b9526ec7832ba2b1b539877e705bc7d73a4421db5a7006eba9",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
       "type": "InvalidRuleSchemaError"
     },
     {

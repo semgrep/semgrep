@@ -1,4 +1,11 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
+  --> rules/syntax/bad3.yaml:2
+[94m[22m[24m2 | [0m  - id: test-pattern
+[94m[22m[24m3 | [0m    pattern:
+[94m[22m[24m4 | [0m      - pattern: "$D = {}"
+[94m[22m[24m5 | [0m    message: "test"
+[94m[22m[24m6 | [0m    languages: [python]
+[94m[22m[24m7 | [0m    severity: WARNING
 
 [31m[22m[24mError parsing rule (0) `test-pattern`:
   - received `[{'pattern': '$D = {}'}]`

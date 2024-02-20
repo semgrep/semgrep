@@ -3,9 +3,24 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `intercal`\n  - Input should be 'aliengrep', 'apex', 'bash', 'c', 'c#', 'C#', 'c++', 'cairo', 'clojure', 'cpp', 'csharp', 'dart', 'docker', 'dockerfile', 'elixir', 'ex', 'generic', 'go', 'golang', 'hack', 'hcl', 'html', 'java', 'javascript', 'js', 'json', 'jsonnet', 'julia', 'kotlin', 'kt', 'lisp', 'lua', 'ocaml', 'php', 'promql', 'proto', 'proto3', 'protobuf', 'py', 'python', 'python2', 'python3', 'r', 'regex', 'ruby', 'rust', 'scala', 'scheme', 'sh', 'sol', 'solidity', 'spacegrep', 'swift', 'terraform', 'tf', 'ts', 'typescript', 'vue', 'xml' or 'yaml'",
+      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `intercal`\n  - Input should be 'aliengrep', 'apex', 'bash', 'c', 'c#', 'C#', 'c++', 'cairo', 'clojure', 'cpp', 'csharp', 'dart', 'docker', 'dockerfile', 'elixir', 'ex', 'generic', 'go', 'golang', 'hack', 'hcl', 'html', 'java', 'javascript', 'js', 'json', 'jsonnet', 'julia', 'kotlin', 'kt', 'lisp', 'lua', 'none', 'ocaml', 'php', 'promql', 'proto', 'proto3', 'protobuf', 'py', 'python', 'python2', 'python3', 'r', 'regex', 'ruby', 'rust', 'scala', 'scheme', 'sh', 'sol', 'solidity', 'spacegrep', 'swift', 'terraform', 'tf', 'ts', 'typescript', 'vue', 'xml' or 'yaml'",
       "short_msg": "Invalid rule schema",
-      "spans": [],
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 9,
+            "offset": -1
+          },
+          "file": "rules/syntax/badlanguage.yaml",
+          "source_hash": "a586ed585e5f1676161a6663c037292f13a97ff02aeb7fa9c62517732cc00766",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
       "type": "InvalidRuleSchemaError"
     },
     {

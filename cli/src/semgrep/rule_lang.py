@@ -628,8 +628,10 @@ def validate_yaml(data: YamlTree) -> None:
                 line_no = loc[1]
                 if line_no in seen_lines:
                     continue
-                rule = rules.value[line_no] or None
-                rule_id_box = rule.value["id"] if rule else None
+                rule = (rules.value[line_no] if rules else None) or None
+                rule_id_box = (
+                    rule.value["id"] if (rule and "id" in rule.value) else None
+                )
                 rule_id = (
                     f"({line_no}) `{rule_id_box.value}`"
                     if rule_id_box
@@ -640,8 +642,8 @@ def validate_yaml(data: YamlTree) -> None:
                 )
                 seen_lines.add(loc[1])
         if rules:
-            for line in seen_lines:
-                item = rules.value[line] if line in rules.value else None
+            for line_no in seen_lines:
+                item = (rules.value[line_no] if rules else None) or None
                 if not item:
                     continue
                 spans.append(item.span)
