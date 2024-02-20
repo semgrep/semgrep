@@ -388,7 +388,7 @@ PIPENV='pipenv==2022.6.7'
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-pysemgrep:
 	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
-	python3 -m pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
+	python3 -m pip install --no-cache-dir --ignore-installed distlib $(PIPENV) --user
 
 # -------------------------------------------------
 # Ubuntu
