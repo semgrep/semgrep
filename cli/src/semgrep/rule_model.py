@@ -98,6 +98,28 @@ class Languages(str, Enum):
     yaml = "yaml"
 
 
+def check_language_static(v: Union[str, List[str]]) -> Union[str, List[str]]:
+    if isinstance(v, list):
+        # Check for singleton list and return the string for a better error message
+        if len(v) == 1:
+            return v[0]
+        # Otherwise, check for invalid languages
+        _invalid_langs = [lang for lang in v if not hasattr(Languages, lang)]
+        # If there's only one invalid language, return it as a string for a better error message
+        invalid_langs = (
+            _invalid_langs[0]
+            if _invalid_langs and len(_invalid_langs) == 1
+            else _invalid_langs
+        )
+        if invalid_langs:
+            valid_langs = [f"'{lang.value}'" for lang in Languages]
+            if len(valid_langs) > 1:  # Add an "or" to the last valid language
+                valid_langs[-1] = f"or {valid_langs[-1]}"
+            expected_msg = f"Expected one of {', '.join(lang for lang in valid_langs)}"
+            raise ValueError(f"Invalid languages `{invalid_langs}`, {expected_msg}")
+    return v
+
+
 class Severity(str, Enum):
     ERROR = "ERROR"
     WARNING = "WARNING"
@@ -703,7 +725,9 @@ class JoinedRules(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: "Id"
-    languages: Languages
+    languages: Optional[
+        Annotated[Union[Languages, List[Languages]], Tag("languages")]
+    ] = Field(None, title="Language")
     pattern: str
     patterns: Optional[PatternsContent] = None
     mode: Optional[Mode1] = None
@@ -715,6 +739,11 @@ class JoinedRules(BaseModel):
     pattern_sanitizers: Optional["TaintContent"] = Field(
         None, alias="pattern-sanitizers"
     )
+
+    @field_validator("languages", mode="before")
+    @classmethod
+    def check_language(cls, v: Union[str, List[str]]) -> Union[str, List[str]]:
+        return check_language_static(v)
 
 
 class TaintContentPattern(BaseModel):
@@ -892,27 +921,7 @@ class Rule(BaseModel):
     @field_validator("languages", mode="before")
     @classmethod
     def check_language(cls, v: Union[str, List[str]]) -> Union[str, List[str]]:
-        if isinstance(v, list):
-            # Check for singleton list and return the string for a better error message
-            if len(v) == 1:
-                return v[0]
-            # Otherwise, check for invalid languages
-            _invalid_langs = [lang for lang in v if not hasattr(Languages, lang)]
-            # If there's only one invalid language, return it as a string for a better error message
-            invalid_langs = (
-                _invalid_langs[0]
-                if _invalid_langs and len(_invalid_langs) == 1
-                else _invalid_langs
-            )
-            if invalid_langs:
-                valid_langs = [f"'{lang.value}'" for lang in Languages]
-                if len(valid_langs) > 1:  # Add an "or" to the last valid language
-                    valid_langs[-1] = f"or {valid_langs[-1]}"
-                expected_msg = (
-                    f"Expected one of {', '.join(lang for lang in valid_langs)}"
-                )
-                raise ValueError(f"Invalid languages `{invalid_langs}`, {expected_msg}")
-        return v
+        return check_language_static(v)
 
     # NOTE: This is a workaround to avoid having to create N different flavors of the rule model
     #       to support the different types of `match` fields (one of which must be set).
