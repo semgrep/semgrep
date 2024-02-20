@@ -43,9 +43,7 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
 from semgrep.rule_lang import Span
-from semgrep.rule_lang import validate_yaml as validate_yaml_pydantic
-from semgrep.rule_lang import validate_yaml_fastjsonschema
-from semgrep.rule_lang import validate_yaml_original
+from semgrep.rule_lang import validate_yaml
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
@@ -784,6 +782,15 @@ def parse_config_string(
         ```
         This config file should contain ~1751 rules for logged in users.
         """
+        # Benchmarking some different validation methods
+        """
+        NOTE: This was used to benchmark the different validation methods and should be
+        removed before or post-merge.
+        ```
+        from semgrep.rule_lang import validate_yaml as validate_yaml_pydantic
+        from semgrep.rule_lang import validate_yaml_fastjsonschema
+        from semgrep.rule_lang import validate_yaml as validate_yaml_original
+
         start_t = time.time()
         validate_yaml_pydantic(data)
         elapsed_ms = (time.time() - start_t) * 1000
@@ -798,7 +805,9 @@ def parse_config_string(
         validate_yaml_original(data)
         elapsed_ms = (time.time() - start_t) * 1000
         logger.info(f"validate_yaml_original {config_id} in {elapsed_ms:.2f}ms")
-
+        ```
+        """
+        validate_yaml(data)
         return {config_id: data}
     except json.decoder.JSONDecodeError:
         pass
