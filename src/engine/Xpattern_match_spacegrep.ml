@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021-2022 r2c
+ * Copyright (C) 2021-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,11 +12,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 open Xpattern_matcher
 
 let tags = Logs_.create_tags [ __MODULE__ ]
 
-let lexing_pos_to_loc file (x : Lexing.position) str =
+let lexing_pos_to_loc (file : Fpath.t) (x : Lexing.position) str =
   (* almost like Spacegrep.Semgrep.semgrep_pos() *)
   let line = x.Lexing.pos_lnum in
   let bytepos = x.Lexing.pos_cnum in
@@ -24,10 +25,11 @@ let lexing_pos_to_loc file (x : Lexing.position) str =
    * JSON_report.json_range does the adjust_column + 1.
    *)
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
-  let pos = Pos.make ~line ~column ~file bytepos in
+  let pos = Pos.make ~line ~column ~file:!!file bytepos in
   { Tok.str; pos }
 
-let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) file pat =
+let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) (file : Fpath.t)
+    pat =
   let search_param =
     Spacegrep.Match.create_search_param
       ~ellipsis_max_span:xconfig.config.generic_ellipsis_max_span ()
@@ -64,7 +66,8 @@ let preprocess_spacegrep (xconfig : Match_env.xconfig) src =
       in
       Spacegrep.Comment.remove_comments_from_src style src
 
-let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file origin =
+let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
+    (file : Fpath.t) (origin : Origin.t) =
   matches_of_matcher spacegreps
     {
       init =
@@ -76,7 +79,8 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file origin =
              * do so even if the text looks like gibberish. It can e.g. be
              * an RSA key. *)
             let src =
-              file |> Spacegrep.Src_file.of_file |> preprocess_spacegrep xconfig
+              !!file |> Spacegrep.Src_file.of_file
+              |> preprocess_spacegrep xconfig
             in
             Some (Spacegrep.Parse_doc.of_src src, src)
           else
@@ -88,14 +92,14 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file origin =
           *)
             let peek_length = 4096 in
             let partial_doc_src =
-              Spacegrep.Src_file.of_file ~max_len:peek_length file
+              Spacegrep.Src_file.of_file ~max_len:peek_length !!file
             in
             let doc_type = Spacegrep.File_type.classify partial_doc_src in
             match doc_type with
             | Minified
             | Binary ->
                 Logs.debug (fun m ->
-                    m ~tags "ignoring gibberish file: %s\n%!" file);
+                    m ~tags "ignoring gibberish file: %s\n%!" !!file);
                 None
             | Text
             | Short ->
@@ -104,12 +108,12 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file origin =
                     Spacegrep.Src_file.length partial_doc_src < peek_length
                     (* it's actually complete, no need to re-input the file *)
                   then partial_doc_src
-                  else Spacegrep.Src_file.of_file file
+                  else Spacegrep.Src_file.of_file !!file
                 in
                 let src = preprocess_spacegrep xconfig src in
                 (* pr (Spacegrep.Doc_AST.show doc); *)
                 Some (Spacegrep.Parse_doc.of_src src, src));
       matcher = spacegrep_matcher xconfig;
     }
-    (Fpath.v file) origin
+    file origin
 [@@profiling]
