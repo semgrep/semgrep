@@ -1,0 +1,2 @@
+Matching: `metavariable-regex` can now match on metavariables of interpolated
+strings which use variables that have known values.
