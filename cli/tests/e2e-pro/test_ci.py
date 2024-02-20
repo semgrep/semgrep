@@ -1013,6 +1013,10 @@ def test_lockfile_parse_failure_reporting(
         ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors"],
@@ -1037,10 +1041,6 @@ def test_lockfile_parse_failure_reporting(
         ),
         "results.txt",
     )
-
-    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
-
-    complete_scan_mock = upload_results_mock_maker("https://semgrep.dev")
 
     # Check correct metadata
     findings_and_ignores_json = upload_results_mock.last_request.json()
@@ -1221,6 +1221,8 @@ def test_shallow_wrong_merge_base(
     git_tmp_path,
     tmp_path,
     monkeypatch,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
     upload_results_mock_maker,
 ):
     """ """
@@ -1331,6 +1333,12 @@ def test_shallow_wrong_merge_base(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
+    start_scan_mock = start_scan_mock_maker(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    )
+    complete_scan_mock = complete_scan_mock_maker(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    )
     upload_results_mock = upload_results_mock_maker(
         env.get("SEMGREP_URL", "https://semgrep.dev")
     )
@@ -1421,7 +1429,14 @@ def test_outputs(
     format,
     mock_autofix,
     run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", format],
@@ -1441,8 +1456,19 @@ def test_outputs(
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
 @pytest.mark.osemfail
 def test_nosem(
-    git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep: RunSemgrep
+    git_tmp_path_with_commit,
+    snapshot,
+    mock_autofix,
+    nosem,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", nosem],
@@ -1657,10 +1683,21 @@ def test_fail_open_works_when_backend_is_down(
 
 @pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])
 @pytest.mark.osemfail
-def test_bad_config(run_semgrep: RunSemgrep, git_tmp_path_with_commit):
+def test_bad_config(
+    run_semgrep: RunSemgrep,
+    git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
     """
     Test that bad rules has exit code > 1
     """
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors"],
@@ -1676,12 +1713,22 @@ def test_bad_config(run_semgrep: RunSemgrep, git_tmp_path_with_commit):
 @pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])
 @pytest.mark.osemfail
 def test_bad_config_error_handler(
-    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     """
     Test that bad rules with --suppres-errors returns exit code 0
     """
     mock_send = mocker.spy(ErrorHandler, "send")
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         target_name=None,
@@ -1699,7 +1746,9 @@ def test_fail_scan_findings(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
-    upload_results_mock,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     """
     Test failure with findings has exit code == 1.
@@ -1707,6 +1756,10 @@ def test_fail_scan_findings(
     Asserts that error logs are NOT sent to fail-open
     """
     mock_send = mocker.spy(ErrorHandler, "send")
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
     run_semgrep(
         subcommand="ci",
@@ -1743,6 +1796,9 @@ def test_backend_exit_code(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     """
     Test backend sending non-zero exit code on complete causes exit 1
@@ -1752,6 +1808,11 @@ def test_backend_exit_code(
         "report_findings",
         return_value=ScanCompleteResult(True, True, "some reason to fail"),
     )
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors"],
@@ -1854,10 +1915,14 @@ def test_query_dependency(
     snapshot,
     mocker,
     run_semgrep: RunSemgrep,
-    start_scan_mock,
-    upload_results_mock,
-    complete_scan_mock,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors"],
@@ -1889,8 +1954,16 @@ def test_query_dependency(
 def test_metrics_enabled(
     run_semgrep: RunSemgrep,
     mocker,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     mock_send = mocker.patch.object(Metrics, "_post_metrics")
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     run_semgrep(
         subcommand="ci",
         target_name=None,
@@ -1931,11 +2004,16 @@ def test_existing_supply_chain_finding(
     snapshot,
     mocker,
     run_semgrep: RunSemgrep,
-    start_scan_mock,
-    upload_results_mock,
-    complete_scan_mock,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors"],
@@ -2039,11 +2117,18 @@ def test_enabled_products(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     """
     Verify that for any given product, there is a valid output
     """
     mocker.patch.object(ScanHandler, "enabled_products", enabled_products)
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
@@ -2068,6 +2153,9 @@ def test_pro_diff_slow_rollout(
     run_semgrep: RunSemgrep,
     mocker,
     enable_deepsemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
 ):
     """
     Verify that generic_slow_rollout enables pro diff scan
@@ -2076,6 +2164,10 @@ def test_pro_diff_slow_rollout(
     mocker.patch.object(ScanHandler, "deepsemgrep", enable_deepsemgrep)
     mocker.patch.object(EngineType, "check_if_installed", return_value=True)
     mock_send = mocker.patch.object(Metrics, "add_diff_depth")
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
