@@ -82,7 +82,7 @@ let with_setup f =
   let config =
     Some
       (Opentelemetry_client_ocurl.Config.make
-         ?url:(Some "https://telemetry.dev2.semgrep.dev") ())
+         ?url:(Some "https://telemetry.semgrep.dev") ())
   in
   Opentelemetry_client_ocurl.with_setup ?config () @@ fun () ->
   Trace_core.with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
