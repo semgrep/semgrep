@@ -1,0 +1,1 @@
+Fixes the crash caused by improper handling of unicode characters (during the scan) present in the provided source code. 
