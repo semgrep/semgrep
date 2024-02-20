@@ -539,9 +539,6 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
                   * string representation, we add it to the environment here. *)
                  string_of_binding mvar mval
            in
-           UCommon.(
-             pr2
-               (spf "mvar %s mval %s" mvar ([%show: Metavariable.mvalue] mval)));
            match mval with
            (* this way we can leverage the constant propagation analysis
               * in metavariable-comparison: too! This simplifies some rules.
