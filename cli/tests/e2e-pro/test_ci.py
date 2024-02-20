@@ -1619,6 +1619,15 @@ def test_fail_open_works_when_backend_is_down(
         dedent(
             """
             rules:
+            - id: bad-rule-missing-message
+              languages: [python]
+              severity: ERROR
+              pattern: $X == $X
+            """
+        ).strip(),
+        dedent(
+            """
+            rules:
             - id: bad-rule-missing-pattern
               message: "useless comparison"
               languages: [python]
@@ -1637,6 +1646,7 @@ def test_fail_open_works_when_backend_is_down(
         ).strip(),
     ],
     ids=[
+        "missing_message",
         "missing_pattern",
         "nonexistent_language",
     ],

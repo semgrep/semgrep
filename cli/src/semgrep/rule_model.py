@@ -12,6 +12,7 @@ from pydantic import Field
 from pydantic import model_validator
 from pydantic import RootModel
 from pydantic import Tag
+from pydantic_core import PydanticCustomError
 from typing_extensions import Annotated
 
 
@@ -139,31 +140,6 @@ class HttpRequestContent(BaseModel):
     auth: Optional[Dict[str, Any]] = None
 
 
-class NewSourcePattern(BaseModel):
-    requires: Optional[str] = None
-    label: Optional[str] = None
-
-
-class NewSinkPattern(BaseModel):
-    requires: Optional[str] = None
-
-
-class NewSanitizerPattern(BaseModel):
-    not_conflicting: Optional[str] = Field(None, alias="not-conflicting")
-
-
-class NewPropagatorPattern(BaseModel):
-    from_: str = Field(..., alias="from")
-    to: str
-
-
-class NewTaintContent(BaseModel):
-    sources: List[NewSourcePattern] = Field(..., min_length=1)
-    sinks: List[NewSinkPattern] = Field(..., min_length=1)
-    propagators: Optional[List[NewPropagatorPattern]] = Field(None, min_length=1)
-    sanitizers: Optional[List[NewSanitizerPattern]] = Field(None, min_length=1)
-
-
 class GeneralPatternContent(RootModel):
     root: Union[str, Any] = Field(
         ..., title="Return finding where code matches against the following pattern"
@@ -179,13 +155,14 @@ class HttpResult(BaseModel):
     validity: Optional[SecretValidity] = None
 
 
-def http_status_discriminator(value: Any) -> str:
+def http_status_discriminator(value: Any) -> Union[str, None]:
     if isinstance(value, str):
         return "str"
     elif isinstance(value, int):
         return "int"
     else:
-        raise ValueError(f"Unsupported type: {type(value)}")
+        # NOTE: Pydantic will create a better error message for us
+        return None
 
 
 class HttpResponseMatch(BaseModel):
@@ -287,6 +264,47 @@ class NewPattern1(BaseModel):
     ] = None
 
 
+class NewSourcePattern(RootModel):
+    root: Union[str, "NewSourcePattern1"]
+
+
+class NewSourcePattern1(NewPattern1):
+    requires: Optional[str] = None
+    label: Optional[str] = None
+
+
+class NewSinkPattern(RootModel):
+    root: Union[str, "NewSinkPattern1"]
+
+
+class NewSinkPattern1(NewPattern1):
+    requires: Optional[str] = None
+
+
+class NewSanitizerPattern(RootModel):
+    root: Union[str, "NewSanitizerPattern1"]
+
+
+class NewSanitizerPattern1(NewPattern1):
+    not_conflicting: Optional[str] = Field(None, alias="not-conflicting")
+
+
+class NewPropagatorPattern(RootModel):
+    root: Union[str, "NewPropagatorPattern1"]
+
+
+class NewPropagatorPattern1(NewPattern1):
+    from_: str = Field(..., alias="from")
+    to: str
+
+
+class NewTaintContent(BaseModel):
+    sources: List[NewSourcePattern] = Field(..., min_length=1)
+    sinks: List[NewSinkPattern] = Field(..., min_length=1)
+    propagators: Optional[List[NewPropagatorPattern]] = Field(None, min_length=1)
+    sanitizers: Optional[List[NewSanitizerPattern]] = Field(None, min_length=1)
+
+
 class MetavariableComparison1(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -334,13 +352,14 @@ class PatternNotRegex(BaseModel):
     )
 
 
-def focus_discriminator(value: Union[List[str], str]) -> str:
+def focus_discriminator(value: Union[List[str], str]) -> Union[str, None]:
     if isinstance(value, list):
         return "List[str]"
     elif isinstance(value, str):
         return "str"
     else:
-        raise ValueError(f"Unsupported type: {type(value)}")
+        # NOTE: Pydantic will create a better error message for us
+        return None
 
 
 class FocusMetavariable(BaseModel):
@@ -609,7 +628,7 @@ class JoinContent(BaseModel):
     additionalProperties: Optional[Any] = None
 
 
-def pattern_discriminator(value: Any) -> str:
+def pattern_discriminator(value: Any) -> Union[str, None]:
     if "pattern" in value:
         return "Pattern"
     elif "patterns" in value:
@@ -643,7 +662,9 @@ def pattern_discriminator(value: Any) -> str:
     elif "pattern-where-python" in value:
         return "PatternWherePython"
     else:
-        raise ValueError(f"Unknown type for pattern: {value}")
+        # NOTE: Pydantic will create a better error message for us
+        #      if we return None here instead of raising a ValueError
+        return None
 
 
 class PatternsContent(RootModel):
@@ -882,6 +903,7 @@ class Rule(BaseModel):
         Please note that omitting the `root` attribute will attempt to compare an instance of `Id` with a string,
         and the breakpoint will not be hit.
         """
+        # NOTE: We use PydanticCustomError over ValueError to provide a more descriptive error message
         if mode == Mode.extract:  # EXPERIMENTAL
             if not all(
                 [
@@ -891,8 +913,9 @@ class Rule(BaseModel):
                     self.extract,
                 ]
             ):
-                raise ValueError(
-                    "Expected `id`, `languages`, `dest-language`, `extract` to be present"
+                raise PydanticCustomError(
+                    "check_extract_has_required_fields",
+                    "Expected `id`, `languages`, `dest-language`, `extract` to be present",
                 )
             if not any(
                 [
@@ -903,7 +926,9 @@ class Rule(BaseModel):
                     self.patterns,
                 ]
             ):
-                raise ValueError(missing_pattern_error_message)
+                raise PydanticCustomError(
+                    "check_extract_has_pattern", missing_pattern_error_message
+                )
         elif (
             mode == Mode.taint and not self.taint
         ):  # old-style taint rule without taint field
@@ -917,8 +942,9 @@ class Rule(BaseModel):
                     self.pattern_sources,
                 ]
             ):
-                raise ValueError(
-                    "Expected `id`, `message`, `languages`, `severity`, `pattern-sinks`, `pattern-sources` to be present"
+                raise PydanticCustomError(
+                    "check_taint_has_required_fields",
+                    "Expected `id`, `message`, `languages`, `severity`, `pattern-sinks`, `pattern-sources` to be present",
                 )
         elif (
             self.taint  # NOTE: Assume we don't want taint set to False to trigger this
@@ -932,8 +958,9 @@ class Rule(BaseModel):
                     self.taint,
                 ]
             ):
-                raise ValueError(
-                    "Expected `id`, `message`, `languages`, `severity`, `taint` to be present"
+                raise PydanticCustomError(
+                    "check_taint_v2_has_required_fields",
+                    "Expected `id`, `message`, `languages`, `severity`, `taint` to be present",
                 )
         elif mode == Mode._join:  # EXPERIMENTAL
             if not all(
@@ -944,8 +971,9 @@ class Rule(BaseModel):
                     self.join,
                 ]
             ):
-                raise ValueError(
-                    "Expected `id`, `message`, `severity`, `join` to be present"
+                raise PydanticCustomError(
+                    "check_join_has_required_fields",
+                    "Expected `id`, `message`, `severity`, `join` to be present",
                 )
         elif mode == Mode.search:
             if not all(
@@ -956,8 +984,9 @@ class Rule(BaseModel):
                     self.severity,
                 ]
             ):
-                raise ValueError(
-                    "Expected `id`, `languages`, `message`, `severity`, to be present"
+                raise PydanticCustomError(
+                    "check_search_has_required_fields",
+                    "Expected `id`, `languages`, `message`, `severity`, to be present",
                 )
             if not any(
                 [
@@ -968,7 +997,9 @@ class Rule(BaseModel):
                     self.patterns,
                 ]
             ):
-                raise ValueError(missing_pattern_error_message)
+                raise PydanticCustomError(
+                    "check_search_has_pattern", missing_pattern_error_message
+                )
         elif not any(
             [
                 self.pattern,
@@ -980,7 +1011,9 @@ class Rule(BaseModel):
                 self.match,
             ]
         ):
-            raise ValueError(missing_pattern_error_message)
+            raise PydanticCustomError(
+                "check_has_pattern", missing_pattern_error_message
+            )
         return self
 
 
