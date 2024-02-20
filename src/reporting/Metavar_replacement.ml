@@ -46,7 +46,9 @@ let of_bindings bindings =
          match MV.range_of_mvalue mval with
          | None -> None
          | Some (file, mval_range) ->
-             let mval_content = lazy (Range.content_at_range file mval_range) in
+             let mval_content =
+               lazy (Range.content_at_range (Fpath.v file) mval_range)
+             in
              let propagated_content = propagated_value_string_of_mval mval in
              Some (mvar, { mval_content; propagated_content }))
 

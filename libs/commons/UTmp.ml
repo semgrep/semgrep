@@ -31,9 +31,6 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 let _temp_files_created = Hashtbl.create 101
 let save_tmp_files = ref false
 
-(* TODO: merge with _temp_files_created *)
-let tmp_file_cleanup_hooks = ref []
-
 let erase_temp_files () =
   if not !save_tmp_files then (
     _temp_files_created
@@ -41,6 +38,22 @@ let erase_temp_files () =
            Logs.debug (fun m -> m ~tags "erasing: %s" s);
            USys.remove s);
     Hashtbl.clear _temp_files_created)
+
+(* hooks for with_tmp_file() *)
+let tmp_file_cleanup_hooks = ref []
+
+(* See the .mli for a long explanation.
+ *
+ * alt: define your own with_tmp_file wrapper, for example:
+ * let hmemo = Hashtbl.create 101
+ * ...
+ * let with_tmp_file ~str ~ext f =
+ *  UTmp.with_tmp_file ~str ~ext (fun file ->
+ *     Common.protect
+ *       ~finally:(fun () -> Hashtbl.remove hmemo file)
+ *       (fun () -> f file))
+ *)
+let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
 
 (*****************************************************************************)
 (* Legacy API using 'string' for filenames *)
@@ -69,10 +82,9 @@ module Legacy = struct
     Common.finalize
       (fun () -> f tmpfile)
       (fun () ->
-        !tmp_file_cleanup_hooks |> List.iter (fun f -> f tmpfile);
+        !tmp_file_cleanup_hooks
+        |> List.iter (fun cleanup -> cleanup (Fpath.v tmpfile));
         erase_this_temp_file tmpfile)
-
-  let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
 end
 
 (*****************************************************************************)

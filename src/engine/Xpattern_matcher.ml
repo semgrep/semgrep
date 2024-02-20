@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -22,6 +22,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Helpers to factorize code between the regexp and spacegrep matcher *)
 
 (*****************************************************************************)
 (* Types *)
@@ -102,22 +103,17 @@ let (matches_of_matcher :
         RP.mk_match_result res Core_error.ErrorSet.empty
           { Core_profiling.parse_time; match_time }
 
-(* todo: same, we should not need that *)
-let hmemo = Hashtbl.create 101
+let hmemo : (Fpath.t, Pos.bytepos_linecol_converters) Hashtbl.t =
+  Hashtbl.create 101
+
+let () =
+  UTmp.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
 
 let line_col_of_charpos (file : Fpath.t) (charpos : int) : int * int =
   let conv =
     Common.memoized hmemo file (fun () -> Pos.full_converters_large !!file)
   in
   conv.bytepos_to_linecol_fun charpos
-
-(* Like UTmp.with_tmp_file but also invalidates the hmemo cache when finished.
- * See https://github.com/returntocorp/semgrep/issues/5277 for more info *)
-let with_tmp_file ~str ~ext f =
-  UTmp.with_tmp_file ~str ~ext (fun file ->
-      Common.protect
-        ~finally:(fun () -> Hashtbl.remove hmemo file)
-        (fun () -> f file))
 
 let mval_of_string str t =
   let literal =
