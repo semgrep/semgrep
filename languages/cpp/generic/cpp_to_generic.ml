@@ -1455,11 +1455,11 @@ and map_onedecl env x : G.definition list =
       let _tTODO = map_type_ env t in
       []
   | TypedefDecl (tk, ty, id) ->
-      let _tk = map_tok env tk in
+      let ttypedef = map_tok env tk in
       let ty = map_type_ env ty in
       let id = map_ident env id in
       let ent = G.basic_entity id in
-      [ (ent, G.TypeDef { G.tbody = G.AliasType ty }) ]
+      [ (ent, G.TypeDef { G.ttok = ttypedef; G.tbody = G.AliasType ty }) ]
   | V v1 ->
       let ent, vardef = map_var_decl env v1 in
       [ (ent, G.VarDef vardef) ]
@@ -1813,7 +1813,8 @@ and map_enum_definition env
   in
   let v_enum_name = map_of_option (map_name env) v_enum_name in
   let _v_enum_kindTODO = map_tok env v_enum_kind in
-  (v_enum_name, { G.tbody = G.OrType (List.flatten v_enum_body) })
+  ( v_enum_name,
+    { G.ttok = G.fake "enum"; G.tbody = G.OrType (List.flatten v_enum_body) } )
 
 and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } : G.or_type_element
     =
@@ -2014,10 +2015,10 @@ and map_pointer_modifier env x : G.attribute =
       G.unhandled_keywordattr ("Unaligned", v1)
 
 and map_using env (v1, v2, v3) : G.stmt =
-  let v1 = map_tok env v1
-  and v2 = map_using_kind env v2
+  let tusing = map_tok env v1
+  and fkind = map_using_kind env v2
   and _v3 = map_sc env v3 in
-  v2 v1 |> def_or_dir_either_to_stmt
+  fkind tusing |> def_or_dir_either_to_stmt
 
 and map_using_kind env x : G.tok -> (G.directive, G.definition) Either.t =
   match x with
@@ -2036,12 +2037,12 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) Either.t =
         let dots = H.dotted_ident_of_name v2 in
         Left (G.ImportAll (tk, G.DottedName dots, Tok.fake_tok v1 "") |> G.d)
   | UsingAlias (v1, v2, v3) ->
-      fun _tk ->
+      fun tusing ->
         let v1 = map_ident env v1
         and _v2 = map_tok env v2
         and v3 = map_type_ env v3 in
         let ent = G.basic_entity v1 in
-        let def = G.TypeDef { G.tbody = G.AliasType v3 } in
+        let def = G.TypeDef { G.ttok = tusing; G.tbody = G.AliasType v3 } in
         Right (ent, def)
   (* I'm assuming this just brings a name in like UsingName. *)
   | UsingEnum (_tk, v1) -> (

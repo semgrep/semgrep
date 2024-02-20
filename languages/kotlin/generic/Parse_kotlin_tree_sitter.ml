@@ -1047,17 +1047,17 @@ and declaration (env : env) (x : CST.declaration) : definition =
       (ent, VarDef vdef)
   | `Type_alias (v0, v1, v2, v3, v4, v5) ->
       let attrs = modifiers_opt env v0 in
-      let _kwd = token env v1 (* "typealias" *) in
+      let tkwd = token env v1 (* "typealias" *) in
       let id = simple_identifier env v2 in
       let tparams =
         match v3 with
         | None -> []
         | Some v3 -> type_parameters env v3
       in
-      let _eq = token env v4 (* "=" *) in
+      let _teq = token env v4 (* "=" *) in
       let t = type_ env v5 in
       let ent = basic_entity ~attrs ~tparams id in
-      let tdef = { tbody = AliasType t } in
+      let tdef = { ttok = tkwd; tbody = AliasType t } in
       (ent, TypeDef tdef)
 
 and delegation_specifier (env : env) (x : CST.delegation_specifier) :

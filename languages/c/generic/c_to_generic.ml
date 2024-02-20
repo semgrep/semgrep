@@ -546,7 +546,12 @@ and struct_def { s_name; s_kind; s_flds } =
                   [ G.basic_field n None (Some t) ])))
           s_flds
       in
-      (entity, G.TypeDef { G.tbody = G.AndType (l, List.flatten fields, r) })
+      ( entity,
+        G.TypeDef
+          {
+            G.ttok = unsafe_fake "type";
+            G.tbody = G.AndType (l, List.flatten fields, r);
+          } )
   | Union ->
       let _l, fields, _r =
         bracket
@@ -556,7 +561,12 @@ and struct_def { s_name; s_kind; s_flds } =
                   G.OrConstructor (n, [ t ]))))
           s_flds
       in
-      (entity, G.TypeDef { G.tbody = G.OrType (List.flatten fields) })
+      ( entity,
+        G.TypeDef
+          {
+            G.ttok = unsafe_fake "type";
+            G.tbody = G.OrType (List.flatten fields);
+          } )
 
 and field_def { fld_name; fld_type } =
   let v1 = option name fld_name in
@@ -573,12 +583,14 @@ and enum_def { e_name = v1; e_type = _v2_TODO; e_consts = v3 } =
       v3
   in
   let entity = G.basic_entity v1 in
-  (entity, G.TypeDef { G.tbody = G.OrType (List.flatten v3) })
+  ( entity,
+    G.TypeDef
+      { G.ttok = unsafe_fake "type"; G.tbody = G.OrType (List.flatten v3) } )
 
 and type_def { t_name = v1; t_type = v2 } =
   let v1 = name v1 and v2 = type_ v2 in
   let entity = G.basic_entity v1 in
-  (entity, G.TypeDef { G.tbody = G.AliasType v2 })
+  (entity, G.TypeDef { G.ttok = unsafe_fake "type"; G.tbody = G.AliasType v2 })
 
 and define_body = function
   | None -> []

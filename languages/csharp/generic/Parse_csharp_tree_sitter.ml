@@ -2950,7 +2950,7 @@ and struct_declaration (env : env)
 and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v2 = List_.map (modifier env) v2 in
-  let _v3TODO = token env v3 (* "enum" *) in
+  let tenum = token env v3 (* "enum" *) in
   let v4 = identifier env v4 (* identifier *) in
   let _v5TODO =
     match v5 with
@@ -2961,12 +2961,12 @@ and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
   let _v7 = opt_semi env v7 (* ";" *) in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams = [] } in
-  G.DefStmt (ent, G.TypeDef { tbody = OrType v6 }) |> G.s
+  G.DefStmt (ent, G.TypeDef { ttok = tenum; tbody = OrType v6 }) |> G.s
 
 and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v2 = List_.map (modifier env) v2 in
-  let _v3 = token env v3 (* "delegate" *) in
+  let tdelegate = token env v3 (* "delegate" *) in
   let v4 = type_pattern env v4 in
   let v5 = identifier env v5 (* identifier *) in
   let v6 =
@@ -2981,7 +2981,7 @@ and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
   let func = TyFun (params, v4) |> G.t in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v5, idinfo)); attrs = v1 @ v2; tparams } in
-  DefStmt (ent, TypeDef { tbody = NewType func }) |> G.s
+  DefStmt (ent, TypeDef { ttok = tdelegate; tbody = NewType func }) |> G.s
 
 and record_declaration env (_, _, v3, _, _, _, _, _, _, _, _) =
   let v3 = token env v3 (* "record" *) in

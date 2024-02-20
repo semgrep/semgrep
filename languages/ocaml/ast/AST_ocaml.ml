@@ -256,7 +256,9 @@ and pattern =
 (* Let binding (global/local/function definition) *)
 (* ------------------------------------------------------------------------- *)
 
-(* Similar to the Fun vs Function dichotomy *)
+(* Similar to the Fun vs Function dichotomy.
+ * TODO: add Tok.t also here, for 'let' 'and' like in type_declaration
+ *)
 and let_binding = LetClassic of let_def | LetPattern of pattern * expr
 
 (* was called fun_binding in the grammar *)
@@ -288,7 +290,13 @@ and parameter =
  *)
 
 (* TODO: keyword attribute: private, constraints *)
-and type_declaration =
+and type_declaration = {
+  (* 'type' or 'and' *)
+  ttok : Tok.t;
+  tkind : type_declaration_kind;
+}
+
+and type_declaration_kind =
   | TyDecl of type_declaration_classic
   (* TODO: Extension (+=) decl, .. *)
   | TyDeclTodo of todo_category
@@ -396,7 +404,7 @@ and item = { i : item_kind; iattrs : attributes }
  * valid in both contexts.
  *)
 and item_kind =
-  | Type of Tok.t * type_declaration list (* mutually recursive *)
+  | Type of type_declaration list (* mutually recursive *)
   | Exception of Tok.t * ident * type_ list
   | External of Tok.t * ident * type_ * string wrap list (* primitive decls *)
   (* TODO: '!' option *)

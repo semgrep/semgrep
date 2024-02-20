@@ -1337,10 +1337,13 @@ and vof_field = function
       let v1 = vof_stmt v1 in
       OCaml.VSum ("F", [ v1 ])
 
-and vof_type_definition { tbody = v_tbody } =
+and vof_type_definition { tbody = v_tbody; ttok } =
   let bnds = [] in
   let arg = vof_type_definition_kind v_tbody in
   let bnd = ("tbody", arg) in
+  let bnds = bnd :: bnds in
+  let arg = vof_tok ttok in
+  let bnd = ("ttok", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 

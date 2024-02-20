@@ -297,7 +297,7 @@ type_for_lsp: core_type_no_attr EOF { $1 }
 
 signature_or_structure_common:
  | Ttype list_and(type_declaration)
-     { Type ($1, $2) }
+     { Type ($2) }
  | Texternal val_ident ":" core_type_no_attr "=" primitive_declaration
      { External ($1, $2, $4, $6) }
  | Texception TUpperIdent generalized_constructor_arguments
@@ -856,11 +856,16 @@ type_constraint:
 
 type_declaration: type_parameters TLowerIdent type_kind (*TODOAST constraints*)
    { let tparams = $1 |> List.map (fun id -> TyParam id) in
-     match $3 with
-     | None ->
-         TyDecl { tname = $2; tparams; tbody = AbstractType }
-     | Some (_tok_eq, type_kind) ->
-         TyDecl { tname = $2; tparams; tbody = type_kind }
+     (* TODO: get tok from caller *)
+     let ttok = Tok.unsafe_fake_tok "" in
+     let tkind =
+       match $3 with
+       | None ->
+           TyDecl { tname = $2; tparams; tbody = AbstractType }
+       | Some (_tok_eq, type_kind) ->
+           TyDecl { tname = $2; tparams; tbody = type_kind }
+     in
+     { ttok; tkind }
    }
 
 

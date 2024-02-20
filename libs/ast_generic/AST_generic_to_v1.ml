@@ -1173,7 +1173,7 @@ and map_field = function
       let v1 = map_stmt v1 in
       `F v1
 
-and map_type_definition { G.tbody = v_tbody } =
+and map_type_definition { G.tbody = v_tbody; ttok = _ } =
   let v_tbody = map_type_definition_kind v_tbody in
   { B.tbody = v_tbody }
 

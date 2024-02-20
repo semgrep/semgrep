@@ -3078,14 +3078,14 @@ and private_opt env v =
   | None -> None
   | Some tok -> Some (token env tok)
 
-and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
+and map_type_binding (env : env) ttok ((v1, v2, v3) : CST.type_binding) :
     type_declaration =
   let tparams =
     match v1 with
     | Some x -> map_type_params env x
     | None -> []
   in
-  let v2 =
+  let tkind =
     match v2 with
     | `Id_opt_type_equa_opt_EQ_opt_priv_choice_vari_decl_rep_type_cons
         (v1, v2, v3, v4) ->
@@ -3136,7 +3136,7 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
         TyDeclTodo ("ExtensionType", v2)
   in
   let _v3 = List_.map (map_item_attribute env) v3 in
-  v2
+  { ttok; tkind }
 
 and map_type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) =
   let _v1 = token env v1 (* "constraint" *) in
@@ -3147,23 +3147,23 @@ and map_type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) =
 
 and map_type_definition (env : env) ((v1, v2, v3, v4, v5) : CST.type_definition)
     =
-  let v1 = token env v1 (* "type" *) in
+  let ttype = token env v1 (* "type" *) in
   let _v2 = map_attribute_opt env v2 in
   let _v3 =
     match v3 with
     | Some tok -> Some (token env tok) (* "nonrec" *)
     | None -> None
   in
-  let v4 = map_type_binding env v4 in
+  let v4 = map_type_binding env ttype v4 in
   let v5 =
     List_.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "and" *) in
-        let v2 = map_type_binding env v2 in
+        let tand = token env v1 (* "and" *) in
+        let v2 = map_type_binding env tand v2 in
         v2)
       v5
   in
-  Type (v1, v4 :: v5) |> mki
+  Type (v4 :: v5) |> mki
 
 and map_type_equation (env : env) ((v1, v2, v3) : CST.type_equation) =
   let teq = map_anon_choice_EQ_4ccabd6 env v1 in

@@ -576,14 +576,14 @@ and class_field (fld : class_field) : G.field =
       let st = G.OtherStmt (G.OS_Todo, [ G.TodoK todok ]) |> G.s in
       G.F st
 
-and type_declaration x =
-  match x with
+and type_declaration { ttok; tkind } =
+  match tkind with
   | TyDecl { tname; tparams; tbody } ->
       let v1 = ident tname in
       let v2 = list type_parameter tparams in
       let v3 = type_def_kind tbody in
       let entity = { (G.basic_entity v1) with G.tparams = v2 } in
-      let def = { G.tbody = v3 } in
+      let def = { G.ttok; G.tbody = v3 } in
       Either.Left (entity, def)
   | TyDeclTodo categ -> Either.Right categ
 
@@ -699,7 +699,7 @@ and item { i; iattrs } =
   | TopExpr e ->
       let e = expr e in
       [ G.exprstmt e ]
-  | Type (_t, v1) ->
+  | Type v1 ->
       let xs = list type_declaration v1 in
       xs
       |> List_.map (function
@@ -709,11 +709,11 @@ and item { i; iattrs } =
                G.DefStmt (ent, G.TypeDef def) |> G.s
            | Either.Right categ ->
                G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
-  | Exception (_t, v1, v2) ->
+  | Exception (texn, v1, v2) ->
       let v1 = ident v1 and v2 = list type_ v2 in
       let ent = G.basic_entity v1 ~attrs in
       let def = G.Exception (v1, v2) in
-      [ G.DefStmt (ent, G.TypeDef { G.tbody = def }) |> G.s ]
+      [ G.DefStmt (ent, G.TypeDef { G.ttok = texn; G.tbody = def }) |> G.s ]
   | External (texternal, v1, v2, v3) ->
       let id = ident v1 and ty = type_ v2 and _strs = list (wrap string) v3 in
       let attrs = [ G.KeywordAttr (G.Extern, texternal) ] @ attrs in

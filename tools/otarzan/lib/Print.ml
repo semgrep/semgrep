@@ -146,7 +146,8 @@ let rec func_for_type (conf : Conf.t) (typ : type_) : out list * string =
      and map_bar env x =
        ...
 *)
-and gen_typedef (conf : Conf.t) is_first typedef : out list =
+and gen_typedef (conf : Conf.t) is_first (typedef : type_declaration_kind) :
+    out list =
   match typedef with
   | TyDecl { tname; tparams = _TODO; tbody } ->
       let name = str_of_ident tname in
@@ -287,7 +288,7 @@ and gen_tuple conf types =
                ])
   | Compare -> [ Line "TODO" ]
 
-let gen_typedef_group conf typedefs =
+let gen_typedef_group conf (typedefs : type_declaration_kind list) =
   let is_first =
     let is_first = ref true in
     fun () ->
@@ -306,8 +307,9 @@ let gen_typedef_group conf typedefs =
 let generate_boilerplate conf typedef_groups =
   let body =
     typedef_groups
-    |> List_.map (fun x ->
-           Inline (gen_typedef_group conf x |> insert_blank_lines))
+    |> List_.map (fun xs ->
+           let xs = xs |> List_.map (fun x -> x.tkind) in
+           Inline (gen_typedef_group conf xs |> insert_blank_lines))
     |> insert_blank_lines
   in
   let prelude = [ Line "let todo _env _v = failwith \"TODO\""; Line "" ] in

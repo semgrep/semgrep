@@ -517,13 +517,13 @@ let map_primitive_type (env : env) (x : CST.primitive_type) : type_ =
 
 let map_user_defined_type_definition (env : env)
     ((v1, v2, v3, v4, v5) : CST.user_defined_type_definition) : definition =
-  let _ttype = (* "type" *) token env v1 in
+  let ttype = (* "type" *) token env v1 in
   let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
   let _tis = (* "is" *) token env v3 in
   let ty = map_primitive_type env v4 in
   let _sc = (* ";" *) token env v5 in
   let ent = G.basic_entity id in
-  let def = { tbody = AliasType (* or NewType? *) ty } in
+  let def = { ttok = ttype; tbody = AliasType (* or NewType? *) ty } in
   (ent, TypeDef def)
 
 let map_enum_member (env : env) (x : CST.enum_member) : or_type_element =
@@ -537,7 +537,7 @@ let map_enum_member (env : env) (x : CST.enum_member) : or_type_element =
 
 let map_enum_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.enum_declaration) : definition =
-  let _enumkwd = (* "enum" *) token env v1 in
+  let tenum = (* "enum" *) token env v1 in
   let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
   let _lb = (* "{" *) token env v3 in
   let or_elems =
@@ -556,7 +556,7 @@ let map_enum_declaration (env : env)
   in
   let _rb = (* "}" *) token env v5 in
   let ent = G.basic_entity id in
-  let def = { tbody = OrType or_elems } in
+  let def = { ttok = tenum; tbody = OrType or_elems } in
   (ent, TypeDef def)
 
 let map_override_specifier (env : env) ((v1, v2) : CST.override_specifier) =
@@ -2325,7 +2325,7 @@ let map_error_parameter (env : env) ((v1, v2) : CST.error_parameter) : type_ =
 
 let map_error_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.error_declaration) : definition =
-  let _terror = (* "error" *) token env v1 in
+  let terror = (* "error" *) token env v1 in
   let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
   let _lp = (* "(" *) token env v3 in
   let params =
@@ -2347,7 +2347,7 @@ let map_error_declaration (env : env)
   let _rp = (* ")" *) token env v5 in
   let _sc = (* ";" *) token env v6 in
   let ent = G.basic_entity id in
-  let def = { tbody = Exception (id, params) } in
+  let def = { ttok = terror; tbody = Exception (id, params) } in
   (ent, TypeDef def)
 
 let map_contract_member (env : env) (x : CST.contract_member) =

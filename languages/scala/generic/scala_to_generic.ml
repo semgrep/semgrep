@@ -1194,9 +1194,9 @@ and v_template_kind = function
   | Singleton -> G.Object
 
 and v_type_definition { ttok = v_ttok; tbody = v_tbody } =
-  let _tok = v_tok v_ttok in
+  let ttok = v_tok v_ttok in
   let arg = v_type_definition_kind v_tbody in
-  { tbody = arg }
+  { ttok; tbody = arg }
 
 and v_type_definition_kind = function
   | TDef (v1, v2) ->
