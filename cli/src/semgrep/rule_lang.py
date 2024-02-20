@@ -602,19 +602,27 @@ def validate_yaml(data: YamlTree) -> None:
     try:
         Model.model_validate(normalized_data)
     except ValidationError as e:
-        rules = data.value["rules"]
+        rules = data.value["rules"] if "rules" in data.value else None
         readable_errors = []
         spans: List[Span] = []
         seen_lines = (
             set()
         )  # Workaround to avoid Type Union errors that lack Discriminator
         # See https://docs.pydantic.dev/latest/concepts/unions/#union-validation-errors
+        omit_error_type_info = {"enum", "string_type", "value_error"}
         for error in e.errors():
-            # breakpoint()
+            err_type = (error.get("type", "") or "").lower()
+            msg = (error.get("msg", "") or "").removeprefix("Value error, ")
             loc = error.get("loc")
             received = error.get("input", "")
+            err_msg_prefix = (
+                " ".join(word.capitalize() for word in err_type.split("_"))
+                if not err_type in omit_error_type_info
+                else ""
+            )
+            err_msg = f"{err_msg_prefix}: {msg}" if err_msg_prefix else msg
             if not loc or len(loc) < 2:
-                readable_errors.append(f"{error['msg']}")
+                readable_errors.append(f"{err_msg}")
                 continue
             elif len(loc) >= 2:
                 line_no = loc[1]
@@ -628,12 +636,12 @@ def validate_yaml(data: YamlTree) -> None:
                     else f"({line_no})"
                 )
                 readable_errors.append(
-                    f"Error parsing rule {rule_id}:\n  - received `{received}`\n  - {error['msg']}"
+                    f"Error parsing rule {rule_id}:\n  - received `{received}`\n  - {err_msg}"
                 )
                 seen_lines.add(loc[1])
         if rules:
             for line in seen_lines:
-                item = rules.value[line]
+                item = rules.value[line] if line in rules.value else None
                 if not item:
                     continue
                 spans.append(item.span)

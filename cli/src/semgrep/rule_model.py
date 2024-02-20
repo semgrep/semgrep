@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Discriminator
 from pydantic import Field
+from pydantic import field_validator
 from pydantic import model_validator
 from pydantic import RootModel
 from pydantic import Tag
@@ -821,7 +822,9 @@ class Rule(BaseModel):
     version: Optional[str] = Field(None, title="Version of rule")
     message: Optional[str] = Field(None, title="Description to attach to findings")
     mode: Optional[Mode] = Field(Mode.search, title="Mode of the rule")
-    languages: Optional[Union[Languages, List[Languages]]] = None
+    languages: Optional[
+        Annotated[Union[Languages, List[Languages]], Tag("languages")]
+    ] = Field(None, title="Language")
     paths: Optional[Paths] = Field(None, title="Path globs this pattern should run on")
     severity: Optional[Severity] = Field(
         None, title="Severity to report alongside this finding"
@@ -883,6 +886,31 @@ class Rule(BaseModel):
     reduce: Optional[Reduce] = Field(
         "separate", title="Method of intrafile match reduction"
     )
+
+    @field_validator("languages", mode="before")
+    @classmethod
+    def check_language(cls, v: Union[str, List[str]]) -> Union[str, List[str]]:
+        if isinstance(v, list):
+            # Check for singleton list and return the string for a better error message
+            if len(v) == 1:
+                return v[0]
+            # Otherwise, check for invalid languages
+            _invalid_langs = [lang for lang in v if not hasattr(Languages, lang)]
+            # If there's only one invalid language, return it as a string for a better error message
+            invalid_langs = (
+                _invalid_langs[0]
+                if _invalid_langs and len(_invalid_langs) == 1
+                else _invalid_langs
+            )
+            if invalid_langs:
+                valid_langs = [f"'{lang.value}'" for lang in Languages]
+                if len(valid_langs) > 1:  # Add an "or" to the last valid language
+                    valid_langs[-1] = f"or {valid_langs[-1]}"
+                expected_msg = (
+                    f"Expected one of {', '.join(lang for lang in valid_langs)}"
+                )
+                raise ValueError(f"Invalid languages `{invalid_langs}`, {expected_msg}")
+        return v
 
     # NOTE: This is a workaround to avoid having to create N different flavors of the rule model
     #       to support the different types of `match` fields (one of which must be set).
