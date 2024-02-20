@@ -400,6 +400,8 @@ def enable_dependency_query() -> bool:
     return False
 
 
+# Defining these fixtures to return functions allows the hostname (SEMGREP_URL) to be set for each test,
+# permitting tests that use different base URLs to succeed using these mocks.
 @pytest.fixture
 def start_scan_mock_maker(
     requests_mock, scan_config, mocked_scan_id, enable_dependency_query
