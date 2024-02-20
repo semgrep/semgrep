@@ -789,7 +789,7 @@ def parse_config_string(
         ```
         from semgrep.rule_lang import validate_yaml as validate_yaml_pydantic
         from semgrep.rule_lang import validate_yaml_fastjsonschema
-        from semgrep.rule_lang import validate_yaml as validate_yaml_original
+        from semgrep.rule_lang import validate_yaml_original
 
         start_t = time.time()
         validate_yaml_pydantic(data)
