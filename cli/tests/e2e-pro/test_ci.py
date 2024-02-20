@@ -401,7 +401,7 @@ def enable_dependency_query() -> bool:
 
 
 @pytest.fixture
-def start_scan_mock(
+def start_scan_mock_maker(
     requests_mock, scan_config, mocked_scan_id, enable_dependency_query
 ):
     def _start_scan_func(semgrep_url: str = "https://semgrep.dev"):
@@ -435,7 +435,7 @@ def start_scan_mock(
 
 
 @pytest.fixture
-def upload_results_mock(requests_mock, mocked_scan_id, mocked_task_id):
+def upload_results_mock_maker(requests_mock, mocked_scan_id, mocked_task_id):
     def _upload_results_func(semgrep_url: str = "https://semgrep.dev"):
         results_response = out.CiScanResultsResponse(errors=[], task_id=mocked_task_id)
         return requests_mock.post(
@@ -447,7 +447,7 @@ def upload_results_mock(requests_mock, mocked_scan_id, mocked_task_id):
 
 
 @pytest.fixture
-def complete_scan_mock(requests_mock, mocked_scan_id):
+def complete_scan_mock_maker(requests_mock, mocked_scan_id):
     def _complete_scan_func(semgrep_url: str = "https://semgrep.dev"):
         complete_response = out.CiScanCompleteResponse(
             success=True, app_block_override=True, app_block_reason="Test Reason"
@@ -796,9 +796,9 @@ def test_full_run(
     run_semgrep: RunSemgrep,
     mocker,
     mock_autofix,
-    start_scan_mock,
-    upload_results_mock,
-    complete_scan_mock,
+    start_scan_mock_maker,
+    upload_results_mock_maker,
+    complete_scan_mock_maker,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
 
@@ -859,6 +859,16 @@ def test_full_run(
         contents = env.get("SEMGREP_PROJECT_CONFIG")
         make_semgrepconfig_file(repo_copy_base, contents)
 
+    start_scan_mock = start_scan_mock_maker(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    )
+    upload_results_mock = upload_results_mock_maker(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    )
+    complete_scan_mock = complete_scan_mock_maker(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    )
+
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors"],
@@ -886,9 +896,7 @@ def test_full_run(
     )
 
     # Check correct metadata
-    scan_create_json = start_scan_mock(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    ).last_request.json()
+    scan_create_json = start_scan_mock.last_request.json()
     meta_json = scan_create_json["meta"]
 
     if "SEMGREP_COMMIT" in env:
@@ -918,9 +926,7 @@ def test_full_run(
     del scan_create_json["scan_metadata"]
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
-    findings_and_ignores_json = upload_results_mock(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    ).last_request.json()
+    findings_and_ignores_json = upload_results_mock.last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -936,9 +942,7 @@ def test_full_run(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = complete_scan_mock(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    ).last_request.json()
+    complete_json = complete_scan_mock.last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -951,9 +955,9 @@ def test_lockfile_parse_failure_reporting(
     git_tmp_path_with_commit,
     run_semgrep: RunSemgrep,
     snapshot,
-    start_scan_mock,
-    upload_results_mock,
-    complete_scan_mock,
+    start_scan_mock_maker,
+    upload_results_mock_maker,
+    complete_scan_mock_maker,
 ):
     repo_base, base_commit, _ = git_tmp_path_with_commit
     subprocess.run(
@@ -1032,10 +1036,12 @@ def test_lockfile_parse_failure_reporting(
         "results.txt",
     )
 
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    complete_scan_mock = upload_results_mock_maker("https://semgrep.dev")
+
     # Check correct metadata
-    findings_and_ignores_json = upload_results_mock(
-        "https://semgrep.dev"
-    ).last_request.json()
+    findings_and_ignores_json = upload_results_mock.last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -1051,7 +1057,7 @@ def test_lockfile_parse_failure_reporting(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = complete_scan_mock("https://semgrep.dev").last_request.json()
+    complete_json = complete_scan_mock.last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     complete_json["stats"]["lockfile_scan_info"] = {}
     assert len(complete_json["dependency_parser_errors"]) > 0
@@ -1213,7 +1219,7 @@ def test_shallow_wrong_merge_base(
     git_tmp_path,
     tmp_path,
     monkeypatch,
-    upload_results_mock,
+    upload_results_mock_maker,
 ):
     """ """
     commits = defaultdict(list)
@@ -1323,6 +1329,10 @@ def test_shallow_wrong_merge_base(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
+    upload_results_mock = upload_results_mock_maker(
+        env.get("SEMGREP_URL", "https://semgrep.dev")
+    )
+
     # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
         subcommand="ci",
@@ -1340,9 +1350,7 @@ def test_shallow_wrong_merge_base(
         ),
         "bad_results.txt",
     )
-    findings_json = upload_results_mock(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    ).last_request.json()
+    findings_json = upload_results_mock.last_request.json()
     assert (
         len(findings_json["findings"]) == 2
     ), "Test might be invalid since we expect this to scan the wrong thing"
@@ -1366,9 +1374,7 @@ def test_shallow_wrong_merge_base(
         "results.txt",
     )
 
-    findings_json = upload_results_mock(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    ).last_request.json()
+    findings_json = upload_results_mock.last_request.json()
     assert (
         len(findings_json["findings"]) == 1
     ), "Potentially scanning wrong files/commits"
@@ -1457,9 +1463,12 @@ def test_dryrun(
     git_tmp_path_with_commit,
     snapshot,
     run_semgrep: RunSemgrep,
-    start_scan_mock,
+    start_scan_mock_maker,
 ):
     _, base_commit, head_commit = git_tmp_path_with_commit
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+
     result = run_semgrep(
         subcommand="ci",
         options=["--dry-run", "--no-suppress-errors"],
@@ -1470,12 +1479,7 @@ def test_dryrun(
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
-    assert (
-        start_scan_mock("https://semgrep.dev").last_request.json()["scan_metadata"][
-            "dry_run"
-        ]
-        == True
-    )
+    assert start_scan_mock.last_request.json()["scan_metadata"]["dry_run"] == True
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
