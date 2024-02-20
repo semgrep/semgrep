@@ -16,7 +16,7 @@ open Common
 module E = Entity_code
 module G = Graphe
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -260,12 +260,12 @@ let add_edgeinfo (n1, n2) e info g = Hashtbl.replace g.edgeinfo (n1, n2, e) info
 let version = 5
 
 let save g file =
-  logger#info "saving %s" file;
+  Logs.debug (fun m -> m ~tags "saving %s" file);
   (* see ocamlgraph FAQ *)
   Common2.write_value (g, !Graph.Blocks.cpt_vertex, version) file
 
 let load file =
-  logger#info "loading %s" file;
+  Logs.debug (fun m -> m ~tags "loading %s" file);
   let g, serialized_cpt_vertex, version2 = Common2.get_value file in
   if version <> version2 then
     failwith (spf "your marshalled file has an old version, delete it");
@@ -498,7 +498,7 @@ let bottom_up_numbering g =
 (* Graph adjustments *)
 (*****************************************************************************)
 let load_adjust file =
-  UCommon.cat file
+  UFile.Legacy.cat file
   |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
@@ -506,7 +506,7 @@ let load_adjust file =
          | _ -> failwith ("wrong line format in adjust file: " ^ s))
 
 let load_whitelist file =
-  UCommon.cat file
+  UFile.Legacy.cat file
   |> List.map (fun s ->
          if s =~ "\\(.*\\) --> \\(.*\\) " then
            let s1, s2 = Common.matched2 s in
@@ -514,7 +514,7 @@ let load_whitelist file =
          else failwith (spf "load_whitelist: wrong line: %s" s))
 
 let save_whitelist xs file g =
-  UCommon.with_open_outfile file (fun (pr_no_nl, _chan) ->
+  UFile.Legacy.with_open_outfile file (fun (pr_no_nl, _chan) ->
       xs
       |> List.iter (fun (n1, n2) ->
              let file = file_of_node n2 g in
@@ -552,7 +552,7 @@ let adjust_graph g xs whitelist =
 (*****************************************************************************)
 (* assumes a "path/to/file.x" -> "path/to/file2.x" format *)
 let graph_of_dotfile dotfile =
-  let xs = UCommon.cat dotfile in
+  let xs = UFile.Legacy.cat dotfile in
   let deps =
     xs
     |> List_.map_filter (fun s ->

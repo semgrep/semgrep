@@ -18,7 +18,7 @@ let tests parse_program parse_pattern =
       t "test basic variable definitions java" (fun () ->
           let file = tests_path_typing / "VarDef.java" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
@@ -45,7 +45,7 @@ let tests parse_program parse_pattern =
       t "test multiple variable definitions java" (fun () ->
           let file = tests_path_typing / "EqVarCmp.java" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
@@ -93,7 +93,7 @@ let tests parse_program parse_pattern =
       t "test basic params java" (fun () ->
           let file = tests_path_typing / "BasicParam.java" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
@@ -133,7 +133,7 @@ let tests parse_program parse_pattern =
       t "test class field types" (fun () ->
           let file = tests_path_typing / "ClassFields.java" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
@@ -171,7 +171,9 @@ let tests parse_program parse_pattern =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = parse_pattern Lang.Java (UCommon.read_file file) in
+                   let _ =
+                     parse_pattern Lang.Java (UFile.Legacy.read_file file)
+                   in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
@@ -182,7 +184,9 @@ let tests parse_program parse_pattern =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = parse_pattern Lang.Go (UCommon.read_file file) in
+                   let _ =
+                     parse_pattern Lang.Go (UFile.Legacy.read_file file)
+                   in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
@@ -190,7 +194,7 @@ let tests parse_program parse_pattern =
       t "test basic variable definitions go" (fun () ->
           let file = tests_path_typing / "StaticVarDef.go" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
@@ -217,7 +221,7 @@ let tests parse_program parse_pattern =
       t "test basic function call go" (fun () ->
           let file = tests_path_typing / "FuncParam.go" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
@@ -264,7 +268,7 @@ let tests parse_program parse_pattern =
       t "test inferred variable definitions go" (fun () ->
           let file = tests_path_typing / "PropVarDef.go" in
           try
-            let ast = parse_program !!file in
+            let ast = parse_program file in
             let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 

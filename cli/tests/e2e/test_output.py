@@ -238,29 +238,26 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
         options=["--debug"],
     )
 
-    # We need to do this so that we can operate independently of sensitive data which
-    # would otherwise be inconsistent between test runs, such as time elapsed.
+    # A lot of masking is necessary to allow for a reproducible test.
+    # TODO: Is this test really useful? We'll have to run --snapshot-update
+    # a lot now that we're outputting debug-level logs from semgrep-core.
+    #
+    # It would be easier if the author told us what this test is for.
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
-                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                # Mask variable debug output
-                re.compile(r"/(.*)/semgrep-core"),
+                # Hide file paths and URL paths
+                re.compile(r"(/?(?:[^ \n:\"'/]+/)+[^ \n:\"'/]*)"),
+                # Hide timestamps (starts with a timestamp like '[00:03]')
+                re.compile(r"\[([0-9]{2}\.[0-9]{2})\]"),
+                # Other variable debug output.
                 re.compile(r"loaded 1 configs in(.*)"),
-                re.compile(r".*https://semgrep.dev(.*).*"),
-                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
-                re.compile(r"(.*Main\.Run_semgrep.*)"),
-                re.compile(r"(.*Main\.Common.*)"),
-                re.compile(r"(.*Main\.Parse_target.*)"),
-                re.compile(r"(.*Main\.Core_CLI.*)"),
                 re.compile(r"semgrep ran in (.*) on 1 files"),
                 re.compile(r"semgrep contributions ran in (.*)"),
                 re.compile(r"\"total_time\":(.*)"),
                 re.compile(r"\"commit_date\":(.*)"),
-                re.compile(r"-targets (.*) -timeout"),
-                re.compile(r"-rules (.*).json"),
-                re.compile(r".*Main.Autofix.*"),
                 re.compile(r"-j ([0-9]+)"),
+                re.compile(r"size of returned JSON string: (.*)"),
             ]
         ),
         "results.txt",

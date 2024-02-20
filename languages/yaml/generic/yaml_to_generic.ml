@@ -1,6 +1,6 @@
 (* Emma Jin
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Fpath_.Operators
 module Y = Yaml
 module S = Yaml.Stream
 module E = Yaml.Stream.Event
@@ -49,10 +49,10 @@ module G = AST_generic
  *)
 type env = {
   (* when we parse a pattern, the filename is fake ("<pattern_file>") *)
-  file : string; (* filename *)
+  file : Fpath.t;
   (* This is the literal text of the program.
-     We will use this to help us find the proper content of a metavariable matching
-     a "folded" or "literal" style string.
+     We will use this to help us find the proper content of a metavariable
+     matching a "folded" or "literal" style string.
      Essentially, a string using "|" or ">".
   *)
   text : string;
@@ -97,7 +97,7 @@ let _pos_str
     s_index (s_line + 1) s_column e_index (e_line + 1) e_column
 
 let tok (index, line, column) str env =
-  let pos = Pos.make ~file:env.file ~line:(line + 1) ~column index in
+  let pos = Pos.make ~file:!!(env.file) ~line:(line + 1) ~column index in
   Tok.OriginTok { str; pos }
 
 let mk_tok ?(style = `Plain)
@@ -182,7 +182,7 @@ let do_parse env =
       let prefix, tok =
         match env.last_event with
         | None ->
-            let loc = Tok.first_loc_of_file env.file in
+            let loc = Tok.first_loc_of_file !!(env.file) in
             ("(incorrect error location) ", Tok.tok_of_loc loc)
         | Some (v, pos) ->
             ( "(approximate error location; error nearby after) ",
@@ -590,13 +590,13 @@ let mask_unicode str =
 (* Entry points *)
 (*****************************************************************************)
 
-let parse_yaml_file ~is_target file str =
+let parse_yaml_file ~is_target (file : Fpath.t) str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
   let bytepos_to_pos =
-    Some (Pos.full_converters_large file).bytepos_to_linecol_fun
+    Some (Pos.full_converters_large !!file).bytepos_to_linecol_fun
   in
-  let parser = get_res file (S.parser str) in
+  let parser = get_res !!file (S.parser str) in
   let env =
     {
       file;
@@ -614,9 +614,9 @@ let parse_yaml_file ~is_target file str =
 (* The entry points for yaml-language parsing *)
 
 let any str =
-  let file = "<pattern_file>" in
+  let file = Fpath.v "<pattern_file>" in
   let str = preprocess_yaml (mask_unicode str) in
-  let parser = get_res file (S.parser str) in
+  let parser = get_res !!file (S.parser str) in
   let env =
     {
       file;
@@ -631,6 +631,6 @@ let any str =
   let xs = parse env in
   make_pattern_expr xs
 
-let program file =
-  let str = mask_unicode (UCommon.read_file file) in
+let program (file : Fpath.t) =
+  let str = mask_unicode (UFile.read_file file) in
   parse_yaml_file ~is_target:true file str

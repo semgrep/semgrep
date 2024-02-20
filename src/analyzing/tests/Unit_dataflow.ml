@@ -21,7 +21,7 @@ let tests parse_program =
           let files = Common2.glob (spf "%s/*.py" dir) in
           files |> Fpath_.of_strings
           |> List.iter (fun file ->
-                 let ast = parse_program !!file in
+                 let ast = parse_program file in
                  let lang = Lang.lang_of_filename_exn file in
                  Naming_AST.resolve lang ast;
                  match

@@ -3,8 +3,8 @@
 //
 // Eventually this will allow us to release (o)semgrep for Windows with
 // native support which will be faster and more convenient than what current
-// Semgrep users have to do which is to use Docker or the Window Subsystem
-// for Linux (WSL).
+// Semgrep users have to do which is to use Docker, or the Window Subsystem
+// for Linux (WSL), or the jsoo-transpiled semgrep used in semgrep-vscode.
 //
 // Note that if you want to build semgrep yourself on a Windows machine,
 // you'll need to imitate some of the magic done by setup-ocaml@v2:
@@ -37,12 +37,12 @@ local job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': '4.14',
-	#TODO: do not reindent this, ojsonnet/ocaml-yaml/--yaml bug with newlines
-	# which then prevents setup-ocaml@v2 to work correctly
+	#note: do not reindent when using ojsonnet, but then fails to parse
+	# with jsonnet
         'opam-repositories': |||
-opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
-default: https://github.com/ocaml/opam-repository.git
-|||,
+           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+           default: https://github.com/ocaml/opam-repository.git
+        |||,
         // bogus filename to prevent the action from attempting to install
         // anything (we want deps only)
         'opam-local-packages': 'dont_install_local_packages.opam',
@@ -66,6 +66,10 @@ default: https://github.com/ocaml/opam-repository.git
       env: {
         CC: 'x86_64-w64-mingw32-gcc',
       },
+      // TODO: ideally we should reuse 'make install-deps-for-semgrep-core'
+      // but we do a few things differently here for windows (same issue
+      // with our HomeBrew formula which has some special tree-sitter
+      // installation)
       run: |||
         cd libs/ocaml-tree-sitter-core
         ./configure
@@ -77,12 +81,13 @@ default: https://github.com/ocaml/opam-repository.git
       |||,
     },
     // this should be mostly a noop thx to cache_opam above
+    // TODO: we should also reuse 'make install-deps-for-semgrep-core'
     {
-      name: 'Install deps',
+      name: 'Install OPAM deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        opam depext conf-pkg-config conf-gmp conf-libpcre
-        opam install -y ./ ./libs/ocaml-tree-sitter-core --deps-only
+        make install-deps-WINDOWS-for-semgrep-core
+        make install-opam-deps
       |||,
     },
     {

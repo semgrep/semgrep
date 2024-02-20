@@ -35,5 +35,5 @@
 /perf/rules/
 /perf/r2c-rules/
 
-#TODO: fix, can't parse currently, weird
-/src/osemgrep/cli_scan/Cli_json_output.ml
+# fixpoint is sometimes timing out on this file
+/src/data/Entropy_data.ml

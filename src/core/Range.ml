@@ -43,6 +43,22 @@ type t = { start : charpos; end_ : charpos } [@@deriving show]
 exception NotValidRange of string
 
 (*****************************************************************************)
+(* Comparisons *)
+(*****************************************************************************)
+
+let equal r1 r2 =
+  let { start = a1; end_ = b1 } = r1 in
+  let { start = a2; end_ = b2 } = r2 in
+  Int.equal a1 a2 && Int.equal b1 b2
+
+let compare r1 r2 =
+  let { start = a1; end_ = b1 } = r1 in
+  let { start = a2; end_ = b2 } = r2 in
+  match Int.compare a1 a2 with
+  | 0 -> Int.compare b1 b2
+  | cmp -> cmp
+
+(*****************************************************************************)
 (* Set operations *)
 (*****************************************************************************)
 (* is r1 included or equal to r2 *)
@@ -119,11 +135,11 @@ let range_of_tokens xs =
   with
   | Tok.NoTokenLocation _ -> None
 
-let hmemo = Hashtbl.create 101
+let hmemo : (Fpath.t, string) Hashtbl.t = Hashtbl.create 101
 
 let () =
-  Common2.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
+  UTmp.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
 
 let content_at_range file r =
-  let str = Common.memoized hmemo file (fun () -> UCommon.read_file file) in
+  let str = Common.memoized hmemo file (fun () -> UFile.read_file file) in
   String.sub str r.start (r.end_ - r.start + 1)

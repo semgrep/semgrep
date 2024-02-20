@@ -29,6 +29,8 @@ module SS = Set.Make (String)
    from semgrep_main.py and core_runner.py.
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -40,6 +42,7 @@ type caps = < Cap.stdout ; Cap.network >
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
+  Logs_.sdebug ~tags "CLI_common.setup_logging";
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
@@ -330,20 +333,20 @@ let trim_core_match_fix (r : OutJ.core_match) =
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (head : Core_result.t)
     (renamed : (string (* filename *) * string (* filename *)) list) =
-  let extract_sig renamed m =
-    let rule_id = m.Pattern_match.rule_id in
+  let extract_sig renamed (m : Pattern_match.t) =
+    let rule_id = m.rule_id in
     let path =
-      !!(m.Pattern_match.file) |> fun p ->
+      !!(m.path.internal_path_to_content) |> fun p ->
       Option.bind renamed
         (List_.find_some_opt (fun (before, after) ->
              if after = p then Some before else None))
       |> Option.value ~default:p
     in
-    let start_range, end_range = m.Pattern_match.range_loc in
+    let start_range, end_range = m.range_loc in
     let syntactic_ctx =
       UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
-        m.Pattern_match.file
+        m.path.internal_path_to_content
     in
     (rule_id, path, syntactic_ctx)
   in
@@ -440,7 +443,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     r.processed_matches
                     |> List_.map
                          (fun ({ pm; _ } : Core_result.processed_match) ->
-                           !!(pm.Pattern_match.file))
+                           !!(pm.path.internal_path_to_content))
                     |> prepare_targets
                   in
                   let paths_in_scanned =
@@ -743,20 +746,34 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
-     * and "underline off" *)
-    let esc =
-      if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[22m\027[24m"
-      else ""
+       and "underline off". It doesn't change how the text is rendered
+       but allows us to produce the same exact output as pysemgrep.
+       Remove the insertion of pysemgrep_hack once pysemgrep is gone.
+       Tip: to visualize special characters that are otherwise invisible
+       in a diff, use something like this:
+         grep 'METRICS: Using' path/to/output | LESS="X-E"
+    *)
+    let pysemgrep_hack1, pysemgrep_hack2 =
+      (*
+         1: make the line yellow using pysemgrep's exact escape sequence
+         2: ???
+      *)
+      match Std_msg.get_highlight () with
+      | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
+      | Off -> ("", "")
     in
-    Logs.warn (fun m ->
+    Logs.app (fun m ->
         m
           "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
-           reports pseudonymous rule metrics to semgrep.dev.@.To disable \
-           Registry rule metrics, use \"--metrics=off\".@.Using configs only \
-           from local files (like --config=xyz.yml) does not enable \
-           metrics.@.@.More information: https://semgrep.dev/docs/metrics"
-          esc);
-    Logs.app (fun m -> m "");
+           reports pseudonymous rule metrics to semgrep.dev."
+          pysemgrep_hack1);
+    Logs.app (fun m ->
+        m
+          "To disable Registry rule metrics, use \"--metrics=off\".@.Using \
+           configs only from local files (like --config=xyz.yml) does not \
+           enable metrics.@.@.More information: \
+           https://semgrep.dev/docs/metrics");
+    Logs.app (fun m -> m "%s" pysemgrep_hack2);
     let settings =
       {
         settings with

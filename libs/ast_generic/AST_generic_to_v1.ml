@@ -1029,8 +1029,8 @@ and map_definition_kind = function
   | MacroDef v1 ->
       let v1 = map_macro_definition v1 in
       `MacroDef v1
-  | Signature v1 ->
-      let v1 = map_type_ v1 in
+  | Signature { sig_tok = _; sig_type } ->
+      let v1 = map_type_ sig_type in
       `Signature v1
   | UseOuterDecl v1 ->
       let v1 = map_tok v1 in

@@ -248,6 +248,7 @@ class ConfigLoader:
         self, require_repo_name: bool
     ) -> out.ProjectMetadata:
         repo_name = os.environ.get("SEMGREP_REPO_NAME")
+        repo_display_name = os.environ.get("SEMGREP_REPO_DISPLAY_NAME", repo_name)
 
         if repo_name is None:
             if require_repo_name:
@@ -261,6 +262,7 @@ class ConfigLoader:
             semgrep_version=out.Version(__VERSION__),
             scan_environment="semgrep-scan",
             repository=repo_name,
+            repo_display_name=repo_display_name,
             repo_url=None,
             branch=None,
             commit=None,

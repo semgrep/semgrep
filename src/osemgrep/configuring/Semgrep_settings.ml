@@ -1,3 +1,5 @@
+open Fpath_.Operators
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -128,9 +130,15 @@ let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   try
-    let dir = Fpath.(to_string (parent settings)) in
-    if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
-    let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
+    let dir = Fpath.parent settings in
+    if not (Sys.file_exists !!dir) then Sys.mkdir !!dir 0o755;
+    (* TODO: we don't use UTmp.new_temp_file because this function modifies
+     * a global (_temp_files_created) which is then used to autoamtically
+     * remove temp files when the process terminates, but in this case the tmp
+     * file already disappeared because it was renamed.
+     *)
+    (* nosemgrep: forbid-tmp *)
+    let tmp = Filename.temp_file ~temp_dir:!!dir "settings" "yml" in
     if Sys.file_exists tmp then Sys.remove tmp;
     UFile.write_file (Fpath.v tmp) str;
     (* Create a temporary file and rename to have a consistent settings file,

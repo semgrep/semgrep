@@ -795,3 +795,14 @@ def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     output = run_sentinel_scan(base_commit=baseline)
     assert_out_match(snapshot, output, f"stdout.txt")
     assert_err_match(snapshot, output, f"stderr.txt")
+
+
+def test_conflicting_file_and_main_branch_names(git_tmp_path, snapshot):
+    # Test when a file in the root dir has the same name as the main branch
+    main_file = git_tmp_path / "main"
+    main_file.write_text("this is a file named 'main'\n")
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    _git_commit(1)
+
+    # Ambiguity between the main branch and the file should not cause an error
+    run_sentinel_scan(base_commit="main")

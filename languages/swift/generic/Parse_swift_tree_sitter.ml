@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 module CST = Tree_sitter_swift.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
@@ -3289,7 +3290,7 @@ let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_swift.Parse.file file)
+    (fun () -> Tree_sitter_swift.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       match map_source_file env cst with
@@ -3300,7 +3301,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_swift.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

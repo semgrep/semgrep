@@ -6,6 +6,7 @@
 *)
 
 open Common
+open Fpath_.Operators
 open Either_
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
@@ -3203,13 +3204,13 @@ let parse ?dialect file =
   let debug = false in
   H.wrap_parser
     (fun () ->
-      let dialect = guess_dialect dialect file in
+      let dialect = guess_dialect dialect !!file in
       match dialect with
       | `Typescript ->
-          let cst = Tree_sitter_typescript.Parse.file file in
+          let cst = Tree_sitter_typescript.Parse.file !!file in
           (cst :> cst_result)
       | `TSX ->
-          let cst = Tree_sitter_tsx.Parse.file file in
+          let cst = Tree_sitter_tsx.Parse.file !!file in
           (cst :> cst_result))
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
@@ -3228,7 +3229,7 @@ let parse_pattern str =
      * patterns? Or try both, since TSX is not strictly a superset? *)
       (fun () -> (Tree_sitter_typescript.Parse.string str :> cst_result))
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       match program env cst with
       | Program ss -> Stmts ss

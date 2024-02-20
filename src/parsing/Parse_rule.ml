@@ -24,7 +24,7 @@ module Set = Set_
 module MV = Metavariable
 open Parse_rule_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -395,14 +395,18 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     let sink_at_exit =
       take_opt dict env parse_bool "at-exit" |> Option.value ~default:false
     in
+    let sink_exact =
+      take_opt dict env parse_bool "exact" |> Option.value ~default:true
+    in
     let sink_formula = f env dict in
-    let sink_is_func_with_focus = Rule.is_sink_func_with_focus sink_formula in
+    let sink_has_focus = Rule.is_formula_with_focus sink_formula in
     {
       R.sink_id;
       sink_formula;
+      sink_exact;
       sink_requires;
       sink_at_exit;
-      sink_is_func_with_focus;
+      sink_has_focus;
     }
   in
   if is_old then
@@ -414,15 +418,14 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
         let sink_formula =
           R.P (Parse_rule_formula.parse_rule_xpattern env value) |> R.f
         in
-        let sink_is_func_with_focus =
-          Rule.is_sink_func_with_focus sink_formula
-        in
+        let sink_has_focus = Rule.is_formula_with_focus sink_formula in
         {
           sink_id;
           sink_formula;
+          sink_exact = true;
           sink_requires = None;
           sink_at_exit = false;
-          sink_is_func_with_focus;
+          sink_has_focus;
         }
     | Right dict ->
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
@@ -822,7 +825,8 @@ let report_unparsed_fields rd =
        *)
       xs
       |> List.iter (fun (k, _v) ->
-             logger#warning "skipping unknown field: %s" k)
+             (* TODO: log in which file/loc this is happening *)
+             Logs.warn (fun m -> m ~tags "Skipping unknown field in rule: %s" k))
 
 let parse_version key value =
   let str, tok = parse_string_wrap_no_env key value in
@@ -990,8 +994,9 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
-               logger#warning "skipping rule %s, error = %s"
-                 (Rule_ID.to_string ruleid) s;
+               Logs.warn (fun m ->
+                   m ~tags "skipping rule %s, error = %s"
+                     (Rule_ID.to_string ruleid) s);
                Either.Right err)
   in
   Either_.partition_either (fun x -> x) xs
@@ -1003,8 +1008,8 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
  * Note that we can't generate a Rule.Err in Yaml_to_generic directly
  * because we don't want parsing/other/ to depend on core/.
  *)
-let parse_yaml_rule_file file =
-  let str = UCommon.read_file file in
+let parse_yaml_rule_file (file : Fpath.t) =
+  let str = UFile.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
   | Parsing_error.Other_error (s, t) ->
       Rule.raise_error None (InvalidYaml (s, t))
@@ -1037,7 +1042,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program !!file)
+          (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         (* old: via external jsonnet program
            Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
@@ -1057,11 +1062,16 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
         let core = Desugar_jsonnet.desugar_program file ast in
         let value_ = Eval_jsonnet.eval_program core in
         Manifest_jsonnet_to_AST_generic.manifest_value value_
-    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true !!file
-    | _else_ ->
-        logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-        logger#info "trying to parse %s as YAML" !!file;
-        parse_yaml_rule_file ~is_target:true !!file
+    | FT.Config FT.Yaml -> parse_yaml_rule_file ~is_target:true file
+    | _ ->
+        (* TODO: suspicious code duplication. The same error message
+           occurs in Translate_rule.ml *)
+        Logs.err (fun m ->
+            m ~tags
+              "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying to \
+               parse %s as YAML"
+              !!file);
+        parse_yaml_rule_file ~is_target:true file
   in
   parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast
 

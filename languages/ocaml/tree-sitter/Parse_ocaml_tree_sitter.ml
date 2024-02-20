@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
 open AST_ocaml
@@ -1120,7 +1121,7 @@ and map_class_field (env : env) (x : CST.class_field) : class_field =
       let m_params = List_.map (map_parameter env) v5 in
       let m_rettype =
         match v6 with
-        | Some x -> Some (map_polymorphic_typed env x)
+        | Some x -> Some (map_polymorphic_typed env x |> snd)
         | None -> None
       in
       let m_body =
@@ -1555,7 +1556,7 @@ and map_external_ (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.external_) :
   let v1 = token env v1 (* "external" *) in
   let _v2 = map_attribute_opt env v2 in
   let v3 = map_value_name env v3 in
-  let typ = map_polymorphic_typed env v4 in
+  let typ = map_polymorphic_typed env v4 |> snd in
   let _v5 = token env v5 (* "=" *) in
   let v6 = List_.map (map_string_ env) v6 in
   let v7 = List_.map (map_item_attribute env) v7 in
@@ -1582,7 +1583,7 @@ and map_field_declaration (env : env) ((v1, v2, v3) : CST.field_declaration) =
     | None -> None
   in
   let v2 = str env v2 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-  let v3 = map_polymorphic_typed env v3 in
+  let v3 = map_polymorphic_typed env v3 |> snd in
   (v2, v3, v1)
 
 and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) =
@@ -1749,36 +1750,41 @@ and map_labeled_argument (env : env) (x : CST.labeled_argument) =
 and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
   let pat = map_binding_pattern_ext env v1 in
   let lattrs = List_.map (map_item_attribute env) v3 in
-  let v2 =
-    match v2 with
-    | Some (v1, v2, v3, v4, v5) -> (
-        let v1 = List_.map (map_parameter env) v1 in
-        let v2 =
-          match v2 with
-          | Some x -> Some (map_polymorphic_typed env x)
-          | None -> None
-        in
-        let _v3 =
-          match v3 with
-          | Some (v1, v2) ->
-              let _v1 = token env v1 (* ":>" *) in
-              let v2 = map_type_ext env v2 in
-              Some v2
-          | None -> None
-        in
-        let v4 = token env v4 (* "=" *) in
-        let v5 = map_sequence_expression_ext env v5 |> seq1 in
-        match (pat, v1, v2) with
-        | PatVar id, _, _ ->
-            LetClassic
-              { lname = id; lparams = v1; lrettype = v2; lbody = v5; lattrs }
-        | pat, [], None -> LetPattern (pat, v5)
-        (* TODO: grammar js is wrong there too, this can not happen *)
-        | _ -> raise (Parsing_error.Other_error ("Invalid let binding", v4)))
-    (* TODO: grammar.js is wrong, this can not happen *)
-    | None -> raise Impossible
-  in
-  v2
+  match v2 with
+  | Some (v1, v2, v3, v4, v5) -> (
+      let lparams = List_.map (map_parameter env) v1 in
+      let tyopt =
+        match v2 with
+        | Some x -> Some (map_polymorphic_typed env x)
+        | None -> None
+      in
+      let _tycastopt =
+        match v3 with
+        | Some (v1, v2) ->
+            let _v1 = token env v1 (* ":>" *) in
+            let v2 = map_type_ext env v2 in
+            Some v2
+        | None -> None
+      in
+      let teq = token env v4 (* "=" *) in
+      let lbody = map_sequence_expression_ext env v5 |> seq1 in
+      match (pat, lparams, tyopt) with
+      | PatVar id, _, _ ->
+          LetClassic
+            {
+              lname = id;
+              lparams;
+              lrettype = tyopt |> Option.map snd;
+              lbody;
+              lattrs;
+            }
+      | pat, [], None -> LetPattern (pat, lbody)
+      | pat, [], Some (tcolon, ty) ->
+          LetPattern (PatTyped (pat, tcolon, ty), lbody)
+      (* TODO: grammar js is wrong there too, this can not happen *)
+      | _ -> raise (Parsing_error.Other_error ("Invalid let binding", teq)))
+  (* TODO: grammar.js is wrong, this can not happen *)
+  | None -> raise Impossible
 
 and map_list_binding_pattern (env : env)
     ((v1, v2, v3) : CST.list_binding_pattern) =
@@ -2273,9 +2279,9 @@ and map_polymorphic_type (env : env) (x : CST.polymorphic_type) : type_ =
   | `Type_ext x -> map_type_ext env x
 
 and map_polymorphic_typed (env : env) ((v1, v2) : CST.polymorphic_typed) =
-  let _v1 = token env v1 (* ":" *) in
-  let v2 = map_polymorphic_type env v2 in
-  v2
+  let tcolon = token env v1 (* ":" *) in
+  let ty = map_polymorphic_type env v2 in
+  (tcolon, ty)
 
 and map_record_binding_pattern (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.record_binding_pattern) =
@@ -2432,7 +2438,7 @@ and map_signature_item (env : env) (x : CST.signature_item) : item =
       let v1 = token env v1 (* "val" *) in
       let _v2 = map_attribute_opt env v2 in
       let v3 = map_value_name env v3 in
-      let v4 = map_polymorphic_typed env v4 in
+      let v4 = map_polymorphic_typed env v4 |> snd in
       let v5 = List_.map (map_item_attribute env) v5 in
       { i = Val (v1, v3, v4); iattrs = v5 }
   | `Exte x -> map_external_ env x
@@ -3274,7 +3280,7 @@ let map_compilation_unit (env : env) (x : CST.compilation_unit) =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_ocaml.Parse.file file)
+    (fun () -> Tree_sitter_ocaml.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_compilation_unit env cst)

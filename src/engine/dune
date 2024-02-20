@@ -5,6 +5,7 @@
  (libraries
    pcre
    alcotest
+   calendar
 
    commons
    pfff-lang_GENERIC-analyze
