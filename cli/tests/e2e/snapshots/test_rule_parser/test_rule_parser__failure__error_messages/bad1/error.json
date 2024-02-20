@@ -1,37 +1,28 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 2,
       "level": "error",
-      "long_msg": "[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'object'\n[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 7,
-            "line": 12,
-            "offset": -1
-          },
-          "file": "rules/syntax/bad1.yaml",
-          "source_hash": "58787bea35443f02072f84af73a97dc567e47abfd67214fe739bebf7cf138c2f",
-          "start": {
-            "col": 9,
-            "line": 4,
-            "offset": -1
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
-      "code": 7,
-      "level": "error",
-      "message": "invalid configuration file found (1 configs were invalid)",
-      "type": "SemgrepError"
+      "message": "Rule parse error in rule rules.syntax.eqeq-is-bad:\n Wrong field for a pattern, expected string or dictionary",
+      "rule_id": "rules.syntax.eqeq-is-bad",
+      "type": "Rule parse error"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
-    "scanned": []
+    "scanned": [
+      "targets/basic/inside.py",
+      "targets/basic/metavariable-comparison-bad-content.py",
+      "targets/basic/metavariable-comparison-base.py",
+      "targets/basic/metavariable-comparison-strip.py",
+      "targets/basic/metavariable-comparison.py",
+      "targets/basic/metavariable-regex-multi-regex.py",
+      "targets/basic/metavariable-regex-multi-rule.py",
+      "targets/basic/metavariable-regex.py",
+      "targets/basic/nosem.py",
+      "targets/basic/regex.py",
+      "targets/basic/stupid.py"
+    ]
   },
   "results": [],
   "skipped_rules": [],

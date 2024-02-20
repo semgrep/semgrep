@@ -33,13 +33,13 @@ def create_validator_rule(validation_state_action: str) -> Rule:
                 url: https://api.example.com/user
               response:
                 - match:
-                    - status-code: "200"
+                    status-code: "200"
                   result:
                     metadata:
                       confidence: HIGH
                     validity: valid
                 - match:
-                    - status-code: "401"
+                      status-code: "401"
                   result:
                     metadata:
                       confidence: MEDIUM

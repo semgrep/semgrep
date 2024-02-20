@@ -1,16 +1,19 @@
-[31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/bad1.yaml:4
-[94m[22m[24m4  | [0m      - pattern-inside:
-[94m[22m[24m5  | [0m          - pattern: $X == $X
-[94m[22m[24m6  | [0m          - pattern: $X != $X
-[94m[22m[24m7  | [0m          - patterns:
-[94m[22m[24m8  | [0m              - pattern-inside: |
-[94m[22m[24m9  | [0m                  def __init__(...):
-[94m[22m[24m10 | [0m                      ...
-[94m[22m[24m11 | [0m              - pattern: self.$X == self.$X
-[94m[22m[24m12 | [0m      - pattern-not: 1 == 1
 
-[31m[22m[24m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'object'
-[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[0m
 
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 23 files tracked by git with 1 Code rule:
+  Scanning 11 files.
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Rule parse error in rule rules.syntax.eqeq-is-bad:
+ Wrong field for a pattern, expected string or dictionary
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
+
+Ran 1 rule on 11 files: 0 findings.
