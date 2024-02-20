@@ -17,6 +17,7 @@ module Show = Show_CLI
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
+
 (*
    The result of parsing a 'semgrep scan' command.
 
@@ -30,7 +31,7 @@ type conf = {
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
   (* can be a list of files or directories *)
-  target_roots : Fpath.t list;
+  target_roots : Rfpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
@@ -66,24 +67,8 @@ type conf = {
 let default : conf =
   {
     rules_source = Configs [ "auto" ];
-    target_roots = [ Fpath.v "." ];
-    (* alt: could move in a Target_manager.default *)
-    targeting_conf =
-      {
-        (* the project root is inferred from the presence of .git, otherwise
-           falls back to the current directory. Should it be offered as
-           a command-line option? In osemgrep, a .semgrepignore at the
-           git project root will be honored unlike in legacy semgrep
-           if we're in a subfolder. *)
-        Find_targets.project_root = None;
-        exclude = [];
-        include_ = None;
-        baseline_commit = None;
-        diff_depth = 2;
-        max_target_bytes = 1_000_000 (* 1 MB *);
-        respect_gitignore = true;
-        scan_unknown_extensions = false;
-      };
+    target_roots = [ Rfpath.of_string_exn "." ];
+    targeting_conf = Find_targets.default_conf;
     (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
       {
@@ -247,15 +232,18 @@ in a git repository.
 |}
 
 let o_scan_unknown_extensions : bool Term.t =
-  let default = default.targeting_conf.scan_unknown_extensions in
+  let default = default.targeting_conf.always_select_explicit_targets in
   H.negatable_flag
     [ "scan-unknown-extensions" ]
     ~neg_options:[ "skip-unknown-extensions" ]
     ~default
     ~doc:
       (spf
-         {|If true, explicit files will be scanned using the language specified
-in --lang. If --skip-unknown-extensions, these files will not be scanned.
+         {|If true, target files specified directly on the command line
+will bypass normal language detection. They will be analyzed according to
+the value of --lang if applicable, or otherwise with the analyzers/languages
+specified in the Semgrep rule(s) regardless of file extension or file type.
+This setting doesn't apply to target files discovered by scanning folders.
 Defaults to %b.
 |}
          default)
@@ -775,7 +763,9 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> Fpath_.to_strings) info)
+    (Arg.pos_all Arg.string
+       (default.target_roots |> List_.map Rfpath.to_fpath |> Fpath_.to_strings)
+       info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -844,6 +834,54 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
+(*
+   Return a list of files or folders that exist.
+   Stdin and named pipes are converted to temporary regular files.
+   The bool indicates that some paths were converted to temporary files without
+   a particular file name or extension.
+
+   experimental = we're sure that we won't invoke pysemgrep later with the
+   same argv; allows us to consume stdin and named pipes.
+*)
+let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
+    (target_roots : string list) :
+    Rfpath.t list * (Fpath.t * string) list * bool =
+  let imply_always_select_explicit_targets = ref false in
+  let target_roots, invalid_roots =
+    target_roots
+    |> List_.map (fun str ->
+           match str with
+           | "-" ->
+               imply_always_select_explicit_targets := true;
+               if experimental then
+                 (* consumes stdin, preventing command-line forwarding to
+                    pysemgrep or another osemgrep! *)
+                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+               else
+                 (* remove this hack when no longer forward the command line
+                    to another program *)
+                 Fpath.v "/dev/stdin"
+           | str ->
+               let orig_path = Fpath.v str in
+               if experimental then (
+                 match
+                   UTmp.replace_named_pipe_by_regular_file_if_needed
+                     ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
+                 with
+                 | None -> orig_path
+                 | Some new_path ->
+                     imply_always_select_explicit_targets := true;
+                     new_path)
+               else orig_path)
+    |> Rfpath.of_fpaths
+  in
+  if !imply_always_select_explicit_targets then
+    Logs.info (fun m ->
+        m
+          "Implying --scan-unknown-extensions due to explicit targets being \
+           stdin or named pipes");
+  (target_roots, invalid_roots, !imply_always_select_explicit_targets)
+
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
@@ -863,18 +901,26 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
     Logs_.setup_logging ~level:common.CLI_common.logging_level ();
-    let target_roots = target_roots |> Fpath_.of_strings in
+    (* TODO: report invalid roots *)
+    let target_roots, _invalid_roots, imply_always_select_explicit_targets =
+      replace_target_roots_by_regular_files_where_needed
+        ~experimental:(common.maturity =*= Maturity.Experimental)
+        target_roots
+    in
     let project_root =
       let is_git_repo remote =
         remote |> Git_wrapper.remote_repo_name |> Option.is_some
       in
       match (project_root, remote) with
-      | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
+      | Some root, None ->
+          Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
       | None, Some url when is_git_repo url ->
           let checkout_path =
             match !Semgrep_envvars.v.remote_clone_dir with
-            | Some dir -> dir
-            | None -> Git_wrapper.temporary_remote_checkout_path url
+            | Some dir -> Rfpath.of_fpath_exn dir
+            | None ->
+                Git_wrapper.temporary_remote_checkout_path url
+                |> Rfpath.of_fpath_exn
           in
           let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })
@@ -887,6 +933,13 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             "Cannot use both --project-root and --remote at the same time"
       | _ -> None
     in
+    let explicit_targets =
+      (* This is for determining whether a target path appears on the command
+         line. As long as this holds, it's ok to include folders. *)
+      target_roots |> List_.map Rfpath.to_fpath
+      |> Find_targets.Explicit_targets.of_list
+    in
+
     let output_format =
       let all_flags =
         [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
@@ -968,8 +1021,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
                 supply_chain_config;
               }
     in
+    let explicit_analyzer = Option.map Xlang.of_string lang in
     let rules_source =
-      match (config, (pattern, lang, replacement)) with
+      match (config, (pattern, explicit_analyzer, replacement)) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
        * but in the case of a target that means there is no config
        * but we still don't want to abort, hence this empty Configs.
@@ -990,10 +1044,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
             (* config is set to auto if not otherwise specified and when we're not trying another inferred subcommand *)
             default.rules_source)
-      | [], (Some pat, Some str, fix) ->
+      | [], (Some pat, Some analyzer, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
-          let xlang = Xlang.of_string str in
-          Rules_source.Pattern (pat, Some xlang, fix)
+          Rules_source.Pattern (pat, Some analyzer, fix)
       | _, (Some pat, None, fix) -> (
           match common.maturity with
           (* osemgrep-only: better: can use -e without -l! *)
@@ -1033,15 +1086,17 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | [] -> None
       | nonempty -> Some nonempty
     in
-    let targeting_conf =
+    let targeting_conf : Find_targets.conf =
       {
-        Find_targets.project_root;
+        project_root;
         exclude = exclude_;
         include_;
         baseline_commit;
         diff_depth;
         max_target_bytes;
-        scan_unknown_extensions;
+        always_select_explicit_targets =
+          scan_unknown_extensions || imply_always_select_explicit_targets;
+        explicit_targets;
         respect_gitignore;
       }
     in
@@ -1074,7 +1129,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | None, Some lang_str, [ file ] ->
               Some
                 {
-                  Show.show_kind = Show.DumpAST (file, Lang.of_string lang_str);
+                  Show.show_kind =
+                    Show.DumpAST (Rfpath.to_fpath file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -1116,7 +1172,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let test =
       if test then
         let target =
-          Test_CLI.target_kind_of_roots_and_config target_roots config
+          Test_CLI.target_kind_of_roots_and_config
+            (List_.map Rfpath.to_fpath target_roots)
+            config
         in
         Some
           Test_CLI.

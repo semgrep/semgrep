@@ -217,7 +217,7 @@ let semgrep_check config metachecks rules : Core_error.t list =
       rule_source = Some (Rule_file metachecks);
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
-      roots = rules;
+      roots = List_.map Rfpath.of_fpath_exn rules;
     }
   in
   let res = Core_scan.scan_with_exn_handler config in
