@@ -117,6 +117,7 @@ repos:
           - click<8.1.4
           - defusedxml~=0.7.1
           - packaging~=21.0
+          - pydantic~=2.6
           - requests~=2.22
           - rich>=12.6.0
           - tomli~=2.0.1
