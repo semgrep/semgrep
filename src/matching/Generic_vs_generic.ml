@@ -2934,7 +2934,7 @@ and m_definition_kind a b =
   | G.TypeDef a1, B.TypeDef b1 -> m_type_definition a1 b1
   | G.ModuleDef a1, B.ModuleDef b1 -> m_module_definition a1 b1
   | G.MacroDef a1, B.MacroDef b1 -> m_macro_definition a1 b1
-  | G.Signature a1, B.Signature b1 -> m_type_ a1 b1
+  | G.Signature a1, B.Signature b1 -> m_signature_definition a1 b1
   | G.UseOuterDecl a1, B.UseOuterDecl b1 -> m_tok a1 b1
   | G.OtherDef (a1, a2), B.OtherDef (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
@@ -2956,6 +2956,13 @@ and m_enum_entry_definition a b =
   | { G.ee_args = a1; ee_body = a2 }, { B.ee_args = b1; ee_body = b2 } ->
       let* () = m_option m_arguments a1 b1 in
       let* () = m_option (m_bracket m_fields) a2 b2 in
+      return ()
+
+and m_signature_definition a b =
+  match (a, b) with
+  | { G.sig_tok = a1; sig_type = a2 }, { B.sig_tok = b1; sig_type = b2 } ->
+      let* () = m_tok a1 b1 in
+      let* () = m_type_ a2 b2 in
       return ()
 
 and m_type_parameter a b =
