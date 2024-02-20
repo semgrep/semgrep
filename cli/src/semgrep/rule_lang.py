@@ -544,7 +544,7 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
         required = required - RuleValidation.PATTERN_KEYS
     if required:
         keys = ", ".join(f"'{k}'" for k in sorted(required))
-        outs.append(f"{context.message}")
+        outs.append(f"One of these properties is missing: {keys}")
     if redundant_keys:
         for mutex_set in sorted(redundant_keys):
             keys = ", ".join(f"'{k}'" for k in sorted(mutex_set))

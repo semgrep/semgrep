@@ -1675,7 +1675,7 @@ def test_bad_config_error_handler(
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         use_click_runner=True,
     )
-    assert "invalid rule schema" in result.stderr
+    assert "Invalid rule schema" in result.stderr
     mock_send.assert_called_once_with(mocker.ANY, 7)
 
 
