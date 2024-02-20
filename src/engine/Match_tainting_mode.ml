@@ -479,6 +479,15 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Pattern match from finding *)
 (*****************************************************************************)
 
+(* If the 'requires' has the shape 'A and ...' then we assume that 'A' is the
+ * preferred label for reporting the taint trace. *)
+let preferred_label_of_sink ({ rule_sink; _ } : T.sink) =
+  match rule_sink.sink_requires with
+  | Some { precondition = PAnd (PLabel label :: _); _ } -> Some label
+  | Some _
+  | None ->
+      None
+
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
       let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
@@ -493,7 +502,12 @@ let rec convert_taint_call_trace = function
           call_trace = convert_taint_call_trace ct;
         }
 
-let sources_of_taints taints =
+(* For now CLI does not support multiple taint traces for a finding, and it
+ * simply picks the _first_ trace from this list. So here we apply a number
+ * of heuristics to make sure the first trace in this list is the most
+ * relevant one. This is particularly important when using (experimental)
+ * taint labels, because not all labels are equally relevant for the finding. *)
+let sources_of_taints ?preferred_label taints =
   (* We only report actual sources reaching a sink. If users want Semgrep to
    * report function parameters reaching a sink without sanitization, then
    * they need to specify the parameters as taint sources. *)
@@ -508,17 +522,24 @@ let sources_of_taints taints =
            | Control ->
                None)
   in
+  let taint_sources =
+    (* If there is a "preferred label", then sort sources to make sure this
+       label is picked before others. See 'preferred_label_of_sink'. *)
+    match preferred_label with
+    | None -> taint_sources
+    | Some label ->
+        taint_sources
+        |> List.stable_sort (fun (src1, _, _) (src2, _, _) ->
+               match (src1.T.label = label, src2.T.label = label) with
+               | true, false -> -1
+               | false, true -> 1
+               | false, false
+               | true, true ->
+                   0)
+  in
   (* We prioritize taint sources without preconditions,
      selecting their traces first, and then consider sources
-     with preconditions as a secondary choice. When we generate
-     JSON output for the command-line interface, we arbitrarily
-     select the first trace in the list. Consequently, when
-     there are multiple sources, and their traces overlap,
-     leading to the same sink, the final output doesn't always
-     indicate the initial location of the tainted source
-     clearly. By following this approach, users are more likely
-     to identify the very first taint source that doesn't rely
-     on other sources as input. *)
+     with preconditions as a secondary choice. *)
   let with_req, without_req =
     taint_sources
     |> Either_.partition_either (fun (src, tokens, sink_trace) ->
@@ -550,7 +571,7 @@ let pms_of_finding ~match_on finding =
   | ToSink
       {
         taints_with_precondition = taints, requires;
-        sink = { pm = sink_pm; _ };
+        sink = { pm = sink_pm; _ } as sink;
         merged_env;
       } -> (
       if
@@ -560,7 +581,8 @@ let pms_of_finding ~match_on finding =
              requires)
       then []
       else
-        let taint_sources = sources_of_taints taints in
+        let preferred_label = preferred_label_of_sink sink in
+        let taint_sources = sources_of_taints ?preferred_label taints in
         match match_on with
         | `Sink ->
             (* The old behavior used to be that, for sinks with a `requires`, we would
