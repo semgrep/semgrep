@@ -729,7 +729,9 @@ class JoinedRules(BaseModel):
     languages: Optional[
         Annotated[Union[Languages, List[Languages]], Tag("languages")]
     ] = Field(None, title="Language")
-    pattern: str
+    pattern: Optional[str] = Field(
+        None, title="Return finding where Semgrep pattern matches exactly"
+    )
     patterns: Optional[PatternsContent] = None
     mode: Optional[Mode1] = None
     pattern_sources: Optional["TaintContent"] = Field(None, alias="pattern-sources")
