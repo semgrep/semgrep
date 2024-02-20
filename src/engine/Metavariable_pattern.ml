@@ -199,9 +199,11 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* Note that due to symbolic propagation, `mast` may be
                    * outside of the current file/AST, so we must get
                    * `mval_range` from `mval_file` and not from `env.file`! *)
-                  let content = Range.content_at_range mval_file mval_range in
-                  Xpattern_matcher.with_tmp_file ~str:content
-                    ~ext:"mvar-pattern" (fun (file : Fpath.t) ->
+                  let content =
+                    Range.content_at_range (Fpath.v mval_file) mval_range
+                  in
+                  UTmp.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                    (fun (file : Fpath.t) ->
                       let mast' =
                         AST_generic_helpers.fix_token_locations_program
                           (fix_loc file) mast
@@ -246,7 +248,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
                     Some content
                 | (LSpacegrep | LAliengrep), _ ->
-                    Some (Range.content_at_range mval_file mval_range)
+                    Some (Range.content_at_range (Fpath.v mval_file) mval_range)
                 | _else_ -> None
               in
               match content with
@@ -269,8 +271,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                       m ~tags "nested analysis of |||%s||| with lang '%s'"
                         content (Xlang.to_string xlang));
                   (* We re-parse the matched text as `xlang`. *)
-                  Xpattern_matcher.with_tmp_file ~str:content
-                    ~ext:"mvar-pattern" (fun file ->
+                  UTmp.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                    (fun file ->
                       let ast_and_errors_res =
                         match xlang with
                         | L (lang, _) -> (

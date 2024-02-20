@@ -11,7 +11,7 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
 end)
 
-let pr2_ranges file rwms =
+let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
   rwms
   |> List.iter (fun rwm ->
          let code_text = Range.content_at_range file rwm.RM.r in
@@ -22,7 +22,7 @@ let pr2_ranges file rwms =
          in
          UCommon.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting lang file options config def =
+let test_tainting (lang : Lang.t) (file : Fpath.t) options config def =
   UCommon.pr2 "\nDataflow";
   UCommon.pr2 "--------";
   let flow, mapping =
@@ -90,19 +90,19 @@ let test_dfg_tainting rules_file file =
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
-  pr2_ranges !!file (debug_taint.sources |> List_.map fst);
+  pr2_ranges file (debug_taint.sources |> List_.map fst);
   UCommon.pr2 "\nSanitizers";
   UCommon.pr2 "----------";
-  pr2_ranges !!file debug_taint.sanitizers;
+  pr2_ranges file debug_taint.sanitizers;
   UCommon.pr2 "\nSinks";
   UCommon.pr2 "-----";
-  pr2_ranges !!file (debug_taint.sinks |> List_.map fst);
+  pr2_ranges file (debug_taint.sinks |> List_.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_function_definition env def =
-        test_tainting lang !!file xconf.config config def;
+        test_tainting lang file xconf.config config def;
         (* go into nested functions *)
         super#visit_function_definition env def
     end

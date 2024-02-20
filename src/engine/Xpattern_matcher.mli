@@ -30,10 +30,4 @@ val matches_of_matcher :
 (* use an hmemo internally to speedup things *)
 val line_col_of_charpos : Fpath.t -> int -> int * int
 val mval_of_string : string -> Tok.t -> Metavariable.mvalue
-
-(* TODO: we should not need that *)
 val info_of_token_location : Tok.location -> Tok.t
-
-(* Like UTmp.with_tmp_file but also invalidates the hmemo cache when finished.
- * See https://github.com/returntocorp/semgrep/issues/5277 for more info *)
-val with_tmp_file : str:string -> ext:string -> (Fpath.t -> 'a) -> 'a

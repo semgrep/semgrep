@@ -115,7 +115,7 @@ let pattern_from_diff f =
           | None -> failwith "No range found"
           | Some r2 -> r2
         in
-        let func_str = R.content_at_range !!file func_r in
+        let func_str = R.content_at_range file func_r in
         Some func_str
   in
   let functions =

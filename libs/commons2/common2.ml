@@ -4935,9 +4935,10 @@ module Infix = struct
 end
 
 let with_pr2_to_string f =
-  let file = UTmp.Legacy.new_temp_file "pr2" "out" in
-  redirect_stdout_stderr file f;
-  cat file
+  UTmp.with_tmp_file ~str:"" ~ext:"out" (fun path ->
+      let file = Fpath.to_string path in
+      redirect_stdout_stderr file f;
+      cat file)
 
 (*---------------------------------------------------------------------------*)
 (* Directories part 2 *)

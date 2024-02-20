@@ -296,8 +296,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
   let rex = Pcre_.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
-    Range.content_at_range
-      !!(pm.path.internal_path_to_content)
+    Range.content_at_range pm.path.internal_path_to_content
       Range.{ start; end_ = end_ - 1 }
   in
   (* What is this for?

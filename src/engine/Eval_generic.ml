@@ -478,7 +478,7 @@ let text_of_binding mvar mval =
       | Some (min, max) ->
           let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
-          Some (Range.content_at_range file range))
+          Some (Range.content_at_range (Fpath.v file) range))
 
 let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
