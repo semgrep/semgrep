@@ -1,1 +1,1 @@
-thread_local $TYPE $VARIABLE;
+thread_local $TYPE $VARIABLE = $INIT;
