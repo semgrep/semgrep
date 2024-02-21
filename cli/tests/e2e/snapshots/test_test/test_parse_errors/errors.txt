@@ -1,3 +1,4 @@
+[00.00][[34mINFO[0m]: execute pysemgrep: "osemgrep" "--verbose" "--config" "rules/cli_test/parse_errors/" "targets/cli_test/parse_errors/invalid_javascript.js"
 running 2 rules from 2 configs
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:
