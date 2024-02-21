@@ -29,8 +29,8 @@ type t = {
       [@printer
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
-  workspace_folders : Fpath.t list;
-  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
+  workspace_folders : Rfpath.t list;
+  cached_workspace_targets : (Rfpath.t, Fpath.t list) Hashtbl.t; [@opaque]
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
@@ -170,7 +170,9 @@ let cache_workspace_targets session =
  *)
 let targets session =
   let dirty_files =
-    List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
+    List_.map
+      (fun f -> (f, dirty_files_of_folder (Rfpath.to_fpath f)))
+      session.workspace_folders
   in
   let member_folder_dirty_files file folder =
     let dirty_files = List.assoc folder dirty_files in
@@ -178,8 +180,8 @@ let targets session =
     | None -> true
     | Some files -> List.mem file files
   in
-  let member_workspace_folder file folder =
-    Fpath.is_prefix folder file
+  let member_workspace_folder file (folder : Rfpath.t) =
+    Fpath.is_prefix folder.fpath file
     && ((not session.user_settings.only_git_dirty)
        || member_folder_dirty_files file folder)
   in
@@ -312,7 +314,10 @@ let save_local_skipped_fingerprints session =
   if not (Sys.file_exists (Fpath.to_string save_dir)) then
     Sys.mkdir (Fpath.to_string save_dir) 0o755;
   let save_file_name =
-    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    String.concat "_"
+      (List_.map
+         (fun f -> f |> Rfpath.to_fpath |> Fpath.basename)
+         session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in
@@ -324,7 +329,10 @@ let save_local_skipped_fingerprints session =
 let load_local_skipped_fingerprints session =
   let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
   let save_file_name =
-    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    String.concat "_"
+      (List_.map
+         (fun f -> f |> Rfpath.to_fpath |> Fpath.basename)
+         session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in

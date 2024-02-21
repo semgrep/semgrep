@@ -34,18 +34,50 @@
    https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
 *)
 
+open Common
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Rpath of Fpath.t [@@deriving show, eq]
+type t = Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
 (*****************************************************************************)
 
-let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
-let of_string s = Rpath (Unix.realpath s |> Fpath.v)
+let of_string s =
+  try Ok (Rpath (Unix.realpath s |> Fpath.v)) with
+  | Unix.Unix_error (err, _, _) ->
+      let msg =
+        spf "Cannot determine physical path for %S: %s" s
+          (Unix.error_message err)
+      in
+      Error msg
+  | other_exn ->
+      let msg =
+        spf "Cannot determine physical path for %S: %s" s
+          (Printexc.to_string other_exn)
+      in
+      Error msg
+
+let of_string_exn path_str =
+  match of_string path_str with
+  | Ok rpath -> rpath
+  | Error msg -> failwith msg
+
+let of_fpath path = of_string (Fpath.to_string path)
+let of_fpath_exn fpath = of_string_exn (Fpath.to_string fpath)
 let to_fpath (Rpath x) = x
 let to_string (Rpath x) = Fpath.to_string x
-let canonical s = to_string (of_string s)
+
+let getcwd () =
+  try Rpath (Unix.getcwd () |> Fpath.v) with
+  | Unix.Unix_error (err, _, _) ->
+      failwith
+        ("getcwd() failed to return a valid current working directory: "
+       ^ Unix.error_message err)
+
+let parent (Rpath path) =
+  let res = Fpath.parent path |> Fpath.rem_empty_seg in
+  if res <> path then Some (Rpath res) else None
