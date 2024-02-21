@@ -8,7 +8,7 @@
    networking.http_mock_client
    fileutils
    testo
-   testo_lwt
+   testo-lwt
  )
  (preprocess
   (pps
