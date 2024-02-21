@@ -57,6 +57,7 @@
   trigger_argo_workflow: function(trigger_url, workflow_inputs) {
     'runs-on': 'ubuntu-22.04',
     needs: ['setup-docker-tag', 'get-sha'],
+    'timeout-minutes': 10,
     steps: [{
       id: 'trigger',
       env: {
@@ -71,7 +72,8 @@
         echo "SHA: $SHA"
         curl --fail-with-body -X POST %s \
           -H "Authorization: Bearer $TOKEN" \
-          -d %s
+          -d %s \
+          --max-time 600
       ||| % [ trigger_url, std.escapeStringJson(std.toString(
         {
           repository: '$REPOSITORY',
