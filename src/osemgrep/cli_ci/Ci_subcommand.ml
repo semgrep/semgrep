@@ -663,10 +663,15 @@ let upload_findings ~dry_run (caps : < Cap.network ; .. >)
            backwards compatability the Out type is an optional *)
         Option.value ~default:"<YOUR_REPO_NAME>" prj_meta.repo_display_name
       in
+      let ref_if_branch_detected =
+        Option.fold ~none:""
+          ~some:(fun branch -> "&ref=" ^ branch)
+          prj_meta.branch
+      in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m "    https://semgrep.dev/orgs/%s/findings?&repo=%s"
-            deployment_config.name repo_display_name);
+          m "    https://semgrep.dev/orgs/%s/findings?&repo=%s%s"
+            deployment_config.name repo_display_name ref_if_branch_detected);
       if
         filtered_rules
         |> List.exists (fun r ->
