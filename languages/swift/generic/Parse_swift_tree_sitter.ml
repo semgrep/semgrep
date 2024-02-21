@@ -918,7 +918,7 @@ and map_modifiers_opt env v : G.attribute list =
 
 and map_associatedtype_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.associatedtype_declaration) =
-  let v2 = (* "associatedtype" *) token env v2 in
+  let tassoctype = (* "associatedtype" *) token env v2 in
   (* a default value for the associated type is a modifier on the actual
      definition
   *)
@@ -928,7 +928,7 @@ and map_associatedtype_declaration (env : env)
       | Some (v1, ty) ->
           let _v1 = (* eq_custom *) token env v1 in
           let ty = map_type_ env ty in
-          [ G.OtherAttribute (("DefaultType", v2), [ G.T ty ]) ]
+          [ G.OtherAttribute (("DefaultType", tassoctype), [ G.T ty ]) ]
       | None -> []
     in
     map_modifiers_opt env v1 @ default
@@ -948,7 +948,11 @@ and map_associatedtype_declaration (env : env)
   in
   G.DefStmt
     ( G.basic_entity ~attrs:modifiers id,
-      G.TypeDef { tbody = G.OtherTypeKind (("Protocol", v2), protocol) } )
+      G.TypeDef
+        {
+          ttok = tassoctype;
+          tbody = G.OtherTypeKind (("Protocol", tassoctype), protocol);
+        } )
   |> G.s
 
 and map_attribute_argument (env : env) (x : CST.attribute_argument) =
@@ -2187,14 +2191,14 @@ and map_modifierless_property_declaration (env : env) (attrs : G.attribute list)
 and map_modifierless_typealias_declaration (env : env)
     (attrs : G.attribute list)
     ((v1, v2, v3, v4, v5) : CST.modifierless_typealias_declaration) =
-  let _ttypealias = (* "typealias" *) token env v1 in
+  let ttypealias = (* "typealias" *) token env v1 in
   let v2 = map_simple_identifier env v2 in
   let v3 = Option.map (map_type_parameters env) v3 |> List_.optlist_to_list in
   let _v4TODO = (* eq_custom *) token env v4 in
   let v5 = map_type_ env v5 in
   G.DefStmt
     ( G.basic_entity ~tparams:v3 ~attrs v2,
-      G.TypeDef { G.tbody = G.AliasType v5 } )
+      G.TypeDef { G.ttok = ttypealias; G.tbody = G.AliasType v5 } )
   |> G.s
 
 and map_modifiers (env : env) (xs : CST.modifiers) =

@@ -2668,7 +2668,7 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
   match x with
   | `Type_type_name_opt_type_params_EQ_func_type_SEMI (v1, v2, v3, v4, v5, v6)
     ->
-      let _v1 = (* "typedef" *) token env v1 in
+      let ttypedef = (* "typedef" *) token env v1 in
       let v2 = map_type_name_name env v2 in
       let tparams =
         match v3 with
@@ -2679,7 +2679,8 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
       let v5 = map_function_type env v5 in
       let _v6 = (* ";" *) token env v6 in
       DefStmt
-        ({ name = EN v2; attrs; tparams }, TypeDef { tbody = AliasType v5 })
+        ( { name = EN v2; attrs; tparams },
+          TypeDef { ttok = ttypedef; tbody = AliasType v5 } )
       |> G.s
   | `Type_opt_type_type_name_formal_param_part_SEMI (v1, v2, v3, v4, v5) ->
       (* This seems to be the "original" use for typedefs in Dart, which
@@ -2688,7 +2689,7 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
          type of the function is specified.
          https://stackoverflow.com/questions/12545762/what-are-function-typedefs-function-type-aliases-in-dart
       *)
-      let _v1 = (* "typedef" *) token env v1 in
+      let tkwd = (* "typedef" *) token env v1 in
       let ret_ty =
         match v2 with
         | Some x -> map_type_ env x
@@ -2700,7 +2701,8 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
       let _v5 = (* ";" *) token env v5 in
       let ty = TyFun (params, ret_ty) |> G.t in
       DefStmt
-        ({ name = EN v3; attrs; tparams }, TypeDef { tbody = AliasType ty })
+        ( { name = EN v3; attrs; tparams },
+          TypeDef { ttok = tkwd; tbody = AliasType ty } )
       |> G.s
 
 (* THINK: Seems to be like a Java package...

@@ -617,13 +617,22 @@ let top_func () =
     | DTypeAlias (v1, v2, v3) ->
         let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in
         let ent = G.basic_entity v1 in
-        G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
+        G.DefStmt
+          ( ent,
+            G.TypeDef
+              { G.ttok = fake (snd v1) "typealias"; G.tbody = G.AliasType v3 }
+          )
+        |> G.s
     | DTypeDef (v1, v2, v3) ->
         let id = ident v1 in
         let tparams = option type_parameters v2 |> List_.optlist_to_list in
         let ty = type_ v3 in
         let ent = G.basic_entity id ~tparams in
-        G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
+        G.DefStmt
+          ( ent,
+            G.TypeDef { G.ttok = fake (snd v1) "type"; G.tbody = G.NewType ty }
+          )
+        |> G.s
   and type_parameters v : G.type_parameters =
     let _, xs, _ = bracket (list type_parameter) v in
     xs

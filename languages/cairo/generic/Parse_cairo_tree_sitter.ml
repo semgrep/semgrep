@@ -712,7 +712,8 @@ and map_const_declaration (env : env) (x : CST.const_declaration) : G.definition
 
 and map_typealias_declaration (env : env) (x : CST.typealias_declaration) :
     G.definition =
-  let _, name, type_parameters, _, ttype, _ = x in
+  let ttype, name, type_parameters, _teq, ty, _tsc = x in
+  let ttype = token env ttype in
 
   let name : G.entity =
     {
@@ -725,9 +726,9 @@ and map_typealias_declaration (env : env) (x : CST.typealias_declaration) :
     }
   in
 
-  let ttype = map_type env ttype in
+  let ty = map_type env ty in
 
-  (name, G.TypeDef { tbody = G.AliasType ttype })
+  (name, G.TypeDef { G.ttok = ttype; tbody = G.AliasType ty })
 
 and map_trait_declaration (env : env) (x : CST.trait_declaration) : G.definition
     =

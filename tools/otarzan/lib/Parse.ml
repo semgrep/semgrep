@@ -36,7 +36,7 @@ let extract_toplevel_typedefs program : AST_ocaml.type_declaration list list =
         * to type decls with certain attributes (e.g., [@@otarzan]) like
         * for deriving
         *)
-       | { AST_ocaml.i = Type (_t, decls); iattrs = _ } -> Some decls
+       | { AST_ocaml.i = Type decls; iattrs = _ } -> Some decls
        | _else_ -> None)
 
 let extract_typedefs_from_ml_file file =

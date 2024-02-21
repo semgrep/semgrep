@@ -707,7 +707,7 @@ and type_def { t_name; t_kind } =
   let id = ident t_name in
   let kind = type_def_kind (snd t_name) t_kind in
   let ent = G.basic_entity ~case_insensitive:true id in
-  (ent, { G.tbody = kind })
+  (ent, { G.tbody = kind; ttok = fake "type" })
 
 and type_def_kind _tok = function
   | Alias v1 ->

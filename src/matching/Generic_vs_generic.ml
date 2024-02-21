@@ -3262,7 +3262,9 @@ and m_field a b =
 (* ------------------------------------------------------------------------- *)
 and m_type_definition a b =
   match (a, b) with
-  | { G.tbody = a1 }, { B.tbody = b1 } -> m_type_definition_kind a1 b1
+  | { G.ttok = a0; G.tbody = a1 }, { B.ttok = b0; B.tbody = b1 } ->
+      let* () = m_tok a0 b0 in
+      m_type_definition_kind a1 b1
 
 and m_type_definition_kind a b =
   match (a, b) with

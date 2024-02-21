@@ -984,7 +984,7 @@ and map_arguments (env : env) ((v1, v2, _v3TODO, v4) : CST.arguments) :
 (* was restricted to appear only in trait_impl_block by ruin *)
 and map_associated_type (env : env) ((v1, v2, v3, v4, v5) : CST.associated_type)
     : G.stmt =
-  let _type_TODO = token env v1 (* "type" *) in
+  let ttype = token env v1 (* "type" *) in
   let ident = ident env v2 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let type_params =
@@ -1016,7 +1016,7 @@ and map_associated_type (env : env) ((v1, v2, v3, v4, v5) : CST.associated_type)
        | None -> G.AbstractType semicolon
     *)
   in
-  let type_def = { G.tbody = type_def_kind } in
+  let type_def = { G.ttok = ttype; G.tbody = type_def_kind } in
   let ent =
     {
       G.name = G.EN (G.Id (ident, G.empty_id_info ()));
@@ -3359,7 +3359,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       in
       [ G.DefStmt (ent, G.ClassDef class_def) |> G.s ]
   | `Union_item (_v0TODO, v1, v2, v3, v4, v5) ->
-      let _unionTODO = token env v1 (* "union" *) in
+      let tunion = token env v1 (* "union" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let type_params =
@@ -3373,7 +3373,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
         | None -> []
       in
       let variants = map_field_declaration_list_union env v5 in
-      let type_def = { G.tbody = G.OrType variants } in
+      let type_def = { G.ttok = tunion; G.tbody = G.OrType variants } in
       let ent =
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
@@ -3383,7 +3383,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       in
       [ G.DefStmt (ent, G.TypeDef type_def) |> G.s ]
   | `Enum_item (_v0TODO, v1, v2, v3, v4, v5) ->
-      let _enumTODO = token env v1 (* "enum" *) in
+      let tenum = token env v1 (* "enum" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let type_params =
@@ -3393,7 +3393,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       in
       let _where_clause = Option.map (fun x -> map_where_clause env x) v4 in
       let body = map_enum_variant_list env v5 in
-      let type_def = { G.tbody = body } in
+      let type_def = { G.ttok = tenum; G.tbody = body } in
       let ent =
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
@@ -3403,7 +3403,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       in
       [ G.DefStmt (ent, G.TypeDef type_def) |> G.s ]
   | `Type_item (_v0TODO, v1, v2, v3, v4, v5, v6, v7) ->
-      let _type_TODO = token env v1 (* "type" *) in
+      let ttype = token env v1 (* "type" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let type_params =
@@ -3416,7 +3416,10 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let _where_clauseTODO = Option.map (fun x -> map_where_clause env x) v6 in
       let _semicolon = token env v7 (* ";" *) in
       let type_def =
-        { G.tbody = G.NewType (G.TyN (H2.name_of_id ident) |> G.t) }
+        {
+          G.ttok = ttype;
+          G.tbody = G.NewType (G.TyN (H2.name_of_id ident) |> G.t);
+        }
       in
       let ent =
         {

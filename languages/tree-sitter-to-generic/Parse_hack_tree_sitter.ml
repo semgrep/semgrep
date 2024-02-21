@@ -404,8 +404,8 @@ let keyword (env : env) (x : CST.keyword) =
 
 let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
     ident =
-  let v1 = (* "enum" *) token env v1 in
-  let _v2 = (* "{" *) token env v2 in
+  let tenum = (* "enum" *) token env v1 in
+  let _lb = (* "{" *) token env v2 in
   let v3 = G.OrEnum (xhp_enum_key env v3, None) in
   let v4 =
     List_.map
@@ -420,15 +420,16 @@ let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
     | Some tok -> (* "," *) Some (token env tok)
     | None -> None
   in
-  let _v6 = (* "}" *) token env v6 in
+  let _rb = (* "}" *) token env v6 in
   (* This pass-down is really wrong. Need anon type name. *)
   (* Could also make type via nested TyOr of names but that's also wrong... *)
   (* Q: Just want type, so can't do def stmt... Should really be TypeDef in parent? *)
   let def =
-    G.DefStmt (G.basic_entity ident, TypeDef { tbody = OrType (v3 :: v4) })
+    G.DefStmt
+      (G.basic_entity ident, TypeDef { ttok = tenum; tbody = OrType (v3 :: v4) })
     |> G.s
   in
-  G.OtherType (("EnumAnon", v1), [ G.S def ]) |> G.t
+  G.OtherType (("EnumAnon", tenum), [ G.S def ]) |> G.t
 
 let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) :
     G.dotted_ident =
@@ -1202,7 +1203,7 @@ and declaration (env : env) (x : CST.declaration) =
         | Some x -> attribute_modifier env x
         | None -> []
       in
-      let _v2 =
+      let tkwd =
         match v2 with
         | `Type tok -> (* "type" *) token env tok
         | `Newt tok -> (* "newtype" *) token env tok
@@ -1224,22 +1225,22 @@ and declaration (env : env) (x : CST.declaration) =
             [ G.OtherAttribute (v1, [ G.T v2 ]) ]
         | None -> []
       in
-      (* Q: AliasType vs NewType? *)
+      (* TODO: AliasType vs NewType? depend on tkwd *)
       let _v6 = (* "=" *) token env v6 in
       let v7 = type_ env v7 in
       let _v8 = (* ";" *) token env v8 in
       G.DefStmt
         ( basic_typed_entity id (v1 @ v5) type_params,
-          G.TypeDef { tbody = AliasType v7 } )
+          G.TypeDef { ttok = tkwd; tbody = AliasType v7 } )
   | `Enum_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 =
         match v1 with
         | Some x -> attribute_modifier env x
         | None -> []
       in
-      let _v2 = (* "enum" *) token env v2 in
+      let tenum = (* "enum" *) token env v2 in
       let v3 = semgrep_extended_identifier env v3 in
-      let _v4 = (* ":" *) token env v4 in
+      let _tcolon = (* ":" *) token env v4 in
       let _v5TODO = type_ env v5 in
       let _v6 =
         match v6 with
@@ -1250,10 +1251,12 @@ and declaration (env : env) (x : CST.declaration) =
             v2
         | None -> None
       in
-      let _v7 = (* "{" *) token env v7 in
+      let _lb = (* "{" *) token env v7 in
       let v8 = List_.map (enumerator env) v8 in
-      let _v9 = (* "}" *) token env v9 in
-      G.DefStmt (G.basic_entity v3 ~attrs:v1, TypeDef { tbody = G.OrType v8 })
+      let _rb = (* "}" *) token env v9 in
+      G.DefStmt
+        ( G.basic_entity v3 ~attrs:v1,
+          TypeDef { ttok = tenum; tbody = G.OrType v8 } )
   | `Name_decl (v1, v2) -> (
       let v1 = (* "namespace" *) token env v1 in
       let v2 =
@@ -2607,7 +2610,7 @@ and type_const_declaration (env : env)
   in
   let v2 = List_.map (member_modifier env) v2 in
   let v3 = (* "const" *) [ G.KeywordAttr (Const, token env v3) ] in
-  let _v4 = (* "type" *) token env v4 in
+  let ttype = (* "type" *) token env v4 in
   let id = semgrep_extended_identifier env v5 in
   let type_params =
     match v6 with
@@ -2638,13 +2641,13 @@ and type_const_declaration (env : env)
   | Some v8 ->
       G.DefStmt
         ( basic_typed_entity id (v1 @ v2 @ v3) type_params,
-          G.TypeDef { tbody = AliasType v8 } )
+          G.TypeDef { ttok = ttype; tbody = AliasType v8 } )
       |> G.s
   (* TODO: WHAT TO DO IN THIS CASE? WHAT IS `const type T1;` doing? *)
   | None ->
       G.DefStmt
         ( basic_typed_entity id (v1 @ v2 @ v3) type_params,
-          G.TypeDef { tbody = AbstractType v9 } )
+          G.TypeDef { ttok = ttype; tbody = AbstractType v9 } )
       |> G.s
 
 and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :

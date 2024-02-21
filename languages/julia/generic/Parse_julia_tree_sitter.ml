@@ -1137,8 +1137,9 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let attrs = map_type_clause_opt env v4 in
       let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v2 in
       let _v5 = (* "end" *) token env v5 in
-      DefStmt (ent, TypeDef { tbody = AbstractType v1 }) |> G.s
+      DefStmt (ent, TypeDef { ttok = v1; tbody = AbstractType v1 }) |> G.s
   | `Prim_defi (v1, v2, v3, v4, v5, v6) ->
+      let v1 = str env v1 in
       (* primitive type *)
       let tparams =
         match v3 with
@@ -1149,7 +1150,8 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v2 in
       let i = map_integer_literal env v5 in
       let _v6 = (* "end" *) token env v6 in
-      DefStmt (ent, TypeDef { tbody = OtherTypeKind (str env v1, [ G.E i ]) })
+      DefStmt
+        (ent, TypeDef { ttok = snd v1; tbody = OtherTypeKind (v1, [ G.E i ]) })
       |> G.s
   | `Struct_defi (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
@@ -1157,7 +1159,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
         | Some tok -> (* "mutable" *) [ KeywordAttr (Mutable, token env tok) ]
         | None -> []
       in
-      let v2 = (* "struct" *) token env v2 in
+      let tstruct = (* "struct" *) token env v2 in
       let tparams =
         match v4 with
         | None -> []
@@ -1166,10 +1168,15 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let attrs = v1 @ map_type_clause_opt env v5 in
       let _v6 = map_terminator_opt env v6 in
       let v7 = map_source_file env v7 in
-      let v8 = (* "end" *) token env v8 in
+      let tend = (* "end" *) token env v8 in
       let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v3 in
       DefStmt
-        (ent, TypeDef { tbody = AndType (v2, List_.map (fun x -> F x) v7, v8) })
+        ( ent,
+          TypeDef
+            {
+              ttok = tstruct;
+              tbody = AndType (tstruct, List_.map (fun x -> F x) v7, tend);
+            } )
       |> G.s
   | `Func_defi x -> map_function_definition env x
   | `Macro_defi (v1, v2, v3, v4, v5, v6, v7) -> (

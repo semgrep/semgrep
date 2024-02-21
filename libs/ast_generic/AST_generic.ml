@@ -174,7 +174,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.35.0"
+let version = "1.62.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -1820,7 +1820,16 @@ and variable_definition = {
 (* ------------------------------------------------------------------------- *)
 (* Type definition *)
 (* ------------------------------------------------------------------------- *)
-and type_definition = { tbody : type_definition_kind }
+and type_definition = {
+  (* ex: 'type' in OCaml/Rust/Scala/Solidity/Hack, 'typedef' in C++/Dart,
+   * 'typealias' in Kotlin/Swift, 'newtype' in Hack
+   * 'enum'/'union' in C#/Hack/Solidity/Rust, 'struct' in Julia,
+   * 'exception' and 'and' in OCaml, 'error' in Solidity,
+   * 'associatedtype' in Swift, 'using' in C++, 'delegate' in C#
+   *)
+  ttok : tok;
+  tbody : type_definition_kind;
+}
 
 and type_definition_kind =
   (* Algrebraic data types (ADTs), and basic enums.
