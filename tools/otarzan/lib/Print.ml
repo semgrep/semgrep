@@ -126,7 +126,7 @@ let rec func_for_type (conf : Conf.t) (typ : type_) : out list * string =
           (TyDecl
              {
                tname = (local_name, Tok.unsafe_sc);
-               tparams = [];
+               tparams = None;
                tbody = CoreType typ;
              })
       in

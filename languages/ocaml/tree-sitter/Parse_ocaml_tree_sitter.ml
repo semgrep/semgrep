@@ -598,11 +598,11 @@ let map_value_path (env : env) (x : CST.value_path) : name =
       let v3 = map_value_name env v3 in
       (v1, v3)
 
-let map_type_params (env : env) (x : CST.type_params) : type_parameter list =
+let map_type_params (env : env) (x : CST.type_params) : type_parameters =
   match x with
-  | `Type_param x -> [ map_type_param env x ]
+  | `Type_param x -> Tok.unsafe_fake_bracket [ map_type_param env x ]
   | `LPAR_type_param_rep_COMMA_type_param_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "(" *) in
+      let lp = token env v1 (* "(" *) in
       let v2 = map_type_param env v2 in
       let v3 =
         List_.map
@@ -612,14 +612,14 @@ let map_type_params (env : env) (x : CST.type_params) : type_parameter list =
             v2)
           v3
       in
-      let _v4 = token env v4 (* ")" *) in
-      v2 :: v3
+      let rp = token env v4 (* ")" *) in
+      (lp, v2 :: v3, rp)
 
 let map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 (env : env)
     ((v1, v2, v3, v4) :
       CST.anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434) :
-    type_parameter list =
-  let _v1 = token env v1 (* "[" *) in
+    type_parameters =
+  let lb = token env v1 (* "[" *) in
   let v2 = map_type_param env v2 in
   let v3 =
     List_.map
@@ -629,8 +629,8 @@ let map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 (env : env)
         v2)
       v3
   in
-  let _v4 = token env v4 (* "]" *) in
-  v2 :: v3
+  let rb = token env v4 (* "]" *) in
+  (lb, v2 :: v3, rb)
 
 let map_range_pattern (env : env) ((v1, v2, v3) : CST.range_pattern) =
   let v1 = map_signed_constant env v1 in
@@ -685,8 +685,8 @@ and map_anon_choice_cons_type_771aabb (env : env)
       let _v1 = token env v1 (* "type" *) in
       let _v2 =
         match v2 with
-        | Some x -> map_type_params env x
-        | None -> []
+        | Some x -> Some (map_type_params env x)
+        | None -> None
       in
       let _v3 = map_type_constructor_path env v3 in
       let _v4 = map_type_equation env v4 in
@@ -992,8 +992,9 @@ and map_class_binding (env : env)
   let c_tparams =
     match v2 with
     | Some x ->
-        map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x
-    | None -> []
+        Some
+          (map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x)
+    | None -> None
   in
   let c_name = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
   let c_params = List_.map (map_parameter env) v4 in
@@ -1218,8 +1219,9 @@ and map_class_type_binding (env : env)
   let _v2 =
     match v2 with
     | Some x ->
-        map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x
-    | None -> []
+        Some
+          (map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x)
+    | None -> None
   in
   let _v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
   let _v4 = token env v4 (* "=" *) in
@@ -3082,8 +3084,8 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
     type_declaration =
   let tparams =
     match v1 with
-    | Some x -> map_type_params env x
-    | None -> []
+    | Some x -> Some (map_type_params env x)
+    | None -> None
   in
   let v2 =
     match v2 with

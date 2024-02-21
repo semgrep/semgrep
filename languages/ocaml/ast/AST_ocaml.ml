@@ -295,7 +295,7 @@ and type_declaration =
 
 and type_declaration_classic = {
   tname : ident;
-  tparams : type_parameter list;
+  tparams : type_parameters option;
   tbody : type_def_kind;
 }
 
@@ -303,6 +303,17 @@ and type_declaration_classic = {
 and type_parameter =
   | TyParam of ident (* a TyVar, e.g., 'a *)
   | TyParamTodo of todo_category
+
+(* alt: we could be more precise with
+ * and type_parameters =
+ * | NoTyParam
+ * | OneTyParam of type_parameter
+ * | TyParams of type_parameter list bracket
+ * but anyway in the generic AST they are represented like below.
+ *
+ * The bracket can be '('')' for type defs, and '[', ']' for class defs.
+ *)
+and type_parameters = type_parameter list bracket
 
 and type_def_kind =
   | AbstractType
@@ -335,7 +346,7 @@ and mutable_opt = Tok.t option (* mutable *)
 and class_binding = {
   (* c_attrs: 'virtual' *)
   c_name : ident;
-  c_tparams : type_parameter list;
+  c_tparams : type_parameters option;
   c_params : parameter list;
   (* TODO: c_rettype *)
   c_body : class_expr option; (* TODO: attributes *)
