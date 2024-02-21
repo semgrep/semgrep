@@ -32,6 +32,7 @@ local util = import 'libs/util.libsonnet';
         { name: 'ruleset', value: 'p/default-v2' },
         { name: 'container_image_base', value: "${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'latest' || 'develop' }}" },
         { name: 'container_image_development', value: '${{ needs.setup-docker-tag.outputs.docker-tag }}' },
+        { name: 'timeout_in_minutes', value: '10' },
       ],
     ),
   },
