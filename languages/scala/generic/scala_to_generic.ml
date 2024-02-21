@@ -870,10 +870,8 @@ and v_variance = function
   | Covariant -> G.Covariant
   | Contravariant -> G.Contravariant
 
-and v_type_parameters v : G.type_parameter list =
-  match v with
-  | None -> []
-  | Some (_lb, xs, _rb) -> v_list v_type_parameter xs
+and v_type_parameters v : G.type_parameters option =
+  v_option (v_bracket (v_list v_type_parameter)) v
 
 and v_definition x : G.definition list =
   match x with
@@ -897,9 +895,9 @@ and v_given_definition { gsig; gkind } =
           | Some id -> [ G.I (v_ident id) ]
         in
         let g_tparams =
-          [
-            G.Anys (v_type_parameters g_tparams |> List_.map (fun x -> G.Tp x));
-          ]
+          match v_type_parameters g_tparams with
+          | None -> []
+          | Some (_, xs, _) -> [ G.Anys (xs |> List_.map (fun x -> G.Tp x)) ]
         in
         let g_using =
           [
@@ -941,7 +939,7 @@ and v_given_definition { gsig; gkind } =
   in
   let todo_kind = ("given", Tok.unsafe_fake_tok "given") in
   [
-    ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
+    ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = None },
       G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
   ]
 
@@ -951,7 +949,9 @@ and v_end_marker { end_tok; end_kind } : G.stmt =
 and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
     : G.stmt list =
   let tparams =
-    G.Anys (v_type_parameters ext_tparams |> List_.map (fun tp -> G.Tp tp))
+    match v_type_parameters ext_tparams with
+    | None -> G.Anys []
+    | Some (_, xs, _) -> G.Anys (xs |> List_.map (fun tp -> G.Tp tp))
   in
   let using =
     G.Anys
@@ -1027,7 +1027,7 @@ and v_variable_definitions
          | _ ->
              (* TODO: some patterns may have tparams? *)
              let ent =
-               { G.name = EPattern (v_pattern pat); attrs; tparams = [] }
+               { G.name = EPattern (v_pattern pat); attrs; tparams = None }
              in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef))

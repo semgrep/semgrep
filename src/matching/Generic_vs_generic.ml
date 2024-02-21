@@ -2888,8 +2888,9 @@ and m_entity a b =
    *)
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
-      m_entity_name a1 b1 >>= fun () ->
-      m_attributes a2 b2 >>= fun () -> m_list__m_type_parameter a4 b4
+      let* () = m_entity_name a1 b1 in
+      let* () = m_attributes a2 b2 in
+      m_option (m_bracket m_list__m_type_parameter) a4 b4
 
 and m_list__m_type_parameter a b =
   match a with
@@ -3589,7 +3590,7 @@ and m_import_vs_field a b =
         {
           s =
             DefStmt
-              ( { name = EN (Id (idb, _)); attrs = []; tparams = [] },
+              ( { name = EN (Id (idb, _)); attrs = []; tparams = None },
                 FieldDefColon { vinit = Some { e = N (Id (aliasb, _)); _ }; _ }
               );
           _;

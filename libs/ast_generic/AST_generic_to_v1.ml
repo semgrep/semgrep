@@ -999,7 +999,11 @@ and map_definition (v1, v2) =
   (v1, v2)
 
 and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
-  let v_tparams = map_of_list map_type_parameter v_tparams in
+  let v_tparams =
+    match v_tparams with
+    | None -> []
+    | Some (_, xs, _) -> map_of_list map_type_parameter xs
+  in
   let v_attrs = map_of_list map_attribute v_attrs in
   let v_name = map_entity_name v_name in
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }

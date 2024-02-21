@@ -598,7 +598,7 @@ let resolve lang prog =
                           ( {
                               name = EN (Id (imported_id, _imported_id_info));
                               attrs = [];
-                              tparams = [];
+                              tparams = None;
                             },
                             FieldDefColon
                               {

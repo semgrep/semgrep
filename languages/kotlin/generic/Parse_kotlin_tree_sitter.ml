@@ -631,8 +631,8 @@ and class_declaration (env : env) (x : CST.class_declaration) :
       let v3 = simple_identifier env v3 in
       let v4 =
         match v4 with
-        | Some x -> type_parameters env x
-        | None -> []
+        | Some x -> Some (type_parameters env x)
+        | None -> None
       in
       let cparams =
         match v5 with
@@ -673,11 +673,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
       let v2 = token env v2 (* "enum" *) in
       let tclass = token env v3 (* "class" *) in
       let v4 = simple_identifier env v4 in
-      let v5 =
-        match v5 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let v5 = Option.map (type_parameters env) v5 in
       let cparams =
         match v6 with
         | Some x -> primary_constructor env x
@@ -913,7 +909,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         {
           name = OtherEntity (("Getter", tget), []);
           attrs = mods;
-          tparams = [];
+          tparams = None;
         }
       in
       (ent, OtherDef (("Getter", tget), []))
@@ -923,7 +919,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         {
           name = OtherEntity (("Setter", tset), []);
           attrs = mods;
-          tparams = [];
+          tparams = None;
         }
       in
       (ent, OtherDef (("Setter", tset), []))
@@ -962,11 +958,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
   | `Func_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = modifiers_opt env v1 in
       let v2 = token env v2 (* "fun" *) in
-      let v3 =
-        match v3 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let v3 = Option.map (type_parameters env) v3 in
       (* TODO: receiver type, build a complex name with v5 *)
       let _v4TODO = anon_opt_rece_type_opt_DOT_cc9388e env v4 in
       let v5 = simple_identifier env v5 in
@@ -998,11 +990,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
   | `Prop_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = modifiers_opt env v1 in
       let v2 = KeywordAttr (anon_choice_val_2833752 env v2) in
-      let v3 =
-        match v3 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let v3 = Option.map (type_parameters env) v3 in
       (* TODO: distribute the name to all variable decls? *)
       let _v4TODO = anon_opt_rece_type_opt_DOT_cc9388e env v4 in
       let entname, typopt = lambda_parameter_for_property env v5 in
@@ -1049,11 +1037,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let attrs = modifiers_opt env v0 in
       let _kwd = token env v1 (* "typealias" *) in
       let id = simple_identifier env v2 in
-      let tparams =
-        match v3 with
-        | None -> []
-        | Some v3 -> type_parameters env v3
-      in
+      let tparams = Option.map (type_parameters env) v3 in
       let _eq = token env v4 (* "=" *) in
       let t = type_ env v5 in
       let ent = basic_entity ~attrs ~tparams id in
@@ -2031,8 +2015,9 @@ and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
 and type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers) =
   List_.map (type_parameter_modifier env) xs
 
-and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
-  let _v1 = token env v1 (* "<" *) in
+and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) :
+    G.type_parameters =
+  let lt = token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
     List_.map
@@ -2042,8 +2027,8 @@ and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
         v2)
       v3
   in
-  let _v4 = token env v4 (* ">" *) in
-  v2 :: v3
+  let gt = token env v4 (* ">" *) in
+  (lt, v2 :: v3, gt)
 
 and type_projection (env : env) ~tok (x : CST.type_projection) =
   match x with

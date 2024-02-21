@@ -174,7 +174,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.35.0"
+let version = "1.62.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -1606,7 +1606,7 @@ and entity = {
    *)
   name : entity_name;
   attrs : attribute list;
-  tparams : type_parameters;
+  tparams : type_parameters option;
 }
 
 (* old: used to be merged with field_name in a unique name_or_dynamic
@@ -1696,8 +1696,8 @@ and type_parameter_classic = {
   tp_variance : variance wrap option;
 }
 
-(* TODO bracket *)
-and type_parameters = type_parameter list
+(* bracket is usually '<>' for C++/.., '()' for OCaml, '[]' for Scala *)
+and type_parameters = type_parameter list bracket
 
 (* less: have also Invariant? *)
 and variance =
@@ -2218,7 +2218,7 @@ let canonical_to_dotted tid xs = xs |> List_.map (fun s -> (s, tid))
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?(tparams = []) id =
+let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?(tparams = None) id =
   let idinfo = empty_id_info ?hidden ?case_insensitive () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 
