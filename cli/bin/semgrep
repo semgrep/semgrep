@@ -86,7 +86,7 @@ def find_semgrep_core_path(pro=False, extra_message=""):
                 if pro and not is_correct_pro_version(path):
                     raise CoreNotFound(f"The installed version of {core} is out of date.{extra_message}")
                 return str(path)
-    except FileNotFoundError as e:
+    except ModuleNotFoundError as e:
         pass
 
     # Second, try in PATH. In certain context such as Homebrew
