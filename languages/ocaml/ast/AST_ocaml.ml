@@ -69,7 +69,7 @@ type type_ =
   | TyVar of ident (* 'a *)
   | TyAny of Tok.t (* _ *)
   | TyFunction of type_ * type_
-  | TyApp of type_ list * name (* less: could be merged with TyName *)
+  | TyApp of type_ list bracket * name (* less: could be merged with TyName *)
   | TyTuple of type_ list (* at least 2 *)
   (* sgrep-ext: *)
   | TyEllipsis of Tok.t
