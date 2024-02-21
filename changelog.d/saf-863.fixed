@@ -1,0 +1,1 @@
+Fixed an issue that led to incorrect autofix application in certain cases where multiple fixes were applied to the same line.
