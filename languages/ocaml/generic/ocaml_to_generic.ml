@@ -580,7 +580,11 @@ and type_declaration x =
   match x with
   | TyDecl { tname; tparams; tbody } ->
       let v1 = ident tname in
-      let v2 = list type_parameter tparams in
+      let v2 =
+        match tparams with
+        | None -> []
+        | Some (_, xs, _) -> list type_parameter xs
+      in
       let v3 = type_def_kind tbody in
       let entity = { (G.basic_entity v1) with G.tparams = v2 } in
       let def = { G.tbody = v3 } in
@@ -660,7 +664,11 @@ and attribute x =
 and class_binding (c_tok : Tok.t) (binding : class_binding) : G.definition =
   let { c_name; c_tparams; c_params; c_body } = binding in
   let id = ident c_name in
-  let tparams = list type_parameter c_tparams in
+  let tparams =
+    match c_tparams with
+    | None -> []
+    | Some (_, xs, _) -> list type_parameter xs
+  in
   let ent = G.basic_entity ~tparams id in
   let cparams = fb (list parameter c_params) in
   let cbody =
