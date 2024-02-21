@@ -426,13 +426,12 @@ let map_storage_class_specifier (env : env) (x : CST.storage_class_specifier) :
   | `Static tok -> (Static, token env tok) (* "static" *)
   | `Regi tok -> (Register, token env tok) (* "register" *)
   | `Inline tok -> (StoInline, token env tok)
-  | `Thread_local tok -> (ThreadLocal, token env tok)
+  | `Thread_local tok -> (ThreadLocal, token env tok) (* "thread_local" *)
   (* the difference between these two is just which implementation you are using *)
   | `X___inline tok -> (StoInline, (* "__inline" *) token env tok)
   | `X___inline__ tok -> (StoInline, (* "__inline__" *) token env tok)
   | `X___forc tok -> (StoInline, (* "__forceinline" *) token env tok)
   | `X___thread tok -> (ThreadLocal, (* "__thread" *) token env tok)
-(* "thread_local" *)
 
 (* "inline" *)
 
