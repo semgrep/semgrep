@@ -168,9 +168,7 @@ let map_bracket env _of_a (v1, v2, v3) =
   let v1 = map_tok env v1 and v2 = _of_a v2 and v3 = map_tok env v3 in
   (v1, v2, v3)
 
-let map_angle _env _of_a (_v1, v2, _v3) = _of_a v2
-
-let map_angle_keep env _of_a (v1, v2, v3) =
+let map_angle env _of_a (v1, v2, v3) =
   let v1 = map_tok env v1 and v2 = _of_a v2 and v3 = map_tok env v3 in
   (v1, v2, v3)
 
@@ -318,13 +316,13 @@ and map_typeC env x : G.type_ =
               {
                 G.name = OtherEntity (("AnonEnum", v1.enum_kind), []);
                 attrs = [];
-                tparams = [];
+                tparams = None;
               }
             in
             let t = G.OtherType (("AnonEnumName", v1.enum_kind), []) |> G.t in
             (ent, t)
         | Some n ->
-            let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+            let ent = { G.name = G.EN n; attrs = []; tparams = None } in
             let t =
               G.OtherType (("EnunName", v1.enum_kind), [ G.T (G.TyN n |> G.t) ])
               |> G.t
@@ -349,13 +347,13 @@ and map_typeC env x : G.type_ =
               {
                 G.name = OtherEntity (("AnonClass", tk), []);
                 attrs = [];
-                tparams = [];
+                tparams = None;
               }
             in
             let t = G.OtherType ((Tok.content_of_tok tk, tk), []) |> G.t in
             (ent, t)
         | Some n ->
-            let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+            let ent = { G.name = G.EN n; attrs = []; tparams = None } in
             let t =
               G.OtherType ((Tok.content_of_tok tk, tk), [ G.T (G.TyN n |> G.t) ])
               |> G.t
@@ -550,7 +548,7 @@ and map_expr env x : G.expr =
       G.OtherExpr (("TypeId", v1), [ any ]) |> G.e
   | CplusplusCast (v1, v2, v3) ->
       let optodo, t = map_wrap env (map_cast_operator env) v1
-      and langle, typ, _rangle = map_angle_keep env (map_type_ env) v2
+      and langle, typ, _rangle = map_angle env (map_type_ env) v2
       and _lpar, e, rpar = map_paren env (map_expr env) v3 in
       let ecall = G.OtherExpr ((optodo, t), []) |> G.e in
       G.Call (ecall, (langle, [ G.ArgType typ; G.Arg e ], rpar)) |> G.e
@@ -1319,7 +1317,7 @@ and map_declarations env (l, v, r) : G.stmt list bracket =
 and map_entity env { name = v_name; specs = v_specs } : G.entity =
   let v_specs = map_of_list (map_specifier env) v_specs in
   let v_name = map_name env v_name in
-  { G.name = G.EN v_name; attrs = v_specs; tparams = [] }
+  { G.name = G.EN v_name; attrs = v_specs; tparams = None }
 
 and map_decl env x : G.stmt list =
   match x with
@@ -1363,7 +1361,8 @@ and map_decl env x : G.stmt list =
       and v4 = map_decl env v4 in
       v4
       |> List_.map
-           (map_def_in_stmt (fun (ent, def) -> ({ ent with tparams = v2 }, def)))
+           (map_def_in_stmt (fun (ent, def) ->
+                ({ ent with tparams = Some v2 }, def)))
   | TemplateInstanciation (v1, v2, v3) ->
       let _v1TODO = map_tok env v1
       and ent, vardef = map_var_decl env v2
@@ -1473,7 +1472,7 @@ and map_onedecl env x : G.definition list =
       in
       (* TODO: the type is the type of all bindings or type of init? *)
       let pat = G.PatTyped (pat, v1) in
-      let ent = { G.name = G.EPattern pat; attrs = []; tparams = [] } in
+      let ent = { G.name = G.EPattern pat; attrs = []; tparams = None } in
       (* TODO? use v1 for vtype? *)
       let def = G.VarDef { G.vinit = Some v3; vtype = None } in
       [ (ent, def) ]
@@ -1489,7 +1488,7 @@ and map_onedecl env x : G.definition list =
             {
               G.name = G.OtherEntity (("AnonBitField", v2), []);
               attrs = [];
-              tparams = [];
+              tparams = None;
             }
         | Some id -> G.basic_entity id
       in
@@ -1914,12 +1913,12 @@ and map_template_parameter env x : G.type_parameter =
       | Some id -> G.OtherTypeParam (("TPVariadic", v2), [ G.I id ]))
   | TPNested (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_template_parameters env v2
+      and _, v2, _ = map_template_parameters env v2
       and v3 = map_template_parameter env v3 in
       G.OtherTypeParam
         (("TPNested", v1), v3 :: v2 |> List_.map (fun x -> G.Tp x))
 
-and map_template_parameters env v : G.type_parameter list =
+and map_template_parameters env v : G.type_parameters =
   map_angle env (map_of_list (map_template_parameter env)) v
 
 and map_specifier env x : G.attribute =

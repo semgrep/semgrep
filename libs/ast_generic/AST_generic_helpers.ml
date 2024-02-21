@@ -318,11 +318,11 @@ let assign_to_vardef_opt ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
   match e1.G.e with
   | Cast (ty, _, e) ->
       let* name = expr_to_entity_name_opt e in
-      let ent = { name; attrs = []; tparams = [] } in
+      let ent = { name; attrs = []; tparams = None } in
       Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s)
   | _ ->
       let* name = expr_to_entity_name_opt e1 in
-      let ent = { name; attrs = []; tparams = [] } in
+      let ent = { name; attrs = []; tparams = None } in
       Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s)
 
 (* used in controlflow_build *)
