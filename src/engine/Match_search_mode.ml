@@ -275,7 +275,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
 *)
 let selector_equal s1 s2 = s1.mvar = s2.mvar
 
-let selector_from_formula f =
+let selector_from_formula ({ f; _ } : Rule.formula) =
   match f with
   | R.P { Xpattern.pat = Sem ((lazy pattern), _); pid; pstr } -> (
       match pattern with
@@ -306,7 +306,7 @@ let rec remove_selectors (selector, acc) formulas =
       in
       remove_selectors (selector, acc) xs
 
-let specialize_and ({ conjuncts; _ } : Rule.conjunction) =
+let specialize_and (conjuncts : Rule.formula list) =
   let pos, neg = Rule.split_and conjuncts in
   let selector_opt, pos =
     (* We only want a selector if there is something to select from. *)
@@ -724,9 +724,86 @@ and get_nested_formula_matches env formula range =
 (* Formula evaluation *)
 (*****************************************************************************)
 
-and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
-    RM.ranges * Matching_explanation.t option =
-  match e with
+and evaluate_formula env opt_context ({ f; focus; conditions } : Rule.formula) =
+  let ranges, expls = evaluate_formula_kind env opt_context f in
+  (* let's apply additional filters.
+      * TODO: Note that some metavariable-regexp may be part of an
+      * AND where not all patterns define the metavar, e.g.,
+        *   pattern-inside: def $FUNC() ...
+      *   pattern: return $X
+      *   metavariable-regexp: $FUNC regex: (foo|bar)
+      * in which case the order in which we do the operation matters
+      * (at this point intersect_range will have filtered the
+      *  range of the pattern_inside).
+      * alternative solutions?
+      *  - bind closer metavariable-regexp with the relevant pattern
+      *  - propagate metavariables when intersecting ranges
+      *  - distribute filter_range in intersect_range?
+      * See https://github.com/returntocorp/semgrep/issues/2664
+  *)
+  let ranges, filter_expls =
+    conditions
+    |> List.fold_left
+         (fun (ranges_with_bindings, acc_expls) (tok, cond) ->
+           let ranges_with_bindings =
+             filter_ranges env ranges_with_bindings cond
+           in
+           let expl =
+             if_explanations env
+               (List_.map fst ranges_with_bindings)
+               []
+               (OutJ.Filter (Tok.content_of_tok tok), tok)
+           in
+           (ranges_with_bindings, expl :: acc_expls))
+         (List_.map (fun x -> (x, [])) ranges, [])
+  in
+
+  (* Here, we unpack all the persistent bindings for each instance of the inner
+      `metavariable-pattern`s that succeeded.
+
+      We just take those persistent bindings and add them to the original range,
+      now that we're done with the filtering step.
+  *)
+  let ranges_with_persistent_bindings =
+    ranges
+    |> List.concat_map (fun (r, new_bindings_list) ->
+           (* At a prior step, we ensured that all these new bindings were nonempty.
+               We should keep around a copy of the original range, because otherwise
+               if we have no new bindings to add, we'll kill the range.
+           *)
+           r
+           :: (new_bindings_list
+              |> List_.map (fun new_bindings ->
+                     { r with RM.mvars = new_bindings @ r.RM.mvars })))
+  in
+
+  let ranges =
+    apply_focus_on_ranges env focus ranges_with_persistent_bindings
+  in
+  let focus_expls =
+    match focus with
+    | [] -> []
+    (* less: what if have multiple focus-metavariable? *)
+    | (tok, _mvar) :: _rest ->
+        [
+          if_explanations env ranges [] (OutJ.Filter "metavariable-focus", tok);
+        ]
+  in
+
+  let new_expls =
+    match expls with
+    | None -> None
+    | Some ({ ME.children; _ } as me) ->
+        let children =
+          List_.map (fun x -> Some x) children @ focus_expls @ filter_expls
+          |> List_.map_filter Fun.id
+        in
+        Some { me with ME.children }
+  in
+  (ranges, new_expls)
+
+and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
+  match kind with
   | R.P ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
       let match_results = Hashtbl_.get_stack env.pattern_matches id in
       let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
@@ -758,7 +835,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let ranges = List.flatten ranges in
       let expl = if_explanations env ranges expls (OutJ.Or, tok) in
       (ranges, expl)
-  | R.And (t, ({ conditions = conds; focus; _ } as conj)) -> (
+  | R.And (t, conj) -> (
       (* we now treat pattern: and pattern-inside: differently. We first
           * process the pattern: and then the pattern-inside.
           * This fixed only one mismatch in semgrep-rules.
@@ -781,12 +858,12 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
         List_.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
-       * (see tests/rules/inside.yaml).
-       * TODO: this is ugly; AND should be commutative, so we should just
-       * merge ranges, not just filter one or the other.
-       * update: however we have some tests that rely on pattern-inside:
-       * being special, see tests/rules/and_inside.yaml.
-       *)
+          * (see tests/rules/inside.yaml).
+          * TODO: this is ugly; AND should be commutative, so we should just
+          * merge ranges, not just filter one or the other.
+          * update: however we have some tests that rely on pattern-inside:
+          * being special, see tests/rules/and_inside.yaml.
+      *)
       let posrs, posrs_inside =
         posrs
         |> Either_.partition_either (fun xs ->
@@ -833,74 +910,9 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                    (ranges, expl :: acc_expls))
                  (ranges, [])
           in
-          (* let's apply additional filters.
-           * TODO: Note that some metavariable-regexp may be part of an
-           * AND where not all patterns define the metavar, e.g.,
-            *   pattern-inside: def $FUNC() ...
-           *   pattern: return $X
-           *   metavariable-regexp: $FUNC regex: (foo|bar)
-           * in which case the order in which we do the operation matters
-           * (at this point intersect_range will have filtered the
-           *  range of the pattern_inside).
-           * alternative solutions?
-           *  - bind closer metavariable-regexp with the relevant pattern
-           *  - propagate metavariables when intersecting ranges
-           *  - distribute filter_range in intersect_range?
-           * See https://github.com/returntocorp/semgrep/issues/2664
-           *)
-          let ranges, filter_expls =
-            conds
-            |> List.fold_left
-                 (fun (ranges_with_bindings, acc_expls) (tok, cond) ->
-                   let ranges_with_bindings =
-                     filter_ranges env ranges_with_bindings cond
-                   in
-                   let expl =
-                     if_explanations env
-                       (List_.map fst ranges_with_bindings)
-                       []
-                       (OutJ.Filter (Tok.content_of_tok tok), tok)
-                   in
-                   (ranges_with_bindings, expl :: acc_expls))
-                 (List_.map (fun x -> (x, [])) ranges, [])
-          in
 
-          (* Here, we unpack all the persistent bindings for each instance of the inner
-             `metavariable-pattern`s that succeeded.
-
-             We just take those persistent bindings and add them to the original range,
-             now that we're done with the filtering step.
-          *)
-          let ranges_with_persistent_bindings =
-            ranges
-            |> List.concat_map (fun (r, new_bindings_list) ->
-                   (* At a prior step, we ensured that all these new bindings were nonempty.
-                      We should keep around a copy of the original range, because otherwise
-                      if we have no new bindings to add, we'll kill the range.
-                   *)
-                   r
-                   :: (new_bindings_list
-                      |> List_.map (fun new_bindings ->
-                             { r with RM.mvars = new_bindings @ r.RM.mvars })))
-          in
-
-          let ranges =
-            apply_focus_on_ranges env focus ranges_with_persistent_bindings
-          in
-          let focus_expls =
-            match focus with
-            | [] -> []
-            (* less: what if have multiple focus-metavariable? *)
-            | (tok, _mvar) :: _rest ->
-                [
-                  if_explanations env ranges []
-                    (OutJ.Filter "metavariable-focus", tok);
-                ]
-          in
           let expl =
-            if_explanations env ranges
-              (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
-              (OutJ.And, t)
+            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"

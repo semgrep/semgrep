@@ -291,7 +291,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let source_formula =
-          R.P (Parse_rule_formula.parse_rule_xpattern env value)
+          R.f (R.P (Parse_rule_formula.parse_rule_xpattern env value))
         in
         {
           source_id;
@@ -375,7 +375,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     match parse_str_or_dict env value with
     | Left value ->
         let sanitizer_formula =
-          R.P (Parse_rule_formula.parse_rule_xpattern env value)
+          R.P (Parse_rule_formula.parse_rule_xpattern env value) |> R.f
         in
         {
           sanitizer_id;
@@ -416,7 +416,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let sink_formula =
-          R.P (Parse_rule_formula.parse_rule_xpattern env value)
+          R.P (Parse_rule_formula.parse_rule_xpattern env value) |> R.f
         in
         let sink_has_focus = Rule.is_formula_with_focus sink_formula in
         {
