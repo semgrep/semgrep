@@ -718,11 +718,12 @@ and map_anon_choice_meth_type_345b567 (env : env)
       ()
 
 and map_anon_choice_simple_type_ext_30dd028 (env : env)
-    (x : CST.anon_choice_simple_type_ext_30dd028) : type_ list =
+    (x : CST.anon_choice_simple_type_ext_30dd028) : type_ list bracket =
   match x with
-  | `Choice_simple_type x -> [ map_simple_type_ext env x ]
+  | `Choice_simple_type x ->
+      Tok.unsafe_fake_bracket [ map_simple_type_ext env x ]
   | `LPAR_type_ext_rep_COMMA_type_ext_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "(" *) in
+      let lp = token env v1 (* "(" *) in
       let v2 = map_type_ext env v2 in
       let v3 =
         List_.map
@@ -732,8 +733,8 @@ and map_anon_choice_simple_type_ext_30dd028 (env : env)
             v2)
           v3
       in
-      let _v4 = token env v4 (* ")" *) in
-      v2 :: v3
+      let rp = token env v4 (* ")" *) in
+      (lp, v2 :: v3, rp)
 
 and map_anon_cons_decl_rep_BAR_cons_decl_fc0ccc5 (env : env)
     ((v1, v2) : CST.anon_cons_decl_rep_BAR_cons_decl_fc0ccc5) =

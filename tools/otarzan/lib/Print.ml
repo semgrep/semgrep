@@ -113,7 +113,7 @@ let rec func_for_type (conf : Conf.t) (typ : type_) : out list * string =
   | TyVar _ -> ([], "TODOTyVar")
   | TyAny _ -> error "TyAny not handled"
   | TyFunction _ -> ([], "TODOTyFunction")
-  | TyApp ([ ty ], name) ->
+  | TyApp ((_, [ ty ], _), name) ->
       let s1 = func_for_name conf name in
       let def, s2 = func_for_type conf ty in
       (def, sprintf "(%s %s)" s1 s2)

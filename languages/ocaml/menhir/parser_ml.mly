@@ -949,9 +949,9 @@ simple_core_type:
 simple_core_type2:
  | type_variable                                 { $1 }
  | type_longident                                { TyName ($1) }
- | simple_core_type2 type_longident              { TyApp ([$1], $2) }
+ | simple_core_type2 type_longident              { TyApp (Tok.unsafe_fake_bracket [$1], $2) }
  | "(" list_sep(core_type_no_attr, ",") ")" type_longident
-      { TyApp (($2), $4) }
+      { TyApp (($1, $2, $3), $4) }
 
  (* name tag extension *)
  | polymorphic_variant_type                       { $1 }
