@@ -1001,7 +1001,8 @@ and record env ((_tok, origfields, _) as record_def) =
              {
                s =
                  G.DefStmt
-                   ({ G.name = G.EN (G.Id (id, _)); tparams = []; _ }, def_kind);
+                   ( { G.name = G.EN (G.Id (id, _)); tparams = None; _ },
+                     def_kind );
                _;
              } ->
              let fdeforig =

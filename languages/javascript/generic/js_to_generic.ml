@@ -666,7 +666,7 @@ and field_classic
   let ent =
     match v1 with
     | Left n -> G.basic_entity n ~attrs:v2
-    | Right e -> { G.name = G.EDynamic e; attrs = v2; tparams = [] }
+    | Right e -> { G.name = G.EDynamic e; attrs = v2; tparams = None }
   in
   match v3 with
   | Some (Fun (def, None)) ->

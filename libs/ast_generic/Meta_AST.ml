@@ -1095,7 +1095,9 @@ and vof_definition (v1, v2) =
 
 and vof_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let bnds = [] in
-  let arg = OCaml.vof_list vof_type_parameter v_tparams in
+  let arg =
+    OCaml.vof_option (vof_bracket (OCaml.vof_list vof_type_parameter)) v_tparams
+  in
   let bnd = ("tparams", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_list vof_attribute v_attrs in

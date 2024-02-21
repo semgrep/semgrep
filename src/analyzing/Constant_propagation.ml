@@ -582,7 +582,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
                      ( {
                          name = EN (Id ((str, tk), _idinfo));
                          attrs = [];
-                         tparams = [];
+                         tparams = None;
                        },
                        VarDef { vinit = Some v; vtype = None } );
                  _;
@@ -613,7 +613,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
                      ( {
                          name = EN (Id (("default", _tk), _idinfo));
                          attrs = [];
-                         tparams = [];
+                         tparams = None;
                        },
                        VarDef { vinit = Some v; vtype = None } );
                  _;
