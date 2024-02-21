@@ -31,6 +31,11 @@ val of_fpath_exn : Fpath.t -> t
 val of_strings : string list -> t list * (string * string) list
 val of_fpaths : Fpath.t list -> t list * (Fpath.t * string) list
 
+(* Ignore missing or inaccessible files but log the errors in the hope
+   someone sees them. *)
+val of_strings_with_warnings : string list -> t list
+val of_fpaths_with_warnings : Fpath.t list -> t list
+
 (* Return the original path *)
 val to_fpath : t -> Fpath.t
 

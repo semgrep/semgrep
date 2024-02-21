@@ -74,11 +74,13 @@ let on_notification notification (server : RPC_server.t) =
         server
     | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
         let session =
-          let added, _errors =
-            Conv.workspace_folders_to_paths added |> Rfpath.of_fpaths
+          let added =
+            Conv.workspace_folders_to_paths added
+            |> Rfpath.of_fpaths_with_warnings
           in
-          let removed, _errors =
-            Conv.workspace_folders_to_paths removed |> Rfpath.of_fpaths
+          let removed =
+            Conv.workspace_folders_to_paths removed
+            |> Rfpath.of_fpaths_with_warnings
           in
           Session.update_workspace_folders server.session ~added ~removed
         in

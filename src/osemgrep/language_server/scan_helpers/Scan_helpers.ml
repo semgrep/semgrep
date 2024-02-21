@@ -69,7 +69,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                  want to create a way to pass them directly as "target files"
                  rather than "scanning roots".
               *)
-              let roots, _errors = Rfpath.of_fpaths targets in
+              let roots = Rfpath.of_fpaths_with_warnings targets in
               (* For now, we're going to just hard-code it at a whole scan, and
                  using the intrafile pro engine.
                  Interfile would likely be too intensive (and require us to target

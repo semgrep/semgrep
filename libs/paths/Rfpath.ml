@@ -2,6 +2,8 @@
    Realpath + original user-friendly path
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 type t = { fpath : Fpath.t; rpath : Rpath.t; cwd : Rpath.t }
 [@@deriving show, eq]
 
@@ -31,6 +33,21 @@ let of_fpaths paths =
          match of_fpath fpath with
          | Ok rpath -> Left rpath
          | Error msg -> Right (fpath, msg))
+
+let log_missing_path path msg =
+  Logs.err (fun m -> m ~tags "Cannot obtain realpath for %S: %s" path msg)
+
+let of_strings_with_warnings paths =
+  let res, missing = of_strings paths in
+  missing |> List.iter (fun (path, msg) -> log_missing_path path msg);
+  res
+
+let of_fpaths_with_warnings fpaths =
+  let res, missing = of_fpaths fpaths in
+  missing
+  |> List.iter (fun (fpath, msg) ->
+         log_missing_path (Fpath.to_string fpath) msg);
+  res
 
 let to_fpath x = x.fpath
 let to_rpath x = x.rpath
