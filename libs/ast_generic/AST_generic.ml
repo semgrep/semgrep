@@ -1537,7 +1537,6 @@ and keyword_attribute =
   | Private
   | Protected
   | Abstract (* a.k.a virtual in C++/Solidity *)
-  | ThreadLocal (* since C++11 *)
   (* for fields/methods in classes and also for classes themselves *)
   | Final
   | Override

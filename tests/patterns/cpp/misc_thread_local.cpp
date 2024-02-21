@@ -6,7 +6,13 @@
 // ERROR: match
 thread_local unsigned int rage = 1;
 
-// This should not match!
+// This should not match
+unsigned int another_rage = 1;
+
+// This should not match
+unsigned int yet_another_rage;
+
+// This should not match
 std::mutex cout_mutex;
 
 void increase_rage(const std::string &thread_name) {

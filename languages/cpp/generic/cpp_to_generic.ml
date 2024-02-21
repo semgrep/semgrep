@@ -1991,7 +1991,7 @@ and map_storage _env (x, t) : G.attribute =
   | Register -> G.unhandled_keywordattr ("register", t)
   | Extern -> G.attr G.Extern t
   | StoInline -> G.attr G.Inline t
-  | ThreadLocal -> G.attr G.ThreadLocal t
+  | ThreadLocal -> G.unhandled_keywordattr ("thread_local", t)
 
 and map_pointer_modifier env x : G.attribute =
   match x with
