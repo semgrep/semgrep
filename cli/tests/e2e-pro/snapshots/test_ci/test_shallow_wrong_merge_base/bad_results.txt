@@ -3,7 +3,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-2
+1
 === end of exit code
 
 === stdout - plain
@@ -29,31 +29,56 @@ Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f
 └─────────────┘
   Scanning 2 files tracked by git with 4 Code rules:
   Scanning 2 files with 4 python rules.
-[ERROR] Error while running rules:
-                    You are seeing this because the engine was killed.
+  Current version has 3 findings.
 
-                    The most common reason this happens is because it used too much memory.
-                    If your repo is large (~10k files or more), you have three options:
-                    1. Increase the amount of memory available to semgrep
-                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
-                        recommend using 1 job if you are running out of memory.
-                    3. Scan the repo in parts (contact us for help)
+Creating git worktree from 'b903231925961ac9d787ae53ee0bd15ec156e689' to scan baseline.
+  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
+    * 7b5cda4 commit #4
+    * 5b37988 commit #3
 
-                    Otherwise, it is likely that semgrep is hitting the limit on only some
-                    files. In this case, you can try to set the limit on the amount of memory
-                    semgrep can use on each file with `--max-memory <memory>`. We recommend
-                    lowering this to a limit 70% of the available memory. For CI runs with
-                    interfile analysis, the default max-memory is 5000MB. Without, the default
-                    is unlimited.
 
-                    The last thing you can try if none of these work is to raise the stack
-                    limit with `ulimit -s <limit>`.
 
-                    If you have tried all these steps and still are seeing this error, please
-                    contact us.
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
 
-                       Error: semgrep-core exited with unexpected output
 
+┌──────────────────────────────┐
+│ 2 Non-blocking Code Findings │
+└──────────────────────────────┘
+
+    bar.py
+   ❯❯❱ eqeq-five
+          useless comparison to 5
+
+           ▶▶┆ Autofix ▶ (bar == 2)
+            1┆ bar == 5
+
+    foo.py
+   ❯❯❱ eqeq-five
+          useless comparison to 5
+
+           ▶▶┆ Autofix ▶ (foo == 2)
+            2┆ foo == 5
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files changed since baseline commit.
+
+CI scan completed successfully.
+  Found 2 findings (0 blocking) from 7 rules.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings?&repo=org_name/project_name/project_name
+    https://semgrep.dev/orgs/org_name/supply-chain
+  No blocking findings so exiting with code 0
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stdout - plain
 
