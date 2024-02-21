@@ -2890,7 +2890,8 @@ and m_entity a b =
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
       let* () = m_entity_name a1 b1 in
       let* () = m_attributes a2 b2 in
-      m_option (m_bracket m_list__m_type_parameter) a4 b4
+      (* less-is-more: *)
+      m_option_none_can_match_some (m_bracket m_list__m_type_parameter) a4 b4
 
 and m_list__m_type_parameter a b =
   match a with
