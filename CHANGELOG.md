@@ -6,6 +6,82 @@
 
 <!-- insertion point -->
 
+## [1.62.0](https://github.com/returntocorp/semgrep/releases/tag/v1.62.0) - 2024-02-21
+
+
+### Added
+
+
+- Pro: Adds support for python constructors to taint analysis.
+
+  If interfile naming resolves that a python constructor is called taint
+  will now track these objects with less heuristics. Without interfile
+  analysis these changes have no effect on the behavior of tainting.
+  The overall result is that in the following program the oss analysis
+  would match both calls to sink while the interfile analysis would only
+  match the second call to sink.
+
+  ```
+  class A:
+      untainted = "not"
+      tainted = "not"
+      def __init__(self, x):
+      	self.tainted = x
+
+  a = A("tainted")
+  # OK:
+  sink(a.untainted)
+  # MATCH:
+  sink(a.tainted)
+  ``` (ea-272)
+- Pro: taint-mode: Added basic support for "index sensitivity", that is,
+  Semgrep will track taint on individual indexes of a data structure when
+  these are constant values (integers or strings), and the code uses the
+  built-in syntax for array indexing in the corresponding language
+  (typically `E[i]`). For example, in the Python code below Semgrep Pro
+  will _not_ report a finding on `sink(x)` or `sink(x[1])` because it will
+  know that only `x[42]` is tainted:
+
+  ```python
+  x[1] = safe
+  x[42] = source()
+  sink(x) // no more finding
+  sink(x[1]) // no more finding
+  sink(x[42]) // finding
+  sink(x[i]) // finding
+  ```
+
+  There is still a finding for `sink(x[i])` when `i` is not constant. (flow-7)
+
+
+### Changed
+
+
+- taint-mode: Added `exact: false` sinks so that one can specify that _anything_
+  inside a code region is a sink, e.g. `if (...) { ... }`. This used to be the
+  semantics of sink specifications until Semgrep 1.1.0, when we made sink matching
+  more precise by default. Now we allow reverting to the old semantics.
+
+  In addition, when `exact: true` (the default), we simplified the heuristic used
+  to support traditional `sink(...)`-like specs together with the option
+  `taint_assume_safe_functions: true`, now we will consider that if the spec
+  formula is not a `patterns` with a `focus-metavarible`, then we must look for
+  taint in the arguments of a function call. (flow-1)
+
+
+### Fixed
+
+
+- taint-mode: experimental: For now Semgrep CLI taint traces are not adapted to
+  support multiple labels, so Semgrep picks one arbitrary label to report, which
+  sometimes it's not the desired one. As a temporary workaround, Semgrep will
+  look at the `requires` of the sink, and if it has the shape `A and ...`, then
+  it will pick `A` as the preferred label and report its trace. (flow-65)
+- Fixed trailing newline parsing in pyproject.toml and poetry.lock files. (gh-9777)
+- The tokens for type parameters brackets are now stored in the generic AST allowing
+  to correctly autofix those constructs. (tparams)
+
+
 ## [1.61.1](https://github.com/returntocorp/semgrep/releases/tag/v1.61.1) - 2024-02-14
 
 

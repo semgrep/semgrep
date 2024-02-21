@@ -1,5 +1,0 @@
-taint-mode: experimental: For now Semgrep CLI taint traces are not adapted to
-support multiple labels, so Semgrep picks one arbitrary label to report, which
-sometimes it's not the desired one. As a temporary workaround, Semgrep will
-look at the `requires` of the sink, and if it has the shape `A and ...`, then
-it will pick `A` as the preferred label and report its trace.
