@@ -665,8 +665,8 @@ let upload_findings ~dry_run (caps : < Cap.network ; .. >)
       in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m "    https://semgrep.dev/orgs/%s/findings?&repo=%s/%s"
-            deployment_config.name deployment_config.name repo_display_name);
+          m "    https://semgrep.dev/orgs/%s/findings?&repo=%s"
+            deployment_config.name repo_display_name);
       if
         filtered_rules
         |> List.exists (fun r ->

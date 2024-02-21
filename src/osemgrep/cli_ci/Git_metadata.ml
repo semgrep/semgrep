@@ -176,7 +176,7 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
             Git_wrapper.git_check_output caps#exec
               [ "rev-parse"; "--show-toplevel" ]
           in
-          Fpath.basename (Fpath.v str)
+          Printf.sprintf "local_scan/%s" (Fpath.basename (Fpath.v str))
 
     method repo_display_name =
       match env._SEMGREP_REPO_DISPLAY_NAME with
