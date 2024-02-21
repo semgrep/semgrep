@@ -53,7 +53,7 @@ let rule_files_and_rules_of_config_string caps
     raise
       (Error.Semgrep_error
          ( Common.spf "invalid configuration string found: %s" config_string,
-           Some Exit_code.missing_config ));
+           Some (Exit_code.missing_config ~__LOC__) ));
 
   rules_and_origin
   |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
@@ -262,7 +262,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
       }
   in
   report_tests_result ~json:conf.json res;
-  if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
+  if !total_mismatch > 0 then Exit_code.fatal ~__LOC__
+  else Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)
