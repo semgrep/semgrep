@@ -43,7 +43,7 @@ let string = id
 let fake tok s = Tok.fake_tok tok s
 let unsafe_fake s = Tok.unsafe_fake_tok s
 let fb = Tok.unsafe_fake_bracket
-let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
+let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = None }
 
 (*****************************************************************************)
 (* Entry point *)
@@ -848,7 +848,7 @@ and definition def =
         | Left id -> G.EN (G.Id (id, G.empty_id_info ()))
         | Right e -> G.EDynamic e
       in
-      let ent = { G.name = name_or_dyn; attrs = []; tparams = [] } in
+      let ent = { G.name = name_or_dyn; attrs = []; tparams = None } in
       let def = G.OtherDef (("Alias", t), [ method_name_to_any mn2 ]) in
       G.DefStmt (ent, def) |> G.s
   | Undef (t, mns) ->

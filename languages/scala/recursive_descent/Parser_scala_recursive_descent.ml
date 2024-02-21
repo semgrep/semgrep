@@ -3500,7 +3500,8 @@ let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
  *  TypeParam             ::= Id TypeParamClauseOpt TypeBounds {`<%` Type} {`:` Type}
  *  }}}
 *)
-let rec typeParamClauseOpt _owner _contextBoundBuf in_ : type_parameters =
+let rec typeParamClauseOpt _owner _contextBoundBuf in_ : type_parameters option
+    =
   in_
   |> with_logging "typeParamClauseOpt" (fun () ->
          let typeParam in_ =
@@ -3645,7 +3646,8 @@ let constrExpr vparamss in_ : expr =
  *  FunSig ::= id [FunTypeParamClause] ParamClauses
  *  }}}
 *)
-let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
+let funDefRest fkind _attrs name in_ :
+    function_definition * type_parameters option =
   in_
   |> with_logging "funDefRest" (fun () ->
          (* let newmods = ref attrs in *)

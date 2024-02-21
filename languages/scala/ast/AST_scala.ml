@@ -418,7 +418,7 @@ and type_parameter = {
   tpvariance : variance wrap option;
   tpannots : annotation list;
   (* wow, this is complicated *)
-  tpparams : type_parameters;
+  tpparams : type_parameters option;
   tpbounds : type_bounds;
   tpviewbounds : (* <% *) type_ list;
   tpcolons : (* : *) type_ list;
@@ -429,7 +429,7 @@ and variance =
   (* + *)
   | Contravariant (* - *)
 
-and type_parameters = type_parameter list bracket option
+and type_parameters = type_parameter list bracket
 
 (*****************************************************************************)
 (* Definitions *)
@@ -464,7 +464,7 @@ and entity = {
   (* can be "this" for constructor *)
   name : ident;
   attrs : attribute list;
-  tparams : type_parameters;
+  tparams : type_parameters option;
 }
 
 (* less: also work for declaration, in which case the [fc]body is empty *)
@@ -484,7 +484,7 @@ and end_marker = { end_tok : tok; end_kind : tok }
 (*****************************************************************************)
 and extension = {
   ext_tok : tok; (* extension *)
-  ext_tparams : type_parameters;
+  ext_tparams : type_parameters option;
   ext_using : bindings list;
   ext_param : binding;
   ext_methods : ext_method list;
@@ -499,7 +499,7 @@ and enum_case_definition = EnumConstr of enum_constr | EnumIds of ident list
 
 and enum_constr = {
   eid : ident;
-  etyparams : type_parameters;
+  etyparams : type_parameters option;
   eparams : bindings list;
   eattrs : attribute list;
   eextends : constr_app list;
@@ -595,7 +595,7 @@ and template_kind =
 (* ------------------------------------------------------------------------- *)
 and given_sig = {
   g_id : ident option;
-  g_tparams : type_parameters;
+  g_tparams : type_parameters option;
   g_using : bindings list;
   g_colon : tok;
 }

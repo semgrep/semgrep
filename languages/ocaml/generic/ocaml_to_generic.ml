@@ -130,8 +130,8 @@ and type_kind = function
       let v1 = type_ v1 and v2 = type_ v2 in
       G.TyFun ([ G.Param (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
-      let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> list (fun t -> G.TA t)))
+      let l, v1, r = bracket (list type_) v1 and v2 = name v2 in
+      G.TyApply (G.TyN v2 |> G.t, (l, v1 |> list (fun t -> G.TA t), r))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
@@ -334,7 +334,7 @@ and expr e =
                    G.basic_field id (Some v2) None
                | _ ->
                    let n = name v1 in
-                   let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+                   let ent = { G.name = G.EN n; attrs = []; tparams = None } in
                    let def = G.VarDef { G.vinit = Some v2; vtype = None } in
                    G.fld (ent, def)))
           v2
@@ -579,11 +579,11 @@ and class_field (fld : class_field) : G.field =
 and type_declaration x =
   match x with
   | TyDecl { tname; tparams; tbody } ->
-      let v1 = ident tname in
-      let v2 = list type_parameter tparams in
-      let v3 = type_def_kind tbody in
-      let entity = { (G.basic_entity v1) with G.tparams = v2 } in
-      let def = { G.tbody = v3 } in
+      let id = ident tname in
+      let tparams = option (bracket (list type_parameter)) tparams in
+      let tbody = type_def_kind tbody in
+      let entity = { (G.basic_entity id) with G.tparams } in
+      let def = { G.tbody } in
       Either.Left (entity, def)
   | TyDeclTodo categ -> Either.Right categ
 
@@ -660,7 +660,7 @@ and attribute x =
 and class_binding (c_tok : Tok.t) (binding : class_binding) : G.definition =
   let { c_name; c_tparams; c_params; c_body } = binding in
   let id = ident c_name in
-  let tparams = list type_parameter c_tparams in
+  let tparams = option (bracket (list type_parameter)) c_tparams in
   let ent = G.basic_entity ~tparams id in
   let cparams = fb (list parameter c_params) in
   let cbody =

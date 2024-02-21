@@ -181,6 +181,76 @@ exports[`misc js representation handles large ints 1`] = `
               "children": [],
               "loc": {
                 "end": {
+                  "col": 73,
+                  "line": 9,
+                  "offset": 190,
+                },
+                "path": "test-representation.json",
+                "start": {
+                  "col": 24,
+                  "line": 9,
+                  "offset": 141,
+                },
+              },
+              "matches": [
+                {
+                  "check_id": "test",
+                  "end": {
+                    "col": 30,
+                    "line": 1,
+                    "offset": 29,
+                  },
+                  "extra": {
+                    "engine_kind": "OSS",
+                    "is_ignored": false,
+                    "message": "test",
+                    "metavars": {
+                      "$ABOVE_SIGNED_INT32": {
+                        "abstract_content": "3000000000",
+                        "end": {
+                          "col": 29,
+                          "line": 1,
+                          "offset": 28,
+                        },
+                        "start": {
+                          "col": 19,
+                          "line": 1,
+                          "offset": 18,
+                        },
+                      },
+                      "$BELOW_SIGNED_INT32": {
+                        "abstract_content": "2000000000",
+                        "end": {
+                          "col": 17,
+                          "line": 1,
+                          "offset": 16,
+                        },
+                        "start": {
+                          "col": 7,
+                          "line": 1,
+                          "offset": 6,
+                        },
+                      },
+                    },
+                    "validation_state": "NO_VALIDATOR",
+                  },
+                  "path": "test-representation.py",
+                  "start": {
+                    "col": 1,
+                    "line": 1,
+                    "offset": 0,
+                  },
+                },
+              ],
+              "op": [
+                "XPat",
+                "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)",
+              ],
+            },
+            {
+              "children": [],
+              "loc": {
+                "end": {
                   "col": 112,
                   "line": 12,
                   "offset": 342,
@@ -250,15 +320,15 @@ exports[`misc js representation handles large ints 1`] = `
           ],
           "loc": {
             "end": {
-              "col": 73,
-              "line": 9,
-              "offset": 190,
+              "col": 20,
+              "line": 10,
+              "offset": 211,
             },
             "path": "test-representation.json",
             "start": {
-              "col": 24,
-              "line": 9,
-              "offset": 141,
+              "col": 13,
+              "line": 10,
+              "offset": 204,
             },
           },
           "matches": [
@@ -311,10 +381,7 @@ exports[`misc js representation handles large ints 1`] = `
               },
             },
           ],
-          "op": [
-            "XPat",
-            "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)",
-          ],
+          "op": "And",
         },
       ],
       "loc": {

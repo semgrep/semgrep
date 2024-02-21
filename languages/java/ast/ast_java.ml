@@ -389,6 +389,7 @@ and enum_body_decls = decls
 and class_decl = {
   cl_name : ident;
   cl_kind : class_kind wrap;
+  (* TODO: bracket option *)
   cl_tparams : type_parameter list;
   cl_mods : modifiers;
   (* always at None for interface *)
