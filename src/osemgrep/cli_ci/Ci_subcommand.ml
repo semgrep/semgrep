@@ -670,7 +670,7 @@ let upload_findings ~dry_run (caps : < Cap.network ; .. >)
       in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m "    https://semgrep.dev/orgs/%s/findings?&repo=%s%s"
+          m "    https://semgrep.dev/orgs/%s/findings?repo=%s%s"
             deployment_config.name repo_display_name ref_if_branch_detected);
       if
         filtered_rules
