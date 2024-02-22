@@ -96,7 +96,7 @@ let parse_pattern lang pattern =
 
 let parse_target lang text =
   (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
-  Common2.with_tmp_file ~str:text ~ext:"check" (fun file ->
+  UTmp.with_tmp_file ~str:text ~ext:"check" (fun file ->
       try Ok (Parse_target.just_parse_with_lang lang file) with
       | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       | e ->
@@ -296,8 +296,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
   let rex = Pcre_.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
-    Range.content_at_range
-      !!(pm.path.internal_path_to_content)
+    Range.content_at_range pm.path.internal_path_to_content
       Range.{ start; end_ = end_ - 1 }
   in
   (* What is this for?
@@ -377,7 +376,7 @@ let produce_autofixes (matches : Core_result.processed_match list) =
     matches
 
 let apply_fixes_to_file edits ~file =
-  let file_text = UCommon.read_file file in
+  let file_text = UFile.Legacy.read_file file in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->

@@ -33,7 +33,7 @@ let stat_matches file =
 module T = Genlex
 
 let ebnf_to_menhir file =
-  let xs = UCommon.cat file in
+  let xs = UFile.cat file in
   let hkwd = Hashtbl.create 11 in
   let htokens = Hashtbl.create 11 in
   let lower = String.uncapitalize_ascii in

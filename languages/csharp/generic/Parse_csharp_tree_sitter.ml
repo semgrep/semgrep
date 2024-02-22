@@ -14,6 +14,7 @@
  *)
 open Common
 open Either_
+open Fpath_.Operators
 module CST = Tree_sitter_c_sharp.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
@@ -41,27 +42,39 @@ let str = H.str
 let fb = Tok.unsafe_fake_bracket
 
 (* less: we should check we consume all constraints *)
-let type_parameters_with_constraints tparams constraints : type_parameter list =
-  tparams
-  |> List_.map (function
-       (* we do not generate those semgrep constructs for now in
-        * semgrep-java, we parse Java patterns in the Java pfff parser *)
-       | TParamEllipsis _ -> raise Impossible
-       | OtherTypeParam (x, anys) ->
-           (* TODO: add constraints *)
-           OtherTypeParam (x, anys)
-       | TP tparam -> (
-           let with_constraints =
-             constraints
-             |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
-           in
-           match with_constraints with
-           | Some (_id, xs) ->
-               let _more_constraintsTODO, more_bounds =
-                 xs |> Either_.partition_either (fun x -> x)
-               in
-               TP { tparam with tp_bounds = more_bounds @ tparam.tp_bounds }
-           | None -> TP tparam))
+let type_parameters_with_constraints (tparams : type_parameters option)
+    constraints : type_parameters option =
+  match tparams with
+  (* TODO: possible to have constraints without tparams? *)
+  | None -> None
+  | Some (lt, tparams, gt) ->
+      let tparams' =
+        tparams
+        |> List_.map (function
+             (* we do not generate those semgrep constructs for now in
+              * semgrep-java, we parse Java patterns in the Java pfff parser *)
+             | TParamEllipsis _ -> raise Impossible
+             | OtherTypeParam (x, anys) ->
+                 (* TODO: add constraints *)
+                 OtherTypeParam (x, anys)
+             | TP tparam -> (
+                 let with_constraints =
+                   constraints
+                   |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
+                 in
+                 match with_constraints with
+                 | Some (_id, xs) ->
+                     let _more_constraintsTODO, more_bounds =
+                       xs |> Either_.partition_either (fun x -> x)
+                     in
+                     TP
+                       {
+                         tparam with
+                         tp_bounds = more_bounds @ tparam.tp_bounds;
+                       }
+                 | None -> TP tparam))
+      in
+      Some (lt, tparams', gt)
 
 let var_def_stmt (decls : (entity * variable_definition) list)
     (attrs : attribute list) =
@@ -1659,8 +1672,8 @@ and anon_opt_exp_rep_interp_alig_clause_cd88eaa (env : env)
   | None -> []
 
 and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
-    : G.type_parameter list =
-  let _v1 = token env v1 (* "<" *) in
+    : G.type_parameters =
+  let lt = token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
     List_.map
@@ -1670,8 +1683,8 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
         v2)
       v3
   in
-  let _v4 = token env v4 (* ">" *) in
-  v2 :: v3
+  let gt = token env v4 (* ">" *) in
+  (lt, v2 :: v3, gt)
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
     (G.todo_kind, type_) Either.t =
@@ -1893,15 +1906,11 @@ and statement (env : env) (x : CST.statement) =
       let v3 = type_pattern env v3 in
       let v4 = identifier env v4 (* identifier *) in
       let _, tok = v4 in
-      let v5 =
-        match v5 with
-        | Some x -> type_parameter_list env x
-        | None -> []
-      in
+      let tparams = Option.map (type_parameter_list env) v5 in
       let v6 = parameter_list env v6 in
       let v7 = List_.map (type_parameter_constraints_clause env) v7 in
       let v8 = function_body env v8 in
-      let tparams = type_parameters_with_constraints v5 v7 in
+      let tparams = type_parameters_with_constraints tparams v7 in
       let idinfo = empty_id_info () in
       let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams } in
       let def =
@@ -2843,7 +2852,7 @@ and namespace_declaration (env : env)
   let v2 = name env v2 in
   let open_brace, decls, close_brace = declaration_list env v3 in
   let body = G.Block (open_brace, decls, close_brace) |> G.s in
-  let ent = { name = EN v2; attrs = []; tparams = [] } in
+  let ent = { name = EN v2; attrs = []; tparams = None } in
   let mkind = G.ModuleStruct (None, [ body ]) in
   let def = { G.mbody = mkind } in
   G.DefStmt (ent, G.ModuleDef def) |> G.s
@@ -2871,11 +2880,7 @@ and class_interface_struct (env : env) class_kind
   let v2 = List_.map (modifier env) v2 in
   let v3 = token env v3 (* "class" *) in
   let v4 = identifier env v4 (* identifier *) in
-  let v5 =
-    match v5 with
-    | Some x -> type_parameter_list env x
-    | None -> []
-  in
+  let v5 = Option.map (type_parameter_list env) v5 in
   let v6 =
     match v6 with
     | Some x -> base_list env x
@@ -2916,11 +2921,7 @@ and struct_declaration (env : env)
   in
   let v4 = (* "struct" *) token env v4 in
   let v5 = identifier env v5 in
-  let v6 =
-    match v6 with
-    | Some x -> type_parameter_list env x
-    | None -> []
-  in
+  let v6 = Option.map (type_parameter_list env) v6 in
   let v7 =
     match v7 with
     | Some x -> base_list env x
@@ -2959,7 +2960,7 @@ and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
   let v6 = enum_member_declaration_list env v6 in
   let _v7 = opt_semi env v7 (* ";" *) in
   let idinfo = empty_id_info () in
-  let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams = [] } in
+  let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams = None } in
   G.DefStmt (ent, G.TypeDef { tbody = OrType v6 }) |> G.s
 
 and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
@@ -2968,11 +2969,7 @@ and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
   let _v3 = token env v3 (* "delegate" *) in
   let v4 = type_pattern env v4 in
   let v5 = identifier env v5 (* identifier *) in
-  let v6 =
-    match v6 with
-    | Some x -> type_parameter_list env x
-    | None -> []
-  in
+  let v6 = Option.map (type_parameter_list env) v6 in
   let _, params, _ = parameter_list env v7 in
   let v8 = List_.map (type_parameter_constraints_clause env) v8 in
   let _v9 = token env v9 (* ";" *) in
@@ -3051,7 +3048,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v9 = function_body env v9 in
       let idinfo = empty_id_info () in
       let ent =
-        { name = EN (Id (v3, idinfo)); attrs = v1 @ v2; tparams = [] }
+        { name = EN (Id (v3, idinfo)); attrs = v1 @ v2; tparams = None }
       in
       let def =
         G.FuncDef
@@ -3225,11 +3222,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v3 = type_pattern env v3 in
       let v5 = identifier env v5 (* identifier *) in
       let _, tok = v5 in
-      let v6 =
-        match v6 with
-        | Some x -> type_parameter_list env x
-        | None -> []
-      in
+      let v6 = Option.map (type_parameter_list env) v6 in
       let v7 = parameter_list env v7 in
       let v8 = List_.map (type_parameter_constraints_clause env) v8 in
       let v9 = function_body env v9 in
@@ -3268,7 +3261,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       (* TODO make clear that this is an operator overload, by using IdSpecial as the name, or adding a keyword attribute *)
       let idinfo = empty_id_info () in
       let ent =
-        { name = EN (Id (v7, idinfo)); attrs = v1 @ v2; tparams = [] }
+        { name = EN (Id (v7, idinfo)); attrs = v1 @ v2; tparams = None }
       in
       let def =
         G.FuncDef
@@ -3371,7 +3364,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_c_sharp.Parse.file file)
+    (fun () -> Tree_sitter_c_sharp.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match compilation_unit env cst with
@@ -3395,6 +3388,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_pattern_aux str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       compilation_unit env cst)

@@ -13,13 +13,14 @@
  * license.txt for more details.
  *)
 open Parse_js
+open Fpath_.Operators
 module TH = Token_helpers_js
 module Flag = Flag_parsing
 
 let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
-let parse_program filename =
-  let toks = tokens (Parsing_helpers.file filename) in
+let parse_program (filename : Fpath.t) =
+  let toks = tokens (Parsing_helpers.file !!filename) in
   (* need need parsing hacks fix I think *)
   let tr, lexer, lexbuf_fake =
     Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment

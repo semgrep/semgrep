@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
@@ -425,13 +426,12 @@ let map_storage_class_specifier (env : env) (x : CST.storage_class_specifier) :
   | `Static tok -> (Static, token env tok) (* "static" *)
   | `Regi tok -> (Register, token env tok) (* "register" *)
   | `Inline tok -> (StoInline, token env tok)
-  | `Thread_local tok -> (ThreadLocal, token env tok)
+  | `Thread_local tok -> (ThreadLocal, token env tok) (* "thread_local" *)
   (* the difference between these two is just which implementation you are using *)
   | `X___inline tok -> (StoInline, (* "__inline" *) token env tok)
   | `X___inline__ tok -> (StoInline, (* "__inline__" *) token env tok)
   | `X___forc tok -> (StoInline, (* "__forceinline" *) token env tok)
   | `X___thread tok -> (ThreadLocal, (* "__thread" *) token env tok)
-(* "thread_local" *)
 
 (* "inline" *)
 
@@ -4980,7 +4980,7 @@ and map_variadic_parameter_declaration (env : env)
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_cpp.Parse.file file)
+    (fun () -> Tree_sitter_cpp.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_program_or_expr env cst with
@@ -4999,7 +4999,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let x = map_program_or_expr env cst in
       match x with

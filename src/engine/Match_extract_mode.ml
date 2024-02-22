@@ -90,9 +90,9 @@ let offsets_of_mval extract_mvalue =
 let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
     extracted_target =
   let suffix = Xlang.informative_suffix dst_lang in
-  let f = UCommon.new_temp_file "extracted" suffix in
-  UCommon.write_file ~file:f contents;
-  Extracted (Fpath.v f)
+  let f = UTmp.new_temp_file "extracted" suffix in
+  UFile.write_file ~file:f contents;
+  Extracted f
 
 (* Unquote string *)
 (* TODO: This is not yet implemented *)
@@ -269,8 +269,8 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
          (* Read the extracted text from the source file *)
          |> List_.map (fun { start_pos; start_line; start_col; end_pos } ->
                 let contents_raw =
-                  UCommon.with_open_infile
-                    !!(xtarget.path.internal_path_to_content) (fun chan ->
+                  UFile.with_open_in xtarget.path.internal_path_to_content
+                    (fun chan ->
                       let extract_size = end_pos - start_pos in
                       seek_in chan start_pos;
                       really_input_string chan extract_size)

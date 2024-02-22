@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open Either_
 module CST = Tree_sitter_rust.CST
 module H = Parse_tree_sitter_helpers
@@ -61,7 +62,7 @@ let in_pattern env =
 
 type function_declaration_rs = {
   name : G.entity_name;
-  type_params : G.type_parameter list;
+  type_params : G.type_parameters option;
   params : G.parameters;
   retval : G.type_ option;
 }
@@ -71,14 +72,14 @@ type lifetime = G.ident
 type trait_bound =
   | TraitBoundType of G.type_
   | TraitBoundLifetime of lifetime
-  | TraitBoundHigherRanked of G.type_parameter list * G.type_
+  | TraitBoundHigherRanked of G.type_parameters * G.type_
   | TraitBoundRemoved of G.type_
 
 type where_predicate_type =
   | WherePredLifetime of lifetime
   | WherePredId of G.ident
   | WherePredType of G.type_
-  | WherePredHigherRanked of G.type_parameter list * G.type_
+  | WherePredHigherRanked of G.type_parameters * G.type_
 
 type where_predicate = where_predicate_type * trait_bound list
 type where_clause = where_predicate list
@@ -986,11 +987,7 @@ and map_associated_type (env : env) ((v1, v2, v3, v4, v5) : CST.associated_type)
   let _type_TODO = token env v1 (* "type" *) in
   let ident = ident env v2 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  let type_params =
-    match v3 with
-    | Some x -> map_type_parameters env x
-    | None -> []
-  in
+  let type_params = Option.map (map_type_parameters env) v3 in
   let _trait_bounds =
     match v4 with
     | Some x -> map_trait_bounds env x
@@ -1239,7 +1236,7 @@ and map_const_item (env : env) outer_attrs
     {
       G.name = G.EN (G.Id (ident, G.empty_id_info ()));
       G.attrs;
-      G.tparams = [];
+      G.tparams = None;
     }
   in
   G.DefStmt (ent, G.VarDef var_def) |> G.s
@@ -1785,7 +1782,7 @@ and map_field_declaration (env : env) (x : CST.field_declaration) : G.field =
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
           G.attrs;
-          G.tparams = [];
+          G.tparams = None;
         }
       in
       G.fld (ent, G.FieldDefColon var_def)
@@ -1989,7 +1986,7 @@ and map_field_initializer_list (env : env)
        {
          G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = deoptionalize [ Some static_attr; mutability ];
-         G.tparams = [];
+         G.tparams = None;
        }
      in
      G.DefStmt (ent, G.VarDef var_def) |> G.s
@@ -2016,11 +2013,7 @@ and map_function_declaration (env : env) (v1, v2, v3, v4, v5) :
         (* pattern \$[a-zA-Z_]\w* *)
         G.EDynamic (G.N (G.Id (metavar, G.empty_id_info ())) |> G.e)
   in
-  let type_params =
-    match v2 with
-    | Some x -> map_type_parameters env x
-    | None -> []
-  in
+  let type_params = Option.map (map_type_parameters env) v2 in
   let params = map_parameters env v3 in
   let retval =
     Option.map
@@ -2181,7 +2174,7 @@ and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
        {
          G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = [ const_attr ];
-         G.tparams = [];
+         G.tparams = None;
        }
      in
      G.DefStmt (ent, G.VarDef var_def) |> G.s
@@ -2327,7 +2320,7 @@ and map_ordered_field (_env : env) _outer_attrsTODO
     {
       G.name = G.EDynamic (G.L (G.Int (Parsed_int.of_int index)) |> G.e);
       G.attrs = [];
-      G.tparams = [];
+      G.tparams = None;
     }
   in
   G.fld (ent, G.FieldDefColon var_def)
@@ -2819,8 +2812,8 @@ and map_statement (env : env) (attrs : G.attribute list) (x : CST.statement) :
          G.F (G.ExprStmt (invo, sc) |> G.s)
 *)
 and map_higher_ranked_trait_bound (env : env)
-    ((v1, v2, v3) : CST.higher_ranked_trait_bound) :
-    G.type_parameter list * G.type_ =
+    ((v1, v2, v3) : CST.higher_ranked_trait_bound) : G.type_parameters * G.type_
+    =
   let _for_TODO = token env v1 (* "for" *) in
   let type_parameters = map_type_parameters env v2 in
   let type_ = map_type_ env v3 in
@@ -2959,8 +2952,8 @@ and map_type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) :
   (lthan, typearg_first :: typearg_rest, gthan)
 
 and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
-    : G.type_parameter list =
-  let _lthan = token env v1 (* "<" *) in
+    : G.type_parameters =
+  let lt = token env v1 (* "<" *) in
   let type_param_first = map_type_parameter env v2 in
   let type_param_rest =
     List_.map
@@ -2971,8 +2964,8 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
       v3
   in
   let _comma = Option.map (fun tok -> token env tok (* "," *)) v4 in
-  let _gthan = token env v5 (* ">" *) in
-  type_param_first :: type_param_rest
+  let gt = token env v5 (* ">" *) in
+  (lt, type_param_first :: type_param_rest, gt)
 
 (* was map_simple_path_ident *)
 and map_path_ident env x =
@@ -3222,7 +3215,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
           (* Patterns are difficult to convert to expressions, so wrap it *)
           G.name = G.EPattern pattern;
           G.attrs = attrs @ outer_attrs;
-          G.tparams = [];
+          G.tparams = None;
         }
       in
       [ G.DefStmt (ent, G.VarDef var_def) |> G.s ]
@@ -3281,7 +3274,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
           G.attrs = outer_attrs;
-          G.tparams = [];
+          G.tparams = None;
         }
       in
       let macro_def = convert_macro_def macro_def in
@@ -3300,7 +3293,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
           G.attrs = outer_attrs;
-          G.tparams = [];
+          G.tparams = None;
         }
       in
       [ G.DefStmt (ent, G.ModuleDef mod_def) |> G.s ]
@@ -3312,11 +3305,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let struct_ = token env v1 (* "struct" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let type_params =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (map_type_parameters env) v3 in
       let fields, _where_clauseTODO =
         match v4 with
         | `Opt_where_clause_field_decl_list (v1, v2) ->
@@ -3361,11 +3350,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let _unionTODO = token env v1 (* "union" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let type_params =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (map_type_parameters env) v3 in
       let _where_clauseTODO =
         match v4 with
         | Some x -> map_where_clause env x
@@ -3385,11 +3370,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let _enumTODO = token env v1 (* "enum" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let type_params =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (map_type_parameters env) v3 in
       let _where_clause = Option.map (fun x -> map_where_clause env x) v4 in
       let body = map_enum_variant_list env v5 in
       let type_def = { G.tbody = body } in
@@ -3405,11 +3386,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let _type_TODO = token env v1 (* "type" *) in
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let type_params =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (map_type_parameters env) v3 in
       let _equals = token env v4 (* "=" *) in
       let _tyTODO = map_type_ env v5 in
       let _where_clauseTODO = Option.map (fun x -> map_where_clause env x) v6 in
@@ -3463,11 +3440,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       in
       let attrs = deoptionalize [ unsafe_attr ] @ outer_attrs in
       let impl = ident env v2 (* "impl" *) in
-      let tparams =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let tparams = Option.map (map_type_parameters env) v3 in
       let _trait_typeTODO =
         Option.map
           (fun (v1, v2, v3) ->
@@ -3513,11 +3486,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let trait = token env v2 (* "trait" *) in
       let ident = ident env v3 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let _type_paramsTODO =
-        match v4 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let _type_paramsTODO = Option.map (map_type_parameters env) v4 in
       let _trait_boundsTODO =
         match v5 with
         | Some x -> map_trait_bounds env x
@@ -3539,7 +3508,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
           G.attrs;
-          G.tparams = [];
+          G.tparams = None;
         }
       in
       [ G.DefStmt (ent, G.ClassDef class_def) |> G.s ]
@@ -3598,7 +3567,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
           G.attrs = attrs @ outer_attrs;
-          G.tparams = [];
+          G.tparams = None;
         }
       in
       [ G.DefStmt (ent, G.VarDef var_def) |> G.s ]
@@ -3666,7 +3635,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_rust.Parse.file file)
+    (fun () -> Tree_sitter_rust.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
@@ -3691,7 +3660,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

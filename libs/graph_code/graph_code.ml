@@ -498,7 +498,7 @@ let bottom_up_numbering g =
 (* Graph adjustments *)
 (*****************************************************************************)
 let load_adjust file =
-  UCommon.cat file
+  UFile.Legacy.cat file
   |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
@@ -506,7 +506,7 @@ let load_adjust file =
          | _ -> failwith ("wrong line format in adjust file: " ^ s))
 
 let load_whitelist file =
-  UCommon.cat file
+  UFile.Legacy.cat file
   |> List.map (fun s ->
          if s =~ "\\(.*\\) --> \\(.*\\) " then
            let s1, s2 = Common.matched2 s in
@@ -514,7 +514,7 @@ let load_whitelist file =
          else failwith (spf "load_whitelist: wrong line: %s" s))
 
 let save_whitelist xs file g =
-  UCommon.with_open_outfile file (fun (pr_no_nl, _chan) ->
+  UFile.Legacy.with_open_outfile file (fun (pr_no_nl, _chan) ->
       xs
       |> List.iter (fun (n1, n2) ->
              let file = file_of_node n2 g in
@@ -552,7 +552,7 @@ let adjust_graph g xs whitelist =
 (*****************************************************************************)
 (* assumes a "path/to/file.x" -> "path/to/file2.x" format *)
 let graph_of_dotfile dotfile =
-  let xs = UCommon.cat dotfile in
+  let xs = UFile.Legacy.cat dotfile in
   let deps =
     xs
     |> List_.map_filter (fun s ->

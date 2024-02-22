@@ -114,7 +114,7 @@ let apply_edits ~dryrun edits =
   let all_conflicting_edits = ref [] in
   Hashtbl.iter
     (fun file file_edits ->
-      let file_text = UCommon.read_file file in
+      let file_text = UFile.Legacy.read_file file in
       let file_edits =
         List_.map (remove_newline_for_empty_replacement file_text) file_edits
       in
@@ -126,7 +126,7 @@ let apply_edits ~dryrun edits =
             partial_result
       in
       (* TOPORT: when dryrun, report fixed lines *)
-      if not dryrun then UCommon.write_file ~file new_text)
+      if not dryrun then UFile.Legacy.write_file ~file new_text)
     edits_by_file;
   let modified_files = Hashtbl.to_seq_keys edits_by_file |> List.of_seq in
   let conflicting_edits = List.concat !all_conflicting_edits in

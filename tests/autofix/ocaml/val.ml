@@ -1,0 +1,2 @@
+(* MATCH: *)
+val foo: int

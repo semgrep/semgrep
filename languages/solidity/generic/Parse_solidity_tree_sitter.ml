@@ -14,6 +14,7 @@
  *)
 open Common
 open Either_
+open Fpath_.Operators
 module CST = Tree_sitter_solidity.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
@@ -903,7 +904,7 @@ let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
           (lp, ids |> List_.map (fun id -> PatId (id, G.empty_id_info ())), rp)
         |> G.p
       in
-      let ent = { name = EPattern pat; attrs = []; tparams = [] } in
+      let ent = { name = EPattern pat; attrs = []; tparams = None } in
       let def = { vinit = eopt; vtype = None } in
       (ent, VarDef def)
 
@@ -1969,7 +1970,7 @@ let map_variable_declaration_statement (env : env)
         let pat = map_variable_declaration_tuple env v1 in
         let _teq = (* "=" *) token env v2 in
         let e = map_expression env v3 in
-        let ent = { name = EPattern pat; attrs = []; tparams = [] } in
+        let ent = { name = EPattern pat; attrs = []; tparams = None } in
         let vdef = { vinit = Some e; vtype = None } in
         (ent, vdef)
   in
@@ -2495,7 +2496,7 @@ let map_source_file (env : env) (x : CST.source_file) : any =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_solidity.Parse.file file)
+    (fun () -> Tree_sitter_solidity.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_source_file env cst with
@@ -2508,6 +2509,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_solidity.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       map_source_file env cst)

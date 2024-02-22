@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module Flag = Flag_semgrep
 
 let tags = Logs_.create_tags [ __MODULE__ ]
@@ -33,9 +34,8 @@ let debug_exn = ref false
 
 (* TODO: switch to Fpath.t *)
 type 'ast parser =
-  | Pfff of (string (* filename *) -> 'ast * Parsing_stat.t)
-  | TreeSitter of
-      (string (* filename *) -> 'ast Tree_sitter_run.Parsing_result.t)
+  | Pfff of (Fpath.t -> 'ast * Parsing_stat.t)
+  | TreeSitter of (Fpath.t -> 'ast Tree_sitter_run.Parsing_result.t)
 
 (*
    This type is parametrized by the AST type because we don't always
@@ -141,14 +141,13 @@ let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 let has_serious_errors (res : _ Tree_sitter_run.Parsing_result.t) =
   List.find_opt (fun err -> is_serious_error err) res.errors
 
-let (run_parser : 'ast parser -> string (* filename *) -> 'ast internal_result)
-    =
+let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
  fun parser file ->
   match parser with
   | Pfff f ->
       Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
           Logs.debug (fun m ->
-              m ~tags "trying to parse with Pfff parser %s" file);
+              m ~tags "trying to parse with Pfff parser %s" !!file);
           try
             let res = f file in
             ResOk res
@@ -162,10 +161,10 @@ let (run_parser : 'ast parser -> string (* filename *) -> 'ast internal_result)
               ResError e)
   | TreeSitter f -> (
       Logs.debug (fun m ->
-          m ~tags "trying to parse with TreeSitter parser %s" file);
+          m ~tags "trying to parse with TreeSitter parser %s" !!file);
       try
         let res = f file in
-        let stat = stat_of_tree_sitter_stat file res.stat in
+        let stat = stat_of_tree_sitter_stat !!file res.stat in
         match (res.program, has_serious_errors res) with
         | None, None ->
             let msg =
@@ -197,12 +196,11 @@ let (run_parser : 'ast parser -> string (* filename *) -> 'ast internal_result)
               m ~tags "exn (%s) with TreeSitter parser" (Common.exn_to_s exn));
           ResError e)
 
-let rec (run_either :
-          string (* filename *) -> 'ast parser list -> 'ast internal_result) =
+let rec (run_either : Fpath.t -> 'ast parser list -> 'ast internal_result) =
  fun file xs ->
   match xs with
   | [] ->
-      ResError (Exception.trace (Failure (spf "no parser found for %s" file)))
+      ResError (Exception.trace (Failure (spf "no parser found for %s" !!file)))
   | p :: xs -> (
       let res = run_parser p file in
       match res with
@@ -247,7 +245,7 @@ let rec (run_either :
 (*****************************************************************************)
 
 let (run :
-      string (* filename *) ->
+      Fpath.t ->
       'ast parser list ->
       ('ast -> AST_generic.program) ->
       Parsing_result2.t) =
@@ -324,11 +322,9 @@ let run_pattern ~print_errors parsers program =
 
 (* Simplified version of 'run' that allows for plugins to hide the
    intermediate AST type. *)
-let run_external_parser file
-    (parse :
-      string (* filename *) ->
-      AST_generic.program Tree_sitter_run.Parsing_result.t) : Parsing_result2.t
-    =
+let run_external_parser (file : Fpath.t)
+    (parse : Fpath.t -> AST_generic.program Tree_sitter_run.Parsing_result.t) :
+    Parsing_result2.t =
   run file [ TreeSitter parse ] (fun ast -> ast)
 
 let throw_tokens f file =

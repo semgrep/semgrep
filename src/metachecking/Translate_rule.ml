@@ -38,7 +38,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 let rec range_to_string (range : (Tok.location * Tok.location) option) =
   match range with
   | Some (start, end_) ->
-      UCommon.with_open_infile start.pos.file (fun chan ->
+      UFile.Legacy.with_open_infile start.pos.file (fun chan ->
           let extract_size = end_.pos.bytepos - start.pos.bytepos in
           seek_in chan start.pos.bytepos;
           really_input_string chan extract_size)
@@ -125,18 +125,20 @@ and translate_taint_sink
     {
       sink_id = _;
       sink_formula;
+      sink_exact;
       sink_requires;
       sink_at_exit;
-      sink_is_func_with_focus = _;
+      sink_has_focus = _;
     } : [> `O of (string * Yaml.value) list ] =
   let (`O sink_f) = translate_formula sink_formula in
+  let exact_obj = if sink_exact then [] else [ ("exact", `Bool false) ] in
   let at_exit_obj = if sink_at_exit then [ ("at-exit", `Bool true) ] else [] in
   let requires_obj =
     match sink_requires with
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
-  `O (List.concat [ sink_f; requires_obj; at_exit_obj ])
+  `O (List.concat [ sink_f; exact_obj; requires_obj; at_exit_obj ])
 
 and translate_taint_sanitizer
     {

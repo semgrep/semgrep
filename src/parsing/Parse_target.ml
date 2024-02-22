@@ -58,7 +58,7 @@ let undefined_just_parse_with_lang _lang _file =
  *)
 let just_parse_with_lang_ref = ref undefined_just_parse_with_lang
 
-let just_parse_with_lang lang file =
+let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Parsing_result2.t =
   match lang with
   (* TODO: ideally this should also be in Parse_target2.ml, but we
    * still have a few dependencies to the Js parser because of
@@ -71,7 +71,7 @@ let just_parse_with_lang lang file =
         [
           Pfff
             (fun file ->
-              (Parse_json.parse_program file, Parsing_stat.correct_stat file));
+              (Parse_json.parse_program file, Parsing_stat.correct_stat !!file));
         ]
         Json_to_generic.program
   | Lang.Js
@@ -111,14 +111,14 @@ let parse_and_resolve_name lang file =
 let parse_and_resolve_name_warn_if_partial lang file =
   let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
   if skipped_tokens <> [] (* nosemgrep *) then
-    UCommon.pr2 (spf "WARNING: fail to fully parse %s" file);
+    UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file);
   ast
 
 let parse_and_resolve_name_fail_if_partial lang file =
   let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
   if skipped_tokens <> [] then
     failwith
-      (spf "fail to fully parse %s\n missing tokens:\n%s" file
+      (spf "fail to fully parse %s\n missing tokens:\n%s" !!file
          (String.concat "\n" (List_.map Tok.show_location skipped_tokens)));
   ast
 
@@ -126,7 +126,6 @@ let parse_and_resolve_name_fail_if_partial lang file =
 (* For testing purpose *)
 (*****************************************************************************)
 let parse_program file =
-  let file = Fpath.v file in
   let lang = Lang.lang_of_filename_exn file in
-  let res = just_parse_with_lang lang !!file in
+  let res = just_parse_with_lang lang file in
   res.ast

@@ -1609,13 +1609,17 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let e_taints, lval_env =
           check_function_call_callee { env with lval_env } e
         in
-        (* After we introduced Top_sinks, we need to explicitly support sinks like
-         * `sink(...)` by considering that all of the parameters are sinks. To make
-         * sure that we are backwards compatible, we do this for any sink that does
-         * not match the `Rule.is_func_sink_with_focus` form.
+        (* NOTE(sink_has_focus):
+         * After we made sink specs "exact" by default, we need this trick to
+         * be backwards compatible wrt to specifications like `sink(...)`. Even
+         * if the sink is "exact", if it has NO focus, then we consider that all
+         * of the parameters of the function are sinks. So, even if
+         * `taint_assume_safe_functions: true`, if the spec is `sink(...)`, we
+         * still report `sink(tainted)`.
          *)
         check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
-          ~filter_sinks:(fun m -> not m.spec.sink_is_func_with_focus);
+          ~filter_sinks:(fun m ->
+            not (m.spec.sink_exact && m.spec.sink_has_focus));
         let call_taints, lval_env =
           match
             check_function_signature { env with lval_env } e args args_taints
@@ -1928,7 +1932,9 @@ let (fixpoint :
           |> Seq.map (fun m -> TM.Any m)
         in
         let sinks =
-          orig_is_sink config orig |> List.to_seq |> Seq.map (fun m -> TM.Any m)
+          orig_is_sink config orig |> List.to_seq
+          |> Seq.filter (fun (m : R.taint_sink TM.t) -> m.spec.sink_exact)
+          |> Seq.map (fun m -> TM.Any m)
         in
         sources |> Seq.append sanitizers |> Seq.append sinks)
       flow

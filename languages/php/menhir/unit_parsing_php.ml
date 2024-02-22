@@ -123,7 +123,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_php.parse_program file in
+                   let _ = Parse_php.parse_program (Fpath.v file) in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->

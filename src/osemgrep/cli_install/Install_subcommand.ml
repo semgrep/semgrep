@@ -163,15 +163,17 @@ let set_ssh_as_default () : unit =
    to clone the repo.
 *)
 let clone_repo ~repo : unit =
-  let cmd = (Cmd.Name "gh", [ "repo"; "clone"; repo; "--"; "--depth"; "1" ]) in
+  let cmd =
+    (Cmd.Name "gh", [ "repo"; "clone"; !!repo; "--"; "--depth"; "1" ])
+  in
   match UCmd.status_of_run cmd with
   | Ok _ -> ()
-  | _ -> Error.abort (Printf.sprintf "failed to clone remote repo: %s" repo)
+  | _ -> Error.abort (Printf.sprintf "failed to clone remote repo: %s" !!repo)
 
 let clone_repo_to ~repo ~dst : unit =
   match Bos.OS.Dir.with_current dst (fun () -> clone_repo ~repo) () with
-  | Ok _ -> Logs.info (fun m -> m "Cloned repo %s to %s." repo !!dst)
-  | _ -> Logs.warn (fun m -> m "Failed to clone repo %s to %s." repo !!dst)
+  | Ok _ -> Logs.info (fun m -> m "Cloned repo %s to %s." !!repo !!dst)
+  | _ -> Logs.warn (fun m -> m "Failed to clone repo %s to %s." !!repo !!dst)
 
 let create_pr ~default_branch:branch : unit =
   let branch = chop_origin_if_needed branch in
@@ -329,12 +331,12 @@ let git_commit () : unit =
  *)
 let semgrep_workflow_exists ~repo : bool =
   let dir, cmd =
-    if UFile.dir_exists (Fpath.v repo) then
-      ( Fpath.to_dir_path (Fpath.v repo),
+    if UFile.dir_exists repo then
+      ( Fpath.to_dir_path repo,
         (Cmd.Name "gh", [ "workflow"; "view"; "semgrep.yml" ]) )
     else
       ( Bos.OS.Dir.current () |> Rresult.R.get_ok,
-        (Cmd.Name "gh", [ "workflow"; "view"; "semgrep.yml"; "--repo"; repo ])
+        (Cmd.Name "gh", [ "workflow"; "view"; "semgrep.yml"; "--repo"; !!repo ])
       )
   in
   Logs.debug (fun m -> m "Checking for semgrep workflow from %s" !!dir);
@@ -347,27 +349,25 @@ let semgrep_workflow_exists ~repo : bool =
    we first clone the repo to a temporary directory,
    and then return the path to the cloned repo.
 *)
-let prep_repo (caps : caps) (repo : string) : Fpath.t =
-  if UFile.dir_exists (Fpath.v repo) then Fpath.v repo
+let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
+  if UFile.dir_exists repo then repo
   else
     let tmp_dir =
-      Filename.concat
-        (Filename.get_temp_dir_name ())
-        (Printf.sprintf "semgrep_install_ci_%6X"
-           (CapRandom.int caps#random 0xFFFFFF))
+      UTmp.get_temp_dir_name ()
+      / spf "semgrep_install_ci_%6X" (CapRandom.int caps#random 0xFFFFFF)
     in
-    mkdir_if_needed tmp_dir;
-    clone_repo_to ~repo ~dst:(Fpath.v tmp_dir);
+    mkdir_if_needed !!tmp_dir;
+    clone_repo_to ~repo ~dst:tmp_dir;
     (* NOTE: when we clone we get a directory with the repo name.
        we need to strip the owner from the repo name if it is present
        and then join the tmp_dir with the repo name to get the full path
     *)
     let repo =
-      match String.split_on_char '/' repo with
+      match String.split_on_char '/' !!repo with
       | [ _; repo ] -> repo
-      | _ -> repo
+      | _ -> !!repo
     in
-    Fpath.v (Filename.concat tmp_dir repo)
+    tmp_dir / repo
 
 let write_workflow_file ~git_dir:dir : unit =
   let commit = get_default_branch_in ~dst:dir in
@@ -409,10 +409,10 @@ let write_workflow_file ~git_dir:dir : unit =
 *)
 let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
     unit =
-  let (repo : string) =
+  let (repo : Fpath.t) =
     match conf.repo with
-    | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
-    | Repository (owner, repo) -> spf "%s/%s" owner repo
+    | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg
+    | Repository (owner, repo) -> Fpath.v owner / repo
   in
   match () with
   | _ when conf.dry_run ->
@@ -420,13 +420,13 @@ let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
   | _ when semgrep_workflow_exists ~repo && not conf.update ->
       Logs.info (fun m -> m "Semgrep workflow already present, skipping")
   | _else_ ->
-      Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
+      Logs.info (fun m -> m "Preparing Semgrep workflow for %s" !!repo);
       let dir = prep_repo caps repo in
       write_workflow_file ~git_dir:dir;
       if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
         Logs.info (fun m -> m "Semgrep secret already present, skipping")
       else add_semgrep_gh_secret ~git_dir:dir ~token;
-      Logs.info (fun m -> m "Semgrep workflow added to %s" repo)
+      Logs.info (fun m -> m "Semgrep workflow added to %s" !!repo)
 
 (*****************************************************************************)
 (* Main logic *)

@@ -81,7 +81,7 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
   in
   let parser xlang file =
     let { ast; skipped_tokens; _ } : Parsing_result2.t =
-      Parse_target.parse_and_resolve_name xlang !!file
+      Parse_target.parse_and_resolve_name xlang file
     in
     (ast, skipped_tokens)
   in

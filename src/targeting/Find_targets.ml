@@ -118,9 +118,7 @@ type filter_result =
   | Ignore_silently (* ignore and don't report this file *)
 
 let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
-  let { Fppath.fpath; ppath } (* TODO(tree-sitter-ocaml fail) : Fppath.t *) =
-    fppath
-  in
+  let { fpath; ppath } : Fppath.t = fppath in
   let status, selection_events = Semgrepignore.select ign ppath in
   match status with
   | Ignored ->

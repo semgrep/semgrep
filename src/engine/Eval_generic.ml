@@ -231,8 +231,7 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
   *)
   let regexp = Regexp_engine.pcre_compile_with_flags ~flags:[ `ANCHORED ] re in
   let matches =
-    Xpattern_match_regexp.regexp_matcher ~base_offset str (Fpath.to_string file)
-      regexp
+    Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
   in
   matches
 
@@ -479,7 +478,7 @@ let text_of_binding mvar mval =
       | Some (min, max) ->
           let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
-          Some (Range.content_at_range file range))
+          Some (Range.content_at_range (Fpath.v file) range))
 
 let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
