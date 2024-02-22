@@ -52,6 +52,13 @@ module Otel = Opentelemetry
  *)
 
 (*****************************************************************************)
+(* Constants *)
+(*****************************************************************************)
+
+let default_endpoint = "https://telemetry.dev2.semgrep.dev"
+let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
+
+(*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
 
@@ -79,11 +86,12 @@ let with_setup f =
    * ALT: we could also have wrapped this with a `Otel.Scope.with_ambient_scope`
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
-  let config =
-    Some
-      (Opentelemetry_client_ocurl.Config.make
-         ?url:(Some "https://telemetry.dev2.semgrep.dev") ())
+  let url =
+    match Sys.getenv_opt endpoint_env_var with
+    | Some url -> url
+    | None -> default_endpoint
   in
+  let config = Some (Opentelemetry_client_ocurl.Config.make ~url ()) in
   Opentelemetry_client_ocurl.with_setup ?config () @@ fun () ->
   Trace_core.with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
 
