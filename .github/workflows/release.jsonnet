@@ -13,6 +13,7 @@
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 local release_homebrew = import 'release-homebrew.jsonnet';
 
 // ----------------------------------------------------------------------------
@@ -390,11 +391,9 @@ local homebrew_core_pr_job =
       ],
     },
   },
-  // These extra permissions are needed by some of the jobs, e.g. build-test-docker.
-  permissions: {
-    contents: 'read',
-    'id-token': 'write',
-  },
+  // These extra permissions are needed by some of the jobs, e.g. build-test-docker,
+  // and create_release_job.
+  permissions: gha.write_permissions,
   jobs: {
     'park-pypi-packages': park_pypi_packages_job,
     'build-test-docker': build_test_docker_job,
