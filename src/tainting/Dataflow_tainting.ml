@@ -1732,7 +1732,7 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
          (* We need to consider all lvals of the same base component
             due to index sensitivity. *)
          Lval_env.find_tainted_lvals_of_common_base exit_env lval
-         |> List.map (fun l -> (l, enter_taints))
+         |> List_.map (fun l -> (l, enter_taints))
          |> List.to_seq)
   |> List.of_seq
   |> List.concat_map (fun (lval, enter_taints) ->
