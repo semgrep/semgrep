@@ -105,12 +105,12 @@ package_swift_parser = (
 )
 
 
-def filter_on_marked_lines(result: list[Any]) -> list[tuple]:
+def filter_on_marked_lines(result: List[Any]) -> List[Tuple]:
     return [x for x in result if isinstance(x, tuple)]
 
 
 def parse_swiftpm_v2(
-    lockfile: dict[str, JSON], direct_deps: Set[str]
+    lockfile: Dict[str, JSON], direct_deps: Set[str]
 ) -> List[FoundDependency]:
     result = []
 
