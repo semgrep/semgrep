@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    message: Test
+    mode: taint
+    pattern-sources:
+      - pattern: tainted
+    pattern-sinks:
+      - pattern: sink(...)
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript

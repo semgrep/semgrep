@@ -471,62 +471,81 @@ and assign env lhs tok rhs_exp e_gen =
         (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
         (related_exp lhs)
   | G.Record (tok1, fields, tok2) ->
-      (* The assignment
-       *
-       *     {x1: v1, ..., xN: vN} = RHS
-       *
-       * where `xi` are field names, and `vi` are variables, becomes
-       *
-       *     tmp = RHS
-       *     v1 = tmp.x1
-       *     ...
-       *     vN = tmp.xN
-       *)
-      let tmp = fresh_var env tok2 in
-      let tmp_lval = lval_of_base (Var tmp) in
-      add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
-      let record_pairs : field list =
-        fields
-        |> List_.map (function
-             | G.F
-                 {
-                   s =
-                     G.DefStmt
-                       ( { name = EN (G.Id (id1, ii1)); _ },
-                         G.FieldDefColon
-                           { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ }
-                       );
-                   _;
-                 } ->
-                 let tok = snd id1 in
-                 let fldi = var_of_id_info id1 ii1 in
-                 let vari = var_of_id_info id2 ii2 in
-                 let vari_lval = lval_of_base (Var vari) in
-                 let offset = { o = Dot fldi; oorig = NoOrig } in
-                 let ei =
-                   mk_e
-                     (Fetch { base = Var tmp; rev_offset = [ offset ] })
-                     (related_tok tok)
-                 in
-                 add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
-                 Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
-             | field ->
-                 (* If a field is not of the form `x1: v1` then we translate it as
-                  * `__FIXME_AST_to_IL__: FixmeExp ToDo`.
-                  *)
-                 let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
-                 let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
-                 let tmpi = fresh_var env tok2 in
-                 let tmpi_lval = lval_of_base (Var tmpi) in
-                 add_instr env
-                   (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
-                 Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field))))
-      in
-      (* {x1: E1, ..., xN: En} *)
-      mk_e (Record record_pairs) (related_exp lhs)
+      assign_to_record env (tok1, fields, tok2) rhs_exp (related_exp lhs)
   | _ ->
       add_instr env (fixme_instr ToDo (G.E e_gen) (related_exp e_gen));
       fixme_exp ToDo (G.E e_gen) (related_exp lhs)
+
+and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
+  (* Assignments of the form
+   *
+   *     {x1: p1, ..., xN: pN} = RHS
+   *
+   * where `xi` are field names, and `pi` are patterns.
+   *
+   * In the simplest case, where the patterns are variables
+   * v1, ..., VN, this becomes:
+   *
+   *     tmp = RHS
+   *     v1 = tmp.x1
+   *     ...
+   *     vN = tmp.xN
+   *)
+  let tmp, _tmp_lval = mk_aux_var env tok1 rhs_exp in
+  let rec do_fields acc_rev_offsets fs =
+    fs |> List_.map (do_field acc_rev_offsets)
+  and do_field acc_rev_offsets f =
+    match f with
+    | G.F
+        {
+          s =
+            G.DefStmt
+              ( { name = EN (G.Id (id1, ii1)); _ },
+                G.FieldDefColon
+                  { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ } );
+          _;
+        } ->
+        (* fld = var ----> var := tmp. ... <accumulated offsets> ... .fld *)
+        let tok = snd id1 in
+        let fldi = var_of_id_info id1 ii1 in
+        let offset = { o = Dot fldi; oorig = NoOrig } in
+        let vari = var_of_id_info id2 ii2 in
+        let vari_lval = lval_of_base (Var vari) in
+        let ei =
+          mk_e
+            (Fetch { base = Var tmp; rev_offset = offset :: acc_rev_offsets })
+            (related_tok tok)
+        in
+        add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
+        Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
+    | G.F
+        {
+          s =
+            G.DefStmt
+              ( { name = EN (G.Id (id1, ii1)); _ },
+                G.FieldDefColon
+                  { vinit = Some { e = G.Record (_, fields, _); _ }; _ } );
+          _;
+        } ->
+        (* fld = { ... }, nested record pattern, we recurse. *)
+        let tok = snd id1 in
+        let fldi = var_of_id_info id1 ii1 in
+        let offset = { o = Dot fldi; oorig = NoOrig } in
+        let fields = do_fields (offset :: acc_rev_offsets) fields in
+        Field (fldi.ident, mk_e (Record fields) (related_tok tok))
+    | field ->
+        (* TODO: What other patterns could be nested ? *)
+        (* __FIXME_AST_to_IL__: FixmeExp ToDo *)
+        let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
+        let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
+        let tmpi = fresh_var env tok2 in
+        let tmpi_lval = lval_of_base (Var tmpi) in
+        add_instr env (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
+        Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field)))
+  in
+  let fields : field list = do_fields [] fields in
+  (* {x1: E1, ..., xN: En} *)
+  mk_e (Record fields) lhs_orig
 
 (*****************************************************************************)
 (* Expression *)

@@ -1,0 +1,3 @@
+Dataflow: Added support for nested record patterns such as `{ body: { param } }`
+in the LHS of an assignment. Now given `{ body: { param } } = tainted` Semgrep
+will correctly mark `param` as tainted.
