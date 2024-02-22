@@ -390,9 +390,10 @@ local homebrew_core_pr_job =
       ],
     },
   },
-  // These extra permissions are needed by some of the jobs, e.g. build-test-docker.
+  // These extra permissions are needed by some of the jobs, e.g. build-test-docker,
+  // and create_release_job.
   permissions: {
-    contents: 'read',
+    contents: 'write',
     'id-token': 'write',
   },
   jobs: {
