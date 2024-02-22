@@ -393,6 +393,7 @@ local benchmarks_full_job = {
 };
 
 local trigger_semgrep_comparison_argo = {
+  'if': "github.event_name == 'pull_request'",
   secrets: 'inherit',
   needs: [
     'push-docker-returntocorp',
