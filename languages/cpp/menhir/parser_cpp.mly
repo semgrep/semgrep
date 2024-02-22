@@ -1541,17 +1541,14 @@ storage_class_spec:
  (* c++ext: now really used, not as in C, for type inferred variables *)
  | Tauto        { Sto (Auto,    $1) }
  | Tregister    { Sto (Register,$1) }
- (* for thread_local see below *)
+ (* c++11 *)
+ | Tthread_local { Sto (ThreadLocal, $1) }
 
 type_qualifier:
  (* c++ext: also considered a storage class specifier in the spec *)
  | Tmutable     { TQ (Mutable, $1) }
  (* c++?: *)
  | Tconstexpr   { TQ (Constexpr, $1) }
- (* c++11: considered a storafe_class, but can be combined with Extern/Static
-  * so simpler to put as a specifier.
-  *)
- | Tthread_local { TQ (Constexpr, $1) (*TODOAST*) }
 
 (*-----------------------------------------------------------------------*)
 (* declarators (right part of type and variable) *)

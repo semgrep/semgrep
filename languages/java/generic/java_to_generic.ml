@@ -669,7 +669,11 @@ and class_decl
     } =
   let v1 = ident cl_name in
   let v2, more_attrs = class_kind_and_more cl_kind in
-  let v3 = list type_parameter cl_tparams in
+  let v3 =
+    match cl_tparams with
+    | [] -> None
+    | xs -> Some (Tok.unsafe_fake_bracket (list type_parameter xs))
+  in
   let v4 = modifiers cl_mods in
   let v5 = option class_parent cl_extends in
   let v6 = list ref_type cl_impls in

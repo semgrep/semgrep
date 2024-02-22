@@ -358,7 +358,7 @@ and map_multi_assign ?(attrs = []) (env : env) x =
   | `Assign x ->
       let l_exp, _, r_exp = map_assignment env x in
       DefStmt
-        ( { name = EDynamic l_exp; attrs; tparams = [] },
+        ( { name = EDynamic l_exp; attrs; tparams = None },
           VarDef { vinit = Some r_exp; vtype = None } )
       |> G.s
   | `Id tok ->
@@ -368,13 +368,13 @@ and map_multi_assign ?(attrs = []) (env : env) x =
   | `Typed_exp x ->
       let l_exp, _, ty = map_typed_expression env x in
       DefStmt
-        ( { name = EDynamic l_exp; attrs; tparams = [] },
+        ( { name = EDynamic l_exp; attrs; tparams = None },
           VarDef { vinit = None; vtype = Some ty } )
       |> G.s
   | `Bare_tuple x ->
       let e = map_bare_tuple_exp env x in
       DefStmt
-        ( { name = EDynamic e; attrs; tparams = [] },
+        ( { name = EDynamic e; attrs; tparams = None },
           VarDef { vinit = None; vtype = None } )
       |> G.s
   | `Func_defi x -> map_function_definition env x
@@ -516,7 +516,7 @@ and map_anon_choice_id_00cc266 (env : env) (x : CST.anon_choice_id_00cc266) =
   | `Id tok -> Left (map_identifier env tok)
   | `Interp_exp x -> map_interpolation_expression_either env x
 
-and map_anon_choice_id_00cc266_ent ?(attrs = []) ?(tparams = []) (env : env)
+and map_anon_choice_id_00cc266_ent ?(attrs = []) ?(tparams = None) (env : env)
     (x : CST.anon_choice_id_00cc266) =
   match x with
   | `Id tok ->
@@ -603,7 +603,7 @@ and map_anon_choice_id_c313bb1 (env : env) (x : CST.anon_choice_id_c313bb1) =
       let ent =
         match either with
         | Left id -> basic_entity id
-        | Right e -> { name = EDynamic e; attrs = []; tparams = [] }
+        | Right e -> { name = EDynamic e; attrs = []; tparams = None }
       in
       DefStmt (ent, VarDef { vinit = Some exp; vtype = None }) |> G.s
 
@@ -1021,7 +1021,7 @@ and map_closed_macrocall_expression (env : env)
     match v3 with
     | `Imme_brace_curl_exp (v1, v2) ->
         let _v1 = (* immediate_brace *) token env v1 in
-        let v2 = map_type_parameter_list env v2 in
+        let _, v2, _ = map_type_parameter_list env v2 in
         v2
         |> List_.map (fun arg ->
                OtherArg (("TyParam", G.fake "TyParam"), [ G.Tp arg ]))
@@ -1088,8 +1088,8 @@ and map_comprehension_expression (env : env)
   Comprehension (Array, (v1, (v2, v4), v5)) |> G.e
 
 and map_type_parameter_list (env : env)
-    ((v1, v2, v3, v4) : CST.curly_expression) : type_parameter list =
-  let _v1 = (* "{" *) token env v1 in
+    ((v1, v2, v3, v4) : CST.curly_expression) : type_parameters =
+  let lc = (* "{" *) token env v1 in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
@@ -1110,8 +1110,8 @@ and map_type_parameter_list (env : env)
     | Some tok -> (* "," *) Some (token env tok)
     | None -> None
   in
-  let _v4 = (* "}" *) token env v4 in
-  v2
+  let rc = (* "}" *) token env v4 in
+  (lc, v2, rc)
 
 and map_definition (env : env) (x : CST.definition) : stmt =
   match x with
@@ -1131,8 +1131,8 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let v1 = map_tok_abst_pat_3d340f6_type env v1 in
       let tparams =
         match v3 with
-        | None -> []
-        | Some (_, x) -> map_type_parameter_list env x
+        | None -> None
+        | Some (_, x) -> Some (map_type_parameter_list env x)
       in
       let attrs = map_type_clause_opt env v4 in
       let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v2 in
@@ -1142,8 +1142,8 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       (* primitive type *)
       let tparams =
         match v3 with
-        | None -> []
-        | Some (_, x) -> map_type_parameter_list env x
+        | None -> None
+        | Some (_, x) -> Some (map_type_parameter_list env x)
       in
       let attrs = map_type_clause_opt env v4 in
       let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v2 in
@@ -1160,8 +1160,8 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let v2 = (* "struct" *) token env v2 in
       let tparams =
         match v4 with
-        | None -> []
-        | Some (_, x) -> map_type_parameter_list env x
+        | None -> None
+        | Some (_, x) -> Some (map_type_parameter_list env x)
       in
       let attrs = v1 @ map_type_clause_opt env v5 in
       let _v6 = map_terminator_opt env v6 in
@@ -1185,7 +1185,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
                 (* What kind of a sick, twisted psychopath would make the name of a macro
                    the result of a run-time value????
                 *)
-                { name = EDynamic exp; attrs = []; tparams = [] })
+                { name = EDynamic exp; attrs = []; tparams = None })
       in
       let _v3 = (* immediate_paren *) token env v3 in
       let _, v4, _ = map_parameter_list env v4 in
@@ -1459,11 +1459,8 @@ and map_function_signature ~body ~func_tok (env : env)
     in
     let tparams =
       match v2 with
-      | Some (v1, v2) ->
-          let _v1 = (* immediate_brace *) token env v1 in
-          let v2 = map_type_parameter_list env v2 in
-          v2
-      | None -> []
+      | None -> None
+      | Some (_, x) -> Some (map_type_parameter_list env x)
     in
     match v1 with
     | `Id tok ->
@@ -1803,7 +1800,7 @@ and map_parametrized_type_expression (env : env)
     ((v1, v2, v3) : CST.parametrized_type_expression) =
   let v1 = map_primary_expression env v1 in
   let _v2 = (* immediate_brace *) token env v2 in
-  let v3 = map_type_parameter_list env v3 in
+  let _, v3, _ = map_type_parameter_list env v3 in
   OtherExpr
     ( ("type_parametrized", fake "type_parametrized"),
       [ G.E v1; G.Anys (List_.map (fun x -> G.Tp x) v3) ] )
@@ -1887,7 +1884,7 @@ and map_quotable (env : env) (x : CST.quotable) : expr =
   | `Curl_exp x ->
       (* This can be called while looking for the subject of a where clause.
        *)
-      let tparams = map_type_parameter_list env x in
+      let _, tparams, _ = map_type_parameter_list env x in
       OtherExpr
         ( ("curly", fake "curly"),
           [ G.Anys (List_.map (fun x -> G.Tp x) tparams) ] )
@@ -1907,9 +1904,8 @@ and map_quote_expression (env : env) ((v1, v2) : CST.quote_expression) : expr =
     | `Id x -> map_identifier_exp env x
     | `Op x -> map_operator_exp env x
     | `Imme_brace_curl_exp (id, x) ->
-        let params =
-          map_type_parameter_list env x |> List_.map (fun x -> G.Tp x)
-        in
+        let _, xs, _ = map_type_parameter_list env x in
+        let params = xs |> List_.map (fun x -> G.Tp x) in
         OtherExpr (("TyParams", G.fake "TyParams"), G.I (str env id) :: params)
         |> G.e
     | `Imme_brac_array (v1, v2) ->
@@ -2192,7 +2188,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
               let l_exp, _, r_exp = map_assignment env x in
               [
                 DefStmt
-                  ( { name = EDynamic l_exp; attrs; tparams = [] },
+                  ( { name = EDynamic l_exp; attrs; tparams = None },
                     VarDef { vinit = Some r_exp; vtype = None } )
                 |> G.s;
               ]
@@ -2207,7 +2203,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
               let l_exp, _, ty = map_typed_expression env x in
               [
                 DefStmt
-                  ( { name = EDynamic l_exp; attrs; tparams = [] },
+                  ( { name = EDynamic l_exp; attrs; tparams = None },
                     VarDef { vinit = None; vtype = Some ty } )
                 |> G.s;
               ])

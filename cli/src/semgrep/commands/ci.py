@@ -615,8 +615,9 @@ def ci(
                 "  Semgrep Cloud Platform is still processing the results of the scan, they will be available soon:"
             )
 
+        ref_if_available = f"&ref={metadata.branch}" if metadata.branch else ""
         logger.info(
-            f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings"
+            f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_display_name}{ref_if_available}"
         )
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(

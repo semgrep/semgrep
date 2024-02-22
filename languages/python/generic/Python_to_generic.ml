@@ -553,7 +553,7 @@ and fieldstmt x =
    _;
   } ->
       let vdef = { G.vinit = Some e; vtype = None } in
-      let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
+      let ent = { G.name = G.EN name; attrs = []; tparams = None } in
       G.fld (ent, G.VarDef vdef)
   | _ -> G.F x
 
@@ -691,7 +691,7 @@ and stmt_aux env x =
            *)
           let to_vardef id idinfo topt =
             let ent =
-              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
+              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = None }
             in
             let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
             [ G.DefStmt (ent, var) |> G.s ]

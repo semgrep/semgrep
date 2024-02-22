@@ -368,11 +368,10 @@ and storage_in_specs _env xs =
       | Static -> A.Static
       | Extern -> A.Extern
       | Auto
-      | Register ->
-          A.DefaultStorage
-      | StoInline
+      | Register
       | ThreadLocal ->
-          raise CplusplusConstruct)
+          A.DefaultStorage
+      | StoInline -> raise CplusplusConstruct)
   | []
   | _ ->
       A.DefaultStorage

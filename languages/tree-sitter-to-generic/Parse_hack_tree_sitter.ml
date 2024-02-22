@@ -556,7 +556,9 @@ and shape_field_specifier (env : env) (x : CST.anon_choice_field_spec_0e0e023) =
       let v2 = expression env v2 in
       let _v3 = (* "=>" *) token env v3 in
       let v4 = type_ env v4 in
-      let ent : G.entity = { name = G.EDynamic v2; attrs = v1; tparams = [] } in
+      let ent : G.entity =
+        { name = G.EDynamic v2; attrs = v1; tparams = None }
+      in
       let def : G.variable_definition =
         {
           (* Note: This could never exist. Am I using the wrong type here? *)
@@ -1090,11 +1092,7 @@ and declaration (env : env) (x : CST.declaration) =
         | `Semg_exte_id x -> semgrep_extended_identifier env x
         | `Choice_xhp_id x -> xhp_identifier_ env x
       in
-      let type_params =
-        match v7 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (type_parameters env) v7 in
       let v8 =
         match v8 with
         | Some x -> extends_clause env x
@@ -1132,11 +1130,7 @@ and declaration (env : env) (x : CST.declaration) =
       in
       let v2 = (* "interface" *) token env v2 in
       let id = semgrep_extended_identifier env v3 in
-      let type_params =
-        match v4 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (type_parameters env) v4 in
       let v5 =
         match v5 with
         | Some x -> extends_clause env x
@@ -1168,11 +1162,7 @@ and declaration (env : env) (x : CST.declaration) =
       in
       let v2 = (* "trait" *) token env v2 in
       let id = semgrep_extended_identifier env v3 in
-      let type_params =
-        match v4 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (type_parameters env) v4 in
       let v5 =
         match v5 with
         | Some x -> implements_clause env x
@@ -1207,11 +1197,7 @@ and declaration (env : env) (x : CST.declaration) =
         | `Type tok -> (* "type" *) token env tok
         | `Newt tok -> (* "newtype" *) token env tok
       in
-      let type_params =
-        match v4 with
-        | Some x -> type_parameters env x
-        | None -> []
-      in
+      let type_params = Option.map (type_parameters env) v4 in
       (* Q: Type params vs type attributes in generic? Which to use here?
          Put within Name or pass to Apply?*)
       let id = semgrep_extended_identifier env v3 in
@@ -1686,7 +1672,7 @@ and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
     | `Str tok -> (* string *) G.basic_entity (str env tok)
     | `Scoped_id x ->
         let x = scoped_identifier env x in
-        { name = G.EN (H2.name_of_ids x); attrs = []; tparams = [] }
+        { name = G.EN (H2.name_of_ids x); attrs = []; tparams = None }
   in
   let _v2 = (* "=>" *) token env v2 in
   let v3 = expression env v3 in
@@ -1706,7 +1692,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
 
 and function_declaration_header (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) :
-    G.function_definition * G.label * G.type_parameter list =
+    G.function_definition * G.label * G.type_parameters option =
   let _async_modifierTODO =
     match v1 with
     | Some tok -> (* "async" *) Some (G.KeywordAttr (G.Async, token env tok))
@@ -1714,11 +1700,7 @@ and function_declaration_header (env : env)
   in
   let function_keyword = (* "function" *) token env v2 in
   let identifier = semgrep_extended_identifier env v3 in
-  let type_params =
-    match v4 with
-    | Some x -> type_parameters env x
-    | None -> []
-  in
+  let type_params = Option.map (type_parameters env) v4 in
   let parameters = parameters env v5 in
   let attribute_modifier_and_return_type =
     match v6 with
@@ -2609,11 +2591,7 @@ and type_const_declaration (env : env)
   let v3 = (* "const" *) [ G.KeywordAttr (Const, token env v3) ] in
   let _v4 = (* "type" *) token env v4 in
   let id = semgrep_extended_identifier env v5 in
-  let type_params =
-    match v6 with
-    | Some x -> type_parameters env x
-    | None -> []
-  in
+  let type_params = Option.map (type_parameters env) v6 in
   (* Q: How to represent this `as __type__`? It is a constraint? Make an attribute?
      OTP_Constrained on type param? But then can't be builtin *)
   let _v7TODO =
@@ -2685,8 +2663,9 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
   let tp_default = None in
   TP { G.tp_id; tp_attrs; tp_bounds; tp_variance; tp_default }
 
-and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
-  let _v1 = (* "<" *) token env v1 in
+and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) :
+    G.type_parameters =
+  let lt = (* "<" *) token env v1 in
   let v2 = type_parameter env v2 in
   let v3 =
     List_.map
@@ -2701,8 +2680,8 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
     | Some tok -> (* "," *) Some (token env tok)
     | None -> None
   in
-  let _v5 = (* ">" *) token env v5 in
-  v2 :: v3
+  let gt = (* ">" *) token env v5 in
+  (lt, v2 :: v3, gt)
 
 and variablish (env : env) (x : CST.variablish) : G.expr =
   match x with

@@ -1,0 +1,3 @@
+The project name for repos scanned locally will now be `local_scan/<repo_name>` instead
+of simply `<repo_name>`. This will clarify the origin of those findings. Also, the
+"View Results" URL displayed for findings now includes the repository and branch names.

@@ -636,7 +636,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
 
 let upload_findings ~dry_run (caps : < Cap.network ; .. >)
     (depl_opt : (Auth.token * OutJ.deployment_config) option)
-    (scan_id_opt : Semgrep_App.scan_id option) blocking_findings filtered_rules
+    (scan_id_opt : Semgrep_App.scan_id option)
+    (prj_meta : OutJ.project_metadata) blocking_findings filtered_rules
     (cli_output : OutJ.cli_output) : Semgrep_App.app_block_override =
   match (depl_opt, scan_id_opt) with
   | Some (token, deployment_config), Some scan_id ->
@@ -656,12 +657,21 @@ let upload_findings ~dry_run (caps : < Cap.network ; .. >)
             Logs.err (fun m -> m "Failed to report findings: %s" msg);
             None
       in
+      let repo_display_name =
+        (* It should be impossible for repo_display_name to be None, but for
+           backwards compatability the Out type is an optional *)
+        Option.value ~default:"<YOUR_REPO_NAME>" prj_meta.repo_display_name
+      in
+      let ref_if_branch_detected =
+        Option.fold ~none:""
+          ~some:(fun branch -> "&ref=" ^ branch)
+          prj_meta.branch
+      in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m
-            "          (Uri.to_string \
-             !Semgrep_envvars.v.semgrep_url)/orgs/%s/findings"
-            deployment_config.name);
+          m "    (Uri.to_string \
+             !Semgrep_envvars.v.semgrep_url)/orgs/%s/findings?repo=%s%s"
+            deployment_config.name repo_display_name ref_if_branch_detected);
       if
         filtered_rules
         |> List.exists (fun r ->
@@ -883,8 +893,8 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           ~non_blocking_findings ~non_blocking_rules;
         let scan_id_opt = Option.map fst scan_config_opt in
         let app_block_override =
-          upload_findings ~dry_run caps depl_opt scan_id_opt blocking_findings
-            filtered_rules cli_output
+          upload_findings ~dry_run caps depl_opt scan_id_opt prj_meta
+            blocking_findings filtered_rules cli_output
         in
         let audit_mode = false in
         (* TODO: audit_mode = metadata.event_name in audit_on *)

@@ -904,7 +904,7 @@ let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
           (lp, ids |> List_.map (fun id -> PatId (id, G.empty_id_info ())), rp)
         |> G.p
       in
-      let ent = { name = EPattern pat; attrs = []; tparams = [] } in
+      let ent = { name = EPattern pat; attrs = []; tparams = None } in
       let def = { vinit = eopt; vtype = None } in
       (ent, VarDef def)
 
@@ -1970,7 +1970,7 @@ let map_variable_declaration_statement (env : env)
         let pat = map_variable_declaration_tuple env v1 in
         let _teq = (* "=" *) token env v2 in
         let e = map_expression env v3 in
-        let ent = { name = EPattern pat; attrs = []; tparams = [] } in
+        let ent = { name = EPattern pat; attrs = []; tparams = None } in
         let vdef = { vinit = Some e; vtype = None } in
         (ent, vdef)
   in
