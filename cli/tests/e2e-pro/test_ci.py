@@ -1335,15 +1335,9 @@ def test_shallow_wrong_merge_base(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
-    start_scan_mock = start_scan_mock_maker(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    )
-    complete_scan_mock = complete_scan_mock_maker(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    )
-    upload_results_mock = upload_results_mock_maker(
-        env.get("SEMGREP_URL", "https://semgrep.dev")
-    )
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
     # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
