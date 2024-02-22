@@ -27,7 +27,8 @@
     // More details at
     // https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
     'id-token': 'write',
-    // needed when the job modifies the repository
+    // Needed when the job modifies the repository such as performing
+    // gh release commands.
     contents: 'write',
   },
 
