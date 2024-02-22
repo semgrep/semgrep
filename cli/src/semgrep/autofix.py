@@ -1,6 +1,5 @@
 from functools import cmp_to_key
 from pathlib import Path
-from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Set
@@ -25,32 +24,13 @@ class Fix:
         self.fixed_lines = fixed_lines
 
 
-class FileOffsets:
-    """
-    This object is used to track state when applying multiple fixes to the same
-    or subsequent lines in a single file.
-
-    The assumption and current state here is that fixes are applied top-to-
-    bottom and in a single pass; semgrep will not come back and re-parse or
-    re-fix a file or line. This approach may need to be revisited or extended
-    to support more complex overlapping autofix cases in future.
-    """
-
-    def __init__(self, line_offset: int, col_offset: int, active_line: int):
-        self.line_offset = line_offset
-        self.col_offset = col_offset
-        self.active_line = active_line
-
-
 def _get_lines(path: Path) -> List[str]:
     contents = path.read_text()
     lines = contents.split(SPLIT_CHAR)
     return lines
 
 
-def _get_match_context(
-    rule_match: RuleMatch, offsets: FileOffsets
-) -> Tuple[int, int, int, int]:
+def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
     start_obj = rule_match.start
     start_line = start_obj.line - 1  # start_line is 1 indexed
     start_col = start_obj.col - 1  # start_col is 1 indexed
@@ -58,25 +38,15 @@ def _get_match_context(
     end_line = end_obj.line - 1  # end_line is 1 indexed
     end_col = end_obj.col - 1  # end_line is 1 indexed
 
-    # adjust based on offsets
-    start_line = start_line + offsets.line_offset
-    end_line = end_line + offsets.line_offset
-    start_col = start_col + offsets.col_offset
-    end_col = end_col + offsets.col_offset
-
     return start_line, start_col, end_line, end_col
 
 
-def _apply_fix(
-    rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
-) -> Tuple[Fix, FileOffsets]:
+def _apply_fix(rule_match: RuleMatch, fix: str) -> Fix:
     p = rule_match.path
     lines = _get_lines(p)
 
     # get the start and end points
-    start_line, start_col, end_line, end_col = _get_match_context(
-        rule_match, file_offsets
-    )
+    start_line, start_col, end_line, end_col = _get_match_context(rule_match)
 
     # break into before, to modify, after
     before_lines = lines[:start_line]
@@ -86,14 +56,7 @@ def _apply_fix(
     after_lines = lines[end_line + 1 :]  # next line after end of match
     contents_after_fix = before_lines + modified_lines + after_lines
 
-    # update offsets
-    file_offsets.line_offset = (
-        len(contents_after_fix) - len(lines) + file_offsets.line_offset
-    )
-    if start_line == end_line:
-        file_offsets.col_offset = len(fix) - (end_col - start_col)
-
-    return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines), file_offsets
+    return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines)
 
 
 def _write_contents(path: Path, contents: str) -> None:
@@ -172,25 +135,21 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     autofix configuration
     """
     modified_files: Set[Path] = set()
-    modified_files_offsets: Dict[Path, FileOffsets] = {}
 
     nonoverlapping_matches = deduplicate_overlapping_matches(
         rule_matches_by_rule.items()
     )
+    # The deduplication step also sorts the matches. Reverse them here and apply
+    # in reverse order. This way we don't have to keep track of changes made
+    # earlier in the file when applying each autofix.
+    nonoverlapping_matches.reverse()
 
     for rule_match in nonoverlapping_matches:
         fix = rule_match.fix
         filepath = rule_match.path
-        # initialize or retrieve/update offsets for the file
-        file_offsets = modified_files_offsets.get(
-            filepath, FileOffsets(0, 0, rule_match.start.line)
-        )
-        if file_offsets.active_line != rule_match.start.line:
-            file_offsets.active_line = rule_match.start.line
-            file_offsets.col_offset = 0
         if fix is not None:
             try:
-                fixobj, new_file_offset = _apply_fix(rule_match, file_offsets, fix)
+                fixobj = _apply_fix(rule_match, fix)
             except Exception as e:
                 raise SemgrepError(f"unable to modify file {filepath}: {e}")
         else:
@@ -199,7 +158,6 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
         if not dryrun:
             _write_contents(rule_match.path, fixobj.fixed_contents)
             modified_files.add(filepath)
-            modified_files_offsets[filepath] = new_file_offset
         else:
             rule_match.extra[
                 "fixed_lines"
