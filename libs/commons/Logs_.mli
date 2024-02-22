@@ -136,3 +136,10 @@ val mask_time : string -> string
    This is crude. Beware false positives.
 *)
 val mask_log_lines : string -> string
+
+(*
+   Formatting utilities for common containers:
+*)
+val list : ('a -> string) -> 'a list -> string
+val option : ('a -> string) -> 'a option -> string
+val array : ('a -> string) -> 'a array -> string
