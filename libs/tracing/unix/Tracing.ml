@@ -42,11 +42,11 @@ module Otel = Opentelemetry
  * switch it out in just this file.
  *
  * Functions can be instrumented using a ppx or directly with the `with_span`
- * function. The results are sent to <TODO fill this out when we get the
- * permanent endpoint>, which collects them to send to a viewer.
+ * function. The results are sent to the default endpoint (see constants below),
+ * which collects them to send to a viewer.
  *
  * If you want to send traces to a different endpoint, prepend your command with
- * `OTEL_EXPORTER_OTLP_ENDPOINT=<url>`
+ * `SEMGREP_OTEL_ENDPOINT=<url>`
  *
  * TODO we'll probably need instructions for some system of tags?
  *)
@@ -91,8 +91,8 @@ let with_setup f =
     | Some url -> url
     | None -> default_endpoint
   in
-  let config = Some (Opentelemetry_client_ocurl.Config.make ~url ()) in
-  Opentelemetry_client_ocurl.with_setup ?config () @@ fun () ->
+  let config = Opentelemetry_client_ocurl.Config.make ~url () in
+  Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
   Trace_core.with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
 
 (* Alt: using cohttp_lwt
