@@ -4,7 +4,6 @@ I could not find any comprehensive description of this format online, I just loo
 If you find any sort of spec, please link it here
 Here's the docs for poetry: https://python-poetry.org/docs/
 """
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -19,6 +18,7 @@ from semdep.parsers import preprocessors
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import new_lines
 from semdep.parsers.util import pair
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
@@ -72,7 +72,6 @@ quoted_value = (
     << string('"')
 )
 
-new_lines = regex("\n+", re.MULTILINE)
 # Examples:
 # foo
 plain_value = upto("\n")

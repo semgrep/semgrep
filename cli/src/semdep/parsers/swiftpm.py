@@ -9,13 +9,20 @@ from typing import Tuple
 from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.parsers.util import comma
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import line
+from semdep.parsers.util import lparen
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import new_lines
+from semdep.parsers.util import not_any
+from semdep.parsers.util import rparen
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
+from semdep.parsers.util import whitespace
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
@@ -28,23 +35,73 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-
-package_name = regex(r'"(.*?)"', group=1)
-
-package_section = (
-    any_char.until(string("url: "), consume_other=True)
-    >> mark_line(package_name)
-    << any_char.until(string("\n"))
+git_url = regex(
+    r"((git|ssh|http(s)?)|(git@[\w\.]+)):(//)?[\w\.@\:/\-~]+/(?P<project>.*?).git/?",
+    group="project",
 )
 
-comment = string("\n").optional() >> regex(r" *//([^\n]*)", flags=0, group=1)
+# url: "https://example.com/example-package.git"
+url_block = regex(r'url:\s*"') >> git_url << string('"')
+
+separator_block = regex(r"\s*,\s*")
+
+# from: "1.2.3"
+from_block = regex(r'from:\s*".*?"')
+
+# "1.2.3"..<"1.2.6"
+range_block = regex(r'".*?".*?".*?"')
+
+# .exact("1.2.3")
+exact_block = regex(r'.exact\(".*?"\)')
+
+# .revision("e74b07278b926c9ec6f9643455ea00d1ce04a021")
+revision_block = regex(r'.revision\(".*?"\)')
+
+# .upToNextMajor("1.2.3")
+up_to_next_major_block = regex(r'.upToNextMajor\(\s*from:\s*".*?"\)')
+
+# .upToNextMinor("1.2.3")
+up_to_next_minor_block = regex(r'.upToNextMinor\(\s*from:\s*".*?"\)')
+
+# .branch("develop")
+branch_block = regex(r'.branch\(".*?"\)')
+
+# .package(url: "https://github.com/repo/package.git", .upToNextMajor(from: "7.8.0")), // this is something important
+package_block = (
+    whitespace
+    >> regex(r".package")
+    >> lparen
+    >> mark_line(url_block)
+    << whitespace
+    << comma
+    << (
+        from_block
+        | range_block
+        | exact_block
+        | branch_block
+        | revision_block
+        | up_to_next_major_block
+        | up_to_next_minor_block
+    )
+    << whitespace
+    << rparen
+    << string(",").optional()
+    << not_any("\n").optional()
+)
+
+comment = whitespace >> regex(r" *//") >> line
+
+multiple_package_blocks = (comment | package_block).sep_by(new_lines, max=5)
+
+dependencies_block = (
+    regex(r"dependencies:\s*\[")
+    >> whitespace
+    >> multiple_package_blocks
+    << regex(r"\n*?.*?\]\s*,?")
+)
 
 package_swift_parser = (
-    any_char.until(regex(r"dependencies\s*:\s*\[.*?\n"))
-    >> (comment | package_section)
-    .sep_by(string("\n"))
-    .map(lambda xs: filter_on_marked_lines(xs))
-    << any_char.many()
+    any_char.until(regex(r"dependencies\s*:")) >> dependencies_block << any_char.many()
 )
 
 
@@ -132,15 +189,10 @@ def parse_swiftpm_v1(
     return result
 
 
-def extract_package_name(package_uri: str) -> str:
-    # todo maybe use https://www.debuggex.com/r/H4kRw1G0YPyBFjfm for validation
-    return package_uri.split("/")[-1].replace(".git", "")
-
-
 def parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
     result = set()
     for _line_number, package in manifest:
-        result.add(extract_package_name(package).lower())
+        result.add(package.lower())
 
     return result
 
@@ -160,7 +212,7 @@ def parse_package_resolved(
     if not parsed_lockfile or not parsed_manifest:
         return [], errors
 
-    direct_deps = parse_manifest_deps(parsed_manifest)
+    direct_deps = parse_manifest_deps(filter_on_marked_lines(parsed_manifest))
     lockfile_json = parsed_lockfile.as_dict()
     lockfile_version = lockfile_json.get("version")
     if lockfile_version is None:
