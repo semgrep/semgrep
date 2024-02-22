@@ -26,6 +26,7 @@ module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
 let tags = Logs_.create_tags [ __MODULE__ ]
+let ( =*= ) = Common.( =*= )
 
 type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
@@ -480,3 +481,9 @@ let to_string taint_to_str
       pending_propagation_dests "[PENDING PROPAGATION DESTS]"
 
 let seq_of_tainted env = LvalMap.to_seq env.tainted
+
+let find_tainted_lvals_of_common_base { tainted; _ } { IL.base; _ } =
+  LvalMap.fold
+    (fun ({ base = base'; _ } as lval) _ l ->
+      if base =*= base' then lval :: l else l)
+    tainted []
