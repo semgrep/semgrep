@@ -1,2 +1,0 @@
-The tokens for type parameters brackets are now stored in the generic AST allowing
-to correctly autofix those constructs.
