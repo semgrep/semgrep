@@ -411,7 +411,7 @@ jobs:
       artifact-name: image-test
       repository-name: returntocorp/semgrep
   trigger-semgrep-comparison-argo:
-    if: github.event_name == 'pull_request'
+    if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
     needs:
       - push-docker-returntocorp
     secrets: inherit
