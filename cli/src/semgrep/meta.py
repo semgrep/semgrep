@@ -111,7 +111,7 @@ class GitMeta:
             )
 
         repo_root_str = rev_parse.stdout.strip()
-        return str(os.path.basename(repo_root_str))
+        return f"local_scan/{str(os.path.basename(repo_root_str))}"
 
     @property
     def repo_display_name(self) -> str:
