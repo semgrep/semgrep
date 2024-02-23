@@ -10,7 +10,7 @@ open Printf
 let list_targets_internal ?(conf = Find_targets.default_conf) ?roots () =
   let roots =
     match roots with
-    | None -> [ Rfpath.of_string_exn "." ]
+    | None -> [ Scanning_root.of_string "." ]
     | Some roots -> roots
   in
   let selected, _skipped = Find_targets.get_target_fpaths conf roots in
