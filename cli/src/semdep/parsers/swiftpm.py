@@ -36,6 +36,9 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+# supported parsers for manifest files come from the official apple/swift-package-manager spec
+# https://github.com/apple/swift-package-manager/blob/6ff5cbdfa8b694525b2223a6b832cce17e0b73ef/Sources/PackageDescription/PackageRequirement.swift
+
 git_url = regex(
     r"((git|ssh|http(s)?)|(git@[\w\.]+)):(//)?[\w\.@\:/\-~]+/(?P<project>.*?).git/?",
     group="project",
