@@ -1,6 +1,6 @@
 (* Nat Mote
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -306,4 +306,9 @@ class jsts_printer : printer_t =
   object (_self)
     inherit base_printer
     inherit! common_printer
+  end
+
+class ocaml_printer : printer_t =
+  object (_self)
+    inherit base_printer
   end
