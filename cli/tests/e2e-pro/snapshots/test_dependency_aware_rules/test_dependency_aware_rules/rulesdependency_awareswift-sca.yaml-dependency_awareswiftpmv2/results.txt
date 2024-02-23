@@ -1,5 +1,5 @@
 === command
-SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/swift-sca.yaml --json targets/dependency_aware/swiftpm/v1
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/swift-sca.yaml --json targets/dependency_aware/swiftpm/v2
 === end of command
 
 === exit code
@@ -12,8 +12,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "interfile_languages_used": [],
   "paths": {
     "scanned": [
-      "targets/dependency_aware/swiftpm/v1/Package.resolved",
-      "targets/dependency_aware/swiftpm/v1/Package.swift"
+      "targets/dependency_aware/swiftpm/v2/Package.resolved",
+      "targets/dependency_aware/swiftpm/v2/Package.swift"
     ]
   },
   "results": [
@@ -21,14 +21,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.swift-swiftpm-sca",
       "end": {
         "col": 0,
-        "line": 28,
+        "line": 72,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "\t\t  \"version\" : \"1.0.6\"",
+        "lines": "        \"version\" : \"1.0.6\"",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
@@ -42,12 +42,12 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "swiftpm",
-              "line_number": 28,
+              "line_number": 72,
               "package": "swift-collections",
-              "transitivity": "direct",
+              "transitivity": "transitive",
               "version": "1.0.6"
             },
-            "lockfile": "targets/dependency_aware/swiftpm/v1/Package.resolved"
+            "lockfile": "targets/dependency_aware/swiftpm/v2/Package.resolved"
           },
           "reachability_rule": true,
           "reachable": false,
@@ -55,10 +55,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         },
         "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/swiftpm/v1/Package.resolved",
+      "path": "targets/dependency_aware/swiftpm/v2/Package.resolved",
       "start": {
         "col": 0,
-        "line": 28,
+        "line": 72,
         "offset": 0
       }
     }
@@ -91,3 +91,11 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 Ran 1 rule on 2 files: 1 finding.
 
 === end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

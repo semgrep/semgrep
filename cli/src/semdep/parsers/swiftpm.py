@@ -227,13 +227,14 @@ def parse_package_resolved(
         )
         return [], errors
 
-    if not lockfile_version.as_int():
+    lockfile_version_int = lockfile_version.as_int()
+    if not lockfile_version_int:
         return [], errors
 
     all_deps = []
-    if lockfile_version == 1:
+    if lockfile_version_int == 1:
         all_deps = parse_swiftpm_v1(lockfile_json, direct_deps)
-    elif lockfile_version == 2:
+    elif lockfile_version_int == 2:
         all_deps = parse_swiftpm_v2(lockfile_json, direct_deps)
     else:
         errors.append(
