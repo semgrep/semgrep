@@ -1388,30 +1388,26 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v1 = map_sign_operator env v1 in
       let v2 = map_expression_ext env v2 in
       Prefix (v1, v2)
-  | `Set_exp (v1, v2, v3) ->
-      let v2 = token env v2 (* "<-" *) in
-      let v3 = map_expression_ext env v3 in
-      let v1 =
-        match v1 with
-        | `Field_get_exp x ->
-            let e1, t, fld = map_field_get_expression env x in
-            FieldAssign (e1, t, fld, v2, v3)
-        | `Array_get_exp x ->
-            let e = map_array_get_expression env x in
-            ExprTodo (("ExtAssign", v2), [ e ])
-        | `Str_get_exp x ->
-            let e = map_string_get_expression env x in
-            ExprTodo (("ExtAssign", v2), [ e ])
-        | `Biga_get_exp x ->
-            let e = map_bigarray_get_expression env x in
-            ExprTodo (("ExtAssign", v2), [ e ])
-        (* TODO: grammar.js is wrong, can't have x <- y *)
-        | `Id tok ->
-            let x = token env tok in
-            (* pattern "[a-z_][a-zA-Z0-9_']*" *)
-            raise (Parsing_error.Other_error ("x <- y not valid", x))
-      in
-      v1
+  | `Set_exp (v1, v2, v3) -> (
+      let tarrow = token env v2 (* "<-" *) in
+      let e2 = map_expression_ext env v3 in
+      match v1 with
+      | `Field_get_exp x ->
+          let e1, t, fld = map_field_get_expression env x in
+          FieldAssign (e1, t, fld, tarrow, e2)
+      | `Array_get_exp x ->
+          let e1 = map_array_get_expression env x in
+          ExprTodo (("ExtAssign", tarrow), [ e1; e2 ])
+      | `Str_get_exp x ->
+          let e1 = map_string_get_expression env x in
+          ExprTodo (("ExtAssign", tarrow), [ e1; e2 ])
+      | `Biga_get_exp x ->
+          let e1 = map_bigarray_get_expression env x in
+          ExprTodo (("ExtAssign", tarrow), [ e1; e2 ])
+      (* ex: data <- foo, where data is a mutable field in a class/object *)
+      | `Id tok ->
+          let id = str env tok in
+          ExprTodo (("ObjFieldAssign", tarrow), [ name_of_id id; e2 ]))
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let _v2 = map_attribute_opt env v2 in
