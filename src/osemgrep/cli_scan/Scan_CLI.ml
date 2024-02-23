@@ -31,7 +31,7 @@ type conf = {
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
   (* can be a list of files or directories *)
-  target_roots : Rfpath.t list;
+  target_roots : Scanning_root.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
@@ -67,7 +67,7 @@ type conf = {
 let default : conf =
   {
     rules_source = Configs [ "auto" ];
-    target_roots = [ Rfpath.of_string_exn "." ];
+    target_roots = [ Scanning_root.of_string "." ];
     targeting_conf = Find_targets.default_conf;
     (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
@@ -764,7 +764,7 @@ let o_target_roots : string list Term.t =
   in
   Arg.value
     (Arg.pos_all Arg.string
-       (default.target_roots |> List_.map Rfpath.to_fpath |> Fpath_.to_strings)
+       (default.target_roots |> List_.map Scanning_root.to_string)
        info)
 
 (* ------------------------------------------------------------------ *)
@@ -844,10 +844,9 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
    same argv; allows us to consume stdin and named pipes.
 *)
 let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
-    (target_roots : string list) :
-    Rfpath.t list * (Fpath.t * string) list * bool =
+    (target_roots : string list) : Scanning_root.t list * bool =
   let imply_always_select_explicit_targets = ref false in
-  let target_roots, invalid_roots =
+  let target_roots =
     target_roots
     |> List_.map (fun str ->
            match str with
@@ -873,14 +872,14 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
                      imply_always_select_explicit_targets := true;
                      new_path)
                else orig_path)
-    |> Rfpath.of_fpaths
+    |> List_.map Scanning_root.of_fpath
   in
   if !imply_always_select_explicit_targets then
     Logs.info (fun m ->
         m
           "Implying --scan-unknown-extensions due to explicit targets being \
            stdin or named pipes");
-  (target_roots, invalid_roots, !imply_always_select_explicit_targets)
+  (target_roots, !imply_always_select_explicit_targets)
 
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
@@ -901,8 +900,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
     Logs_.setup_logging ~level:common.CLI_common.logging_level ();
-    (* TODO: report invalid roots *)
-    let target_roots, _invalid_roots, imply_always_select_explicit_targets =
+    let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed
         ~experimental:(common.maturity =*= Maturity.Experimental)
         target_roots
@@ -936,7 +934,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let explicit_targets =
       (* This is for determining whether a target path appears on the command
          line. As long as this holds, it's ok to include folders. *)
-      target_roots |> List_.map Rfpath.to_fpath
+      target_roots
+      |> List_.map Scanning_root.to_fpath
       |> Find_targets.Explicit_targets.of_list
     in
 
@@ -1130,7 +1129,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
               Some
                 {
                   Show.show_kind =
-                    Show.DumpAST (Rfpath.to_fpath file, Lang.of_string lang_str);
+                    Show.DumpAST
+                      (Scanning_root.to_fpath file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -1173,7 +1173,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       if test then
         let target =
           Test_CLI.target_kind_of_roots_and_config
-            (List_.map Rfpath.to_fpath target_roots)
+            (List_.map Scanning_root.to_fpath target_roots)
             config
         in
         Some

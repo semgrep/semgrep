@@ -34,7 +34,7 @@ type scanning_root_info = {
 val find_any_project_root :
   ?fallback_root:Rfpath.t ->
   ?force_root:Project.kind * Rfpath.t ->
-  Rfpath.t ->
+  Fpath.t ->
   Project.kind * scanning_root_info
 
 (*
@@ -42,5 +42,4 @@ val find_any_project_root :
    for a git project root. Instead, use the project root provided
    by 'project_root' which defaults to the current directory.
 *)
-val force_project_root :
-  ?project_root:Rfpath.t -> Rfpath.t -> scanning_root_info
+val force_project_root : ?project_root:Rfpath.t -> Fpath.t -> scanning_root_info

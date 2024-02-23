@@ -29,8 +29,8 @@ type t = {
       [@printer
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
-  workspace_folders : Rfpath.t list;
-  cached_workspace_targets : (Rfpath.t, Fpath.t list) Hashtbl.t; [@opaque]
+  workspace_folders : Fpath.t list;
+  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
@@ -90,13 +90,17 @@ let decode_rules caps data =
           (* There shouldn't be any errors, because we got these rules from CI. *)
           failwith "impossible: received invalid rules from CI")
 
-let get_targets session root =
+let get_targets session (root : Fpath.t) =
   let targets_conf =
     User_settings.find_targets_conf_of_t session.user_settings
   in
+  let proj_root = Rfpath.of_fpath_exn root in
   Find_targets.get_target_fpaths
-    { targets_conf with project_root = Some (Find_targets.Filesystem root) }
-    [ root ]
+    {
+      targets_conf with
+      project_root = Some (Find_targets.Filesystem proj_root);
+    }
+    [ Scanning_root.of_fpath root ]
   |> fst
 
 let send_metrics session =
@@ -170,9 +174,7 @@ let cache_workspace_targets session =
  *)
 let targets session =
   let dirty_files =
-    List_.map
-      (fun f -> (f, dirty_files_of_folder (Rfpath.to_fpath f)))
-      session.workspace_folders
+    List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
   in
   let member_folder_dirty_files file folder =
     let dirty_files = List.assoc folder dirty_files in
@@ -180,8 +182,8 @@ let targets session =
     | None -> true
     | Some files -> List.mem file files
   in
-  let member_workspace_folder file (folder : Rfpath.t) =
-    Fpath.is_prefix folder.fpath file
+  let member_workspace_folder file (folder : Fpath.t) =
+    Fpath.is_prefix folder file
     && ((not session.user_settings.only_git_dirty)
        || member_folder_dirty_files file folder)
   in
@@ -315,9 +317,7 @@ let save_local_skipped_fingerprints session =
     Sys.mkdir (Fpath.to_string save_dir) 0o755;
   let save_file_name =
     String.concat "_"
-      (List_.map
-         (fun f -> f |> Rfpath.to_fpath |> Fpath.basename)
-         session.workspace_folders)
+      (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in
@@ -330,9 +330,7 @@ let load_local_skipped_fingerprints session =
   let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
   let save_file_name =
     String.concat "_"
-      (List_.map
-         (fun f -> f |> Rfpath.to_fpath |> Fpath.basename)
-         session.workspace_folders)
+      (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in

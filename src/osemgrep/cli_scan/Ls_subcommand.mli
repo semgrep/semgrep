@@ -13,7 +13,7 @@
    Print the list of selected targets in alphabetical order, one per line.
 *)
 val run :
-  target_roots:Rfpath.t list ->
+  target_roots:Scanning_root.t list ->
   targeting_conf:Find_targets.conf ->
   unit ->
   Exit_code.t

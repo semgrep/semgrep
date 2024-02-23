@@ -836,7 +836,9 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   *)
   (match conf.targeting_conf.project_root with
   | Some (Find_targets.Git_remote { checkout_path; _ }) ->
-      Sys.chdir (checkout_path |> Rfpath.to_fpath |> Fpath.to_string)
+      let new_cwd = checkout_path.rpath |> Rpath.to_string in
+      Logs.debug (fun m -> m ~tags "chdir %s" new_cwd);
+      Sys.chdir new_cwd
   | _ -> ());
   (* step3: let's go *)
   let res =

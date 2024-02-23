@@ -30,6 +30,8 @@ module Out = Semgrep_output_v1_t
      discard targets with unknown extensions
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
@@ -356,7 +358,7 @@ let git_list_untracked_files (project_roots : project_roots) :
    TODO? move in paths/Project.ml?
 *)
 let group_scanning_roots_by_project (conf : conf)
-    (scanning_roots : Rfpath.t list) : project_roots list =
+    (scanning_roots : Scanning_root.t list) : project_roots list =
   (* Force root relativizes scan roots to project roots.
      I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
      it would make the scanning root /foo. So it doesn't make sense to
@@ -366,6 +368,10 @@ let group_scanning_roots_by_project (conf : conf)
 
      TODO: revise the above. 'force_root' is the project root.
   *)
+  (* should be debug level but pytest tests don't show debug messages *)
+  Logs.err (fun m ->
+      m ~tags "group_scanning_roots_by_project %s"
+        (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root =
     match conf.project_root with
     | Some (Git_remote { checkout_path; _ }) ->
@@ -382,16 +388,20 @@ let group_scanning_roots_by_project (conf : conf)
         Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
-  |> List_.map (fun scanning_root ->
+  |> List_.map (fun (scanning_root : Scanning_root.t) ->
          let ( kind,
                {
                  Git_project.project_root;
                  inproject_path = scanning_root_ppath;
                } ) =
-           Git_project.find_any_project_root ?force_root scanning_root
+           Git_project.find_any_project_root ?force_root
+             (Scanning_root.to_fpath scanning_root)
          in
          ( ({ kind; path = project_root } : Project.t),
-           ({ fpath = scanning_root.fpath; ppath = scanning_root_ppath }
+           ({
+              fpath = Scanning_root.to_fpath scanning_root;
+              ppath = scanning_root_ppath;
+            }
              : Fppath.t) ))
   (* Using a realpath (physical path) in Project.t ensures we group
      correctly even if the scanning_roots went through different symlink paths.

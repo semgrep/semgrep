@@ -107,13 +107,13 @@ val default_conf : conf
 *)
 val get_targets :
   conf ->
-  Rfpath.t list (* scanning roots *) ->
+  Scanning_root.t list ->
   Fppath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* Same as get_targets but drop the ppath (path within the project) *)
 val get_target_fpaths :
   conf ->
-  Rfpath.t list (* scanning roots *) ->
+  Scanning_root.t list ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* internals used also in Find_targets_old.ml *)

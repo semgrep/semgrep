@@ -7,15 +7,21 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 type t = { fpath : Fpath.t; rpath : Rpath.t; cwd : Rpath.t }
 [@@deriving show, eq]
 
+let create ~fpath ~rpath =
+  let res = { fpath; rpath; cwd = Rpath.getcwd () } in
+  Logs.debug (fun m ->
+      m "[Unix.getcwd()=%s] new rfpath: %s" (Unix.getcwd ()) (show res));
+  res
+
 let of_fpath_exn fpath =
   let rpath = Rpath.of_fpath_exn fpath in
-  { fpath; rpath; cwd = Rpath.getcwd () }
+  create ~fpath ~rpath
 
 let of_string_exn path = of_fpath_exn (Fpath.v path)
 
 let of_fpath fpath =
   match Rpath.of_fpath fpath with
-  | Ok rpath -> Ok { fpath; rpath; cwd = Rpath.getcwd () }
+  | Ok rpath -> Ok (create ~fpath ~rpath)
   | Error _msg as err -> err
 
 let of_string s = s |> Fpath.v |> of_fpath
@@ -51,10 +57,7 @@ let of_fpaths_with_warnings fpaths =
 
 let to_fpath x = x.fpath
 let to_rpath x = x.rpath
-
-let getcwd () =
-  let cwd = Rpath.getcwd () in
-  { fpath = Fpath.v "."; rpath = cwd; cwd }
+let getcwd () = create ~fpath:(Fpath.v ".") ~rpath:(Rpath.getcwd ())
 
 let is_valid (x : t) =
   Fpath.is_rel x.fpath && String.equal (Sys.getcwd ()) (Rpath.to_string x.cwd)

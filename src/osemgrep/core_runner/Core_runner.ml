@@ -104,7 +104,7 @@ type core_run_for_osemgrep = {
  *)
 let (hook_pro_core_run_for_osemgrep :
       (?diff_config:Differential_scan_config.t ->
-      roots:Rfpath.t list ->
+      roots:Scanning_root.t list ->
       Engine_type.t ->
       core_run_for_osemgrep)
       option

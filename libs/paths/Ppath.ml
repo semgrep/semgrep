@@ -241,21 +241,34 @@ let remove_prefix root path =
 (*****************************************************************************)
 
 (*
+   Make a path absolute, using getcwd() if needed.
+   I hesitated to put this into Fpath_ since Fpath is purely syntactic.
+*)
+let make_absolute path =
+  if Fpath.is_rel path then Fpath.(v (Unix.getcwd ()) // path)
+  else (* save a syscall *)
+    path
+
+(*
    This assumes the input paths are normalized. We use this
    in tests to avoid having to create actual files.
 *)
-let in_project_unsafe ~(phys_root : Fpath.t) (phys_path : Fpath.t) =
-  match remove_prefix phys_root phys_path with
+let in_project_unsafe ~(phys_root : Fpath.t) (path : Fpath.t) =
+  let abs_path = make_absolute path in
+  match remove_prefix phys_root abs_path with
   | None ->
       Error
-        (Common.spf "cannot make path %S relative to project root %S"
-           !!phys_path !!phys_root)
+        (Common.spf
+           "cannot make path %S relative to project root %S.\n\
+            cwd: %s\n\
+            realpath for .: %s\n\
+            Sys.argv: %s" !!path !!phys_root (Sys.getcwd ())
+           (Rfpath.of_string_exn "." |> Rfpath.show)
+           (Sys.argv |> Array.to_list |> String.concat " "))
   | Some path -> path |> of_fpath
 
-let in_project ~(root : Rfpath.t) (path : Rfpath.t) =
-  in_project_unsafe
-    ~phys_root:(root |> Rfpath.to_rpath |> Rpath.to_fpath)
-    (path |> Rfpath.to_rpath |> Rpath.to_fpath)
+let in_project ~(root : Rfpath.t) (path : Fpath.t) =
+  in_project_unsafe ~phys_root:(root.rpath |> Rpath.to_fpath) path
 
 let from_segments segs =
   match segs with
