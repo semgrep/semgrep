@@ -8,6 +8,11 @@ open Fpath_.Operators
 
    The name of the module imitates Fpath.ml, but use Ppath.ml for
    Project path (instead of File path).
+
+   !!! The tests for this module are in the git_wrapper library because
+   they depend on git.
+   TODO: create a 'project' library that depends both on 'git_wrapper'
+   and 'paths'?
 *)
 
 (*****************************************************************************)
@@ -235,13 +240,35 @@ let remove_prefix root path =
 (* Builder entry points *)
 (*****************************************************************************)
 
-let in_project ~root path =
-  match remove_prefix root path with
+(*
+   Make a path absolute, using getcwd() if needed.
+   I hesitated to put this into Fpath_ since Fpath is purely syntactic.
+*)
+let make_absolute path =
+  if Fpath.is_rel path then Fpath.(v (Unix.getcwd ()) // path)
+  else (* save a syscall *)
+    path
+
+(*
+   This assumes the input paths are normalized. We use this
+   in tests to avoid having to create actual files.
+*)
+let in_project_unsafe ~(phys_root : Fpath.t) (path : Fpath.t) =
+  let abs_path = make_absolute path in
+  match remove_prefix phys_root abs_path with
   | None ->
       Error
-        (Common.spf "cannot make path %S relative to project root %S" !!path
-           !!root)
+        (Common.spf
+           "cannot make path %S relative to project root %S.\n\
+            cwd: %s\n\
+            realpath for .: %s\n\
+            Sys.argv: %s" !!path !!phys_root (Sys.getcwd ())
+           (Rfpath.of_string_exn "." |> Rfpath.show)
+           (Sys.argv |> Array.to_list |> String.concat " "))
   | Some path -> path |> of_fpath
+
+let in_project ~(root : Rfpath.t) (path : Fpath.t) =
+  in_project_unsafe ~phys_root:(root.rpath |> Rpath.to_fpath) path
 
 let from_segments segs =
   match segs with
@@ -268,9 +295,10 @@ let of_string_for_tests string =
 (*****************************************************************************)
 
 let () =
+  let open Printf in
   Testo.test "Ppath" (fun () ->
       let test_str f input expected_output =
-        Alcotest.(check string) "equal" expected_output (f input)
+        Alcotest.(check string) __LOC__ expected_output (f input)
       in
       let rewrite str = to_string (of_string_for_tests str) in
       test_str rewrite "/" "/";
@@ -278,53 +306,61 @@ let () =
       test_str rewrite "" "";
       test_str rewrite "a/" "a/";
 
-      let norm str =
-        match of_string_for_tests str |> normalize_ppath with
-        | Ok x -> to_string x
-        | Error s -> failwith s
+      let norm input_str expected =
+        let res =
+          match of_string_for_tests input_str |> normalize_ppath with
+          | Ok x -> to_string x
+          | Error s -> failwith s
+        in
+        printf "test ppath normalization: %s -> %s\n%!" input_str res;
+        Alcotest.(check string) __LOC__ expected res
       in
       let norm_err str =
         match of_string_for_tests str |> normalize_ppath with
-        | Ok _ -> false
-        | Error _ -> true
+        | Ok res ->
+            Alcotest.fail
+              (sprintf "an error was expected but we got: %s -> %s\n" str
+                 (to_string res))
+        | Error _ -> ()
       in
-      test_str norm "a" "a";
-      test_str norm "a/b" "a/b";
-      test_str norm "ab/cd" "ab/cd";
-      test_str norm "/" "/";
-      test_str norm "/a" "/a";
-      test_str norm "/a/b" "/a/b";
-      test_str norm "" ".";
-      test_str norm "." ".";
-      test_str norm "." ".";
-      test_str norm ".." "..";
-      assert (norm_err "/..");
-      test_str norm "a/../b" "b";
-      test_str norm "a/.." ".";
-      test_str norm "a/../.." "..";
-      assert (norm_err "/a/../..");
-      test_str norm "a/b/../c/d/e/../.." "a/c";
-      test_str norm "/a/b/../c/d/e/../.." "/a/c";
-      test_str norm "a/" "a/";
-      test_str norm "/a/" "/a/";
-      test_str norm "/a/b/" "/a/b/";
+      norm "a" "a";
+      norm "a/b" "a/b";
+      norm "ab/cd" "ab/cd";
+      norm "/" "/";
+      norm "/a" "/a";
+      norm "/a/b" "/a/b";
+      norm "" ".";
+      norm "." ".";
+      norm "." ".";
+      norm ".." "..";
+      norm_err "/..";
+      norm "a/../b" "b";
+      norm "a/.." ".";
+      norm "a/../.." "..";
+      norm_err "/a/../..";
+      norm "a/b/../c/d/e/../.." "a/c";
+      norm "/a/b/../c/d/e/../.." "/a/c";
+      norm "a/" "a/";
+      norm "/a/" "/a/";
+      norm "/a/b/" "/a/b/";
 
       let test_add_seg a b ab =
         Alcotest.(check string)
-          "equal" ab
+          __LOC__ ab
           (add_seg (of_string_for_tests a) b |> to_string)
       in
       test_add_seg "/" "a" "/a";
       test_add_seg "/a" "b" "/a/b";
       test_add_seg "/a/" "c" "/a/c";
 
+      let mk_abs path_str = Fpath.(v "/fake/cwd" // v path_str) in
       let test_in_project_ok root path expected =
-        match in_project ~root:(Fpath.v root) (Fpath.v path) with
-        | Ok res -> Alcotest.(check string) "equal" expected (to_string res)
+        match in_project_unsafe ~phys_root:(mk_abs root) (mk_abs path) with
+        | Ok res -> Alcotest.(check string) __LOC__ expected (to_string res)
         | Error msg -> Alcotest.fail msg
       in
       let test_in_project_fail root path =
-        match in_project ~root:(Fpath.v root) (Fpath.v path) with
+        match in_project_unsafe ~phys_root:(Fpath.v root) (Fpath.v path) with
         | Ok res -> Alcotest.fail (to_string res)
         | Error _ -> ()
       in
