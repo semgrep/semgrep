@@ -1,3 +1,4 @@
+[00.00][INFO]: execute pysemgrep: "osemgrep" "--exclude" "excluded.*" "--exclude" "included.*" "--verbose" "--strict" "--config" "rules/eqeq.yaml" "targets/exclude_include"
 running 4 rules from 1 config rules/eqeq.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:
