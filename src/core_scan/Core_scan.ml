@@ -524,7 +524,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 (*****************************************************************************)
 
 (* for -rules *)
-let%trace rules_from_rule_source (config : Core_scan_config.t) :
+let rules_from_rule_source (config : Core_scan_config.t) :
     Rule.t list * Rule.invalid_rule_error list =
   let rule_source =
     match config.rule_source with
@@ -1195,12 +1195,15 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 (* Entry point *)
 (*****************************************************************************)
 
+let time_and_trace_rules config =
+  (* TODO remove this wrapper function once we have a tracing ppx *)
+  Tracing.with_span ~__FILE__ ~__LINE__ "Core_scan.handle_target" (fun _sp ->
+      Common.with_time (fun () -> rules_from_rule_source config))
+
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    let timed_rules =
-      Common.with_time (fun () -> rules_from_rule_source config)
-    in
+    let timed_rules = time_and_trace_rules config in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and
