@@ -212,6 +212,43 @@ let create_formatter opt_file =
   (isatty chan, fmt)
 
 (*****************************************************************************)
+(* Specifying the log level with an environment variable *)
+(*****************************************************************************)
+
+let log_level_of_string_opt str : Logs.level option option =
+  match str with
+  | "app" -> Some (Some App)
+  | "error" -> Some (Some Error)
+  | "warning" -> Some (Some Warning)
+  | "info" -> Some (Some Info)
+  | "debug" -> Some (Some Debug)
+  | "none" -> Some None
+  | _ -> None
+
+(* TODO: document this and handle the interpretation at the time
+   of parsing the command line.
+
+   The PYTEST_ prefix is needed when using pytest because it will unset
+   all other environment variables.
+*)
+let read_level_from_env () =
+  (* left-to-right in order of precedence = from more specific to least
+     specific *)
+  let vars =
+    [
+      "PYTEST_SEMGREP_LOG_LEVEL";
+      "SEMGREP_LOG_LEVEL";
+      "PYTEST_LOG_LEVEL";
+      "LOG_LEVEL";
+    ]
+  in
+  vars
+  |> List.find_map (fun var ->
+         match USys.getenv_opt var with
+         | None -> None
+         | Some str -> log_level_of_string_opt str)
+
+(*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
@@ -229,6 +266,13 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
     ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
     ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
     ~level () =
+  (* Override the log level if it's provided by an environment variable!
+     This is for debugging a command that gets called by some wrapper. *)
+  let level =
+    match read_level_from_env () with
+    | Some level_from_env -> level_from_env
+    | None -> level
+  in
   let isatty, dst = create_formatter opt_file in
   let highlight =
     match highlight_setting with
@@ -276,3 +320,15 @@ let mask_time =
 let mask_log_lines =
   Testo.mask_pcre_pattern ~mask:"<MASKED LOG LINE>"
     {|\[[0-9]{2}\.[0-9]{2}\][^\n]*|}
+
+let list to_string xs =
+  Printf.sprintf "[%s]" (xs |> List_.map to_string |> String.concat ";")
+
+let array to_string xs =
+  Printf.sprintf "[|%s|]"
+    (xs |> Array.to_list |> List_.map to_string |> String.concat ";")
+
+let option to_string opt =
+  match opt with
+  | None -> "None"
+  | Some x -> Printf.sprintf "Some %s" (to_string x)

@@ -1,1 +1,0 @@
-Fixed trailing newline parsing in pyproject.toml and poetry.lock files.
