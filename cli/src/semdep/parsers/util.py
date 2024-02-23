@@ -11,6 +11,7 @@ causing no runtime errors.
 """
 from __future__ import annotations
 
+import re
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
@@ -390,6 +391,7 @@ class JSON:
 
 # Utilities
 whitespace = regex(r"\s*")
+new_lines = regex("\n+", re.MULTILINE)
 
 
 def lexeme(p: Parser[A]) -> Parser[A]:
@@ -399,6 +401,8 @@ def lexeme(p: Parser[A]) -> Parser[A]:
 # Punctuation
 lbrace = lexeme(string("{"))
 rbrace = lexeme(string("}"))
+lparen = lexeme(string("("))
+rparen = lexeme(string(")"))
 lbrack = lexeme(string("["))
 rbrack = lexeme(string("]"))
 colon = lexeme(string(":"))

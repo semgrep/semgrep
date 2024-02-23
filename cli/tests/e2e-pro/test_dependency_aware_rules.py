@@ -215,6 +215,14 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/dart-parity.yaml",
             "dependency_aware/dart",
         ),
+        (
+            "rules/dependency_aware/swift-sca.yaml",
+            "dependency_aware/swiftpm/v1",
+        ),
+        (
+            "rules/dependency_aware/swift-sca.yaml",
+            "dependency_aware/swiftpm/v2",
+        ),
     ],
 )
 @pytest.mark.osemfail

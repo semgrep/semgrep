@@ -22,6 +22,7 @@ from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.pubspec_lock import parse_pubspec_lock
 from semdep.parsers.requirements import parse_requirements
+from semdep.parsers.swiftpm import parse_package_resolved
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.yarn import parse_yarn
 from semgrep.console import console
@@ -87,6 +88,7 @@ NEW_LOCKFILE_PARSERS: Dict[
     "composer.lock": parse_composer_lock,  # PHP,
     "packages.lock.json": parse_packages_lock_c_sharp,  # C#
     "pubspec.lock": parse_pubspec_lock,  # Dart / Flutter
+    "package.resolved": parse_package_resolved,  # SwiftPM
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -105,6 +107,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "pnpm-lock.yaml": None,
     "packages.lock.json": None,
     "pubspec.lock": "pubspec.yaml",
+    "Package.resolved": "Package.swift",
 }
 
 
