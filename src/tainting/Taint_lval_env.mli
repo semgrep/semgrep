@@ -102,4 +102,4 @@ val equal_by_lval : env -> env -> IL.lval -> bool
 
 val to_string : (Taint.taints -> string) -> env -> string
 val seq_of_tainted : env -> (IL.lval * Taint.taints) Seq.t
-val find_tainted_lvals_of_common_base : env -> IL.lval -> IL.lval list
+val find_tainted_lvals_of_common_base : env -> IL.base -> IL.lval list

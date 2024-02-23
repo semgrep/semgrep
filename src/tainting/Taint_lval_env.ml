@@ -26,7 +26,6 @@ module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
 let tags = Logs_.create_tags [ __MODULE__ ]
-let ( =*= ) = Common.( =*= )
 
 type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
@@ -482,8 +481,20 @@ let to_string taint_to_str
 
 let seq_of_tainted env = LvalMap.to_seq env.tainted
 
-let find_tainted_lvals_of_common_base { tainted; _ } { IL.base; _ } =
+let find_tainted_lvals_of_common_base { tainted; _ } base =
+  let rec eq_base base1 base2 =
+    match (base1, base2) with
+    | IL.Var name1, IL.Var name2 when IL.compare_name name1 name2 = 0 -> true
+    | VarSpecial (This, _), VarSpecial (This, _) -> true
+    | VarSpecial (Super, _), VarSpecial (Super, _) -> true
+    | VarSpecial (Self, _), VarSpecial (Self, _) -> true
+    | VarSpecial (Parent, _), VarSpecial (Parent, _) -> true
+    | ( Mem { e = Fetch { base = base1; rev_offset = [] }; _ },
+        Mem { e = Fetch { base = base2; rev_offset = [] }; _ } ) ->
+        eq_base base1 base2
+    | _ -> false
+  in
   LvalMap.fold
     (fun ({ base = base'; _ } as lval) _ l ->
-      if base =*= base' then lval :: l else l)
+      if eq_base base base' then lval :: l else l)
     tainted []

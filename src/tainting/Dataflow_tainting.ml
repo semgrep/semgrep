@@ -1728,10 +1728,10 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
    * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
    * extension and generate an `ArgToArg` finding too. *)
   enter_env |> Lval_env.seq_of_tainted
-  |> Seq.flat_map (fun (lval, enter_taints) ->
+  |> Seq.flat_map (fun ({ base; _ }, enter_taints) ->
          (* We need to consider all lvals of the same base component
             due to index sensitivity. *)
-         Lval_env.find_tainted_lvals_of_common_base exit_env lval
+         Lval_env.find_tainted_lvals_of_common_base exit_env base
          |> List_.map (fun l -> (l, enter_taints))
          |> List.to_seq)
   |> List.of_seq
