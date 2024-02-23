@@ -10,6 +10,7 @@ from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.parsers.util import comma
+from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
@@ -97,7 +98,7 @@ dependencies_block = (
     regex(r"dependencies:\s*\[")
     >> whitespace
     >> multiple_package_blocks
-    << regex(r"\n*?.*?\]\s*,?")
+    << consume_line.many()
 )
 
 package_swift_parser = (
