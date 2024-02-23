@@ -1,14 +1,9 @@
-(*
-   Rule parsing
-*)
-
 (* Parse a rule file, either in YAML or JSON (or even Jsonnet) format
    depending on the filename extension.
 
    The parser accepts invalid rules, skips them, and returns them in
    the list of errors.
    This will not raise Rule.Err (Rule.InvalidRule ...) exceptions.
-
    However, this function may raise the other (Rule.Err ...) exns
    (e.g., Rule.InvalidYaml).
 
@@ -20,18 +15,6 @@ val parse_and_filter_invalid_rules :
   ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   Rule.rules * Rule.invalid_rule_error list
-
-(* ex: foo.yaml, foo.yml, but not foo.test.yaml.
- *
- * Note that even if parse() above accepts JSON (and Jsonnet) files,
- * foo.json (and foo.jsonnet) are currently not considered
- * valid_rule_filename.
- *
- * This function is currently used for osemgrep, to get all
- * the valid rule files when using --config <DIR>,
- * and also in Test_engine.ml.
- *)
-val is_valid_rule_filename : Fpath.t -> bool
 
 (* This is used for parsing -e/-f extended patterns in Run_semgrep.ml
  * and now also in osemgrep Config_resolver.ml.

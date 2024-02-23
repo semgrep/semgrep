@@ -44,10 +44,14 @@ type env = {
 
 (* Parsing generic dictionaries creates a mutable Hashtbl and consumes the
  * fields as they are processed.
- * todo? use a Map instead?
+ * This is useful for warn_if_remaining_unparsed_fields() below.
  *)
 type dict = {
-  (* !this is mutated! *)
+  (* Do not use directly Hashtbl.find_opt on this field!
+   * Use instead dict_take_opt() or tak_opt_no_env() otherwise
+   * warn_if_remaining_unparsed_fields() will not work.
+   * This is mutated!
+   *)
   h : (string, key * AST_generic.expr) Hashtbl.t;
   (* for error reports on missing fields *)
   first_tok : R.tok;
@@ -116,6 +120,17 @@ let check_that_dict_is_empty (dict : dict) =
     in
     yaml_error dict.first_tok
       ("Unknown or duplicate properties found in YAML object: " ^ remaining_keys)
+
+(* sanity check there are no remaining fields in rd (rule dictionnary) *)
+let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
+  (* less: we could return an error, but better to be fault-tolerant
+   * to futur extensions to the rule format
+   *)
+  rd.h |> Hashtbl_.hash_to_list
+  |> List.iter (fun (k, _v) ->
+         Logs.warn (fun m ->
+             m ~tags "Skipping unknown field '%s' in rule %s" k
+               (Rule_ID.to_string rule_id)))
 
 (*****************************************************************************)
 (* Helpers *)

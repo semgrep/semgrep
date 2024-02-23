@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Emma Jin
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -23,6 +23,7 @@ module G = AST_generic
 module Set = Set_
 module MV = Metavariable
 open Parse_rule_helpers
+module H = Parse_rule_helpers
 
 let tags = Logs_.create_tags [ __MODULE__ ]
 
@@ -31,7 +32,8 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (*****************************************************************************)
 (* Parsing a Semgrep rule, including complex pattern formulas.
  *
- * See also the JSON schema for a rule in rule_schema_v1.yaml.
+ * See also the JSON schema for a rule in rule_schema_v1.yaml (and
+ * also now in rule_schema_v2.atd for the v2 syntax).
  *
  * history: we used to parse a semgrep rule by simply using the basic API of
  * the OCaml 'yaml' library. This API allows converting a yaml file into
@@ -177,8 +179,9 @@ let parse_paths env key value =
     ( take_opt paths_dict env parse_glob_list "include",
       take_opt paths_dict env parse_glob_list "exclude" )
   in
-  (* alt: we could use report_unparsed_fields(), but better to raise an error for now
-     to be compatible with pysemgrep *)
+  (* alt: we could use H.warn_if_remaining_unparsed_fields() but better to
+   * raise an error for now to be compatible with pysemgrep.
+   *)
   if Hashtbl.length paths_dict.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
@@ -513,8 +516,7 @@ let parse_rules_to_run_with_extract env key value =
         (parse_string_wrap_list Rule_ID.of_string)
         "exclude" )
   in
-  (* alt: we could use report_unparsed_fields(), but better to raise an error for now
-     to be compatible with pysemgrep *)
+  (* to be compatible with pysemgrep *)
   if Hashtbl.length ruleids_dict.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
@@ -546,7 +548,7 @@ let parse_taint_fields env rule_dict =
         (fun env -> parse_spec env (fst key ^ "list item", snd key))
         x )
   in
-  match Hashtbl.find_opt rule_dict.h "taint" with
+  match H.dict_take_opt rule_dict "taint" with
   | Some (key, value) -> parse_taint_pattern env key value
   | __else__ ->
       let sources, propagators_opt, sanitizers_opt, sinks =
@@ -725,7 +727,7 @@ let parse_validators env key value =
   parse_list env key (parse_validator key) value
 
 (*****************************************************************************)
-(* Supply chain *)
+(* Parsers for Supply chain *)
 (*****************************************************************************)
 
 let parse_ecosystem env key value =
@@ -755,8 +757,10 @@ let parse_dependency_formula env key value : R.dependency_formula =
   else [ parse_dependency_pattern key env value ]
 
 (*****************************************************************************)
-(* Main entry point *)
+(* Parse the whole thing  *)
 (*****************************************************************************)
+
+(* dispatch depending on the "mode" of the rule *)
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
@@ -811,22 +815,6 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
            "Unexpected value for mode, should be 'search', 'taint', 'extract', \
             or 'step', not %s"
            (fst key))
-
-(* sanity check there are no remaining fields in rd *)
-let report_unparsed_fields rd =
-  (* those were not "consumed" *)
-  Hashtbl.remove rd.h "pattern";
-  Hashtbl.remove rd.h "patterns";
-  match Hashtbl_.hash_to_list rd.h with
-  | [] -> ()
-  | xs ->
-      (* less: we could return an error, but better to be fault-tolerant
-       * to futur extensions to the rule format
-       *)
-      xs
-      |> List.iter (fun (k, _v) ->
-             (* TODO: log in which file/loc this is happening *)
-             Logs.warn (fun m -> m ~tags "Skipping unknown field in rule: %s" k))
 
 let parse_version key value =
   let str, tok = parse_string_wrap_no_env key value in
@@ -911,6 +899,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     }
   in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
+  (* this parses the search formula, or taint spec, or extract mode, etc. *)
   let mode = parse_mode env mode_opt rd in
   let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
   let dep_formula_opt =
@@ -929,7 +918,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
   let paths_opt = take_opt rd env parse_paths "paths" in
   let equivs_opt = take_opt rd env parse_equivalences "equivalences" in
   let validators_opt = take_opt rd env parse_validators "validators" in
-  report_unparsed_fields rd;
+  H.warn_if_remaining_unparsed_fields rule_id rd;
   {
     R.id;
     min_version = Option.map fst min_version;
@@ -1016,6 +1005,7 @@ let parse_yaml_rule_file (file : Fpath.t) =
 
 let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
   let ast =
+    (* coupling: Rule_file.is_valid_rule_filename *)
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
         (* in a parsing-rule context, we don't want the parsed strings by
@@ -1105,29 +1095,3 @@ let parse file =
   (* The skipped rules include Apex rules and other rules that are always
      skippable. *)
   xs
-
-(*****************************************************************************)
-(* Valid rule filename checks *)
-(*****************************************************************************)
-(* Those functions could be in a separate file *)
-
-(* alt: could define
- * type yaml_kind = YamlRule | YamlTest | YamlFixed | YamlOther
- *)
-let is_test_yaml_file filepath =
-  (* .test.yaml files are YAML target files rather than config files! *)
-  let filepath = !!filepath in
-  Filename.check_suffix filepath ".test.yaml"
-  || Filename.check_suffix filepath ".test.yml"
-  || Filename.check_suffix filepath ".test.fixed.yaml"
-  || Filename.check_suffix filepath ".test.fixed.yml"
-
-let is_valid_rule_filename filename =
-  match File_type.file_type_of_file filename with
-  (* ".yml" or ".yaml" *)
-  | FT.Config FT.Yaml -> not (is_test_yaml_file filename)
-  (* old: we were allowing Jsonnet before, but better to skip
-   * them for now to avoid adding a jsonnet dependency in our docker/CI
-   * FT.Config (FT.Json FT.Jsonnet) when not unit_testing -> true
-   *)
-  | _else_ -> false
