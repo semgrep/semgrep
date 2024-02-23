@@ -368,8 +368,7 @@ let group_scanning_roots_by_project (conf : conf)
 
      TODO: revise the above. 'force_root' is the project root.
   *)
-  (* should be debug level but pytest tests don't show debug messages *)
-  Logs.err (fun m ->
+  Logs.debug (fun m ->
       m ~tags "group_scanning_roots_by_project %s"
         (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root =

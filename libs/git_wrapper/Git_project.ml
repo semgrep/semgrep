@@ -19,8 +19,7 @@ let force_project_root ?(project_root : Rfpath.t option) (path : Fpath.t) =
   | Error msg -> failwith msg
 
 let find_any_project_root ?fallback_root ?force_root (fpath : Fpath.t) =
-  (* should be 'debug' but pytest tests don't show debug logs *)
-  Logs.err (fun m ->
+  Logs.debug (fun m ->
       m ~tags "find_any_project_root: fallback_root=%s force_root=%s %s"
         (Logs_.option Rfpath.show fallback_root)
         (Logs_.option (fun _ -> "_") force_root)
