@@ -1,0 +1,14 @@
+rules:
+- id: terraform-mvar-regex-interpolated-var
+  patterns:
+  - pattern: |
+      resource $X $Y {
+        field = $Z
+      }
+  - metavariable-regex:
+      metavariable: $Z
+      constant-propagation: true
+      regex: "150"
+  message: Working!
+  severity: WARNING
+  languages: [hcl]
