@@ -240,6 +240,7 @@ let is_enabled () =
 let add_user_agent_tag (str : string) =
   let str =
     str
+    (* TODO: don't use JaneStreet Base until we agree to do so *)
     |> Base.String.chop_prefix_if_exists ~prefix:"("
     |> Base.String.chop_suffix_if_exists ~suffix:")"
     |> String.trim |> spf "(%s)"

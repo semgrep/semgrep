@@ -131,6 +131,7 @@ def test_fixtest_test4_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# TODO: there's no test5.yaml or test5.py. Why?
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_fixtest_test5_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -147,6 +148,7 @@ def test_fixtest_test5_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# TODO: there's no test5.yaml or test5.py. Why?
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_fixtest_test5_json(run_semgrep_in_tmp: RunSemgrep, snapshot):

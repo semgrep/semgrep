@@ -120,7 +120,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       m "Semgrep Pro Engine will be installed in %s" !!pro_executable_path);
 
   (* This hook should only be set if this is currently the semgrep-proprietary binary *)
-  (match !Core_runner.hook_pro_scan_func_for_osemgrep with
+  (match !Core_runner.hook_pro_core_run_for_osemgrep with
   | Some _ ->
       Logs.app (fun m -> m "Overwriting Semgrep Pro Engine already installed!")
   | None -> ());
@@ -129,7 +129,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
   | None, None ->
       Logs.err (fun m ->
           m "run `semgrep login` before running `semgrep install-semgrep-pro`");
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
   | _ ->
       let platform_kind =
         match (Platform.kernel (), Platform.arch ()) with
@@ -161,7 +161,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
             true
       in
 
-      if not download_succeeded then Exit_code.fatal
+      if not download_succeeded then Exit_code.fatal ~__LOC__
       else (
         (* THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
            *        The binary should not have setuid or setgid rights, so letting others
@@ -200,7 +200,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
         Logs.app (fun m ->
             m "\nSuccessfully installed Semgrep Pro Engine (version %s)!"
               version);
-        Exit_code.ok)
+        Exit_code.ok ~__LOC__)
 
 (*****************************************************************************)
 (* Entry point *)

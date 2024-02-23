@@ -546,10 +546,11 @@ let run_cnf_step2 cnf big_str =
                   Logs.debug (fun m ->
                       m ~tags "check for the presence of %S" id);
                   (* TODO: matching_exact_word does not work, why??
-                     because string literals and metavariables are put under Idents? *)
+                     because string literals and metavariables are put under
+                     Idents? *)
                   let re = Regexp_engine.matching_exact_string id in
-                  (* Note that in case of a PCRE error, we want to assume that the
-                     rule is relevant, hence ~on_error:true! *)
+                  (* Note that in case of a PCRE error, we want to assume
+                     that the rule is relevant, hence ~on_error:true! *)
                   Regexp_engine.unanchored_match ~on_error:true re big_str)
        | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
 [@@profiling]
