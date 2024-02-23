@@ -738,9 +738,9 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let roots = Rfpath.of_strings_with_warnings roots in
-          (* TODO: properly report errors about invalid paths *)
-          let config = { config with roots } in
+          let config =
+            { config with roots = List_.map Scanning_root.of_string roots }
+          in
 
           (* Set up tracing and run it for the duration of scanning. Note that this will
              only trace `semgrep_core_dispatch` and the functions it calls.
