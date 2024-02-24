@@ -252,22 +252,44 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
       if show_separator then
         Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make fill_count '-')
 
+(* Generic iteration over a list, with a view into the previous and the next
+   element.
+   Please keep this generic and separate from the business logic, otherwise
+   the code becomes inscrutable. *)
+let iter_with_view_into_neighbor_elements
+    (f : prev:'a option -> cur:'a -> next:'a option -> unit) xs =
+  let rec loop ~prev xs =
+    match xs with
+    | x :: tail ->
+        let next =
+          match xs with
+          | [] -> None
+          | next :: _ -> Some next
+        in
+        f ~prev ~cur:x ~next;
+        loop ~prev:(Some x) tail
+    | [] -> ()
+  in
+  loop ~prev:None xs
+
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : OutJ.cli_match list) =
-  let print_one (last : OutJ.cli_match option) (cur : OutJ.cli_match)
-      (next : OutJ.cli_match option) =
-    let last_message =
+  let print_one_match ~(prev : OutJ.cli_match option) ~(cur : OutJ.cli_match)
+      ~(next : OutJ.cli_match option) =
+    let prev_message =
       let print, msg =
-        match last with
+        match prev with
         | None ->
             Fmt.pf ppf "@.";
             (true, None)
         | Some m ->
-            if m.path = cur.path then (false, Some m.extra.message)
+            if m.path = cur.path && Rule_ID.equal m.check_id cur.check_id then
+              (false, Some m.extra.message)
             else (true, None)
       in
       (if print then
-         (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+         (* python compatibility: the 22m and 24m are "normal color or
+            intensity", and "underline off" *)
          let esc =
            if Fmt.style_renderer ppf = `Ansi_tty then
              Fmt.any "\027[22m\027[24m  "
@@ -281,7 +303,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     let print =
       cur.check_id <> Constants.rule_id_for_dash_e
       &&
-      match last_message with
+      match prev_message with
       | None -> true
       | Some m -> m <> cur.extra.message
     in
@@ -293,7 +315,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
               (if no_color then Fmt.(styled `None string)
                else Fmt.(styled (`Fg `Red) string))
               "❯❯❱"
-        (* No out-of-the-box support for Orange and we use here Magenta instead :/ *)
+        (* No out-of-the-box support for Orange and we use here Magenta
+           instead :/ *)
         | `Warning ->
             Fmt.pf ppf "%s%a" rule_leading_indent
               (if no_color then Fmt.(styled `None string)
@@ -314,7 +337,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       match lines with
       | [] -> ()
       | (_, l) :: rest ->
-          (* Print indented severity with 1 trailing space and then first line *)
+          (* Print indented severity with 1 trailing space and then
+             first line *)
           Fmt.pf ppf " %a@." Fmt.(styled `Bold string) l;
           List.iter
             (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold string) l)
@@ -337,25 +361,15 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     let same_rule =
       match next with
       | None -> false
-      | Some m -> m.check_id = cur.check_id
+      | Some m ->
+          Logs.debug (fun f -> f "same rule: %s" (Rule_ID.to_string m.check_id));
+          m.check_id = cur.check_id
     in
     pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
       ~show_separator:(same_file && same_rule) ppf cur;
     Fmt.pf ppf "@."
   in
-  let last, cur =
-    matches
-    |> List.fold_left
-         (fun (last, cur) (next : OutJ.cli_match) ->
-           (match cur with
-           | None -> ()
-           | Some m -> print_one last m (Some next));
-           (cur, Some next))
-         (None, None)
-  in
-  match cur with
-  | Some m -> print_one last m None
-  | None -> ()
+  iter_with_view_into_neighbor_elements print_one_match matches
 
 (*****************************************************************************)
 (* Entry point *)

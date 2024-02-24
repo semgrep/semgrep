@@ -60,9 +60,11 @@ type status = {
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+type sha = SHA of string [@@deriving eq, ord, sexp] [@@unboxed]
 
-type sha = (string[@printer fun fmt -> fprintf fmt "%s"])
-[@@deriving show, eq, ord, sexp]
+(* print no quotes *)
+let show_sha (SHA str) = str
+let pp_sha fmt sha = Format.fprintf fmt "%s" (show_sha sha)
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
 type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
@@ -230,13 +232,82 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
       @ flag "--exclude-standard" exclude_standard
       @ roots )
   in
-  Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with
     | Ok (files, (_, `Exited 0)) -> files
     | _ -> raise (Error "Could not get files from git ls-files")
   in
   files |> Fpath_.of_strings
+
+let append_slash_to_dir_path path = Fpath.add_seg path ""
+
+(*
+   Make an absolute path relative to a root folder if possible.
+
+   This returns a relative path if possible, otherwise falls back to an
+   absolute path. It's possible to obtain a relative path if both paths
+   are relative (to the same implicit folder) or if they're both absolute
+   and share the same filesystem root ('/' on Unix or a volume name on
+   Windows).
+
+   TODO: move to Fpath_?
+*)
+let relativize_if_possible ~abs_cwd abs_path =
+  if not (Fpath.is_abs abs_cwd) then
+    invalid_arg
+      (spf
+         "Git_wrapper.relativize_if_possible: abs_cwd must be an absolute path \
+          but we received %s"
+         !!abs_cwd);
+  if not (Fpath.is_abs abs_path) then
+    invalid_arg
+      (spf
+         "Git_wrapper.relativize_if_possible: abs_path must be an absolute \
+          path but we received %s"
+         !!abs_path);
+  match Fpath.relativize ~root:(append_slash_to_dir_path abs_cwd) abs_path with
+  | Some rel_path -> rel_path
+  | None -> abs_path
+
+(*
+   List files relative to the current directory which may be outside of
+   a git project.
+
+   This is something git doesn't allow directly, so we need to perform
+   path conversions. The project root must be provided because it's somewhat
+   costly to obtain.
+*)
+let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
+    root_paths =
+  (* Both project_root and sys_cwd are absolute, physical paths *)
+  let project_root = Rpath.to_fpath project_root in
+  let sys_cwd = Sys.getcwd () |> Fpath.v in
+  let abs_root_paths =
+    root_paths
+    |> List_.map (fun path ->
+           (* git accepts absolute paths to scanning roots but not if they
+              contain relative segments
+              such as '..':
+                OK: /home/user/proj/src
+                Rejected: ../proj/src
+           *)
+           Fpath.(sys_cwd // path |> normalize))
+  in
+  (* List paths relative to the project root.
+
+     Git returns paths that are relative to 'cwd' which must be within the
+     project. The following should work even if 'project_root' is a subfolder
+     in the git project but we're not counting on it. *)
+  let proj_rel_paths =
+    ls_files ~cwd:project_root ?exclude_standard ?kinds abs_root_paths
+  in
+  let rel_paths =
+    proj_rel_paths
+    |> List_.map (fun proj_rel_path ->
+           relativize_if_possible ~abs_cwd:sys_cwd
+             (project_root // proj_rel_path))
+  in
+  rel_paths
 
 let get_project_root ?cwd () =
   let cmd = (git, cd cwd @ [ "rev-parse"; "--show-toplevel" ]) in
@@ -603,16 +674,16 @@ let cat_file_batch_check_all_objects ?cwd () =
           match String.split_on_char ' ' obj with
           | [ sha; "tag"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Tag; sha; extra = { size } }
+              Some { kind = Tag; sha = SHA sha; extra = { size } }
           | [ sha; "commit"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Commit; sha; extra = { size } }
+              Some { kind = Commit; sha = SHA sha; extra = { size } }
           | [ sha; "tree"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Tree; sha; extra = { size } }
+              Some { kind = Tree; sha = SHA sha; extra = { size } }
           | [ sha; "blob"; size ] ->
               let* size = int_of_string_opt size in
-              Some { kind = Blob; sha; extra = { size } }
+              Some { kind = Blob; sha = SHA sha; extra = { size } }
           | _ -> None
         in
         if Option.is_none parsed_obj then
@@ -623,7 +694,7 @@ let cat_file_batch_check_all_objects ?cwd () =
   in
   Some objects
 
-let cat_file_blob ?cwd sha =
+let cat_file_blob ?cwd (SHA sha) =
   let cmd = (git, cd cwd @ [ "cat-file"; "blob"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> Ok s
@@ -631,13 +702,13 @@ let cat_file_blob ?cwd sha =
   | Error (`Msg s) ->
       Error s
 
-let object_size ?cwd sha =
+let object_size ?cwd (SHA sha) =
   let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
   | _ -> None
 
-let commit_timestamp ?cwd sha =
+let commit_timestamp ?cwd (SHA sha) =
   (* %cI - print datetime in strict ISO 8601 format *)
   let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
@@ -645,7 +716,7 @@ let commit_timestamp ?cwd sha =
       Timedesc.Timestamp.of_iso8601 s |> Result.to_option
   | _ -> None
 
-let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
+let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
   let cmd =
     ( git,
       cd cwd
@@ -666,20 +737,20 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
           | [ "commit"; sha; path ] -> (
               (* possible for submodules *)
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Commit; sha; extra = { path } }
+              | Ok path -> Ok { kind = Commit; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | [ "tree"; sha; path ] -> (
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tree; sha; extra = { path } }
+              | Ok path -> Ok { kind = Tree; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | [ "blob"; sha; path ] -> (
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Blob; sha; extra = { path } }
+              | Ok path -> Ok { kind = Blob; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | [ "tag"; sha; path ] -> (
               (* possible, but we probably don't care. *)
               match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tag; sha; extra = { path } }
+              | Ok path -> Ok { kind = Tag; sha = SHA sha; extra = { path } }
               | Error (`Msg s) -> Error s)
           | _ -> Error "invalid syntax"
         in
@@ -695,3 +766,11 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
       objects
   in
   Some objects
+
+let with_git_repo (files : Testutil_files.t list) func =
+  Testutil_files.with_tempfiles_verbose files (fun path ->
+      Testutil_files.with_chdir path (fun () ->
+          init ();
+          add ~force:true [ Fpath.v "." ];
+          commit "Add all the files";
+          func ()))

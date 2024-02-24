@@ -134,7 +134,7 @@ let eval_value ~argv cmd =
    *)
   match Cmd.eval_value ~catch:false ~argv cmd with
   (* alt: could define a new Exit_code for those kinds of errors *)
-  | Error (`Term | `Parse) -> Error.exit Exit_code.fatal
+  | Error (`Term | `Parse) -> Error.exit (Exit_code.fatal ~__LOC__)
   (* this should never happen, because of the ~catch:false above *)
   | Error `Exn -> assert false
   | Ok ok -> (
@@ -142,4 +142,4 @@ let eval_value ~argv cmd =
       | `Ok config -> config
       | `Version
       | `Help ->
-          Error.exit Exit_code.ok)
+          Error.exit (Exit_code.ok ~__LOC__))

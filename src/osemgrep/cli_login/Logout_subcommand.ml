@@ -25,7 +25,7 @@ let run_conf (_caps : caps) (conf : Logout_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           m "%s You are not logged in! This command had no effect."
             (Std_msg.warning_tag ()));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | Some _ ->
       let settings = Semgrep_settings.{ settings with api_token = None } in
       if Semgrep_settings.save settings then (
@@ -35,8 +35,8 @@ let run_conf (_caps : caps) (conf : Logout_CLI.conf) : Exit_code.t =
             (Std_msg.success_tag ())
         in
         Logs.app (fun m -> m "%s" message);
-        Exit_code.ok)
-      else Exit_code.fatal
+        Exit_code.ok ~__LOC__)
+      else Exit_code.fatal ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

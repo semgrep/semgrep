@@ -9,8 +9,8 @@ type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
-  (* can be a list of files or directories *)
-  target_roots : Fpath.t list;
+  (* can be a list of files or directories; symlinks ok *)
+  target_roots : Scanning_root.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
