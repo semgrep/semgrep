@@ -8,6 +8,8 @@ open Fpath_.Operators
   Partially translated from formatters/text.py
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -127,7 +129,7 @@ let dedent_lines (lines : string list) =
     longest_prefix )
 
 let wrap ~indent ~width s =
-  Logs.debug (fun m -> m "wrap indent=%d width=%d s=%s" indent width s);
+  Logs.debug (fun m -> m ~tags "wrap indent=%d width=%d s=%s" indent width s);
   let pre = String.make indent ' ' in
   let rec go pre s acc =
     let real_width = width - indent in
@@ -159,7 +161,8 @@ let wrap ~indent ~width s =
   go pre s []
 
 let cut s idx1 idx2 =
-  Logs.debug (fun m -> m "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
+  Logs.debug (fun m ->
+      m ~tags "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
   ( Str.first_chars s idx1,
     String.sub s idx1 (idx2 - idx1),
     Str.string_after s idx2 )
@@ -361,9 +364,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     let same_rule =
       match next with
       | None -> false
-      | Some m ->
-          Logs.debug (fun f -> f "same rule: %s" (Rule_ID.to_string m.check_id));
-          m.check_id = cur.check_id
+      | Some m -> m.check_id = cur.check_id
     in
     pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
       ~show_separator:(same_file && same_rule) ppf cur;
