@@ -168,7 +168,7 @@ let cut s idx1 idx2 =
     Str.string_after s idx2 )
 
 let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-    ~show_separator ppf (m : OutJ.cli_match) =
+    ~append_separator ppf (m : OutJ.cli_match) =
   ignore color_output;
   let lines =
     Option.value
@@ -252,28 +252,8 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
         "%s [hid %d additional lines, adjust with --max-lines-per-finding]@."
         findings_indent num
   | None ->
-      if show_separator then
+      if append_separator then
         Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make fill_count '-')
-
-(* Generic iteration over a list, with a view into the previous and the next
-   element.
-   Please keep this generic and separate from the business logic, otherwise
-   the code becomes inscrutable. *)
-let iter_with_view_into_neighbor_elements
-    (f : prev:'a option -> cur:'a -> next:'a option -> unit) xs =
-  let rec loop ~prev xs =
-    match xs with
-    | x :: tail ->
-        let next =
-          match xs with
-          | [] -> None
-          | next :: _ -> Some next
-        in
-        f ~prev ~cur:x ~next;
-        loop ~prev:(Some x) tail
-    | [] -> ()
-  in
-  loop ~prev:None xs
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : OutJ.cli_match list) =
@@ -356,21 +336,22 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
           | _else -> ());
           Fmt.pf ppf "@.");
     (* TODO autofix *)
-    let same_file =
+    let same_file_next =
       match next with
       | None -> false
-      | Some m -> m.path = cur.path
+      | Some next -> Fpath.equal next.path cur.path
     in
-    let same_rule =
+    let same_rule_next =
       match next with
       | None -> false
-      | Some m -> m.check_id = cur.check_id
+      | Some next -> Rule_ID.equal next.check_id cur.check_id
     in
     pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-      ~show_separator:(same_file && same_rule) ppf cur;
+      ~append_separator:(same_file_next && same_rule_next)
+      ppf cur;
     Fmt.pf ppf "@."
   in
-  iter_with_view_into_neighbor_elements print_one_match matches
+  List_.iter_with_view_into_neighbor_elements print_one_match matches
 
 (*****************************************************************************)
 (* Entry point *)
