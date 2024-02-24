@@ -87,7 +87,7 @@ type t = {
    * TODO? do we want to consider the same match but with different engine
    * as separate matches? or better make them equal for dedup purpose?
    *)
-  engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
+  engine_kind : Engine_kind.flavor; [@equal fun _a _b -> true]
   (* location info *)
   path : Target.path;
   (* less: redundant with location? *)

@@ -2,7 +2,7 @@
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id;
-  engine_kind : Engine_kind.t;
+  engine_kind : Engine_kind.flavor;
   (* location info *)
   path : Target.path;
   range_loc : Tok.location * Tok.location;
