@@ -481,9 +481,9 @@ let o_json : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let o_incremental : bool Term.t =
+let o_incremental_output : bool Term.t =
   let info =
-    Arg.info [ "incremental" ] ~doc:{|Output results incrementally.|}
+    Arg.info [ "incremental-output" ] ~doc:{|Output results incrementally.|}
   in
   Arg.value (Arg.flag info)
 
@@ -859,7 +859,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       common config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude_
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_
-      incremental json junit_xml lang ls matching_explanations
+      incremental_output json junit_xml lang ls matching_explanations
       max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
       metrics num_jobs no_secrets_validation nosem optimizations oss output
       pattern pro project_root pro_intrafile pro_lang registry_caching remote
@@ -1173,7 +1173,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       version_check;
       output;
       output_conf;
-      incremental_output = incremental;
+      incremental_output;
       engine_type;
       rewrite_rule_ids;
       common;
@@ -1195,7 +1195,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include
-    $ o_incremental $ o_json $ o_junit_xml $ o_lang $ o_ls
+    $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
     $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
     $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output
