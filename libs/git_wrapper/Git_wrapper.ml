@@ -187,6 +187,14 @@ let temporary_remote_checkout_path url =
   let name = rand_prefix ^ "_" ^ name in
   let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
   Fpath.add_seg tmp_dir name
+
+let obj_type_of_string = function
+  | "commit" -> Some Commit
+  | "blob" -> Some Blob
+  | "tree" -> Some Tree
+  | "tag" -> Some Tag
+  | _ -> None
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -625,13 +633,6 @@ let cat_file_blob ?cwd sha =
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
-
-let obj_type_of_string = function
-  | "commit" -> Some Commit
-  | "blob" -> Some Blob
-  | "tree" -> Some Tree
-  | "tag" -> Some Tag
-  | _ -> None
 
 let batch_cat_file_blob ?cwd blob_shas =
   let cmd =
