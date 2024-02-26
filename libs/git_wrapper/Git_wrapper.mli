@@ -86,6 +86,7 @@ type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
 [@@deriving show]
 
 type batch_check_extra = { size : int } [@@deriving show]
+type batch_extra = { contents : string } [@@deriving show]
 type ls_tree_extra = { path : Fpath.t } [@@deriving show]
 
 (* git status *)
@@ -188,6 +189,24 @@ val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
       {- [Error message] where [message] is a brief message indicating why git
       could not perform the action, e.g., [sha] is not the sha of a blob or
       [sha] does not designate an object.}
+    }
+ *)
+
+val batch_cat_file_blob :
+  ?cwd:Fpath.t ->
+  sha list ->
+  ((batch_extra obj, string) result Seq.t, string) result
+(** [batch_cat_file_blob blobs] will run [git cat-file --batch] for each blob
+    object whose sha is listed in [blobs] and return either:
+    {ul
+      {- [Ok output], where [output] is the batch output, itself either [Ok info],
+    where [info] is the information returned about that blob; or [Error message]
+    where [message] is a brief message indicating why git could not perform the
+    action in relation to an individual blob, e.g., a sha in [blobs] is not the
+    sha of a blob or does not designate an object.}
+      {- [Error message], where [message] is a brief message indicating why git
+      could not perform the entire batch operation, e.g., the directory in
+      which git was run is not a git repo.}
     }
  *)
 

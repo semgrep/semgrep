@@ -69,6 +69,7 @@ type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
 [@@deriving show]
 
 type batch_check_extra = { size : int } [@@deriving show]
+type batch_extra = { contents : string } [@@deriving show]
 type ls_tree_extra = { path : Fpath.t } [@@deriving show]
 
 (*****************************************************************************)
@@ -599,26 +600,20 @@ let cat_file_batch_check_all_objects ?cwd () =
   let objects : batch_check_extra obj list =
     List.filter_map
       (fun obj ->
-        let parsed_obj =
-          match String.split_on_char ' ' obj with
-          | [ sha; "tag"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Tag; sha; extra = { size } }
-          | [ sha; "commit"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Commit; sha; extra = { size } }
-          | [ sha; "tree"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Tree; sha; extra = { size } }
-          | [ sha; "blob"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Blob; sha; extra = { size } }
-          | _ -> None
+        let mk_obj sha kind size =
+          let* size = int_of_string_opt size in
+          Some { kind; sha; extra = { size } }
         in
-        if Option.is_none parsed_obj then
-          Logs.warn (fun m ->
-              m "Issue parsing git object: %s; this object will be ignored" obj);
-        parsed_obj)
+        match String.split_on_char ' ' obj with
+        | [ sha; "tag"; size ] -> mk_obj sha Tag size
+        | [ sha; "commit"; size ] -> mk_obj sha Commit size
+        | [ sha; "tree"; size ] -> mk_obj sha Tree size
+        | [ sha; "blob"; size ] -> mk_obj sha Blob size
+        | _ ->
+            Logs.warn (fun m ->
+                m "Issue parsing git object: %s; this object will be ignored"
+                  obj);
+            None)
       objects
   in
   Some objects
@@ -630,6 +625,94 @@ let cat_file_blob ?cwd sha =
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
+
+let obj_type_of_string = function
+  | "commit" -> Some Commit
+  | "blob" -> Some Blob
+  | "tree" -> Some Tree
+  | "tag" -> Some Tag
+  | _ -> None
+
+let batch_cat_file_blob ?cwd blob_shas =
+  let cmd =
+    Bos.Cmd.(
+      v "git"
+      %% of_list
+           (cd cwd
+           @ [
+               "cat-file";
+               (* Print object information and contents for each object
+                  provided on stdin. *)
+               "--batch";
+               (* Since we write to a file, ensure output is buffered. If we
+                  change to read from stdio, we probably should _not_ buffer so
+                  we can stream output. *)
+               "--buffer";
+               (* Null terminate the header line. Requires git >2.42.0. *)
+             ]))
+  in
+  (* Each object is formatted as
+
+         <oid> SP <type> SP <size> NUL
+         <contents> LF
+
+     See also
+     <https://git-scm.com/docs/git-cat-file#:~:text=For%20example%2C%20%2D%2Dbatch%20without%20a%20custom%20format%20would%20produce%3A>
+
+     This gets the next output out of the channel, and then leaves the rest.
+     This is so we can generate a lazy Seq.t so we don't have to read all of
+     the objects into memory if we are going to write them back out to
+     tempfiles sequentially anyway.
+  *)
+  let get_next_obj chan =
+    (* Read the header line *)
+    match In_channel.input_line chan with
+    | None ->
+        (* Remember to close the channel when we're done.
+           Note that this means the user needs to consume the entire generated
+           stream currently in order to avoid a resource leak, but I think this
+           is fine.
+        *)
+        close_in chan;
+        None
+    | Some metadata ->
+        Some
+          ( (match String.split_on_char ' ' metadata with
+            | [ sha; kind; size ] ->
+                let ( let* ) = Result.bind in
+                let* kind =
+                  obj_type_of_string kind
+                  |> Option.to_result
+                       ~none:
+                         (spf "invalid object type %s for object %s" kind sha)
+                in
+                let* size =
+                  int_of_string_opt size
+                  |> Option.to_result
+                       ~none:
+                         (spf "invalid object size %s for object %s" size sha)
+                in
+                (* Now use the size from the header line to read the whole
+                   contents all at once *)
+                let contents = really_input_string chan size in
+                (* discard trailing newline *)
+                ignore (input_char chan);
+                let obj = { kind; sha; extra = { contents } } in
+                Ok obj
+            | _ -> Error ("invalid git object: " ^ metadata)),
+            chan )
+  in
+  let output = UCommon.new_temp_file "git-batch-cat-files" ".log" |> Fpath.v in
+  let input = blob_shas |> String.concat "\n" in
+  match Bos.OS.Cmd.(run_io cmd (in_string input) |> out_file output) with
+  | Ok ((), (_, `Exited 0)) ->
+      (* TODO: This is _really_ ugly, but to my knowledge there is no better
+         way to "stream" the output of the command. *)
+      let chan = In_channel.open_bin !!output in
+      Ok (Seq.unfold get_next_obj chan)
+  | Ok ((), (_, _status)) ->
+      Error "git exited with nonzero code or was terminated due to a signal"
+  | Error (`Msg s) -> Error s
 
 let object_size ?cwd sha =
   let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
