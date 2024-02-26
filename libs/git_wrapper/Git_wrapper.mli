@@ -87,7 +87,7 @@ type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
 
 type batch_check_extra = { size : int } [@@deriving show]
 type batch_extra = { contents : string } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
 
 (* git status *)
 val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
