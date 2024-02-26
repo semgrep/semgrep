@@ -465,3 +465,16 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 let ident_str_of_name name = fst name.ident
 let str_of_label ((n, _), _) = n
+
+let rec equal_base base1 base2 =
+  match (base1, base2) with
+  | Var name1, Var name2 -> compare_name name1 name2 = 0
+  | VarSpecial (This, _), VarSpecial (This, _) -> true
+  | VarSpecial (Super, _), VarSpecial (Super, _) -> true
+  | VarSpecial (Self, _), VarSpecial (Self, _) -> true
+  | VarSpecial (Parent, _), VarSpecial (Parent, _) -> true
+  | ( Mem { e = Fetch { base = base1; rev_offset = [] }; _ },
+      Mem { e = Fetch { base = base2; rev_offset = [] }; _ } ) ->
+      (* Deref e.g. *base *)
+      equal_base base1 base2
+  | _ -> false
