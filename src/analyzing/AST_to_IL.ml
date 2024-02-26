@@ -28,7 +28,25 @@ module H = AST_generic_helpers
  *  - a lot ...
  *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
+let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
+
+let locate ?tok s =
+  let opt_loc =
+    try Option.map Tok.stringpos_of_tok tok with
+    | Tok.NoTokenLocation _ -> None
+  in
+  match opt_loc with
+  | Some loc -> spf "%s: %s" loc s
+  | None -> s
+
+let log_warning ?tok msg =
+  Logs.debug (fun m -> m ~tags:warning "%s" (locate ?tok msg))
+
+let log_error ?tok msg =
+  Logs.debug (fun m -> m ~tags:error "%s" (locate ?tok msg))
 
 (*****************************************************************************)
 (* Types *)
@@ -73,32 +91,17 @@ let sgrep_construct any_generic = raise (Fixme (Sgrep_construct, any_generic))
 let todo any_generic = raise (Fixme (ToDo, any_generic))
 let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
-let locate opt_tok s =
-  let opt_loc =
-    try Option.map Tok.stringpos_of_tok opt_tok with
-    | Tok.NoTokenLocation _ -> None
-  in
-  match opt_loc with
-  | Some loc -> spf "%s: %s" loc s
-  | None -> s
-
-let log_warning opt_tok msg =
-  Logs.debug (fun m -> m ~tags "warning: %s" (locate opt_tok msg))
-
-let log_error opt_tok msg =
-  Logs.err (fun m -> m ~tags "%s" (locate opt_tok msg))
-
 let log_fixme kind gany =
   let toks = AST_generic_helpers.ii_of_any gany in
-  let opt_tok = Common2.hd_opt toks in
+  let tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
-      log_warning opt_tok
+      log_warning ?tok
         "Unsupported construct(s) may affect the accuracy of dataflow analyses"
   | Sgrep_construct ->
-      log_error opt_tok "Cannot translate Semgrep construct(s) into IL"
+      log_error ?tok "Cannot translate Semgrep construct(s) into IL"
   | Impossible ->
-      log_error opt_tok "Impossible happened during AST-to-IL translation"
+      log_error ?tok "Impossible happened during AST-to-IL translation"
 
 let fixme_exp ?partial kind gany eorig =
   log_fixme kind (any_of_orig eorig);
@@ -141,7 +144,7 @@ let var_of_id_info id id_info =
     | None ->
         let id_str, id_tok = id in
         let msg = spf "the ident '%s' is not resolved" id_str in
-        log_warning (Some id_tok) msg;
+        log_warning ~tok:id_tok msg;
         G.SId.unsafe_default
   in
   { ident = id; sid; id_info }
@@ -1088,8 +1091,7 @@ and record env ((_tok, origfields, _) as record_def) =
                 IL translation engine will brick the whole record if it is encountered.
                 To avoid this, we will just ignore any unrecognized fields for HCL specifically.
              *)
-             Logs.warn (fun m ->
-                 m ~tags "Skipping HCL record field during IL translation");
+             log_warning "Skipping HCL record field during IL translation";
              None
          | G.F _ -> todo (G.E e_gen))
   in
