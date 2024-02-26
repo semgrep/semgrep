@@ -109,10 +109,10 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](Naming_AST): Naming_AST.resolve program
 [<MASKED>][DEBUG](Naming_AST): could not find 'print' in environment at <MASKED>:1:0
 [<MASKED>][DEBUG](Naming_AST): could not find 'print' in environment at <MASKED>:3:0
-[<MASKED>][DEBUG](Constant_propagation): Constant_propagation.propagate_basic program
-[<MASKED>][DEBUG](Constant_propagation): Constant_propagation.propagate_dataflow program
-[<MASKED>][DEBUG](AST_to_IL): warning: <MASKED>:1:0: the ident 'print' is not resolved
-[<MASKED>][DEBUG](AST_to_IL): warning: <MASKED>:3:0: the ident 'print' is not resolved
+[<MASKED>][DEBUG](svalue, Constant_propagation): Constant_propagation.propagate_basic program
+[<MASKED>][DEBUG](svalue, Constant_propagation): Constant_propagation.propagate_dataflow program
+[<MASKED>][DEBUG](warning, taint, svalue, AST_to_IL): <MASKED>:1:0: the ident 'print' is not resolved
+[<MASKED>][DEBUG](warning, taint, svalue, AST_to_IL): <MASKED>:3:0: the ident 'print' is not resolved
 [<MASKED>][DEBUG](Parse_target): Parse_target.parse_and_resolve_name done
 [<MASKED>][DEBUG](Match_patterns): checking <MASKED> with 1 mini rules
 [<MASKED>][DEBUG](Match_search_mode): found 2 matches
@@ -275,10 +275,10 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](Naming_AST): Naming_AST.resolve program
 [<MASKED>][[32mDEBUG[0m](Naming_AST): could not find 'print' in environment at <MASKED>:1:0
 [<MASKED>][[32mDEBUG[0m](Naming_AST): could not find 'print' in environment at <MASKED>:3:0
-[<MASKED>][[32mDEBUG[0m](Constant_propagation): Constant_propagation.propagate_basic program
-[<MASKED>][[32mDEBUG[0m](Constant_propagation): Constant_propagation.propagate_dataflow program
-[<MASKED>][[32mDEBUG[0m](AST_to_IL): warning: <MASKED>:1:0: the ident 'print' is not resolved
-[<MASKED>][[32mDEBUG[0m](AST_to_IL): warning: <MASKED>:3:0: the ident 'print' is not resolved
+[<MASKED>][[32mDEBUG[0m](svalue, Constant_propagation): Constant_propagation.propagate_basic program
+[<MASKED>][[32mDEBUG[0m](svalue, Constant_propagation): Constant_propagation.propagate_dataflow program
+[<MASKED>][[32mDEBUG[0m](warning, taint, svalue, AST_to_IL): <MASKED>:1:0: the ident 'print' is not resolved
+[<MASKED>][[32mDEBUG[0m](warning, taint, svalue, AST_to_IL): <MASKED>:3:0: the ident 'print' is not resolved
 [<MASKED>][[32mDEBUG[0m](Parse_target): Parse_target.parse_and_resolve_name done
 [<MASKED>][[32mDEBUG[0m](Match_patterns): checking <MASKED> with 1 mini rules
 [<MASKED>][[32mDEBUG[0m](Match_search_mode): found 2 matches
