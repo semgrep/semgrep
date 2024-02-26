@@ -648,7 +648,6 @@ let batch_cat_file_blob ?cwd blob_shas =
                   change to read from stdio, we probably should _not_ buffer so
                   we can stream output. *)
                "--buffer";
-               (* Null terminate the header line. Requires git >2.42.0. *)
              ]))
   in
   (* Each object is formatted as
