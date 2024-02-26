@@ -256,14 +256,14 @@ let unsafe_match_to_match
                    git_blob;
                    git_commit_timestamp =
                      (* TODO: CACHE THIS *)
-                     (match Git_wrapper.commit_timestamp commit with
+                     (match Git_wrapper.commit_timestamp commit_sha with
                      | Some x -> x
                      | None ->
                          Logs.warn (fun m ->
                              m
                                "Issue getting timestamp for commit %a. \
                                 Reporting current time."
-                               Git_wrapper.pp_sha sha);
+                               Git_wrapper.pp_sha commit_sha);
                          Timedesc.Timestamp.now ());
                  }
                   : OutJ.historical_info) ))
