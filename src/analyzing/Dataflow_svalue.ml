@@ -22,7 +22,9 @@ module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module LV = IL_helpers
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "svalue" ]
+let tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags ("warning" :: base_tag_strings)
 
 (*****************************************************************************)
 (* Types *)
@@ -54,7 +56,7 @@ let hook_transfer_of_assume = ref None
 
 let warning _tok s =
   (* TODO: Report these errors as matches of a builtin_div_by_zero rule. *)
-  Logs.warn (fun m -> m ~tags "CFGError: %s" s)
+  Logs.debug (fun m -> m ~tags:warning "CFGError: %s" s)
 
 (*****************************************************************************)
 (* Helpers *)

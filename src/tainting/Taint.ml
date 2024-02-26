@@ -19,7 +19,9 @@ module R = Rule
 module LabelSet = Set.Make (String)
 open Common
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let error = Logs_.create_tags ("error" :: base_tag_strings)
 
 (* NOTE "on compare functions":
  *
@@ -511,8 +513,9 @@ module Taint_set = struct
         then taint1
         else taint2
     | (Src _ | Arg _ | Control), (Src _ | Arg _ | Control) ->
-        Logs.err (fun m ->
-            m ~tags "Taint_set.pick_taint: Ooops, the impossible happened!");
+        Logs.debug (fun m ->
+            m ~tags:error
+              "Taint_set.pick_taint: Ooops, the impossible happened!");
         taint2
 
   let diff set1 set2 = Taints.diff set1 set2
@@ -658,7 +661,8 @@ let taints_satisfy_requires taints pre =
   | None ->
       (* If we set 'ignore_poly_taint' then we expect to be able to solve
        * the precondition! *)
-      Logs.err (fun m -> m ~tags "Could not solve taint label precondition");
+      Logs.debug (fun m ->
+          m ~tags:error "Could not solve taint label precondition");
       false
 
 let filter_relevant_taints requires taints =
