@@ -17,7 +17,9 @@ open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "svalue" ]
+let tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
 
 (* TODO: Remove duplication between the Generic-based and IL-based passes,
    ideally we should have a single pass, the IL-based. *)
@@ -458,8 +460,9 @@ let stats_of_prog prog : stats =
         | _, FuncDef _ when ctx.in_constructor -> (
             match ctx.in_class with
             | None ->
-                Logs.warn (fun m ->
-                    m ~tags "stats_of_prog: in constructor but not in class");
+                Logs.debug (fun m ->
+                    m ~tags:warning
+                      "stats_of_prog: in constructor but not in class");
                 ()
             | Some cid -> incr_num_constructors env cid)
         | ( {
