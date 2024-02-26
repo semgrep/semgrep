@@ -710,8 +710,8 @@ let batch_cat_file_blob ?cwd blob_shas =
          way to "stream" the output of the command. *)
       let chan = In_channel.open_bin !!output in
       Ok (Seq.unfold get_next_obj chan)
-  | Ok ((), (_, _status)) ->
-      Error "git exited with nonzero code or was terminated due to a signal"
+  | Ok ((), (_, `Exited n)) -> Error (spf "git exited with nonzero code %d" n)
+  | Ok ((), (_, `Signaled s)) -> Error (spf "git terminated due to signal %d" s)
   | Error (`Msg s) -> Error s
 
 let object_size ?cwd sha =
