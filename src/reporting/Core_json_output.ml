@@ -239,18 +239,23 @@ let unsafe_match_to_match
         else (path, None)
     (* TODO(cooper): if we can have a uri or something more general than a
      * file path here then we can stop doing this hack. *)
-    | GitBlob { sha; paths } -> (
+    | GitBlob { sha = blob_sha; paths } -> (
         match paths with
         | [] -> (x.path.internal_path_to_content (* no better path *), None)
-        | (commit, path) :: _ ->
+        | (commit_sha, path) :: _ ->
+            let git_blob =
+              Some (Digestif.SHA1.of_hex (Git_wrapper.show_sha blob_sha))
+            in
             let git_commit =
-              Digestif.SHA1.of_hex (Git_wrapper.show_sha commit)
+              Digestif.SHA1.of_hex (Git_wrapper.show_sha commit_sha)
             in
             ( path,
               Some
                 ({
                    git_commit;
+                   git_blob;
                    git_commit_timestamp =
+                     (* TODO: CACHE THIS *)
                      (match Git_wrapper.commit_timestamp commit with
                      | Some x -> x
                      | None ->
