@@ -199,15 +199,24 @@ val batch_cat_file_blob :
 (** [batch_cat_file_blob blobs] will run [git cat-file --batch] for each blob
     object whose sha is listed in [blobs] and return either:
     {ul
-      {- [Ok output], where [output] is the batch output, itself either [Ok info],
-    where [info] is the information returned about that blob; or [Error message]
-    where [message] is a brief message indicating why git could not perform the
-    action in relation to an individual blob, e.g., a sha in [blobs] is not the
-    sha of a blob or does not designate an object.}
+      {- [Ok output], where [output] is a sequence batch output, where the
+      elements are either [Ok info], where [info] is the information returned
+      about that blob; or [Error message] where [message] is a brief message
+      indicating why git could not perform the action in relation to an
+      individual blob, e.g., a sha in [blobs] is not the sha of a blob or does
+      not designate an object.
+
+      Note that the output Seq must be consumed to prevent a resource leak,
+      since this is implemented by saving the results, and then parsing
+      additional blobs on-demand. Ideally we would rely on Eio for this, but
+      that's currently blocked on 5.x.}
       {- [Error message], where [message] is a brief message indicating why git
       could not perform the entire batch operation, e.g., the directory in
       which git was run is not a git repo.}
     }
+
+    Note: we make no ordering guarantee of objects in the output list relative
+    to the order in the input list.
  *)
 
 val object_size : ?cwd:Fpath.t -> sha -> int option
