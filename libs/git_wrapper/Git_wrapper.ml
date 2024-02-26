@@ -695,14 +695,14 @@ let batch_cat_file_blob ?cwd blob_shas =
                 (* Now use the size from the header line to read the whole
                    contents all at once *)
                 let contents = really_input_string chan size in
-                (* discard trailing newline *)
                 ignore (input_char chan);
+                (* discard trailing newline *)
                 let obj = { kind; sha; extra = { contents } } in
                 Ok obj
             | _ -> Error ("invalid git object: " ^ metadata)),
             chan )
   in
-  let output = UCommon.new_temp_file "git-batch-cat-files" ".log" |> Fpath.v in
+  let output = UTmp.new_temp_file "git-batch-cat-files" ".log" in
   let input = blob_shas |> String.concat "\n" in
   match Bos.OS.Cmd.(run_io cmd (in_string input) |> out_file output) with
   | Ok ((), (_, `Exited 0)) ->

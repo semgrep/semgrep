@@ -41,9 +41,7 @@ type t = Regular of regular | Lockfile of lockfile [@@deriving show]
     which contains the contents of the git blob object identified by [sha] *)
 let tempfile_of_git_blob sha =
   let contents = Git_wrapper.cat_file_blob sha |> Result.get_ok in
-  let file =
-    UCommon.new_temp_file "git-blob" ([%show: Git_wrapper.sha] sha) |> Fpath.v
-  in
+  let file = UTmp.new_temp_file "git-blob" ([%show: Git_wrapper.sha] sha) in
   UFile.write_file file contents;
   file
 
