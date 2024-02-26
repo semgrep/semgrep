@@ -79,7 +79,7 @@ type t =
               given only the blob's sha, and requires additional information
               like what commits we care about, if not all. These are relative
               to the git root.
-        
+
               This is used for e.g., a rule's path-based include & excludes. *)
     }
 [@@deriving show, eq, ord]
