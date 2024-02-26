@@ -70,7 +70,7 @@ type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
 
 type batch_check_extra = { size : int } [@@deriving show]
 type batch_extra = { contents : string } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
 
 (*****************************************************************************)
 (* Error management *)
@@ -737,7 +737,7 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
          appear in path *)
       @ [
           "--full-tree";
-          "--format=%(objecttype)%x00%(objectname)%x00%(path)";
+          "--format=%(objecttype)%x00%(objectname)%x00%(objectsize)%x00%(path)";
           sha;
         ] )
   in
@@ -754,16 +754,28 @@ let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
              delimiter in the format string for ls-tree's output above. *)
           match String.split_on_char '\x00' obj with
           (* possible for submodules *)
-          | [ "commit"; sha; path ] -> Ok (Fpath.of_string path, sha, Commit)
-          | [ "tree"; sha; path ] -> Ok (Fpath.of_string path, sha, Tree)
-          | [ "blob"; sha; path ] -> Ok (Fpath.of_string path, sha, Blob)
+          | [ "commit"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Commit)
+          | [ "tree"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Tree)
+          | [ "blob"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Blob)
           (* possible, but we probably don't care. *)
-          | [ "tag"; sha; path ] -> Ok (Fpath.of_string path, sha, Tag)
+          | [ "tag"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Tag)
           | _ -> Error "invalid syntax"
         in
         match obj_info with
-        | Ok (Ok path, sha, kind) -> Some { kind; sha; extra = { path } }
-        | Ok (Error (`Msg s), _, _)
+        | Ok (Ok path, sha, Some size, kind) ->
+            Some { kind; sha; extra = { path; size } }
+        | Ok (_, _, None, _) ->
+            Logs.warn (fun m ->
+                m
+                  "Issue parsing git object: %s -- invalid size; this object \
+                   will be ignored"
+                  obj);
+            None
+        | Ok (Error (`Msg s), _, _, _)
         | Error s ->
             Logs.warn (fun m ->
                 m
