@@ -24,7 +24,8 @@ type t = {
 
 let parse_file parser (analyzer : Xlang.t) path =
   let lang =
-    (* ew. We fail tests if this gets pulled out of the lazy block. *)
+    (* Possibly better to determine this sooner/change how lazy_ast_and_errors
+       works for regex or other non-parsing analyzers *)
     match analyzer with
     | L (lang, []) -> lang
     | L (_lang, _ :: _) ->
