@@ -81,6 +81,7 @@ def get_project_url() -> Optional[str]:
     try:
         remote_url = git_check_output(["git", "ls-remote", "--get-url"])
         parts = urllib.parse.urlsplit(remote_url)
+        # Remove credentials if present (e.g. in GitLab CI)
         clean_netloc = re.sub("^.*:.*@(.+)", r"\1", parts.netloc)
         parts = parts._replace(netloc=clean_netloc)
         remote_url = urllib.parse.urlunsplit(parts)

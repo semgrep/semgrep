@@ -550,6 +550,7 @@ let get_project_url ?cwd () : string option =
       Some
         (let r = Str.regexp {|//.*:.*@\(.*\)|} in
          Str.replace_first r {|//\1|} url)
+  (* Remove credentials in URL if present (e.g. in GitLab CI) *)
   | Error _ ->
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
 (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
