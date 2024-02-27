@@ -25,7 +25,9 @@ module VarMap = Var_env.VarMap
 module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
 
 type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
@@ -220,16 +222,16 @@ let check_tainted_lvals_limit tainted new_lval =
   then (
     match remove_some_lval_from_tainted_set tainted with
     | Some (dropped_lval, tainted) ->
-        Logs.warn (fun m ->
-            m ~tags
+        Logs.debug (fun m ->
+            m ~tags:warning
               "Already tracking too many tainted l-values, dropped %s in order \
                to track %s"
               (Display_IL.string_of_lval dropped_lval)
               (Display_IL.string_of_lval new_lval));
         Some tainted
     | None ->
-        Logs.warn (fun m ->
-            m ~tags
+        Logs.debug (fun m ->
+            m ~tags:warning
               "Already tracking too many tainted l-values, will not track %s"
               (Display_IL.string_of_lval new_lval));
         None)
@@ -280,8 +282,8 @@ let add lval taints
                              < !Flag_semgrep.max_taint_set_size
                         then Some (Taints.union taints taints')
                         else (
-                          Logs.warn (fun m ->
-                              m ~tags
+                          Logs.debug (fun m ->
+                              m ~tags:warning
                                 "Already tracking too many taint sources for \
                                  %s, will not track more"
                                 (Display_IL.string_of_lval lval));
