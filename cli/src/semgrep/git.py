@@ -1,6 +1,8 @@
 import os
+import re
 import subprocess
 import tempfile
+import urllib
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
@@ -77,7 +79,12 @@ def get_project_url() -> Optional[str]:
     Returns the current git project's default remote URL, or None if not a git project / no remote
     """
     try:
-        return git_check_output(["git", "ls-remote", "--get-url"])
+        remote_url = git_check_output(["git", "ls-remote", "--get-url"])
+        parts = urllib.parse.urlsplit(remote_url)
+        clean_netloc = re.sub("^.*:.*@(.+)", r"\1", parts.netloc)
+        parts = parts._replace(netloc=clean_netloc)
+        remote_url = urllib.parse.urlunsplit(parts)
+        return remote_url
     except Exception as e:
         logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
         try:
