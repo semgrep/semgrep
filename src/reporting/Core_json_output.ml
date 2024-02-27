@@ -223,23 +223,55 @@ let unsafe_match_to_match
     Metavar_replacement.interpolate_metavars x.rule_id.message
       (Metavar_replacement.of_bindings x.env)
   in
+  let path, historical_info =
+    match x.path.origin with
+    (* We need to do this, because in Terraform, we may end up with a `file` which
+       does not correspond to the actual location of the tokens. This `file` is
+       erroneous, and should be replaced by the location of the code of the match,
+       if possible. Not if it's fake, though.
+       In other languages, this should hopefully not happen.
+    *)
+    | File path ->
+        if
+          (!!path <> min_loc.pos.file || !!path <> max_loc.pos.file)
+          && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+        then (Fpath.v min_loc.pos.file, None)
+        else (path, None)
+    (* TODO(cooper): if we can have a uri or something more general than a
+     * file path here then we can stop doing this hack. *)
+    | GitBlob { sha = blob_sha; paths } -> (
+        match paths with
+        | [] -> (x.path.internal_path_to_content (* no better path *), None)
+        | (commit_sha, path) :: _ ->
+            let git_blob =
+              Some (Digestif.SHA1.of_hex (Git_wrapper.show_sha blob_sha))
+            in
+            let git_commit =
+              Digestif.SHA1.of_hex (Git_wrapper.show_sha commit_sha)
+            in
+            ( path,
+              Some
+                ({
+                   git_commit;
+                   git_blob;
+                   git_commit_timestamp =
+                     (* TODO: CACHE THIS *)
+                     (match Git_wrapper.commit_timestamp commit_sha with
+                     | Some x -> x
+                     | None ->
+                         Logs.warn (fun m ->
+                             m
+                               "Issue getting timestamp for commit %a. \
+                                Reporting current time."
+                               Git_wrapper.pp_sha commit_sha);
+                         Timedesc.Timestamp.now ());
+                 }
+                  : OutJ.historical_info) ))
+  in
   {
     check_id = x.rule_id.id;
     (* inherited location *)
-    path =
-      (match x.path.origin with
-      (* We need to do this, because in Terraform, we may end up with a `file` which
-         does not correspond to the actual location of the tokens. This `file` is
-         erroneous, and should be replaced by the location of the code of the match,
-         if possible. Not if it's fake, though.
-         In other languages, this should hopefully not happen.
-      *)
-      | File path ->
-          if
-            (!!path <> min_loc.pos.file || !!path <> max_loc.pos.file)
-            && min_loc.pos.file <> "FAKE TOKEN LOCATION"
-          then Fpath.v min_loc.pos.file
-          else path);
+    path;
     start = startp;
     end_ = endp;
     (* end inherited location *)
@@ -256,7 +288,7 @@ let unsafe_match_to_match
         (* TODO *)
         engine_kind = x.engine_of_match;
         validation_state = Some x.validation_state;
-        historical_info = None;
+        historical_info;
         extra_extra = None;
       };
   }

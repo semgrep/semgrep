@@ -23,20 +23,20 @@ type t = {
 }
 
 let parse_file parser (analyzer : Xlang.t) path =
-  lazy
-    (let lang =
-       (* ew. We fail tests if this gets pulled out of the lazy block. *)
-       match analyzer with
-       | L (lang, []) -> lang
-       | L (_lang, _ :: _) ->
-           failwith
-             "xlang from the language field in -target should be unique (this \
-              shouldn't happen FIXME)"
-       | _ ->
-           (* alt: could return an empty program, but better to be defensive *)
-           failwith "requesting generic AST for an unspecified target language"
-     in
-     parser lang path)
+  let lang =
+    (* Possibly better to determine this sooner/change how lazy_ast_and_errors
+       works for regex or other non-parsing analyzers *)
+    match analyzer with
+    | L (lang, []) -> lang
+    | L (_lang, _ :: _) ->
+        failwith
+          "xlang from the language field in -target should be unique (this \
+           shouldn't happen FIXME)"
+    | _ ->
+        (* alt: could return an empty program, but better to be defensive *)
+        failwith "requesting generic AST for an unspecified target language"
+  in
+  parser lang path
 
 let resolve parser (target : Target.regular) : t =
   {
@@ -44,5 +44,6 @@ let resolve parser (target : Target.regular) : t =
     xlang = target.analyzer;
     lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
     lazy_ast_and_errors =
-      parse_file parser target.analyzer target.path.internal_path_to_content;
+      lazy
+        (parse_file parser target.analyzer target.path.internal_path_to_content);
   }

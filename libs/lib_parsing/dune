@@ -6,6 +6,7 @@
    fpath
    sexplib
    paths
+   git_wrapper
 
    commons
    commons2

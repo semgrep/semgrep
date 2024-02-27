@@ -1207,10 +1207,6 @@ let int64_of_string_c_octal_opt s =
     int64_of_string_opt ("0o" ^ s)
   else int64_of_string_opt s
 
-let int_of_string_opt s =
-  try Some (int_of_string s) with
-  | Failure _ -> None
-
 let int_of_string_c_octal_opt s =
   let open Common in
   if s =~ "^0\\([0-7]+\\)$" then
