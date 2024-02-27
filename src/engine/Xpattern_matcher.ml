@@ -93,7 +93,7 @@ let (matches_of_matcher :
                               env;
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
-                              engine_kind = `OSS;
+                              engine_of_match = `OSS;
                               validation_state = `No_validator;
                               severity_override = None;
                               metadata_override = None;
