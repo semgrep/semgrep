@@ -480,3 +480,9 @@ let to_string taint_to_str
       pending_propagation_dests "[PENDING PROPAGATION DESTS]"
 
 let seq_of_tainted env = LvalMap.to_seq env.tainted
+
+let find_tainted_lvals_of_common_base { tainted; _ } base =
+  LvalMap.fold
+    (fun ({ base = base'; _ } as lval) _ l ->
+      if IL.equal_base base base' then lval :: l else l)
+    tainted []
