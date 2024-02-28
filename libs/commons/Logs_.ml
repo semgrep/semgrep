@@ -30,8 +30,8 @@ open Common
 (* alt: use Mtime_clock.now () *)
 let now () : float = UUnix.gettimeofday ()
 
-(* in seconds; it can be reset later *)
-let time_program_start = ref (now ())
+(* in seconds *)
+let time_program_start = now ()
 
 let default_skip_libs =
   [
@@ -175,7 +175,7 @@ let reporter ~dst ~require_one_of_these_tags
             (* Add a header *)
             Format.kfprintf k dst
               ("@[[%05.2f]%a%a: " ^^ fmt ^^ "@]@.")
-              (current -. !time_program_start)
+              (current -. time_program_start)
               Logs_fmt.pp_header (level, header) pp_tags tags
           in
           match level with
@@ -293,7 +293,6 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
-  time_program_start := now ();
   Logs.set_reporter
     (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
   Logs.debug (fun m ->
