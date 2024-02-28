@@ -542,11 +542,17 @@ let commit ?cwd msg =
   | Error (`Msg s) ->
       raise (Error (Common.spf "Error running git commit: %s" s))
 
-(* TODO: should return Uri.t option *)
+(* Remove credentials in URL if present (e.g. in GitLab CI) *)
+let clean_project_url (url : string) : Uri.t =
+  let uri = Uri.of_string url in
+  match (Uri.user uri, Uri.password uri) with
+  | Some _, Some _ -> Uri.with_userinfo uri None
+  | _ -> uri
+
 let get_project_url ?cwd () : string option =
   let cmd = (git, cd cwd @ [ "ls-remote"; "--get-url" ]) in
   match UCmd.string_of_run ~trim:true cmd with
-  | Ok (url, _) -> Some (clean_project_url Uri.of_string url)
+  | Ok (url, _) -> Some (Uri.to_string (clean_project_url url))
   | Error _ ->
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
 (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
@@ -554,14 +560,6 @@ let get_project_url ?cwd () : string option =
    environment variable. I just copied what [pysemgrep] does.
    [git ls-remote --get-url] is also enough and if we can not get such
    information, that's fine - the metadata is used only [Metrics_] actually. *)
-
-(* Remove credentials in URL if present (e.g. in GitLab CI) *)
-let clean_project_url (url : str) : Uri.t =
-  let uri = Uri.of_string url in
-  match (Uri.user uri, Uri.password uri) with
-  | Some _, Some _ ->
-      Uri.make (Uri.scheme uri, Uri.host uri, Uri.port uri, Uri.path uri)
-  | _ -> uri
 
 (* coupling: with semgrep_output_v1.atd contribution type *)
 let git_log_json_format =
