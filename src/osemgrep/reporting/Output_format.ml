@@ -15,7 +15,7 @@ type t =
   (* used to disable the final display of match results because
    * we displayed them incrementally instead
    *)
-  | TextIncremental
+  | Incremental
 [@@deriving show]
 
 let keep_ignores = function
@@ -27,5 +27,5 @@ let keep_ignores = function
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
-  | TextIncremental ->
+  | Incremental ->
       false

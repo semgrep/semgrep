@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
 open AST_ocaml
@@ -597,11 +598,11 @@ let map_value_path (env : env) (x : CST.value_path) : name =
       let v3 = map_value_name env v3 in
       (v1, v3)
 
-let map_type_params (env : env) (x : CST.type_params) : type_parameter list =
+let map_type_params (env : env) (x : CST.type_params) : type_parameters =
   match x with
-  | `Type_param x -> [ map_type_param env x ]
+  | `Type_param x -> Tok.unsafe_fake_bracket [ map_type_param env x ]
   | `LPAR_type_param_rep_COMMA_type_param_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "(" *) in
+      let lp = token env v1 (* "(" *) in
       let v2 = map_type_param env v2 in
       let v3 =
         List_.map
@@ -611,14 +612,14 @@ let map_type_params (env : env) (x : CST.type_params) : type_parameter list =
             v2)
           v3
       in
-      let _v4 = token env v4 (* ")" *) in
-      v2 :: v3
+      let rp = token env v4 (* ")" *) in
+      (lp, v2 :: v3, rp)
 
 let map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 (env : env)
     ((v1, v2, v3, v4) :
       CST.anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434) :
-    type_parameter list =
-  let _v1 = token env v1 (* "[" *) in
+    type_parameters =
+  let lb = token env v1 (* "[" *) in
   let v2 = map_type_param env v2 in
   let v3 =
     List_.map
@@ -628,8 +629,8 @@ let map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 (env : env)
         v2)
       v3
   in
-  let _v4 = token env v4 (* "]" *) in
-  v2 :: v3
+  let rb = token env v4 (* "]" *) in
+  (lb, v2 :: v3, rb)
 
 let map_range_pattern (env : env) ((v1, v2, v3) : CST.range_pattern) =
   let v1 = map_signed_constant env v1 in
@@ -684,8 +685,8 @@ and map_anon_choice_cons_type_771aabb (env : env)
       let _v1 = token env v1 (* "type" *) in
       let _v2 =
         match v2 with
-        | Some x -> map_type_params env x
-        | None -> []
+        | Some x -> Some (map_type_params env x)
+        | None -> None
       in
       let _v3 = map_type_constructor_path env v3 in
       let _v4 = map_type_equation env v4 in
@@ -717,11 +718,12 @@ and map_anon_choice_meth_type_345b567 (env : env)
       ()
 
 and map_anon_choice_simple_type_ext_30dd028 (env : env)
-    (x : CST.anon_choice_simple_type_ext_30dd028) : type_ list =
+    (x : CST.anon_choice_simple_type_ext_30dd028) : type_ list bracket =
   match x with
-  | `Choice_simple_type x -> [ map_simple_type_ext env x ]
+  | `Choice_simple_type x ->
+      Tok.unsafe_fake_bracket [ map_simple_type_ext env x ]
   | `LPAR_type_ext_rep_COMMA_type_ext_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "(" *) in
+      let lp = token env v1 (* "(" *) in
       let v2 = map_type_ext env v2 in
       let v3 =
         List_.map
@@ -731,8 +733,8 @@ and map_anon_choice_simple_type_ext_30dd028 (env : env)
             v2)
           v3
       in
-      let _v4 = token env v4 (* ")" *) in
-      v2 :: v3
+      let rp = token env v4 (* ")" *) in
+      (lp, v2 :: v3, rp)
 
 and map_anon_cons_decl_rep_BAR_cons_decl_fc0ccc5 (env : env)
     ((v1, v2) : CST.anon_cons_decl_rep_BAR_cons_decl_fc0ccc5) =
@@ -991,8 +993,9 @@ and map_class_binding (env : env)
   let c_tparams =
     match v2 with
     | Some x ->
-        map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x
-    | None -> []
+        Some
+          (map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x)
+    | None -> None
   in
   let c_name = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
   let c_params = List_.map (map_parameter env) v4 in
@@ -1120,7 +1123,7 @@ and map_class_field (env : env) (x : CST.class_field) : class_field =
       let m_params = List_.map (map_parameter env) v5 in
       let m_rettype =
         match v6 with
-        | Some x -> Some (map_polymorphic_typed env x)
+        | Some x -> Some (map_polymorphic_typed env x |> snd)
         | None -> None
       in
       let m_body =
@@ -1217,8 +1220,9 @@ and map_class_type_binding (env : env)
   let _v2 =
     match v2 with
     | Some x ->
-        map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x
-    | None -> []
+        Some
+          (map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x)
+    | None -> None
   in
   let _v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
   let _v4 = token env v4 (* "=" *) in
@@ -1384,30 +1388,26 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v1 = map_sign_operator env v1 in
       let v2 = map_expression_ext env v2 in
       Prefix (v1, v2)
-  | `Set_exp (v1, v2, v3) ->
-      let v2 = token env v2 (* "<-" *) in
-      let v3 = map_expression_ext env v3 in
-      let v1 =
-        match v1 with
-        | `Field_get_exp x ->
-            let e1, t, fld = map_field_get_expression env x in
-            FieldAssign (e1, t, fld, v2, v3)
-        | `Array_get_exp x ->
-            let e = map_array_get_expression env x in
-            ExprTodo (("ExtAssign", v2), [ e ])
-        | `Str_get_exp x ->
-            let e = map_string_get_expression env x in
-            ExprTodo (("ExtAssign", v2), [ e ])
-        | `Biga_get_exp x ->
-            let e = map_bigarray_get_expression env x in
-            ExprTodo (("ExtAssign", v2), [ e ])
-        (* TODO: grammar.js is wrong, can't have x <- y *)
-        | `Id tok ->
-            let x = token env tok in
-            (* pattern "[a-z_][a-zA-Z0-9_']*" *)
-            raise (Parsing_error.Other_error ("x <- y not valid", x))
-      in
-      v1
+  | `Set_exp (v1, v2, v3) -> (
+      let tarrow = token env v2 (* "<-" *) in
+      let e2 = map_expression_ext env v3 in
+      match v1 with
+      | `Field_get_exp x ->
+          let e1, t, fld = map_field_get_expression env x in
+          FieldAssign (e1, t, fld, tarrow, e2)
+      | `Array_get_exp x ->
+          let e1 = map_array_get_expression env x in
+          ExprTodo (("ExtAssign", tarrow), [ e1; e2 ])
+      | `Str_get_exp x ->
+          let e1 = map_string_get_expression env x in
+          ExprTodo (("ExtAssign", tarrow), [ e1; e2 ])
+      | `Biga_get_exp x ->
+          let e1 = map_bigarray_get_expression env x in
+          ExprTodo (("ExtAssign", tarrow), [ e1; e2 ])
+      (* ex: data <- foo, where data is a mutable field in a class/object *)
+      | `Id tok ->
+          let id = str env tok in
+          ExprTodo (("ObjFieldAssign", tarrow), [ name_of_id id; e2 ]))
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let _v2 = map_attribute_opt env v2 in
@@ -1555,7 +1555,7 @@ and map_external_ (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.external_) :
   let v1 = token env v1 (* "external" *) in
   let _v2 = map_attribute_opt env v2 in
   let v3 = map_value_name env v3 in
-  let typ = map_polymorphic_typed env v4 in
+  let typ = map_polymorphic_typed env v4 |> snd in
   let _v5 = token env v5 (* "=" *) in
   let v6 = List_.map (map_string_ env) v6 in
   let v7 = List_.map (map_item_attribute env) v7 in
@@ -1582,7 +1582,7 @@ and map_field_declaration (env : env) ((v1, v2, v3) : CST.field_declaration) =
     | None -> None
   in
   let v2 = str env v2 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-  let v3 = map_polymorphic_typed env v3 in
+  let v3 = map_polymorphic_typed env v3 |> snd in
   (v2, v3, v1)
 
 and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) =
@@ -1749,36 +1749,41 @@ and map_labeled_argument (env : env) (x : CST.labeled_argument) =
 and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
   let pat = map_binding_pattern_ext env v1 in
   let lattrs = List_.map (map_item_attribute env) v3 in
-  let v2 =
-    match v2 with
-    | Some (v1, v2, v3, v4, v5) -> (
-        let v1 = List_.map (map_parameter env) v1 in
-        let v2 =
-          match v2 with
-          | Some x -> Some (map_polymorphic_typed env x)
-          | None -> None
-        in
-        let _v3 =
-          match v3 with
-          | Some (v1, v2) ->
-              let _v1 = token env v1 (* ":>" *) in
-              let v2 = map_type_ext env v2 in
-              Some v2
-          | None -> None
-        in
-        let v4 = token env v4 (* "=" *) in
-        let v5 = map_sequence_expression_ext env v5 |> seq1 in
-        match (pat, v1, v2) with
-        | PatVar id, _, _ ->
-            LetClassic
-              { lname = id; lparams = v1; lrettype = v2; lbody = v5; lattrs }
-        | pat, [], None -> LetPattern (pat, v5)
-        (* TODO: grammar js is wrong there too, this can not happen *)
-        | _ -> raise (Parsing_error.Other_error ("Invalid let binding", v4)))
-    (* TODO: grammar.js is wrong, this can not happen *)
-    | None -> raise Impossible
-  in
-  v2
+  match v2 with
+  | Some (v1, v2, v3, v4, v5) -> (
+      let lparams = List_.map (map_parameter env) v1 in
+      let tyopt =
+        match v2 with
+        | Some x -> Some (map_polymorphic_typed env x)
+        | None -> None
+      in
+      let _tycastopt =
+        match v3 with
+        | Some (v1, v2) ->
+            let _v1 = token env v1 (* ":>" *) in
+            let v2 = map_type_ext env v2 in
+            Some v2
+        | None -> None
+      in
+      let teq = token env v4 (* "=" *) in
+      let lbody = map_sequence_expression_ext env v5 |> seq1 in
+      match (pat, lparams, tyopt) with
+      | PatVar id, _, _ ->
+          LetClassic
+            {
+              lname = id;
+              lparams;
+              lrettype = tyopt |> Option.map snd;
+              lbody;
+              lattrs;
+            }
+      | pat, [], None -> LetPattern (pat, lbody)
+      | pat, [], Some (tcolon, ty) ->
+          LetPattern (PatTyped (pat, tcolon, ty), lbody)
+      (* TODO: grammar js is wrong there too, this can not happen *)
+      | _ -> raise (Parsing_error.Other_error ("Invalid let binding", teq)))
+  (* TODO: grammar.js is wrong, this can not happen *)
+  | None -> raise Impossible
 
 and map_list_binding_pattern (env : env)
     ((v1, v2, v3) : CST.list_binding_pattern) =
@@ -2273,9 +2278,9 @@ and map_polymorphic_type (env : env) (x : CST.polymorphic_type) : type_ =
   | `Type_ext x -> map_type_ext env x
 
 and map_polymorphic_typed (env : env) ((v1, v2) : CST.polymorphic_typed) =
-  let _v1 = token env v1 (* ":" *) in
-  let v2 = map_polymorphic_type env v2 in
-  v2
+  let tcolon = token env v1 (* ":" *) in
+  let ty = map_polymorphic_type env v2 in
+  (tcolon, ty)
 
 and map_record_binding_pattern (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.record_binding_pattern) =
@@ -2432,7 +2437,7 @@ and map_signature_item (env : env) (x : CST.signature_item) : item =
       let v1 = token env v1 (* "val" *) in
       let _v2 = map_attribute_opt env v2 in
       let v3 = map_value_name env v3 in
-      let v4 = map_polymorphic_typed env v4 in
+      let v4 = map_polymorphic_typed env v4 |> snd in
       let v5 = List_.map (map_item_attribute env) v5 in
       { i = Val (v1, v3, v4); iattrs = v5 }
   | `Exte x -> map_external_ env x
@@ -3076,8 +3081,8 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
     type_declaration =
   let tparams =
     match v1 with
-    | Some x -> map_type_params env x
-    | None -> []
+    | Some x -> Some (map_type_params env x)
+    | None -> None
   in
   let v2 =
     match v2 with
@@ -3274,7 +3279,7 @@ let map_compilation_unit (env : env) (x : CST.compilation_unit) =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_ocaml.Parse.file file)
+    (fun () -> Tree_sitter_ocaml.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_compilation_unit env cst)

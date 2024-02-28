@@ -89,6 +89,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 Performance data enable understanding of which rules and types of files are slow in the aggregate so Semgrep, Inc can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
 
 - Runtime duration
+- Duration of individual phases (e.g. parsing)
 - Total number of rules
 - Total number of files
 - Project size in bytes
@@ -189,7 +190,8 @@ Semgrep, Inc will:
 |             | [Features used](#feature-usage)         | List of strings that identify Semgrep features used                           | Understand what features users find valuable, and what we could deprecate                  | `["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`                                                                                           | Object         |
 |             | Rule hashes with findings               | Map of rule hashes to number of findings                                      | Understand which rules are providing value to the user; diagnose high false-positive rates | `{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}`                                                                                                             | Object         |
 |             | Total Findings                          | Count of all findings                                                         | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
-|             | Total Nosems                            | Count of all `nosem` annotations that tell semgrep to ignore a finding        | Understand if rules are super noisy for the user                                           | 3                                                                                                                                                                                     | Number         |
+|             | Findings per product                    | Count of findings broken down by product                                      | Understand the value that each product provides to the user                                | `{"code": 5, "secrets": 7, "supply-chain": 10}`                                                                                                                                       | Object         |
+|             | Total Nosems | Count of all `nosem` annotations that tell semgrep to ignore a finding | Understand if rules are super noisy for the user | 3 | Number |
 
 ### Anonymous user ID
 

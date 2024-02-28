@@ -197,7 +197,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         (* coupling: similar to Test_engine.test_rules() *)
         let rule_files =
           [ dir ] |> UFile.files_of_dirs_or_files_no_vcs_nofilter
-          |> List.filter Parse_rule.is_valid_rule_filename
+          |> List.filter Rule_file.is_valid_rule_filename
         in
         rule_files
         |> List_.map (fun rule_file ->
@@ -229,10 +229,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
          * which may be annoying, so simpler to just get all the files
          * under the directory
          *)
-        let targets =
-          UCommon.files_of_dir_or_files_no_vcs_nofilter [ !!path ]
-          |> Fpath_.of_strings
-        in
+        let targets = UFile.files_of_dirs_or_files_no_vcs_nofilter [ path ] in
 
         rule_files_and_rules
         |> List_.map (fun (rule_file, rules) ->

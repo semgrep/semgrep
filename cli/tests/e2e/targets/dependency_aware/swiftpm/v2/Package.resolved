@@ -1,0 +1,131 @@
+{
+  "pins" : [
+    {
+      "identity" : "bson",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/orlandos-nl/BSON.git",
+      "state" : {
+        "revision" : "944dfb3b0eb028f477c25ba6a071181de8ab903a",
+        "version" : "8.0.10"
+      }
+    },
+    {
+      "identity" : "dnsclient",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/orlandos-nl/DNSClient.git",
+      "state" : {
+        "revision" : "770249dcb7259c486f2d68c164091b115ccb765f",
+        "version" : "2.2.1"
+      }
+    },
+    {
+      "identity" : "javascriptkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftwasm/JavaScriptKit.git",
+      "state" : {
+        "revision" : "f3214f9bc1a60ebaea3360f1873891cc65e57f39",
+        "version" : "0.19.0"
+      }
+    },
+    {
+      "identity" : "mongokitten",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/orlandos-nl/MongoKitten.git",
+      "state" : {
+        "revision" : "ad9da24f7a95b40ae68517a599ef10440b16ff8f",
+        "version" : "7.8.0"
+      }
+    },
+    {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCombine/OpenCombine.git",
+      "state" : {
+        "revision" : "8576f0d579b27020beccbccc3ea6844f3ddfc2c2",
+        "version" : "0.14.0"
+      }
+    },
+    {
+      "identity" : "opencombinejs",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftwasm/OpenCombineJS.git",
+      "state" : {
+        "revision" : "e574e418ba468ff5c2d4c499eb56f108aeb4d2ba",
+        "version" : "0.2.0"
+      }
+    },
+    {
+      "identity" : "swift-atomics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-atomics.git",
+      "state" : {
+        "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "d029d9d39c87bed85b1c50adee7c41795261a192",
+        "version" : "1.0.6"
+      }
+    },
+    {
+      "identity" : "swift-distributed-tracing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-distributed-tracing.git",
+      "state" : {
+        "revision" : "49b7617717a09f6b781c9a11e1628e3315d8d4fe",
+        "version" : "1.0.1"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "532d8b529501fb73a2455b179e0bbb6d49b652ed",
+        "version" : "1.5.3"
+      }
+    },
+    {
+      "identity" : "swift-metrics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-metrics.git",
+      "state" : {
+        "revision" : "971ba26378ab69c43737ee7ba967a896cb74c0d1",
+        "version" : "2.4.1"
+      }
+    },
+    {
+      "identity" : "swift-nio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-nio.git",
+      "state" : {
+        "revision" : "702cd7c56d5d44eeba73fdf83918339b26dc855c",
+        "version" : "2.62.0"
+      }
+    },
+    {
+      "identity" : "swift-nio-ssl",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-nio-ssl.git",
+      "state" : {
+        "revision" : "320bd978cceb8e88c125dcbb774943a92f6286e9",
+        "version" : "2.25.0"
+      }
+    },
+    {
+      "identity" : "swift-service-context",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-service-context.git",
+      "state" : {
+        "revision" : "ce0141c8f123132dbd02fd45fea448018762df1b",
+        "version" : "1.0.0"
+      }
+    }
+  ],
+  "version" : 2
+}

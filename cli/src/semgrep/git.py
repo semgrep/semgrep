@@ -178,6 +178,8 @@ class BaselineHandler:
                 cmd = status_cmd
             else:
                 cmd = [*status_cmd, "--merge-base"]
+            # -- is a sentinel to avoid ambiguity between branch and file names
+            cmd += ["--"]
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
                 cmd,
@@ -192,6 +194,8 @@ class BaselineHandler:
                 logger.warn(
                     "git could not find a single branch-off point, so we will compare the baseline commit directly"
                 )
+                # -- is a sentinel to avoid ambiguity between branch and file names
+                status_cmd += ["--"]
                 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
                 raw_output = subprocess.run(
                     status_cmd,

@@ -31,7 +31,7 @@ module Options = Rule_options_t
 module H = AST_generic_helpers
 open Matching_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 let hook_find_possible_parents = ref None
 
 (*****************************************************************************)
@@ -331,17 +331,19 @@ let m_with_symbolic_propagation ~is_root f b tin =
            * itself, but if it directly resolves to itself, we can easily catch
            * it. *)
           if phys_equal b1 b then (
-            logger#error
-              "Aborting symbolic propagation: Circular reference encountered \
-               (\"%s\")"
-              id;
+            Logs.err (fun m ->
+                m ~tags
+                  "Aborting symbolic propagation: Circular reference \
+                   encountered (\"%s\")"
+                  id);
             fail () tin)
           else f b1 { tin with deref_sym_vals = tin.deref_sym_vals + 1 }
       | ___else___ -> fail () tin
     else (
-      logger#error
-        "Aborting symbolic propagation: a bug in Semgrep may be causing an \
-         infinite loop";
+      Logs.err (fun m ->
+          m ~tags
+            "Aborting symbolic propagation: a bug in Semgrep may be causing an \
+             infinite loop");
       fail () tin)
   else fail () tin
 
@@ -1803,9 +1805,10 @@ and m_call_op aop toka aargs bop tokb bargs tin =
     | G.Eq
     | G.NotEq ->
         if tin.config.commutative_compop then
-          logger#error
-            "`commutative_compop` rule option has been deprecated. Please use \
-             `symmetric_eq` instead.";
+          Logs.err (fun m ->
+              m ~tags
+                "`commutative_compop` rule option has been deprecated. Please \
+                 use `symmetric_eq` instead.");
         tin.config.commutative_compop || tin.config.symmetric_eq
     | __else__ -> false
   in
@@ -1828,13 +1831,14 @@ and m_call_op aop toka aargs bop tokb bargs tin =
             | false (* assoc and not comm*) ->
                 m_assoc_op tokb aop aargs_ac bargs_ac tin)
         | ___else___ ->
-            logger#warning
-              "Will not perform AC-matching, something went wrong when trying \
-               to convert operands to AC normal form: %s ~ %s"
-              (G.show_expr
-                 (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
-              (B.show_expr
-                 (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e));
+            Logs.warn (fun m ->
+                m ~tags
+                  "Will not perform AC-matching, something went wrong when \
+                   trying to convert operands to AC normal form: %s ~ %s"
+                  (G.show_expr
+                     (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
+                  (B.show_expr
+                     (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e)));
             m_op_default aargs bargs tin)
     | false, true (* not assoc and comm *) -> (
         match (aargs, bargs) with
@@ -1987,10 +1991,11 @@ and m_ac_op tok op aargs_ac bargs_ac =
        *       explode but not as easily
        *)
       (* TODO: Issue a proper warning to the user. *)
-      logger#warning
-        "Restricted AC-matching due to potential blow-up: op=%s avars#=%d \
-         bs_left#=%d\n"
-        (G.show_operator op) (List.length avars) num_bs_left;
+      Logs.warn (fun m ->
+          m ~tags
+            "Restricted AC-matching due to potential blow-up: op=%s avars#=%d \
+             bs_left#=%d\n"
+            (G.show_operator op) (List.length avars) num_bs_left);
       m_comb_bind bs_left (fun bs' tin ->
           let avars_dots =
             avars_no_end_dots @ [ G.Ellipsis (G.fake "...") |> G.e ]
@@ -2403,8 +2408,9 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
  *)
 and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
     =
-  logger#ldebug
-    (lazy (spf "m_list__m_stmt: %d vs %d" (List.length xsa) (List.length xsb)));
+  Logs.debug (fun m ->
+      m ~tags "%s"
+        (spf "m_list__m_stmt: %d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
   (* less-is-ok:
@@ -2777,6 +2783,7 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_With, G.OSWS_With
   | G.OSWS_Else_in_try, G.OSWS_Else_in_try
   | G.OSWS_Iterator, G.OSWS_Iterator
+  | G.OSWS_SEH, G.OSWS_SEH
   | G.OSWS_Todo, G.OSWS_Todo ->
       return ()
   | G.OSWS_Block a, G.OSWS_Block b -> m_todo_kind a b
@@ -2784,6 +2791,7 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_Block _, _
   | G.OSWS_Else_in_try, _
   | G.OSWS_Iterator, _
+  | G.OSWS_SEH, _
   | G.OSWS_Todo, _ ->
       fail ()
 
@@ -2880,8 +2888,10 @@ and m_entity a b =
    *)
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
-      m_entity_name a1 b1 >>= fun () ->
-      m_attributes a2 b2 >>= fun () -> m_list__m_type_parameter a4 b4
+      let* () = m_entity_name a1 b1 in
+      let* () = m_attributes a2 b2 in
+      (* less-is-more: *)
+      m_option_none_can_match_some (m_bracket m_list__m_type_parameter) a4 b4
 
 and m_list__m_type_parameter a b =
   match a with
@@ -2926,7 +2936,7 @@ and m_definition_kind a b =
   | G.TypeDef a1, B.TypeDef b1 -> m_type_definition a1 b1
   | G.ModuleDef a1, B.ModuleDef b1 -> m_module_definition a1 b1
   | G.MacroDef a1, B.MacroDef b1 -> m_macro_definition a1 b1
-  | G.Signature a1, B.Signature b1 -> m_type_ a1 b1
+  | G.Signature a1, B.Signature b1 -> m_signature_definition a1 b1
   | G.UseOuterDecl a1, B.UseOuterDecl b1 -> m_tok a1 b1
   | G.OtherDef (a1, a2), B.OtherDef (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
@@ -2948,6 +2958,13 @@ and m_enum_entry_definition a b =
   | { G.ee_args = a1; ee_body = a2 }, { B.ee_args = b1; ee_body = b2 } ->
       let* () = m_option m_arguments a1 b1 in
       let* () = m_option (m_bracket m_fields) a2 b2 in
+      return ()
+
+and m_signature_definition a b =
+  match (a, b) with
+  | { G.sig_tok = a1; sig_type = a2 }, { B.sig_tok = b1; sig_type = b2 } ->
+      let* () = m_tok a1 b1 in
+      let* () = m_type_ a2 b2 in
       return ()
 
 and m_type_parameter a b =
@@ -3167,8 +3184,9 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
 
 (* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
-  logger#ldebug
-    (lazy (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
+  Logs.debug (fun m ->
+      m ~tags "%s"
+        (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
   (* less-is-ok:
@@ -3573,7 +3591,7 @@ and m_import_vs_field a b =
         {
           s =
             DefStmt
-              ( { name = EN (Id (idb, _)); attrs = []; tparams = [] },
+              ( { name = EN (Id (idb, _)); attrs = []; tparams = None },
                 FieldDefColon { vinit = Some { e = N (Id (aliasb, _)); _ }; _ }
               );
           _;

@@ -86,6 +86,7 @@ val name_is_global : AST_generic.resolved_name_kind -> bool
 val parameter_to_catch_exn_opt :
   AST_generic.parameter -> AST_generic.catch_exn option
 
+val ctype_of_literal : AST_generic.literal -> AST_generic.const_type
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
 
 val has_keyword_attr :

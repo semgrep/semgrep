@@ -12,7 +12,7 @@
 *)
 val check_rule :
   Rule.rule ->
-  Lockfile_target.t ->
+  Lockfile_xtarget.t ->
   Rule.dependency_formula ->
   Core_profiling.rule_profiling Core_result.match_result
 
@@ -46,7 +46,7 @@ val annotate_pattern_match :
    is a list of all dependencies in the lockfile that matched the dependency formula.
 *)
 val match_all_dependencies :
-  Lockfile_target.t ->
+  Lockfile_xtarget.t ->
   Rule.rule list ->
   (Rule.rule * Pattern_match.dependency_match list option) list
 

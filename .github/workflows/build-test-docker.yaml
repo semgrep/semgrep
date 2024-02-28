@@ -102,6 +102,8 @@ jobs:
           file: ${{ inputs.file }}
           target: ${{ inputs.target }}
           buildx-fallback: true
+          # used in Dockerfile semgrep-cli step
+          secrets: SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }}
       - name: Load image
         if: ${{ inputs.enable-tests }}
         run: |

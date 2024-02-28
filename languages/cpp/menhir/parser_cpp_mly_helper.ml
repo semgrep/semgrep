@@ -4,7 +4,7 @@ open Either_
 module Ast = Ast_cpp
 module Flag = Flag_parsing
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Wrappers *)
@@ -291,7 +291,8 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
                  | _ -> ()));
         ftyp
     | _ ->
-        logger#error "weird, not a functionType. Got %s" (Ast_cpp.show_type_ ty);
+        Logs.err (fun m ->
+            m ~tags "weird, not a functionType. Got %s" (Ast_cpp.show_type_ ty));
         (* this is possible if someone used a typedef to a function type, or
          * when tree-sitter-cpp did some error recovery and wrongly parsed
          * something as a function when it's really not

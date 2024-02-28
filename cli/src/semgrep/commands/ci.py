@@ -207,6 +207,7 @@ def ci(
     timeout_threshold: int,
     timeout: int,
     interfile_timeout: Optional[int],
+    trace: bool,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -465,6 +466,7 @@ def ci(
             timeout=timeout,
             max_memory=max_memory,
             interfile_timeout=interfile_timeout,
+            trace=trace,
             timeout_threshold=timeout_threshold,
             skip_unknown_extensions=(not scan_unknown_extensions),
             allow_untrusted_validators=allow_untrusted_validators,
@@ -596,9 +598,11 @@ def ci(
             # console.print() would go to stderr; here we print() directly to stdout
             print(
                 json.dumps(
-                    scan_handler.ci_scan_results.to_json()
-                    if scan_handler.ci_scan_results
-                    else {},
+                    (
+                        scan_handler.ci_scan_results.to_json()
+                        if scan_handler.ci_scan_results
+                        else {}
+                    ),
                     sort_keys=True,
                     default=lambda x: x.to_json(),
                 )
@@ -611,12 +615,13 @@ def ci(
                 "  Semgrep Cloud Platform is still processing the results of the scan, they will be available soon:"
             )
 
+        ref_if_available = f"&ref={metadata.branch}" if metadata.branch else ""
         logger.info(
-            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+            f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_display_name}{ref_if_available}"
         )
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(
-                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+                f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain"
             )
 
     audit_mode = metadata.event_name in audit_on

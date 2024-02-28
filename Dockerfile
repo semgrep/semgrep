@@ -146,7 +146,8 @@ RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.wh
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-FROM python:3.11.4-alpine AS semgrep-cli
+#coupling: the 'semgrep-oss' name is used in 'make build-docker'
+FROM python:3.11.4-alpine AS semgrep-oss
 
 WORKDIR /semgrep
 
@@ -234,7 +235,24 @@ CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
 ###############################################################################
-# Step 4 (optional) nonroot variant
+# Step4: install semgrep-pro
+###############################################################################
+# This step is valid only when run from Github Actions.
+# See .github/workflows/build-test-docker.yaml
+
+#coupling: the 'semgrep-cli' name is used in release.jsonnet
+FROM semgrep-oss AS semgrep-cli
+
+# A semgrep docker image with semgrep-pro already included in the image,
+# to save time in CI as one does not need to wait 2min each time to
+# download it.
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug
+
+# Clear out any detritus from the pro install
+RUN rm -rf /root/.semgrep
+
+###############################################################################
+# Step5: (optional) nonroot variant
 ###############################################################################
 
 # Additional build stage that sets a non-root user.
@@ -246,7 +264,8 @@ FROM semgrep-cli AS nonroot
 
 # We need to move the core binary out of the protected /usr/local/bin dir so
 # the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
-# Alt: we could also do this work directly in the root docker image.
+# alt: we could also do this work directly in the root docker image.
+# TODO? now that we install semgrep-pro in step4, do we still need that?
 RUN rm /usr/local/bin/osemgrep && \
     mkdir /home/semgrep/bin && \
     mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
@@ -259,7 +278,7 @@ ENV PATH="$PATH:/home/semgrep/bin"
 USER semgrep
 
 ###############################################################################
-# Step 5 (optional) performance testing
+# Step6: (optional) performance testing
 ###############################################################################
 
 # Build target that exposes the performance benchmark tests in perf/ for

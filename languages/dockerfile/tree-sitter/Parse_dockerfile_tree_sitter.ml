@@ -6,6 +6,7 @@
 *)
 
 open! Common
+open Fpath_.Operators
 module AST = AST_dockerfile
 module CST = Tree_sitter_dockerfile.CST
 open AST_dockerfile
@@ -1033,7 +1034,7 @@ let source_file (env : env) (xs : CST.source_file) =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_dockerfile.Parse.file file)
+    (fun () -> Tree_sitter_dockerfile.Parse.file !!file)
     (fun cst ->
       let env =
         {
@@ -1061,7 +1062,7 @@ let parse_pattern str =
          experience. *)
       str |> ensure_trailing_newline |> Tree_sitter_dockerfile.Parse.string)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         {
           H.file;

@@ -620,20 +620,18 @@ let top_func () =
         G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
     | DTypeDef (v1, v2, v3) ->
         let id = ident v1 in
-        let tparams = option type_parameters v2 |> List_.optlist_to_list in
+        let tparams = option type_parameters v2 in
         let ty = type_ v3 in
         let ent = G.basic_entity id ~tparams in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
-  and type_parameters v : G.type_parameters =
-    let _, xs, _ = bracket (list type_parameter) v in
-    xs
+  and type_parameters v : G.type_parameters = bracket (list type_parameter) v
   and type_parameter v : G.type_parameter =
     let p = parameter_binding v in
     G.OtherTypeParam (("Param", G.fake ""), [ G.Pa p ])
   and top_decl = function
     | DFunc (v1, v2, (v3, v4)) ->
         let v1 = ident v1 in
-        let tparams = option type_parameters v2 |> List_.optlist_to_list in
+        let tparams = option type_parameters v2 in
         let ftok, params, ret = func_type v3 in
         let body = stmt v4 in
         let ent = G.basic_entity v1 ~tparams in

@@ -1,6 +1,6 @@
 (* Nat Mote
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -68,6 +68,10 @@ module JsTsPrinter = Hybrid_print.Make (struct
   class printer = Ugly_print_AST.jsts_printer
 end)
 
+module OCamlPrinter = Hybrid_print.Make (struct
+  class printer = Ugly_print_AST.ocaml_printer
+end)
+
 let get_printer lang external_printer :
     (Ugly_print_AST.printer_t, string) result =
   match lang with
@@ -78,6 +82,7 @@ let get_printer lang external_printer :
   | Lang.Js
   | Lang.Ts ->
       Ok (new JsTsPrinter.printer external_printer)
+  | Lang.Ocaml -> Ok (new OCamlPrinter.printer external_printer)
   | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =

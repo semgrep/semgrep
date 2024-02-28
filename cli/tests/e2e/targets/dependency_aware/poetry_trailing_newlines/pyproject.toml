@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "poetry_py3"
+version = "0.1.0"
+description = "Python 3 environment for Hermes SMS"
+authors = ["ninjas"]
+
+
+[[tool.poetry.source]]
+name = 'libs1-libs'
+url = "https://example.com"
+
+
+[tool.poetry.dependencies]
+python = "3.9.16"
+coverage = "5.4"
+mock = "4.0.3"
+pika = "1.1.0"
+requests = "2.25.1"
+boto3 = "1.17.8"
+redis = "3.5.3"
+psutil= "5.8.0"
+hermes-utils = "=2.8.13"
+j2cli-3 = "0.0.1"
+celery = "=5.0.5"
+dj-database-url = "0.5.0"
+django-fsm-admin = "1.2.4"
+django-fsm = "2.7.1"
+Django = "3.1.6"
+djangorestframework-xml = "2.0.0"
+djangorestframework = "3.12.2"
+gunicorn = "20.0.4"
+structlog = "20.2.0"
+xmltodict = "0.12.0"
+singledispatch = "3.4.0.3"
+tblib = "1.7.0"
+pytz = "=2021.1"
+django-ses = "=1.0.3"
+architect = "=0.6.0"
+gevent = "^23.9"
+greenlet = "^3.0"
+ddtrace = "1.20.9"
+lxml = "^4.9"
+psycopg2-binary = "2.9.8"
+markupsafe = "<2.1"
+suds-py3 = "^1.4"
+
+
+
+[tool.poetry.dev-dependencies]
+selenium = "2.53.6"
+
+[build-system]
+requires = ["poetry == 0.12.17"]
+build-backend = "poetry.masonry.api"
+

@@ -422,7 +422,6 @@ val int_of_stringbits : string -> int
 val int_of_octal : string -> int
 val int_of_all : string -> int
 val int64_of_string_opt : string -> int64 option
-val int_of_string_opt : string -> int option
 
 (* like int_of_string_opt, but also converts C octals like 0400 in
  * the right value. *)
@@ -805,11 +804,6 @@ val with_open_outfile_append :
   filename -> ((string -> unit) * out_channel -> 'a) -> 'a
 
 val with_open_stringbuf : ((string -> unit) * Buffer.t -> unit) -> string
-val with_tmp_file : str:string -> ext:string -> (filename -> 'a) -> 'a
-
-(* Runs just before a tmp file is deleted. Multiple hooks can be added, but the
- * order in which they are called is unspecified. *)
-val register_tmp_file_cleanup_hook : (string -> unit) -> unit
 
 (*###########################################################################*)
 (* Collection-like types *)

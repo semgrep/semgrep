@@ -174,7 +174,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.35.0"
+let version = "1.62.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -1341,6 +1341,8 @@ and other_stmt_with_stmt_operator =
   | OSWS_Else_in_try
   (* C/C++/cpp *)
   | OSWS_Iterator
+  (* Microsoft-specific C/C++ extension for Structured Exception Handling *)
+  | OSWS_SEH
   (* e.g., Case/Default outside of switch in C/C++, StmtTodo in C++ *)
   | OSWS_Todo
 
@@ -1604,7 +1606,7 @@ and entity = {
    *)
   name : entity_name;
   attrs : attribute list;
-  tparams : type_parameters;
+  tparams : type_parameters option;
 }
 
 (* old: used to be merged with field_name in a unique name_or_dynamic
@@ -1655,7 +1657,7 @@ and definition_kind =
   | ModuleDef of module_definition
   | MacroDef of macro_definition
   (* in a header file (e.g., .mli in OCaml or 'module sig') *)
-  | Signature of type_
+  | Signature of signature_definition
   (* Only used inside a function.
    * Needed for languages without local VarDef (e.g., Python/PHP)
    * where the first use is also its declaration. In that case when we
@@ -1694,8 +1696,8 @@ and type_parameter_classic = {
   tp_variance : variance wrap option;
 }
 
-(* TODO bracket *)
-and type_parameters = type_parameter list
+(* bracket is usually '<>' for C++/.., '()' for OCaml, '[]' for Scala *)
+and type_parameters = type_parameter list bracket
 
 (* less: have also Invariant? *)
 and variance =
@@ -1955,6 +1957,15 @@ and module_definition_kind =
  *)
 and macro_definition = { macroparams : ident list; macrobody : any list }
 
+(* ------------------------------------------------------------------------- *)
+(* Signature definition *)
+(* ------------------------------------------------------------------------- *)
+and signature_definition = {
+  (* ex: 'val' in OCaml *)
+  sig_tok : tok;
+  sig_type : type_;
+}
+
 (*****************************************************************************)
 (* Directives (Module import/export, package) *)
 (*****************************************************************************)
@@ -2207,7 +2218,7 @@ let canonical_to_dotted tid xs = xs |> List_.map (fun s -> (s, tid))
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?(tparams = []) id =
+let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?(tparams = None) id =
   let idinfo = empty_id_info ?hidden ?case_insensitive () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 

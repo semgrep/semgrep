@@ -37,7 +37,13 @@ type arg_base =
   | BArg of arg_pos  (** A formal parameter in a function/method definition. *)
 [@@deriving show]
 
-type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
+type arg_offset =
+  | Ofld of IL.name  (** A field, like `.a` *)
+  | Oint of int  (** A constant integer index, like `[42]` *)
+  | Ostr of string  (** A constant string index, like `['foo']` *)
+[@@deriving show]
+
+type arg = { base : arg_base; offset : arg_offset list } [@@deriving show]
 (** An 'arg' taint acts like a taint variable that refers to a specific formal
  * argument of a function/method, or to a specific offset of it. See 'signature'
  * for more details. *)

@@ -68,10 +68,14 @@ let format_cli_match (cli_match : OutT.cli_match) =
              )
     *)
   in
+  let id =
+    (* TODO the ?index argument needs to be provided (for ci_unique_key duplicates) *)
+    Semgrep_hashing_functions.ci_unique_key cli_match
+    |> Uuidm.of_bytes |> Option.get |> Uuidm.to_string
+  in
   let r =
     [
-      ("id", `String "TODO");
-      (*str(rule_match.uuid),  # create UUID from sha256 hash *)
+      ("id", `String id);
       ("category", `String "sast");
       (* CVE is a required field from Gitlab schema.
          It also is part of the determination for uniqueness
@@ -156,14 +160,12 @@ let output f matches =
       ]
   in
   let start_time = Metrics_.g.payload.started_at
-  and end_time =
-    Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
-  in
+  and end_time = Timedesc.Timestamp.now () in
   let scan =
     `Assoc
       [
-        ("start_time", `String (Timedesc.to_rfc3339 start_time));
-        ("end_time", `String (Timedesc.to_rfc3339 end_time));
+        ("start_time", `String (Timedesc.Timestamp.to_rfc3339 start_time));
+        ("end_time", `String (Timedesc.Timestamp.to_rfc3339 end_time));
         ("analyzer", tool);
         ("scanner", tool);
         ("version", `String Version.version);

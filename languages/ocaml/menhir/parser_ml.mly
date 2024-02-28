@@ -855,12 +855,11 @@ type_constraint:
 (*----------------------------*)
 
 type_declaration: type_parameters TLowerIdent type_kind (*TODOAST constraints*)
-   { let tparams = $1 |> List.map (fun id -> TyParam id) in
-     match $3 with
+   { match $3 with
      | None ->
-         TyDecl { tname = $2; tparams; tbody = AbstractType }
+         TyDecl { tname = $2; tparams = $1; tbody = AbstractType }
      | Some (_tok_eq, type_kind) ->
-         TyDecl { tname = $2; tparams; tbody = type_kind }
+         TyDecl { tname = $2; tparams = $1; tbody = type_kind }
    }
 
 
@@ -887,11 +886,11 @@ constructor_arguments:
  | "{" label_declarations "}" { [ TyTodo(("InlineRecord", $1), []) ] }
 
 type_parameters:
- |  (*empty*)                          { []  }
- | type_parameter                      { [$1] }
- | "(" list_sep(type_parameter, ",") ")" { $2 }
+ |  (*empty*)                          { None  }
+ | type_parameter                      { Some (Tok.unsafe_fake_bracket [$1]) }
+ | "(" list_sep(type_parameter, ",") ")" { Some ($1, $2, $3) }
 
-type_parameter: ioption(type_variance) "'" ident   { $3 }
+type_parameter: ioption(type_variance) "'" ident   { TyParam $3 }
 
 (* old: list_sep_term(label_declaration, ";") but accept attr after ; *)
 label_declarations:
@@ -950,9 +949,9 @@ simple_core_type:
 simple_core_type2:
  | type_variable                                 { $1 }
  | type_longident                                { TyName ($1) }
- | simple_core_type2 type_longident              { TyApp ([$1], $2) }
+ | simple_core_type2 type_longident              { TyApp (Tok.unsafe_fake_bracket [$1], $2) }
  | "(" list_sep(core_type_no_attr, ",") ")" type_longident
-      { TyApp (($2), $4) }
+      { TyApp (($1, $2, $3), $4) }
 
  (* name tag extension *)
  | polymorphic_variant_type                       { $1 }

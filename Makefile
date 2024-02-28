@@ -5,7 +5,7 @@
 # Many targets in this Makefile assume some commands have been run before to
 # setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
+#  - for OCaml: 'opam' and the right OCaml version (currently 4.14.0)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for Python: 'python3', 'pip', 'pipenv'
 #
@@ -94,6 +94,12 @@ core:
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
 	ln -s semgrep-core bin/osemgrep
+	# Remove all symbols with GNU strip. It saves 10-25% on the executable
+	# size and it doesn't seem to reduce the functionality or
+	# debuggability of OCaml executables.
+	# See discussion at https://github.com/semgrep/semgrep/pull/9471
+	chmod +w bin/semgrep-core
+	strip bin/semgrep-core
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core-bc
@@ -124,9 +130,11 @@ minimal-build-bc:
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
 # For a fresh repo you will need at least to run first 'git submodule update --init'.
+# The 'semgrep-oss' is the name of the step in the Dockerfile, the 'semgrep'
+# the name of the docker image produced (will be semgrep:latest)
 .PHONY: build-docker
 build-docker:
-	docker build -t semgrep .
+	docker build -t semgrep --target semgrep-oss .
 
 .PHONY: build-otarzan
 build-otarzan:
@@ -278,18 +286,22 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 
 # This target is portable; it only assumes you have 'gcc', 'opam' and
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
-# Note that this target is now called from our Dockerfile, so do not
-# run 'opam update' below to not slow down things.
+# Note that we call opam update below because semgrep.opam may mention
+# new packages that are covered yet by our ocaml-layer docker image.
 .PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core: semgrep.opam
+	opam update -y
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
-	# Install OCaml dependencies (globally) from *.opam files.
-	# This now also installs the dev dependencies. This has the benefit
-	# of installing all the packages in one shot and detecting possible
-	# version conflicts.
+	make install-opam-deps
+
+# Install OCaml dependencies (globally) from *.opam files.
+# This now also installs the dev dependencies. This has the benefit
+# of installing all the packages in one shot and detecting possible
+# version conflicts.
+install-opam-deps:
 	opam install -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
@@ -314,18 +326,9 @@ install-deps: install-deps-for-semgrep-core
 # Platform-dependent dependencies installation
 # **************************************************
 
-# -------------------------------------------------
-# Alpine
-# -------------------------------------------------
-
-# Here is why we need those external packages to compile semgrep-core:
-# - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
-
-# This target is used in our Dockerfile and a few GHA workflows.
-# There are pros and cons of having those commands here instead
-# of in the Dockerfile and GHA workflows:
+# The constants and targets below are used in our Dockerfile and a few
+# GHA workflows. There are pros and cons of having those commands here
+# instead of in the Dockerfile and GHA workflows:
 # cons:
 #  - this requires the Makefile and so to checkout (COPY in Docker
 #    or actions/checkout@v3 in GHA) semgrep first,
@@ -334,14 +337,48 @@ ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
-install-deps-ALPINE-for-semgrep-core:
-	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
 
+# -------------------------------------------------
+# Packages
+# -------------------------------------------------
+
+# Here is why we need those external packages to compile semgrep-core:
+# - pkg-config: ??
+# - pcre: for ocaml-pcre now used in semgrep-core
+# - gmp: for osemgrep and its use of cohttp
+# - libev: ??
+# - curl: for opentelemetry, which we use for tracing
+
+# - openssl-libs-static: dependency of curl-static
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests
 # - python-dev: for compiling jsonnet for pysemgrep
 ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
+
+UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
+
+#TODO: ARCH_DEPS=??
+
+# - pkg-config?
+# - coreutils?
+# - gettext?
+BREW_DEPS=pkg-config pcre gmp libev curl coreutils gettext
+
+# TODO? why we need those for Windows and not for Linux?
+# The opam "depext" are better handled in Linux?
+WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libcurl
+
+# -------------------------------------------------
+# Alpine
+# -------------------------------------------------
+
+# See the `build-static-libcurl.sh` script for why it's necessary
+install-deps-ALPINE-for-semgrep-core:
+	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
+	./scripts/build-static-libcurl.sh
+
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
@@ -356,22 +393,13 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
-UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev
-
 install-deps-UBUNTU-for-semgrep-core:
+	sudo apt-get update
 	apt-get install -y $(UBUNTU_DEPS)
 
 # -------------------------------------------------
 # macOS (brew)
 # -------------------------------------------------
-
-# Here is why we need those external packages below:
-# - pcre: for ocaml-pcre now used in semgrep-core
-# - gmp: for osemgrep (now merged with semgrep-core) and its use of cohttp
-# - pkg-config?
-# - coreutils?
-# - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext libev
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
@@ -380,14 +408,12 @@ install-deps-MACOS-for-semgrep-core:
 
 # Install dependencies needed for the Homebrew build.
 #
-# We don't use just 'make setup' because Homebrew installs its own version
-# of tree-sitter, globally.
+# We don't use just 'make install-deps-for-semgrep-core' because Homebrew
+# installs its own version of tree-sitter, globally.
 # The Homebrew package definition ("formula") lives at:
 #   https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-#
 # Some of this can be tested on Linux, see instructions in
 #   dockerfiles/linuxbrew.Dockerfile
-#
 .PHONY: homebrew-setup
 homebrew-setup:
 	cd libs/ocaml-tree-sitter-core \
@@ -405,6 +431,14 @@ homebrew-setup:
 # -------------------------------------------------
 #TODO: pacman -S ...
 
+# -------------------------------------------------
+# Windows (native, via mingw)
+# -------------------------------------------------
+
+# used in build-test-windows-x86.jsonnet
+install-deps-WINDOWS-for-semgrep-core:
+	opam depext $(WINDOWS_OPAM_DEPEXT_DEPS)
+
 ###############################################################################
 # Developer targets
 ###############################################################################
@@ -415,7 +449,6 @@ homebrew-setup:
 .PHONY: setup
 setup: semgrep.opam
 	./scripts/check-bash-version
-	opam update -y
 	$(MAKE) install-deps-for-semgrep-core
 
 # Install optional development dependencies in addition to build dependencies.
@@ -523,7 +556,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --strict --exclude tests
 # you can add --verbose for debugging
 
 #Dogfooding osemgrep!

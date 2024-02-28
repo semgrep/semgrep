@@ -562,6 +562,8 @@ local notify_failure_job = {
   on: {
     workflow_dispatch: input,
   },
+  // These extra permissions are needed by some of the jobs, e.g. check-semgrep-pro.
+  permissions: gha.write_permissions,
   jobs: {
     'get-version': get_version_job,
     'check-semgrep-pro': check_semgrep_pro_job,

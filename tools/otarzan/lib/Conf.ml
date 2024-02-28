@@ -6,7 +6,7 @@ open Printf
 open Cmdliner
 
 type format = Map | Visit | Compare
-type t = { input_file : string; format : format; fun_prefix : string }
+type t = { input_file : Fpath.t; format : format; fun_prefix : string }
 
 let o_input_file =
   let info =
@@ -41,7 +41,7 @@ let cmdline_term run =
           | Visit -> "v_"
           | Compare -> "cmp_")
     in
-    let conf = { input_file; format; fun_prefix } in
+    let conf = { input_file = Fpath.v input_file; format; fun_prefix } in
     run conf
   in
   Term.(const combine $ o_input_file $ o_format $ o_fun_prefix)

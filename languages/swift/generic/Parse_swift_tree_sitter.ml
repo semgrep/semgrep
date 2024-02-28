@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 module CST = Tree_sitter_swift.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
@@ -76,7 +77,7 @@ let entity_of_pattern ?(attrs = []) (pat : G.pattern) : G.entity =
     | G.PatId (id, id_info) -> G.EN (G.Id (id, id_info))
     | pattern -> G.EPattern pattern
   in
-  { G.name = entity_name; attrs; tparams = [] }
+  { G.name = entity_name; attrs; tparams = None }
 
 let map_trailing_comma env v =
   match v with
@@ -755,7 +756,7 @@ and map_enum_entry_suffix (env : env) (ent : G.entity)
                 | None -> G.OtherEntity (("AnonTupleField", init_tok), [])
               in
               let ty = map_type_ env ty in
-              let ent = { G.name; attrs = []; tparams = [] } in
+              let ent = { G.name; attrs = []; tparams = None } in
               G.DefStmt (ent, G.FieldDefColon { vinit = None; vtype = Some ty })
             in
             let field_first = mk_field v1 v2 v3 in
@@ -816,7 +817,7 @@ and map_computed_getter (env : env) ((v1, v2, v3) : CST.computed_getter) =
     | None -> G.FBNothing
   in
   G.DefStmt
-    ( { G.name = G.OtherEntity (v2, []); attrs = []; tparams = [] },
+    ( { G.name = G.OtherEntity (v2, []); attrs = []; tparams = None },
       G.FuncDef
         {
           G.fkind = (G.Method, v2 |> snd);
@@ -838,7 +839,7 @@ and map_computed_modify (env : env) ((v1, v2, v3) : CST.computed_modify) =
     | None -> G.FBNothing
   in
   G.DefStmt
-    ( { G.name = G.OtherEntity (v2, []); attrs; tparams = [] },
+    ( { G.name = G.OtherEntity (v2, []); attrs; tparams = None },
       G.FuncDef
         {
           G.fkind = (G.Method, v2 |> snd);
@@ -896,7 +897,7 @@ and map_computed_setter (env : env) ((v1, v2, v3, v4) : CST.computed_setter) =
     | None -> G.FBNothing
   in
   G.DefStmt
-    ( { G.name = G.OtherEntity (v2, []); attrs; tparams = [] },
+    ( { G.name = G.OtherEntity (v2, []); attrs; tparams = None },
       G.FuncDef
         {
           G.fkind = (G.Method, v2 |> snd);
@@ -2034,9 +2035,7 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
         | `Actor tok -> (* "actor" *) token env tok
       in
       let v2 = map_simple_identifier env v2 in
-      let tparams =
-        Option.map (map_type_parameters env) v3 |> List_.optlist_to_list
-      in
+      let tparams = Option.map (map_type_parameters env) v3 in
 
       let entity = G.basic_entity ~tparams ~attrs v2 in
       construct_class_def env v1 v4 entity v5 v6 map_class_body
@@ -2050,9 +2049,7 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
             let t = map_unannotated_type env v2 in
             G.OtherEntity (("NonUserType", v1), [ G.T t ])
       in
-      let tparams =
-        Option.map (map_type_parameters env) v3 |> List_.optlist_to_list
-      in
+      let tparams = Option.map (map_type_parameters env) v3 in
 
       let entity = { G.name; attrs; tparams } in
       (* Extensions basically allow you to reopen an existing class. They don't
@@ -2076,9 +2073,7 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
       in
       let v3 = map_simple_identifier env v3 in
       (* If there are any tparams, then this must be a raw-value style enum. *)
-      let tparams =
-        Option.map (map_type_parameters env) v4 |> List_.optlist_to_list
-      in
+      let tparams = Option.map (map_type_parameters env) v4 in
 
       (* Basically, we can tell if we have a raw type if it's a certain kind of
          base type like integers, floating point values, or whatever.
@@ -2109,7 +2104,7 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
     | `Cons_func_decl x -> map_constructor_function_decl env x
     | `Non_cons_func_decl x -> (false, map_non_constructor_function_decl env x)
   in
-  let v2 = Option.map (map_type_parameters env) v2 |> List_.optlist_to_list in
+  let v2 = Option.map (map_type_parameters env) v2 in
   let fparams = map_function_value_parameters env v3 in
   let rettype_attrs =
     let v4 = map_async_keyword_opt env v4 in
@@ -2188,7 +2183,7 @@ and map_modifierless_typealias_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.modifierless_typealias_declaration) =
   let _ttypealias = (* "typealias" *) token env v1 in
   let v2 = map_simple_identifier env v2 in
-  let v3 = Option.map (map_type_parameters env) v3 |> List_.optlist_to_list in
+  let v3 = Option.map (map_type_parameters env) v3 in
   let _v4TODO = (* eq_custom *) token env v4 in
   let v5 = map_type_ env v5 in
   G.DefStmt
@@ -2527,7 +2522,7 @@ and map_protocol_declaration (env : env)
   let v2 = (* "protocol" *) token env v2 in
   let v3 = map_simple_identifier env v3 in
   let tparams = Option.map (map_type_parameters env) v4 in
-  let entity = G.basic_entity ~attrs:modifiers ?tparams v3 in
+  let entity = G.basic_entity ~attrs:modifiers ~tparams v3 in
   construct_class_def env ~kind:G.Interface v2 v5 entity v6 v7 map_protocol_body
 
 and map_protocol_member_declaration (env : env)
@@ -2695,9 +2690,7 @@ and map_subscript_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.subscript_declaration) =
   let v2 = (* "subscript" *) token env v2 in
   let attrs = map_modifiers_opt env v1 in
-  let tparams =
-    Option.map (map_type_parameters env) v3 |> List_.optlist_to_list
-  in
+  let tparams = Option.map (map_type_parameters env) v3 in
 
   let fparams = map_function_value_parameters env v4 in
   let frettype =
@@ -2892,7 +2885,7 @@ and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
           G.name =
             G.OtherEntity (("AnonTupleField", G.fake "AnonTupleField"), []);
           attrs = [];
-          tparams = [];
+          tparams = None;
         }
   in
   let _v2TODO = map_parameter_modifiers_opt env v2 in
@@ -3020,8 +3013,8 @@ and map_type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers)
   List_.map (map_attribute env) xs
 
 and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
-    =
-  let _lt = (* "<" *) token env v1 in
+    : G.type_parameters =
+  let lt = (* "<" *) token env v1 in
   let v2 = map_type_parameter env v2 in
   let v3 =
     List_.map
@@ -3036,8 +3029,8 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
     Option.map (map_type_constraints env) v4 |> List_.optlist_to_list
   in
 
-  let _gt = (* ">" *) token env v5 in
-  v2 :: v3
+  let gt = (* ">" *) token env v5 in
+  (lt, v2 :: v3, gt)
 
 and map_typealias_declaration (env : env) ((v1, v2) : CST.typealias_declaration)
     =
@@ -3289,7 +3282,7 @@ let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_swift.Parse.file file)
+    (fun () -> Tree_sitter_swift.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       match map_source_file env cst with
@@ -3300,7 +3293,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_swift.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

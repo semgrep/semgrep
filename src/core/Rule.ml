@@ -16,7 +16,7 @@ open Common
 module MV = Metavariable
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 open Ppx_hash_lib.Std.Hash.Builtin
 
@@ -179,6 +179,10 @@ and taint_source = {
   source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
   source_formula : formula;
   source_exact : bool;
+      (** If 'false' (the default), if the formula were e.g. `source(...)`, then the
+      * `ok` inside `source(sink(ok))` is considered tainted, and `sink(ok)` is
+      * reported. If 'true', only the entire `source(sink(ok))` expression will be
+      * considered tainted, and `sink(ok)` is fine. *)
   source_by_side_effect : by_side_effect;
   source_control : bool;
   label : string;
@@ -210,6 +214,11 @@ and taint_sanitizer = {
   sanitizer_id : string;
   sanitizer_formula : formula;
   sanitizer_exact : bool;
+      (** If 'false' (the default), if the formula were e.g. `sanitize(...)`, then
+      * the `tainted` inside `sanitize(sink(tainted))` is considered sanitized,
+      * and `sink(tainted)` is fine. If 'true', only the entire expression
+      * `sanitize(sink(tainted))` will be considered sanitized, and `sink(tainted)`
+      * will be reported. *)
   sanitizer_by_side_effect : bool;
   not_conflicting : bool;
       (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
@@ -230,6 +239,12 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
+  sink_exact : bool;
+      (** If 'true' (the default), if the formula were e.g. `sink(...)`, then the
+      * `tainted` inside `sink(if tainted then ok1 else ok2)` is not considered a
+      * sink, and nothing is reported. If 'false', then every subexpression in
+      * `sink(if tainted then ok1 else ok2)` is considered a sink, and we report
+      * a finding due to `tainted`. *)
   sink_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
@@ -237,39 +252,13 @@ and taint_sink = {
        *)
   sink_at_exit : bool;
       (* Whether this sink only applies to instructions at exit positions. *)
-  sink_is_func_with_focus : bool;
-      (* True if the 'sink_formula' has the following shape:
+  sink_has_focus : bool;
+      (* True if the 'sink_formula' has "focus", so it matches something and then
+       * focuses on a specific part of the match.
        *
-       *     patterns:
-       *     - pattern: <func>(<args>)
-       *     - focus-metavariable: $MVAR
-       *
-       * or, more generally, a shape like:
-       *
-       *     patterns:
-       *     - pattern-either:
-       *       - patterns:
-       *         - pattern-inside: |
-       *             <P>
-       *         - pattern: <func>(<args>)
-       *       - ...
-       *     - focus-metavariable: $MVAR
-       *
-       * that is, it matches a function call, and focuses on a specific part of
-       * the match.
-       *
-       * Then we infer that there is a preference for a "more precise" match of
-       * the sink, in constrast with other sink patterns such as `sink(...)`. We
-       * infer that the function call itself is not the sink, but more likely it
-       * is either the <func> or one (or more) of the <args>.
-       *
-       * WHY BOTHER WITH ALL THIS? Well, because for a long time most sink specs
-       * were of the form `sink(...)` and we want to maintain backwards
-       * compatibility for all those rules out there.
+       * See NOTE(sink_has_focus) in module 'Dataflow_tainting' and
+       * `Rule.is_formula_with_focus`.
        *)
-      (* TODO: Add `exact: true` option to sinks so one can skip this heuristic, and
-       * it could be a good default for "syntax 2.0". The current behavior could be
-       * `exact: compat`, and the old behavior could be `exact: false`. *)
 }
 
 (* e.g. if we want to specify that adding tainted data to a `HashMap` makes
@@ -322,50 +311,12 @@ let get_sink_requires { sink_requires; _ } =
   | None -> PLabel default_source_label
   | Some { precondition; _ } -> precondition
 
-(* Check if a formula is matching a function call and focusing on one of
- * its subexpressions.
+(* Check if a formula has "focus" (i.e., `focus-metavariable` in syntax 1.0)
  *
- * See 'taint_sink', field 'sink_is_func_with_focus'. *)
-let is_sink_func_with_focus sink_formula =
-  let rec is_inside_or_not = function
-    | Inside _
-    | Not _ ->
-        true
-    | Or (_, formulas) -> List.for_all is_inside_or_not formulas
-    | P _
-    | And _
-    | Anywhere _ ->
-        false
-  in
-  let rec is_call_pattern = function
-    | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
-    | Or (_tok, formulas) ->
-        (* Each case in an 'Or' is independent, all must be call patterns. *)
-        List.for_all is_call_pattern formulas
-    | And (_, { conjuncts; focus = []; _ }) ->
-        (* NOTE: No `focus-metavariable:` here to make sure this is matching a call. *)
-        is_call_pattern_conjuncts conjuncts
-    | P _
-    | Inside _
-    | Not _
-    | And _
-    | Anywhere _ ->
-        false
-  and is_call_pattern_conjuncts conjuncts =
-    (* The conjuncts that are 'inside' or 'not' (or an OR of those) can be
-     * disregarded, they just provide context. But the remaining conjuncts
-     * must all correspond to a func-call pattern. *)
-    let remaining_conjuncts =
-      List.filter (fun f -> not (is_inside_or_not f)) conjuncts
-    in
-    remaining_conjuncts <> []
-    && List.for_all is_call_pattern remaining_conjuncts
-  in
-  match sink_formula with
-  (* THINK: Should we just assume that if there is 'focus' then the match should
-   * be exact regardless of whether the 'conjuncts' are matching a function call? *)
-  | And (_, { conjuncts; focus = [ _focus ]; _ }) ->
-      is_call_pattern_conjuncts conjuncts
+ * See 'taint_sink', field 'sink_has_focus'. *)
+let is_formula_with_focus formula =
+  match formula with
+  | And (_, { conjuncts = _; conditions = _; focus = _ :: _ }) -> true
   | __else__ -> false
 
 (*****************************************************************************)

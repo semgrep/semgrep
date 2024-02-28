@@ -1,0 +1,12 @@
+rules:
+- id: anonymous-metavar
+  message: |
+    Anonymous metavars should not unify, even within the same pattern!
+  languages:
+  - python
+  severity: WARNING
+  patterns:
+  - pattern: |
+      foo($_)
+  - pattern: |
+      bar($_, $_)

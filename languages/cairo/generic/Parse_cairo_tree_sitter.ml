@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Fpath_.Operators
 module Token = Tree_sitter_run.Token
 module CST = Tree_sitter_cairo.CST
 module H = Parse_tree_sitter_helpers
@@ -590,8 +590,10 @@ and map_type_parameters (env : env) (x : CST.type_parameter_list) :
     | `Type_impl_decl x -> map_impl_type x
   in
 
-  let _, v1, v2, _, _ = x in
-  map_list_1 map_type_parameter v1 v2
+  let lt, v1, v2, _sc, gt = x in
+  let lt = token env lt in
+  let gt = token env gt in
+  (lt, map_list_1 map_type_parameter v1 v2, gt)
 
 and map_function_signature (env : env) (x : CST.function_signature) :
     function_signature =
@@ -621,8 +623,8 @@ and map_function_signature (env : env) (x : CST.function_signature) :
       attrs = map_attributes env attributes;
       tparams =
         (match type_parameters with
-        | Some parameters -> map_type_parameters env parameters
-        | None -> []);
+        | Some parameters -> Some (map_type_parameters env parameters)
+        | None -> None);
     }
   in
 
@@ -678,7 +680,7 @@ and map_module_declaration (env : env) (x : CST.module_declaration) :
   let entity : G.entity =
     {
       name = map_name_to_entity_name env name;
-      tparams = [];
+      tparams = None;
       attrs = map_attributes env attributes;
     }
   in
@@ -700,7 +702,7 @@ and map_const_declaration (env : env) (x : CST.const_declaration) : G.definition
     {
       name = G.EN (H2.name_of_id (map_name env name));
       attrs = map_attributes env attributes;
-      tparams = [];
+      tparams = None;
     }
   in
 
@@ -712,16 +714,13 @@ and map_const_declaration (env : env) (x : CST.const_declaration) : G.definition
 
 and map_typealias_declaration (env : env) (x : CST.typealias_declaration) :
     G.definition =
-  let _, name, type_parameters, _, ttype, _ = x in
+  let _, name, tparams, _, ttype, _ = x in
 
   let name : G.entity =
     {
       name = map_name_to_entity_name env name;
       attrs = [];
-      tparams =
-        (match type_parameters with
-        | Some type_parameters -> map_type_parameters env type_parameters
-        | None -> []);
+      tparams = Option.map (map_type_parameters env) tparams;
     }
   in
 
@@ -763,15 +762,12 @@ and map_trait_declaration (env : env) (x : CST.trait_declaration) : G.definition
     G.F definition
   in
 
-  let attributes, trait, name, type_parameters, (lb, functions, rb) = x in
+  let attributes, trait, name, tparams, (lb, functions, rb) = x in
   let entity : G.entity =
     {
       name = map_name_to_entity_name env name;
       attrs = map_attributes env attributes;
-      tparams =
-        (match type_parameters with
-        | Some type_parameters -> map_type_parameters env type_parameters
-        | None -> []);
+      tparams = Option.map (map_type_parameters env) tparams;
     }
   in
 
@@ -800,7 +796,7 @@ and map_struct_declaration (env : env) (x : CST.struct_declaration) :
             {
               name = map_name_to_entity_name env name;
               attrs = map_attributes env attributes;
-              tparams = [];
+              tparams = None;
             }
           in
 
@@ -818,16 +814,13 @@ and map_struct_declaration (env : env) (x : CST.struct_declaration) :
     wrap_in env (lb, map_list map_field v1 v2, rb)
   in
 
-  let attributes, sstruct, name, type_parameters, fields = x in
+  let attributes, sstruct, name, tparams, fields = x in
 
   let entity : G.entity =
     {
       name = map_name_to_entity_name env name;
       attrs = map_attributes env attributes;
-      tparams =
-        (match type_parameters with
-        | Some type_parameters -> map_type_parameters env type_parameters
-        | None -> []);
+      tparams = Option.map (map_type_parameters env) tparams;
     }
   in
 
@@ -859,7 +852,7 @@ and map_enum_declaration (env : env) (x : CST.enum_declaration) =
             {
               name = map_name_to_entity_name env name;
               attrs = map_attributes env attributes;
-              tparams = [];
+              tparams = None;
             }
           in
 
@@ -884,17 +877,14 @@ and map_enum_declaration (env : env) (x : CST.enum_declaration) =
     wrap_in env (lb, map_list map_variant v1 v2, rb)
   in
 
-  let attributes, enum, name, type_parameters, variants = x in
+  let attributes, enum, name, tparams, variants = x in
   let entity : G.entity =
     {
       name = map_name_to_entity_name env name;
       attrs =
         G.KeywordAttr (G.EnumClass, token env enum)
         :: map_attributes env attributes;
-      tparams =
-        (match type_parameters with
-        | Some type_parameters -> map_type_parameters env type_parameters
-        | None -> []);
+      tparams = Option.map (map_type_parameters env) tparams;
     }
   in
 
@@ -913,16 +903,13 @@ and map_enum_declaration (env : env) (x : CST.enum_declaration) =
 
 and map_impl_declaration (env : env) (x : CST.impl_declaration) : G.definition =
   let map_impl_trait (x : CST.impl_trait) : G.definition =
-    let attributes, impl, name, type_parameters, _, trait, body = x in
+    let attributes, impl, name, tparams, _, trait, body = x in
 
     let entity : G.entity =
       {
         name = map_name_to_entity_name env name;
         attrs = map_attributes env attributes;
-        tparams =
-          (match type_parameters with
-          | Some type_parameters -> map_type_parameters env type_parameters
-          | None -> []);
+        tparams = Option.map (map_type_parameters env) tparams;
       }
     in
 
@@ -936,16 +923,13 @@ and map_impl_declaration (env : env) (x : CST.impl_declaration) : G.definition =
   in
 
   let map_impl_base (x : CST.impl_base) : G.definition =
-    let attributes, impl, name, type_parameters, body = x in
+    let attributes, impl, name, tparams, body = x in
 
     let entity : G.entity =
       {
         name = map_name_to_entity_name env name;
         attrs = map_attributes env attributes;
-        tparams =
-          (match type_parameters with
-          | Some type_parameters -> map_type_parameters env type_parameters
-          | None -> []);
+        tparams = Option.map (map_type_parameters env) tparams;
       }
     in
 
@@ -970,7 +954,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_cairo.Parse.file file)
+    (fun () -> Tree_sitter_cairo.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
@@ -994,7 +978,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

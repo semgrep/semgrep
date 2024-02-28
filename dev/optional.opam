@@ -16,4 +16,5 @@ depends: [
   "feather" # used by hello_script.ml
   "ocaml-lsp-server" {= "1.15.1-4.14"} # used by the VSCode extension
   "earlybird" {= "1.2.1"} # used by the VSCode extension
+  "py" "qcheck" "qcheck-alcotest" # used by libs/python-str-repr/test
 ]

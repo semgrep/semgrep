@@ -22,9 +22,13 @@
     workflow_call: null,
   },
   write_permissions: {
-    // needed when we want to upload data to s3
+    // Needed when we want to upload data to s3 or more generally
+    // when connecting to cloud services that use Open ID Connect.
+    // More details at
+    // https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
     'id-token': 'write',
-    // needed when the job modifies the repository
+    // Needed when the job modifies the repository such as performing
+    // gh release commands.
     contents: 'write',
   },
 

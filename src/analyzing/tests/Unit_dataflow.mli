@@ -2,4 +2,4 @@
  * the caller (e.g. in Test.ml ) with other testsuites and
  * run via Alcotest.run.
  *)
-val tests : (string (* filename *) -> AST_generic.program) -> Testo.test list
+val tests : (Fpath.t -> AST_generic.program) -> Testo.test list

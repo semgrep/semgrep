@@ -824,6 +824,7 @@ and map_other_stmt_with_stmt_operator = function
   | OSWS_Iterator -> "S_Iterator"
   | OSWS_Todo -> "S_Todo"
   | OSWS_Block _TODO -> "S_Todo"
+  | OSWS_SEH -> "S_SEH"
 
 and map_condition = function
   | Cond v1 ->
@@ -998,7 +999,11 @@ and map_definition (v1, v2) =
   (v1, v2)
 
 and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
-  let v_tparams = map_of_list map_type_parameter v_tparams in
+  let v_tparams =
+    match v_tparams with
+    | None -> []
+    | Some (_, xs, _) -> map_of_list map_type_parameter xs
+  in
   let v_attrs = map_of_list map_attribute v_attrs in
   let v_name = map_entity_name v_name in
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }
@@ -1028,8 +1033,8 @@ and map_definition_kind = function
   | MacroDef v1 ->
       let v1 = map_macro_definition v1 in
       `MacroDef v1
-  | Signature v1 ->
-      let v1 = map_type_ v1 in
+  | Signature { sig_tok = _; sig_type } ->
+      let v1 = map_type_ sig_type in
       `Signature v1
   | UseOuterDecl v1 ->
       let v1 = map_tok v1 in

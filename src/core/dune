@@ -24,7 +24,7 @@
    ; in libs/
    commons
    glob
-   lib_parsing ; Parse_info.ml
+   lib_parsing
    ast_generic
 
    ; TODO ugly dependency to Ast_js.default_entity in Pattern.ml

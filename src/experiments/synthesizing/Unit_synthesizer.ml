@@ -195,7 +195,7 @@ let tests =
                       (* the code *)
                       let ast =
                         Parse_target.parse_and_resolve_name_fail_if_partial lang
-                          !!file
+                          file
                       in
                       (* BUG? resolve again? already done above *)
                       Naming_AST.resolve lang ast;

@@ -100,6 +100,6 @@ let from_string ~anchor ~name ~source_kind str =
   |> List_.map_filter (fun x -> x)
 
 let from_file ~anchor ~source_kind path =
-  Fpath.to_string path |> UCommon.read_file
+  Fpath.to_string path |> UFile.Legacy.read_file
   |> from_string ~anchor ~name:(Fpath.to_string path) ~source_kind
 [@@profiling]

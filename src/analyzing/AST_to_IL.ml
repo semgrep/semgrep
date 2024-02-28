@@ -28,7 +28,25 @@ module H = AST_generic_helpers
  *  - a lot ...
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
+let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
+
+let locate ?tok s =
+  let opt_loc =
+    try Option.map Tok.stringpos_of_tok tok with
+    | Tok.NoTokenLocation _ -> None
+  in
+  match opt_loc with
+  | Some loc -> spf "%s: %s" loc s
+  | None -> s
+
+let log_warning ?tok msg =
+  Logs.debug (fun m -> m ~tags:warning "%s" (locate ?tok msg))
+
+let log_error ?tok msg =
+  Logs.debug (fun m -> m ~tags:error "%s" (locate ?tok msg))
 
 (*****************************************************************************)
 (* Types *)
@@ -73,29 +91,17 @@ let sgrep_construct any_generic = raise (Fixme (Sgrep_construct, any_generic))
 let todo any_generic = raise (Fixme (ToDo, any_generic))
 let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
-let locate opt_tok s =
-  let opt_loc =
-    try Option.map Tok.stringpos_of_tok opt_tok with
-    | Tok.NoTokenLocation _ -> None
-  in
-  match opt_loc with
-  | Some loc -> spf "%s: %s" loc s
-  | None -> s
-
-let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
-let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
-
 let log_fixme kind gany =
   let toks = AST_generic_helpers.ii_of_any gany in
-  let opt_tok = Common2.hd_opt toks in
+  let tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
-      log_warning opt_tok
+      log_warning ?tok
         "Unsupported construct(s) may affect the accuracy of dataflow analyses"
   | Sgrep_construct ->
-      log_error opt_tok "Cannot translate Semgrep construct(s) into IL"
+      log_error ?tok "Cannot translate Semgrep construct(s) into IL"
   | Impossible ->
-      log_error opt_tok "Impossible happened during AST-to-IL translation"
+      log_error ?tok "Impossible happened during AST-to-IL translation"
 
 let fixme_exp ?partial kind gany eorig =
   log_fixme kind (any_of_orig eorig);
@@ -138,7 +144,7 @@ let var_of_id_info id id_info =
     | None ->
         let id_str, id_tok = id in
         let msg = spf "the ident '%s' is not resolved" id_str in
-        log_warning (Some id_tok) msg;
+        log_warning ~tok:id_tok msg;
         G.SId.unsafe_default
   in
   { ident = id; sid; id_info }
@@ -266,6 +272,24 @@ let def_expr_evaluates_to_value (lang : Lang.t) =
   match lang with
   | Elixir -> true
   | _else_ -> false
+
+let is_constructor env ret_ty id_info =
+  match id_info.G.id_resolved.contents with
+  | Some (G.GlobalName (ls, _), _) -> (
+      env.lang =*= Lang.Python
+      && List.length ls >= 3 (* Module + Class + __init__ *)
+      && (match List_.last_opt ls with
+         | Some "__init__" -> true
+         | _ -> false)
+      &&
+      match ret_ty with
+      (* It would be nice if we can check that this type actually
+         corresponds to a class, but I am uncertain if this is
+         possible. Istead we just check if it is a nominal typed.
+         TODO could we somehow guarentee this type is a class? *)
+      | { G.t = G.TyN _; _ } -> true
+      | _ -> false)
+  | _ -> false
 
 (*****************************************************************************)
 (* lvalue *)
@@ -450,62 +474,81 @@ and assign env lhs tok rhs_exp e_gen =
         (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
         (related_exp lhs)
   | G.Record (tok1, fields, tok2) ->
-      (* The assignment
-       *
-       *     {x1: v1, ..., xN: vN} = RHS
-       *
-       * where `xi` are field names, and `vi` are variables, becomes
-       *
-       *     tmp = RHS
-       *     v1 = tmp.x1
-       *     ...
-       *     vN = tmp.xN
-       *)
-      let tmp = fresh_var env tok2 in
-      let tmp_lval = lval_of_base (Var tmp) in
-      add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
-      let record_pairs : field list =
-        fields
-        |> List_.map (function
-             | G.F
-                 {
-                   s =
-                     G.DefStmt
-                       ( { name = EN (G.Id (id1, ii1)); _ },
-                         G.FieldDefColon
-                           { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ }
-                       );
-                   _;
-                 } ->
-                 let tok = snd id1 in
-                 let fldi = var_of_id_info id1 ii1 in
-                 let vari = var_of_id_info id2 ii2 in
-                 let vari_lval = lval_of_base (Var vari) in
-                 let offset = { o = Dot fldi; oorig = NoOrig } in
-                 let ei =
-                   mk_e
-                     (Fetch { base = Var tmp; rev_offset = [ offset ] })
-                     (related_tok tok)
-                 in
-                 add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
-                 Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
-             | field ->
-                 (* If a field is not of the form `x1: v1` then we translate it as
-                  * `__FIXME_AST_to_IL__: FixmeExp ToDo`.
-                  *)
-                 let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
-                 let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
-                 let tmpi = fresh_var env tok2 in
-                 let tmpi_lval = lval_of_base (Var tmpi) in
-                 add_instr env
-                   (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
-                 Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field))))
-      in
-      (* {x1: E1, ..., xN: En} *)
-      mk_e (Record record_pairs) (related_exp lhs)
+      assign_to_record env (tok1, fields, tok2) rhs_exp (related_exp lhs)
   | _ ->
       add_instr env (fixme_instr ToDo (G.E e_gen) (related_exp e_gen));
       fixme_exp ToDo (G.E e_gen) (related_exp lhs)
+
+and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
+  (* Assignments of the form
+   *
+   *     {x1: p1, ..., xN: pN} = RHS
+   *
+   * where `xi` are field names, and `pi` are patterns.
+   *
+   * In the simplest case, where the patterns are variables
+   * v1, ..., VN, this becomes:
+   *
+   *     tmp = RHS
+   *     v1 = tmp.x1
+   *     ...
+   *     vN = tmp.xN
+   *)
+  let tmp, _tmp_lval = mk_aux_var env tok1 rhs_exp in
+  let rec do_fields acc_rev_offsets fs =
+    fs |> List_.map (do_field acc_rev_offsets)
+  and do_field acc_rev_offsets f =
+    match f with
+    | G.F
+        {
+          s =
+            G.DefStmt
+              ( { name = EN (G.Id (id1, ii1)); _ },
+                G.FieldDefColon
+                  { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ } );
+          _;
+        } ->
+        (* fld = var ----> var := tmp. ... <accumulated offsets> ... .fld *)
+        let tok = snd id1 in
+        let fldi = var_of_id_info id1 ii1 in
+        let offset = { o = Dot fldi; oorig = NoOrig } in
+        let vari = var_of_id_info id2 ii2 in
+        let vari_lval = lval_of_base (Var vari) in
+        let ei =
+          mk_e
+            (Fetch { base = Var tmp; rev_offset = offset :: acc_rev_offsets })
+            (related_tok tok)
+        in
+        add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
+        Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
+    | G.F
+        {
+          s =
+            G.DefStmt
+              ( { name = EN (G.Id (id1, ii1)); _ },
+                G.FieldDefColon
+                  { vinit = Some { e = G.Record (_, fields, _); _ }; _ } );
+          _;
+        } ->
+        (* fld = { ... }, nested record pattern, we recurse. *)
+        let tok = snd id1 in
+        let fldi = var_of_id_info id1 ii1 in
+        let offset = { o = Dot fldi; oorig = NoOrig } in
+        let fields = do_fields (offset :: acc_rev_offsets) fields in
+        Field (fldi.ident, mk_e (Record fields) (related_tok tok))
+    | field ->
+        (* TODO: What other patterns could be nested ? *)
+        (* __FIXME_AST_to_IL__: FixmeExp ToDo *)
+        let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
+        let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
+        let tmpi = fresh_var env tok2 in
+        let tmpi_lval = lval_of_base (Var tmpi) in
+        add_instr env (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
+        Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field)))
+  in
+  let fields : field list = do_fields [] fields in
+  (* {x1: E1, ..., xN: En} *)
+  mk_e (Record fields) lhs_orig
 
 (*****************************************************************************)
 (* Expression *)
@@ -685,6 +728,41 @@ and expr_aux env ?(void = false) e_gen =
         | _ -> exp
       in
       ident_function_call_hack exp
+  (* x = ClassName(args ...) in Python *)
+  (* ClassName has been resolved to __init__ by the pro engine. *)
+  (* Identified and treated as x = New ClassName(args ...) to support
+     field sensitivity. See HACK(new) *)
+  | G.Assign
+      ( ({
+           e =
+             G.N
+               (G.Id ((_, _), { id_type = { contents = Some ret_ty }; _ }) as
+                obj);
+           _;
+         } as obj_e),
+        _,
+        ({
+           e =
+             G.Call
+               ( {
+                   e =
+                     ( G.N (Id (_, id_info))
+                     (* Module paths are currently parsed into
+                        dotaccess so m.ClassName() is completely
+                        valid. *)
+                     | G.DotAccess (_, _, FN (Id (_, id_info))) );
+                   _;
+                 },
+                 args );
+           _;
+         } as origin_exp) )
+    when is_constructor env ret_ty id_info ->
+      let obj' = var_of_name obj in
+      let lval, ss =
+        mk_class_construction env obj' origin_exp ret_ty id_info args
+      in
+      add_stmts env ss;
+      mk_e (Fetch lval) (SameAs obj_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
@@ -945,7 +1023,8 @@ and record env ((_tok, origfields, _) as record_def) =
              {
                s =
                  G.DefStmt
-                   ({ G.name = G.EN (G.Id (id, _)); tparams = []; _ }, def_kind);
+                   ( { G.name = G.EN (G.Id (id, _)); tparams = None; _ },
+                     def_kind );
                _;
              } ->
              let fdeforig =
@@ -1012,7 +1091,7 @@ and record env ((_tok, origfields, _) as record_def) =
                 IL translation engine will brick the whole record if it is encountered.
                 To avoid this, we will just ignore any unrecognized fields for HCL specifically.
              *)
-             logger#warning "Skipping HCL record field during IL translation";
+             log_warning "Skipping HCL record field during IL translation";
              None
          | G.F _ -> todo (G.E e_gen))
   in
@@ -1367,6 +1446,33 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
       [ mk_s (Instr fake_i) ]
   | ss'' -> ss''
 
+and mk_class_construction env obj origin_exp ty cons_id_info args :
+    lval * stmt list =
+  (* We encode `obj = new T(args)` as `obj = new obj.T(args)` so that taint
+     analysis knows that the reciever when calling `T` is the variable
+     `obj`. It's kinda hacky but works for now. *)
+  let lval = lval_of_base (Var obj) in
+  let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
+  let opt_cons =
+    let* cons = mk_class_constructor_name ty cons_id_info in
+    let cons' = var_of_name cons in
+    let cons_exp =
+      mk_e
+        (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
+        (SameAs (G.N cons |> G.e))
+      (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+         * looks at the eorig, but maybe it shouldn't? *)
+    in
+    Some cons_exp
+  in
+  let ss2, ty = type_with_pre_stmts env ty in
+  ( lval,
+    ss1 @ ss2
+    @ [
+        mk_s
+          (Instr (mk_i (New (lval, ty, opt_cons, args')) (SameAs origin_exp)));
+      ] )
+
 and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
@@ -1384,30 +1490,7 @@ and stmt_aux env st =
       (* HACK(new): Because of field-sensitivity hacks, we need to know to which
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
-      let obj_lval = lval_of_base (Var obj') in
-      let ss1, args' = args_with_pre_stmts env (Tok.unbracket args) in
-      let opt_cons =
-        let* cons = mk_class_constructor_name ty cons_id_info in
-        let cons' = var_of_name cons in
-        let cons_exp =
-          mk_e
-            (Fetch
-               {
-                 obj_lval with
-                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
-               })
-            (SameAs (G.N cons |> G.e))
-          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
-           * looks at the eorig, but maybe it shouldn't? *)
-        in
-        Some cons_exp
-      in
-      let ss2, ty = type_with_pre_stmts env ty in
-      ss1 @ ss2
-      @ [
-          mk_s
-            (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp)));
-        ]
+      mk_class_construction env obj' new_exp ty cons_id_info args |> snd
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
@@ -1728,11 +1811,18 @@ and function_body env fbody =
   let body_stmt = H.funcbody_to_stmt fbody in
   stmt env body_stmt
 
-(*
+(* We keep it really simple, very far from what would be the proper translation
+ * (see https://www.python.org/dev/peps/pep-0343/):
+ *
  *     with MANAGER as PAT:
  *         BODY
  *
  * ~>
+ *
+ *     PAT = MANAGER
+ *     BODY
+ *
+ * Previously we used this more accurate (yet not 100% accurate) translation:
  *
  *     mgr = MANAGER
  *     value = type(mgr).__enter__(mgr)
@@ -1742,8 +1832,12 @@ and function_body env fbody =
  *     finally:
  *         type(mgr).__exit__(mgr)
  *
- * This is NOT a 100% accurate translation but works for our purposes,
- * see https://www.python.org/dev/peps/pep-0343/.
+ * but to be honest we had no use for all that extra complexity, and this
+ * translated prevented symbolic propagation to match e.g.
+ * `Session(...).execute(...)` against:
+ *
+ *   with Session(engine) as s:
+ *       s.execute("<query>")
  *)
 and python_with_stmt env manager opt_pat body =
   (* mgr = MANAGER *)
@@ -1752,68 +1846,15 @@ and python_with_stmt env manager opt_pat body =
     let ss_mk_mgr, manager' = expr_with_pre_stmts env manager in
     ss_mk_mgr @ [ mk_s (Instr (mk_i (Assign (mgr, manager')) NoOrig)) ]
   in
-  (* type(mgr) *)
-  let type_mgr_var = fresh_var env G.sc in
-  let mgr_class = lval_of_base (Var type_mgr_var) in
-  let ss_mgr_class =
-    [
-      mk_s
-        (Instr
-           (mk_i
-              (CallSpecial
-                 ( Some mgr_class,
-                   (Typeof, G.sc),
-                   [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
-              NoOrig));
-    ]
+  (* PAT = mgr *)
+  let ss_def_pat =
+    match opt_pat with
+    | None -> []
+    | Some pat ->
+        pattern_assign_statements env (mk_e (Fetch mgr) NoOrig) ~eorig:NoOrig
+          pat
   in
-  (* tmp = type(mgr).__method__(mgr) *)
-  let call_mgr_method method_name =
-    let tmp = fresh_lval env G.sc in
-    let mgr_method =
-      (* type(mgr).__method___ *)
-      {
-        base = Var type_mgr_var;
-        rev_offset =
-          [ { o = Dot (fresh_var env G.sc ~str:method_name); oorig = NoOrig } ];
-      }
-    in
-    let ss =
-      [
-        mk_s
-          (Instr
-             (mk_i
-                (Call
-                   ( Some tmp,
-                     mk_e (Fetch mgr_method) NoOrig,
-                     [ Unnamed (mk_e (Fetch mgr) NoOrig) ] ))
-                NoOrig));
-      ]
-    in
-    (ss, tmp)
-  in
-  let ss_enter, value = call_mgr_method "__enter__" in
-  let pre_try_stmts = ss_def_mgr @ ss_mgr_class @ ss_enter in
-  let try_body =
-    (* PAT = type(mgr).__enter__(mgr)
-     * BODY *)
-    let ss_def_pat =
-      match opt_pat with
-      | None -> []
-      | Some pat ->
-          pattern_assign_statements env
-            (mk_e (Fetch value) NoOrig)
-            ~eorig:NoOrig pat
-    in
-    ss_def_pat @ stmt env body
-  in
-  let try_catches = [] in
-  let try_else = [] in
-  let try_finally =
-    let ss_exit, _ = call_mgr_method "__exit___" in
-    ss_exit
-  in
-  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_else, try_finally)) ]
+  ss_def_mgr @ ss_def_pat @ stmt env body
 
 (*****************************************************************************)
 (* Defs *)

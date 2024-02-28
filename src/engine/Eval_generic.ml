@@ -17,7 +17,7 @@ module G = AST_generic
 module MV = Metavariable
 module J = JSON
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -231,8 +231,7 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
   *)
   let regexp = Regexp_engine.pcre_compile_with_flags ~flags:[ `ANCHORED ] re in
   let matches =
-    Xpattern_match_regexp.regexp_matcher ~base_offset str (Fpath.to_string file)
-      regexp
+    Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
   in
   matches
 
@@ -268,11 +267,13 @@ let rec eval env code =
         FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) )
     when env.constant_propagation ->
       value_of_lit ~code lit
+  | G.Call ({ e = IdSpecial (ConcatString op, _); _ }, (_, args, _)) ->
+      String (eval_concat_string_op env code op args)
   | G.N (G.Id ((s, _t), _idinfo))
     when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
       try Hashtbl.find env.mvars s with
       | Not_found ->
-          logger#trace "could not find a value for %s in env" s;
+          Logs.debug (fun m -> m ~tags "could not find a value for %s in env" s);
           raise (NotInEnv s))
   (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
@@ -298,7 +299,7 @@ let rec eval env code =
   (* Emulate Python str just enough *)
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
       let v = eval env e in
-      eval_str env ~code v
+      String (eval_str env ~code v)
   (* Convert string to date *)
   | G.Call ({ e = G.N (G.Id (("strptime", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
@@ -334,9 +335,38 @@ let rec eval env code =
             | [] -> Bool false
             | _ -> Bool true
           in
-          logger#info "regexp %s on %s return %s" re str (show_value v);
+          Logs.debug (fun m ->
+              m ~tags "regexp %s on %s return %s" re str (show_value v));
           v
       | _ -> raise (NotHandled e))
+  | _ -> raise (NotHandled code)
+
+and eval_concat_string_op env code _op args =
+  (* The op appears to not be important. We can just concatenate all the
+     arguments.
+  *)
+  args |> List_.map (eval_concat_string_element env code) |> String.concat ""
+
+and eval_concat_string_element env code arg =
+  match arg with
+  | G.Arg { e = L (G.String (_, (s, _), _)); _ } -> s
+  | G.Arg
+      {
+        e = G.Call ({ e = IdSpecial (ConcatString op, _); _ }, (_, args, _));
+        _;
+      } ->
+      eval_concat_string_op env code op args
+  | G.Arg
+      {
+        e =
+          Call
+            ( { e = IdSpecial (InterpolatedElement, _); _ },
+              (_, [ G.Arg elem ], _) );
+        _;
+      }
+  | G.Arg elem ->
+      let v = eval env elem in
+      eval_str env ~code v
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -433,7 +463,7 @@ and eval_str _env ~code v =
     | AST s -> s
     | List _ -> raise (NotHandled code)
   in
-  String str
+  str
 
 (*****************************************************************************)
 (* Env builders *)
@@ -472,13 +502,14 @@ let text_of_binding mvar mval =
       | No_range_expected
       | No_range_error ->
           (* TODO: Report a warning to the user? *)
-          logger#error "We lack range info for metavariable %s: %s" mvar
-            (G.show_any any);
+          Logs.err (fun m ->
+              m ~tags "We lack range info for metavariable %s: %s" mvar
+                (G.show_any any));
           None
       | Range (min, max) ->
           let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
-          Some (Range.content_at_range file range))
+          Some (Range.content_at_range (Fpath.v file) range))
 
 let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
@@ -568,7 +599,7 @@ let eval_opt env e =
    *)
   | NotInEnv _ -> None
   | NotHandled e ->
-      logger#trace "NotHandled: %s" (G.show_expr e);
+      Logs.debug (fun m -> m ~tags "NotHandled: %s" (G.show_expr e));
       None
 
 let eval_bool env e =
@@ -576,8 +607,8 @@ let eval_bool env e =
   match res with
   | Some (Bool b) -> b
   | Some res ->
-      logger#trace "not a boolean: %s" (show_value res);
+      Logs.debug (fun m -> m ~tags "not a boolean: %s" (show_value res));
       false
   | None ->
-      logger#trace "got exn during eval_bool";
+      Logs.debug (fun m -> m ~tags "got exn during eval_bool");
       false
