@@ -3,9 +3,9 @@ rules:
   pattern: |
      non-present-string
   message: |
-     The point of this test is to verify the hardcoded checks
-     correctly validate this rule that uses a regex metavariable.
-     Due to the way tests are set up, a rule is necessary to 
-     trigger a test. This rule is not expected to match.
+     The point of this test is to verify that the hardcoded checks
+     correctly mark the `implicit-regex-capture.yaml` rule as valid.
+     Due to the way tests are set up, a metacheck rule is necessary 
+     to trigger a test. This rule is not expected to match.
   languages: [yaml]
   severity: WARNING

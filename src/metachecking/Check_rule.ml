@@ -79,11 +79,34 @@ let error env t s =
 (* Checks *)
 (*****************************************************************************)
 
+let mv_error env mv t =
+  (* TODO make this message more helpful by detecting specific
+     variants of this *)
+  error env t
+    (mv
+   ^ " is used in a 'metavariable-*' conditional or 'focus-metavariable' \
+      operator but is never bound by a positive pattern (or is only bound by \
+      negative patterns like 'pattern-not')")
+
+let mvar_is_ok mv mvs =
+  (* TODO: remove first condition when we kill numeric capture groups *)
+  Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
+
+let check_mvars_of_condition env bound_mvs (t, condition) =
+  match condition with
+  | CondEval _ -> ()
+  | CondRegexp (mv, _, _)
+  | CondType (mv, _, _, _)
+  | CondNestedFormula (mv, _, _)
+  | CondAnalysis (mv, _) ->
+      if not (mvar_is_ok mv bound_mvs) then mv_error env mv t
+
+let check_mvars_of_focus env bound_mvs (t, mv_list) =
+  mv_list
+  |> List.iter (fun mv ->
+         if not (mvar_is_ok mv bound_mvs) then mv_error env mv t)
+
 let unknown_metavar_in_comparison env f =
-  let mvar_is_ok mv mvs =
-    (* TODO: remove when we kill numeric capture groups *)
-    Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
-  in
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
     | P { pat; pstr = pstr, _; pid = _pid } ->
@@ -133,42 +156,27 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
             Set.empty mv_sets
         in
-        (* Check that all metavariables in this and-clause's metavariable-comparison clauses appear somewhere else *)
-        let mv_error mv t =
-          (* TODO make this message more helpful by detecting specific
-             variants of this *)
-          error env t
-            (mv
-           ^ " is used in a 'metavariable-*' conditional or \
-              'focus-metavariable' operator but is never bound by a positive \
-              pattern (or is only bound by negative patterns like \
-              'pattern-not')")
-        in
+        (* Check that all metavariables in this And-clause's metavariable-comparison clauses appear somewhere else *)
+        conditions |> List.iter (check_mvars_of_condition env mvs);
+        (* Now collect the metavariables in the conditions, which could be used
+           in the focus-metavariable clauses *)
         let cond_mvs =
           conditions
-          |> List_.map (fun (t, metavar_cond) ->
-                 match metavar_cond with
-                 | CondEval _ -> Set.empty
-                 | CondRegexp (mv, regex, _) ->
-                     if not (mvar_is_ok mv mvs) then mv_error mv t;
-                     Metavariable.mvars_of_regexp_string regex |> Set_.of_list
-                 | CondType (mv, _, _, _) ->
-                     if not (mvar_is_ok mv mvs) then mv_error mv t;
+          |> List_.map (fun (_, condition) ->
+                 match condition with
+                 | CondEval _
+                 | CondType _
+                 | CondAnalysis _ ->
                      Set.empty
-                 | CondNestedFormula (mv, _, formula) ->
-                     if not (mvar_is_ok mv mvs) then mv_error mv t;
-                     collect_metavars formula
-                 | CondAnalysis (mv, _) ->
-                     if not (mvar_is_ok mv mvs) then mv_error mv t;
-                     Set.empty)
+                 | CondRegexp (_, regex, _) ->
+                     Metavariable.mvars_of_regexp_string regex |> Set_.of_list
+                 | CondNestedFormula (_, _, formula) -> collect_metavars formula)
           |> List.fold_left Set.union Set.empty
         in
+        (* Check the focus-metavariable clauses last since they can use metavariables
+           in any clause within the And *)
         let mvs = Set.union cond_mvs mvs in
-        focus
-        |> List.iter (fun (t, mv_list) ->
-               mv_list
-               |> List.iter (fun mv ->
-                      if not (mvar_is_ok mv mvs) then mv_error mv t));
+        focus |> List.iter (check_mvars_of_focus env mvs);
         mvs
   in
   let _ = collect_metavars f in
