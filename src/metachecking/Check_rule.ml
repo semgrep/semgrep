@@ -144,18 +144,26 @@ let unknown_metavar_in_comparison env f =
               pattern (or is only bound by negative patterns like \
               'pattern-not')")
         in
-        conditions
-        |> List.iter (fun (t, metavar_cond) ->
-               match metavar_cond with
-               | CondEval _ -> ()
-               | CondRegexp (mv, _, _) ->
-                   if not (mvar_is_ok mv mvs) then mv_error mv t
-               | CondType (mv, _, _, _) ->
-                   if not (mvar_is_ok mv mvs) then mv_error mv t
-               | CondNestedFormula (mv, _, _) ->
-                   if not (mvar_is_ok mv mvs) then mv_error mv t
-               | CondAnalysis (mv, _) ->
-                   if not (mvar_is_ok mv mvs) then mv_error mv t);
+        let cond_mvs =
+          conditions
+          |> List_.map (fun (t, metavar_cond) ->
+                 match metavar_cond with
+                 | CondEval _ -> Set.empty
+                 | CondRegexp (mv, regex, _) ->
+                     if not (mvar_is_ok mv mvs) then mv_error mv t;
+                     Metavariable.mvars_of_regexp_string regex |> Set_.of_list
+                 | CondType (mv, _, _, _) ->
+                     if not (mvar_is_ok mv mvs) then mv_error mv t;
+                     Set.empty
+                 | CondNestedFormula (mv, _, formula) ->
+                     if not (mvar_is_ok mv mvs) then mv_error mv t;
+                     collect_metavars formula
+                 | CondAnalysis (mv, _) ->
+                     if not (mvar_is_ok mv mvs) then mv_error mv t;
+                     Set.empty)
+          |> List.fold_left Set.union Set.empty
+        in
+        let mvs = Set.union cond_mvs mvs in
         focus
         |> List.iter (fun (t, mv_list) ->
                mv_list
