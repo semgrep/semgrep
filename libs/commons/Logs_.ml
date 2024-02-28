@@ -30,7 +30,7 @@ open Common
 (* alt: use Mtime_clock.now () *)
 let now () : float = UUnix.gettimeofday ()
 
-(* in seconds *)
+(* unix time in seconds *)
 let time_program_start = now ()
 
 let default_skip_libs =
