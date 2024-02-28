@@ -91,8 +91,10 @@ let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
  * to avoid having the output of multiple child processes interwinded, hence
  * the use of Unix.lockf below.
  *)
-let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (_file : Fpath.t) (match_results : Core_result.matches_single_file) : unit =
+
+let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
+    (printer : Scan_CLI.conf -> OutJ.cli_match list -> unit) (_file : Fpath.t)
+    (match_results : Core_result.matches_single_file) : unit =
   let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
@@ -122,12 +124,23 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     Common.protect
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
-        Matches_report.pp_text_outputs
-          ~max_chars_per_line:conf.output_conf.max_chars_per_line
-          ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
-          ~color_output:conf.output_conf.force_color Format.std_formatter
-          cli_matches)
+        printer conf cli_matches)
       ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
+
+let incremental_text_printer (conf : Scan_CLI.conf)
+    (cli_matches : OutJ.cli_match list) : unit =
+  Matches_report.pp_text_outputs
+    ~max_chars_per_line:conf.output_conf.max_chars_per_line
+    ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
+    ~color_output:conf.output_conf.force_color Format.std_formatter cli_matches
+
+let incremental_json_printer (conf : Scan_CLI.conf)
+    (cli_matches : OutJ.cli_match list) : unit =
+  ignore conf;
+  List.iter
+    (fun cli_match ->
+      Fmt.pr "%s@." (Semgrep_output_v1_j.string_of_cli_match cli_match))
+    cli_matches
 
 (*****************************************************************************)
 (* Pretty Printing for CLI UX *)
@@ -543,12 +556,28 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     let output_format, file_match_results_hook =
       match conf with
       | {
-       output_conf = { output_format = Output_format.Text; _ };
-       common = { maturity = Maturity.Develop; _ };
+          output_conf = { output_format = Output_format.Text; _ };
+          incremental_output = true;
+          _;
+        }
+      | {
+          output_conf = { output_format = Output_format.Text; _ };
+          common = { maturity = Maturity.Develop; _ };
+          _;
+        } ->
+          ( Output_format.Incremental,
+            Some
+              (mk_file_match_results_hook conf filtered_rules
+                 incremental_text_printer) )
+      | {
+       output_conf = { output_format = Output_format.Json; _ };
+       incremental_output = true;
        _;
       } ->
-          ( Output_format.TextIncremental,
-            Some (file_match_results_hook conf filtered_rules) )
+          ( Output_format.Incremental,
+            Some
+              (mk_file_match_results_hook conf filtered_rules
+                 incremental_json_printer) )
       | { output_conf; _ } -> (output_conf.output_format, None)
     in
     let scan_func = mk_scan_func conf file_match_results_hook errors in

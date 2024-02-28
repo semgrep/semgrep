@@ -1,1 +1,0 @@
-Scan summary links printed after `semgrep ci` scans now reflect a custom SEMGREP_APP_URL, if one is set.
