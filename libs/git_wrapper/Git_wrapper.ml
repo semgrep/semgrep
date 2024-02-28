@@ -549,6 +549,7 @@ let clean_project_url (url : string) : Uri.t =
   | Some _, Some _ -> Uri.with_userinfo uri None
   | _ -> uri
 
+(* TODO: should return Uri.t option *)
 let get_project_url ?cwd () : string option =
   let cmd = (git, cd cwd @ [ "ls-remote"; "--get-url" ]) in
   match UCmd.string_of_run ~trim:true cmd with
