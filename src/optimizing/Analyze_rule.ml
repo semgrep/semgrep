@@ -166,8 +166,12 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       | R.Anywhere _ ->
           Logs.debug (fun m -> m ~tags "Not Anywhere");
           None)
-  | R.Inside _ -> Some formula
-  | R.Anywhere _ -> Some formula
+  | R.Inside _ ->
+      let* formula = remove_not formula in
+      Some formula
+  | R.Anywhere _ ->
+      let* formula = remove_not formula in
+      Some formula
   | R.P _ -> Some formula
 
 let remove_not_final f =

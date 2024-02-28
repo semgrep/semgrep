@@ -1,0 +1,11 @@
+rules:
+  - id: not-under-inside
+    message: |
+      we should properly parse this rule! in particular, CNF should not err
+    severity: ERROR
+    patterns:
+      - pattern-inside:
+          patterns:
+            - pattern-regex: a
+            - pattern-not-regex: b
+    languages: [python]
