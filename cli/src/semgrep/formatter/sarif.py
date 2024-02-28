@@ -428,7 +428,7 @@ class SarifFormatter(BaseFormatter):
         """
         is_pro = (
             cli_output_extra.engine_requested
-            and cli_output_extra.engine_requested == out.EngineKind(out.PRO())
+            and cli_output_extra.engine_requested == out.EngineKind(out.PRO_())
         )
         is_using_registry = extra.get("is_using_registry", False)
         is_logged_in = extra.get("is_logged_in", False)
