@@ -80,12 +80,7 @@ def get_project_url() -> Optional[str]:
     """
     try:
         remote_url = git_check_output(["git", "ls-remote", "--get-url"])
-        parts = urllib.parse.urlsplit(remote_url)
-        # Remove credentials if present (e.g. in GitLab CI)
-        clean_netloc = re.sub("^.*:.*@(.+)", r"\1", parts.netloc)
-        parts = parts._replace(netloc=clean_netloc)
-        remote_url = urllib.parse.urlunsplit(parts)
-        return remote_url
+        return clean_project_url(remote_url)
     except Exception as e:
         logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
         try:
@@ -94,6 +89,16 @@ def get_project_url() -> Optional[str]:
         except Exception as e:
             logger.debug(f"Failed to get project url from .git/config: {e}")
             return None
+
+
+def clean_project_url(url: str) -> str:
+    """
+    Returns a clean version of a git project's URL, removing credentials if present
+    """
+    parts = urllib.parse.urlsplit(url)
+    clean_netloc = re.sub("^.*:.*@(.+)", r"\1", parts.netloc)
+    parts = parts._replace(netloc=clean_netloc)
+    return urllib.parse.urlunsplit(parts)
 
 
 def get_git_root_path() -> Path:
