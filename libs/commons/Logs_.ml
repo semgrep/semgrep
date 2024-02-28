@@ -27,8 +27,11 @@ open Common
      This variable is set when we configure loggers.
 *)
 
-(* in seconds *)
-let time_program_start = ref 0.
+(* alt: use Mtime_clock.now () *)
+let now () : float = UUnix.gettimeofday ()
+
+(* in seconds; it can be reset later *)
+let time_program_start = ref (now ())
 
 let default_skip_libs =
   [
@@ -121,9 +124,6 @@ let pp_sgr ppf style =
   Format.pp_print_as ppf 0 "\027[";
   Format.pp_print_as ppf 0 style;
   Format.pp_print_as ppf 0 "m"
-
-(* alt: use Mtime_clock.now () *)
-let now () : float = UUnix.gettimeofday ()
 
 (* a complicated way of saying (not (is_empty (inter a b))) *)
 let has_nonempty_intersection tag_str_list tag_set =
