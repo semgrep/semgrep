@@ -179,7 +179,7 @@ let unknown_metavar_in_comparison env f =
         (* Doing the same union twice feels wasteful, but we need to check
            the parent metavariables in both the conditions and the focus,
            while we only return the metavariables produced by the node *)
-        let mvs = Set.union cond_mvs mvs_to_check in
+        let mvs = Set.union cond_mvs mvs in
         let mvs_to_check = Set.union cond_mvs mvs_to_check in
         (* Check the focus-metavariable clauses last since they can use metavariables
            in any clause within the And *)
