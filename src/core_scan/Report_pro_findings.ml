@@ -73,7 +73,11 @@ let annotate_pro_findings (xtarget : Xtarget.t)
                | None -> (false, false)
                | Some trace ->
                    let trace = Lazy.force trace in
-                   (is_interprocedural_trace trace, is_interfile_trace trace)
+                   let interfile_trace = is_interfile_trace trace in
+                   (* All interfile findings are necessarily interprocedural, but
+                      the taint trace might not contain a Call node *)
+                   ( is_interprocedural_trace trace || interfile_trace,
+                     interfile_trace )
              in
              let engine_of_match : Engine_kind.engine_of_finding =
                if
