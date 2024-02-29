@@ -1,0 +1,16 @@
+rules:
+  - id: explicit-regex-capture
+    languages:
+      - python
+    message: |
+       Using a metavariable-regex with a named capture group
+    patterns:
+      - pattern: |
+          $R = $VAL
+      - metavariable-pattern:
+          metavariable: $VAL
+          pattern: |
+             "$STR"
+      - focus-metavariable: $STR
+    severity: ERROR
+
