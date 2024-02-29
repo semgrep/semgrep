@@ -62,6 +62,13 @@ val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 val flatten : 'a list list -> 'a list
 (** Same as [List.flatten] but tail recursive. *)
 
+(* Stack-safe implementation of List.append aka (@) *)
+val append : 'a list -> 'a list -> 'a list
+val ( @ ) : 'a list -> 'a list -> 'a list
+
+(* Stack-safe implementation of List.fold_right *)
+val fold_right : ('elt -> 'acc -> 'acc) -> 'elt list -> 'acc -> 'acc
+
 (* opposite of List.filter *)
 val exclude : ('a -> bool) -> 'a list -> 'a list
 

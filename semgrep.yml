@@ -145,6 +145,28 @@ rules:
         - graph_code/*
         - lib_parsing/*
 
+  - id: no-list-append
+    pattern-either:
+      - pattern: |
+          $A @ $B
+      - pattern: |
+          List.append
+    message: >-
+      `List.append` or its alias `(@)` creates O(N) stack depth,
+      and can lead to a stack overflow. Use `List_.append` or
+      `List_.(@)` instead.
+    languages: [ocaml]
+    severity: ERROR
+
+  - id: no-list-fold-right
+    pattern: List.fold_right
+    fix: List_.fold_right
+    message: >-
+      `List.fold_right` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `List_.fold_right` instead.
+    languages: [ocaml]
+    severity: ERROR
+
   - id: use-concat-map
     pattern-either:
       - pattern: List.map ... |> List.flatten
