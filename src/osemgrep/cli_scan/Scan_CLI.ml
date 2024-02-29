@@ -44,6 +44,7 @@ type conf = {
   (* file or URL (None means output to stdout) *)
   output : string option;
   output_conf : Output.conf;
+  incremental_output : bool;
   (* Networking options *)
   metrics : Metrics_.config;
   registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
@@ -54,6 +55,7 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
+  trace : bool;
   ls : bool;
 }
 [@@deriving show]
@@ -128,6 +130,7 @@ let default : conf =
     engine_type = OSS;
     output = None;
     output_conf = Output.default;
+    incremental_output = false;
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
@@ -139,6 +142,7 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
+    trace = false;
     ls = false;
   }
 
@@ -442,6 +446,12 @@ let o_time : bool Term.t =
  provides times for each pair (rule, target).
 |}
 
+let o_trace : bool Term.t =
+  H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
+    ~default:default.trace
+    ~doc:{|Upload a trace of the scan to our endpoint (rule, target).
+|}
+
 let o_nosem : bool Term.t =
   H.negatable_flag ~default:true [ "enable-nosem" ]
     ~neg_options:[ "disable-nosem" ]
@@ -468,6 +478,12 @@ let o_text : bool Term.t =
 let o_json : bool Term.t =
   let info =
     Arg.info [ "json" ] ~doc:{|Output results in Semgrep's JSON format.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_incremental_output : bool Term.t =
+  let info =
+    Arg.info [ "incremental-output" ] ~doc:{|Output results incrementally.|}
   in
   Arg.value (Arg.flag info)
 
@@ -647,6 +663,20 @@ changes to the console. This lets you see the changes before you commit to
 them. Only works with the --autofix flag. Otherwise does nothing.
 |}
 
+let o_error : bool Term.t =
+  H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
+    ~default:default.error_on_findings
+    ~doc:{|Exit 1 if there are findings. Useful for CI and scripts.|}
+
+let o_strict : bool Term.t =
+  H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
+    ~default:default.output_conf.strict
+    ~doc:
+      {|Return a nonzero exit code when WARN level errors are encountered.
+Fails early if invalid configuration files are present.
+Defaults to --no-strict.
+|}
+
 (* In theory we should also accept EXPERIMENT and INVENTORY *)
 let o_severity : Rule.severity list Term.t =
   let info =
@@ -696,6 +726,11 @@ let o_show_supported_languages : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
+let o_test : bool Term.t =
+  let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
+  Arg.value (Arg.flag info)
+
+(* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_validate : bool Term.t =
   let info =
     Arg.info [ "validate" ]
@@ -737,28 +772,6 @@ let o_dump_command_for_core : bool Term.t =
 (* ------------------------------------------------------------------ *)
 (* Test and debug options *)
 (* ------------------------------------------------------------------ *)
-
-(* alt: could be in the "alternate modes" section
- * ugly: this should be a separate subcommand, not a flag of semgrep scan
- *)
-let o_test : bool Term.t =
-  let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
-  Arg.value (Arg.flag info)
-
-(* alt: in configuration option *)
-let o_error : bool Term.t =
-  H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
-    ~default:default.error_on_findings
-    ~doc:{|Exit 1 if there are findings. Useful for CI and scripts.|}
-
-let o_strict : bool Term.t =
-  H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
-    ~default:default.output_conf.strict
-    ~doc:
-      {|Return a nonzero exit code when WARN level errors are encountered.
-Fails early if invalid configuration files are present.
-Defaults to --no-strict.
-|}
 
 (* ------------------------------------------------------------------ *)
 (* Positional arguments *)
@@ -845,18 +858,20 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   let combine allow_untrusted_validators ast_caching autofix baseline_commit
       common config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude_
-      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang ls matching_explanations max_chars_per_line
-      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
-      no_secrets_validation nosem optimizations oss output pattern pro
-      project_root pro_intrafile pro_lang registry_caching remote replacement
-      respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold validate version version_check vim =
+      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_
+      incremental_output json junit_xml lang ls matching_explanations
+      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
+      metrics num_jobs no_secrets_validation nosem optimizations oss output
+      pattern pro project_root pro_intrafile pro_lang registry_caching remote
+      replacement respect_gitignore rewrite_rule_ids sarif
+      scan_unknown_extensions secrets severity show_supported_languages strict
+      target_roots test test_ignore_todo text time_flag timeout
+      _timeout_interfileTODO timeout_threshold trace validate version
+      version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
-    Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
+    Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
+    Logs_.setup_logging ~level:common.CLI_common.logging_level ();
     let target_roots = target_roots |> Fpath_.of_strings in
     let project_root =
       let is_git_repo remote =
@@ -865,7 +880,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       match (project_root, remote) with
       | Some root, None -> Some (Find_targets.Filesystem (Fpath.v root))
       | None, Some url when is_git_repo url ->
-          let checkout_path = Git_wrapper.temporary_remote_checkout_path url in
+          let checkout_path =
+            match !Semgrep_envvars.v.remote_clone_dir with
+            | Some dir -> dir
+            | None -> Git_wrapper.temporary_remote_checkout_path url
+          in
           let url = Uri.of_string url in
           Some (Find_targets.Git_remote { url; checkout_path })
       | None, Some _url ->
@@ -1154,6 +1173,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       version_check;
       output;
       output_conf;
+      incremental_output;
       engine_type;
       rewrite_rule_ids;
       common;
@@ -1162,6 +1182,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       show;
       validate;
       test;
+      trace;
       ls;
     }
   in
@@ -1173,18 +1194,18 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
-    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
-    $ o_junit_xml $ o_lang $ o_ls $ o_matching_explanations
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
-    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
-    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
-    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
-    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
-    $ o_version_check $ o_vim)
+    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include
+    $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
+    $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output
+    $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
+    $ o_registry_caching $ o_remote $ o_replacement $ o_respect_gitignore
+    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
+    $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

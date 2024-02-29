@@ -49,7 +49,7 @@ let tests caps =
          T.create
            ~category:[ "target selection on real git repos" ]
            ~checked_output:Stdout
-           ~mask_output:
+           ~normalize:
              [
                T.mask_line ~after:"Initialized empty Git repository in" ();
                T.mask_line ~after:"[main (root-commit) " ~before:"]" ();

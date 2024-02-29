@@ -6,7 +6,7 @@
 open Common
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (****************************************************************************)
 (* Types *)
@@ -91,7 +91,7 @@ let is_executable =
   Or (has_extension [ ".exe" ], Test_path f)
 
 let get_first_line path =
-  UCommon.with_open_infile !!path (fun ic ->
+  UFile.with_open_in path (fun ic ->
       try input_line ic with
       | End_of_file -> (* empty file *) "")
 
@@ -100,7 +100,7 @@ let get_first_line path =
    a single filesystem block.
 *)
 let get_first_block ?(block_size = 4096) path =
-  UCommon.with_open_infile !!path (fun ic ->
+  UFile.with_open_in path (fun ic ->
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
@@ -157,7 +157,7 @@ let get_shebang_command path = get_first_line path |> parse_shebang_line
 
 let uses_shebang_command_name cmd_names =
   let f path =
-    logger#info "checking for a #! in %s" !!path;
+    Logs.debug (fun m -> m ~tags "checking for a #! in %s" !!path);
     match get_shebang_command path with
     | Some ("/usr/bin/env" :: cmd_name :: _) -> List.mem cmd_name cmd_names
     | Some (cmd_path :: _) ->

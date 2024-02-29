@@ -13,6 +13,7 @@
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 local release_homebrew = import 'release-homebrew.jsonnet';
 
 // ----------------------------------------------------------------------------
@@ -25,7 +26,10 @@ local version = "${{ steps.get-version.outputs.VERSION }}";
 local get_version_step = {
   name: 'Get the version',
   id: 'get-version',
-  run: 'echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT',
+  // Note the double escape on this single-line command. If this got updated
+  // to a multi-line command, i.e., with |||, then we would only need
+  // a single backslash to escape.
+  run: 'echo "VERSION=${GITHUB_REF/refs\\/tags\\//}" >> $GITHUB_OUTPUT',
 };
 
 // ----------------------------------------------------------------------------
@@ -46,8 +50,29 @@ local release_inputs = {
 };
 
 local unless_dry_run = {
-  if: "${{ ! inputs.dry-run }}"
+  'if': "${{ ! inputs.dry-run }}"
 };
+
+// This is ugly, but you can't just use "${{ inputs.dry-run }}" because GHA
+// will complain at runtime with "the template is not valid, Unexpected
+// value ''".
+// This is because even though there is 'inputs:' above with a 'type: boolean',
+// this workflow can also be triggered by pushing to a 'vXxx' branch
+// (see the on: at the end of this file), and in that case inputs.dry-run
+// will not be false but Null, which is then casted as an empty string '',
+// which can not be passed to the push-docker.yaml workflow which expects
+// a proper boolean. Hence the || false boolean to normalize to a boolean.
+//
+// See https://docs.github.com/en/actions/learn-github-actions/expressions
+// for more information.
+//
+// alt: have a preleminary job to normalize the inputs (spencer was doing
+// that before), but then it's a bit heavy as all other workflows
+// now must depend on this preliminary job and the dry-run expression
+// gets more complicated.
+// alt: use strings everywhere (but boolean offers a nice checkbox when used
+// in workflow_dispatch).
+local dry_run = "${{ inputs.dry-run || false }}";
 
 // ----------------------------------------------------------------------------
 // Docker jobs
@@ -130,7 +155,7 @@ local push_docker_job(artifact_name, repository_name) = {
   with: {
     'artifact-name': artifact_name,
     'repository-name': repository_name,
-    'dry-run': "${{ inputs.dry-run }}",
+    'dry-run': dry_run,
   },
 };
 
@@ -366,6 +391,9 @@ local homebrew_core_pr_job =
       ],
     },
   },
+  // These extra permissions are needed by some of the jobs, e.g. build-test-docker,
+  // and create_release_job.
+  permissions: gha.write_permissions,
   jobs: {
     'park-pypi-packages': park_pypi_packages_job,
     'build-test-docker': build_test_docker_job,

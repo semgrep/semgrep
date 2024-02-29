@@ -97,7 +97,11 @@ let cmdline_term : conf Term.t =
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
       | [ "deployment" ] -> Deployment
-      | _ ->
+      | [] ->
+          Error.abort
+            (spf
+               "'semgrep show' expects a subcommand. Try 'semgrep show --help'.")
+      | _ :: _ ->
           Error.abort
             (spf "show command not supported: %s" (String.concat " " args))
     in

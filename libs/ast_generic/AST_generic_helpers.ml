@@ -16,7 +16,7 @@ open Common
 open AST_generic
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -173,7 +173,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
         (* we skip the type parts in ds ... *)
         | Some (QDots ds) -> ds |> List_.map fst
         | Some (QExpr _) ->
-            logger#error "unexpected qualifier type";
+            Logs.err (fun m -> m ~tags "unexpected qualifier type");
             []
         | None -> []
       in
@@ -318,11 +318,11 @@ let assign_to_vardef_opt ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
   match e1.G.e with
   | Cast (ty, _, e) ->
       let* name = expr_to_entity_name_opt e in
-      let ent = { name; attrs = []; tparams = [] } in
+      let ent = { name; attrs = []; tparams = None } in
       Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s)
   | _ ->
       let* name = expr_to_entity_name_opt e1 in
-      let ent = { name; attrs = []; tparams = [] } in
+      let ent = { name; attrs = []; tparams = None } in
       Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s)
 
 (* used in controlflow_build *)
@@ -371,6 +371,12 @@ let parameter_to_catch_exn_opt p =
   | ParamReceiver _
   | OtherParam _ ->
       None
+
+let ctype_of_literal = function
+  | G.Bool _ -> G.Cbool
+  | G.Int _ -> G.Cint
+  | G.String _ -> G.Cstr
+  | ___else___ -> G.Cany
 
 (*****************************************************************************)
 (* Abstract position and svalue for comparison *)
@@ -430,10 +436,11 @@ let ac_matching_nf op args =
   if is_associative_operator op then (
     try Some (nf args) with
     | Exit ->
-        logger#error
-          "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
-          (show_operator op)
-          (show_arguments (Tok.unsafe_fake_bracket args));
+        Logs.err (fun m ->
+            m ~tags
+              "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+              (show_operator op)
+              (show_arguments (Tok.unsafe_fake_bracket args)));
         None)
   else None
 
@@ -457,7 +464,7 @@ let set_e_range l r e =
       (* Probably not super useful to dump the whole expression, or to log the
        * fake tokens themselves. Perhaps this will be useful for debugging
        * isolated examples, though. *)
-      logger#debug "set_e_range failed: missing token location";
+      Logs.debug (fun m -> m ~tags "set_e_range failed: missing token location");
       ()
 
 class ['self] extract_info_visitor =
@@ -563,7 +570,8 @@ let set_e_range_with_anys anys e =
   match extract_ranges_with_anys anys with
   | Some (l, r) -> e.e_range <- Some (l, r)
   | None ->
-      logger#debug "set_e_range_with_anys failed: no locations found";
+      Logs.debug (fun m ->
+          m ~tags "set_e_range_with_anys failed: no locations found");
       ()
 
 let range_of_tokens_unsafe tokens =

@@ -5,12 +5,3 @@
 
 (* ex: [with_setenv "MY_ENV" "true" (fun () -> ...)] *)
 val with_setenv : string -> string -> (unit -> 'a) -> 'a
-
-(* [with_mocked_logs ~f ~final] will execute [f] in an environment
- * where [Logs_helpers.setup_logging()] is mostly converted in a noop and
- * where logs are stored in a buffer. The content of this buffer is
- * then accessible to the [final] function after [f] has finished
- * and can be inspected to assert certain log events occured.
- *)
-val with_mocked_logs :
-  f:(unit -> 'a) -> final:(string -> ('a, exn) result -> unit) -> unit

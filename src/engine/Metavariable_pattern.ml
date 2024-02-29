@@ -13,12 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open Match_env
 module MV = Metavariable
 module RM = Range_with_metavars
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -95,8 +96,9 @@ let get_persistent_bindings revert_loc r nested_matches =
                     |> MV.mvalue_of_any
                   with
                   | None ->
-                      logger#error "Failed to convert mvar %s to and from any"
-                        mvar;
+                      Logs.err (fun m ->
+                          m ~tags "Failed to convert mvar %s to and from any"
+                            mvar);
                       None
                   | Some mval -> Some (mvar, mval))
          in
@@ -144,7 +146,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
             |> fst |> Tok.unsafe_loc_of_tok
           in
           let mast_start_pos = mast_start_loc.pos in
-          let fix_loc file (loc : Tok.location) =
+          let fix_loc (file : Fpath.t) (loc : Tok.location) : Tok.location =
             (* The column is only perturbed if this loc is on the first line of
              * the original metavariable match *)
             let pos = loc.pos in
@@ -154,7 +156,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
               else pos.column
             in
             let pos =
-              Pos.make ~file ~column
+              Pos.make ~file:!!file ~column
                 ~line:(pos.line - mast_start_pos.line + 1)
                 (pos.bytepos - mast_start_pos.bytepos)
             in
@@ -197,9 +199,11 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* Note that due to symbolic propagation, `mast` may be
                    * outside of the current file/AST, so we must get
                    * `mval_range` from `mval_file` and not from `env.file`! *)
-                  let content = Range.content_at_range mval_file mval_range in
-                  Xpattern_matcher.with_tmp_file ~str:content
-                    ~ext:"mvar-pattern" (fun file ->
+                  let content =
+                    Range.content_at_range (Fpath.v mval_file) mval_range
+                  in
+                  UTmp.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                    (fun (file : Fpath.t) ->
                       let mast' =
                         AST_generic_helpers.fix_token_locations_program
                           (fix_loc file) mast
@@ -207,7 +211,11 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                       let xtarget =
                         {
                           env.xtarget with
-                          file = Fpath.v file;
+                          path =
+                            {
+                              env.xtarget.path with
+                              internal_path_to_content = file;
+                            };
                           lazy_ast_and_errors = lazy (mast', []);
                           lazy_content = lazy content;
                         }
@@ -240,7 +248,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
                     Some content
                 | (LSpacegrep | LAliengrep), _ ->
-                    Some (Range.content_at_range mval_file mval_range)
+                    Some (Range.content_at_range (Fpath.v mval_file) mval_range)
                 | _else_ -> None
               in
               match content with
@@ -251,18 +259,20 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                    * `$STRING` binds to some text (except when using language:
                    * generic, see above) but it can naturally bind to other
                    * string expressions. *)
-                  logger#debug
-                    "metavariable-pattern failed because the content of %s is \
-                     not text: %s"
-                    mvar (MV.show_mvalue mval);
+                  Logs.debug (fun m ->
+                      m ~tags
+                        "metavariable-pattern failed because the content of %s \
+                         is not text: %s"
+                        mvar (MV.show_mvalue mval));
                   []
               | Some content ->
                   let content = adjust_content_for_language xlang content in
-                  logger#debug "nested analysis of |||%s||| with lang '%s'"
-                    content (Xlang.to_string xlang);
+                  Logs.debug (fun m ->
+                      m ~tags "nested analysis of |||%s||| with lang '%s'"
+                        content (Xlang.to_string xlang));
                   (* We re-parse the matched text as `xlang`. *)
-                  Xpattern_matcher.with_tmp_file ~str:content
-                    ~ext:"mvar-pattern" (fun file ->
+                  UTmp.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                    (fun file ->
                       let ast_and_errors_res =
                         match xlang with
                         | L (lang, _) -> (
@@ -308,9 +318,13 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                mvar (Xlang.to_string xlang) msg);
                           []
                       | Ok lazy_ast_and_errors ->
-                          let xtarget =
+                          let xtarget : Xtarget.t =
                             {
-                              Xtarget.file = Fpath.v file;
+                              path =
+                                {
+                                  origin = File (Fpath.v mval_file);
+                                  internal_path_to_content = file;
+                                };
                               xlang;
                               lazy_ast_and_errors;
                               lazy_content = lazy content;

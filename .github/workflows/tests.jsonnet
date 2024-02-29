@@ -1,8 +1,9 @@
 // The goals of this workflow are to check that:
 // - we can build semgrep-core and pysemgrep
 // - all our semgrep-core and pysemgrep (and osemgrep) tests are passing
-// - we can build a Docker image
+// - we can build a Docker image (for amd64 and arm64)
 // - we can build Linux and MacOS binaries and python "wheels" for pypi
+//   (also for amd64 and arm64)
 // - we don't have any perf regressions in our benchmarks
 
 local gha = import 'libs/gha.libsonnet';
@@ -12,6 +13,10 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // some jobs rely on artifacts produced by this workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
 
+// intermediate image produced by build-push-action
+local docker_artifact_name = 'image-test';
+
+// TODO: change to 'semgrep/semgrep' at some point as the default
 local docker_repository_name = 'returntocorp/semgrep';
 
 // ----------------------------------------------------------------------------
@@ -441,8 +446,7 @@ local build_test_docker_job = {
       latest=auto
     |||,
     'docker-tags': docker_tags,
-    // ??
-    'artifact-name': 'image-test',
+    'artifact-name': docker_artifact_name,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name root variant
@@ -466,7 +470,7 @@ local build_test_docker_nonroot_job = {
       suffix=-nonroot,onlatest=true
     |||,
     'docker-tags': docker_tags,
-    'artifact-name': 'image-test-nonroot',
+    'artifact-name': docker_artifact_name + '-nonroot',
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name of the nonroot variant
@@ -487,12 +491,13 @@ local push_docker_job(repository_name) = {
   'if': right_ref_and_right_event,
   secrets: 'inherit',
   with: {
-    'artifact-name': 'image-test',
+    'artifact-name': docker_artifact_name,
     'repository-name': repository_name,
     'dry-run': false,
   },
 };
 
+// TODO: factorize both functions
 local push_docker_nonroot_job(repository_name) = {
   needs: [
     'build-test-docker-nonroot',
@@ -501,7 +506,7 @@ local push_docker_nonroot_job(repository_name) = {
   'if': right_ref_and_right_event,
   secrets: 'inherit',
   with: {
-    'artifact-name': 'image-test-nonroot',
+    'artifact-name': docker_artifact_name + '-nonroot',
     'repository-name': repository_name,
     'dry-run': false,
   },
@@ -518,7 +523,7 @@ local build_test_docker_performance_tests_job = build_test_docker_nonroot_job + 
   },
 };
 
-local push_docker_performance_tests_job = push_docker_nonroot_job + {
+local push_docker_performance_tests_job = push_docker_nonroot_job(docker_repository_name) + {
   needs: [
     'build-test-docker-performance-tests',
   ],
@@ -540,7 +545,7 @@ local test_semgrep_pro_job = {
   'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
   secrets: 'inherit',
   with: {
-    'artifact-name': 'image-test',
+    'artifact-name': docker_artifact_name,
     'repository-name': docker_repository_name,
   },
 };
@@ -567,6 +572,8 @@ local ignore_md = {
       ],
     } + ignore_md,
   },
+  // These extra permissions are needed by some of the jobs, e.g. build-test-javascript.
+  permissions: gha.write_permissions,
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
@@ -579,7 +586,7 @@ local ignore_md = {
     'build-test-docker': build_test_docker_job,
     // requires build-test-docker
     'push-docker-returntocorp': push_docker_job('returntocorp/semgrep'),
-    'push-docker-semgrep': push_docker_job('semgrep/semgrep')
+    'push-docker-semgrep': push_docker_job('semgrep/semgrep'),
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     'push-docker-nonroot-returntocorp': push_docker_nonroot_job('returntocorp/semgrep'),
     'push-docker-nonroot-semgrep': push_docker_nonroot_job('semgrep/semgrep'),

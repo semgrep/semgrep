@@ -174,7 +174,7 @@ let full_converters_large (file : string) : bytepos_linecol_converters =
   let charpos = ref 0 in
   let line = ref 0 in
 
-  UCommon.with_open_infile file (fun chan ->
+  UFile.Legacy.with_open_infile file (fun chan ->
       let full_charpos_to_pos_aux () =
         try
           while true do

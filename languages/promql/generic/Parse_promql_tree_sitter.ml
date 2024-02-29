@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 module CST = Tree_sitter_promql.CST
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
@@ -395,7 +396,7 @@ and map_query (env : env) (x : CST.query) =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_promql.Parse.file file)
+    (fun () -> Tree_sitter_promql.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let x = map_query env cst in
@@ -405,7 +406,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_promql.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let e = map_query env cst in
       G.E e)

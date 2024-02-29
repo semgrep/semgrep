@@ -19,7 +19,9 @@ module R = Rule
 module LabelSet = Set.Make (String)
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (* NOTE "on compare functions":
  *
@@ -136,12 +138,15 @@ type arg_pos = { name : string; index : int } [@@deriving show, ord]
 type arg_base = BGlob of IL.name | BThis | BArg of arg_pos
 [@@deriving show, ord]
 
-type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
+type arg_offset = Ofld of IL.name | Oint of int | Ostr of string
+[@@deriving show, ord]
+
+type arg = { base : arg_base; offset : arg_offset list } [@@deriving show]
 
 let compare_arg { base = base1; offset = offset1 }
     { base = base2; offset = offset2 } =
   match compare_arg_base base1 base2 with
-  | 0 -> List.compare IL_helpers.compare_name offset1 offset2
+  | 0 -> List.compare compare_arg_offset offset1 offset2
   | other -> other
 
 let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
@@ -152,15 +157,15 @@ let _show_base base =
   | BThis -> "this"
   | BArg pos -> _show_pos pos
 
+let _show_offset offset =
+  match offset with
+  | Ofld n -> "." ^ fst n.IL.ident
+  | Oint i -> Printf.sprintf "[%d]" i
+  | Ostr s -> Printf.sprintf "[%s]" s
+
 let _show_arg { base; offset = os } =
   _show_base base
-  ^
-  if os <> [] then
-    let os_str =
-      os |> List_.map (fun n -> fst n.IL.ident) |> String.concat "."
-    in
-    "." ^ os_str
-  else ""
+  ^ if os <> [] then os |> List_.map _show_offset |> String.concat "" else ""
 
 (*****************************************************************************)
 (* Taint *)
@@ -508,7 +513,9 @@ module Taint_set = struct
         then taint1
         else taint2
     | (Src _ | Arg _ | Control), (Src _ | Arg _ | Control) ->
-        logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
+        Logs.debug (fun m ->
+            m ~tags:error
+              "Taint_set.pick_taint: Ooops, the impossible happened!");
         taint2
 
   let diff set1 set2 = Taints.diff set1 set2
@@ -654,7 +661,8 @@ let taints_satisfy_requires taints pre =
   | None ->
       (* If we set 'ignore_poly_taint' then we expect to be able to solve
        * the precondition! *)
-      logger#error "Could not solve taint label precondition";
+      Logs.debug (fun m ->
+          m ~tags:error "Could not solve taint label precondition");
       false
 
 let filter_relevant_taints requires taints =

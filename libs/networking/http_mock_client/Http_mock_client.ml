@@ -98,7 +98,7 @@ let basic_response ?(status = 200) ?(headers = Header.init ()) body =
   { response; body }
 
 let body_of_file ?(trim = false) path =
-  let content = UCommon.read_file path in
+  let content = UFile.Legacy.read_file path in
   let content = if trim then String.trim content else content in
   Cohttp_lwt.Body.of_string content
 
@@ -268,7 +268,7 @@ let parse_resp =
             body ))
 
 let client_from_file req_resp_file =
-  let contents = UCommon.read_file req_resp_file in
+  let contents = UFile.Legacy.read_file req_resp_file in
   let rec go s acc =
     if String.length s = 0 then acc
     else if not (List.mem (String.get s 0) [ '>'; '<' ]) then

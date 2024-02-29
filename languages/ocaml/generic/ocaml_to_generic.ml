@@ -130,8 +130,8 @@ and type_kind = function
       let v1 = type_ v1 and v2 = type_ v2 in
       G.TyFun ([ G.Param (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
-      let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> list (fun t -> G.TA t)))
+      let l, v1, r = bracket (list type_) v1 and v2 = name v2 in
+      G.TyApply (G.TyN v2 |> G.t, (l, v1 |> list (fun t -> G.TA t), r))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
@@ -334,7 +334,7 @@ and expr e =
                    G.basic_field id (Some v2) None
                | _ ->
                    let n = name v1 in
-                   let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+                   let ent = { G.name = G.EN n; attrs = []; tparams = None } in
                    let def = G.VarDef { G.vinit = Some v2; vtype = None } in
                    G.fld (ent, def)))
           v2
@@ -579,11 +579,11 @@ and class_field (fld : class_field) : G.field =
 and type_declaration x =
   match x with
   | TyDecl { tname; tparams; tbody } ->
-      let v1 = ident tname in
-      let v2 = list type_parameter tparams in
-      let v3 = type_def_kind tbody in
-      let entity = { (G.basic_entity v1) with G.tparams = v2 } in
-      let def = { G.tbody = v3 } in
+      let id = ident tname in
+      let tparams = option (bracket (list type_parameter)) tparams in
+      let tbody = type_def_kind tbody in
+      let entity = { (G.basic_entity id) with G.tparams } in
+      let def = { G.tbody } in
       Either.Left (entity, def)
   | TyDeclTodo categ -> Either.Right categ
 
@@ -660,7 +660,7 @@ and attribute x =
 and class_binding (c_tok : Tok.t) (binding : class_binding) : G.definition =
   let { c_name; c_tparams; c_params; c_body } = binding in
   let id = ident c_name in
-  let tparams = list type_parameter c_tparams in
+  let tparams = option (bracket (list type_parameter)) c_tparams in
   let ent = G.basic_entity ~tparams id in
   let cparams = fb (list parameter c_params) in
   let cbody =
@@ -714,11 +714,11 @@ and item { i; iattrs } =
       let ent = G.basic_entity v1 ~attrs in
       let def = G.Exception (v1, v2) in
       [ G.DefStmt (ent, G.TypeDef { G.tbody = def }) |> G.s ]
-  | External (t, v1, v2, v3) ->
-      let v1 = ident v1 and v2 = type_ v2 and _v3 = list (wrap string) v3 in
-      let attrs = [ G.KeywordAttr (G.Extern, t) ] @ attrs in
-      let ent = G.basic_entity v1 ~attrs in
-      let def = G.Signature v2 in
+  | External (texternal, v1, v2, v3) ->
+      let id = ident v1 and ty = type_ v2 and _strs = list (wrap string) v3 in
+      let attrs = [ G.KeywordAttr (G.Extern, texternal) ] @ attrs in
+      let ent = G.basic_entity id ~attrs in
+      let def = G.Signature { sig_tok = texternal; sig_type = ty } in
       [ G.DefStmt (ent, def) |> G.s ]
   | Open (t, v1) ->
       let v1 = module_name v1 in
@@ -726,10 +726,10 @@ and item { i; iattrs } =
         { G.d = G.ImportAll (t, G.DottedName v1, fake "*"); d_attrs = attrs }
       in
       [ G.DirectiveStmt dir |> G.s ]
-  | Val (_t, v1, v2) ->
-      let v1 = ident v1 and v2 = type_ v2 in
-      let ent = G.basic_entity v1 ~attrs in
-      let def = G.Signature v2 in
+  | Val (tval, v1, v2) ->
+      let id = ident v1 and ty = type_ v2 in
+      let ent = G.basic_entity id ~attrs in
+      let def = G.Signature { sig_tok = tval; sig_type = ty } in
       [ G.DefStmt (ent, def) |> G.s ]
   | Let (tlet, v1, v2) ->
       let _v1 = rec_opt v1 and v2 = list let_binding v2 in

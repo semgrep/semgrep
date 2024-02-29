@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from textwrap import dedent
+from typing import Union
 
 import pytest
 
@@ -450,3 +451,81 @@ def test_supply_chain_blocking():
         "upgrade-only", False, out.Transitive()
     ).is_blocking
     assert create_sca_rule_match("upgrade-only", False, out.Unknown()).is_blocking
+
+
+def create_validator_rule_match(
+    validation_state_actions: dict,
+    match_validation_state: Union[
+        out.ConfirmedValid, out.ConfirmedInvalid, out.ValidationError, out.NoValidator
+    ],
+):
+    return RuleMatch(
+        message="message",
+        metadata={
+            "dev.semgrep.actions": ["monitor"],
+            "dev.semgrep.validation_state.actions": validation_state_actions,
+        },
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule.id"),
+            path=out.Fpath("foo.py"),
+            start=out.Position(0, 0, 0),
+            end=out.Position(0, 0, 0),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.PRO()),
+                is_ignored=False,
+                validation_state=out.ValidationState(match_validation_state),
+            ),
+        ),
+    )
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    ("validation_state_actions", "match_validation_state", "is_blocking"),
+    [
+        (
+            {"valid": "comment", "invalid": "monitor", "error": "block"},
+            out.ConfirmedValid(),
+            False,
+        ),
+        (
+            {"valid": "comment", "invalid": "monitor", "error": "block"},
+            out.ConfirmedInvalid(),
+            False,
+        ),
+        (
+            {"valid": "comment", "invalid": "monitor", "error": "block"},
+            out.ValidationError(),
+            True,
+        ),
+        (
+            {"valid": "comment", "invalid": "monitor", "error": "block"},
+            out.NoValidator(),
+            False,
+        ),
+        (
+            {"valid": "block", "invalid": "block", "error": "block"},
+            out.ConfirmedValid(),
+            True,
+        ),
+        (
+            {"valid": "block", "invalid": "block", "error": "block"},
+            out.ConfirmedInvalid(),
+            True,
+        ),
+        (
+            {"valid": "block", "invalid": "block", "error": "block"},
+            out.NoValidator(),
+            True,
+        ),
+    ],
+)
+def test_validator_rule_blocking(
+    validation_state_actions, match_validation_state, is_blocking
+):
+    rule_match = create_validator_rule_match(
+        validation_state_actions, match_validation_state
+    )
+    assert rule_match.is_blocking == is_blocking

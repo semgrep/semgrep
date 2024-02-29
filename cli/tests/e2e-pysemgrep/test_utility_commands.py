@@ -34,4 +34,4 @@ def test_dump_engine():
         encoding="utf-8",
     )
 
-    assert re.match(r"/[\w/]+/semgrep-core", result)
+    assert re.match(r"/[\w/\_\-\.]+/semgrep-core", result)

@@ -1,0 +1,22 @@
+rules:
+  - id: nested-focus-metavariable
+    languages:
+      - cpp
+      - c
+    message: Using a nested-focus-metavariable
+    patterns:
+      - pattern: |
+            $ACTION == $SRC;
+      - metavariable-pattern:
+          metavariable: $ACTION
+          patterns:
+            - pattern-either:
+                - pattern: fopen + $SRC
+                - pattern: |
+                    fopen
+                - patterns:
+                    - pattern: |
+                        $Y.open
+                    - focus-metavariable: $SRC
+      - focus-metavariable: $ACTION
+    severity: WARNING

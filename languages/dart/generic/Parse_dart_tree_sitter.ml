@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 module CST = Tree_sitter_dart.CST
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
@@ -811,7 +812,7 @@ and map_constructor_param (env : env)
   let _typarams_TODO, _params_TODO =
     match v5 with
     | Some x -> map_formal_parameter_part env x
-    | None -> ([], fb [])
+    | None -> (None, fb [])
   in
   Param (param_of_id ~pattrs ~ptype v4)
 
@@ -1136,11 +1137,11 @@ and map_formal_parameter_list (env : env) (x : CST.formal_parameter_list) :
   map_strict_formal_parameter_list env x
 
 and map_formal_parameter_part (env : env) ((v1, v2) : CST.formal_parameter_part)
-    : type_parameters * parameters =
+    : type_parameters option * parameters =
   let v1 =
     match v1 with
-    | Some x -> map_type_parameters env x
-    | None -> []
+    | Some x -> Some (map_type_parameters env x)
+    | None -> None
   in
   let v2 = map_formal_parameter_list env v2 in
   (v1, v2)
@@ -1273,21 +1274,20 @@ and map_function_type (env : env) (x : CST.function_type) : type_ =
 and map_function_type_tail ~ret_ty (env : env)
     ((v1, v2, v3, v4, v5) : CST.function_type_tail) : type_ =
   let _v1 = (* "Function" *) token env v1 in
-  let v2 =
-    match v2 with
-    | Some x -> map_type_parameters env x
-    | None -> []
-  in
-  (* TODO: The Generic AST cannot currently accommodate type arguments within a function type.
-   *)
+  let v2 = Option.map (map_type_parameters env) v2 in
+  (* TODO: The Generic AST cannot currently accommodate type arguments within
+   * a function type *)
   let _v3_TODO =
     match v3 with
     | Some tok ->
-        List_.map
-          (fun tp ->
-            OtherTypeParam (("OptionalTP", (* "?" *) token env tok), [ G.Tp tp ]))
+        Option.map
+          (fun (_, xs, _) ->
+            xs
+            |> List_.map (fun tp ->
+                   OtherTypeParam
+                     (("OptionalTP", (* "?" *) token env tok), [ G.Tp tp ])))
           v2
-    | None -> v2
+    | None -> None
   in
   let v4 =
     match v4 with
@@ -2244,7 +2244,7 @@ and map_super_formal_parameter (env : env)
   let _tparams_TODO, _params_TODO =
     match v5 with
     | Some x -> map_formal_parameter_part env x
-    | None -> ([], fb [])
+    | None -> (None, fb [])
   in
   Param (G.param_of_id ~pattrs ~ptype v4)
 
@@ -2261,7 +2261,7 @@ and map_switch_block (env : env) ((v1, v2, v3) : CST.switch_block) :
   in
   let _v3 = (* "}" *) token env v3 in
   match
-    List.fold_right
+    List_.fold_right
       (fun either acc ->
         match (either, acc) with
         | Either.Left _case, (None, acc) ->
@@ -2418,8 +2418,8 @@ and map_type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
   TP { tp_id; tp_attrs; tp_bounds; tp_default = None; tp_variance = None }
 
 and map_type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) :
-    type_parameter list =
-  let _v1 = (* "<" *) token env v1 in
+    type_parameters =
+  let lt = (* "<" *) token env v1 in
   let v2 = map_type_parameter env v2 in
   let v3 =
     List.map
@@ -2429,8 +2429,8 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) :
         v2)
       v3
   in
-  let _v4 = (* ">" *) token env v4 in
-  v2 :: v3
+  let gt = (* ">" *) token env v4 in
+  (lt, v2 :: v3, gt)
 
 and map_type_test (env : env) ((v1, v2) : CST.type_test) exp : expr =
   let op, tk = map_is_operator env v1 in
@@ -2669,11 +2669,7 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
     ->
       let _v1 = (* "typedef" *) token env v1 in
       let v2 = map_type_name_name env v2 in
-      let tparams =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let tparams = Option.map (map_type_parameters env) v3 in
       let _v4 = (* "=" *) token env v4 in
       let v5 = map_function_type env v5 in
       let _v6 = (* ";" *) token env v6 in
@@ -2981,11 +2977,7 @@ let map_configurable_uri (env : env) ((v1, v2) : CST.configurable_uri) :
 let map_mixin_application_class ~attrs ~class_tok (env : env)
     ((v1, v2, v3, v4, v5) : CST.mixin_application_class) =
   let v1 = (* pattern [a-zA-Z_$][\w$]* *) str env v1 in
-  let tparams =
-    match v2 with
-    | Some x -> map_type_parameters env x
-    | None -> []
-  in
+  let tparams = Option.map (map_type_parameters env) v2 in
   let _v3 = (* "=" *) token env v3 in
   let cdef = map_mixin_application ~class_tok env v4 in
   let _v5 = map_semicolon env v5 in
@@ -3019,7 +3011,7 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
         | Some x -> map_initializers env x
         | None -> []
       in
-      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = [] } in
+      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = None } in
       let fbody = augment_body v2 body in
       DefStmt
         ( ent,
@@ -3033,7 +3025,7 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
         {
           name = EN (H2.name_of_ids dotted);
           attrs = [ attr ] @ attrs;
-          tparams = [];
+          tparams = None;
         }
       in
       DefStmt
@@ -3153,7 +3145,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         {
           name = EN (H2.name_of_ids dotted);
           attrs = [ attr ] @ attrs;
-          tparams = [];
+          tparams = None;
         }
       in
       [
@@ -3175,7 +3167,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         | Some x -> map_anon_choice_redi_3f8cf96 env x
         | None -> []
       in
-      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = [] } in
+      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = None } in
       let fbody = augment_body initializers FBNothing in
       [
         DefStmt
@@ -3202,7 +3194,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         {
           name = EN (H2.name_of_ids dotted);
           attrs = [ attr ] @ attrs;
-          tparams = [];
+          tparams = None;
         }
       in
       [
@@ -3226,7 +3218,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
       let attr, dotted, fparams = map_factory_constructor_signature env v2 in
       let attrs = v1 @ [ attr ] @ attrs in
       let _v3_TODO = map_native env v3 in
-      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = [] } in
+      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = None } in
       [
         DefStmt
           ( ent,
@@ -3243,7 +3235,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
       let v1 = KeywordAttr (Extern, (* "external" *) token env v1) in
       let attr, dotted, fparams = map_constant_constructor_signature env v2 in
       let attrs = [ v1; attr ] @ attrs in
-      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = [] } in
+      let ent = { name = EN (H2.name_of_ids dotted); attrs; tparams = None } in
       [
         DefStmt
           ( ent,
@@ -3282,7 +3274,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
       in
       [
         DefStmt
-          ( { name = EN (H2.name_of_ids dotted); attrs; tparams = [] },
+          ( { name = EN (H2.name_of_ids dotted); attrs; tparams = None },
             FuncDef
               {
                 fkind = (Method, fake "method");
@@ -3302,7 +3294,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         {
           name = EN (H2.name_of_ids dotted);
           attrs = [ v1 ] @ attrs;
-          tparams = [];
+          tparams = None;
         }
       in
       [
@@ -3589,9 +3581,8 @@ let map_extension_declaration ~attrs (env : env) (x : CST.extension_declaration)
       let v3 =
         match v3 with
         | Some x ->
-            [
-              G.Anys (List_.map (fun tp -> G.Tp tp) (map_type_parameters env x));
-            ]
+            let _, xs, _ = map_type_parameters env x in
+            [ G.Anys (xs |> List_.map (fun tp -> G.Tp tp)) ]
         | None -> []
       in
       let _v4 = (* "on" *) token env v4 in
@@ -3611,11 +3602,7 @@ let map_class_definition ~attrs (env : env) (x : CST.class_definition) : stmt =
       in
       let v2 = (* "class" *) token env v2 in
       let v3 = (* pattern [a-zA-Z_$][\w$]* *) str env v3 in
-      let tparams =
-        match v4 with
-        | Some x -> map_type_parameters env x
-        | None -> []
-      in
+      let tparams = Option.map (map_type_parameters env) v4 in
       let cextends, cmixins =
         match v5 with
         | Some x -> map_superclass env x
@@ -3669,9 +3656,8 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       let v3 =
         match v3 with
         | Some x ->
-            [
-              G.Anys (List_.map (fun tp -> G.Tp tp) (map_type_parameters env x));
-            ]
+            let _, xs, _ = map_type_parameters env x in
+            [ G.Anys (xs |> List_.map (fun tp -> G.Tp tp)) ]
         | None -> []
       in
       let v4 =
@@ -3844,7 +3830,7 @@ let () =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_dart.Parse.file file)
+    (fun () -> Tree_sitter_dart.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       let any = map_program env cst in
@@ -3865,7 +3851,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in

@@ -18,5 +18,5 @@ let tests =
           files
           |> List.iter (fun file ->
                  Testutil.run file (fun () ->
-                     Parse_go.parse_program file |> ignore)));
+                     Parse_go.parse_program (Fpath.v file) |> ignore)));
     ]

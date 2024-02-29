@@ -553,7 +553,7 @@ and fieldstmt x =
    _;
   } ->
       let vdef = { G.vinit = Some e; vtype = None } in
-      let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
+      let ent = { G.name = G.EN name; attrs = []; tparams = None } in
       G.fld (ent, G.VarDef vdef)
   | _ -> G.F x
 
@@ -691,7 +691,7 @@ and stmt_aux env x =
            *)
           let to_vardef id idinfo topt =
             let ent =
-              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
+              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = None }
             in
             let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
             [ G.DefStmt (ent, var) |> G.s ]
@@ -902,11 +902,16 @@ and decorator env (t, v1) =
     | _ -> (get_dotted_name v1 [], None)
   in
   match dotted_name with
-  | Some d_name ->
-      G.NamedAttr
-        ( t,
-          H.name_of_ids d_name,
-          Option.value ~default:(Tok.unsafe_fake_bracket []) args )
+  | Some d_name -> (
+      match (H.name_of_ids d_name, args) with
+      (* Use standard static keyword for staticmethod attribute. This
+         is used by other parts of the pro-engine to check if a method
+         is static. *)
+      | G.Id (("staticmethod", tok), _), (None | Some (_, [], _)) ->
+          G.attr G.Static tok
+      | name, args ->
+          G.NamedAttr
+            (t, name, Option.value ~default:(Tok.unsafe_fake_bracket []) args))
   | None ->
       let v1 = expr env v1 in
       G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])

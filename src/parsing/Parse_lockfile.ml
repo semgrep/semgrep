@@ -2,7 +2,7 @@ module In = Input_to_core_t
 
 let parse_lockfile :
     In.lockfile_kind ->
-    Lockfile_target.manifest_target option ->
+    Lockfile_xtarget.manifest option ->
     Fpath.t ->
     Dependency.t list = function
   (* TODO: add parsers, guard behind semgrep-pro  *)

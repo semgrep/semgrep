@@ -351,23 +351,55 @@ let unsafe_match_to_match
     Metavar_replacement.interpolate_metavars x.rule_id.message
       (Metavar_replacement.of_bindings x.env)
   in
-  (* We need to do this, because in Terraform, we may end up with a `file` which
-     does not correspond to the actual location of the tokens. This `file` is
-     erroneous, and should be replaced by the location of the code of the match,
-     if possible. Not if it's fake, though.
-     In other languages, this should hopefully not happen.
-  *)
-  let file =
-    if
-      (!!(x.file) <> min_loc.pos.file || !!(x.file) <> max_loc.pos.file)
-      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
-    then min_loc.pos.file
-    else !!(x.file)
+  let path, historical_info =
+    match x.path.origin with
+    (* We need to do this, because in Terraform, we may end up with a `file` which
+       does not correspond to the actual location of the tokens. This `file` is
+       erroneous, and should be replaced by the location of the code of the match,
+       if possible. Not if it's fake, though.
+       In other languages, this should hopefully not happen.
+    *)
+    | File path ->
+        if
+          (!!path <> min_loc.pos.file || !!path <> max_loc.pos.file)
+          && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+        then (Fpath.v min_loc.pos.file, None)
+        else (path, None)
+    (* TODO(cooper): if we can have a uri or something more general than a
+     * file path here then we can stop doing this hack. *)
+    | GitBlob { sha = blob_sha; paths } -> (
+        match paths with
+        | [] -> (x.path.internal_path_to_content (* no better path *), None)
+        | (commit_sha, path) :: _ ->
+            let git_blob =
+              Some (Digestif.SHA1.of_hex (Git_wrapper.show_sha blob_sha))
+            in
+            let git_commit =
+              Digestif.SHA1.of_hex (Git_wrapper.show_sha commit_sha)
+            in
+            ( path,
+              Some
+                ({
+                   git_commit;
+                   git_blob;
+                   git_commit_timestamp =
+                     (* TODO: CACHE THIS *)
+                     (match Git_wrapper.commit_timestamp commit_sha with
+                     | Some x -> x
+                     | None ->
+                         Logs.warn (fun m ->
+                             m
+                               "Issue getting timestamp for commit %a. \
+                                Reporting current time."
+                               Git_wrapper.pp_sha commit_sha);
+                         Timedesc.Timestamp.now ());
+                 }
+                  : OutJ.historical_info) ))
   in
   {
     check_id = x.rule_id.id;
     (* inherited location *)
-    path = Fpath.v file;
+    path;
     start = startp;
     end_ = endp;
     (* end inherited location *)
@@ -384,7 +416,7 @@ let unsafe_match_to_match
         (* TODO *)
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
-        historical_info = None;
+        historical_info;
         extra_extra = None;
       };
   }
@@ -398,7 +430,7 @@ let match_to_match (x : Core_result.processed_match) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file !!(x.pm.file) in
+      let loc = Tok.first_loc_of_file !!(x.pm.path.internal_path_to_content) in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in
@@ -467,7 +499,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
                             in
-                            rprof.match_time
+                            rprof.rule_match_time
                           with
                           | Not_found -> 0.);
                  (* TODO: we could probably just aggregate in a single
@@ -481,7 +513,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
                             in
-                            rprof.parse_time
+                            rprof.rule_parse_time
                           with
                           | Not_found -> 0.);
                  num_bytes = UFile.filesize target;
@@ -533,22 +565,15 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];
-  let skipped_targets, profiling =
-    match res.extra with
-    | Core_profiling.Debug { skipped_targets; profiling } ->
-        (Some skipped_targets, Some profiling)
-    | Core_profiling.Time { profiling } -> (None, Some profiling)
-    | Core_profiling.No_info -> (None, None)
-  in
   {
     results = matches |> dedup_and_sort;
     errors = errs |> List_.map error_to_error;
     paths =
       {
-        skipped = skipped_targets;
         (* TODO: those are set later in Cli_json_output.ml,
-         * but should we compute scanned here instead?
+         * but should we compute skipped and scanned here instead?
          *)
+        skipped = None;
         scanned = [];
       };
     skipped_rules =
@@ -561,7 +586,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
                  details = Rule.string_of_invalid_rule_error_kind kind;
                  position = OutUtils.position_of_token_location loc;
                });
-    time = profiling |> Option.map profiling_to_profiling;
+    time = res.profiling |> Option.map profiling_to_profiling;
     explanations =
       res.explanations |> Option.map (List_.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;

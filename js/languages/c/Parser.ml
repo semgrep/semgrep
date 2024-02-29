@@ -1,9 +1,7 @@
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
     [
-      Pfff
-        (Pfff_or_tree_sitter.throw_tokens (fun file ->
-             Parse_c.parse (Fpath.v file)));
+      Pfff (Pfff_or_tree_sitter.throw_tokens Parse_c.parse);
       TreeSitter Parse_c_tree_sitter.parse;
     ]
     C_to_generic.program

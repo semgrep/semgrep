@@ -11,6 +11,7 @@
 
     ; unix platform stuff
     lwt_platform.unix
+    tracing.unix
     cohttp-lwt-unix
 
     commons.tests

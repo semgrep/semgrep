@@ -69,6 +69,7 @@ let tests (caps : Cap.all_caps) =
       Unit_LS.tests (caps :> < Cap.random ; Cap.network >);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network >);
+      Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Osemgrep_tests.tests (caps :> CLI.caps);
@@ -103,6 +104,15 @@ let tests_with_delayed_error caps =
             Exception.reraise exn);
       ]
 
+let cleanup_before_each_test reset tests =
+  tests
+  |> List_.map (fun (test : Testo.test) ->
+         Testo.update
+           ~func:(fun () ->
+             reset ();
+             test.func ())
+           test)
+
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
@@ -120,8 +130,17 @@ let main (caps : Cap.all_caps) : unit =
       Parsing_init.init ();
       Data_init.init ();
       Core_CLI.register_exception_printers ();
-      Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
+      (* Show log messages produced when building the list of tests *)
+      Std_msg.setup ~highlight_setting:On ();
+      Logs_.setup_logging ~level:(Some Logs.Info) ();
+      let reset () =
+        (* Some tests change this configuration so we have to reset
+           it before each test. In particular, tests that check the semgrep
+           output can or should change these settings. *)
+        Std_msg.setup ~highlight_setting:On ();
+        Logs_.setup_logging ~highlight_setting:On ~level:(Some Logs.Debug) ()
+      in
       Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
-          tests_with_delayed_error caps))
+          tests_with_delayed_error caps |> cleanup_before_each_test reset))
 
 let () = Cap.main (fun all_caps -> main all_caps)

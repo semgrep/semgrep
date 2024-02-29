@@ -45,22 +45,20 @@ module Sha256 = struct
 end
 
 module Datetime = struct
-  type t = Timedesc.t
+  type t = Timedesc.Timestamp.t
 
-  let unwrap tm : string = Timedesc.to_rfc3339 tm
+  let unwrap tm : string = Timedesc.Timestamp.to_rfc3339 tm
 
   let wrap s =
     (* Note that RFC 3339 is a subset of ISO 8601, so this does align with
      * unwrap. *)
-    match Timedesc.of_iso8601 s with
+    match Timedesc.Timestamp.of_iso8601 s with
     | Ok dt -> dt
     | Error s -> failwith (spf "wrong datetime format: %s" s)
 
   let () =
     Testo.test "Datetime" (fun () ->
-        let now =
-          Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
-        in
+        let now = Timedesc.Timestamp.now () in
         let s : string = unwrap now in
         let now' = wrap s in
         if not (now =*= now') then

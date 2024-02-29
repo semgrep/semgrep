@@ -40,13 +40,13 @@ let with_mock_normal_responses =
     | "/api/agent/deployments/current" ->
         let status, body_path =
           match Http_mock_client.get_header req "Authorization" with
-          | Some "Bearer ok_token" -> (200, "./tests/login/ok_response.json")
-          | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
+          | Some "Bearer ok_token" ->
+              (200, Fpath.v "./tests/login/ok_response.json")
+          | Some "Bearer bad_token" ->
+              (401, Fpath.v "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
-        let body =
-          body_path |> UCommon.read_file |> Cohttp_lwt.Body.of_string
-        in
+        let body = UFile.read_file body_path |> Cohttp_lwt.Body.of_string in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
@@ -72,12 +72,9 @@ let with_mock_four_o_four_responses =
   Http_mock_client.with_testing_client make_fn
 
 let with_mock_envvars f () =
-  Common2.with_tmp_file ~str:fake_settings ~ext:"yml" (fun tmp_settings_file ->
+  UTmp.with_tmp_file ~str:fake_settings ~ext:"yml" (fun tmp_settings_file ->
       let new_settings =
-        {
-          !Semgrep_envvars.v with
-          user_settings_file = Fpath.v tmp_settings_file;
-        }
+        { !Semgrep_envvars.v with user_settings_file = tmp_settings_file }
       in
       Common.save_excursion Semgrep_envvars.v new_settings f)
 

@@ -1,4 +1,5 @@
 open Js_of_ocaml
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Types *)
@@ -9,16 +10,18 @@ type jstring = Js.js_string Js.t
 (*****************************************************************************)
 (* Extern *)
 (*****************************************************************************)
-(* js_of_ocaml gives each executable its own pseudo-filesystem, which is problematic for browser environments
-   because it effectively segregates the engine from the parsers, and means we have to write the rules and target
-   everywhere. to work around this, we expose getters and setters so that we can have our parsers
-   inherit their engine's mount points. This is effectively a no-op in node.
-   (see companion setter in ../engine/Main.ml) *)
+(* js_of_ocaml (jsoo) gives each executable its own pseudo-filesystem, which
+   is problematic for browser environments because it effectively segregates
+   the engine from the parsers, and means we have to write the rules and target
+   everywhere. to work around this, we expose getters and setters so that we
+   can have our parsers inherit their engine's mount points. This is
+   effectively a no-op in node (see companion setter in ../engine/Main.ml)
+*)
 external set_jsoo_mountpoint : 'any Js.js_array -> unit = "set_jsoo_mountpoint"
 
-(* js_of_ocaml gives each executable its own pseudo-filesystem, which means we must
-   expose the engine's mount points in order for reads to work properly in browser environments
-   (see companion setter in semgrep.semgrep_js_shared.ml) *)
+(* jsoo gives each executable its own pseudo-filesystem, which means we must
+   expose the engine's mount points in order for reads to work properly in
+   browser environments (see companion setter in semgrep.semgrep_js_shared.ml) *)
 external get_jsoo_mountpoint : unit -> 'any list = "get_jsoo_mountpoint"
 external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 
@@ -75,7 +78,7 @@ let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
 
 let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
   Parse_target.just_parse_with_lang_ref :=
-    fun lang filename ->
+    fun (lang : Lang.t) (filename : Fpath.t) ->
       match lang with
       (* The Yaml and JSON parsers are embedded in the engine because it's a
          core component needed to parse rules *)
@@ -85,10 +88,10 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
             errors = [];
             skipped_tokens = [];
             inserted_tokens = [];
-            stat = Parsing_stat.default_stat filename;
+            stat = Parsing_stat.default_stat !!filename;
           }
       | _ ->
-          func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string filename)
+          func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string !!filename)
 
 (*****************************************************************************)
 (* Reporting *)
@@ -138,7 +141,7 @@ let promise_of_lwt lwt =
 (* Entrypoints *)
 (*****************************************************************************)
 
-let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
+let make_js_module ?(parse_target_ts_only = None) (langs : Language.t list)
     parse_target parse_pattern =
   let lang_names =
     Array.of_list
@@ -159,7 +162,7 @@ let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
           let parse_target () =
             parse_target
               (Lang.of_string (Js.to_string lang))
-              (Js.to_string file)
+              (Fpath.v (Js.to_string file))
           in
           wrap_with_js_error parse_target
 
@@ -171,11 +174,11 @@ let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
           in
           wrap_with_js_error parse_pattern
 
-        method parseTargetTsOnly file =
+        method parseTargetTsOnly (file : jstring) =
           let parse_target_ts_only () =
             match parse_target_ts_only with
             | Some parse_target_ts_only ->
-                parse_target_ts_only (Js.to_string file)
+                parse_target_ts_only (Fpath.v (Js.to_string file))
             | None ->
                 failwith "parseTargetTsOnly is not supported for this language"
           in

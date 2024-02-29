@@ -13,12 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -93,7 +94,7 @@ let string_literal (env : env) (tok : CST.identifier) =
     match s with
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | _ ->
-        logger#warning "weird string literal: %s" s;
+        Logs.warn (fun m -> m ~tags "weird string literal: %s" s);
         s
   in
   G.L (G.String (fb (s, t))) |> G.e
@@ -717,7 +718,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
   | `Func_stmt (v1, v2, v3) ->
       let name = map_function_name env v2 in
       let v3 = map_function_body env v3 v1 in
-      let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } in
+      let ent = { G.name = G.EN name; G.attrs = []; G.tparams = None } in
       [ G.DefStmt (ent, G.FuncDef v3) |> G.s ]
   | `Local_func_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "local" *) in
@@ -793,7 +794,7 @@ let map_program (env : env) ((v1, v2) : CST.program) : G.program =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_lua.Parse.file file)
+    (fun () -> Tree_sitter_lua.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
@@ -804,7 +805,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_lua.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let xs = map_program env cst in
       G.Ss xs)

@@ -5,8 +5,7 @@ module Flag = Flag_parsing
 (* Subsystem testing *)
 (*****************************************************************************)
 
-let test_tokens_lisp file =
-  let file = Fpath.v file in
+let test_tokens_lisp (file : Fpath.t) =
   (match File_type.file_type_of_file file with
   | File_type.PL (File_type.Lisp _) -> ()
   | _ -> UCommon.pr2 "warning: seems not a lisp file");
@@ -19,7 +18,6 @@ let test_tokens_lisp file =
   ()
 
 let test_parse_lisp xs =
-  let xs = Fpath_.of_strings xs in
   let fullxs = Lib_parsing_lisp.find_source_files_of_dir_or_files xs in
   let stat_list = ref [] in
 
@@ -27,7 +25,7 @@ let test_parse_lisp xs =
   |> List.iter (fun file ->
          UCommon.pr2 ("PARSING: " ^ !!file);
 
-         let _xs, stat = Parse_lisp.parse !!file in
+         let _xs, stat = Parse_lisp.parse file in
          Stack_.push stat stat_list);
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
@@ -42,6 +40,8 @@ let test_parse_lisp xs =
 
 let actions () =
   [
-    ("-tokens_lisp", "   <file>", Arg_.mk_action_1_arg test_tokens_lisp);
-    ("-parse_lisp", "   <files or dirs>", Arg_.mk_action_n_arg test_parse_lisp);
+    ("-tokens_lisp", "   <file>", Arg_.mk_action_1_conv Fpath.v test_tokens_lisp);
+    ( "-parse_lisp",
+      "   <files or dirs>",
+      Arg_.mk_action_n_conv Fpath.v test_parse_lisp );
   ]

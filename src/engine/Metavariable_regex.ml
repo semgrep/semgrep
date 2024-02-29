@@ -18,7 +18,7 @@ module MV = Metavariable
 module RM = Range_with_metavars
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,7 +39,8 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
   *)
   match List.assoc_opt mvar bindings with
   | None ->
-      logger#error "Attempted to regex capture on unbound metavar %s" mvar;
+      Logs.err (fun m ->
+          m ~tags "Attempted to regex capture on unbound metavar %s" mvar);
       None
   | Some mval -> (
       (* Piggy-back off of the Eval_generic logic so that we can get the
@@ -95,7 +96,9 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
           | [] -> None
           | matches -> Some (List_.map snd matches))
       | _ ->
-          logger#error
-            "Somehow got a non-string or exn from str(%s) in generic evaluation"
-            mvar;
+          Logs.err (fun m ->
+              m ~tags
+                "Somehow got a non-string or exn from str(%s) in generic \
+                 evaluation"
+                mvar);
           None)

@@ -12,8 +12,8 @@
  * license.txt for more details.
  *
  *)
-
 open Common
+open Fpath_.Operators
 open Parser_lisp
 open Ast_lisp
 module PS = Parsing_stat
@@ -116,8 +116,8 @@ and sexp toks =
 (*****************************************************************************)
 
 let parse filename =
-  let stat = Parsing_stat.default_stat filename in
-  let toks_orig = tokens (Parsing_helpers.file filename) in
+  let stat = Parsing_stat.default_stat !!filename in
+  let toks_orig = tokens (Parsing_helpers.file !!filename) in
 
   let toks = toks_orig |> List_.exclude TH.is_comment in
 

@@ -24,7 +24,7 @@ let run_conf (_caps : caps) (conf : Logout_CLI.conf) : Exit_code.t =
   | None ->
       Logs.app (fun m ->
           m "%s You are not logged in! This command had no effect."
-            (Logs_.warn_tag ()));
+            (Std_msg.warning_tag ()));
       Exit_code.ok
   | Some _ ->
       let settings = Semgrep_settings.{ settings with api_token = None } in
@@ -32,7 +32,7 @@ let run_conf (_caps : caps) (conf : Logout_CLI.conf) : Exit_code.t =
         let message =
           Ocolor_format.asprintf
             {|%s Logged out! You can log back in with @{<cyan>`semgrep login`@}|}
-            (Logs_.success_tag ())
+            (Std_msg.success_tag ())
         in
         Logs.app (fun m -> m "%s" message);
         Exit_code.ok)

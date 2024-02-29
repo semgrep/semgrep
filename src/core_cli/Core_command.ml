@@ -13,10 +13,11 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module E = Core_error
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,7 +38,7 @@ let timeout_function file timeout f =
   with
   | Some res -> res
   | None ->
-      let loc = Tok.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file !!file in
       let err = E.mk_error None loc "" OutJ.Timeout in
       Stack_.push err E.g_errors
 
@@ -45,7 +46,8 @@ let timeout_function file timeout f =
 let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
-      logger#error "parse_pattern: exn = %s" (Common.exn_to_s exn);
+      Logs.err (fun m ->
+          m ~tags "parse_pattern: exn = %s" (Common.exn_to_s exn));
       Rule.raise_error None
         (InvalidRule
            ( InvalidPattern
@@ -82,7 +84,8 @@ let output_core_results caps (result_or_exn : Core_result.result_or_exn)
         yojson) for pretty-printing json.
       *)
       let s = OutJ.string_of_core_output res in
-      logger#info "size of returned JSON string: %d" (String.length s);
+      Logs.debug (fun m ->
+          m ~tags "size of returned JSON string: %d" (String.length s));
       Out.put s;
       match result_or_exn with
       | Error (e, _) ->
@@ -186,18 +189,14 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       in
       (* simpler code path than in scan() *)
       let target_info, _skipped = Core_scan.targets_of_config config in
-      let files =
-        target_info
-        |> List_.map (function
-             | `CodeTarget (t : Input_to_core_t.code_target) -> t.path
-             | `LockfileTarget (t : Input_to_core_t.lockfile_target) -> t.path)
-      in
+      let files = target_info |> List_.map Target.internal_path in
       (* sanity check *)
       if config.filter_irrelevant_rules then
-        logger#warning "-fast does not work with -f/-e, or you need also -json";
+        Logs.warn (fun m ->
+            m ~tags "-fast does not work with -f/-e, or you need also -json");
       files
-      |> List.iter (fun file ->
-             logger#info "processing: %s" file;
+      |> List.iter (fun (file : Fpath.t) ->
+             Logs.debug (fun m -> m ~tags "processing: %s" !!file);
              let process file =
                timeout_function file config.timeout (fun () ->
                    let ast =
@@ -211,13 +210,13 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
                      minirule
-                     (Fpath.v file, lang, ast)
+                     (file, File file, lang, ast)
                    |> ignore)
              in
 
              if not config.error_recovery then
-               E.try_with_print_exn_and_reraise file (fun () -> process file)
-             else E.try_with_exn_to_error file (fun () -> process file));
+               E.try_with_print_exn_and_reraise !!file (fun () -> process file)
+             else E.try_with_exn_to_error !!file (fun () -> process file));
 
       let n = List.length !E.g_errors in
       if n > 0 then UCommon.pr2 (spf "error count: %d" n)

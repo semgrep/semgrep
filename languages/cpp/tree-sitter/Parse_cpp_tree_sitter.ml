@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
@@ -20,7 +21,7 @@ module P = Preprocessor_cpp
 open Ast_cpp
 module R = Tree_sitter_run.Raw_tree
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,8 +64,9 @@ let error_unless_partial_error _env t s =
    *)
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s
-      (Tok.stringpos_of_tok t)
+    Logs.err (fun m ->
+        m ~tags "error_unless_partial_error: %s, at %s" s
+          (Tok.stringpos_of_tok t))
 
 let map_fold_operator (env : env) (x : CST.fold_operator) =
   match x with
@@ -216,13 +218,16 @@ let id_of_dname_for_parameter env dname =
   match dname with
   | DN (None, [], IdIdent id) -> id
   | DN (None, [], IdTemplated (IdIdent id, _args)) ->
-      logger#error "Weird IdTemplated in id_of_dname_for_parameter";
-      logger#error "Probably tree-sitter partial error: %s"
-        (Ast_cpp.show_declarator_name dname);
+      Logs.err (fun m ->
+          m ~tags "Weird IdTemplated in id_of_dname_for_parameter");
+      Logs.err (fun m ->
+          m ~tags "Probably tree-sitter partial error: %s"
+            (Ast_cpp.show_declarator_name dname));
       id
   | _ ->
-      logger#error "Weird dname for parameter: %s"
-        (Ast_cpp.show_declarator_name dname);
+      Logs.err (fun m ->
+          m ~tags "Weird dname for parameter: %s"
+            (Ast_cpp.show_declarator_name dname));
       error_unless_partial_error env (ii_of_dname dname)
         "expecting an ident for parameter";
       let ii = ii_of_dname dname in
@@ -310,8 +315,9 @@ let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
        * any error in the file, tree-sitter still wrongly parses some
        * code as a StructuredBinding when it's not.
        *)
-      logger#error "Weird DNStructuredBinding without an init at %s"
-        (Tok.stringpos_of_tok (snd id));
+      Logs.err (fun m ->
+          m ~tags "Weird DNStructuredBinding without an init at %s"
+            (Tok.stringpos_of_tok (snd id)));
       V ({ name = name_of_id id; specs = v_specs }, { v_type; v_init })
 
 (*****************************************************************************)
@@ -420,13 +426,12 @@ let map_storage_class_specifier (env : env) (x : CST.storage_class_specifier) :
   | `Static tok -> (Static, token env tok) (* "static" *)
   | `Regi tok -> (Register, token env tok) (* "register" *)
   | `Inline tok -> (StoInline, token env tok)
-  | `Thread_local tok -> (ThreadLocal, token env tok)
+  | `Thread_local tok -> (ThreadLocal, token env tok) (* "thread_local" *)
   (* the difference between these two is just which implementation you are using *)
   | `X___inline tok -> (StoInline, (* "__inline" *) token env tok)
   | `X___inline__ tok -> (StoInline, (* "__inline__" *) token env tok)
   | `X___forc tok -> (StoInline, (* "__forceinline" *) token env tok)
   | `X___thread tok -> (ThreadLocal, (* "__thread" *) token env tok)
-(* "thread_local" *)
 
 (* "inline" *)
 
@@ -4975,7 +4980,7 @@ and map_variadic_parameter_declaration (env : env)
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_cpp.Parse.file file)
+    (fun () -> Tree_sitter_cpp.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_program_or_expr env cst with
@@ -4994,7 +4999,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let x = map_program_or_expr env cst in
       match x with

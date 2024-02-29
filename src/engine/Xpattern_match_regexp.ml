@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021-2022 r2c
+ * Copyright (C) 2021-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,11 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open Xpattern_matcher
+module MV = Metavariable
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
-let regexp_matcher ?(base_offset = 0) big_str file regexp =
+let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
   let subs = Pcre_.exec_all_noerr ~rex:regexp big_str in
   subs |> Array.to_list
   |> List_.map (fun sub ->
@@ -33,13 +35,13 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
          let bytepos = bytepos + base_offset in
          let str = matched_str in
          let line, column = line_col_of_charpos file bytepos in
-         let pos = Pos.make ~file ~line ~column bytepos in
+         let pos = Pos.make ~file:!!file ~line ~column bytepos in
          let loc1 = { Tok.str; pos } in
 
          let bytepos = bytepos + String.length str in
          let str = "" in
          let line, column = line_col_of_charpos file bytepos in
-         let pos = Pos.make ~file ~line ~column bytepos in
+         let pos = Pos.make ~file:!!file ~line ~column bytepos in
          let loc2 = { Tok.str; pos } in
 
          (* the names of all capture groups within the regexp *)
@@ -58,14 +60,15 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
                         let bytepos, _ = Pcre.get_substring_ofs sub n in
                         let str = Pcre.get_substring sub n in
                         let line, column = line_col_of_charpos file bytepos in
-                        let pos = Pos.make ~file ~line ~column bytepos in
+                        let pos = Pos.make ~file:!!file ~line ~column bytepos in
                         let loc = { Tok.str; pos } in
                         let t = Tok.tok_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->
-                          logger#debug "not found %d substring of %s in %s" n
-                            regexp.pattern matched_str;
+                          Logs.debug (fun m ->
+                              m ~tags "not found %d substring of %s in %s" n
+                                regexp.pattern matched_str);
                           None)
          in
          let names_env =
@@ -80,23 +83,24 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
                     let bytepos = bytepos + base_offset in
                     let str = Pcre.get_named_substring regexp.regexp name sub in
                     let line, column = line_col_of_charpos file bytepos in
-                    let pos = Pos.make ~file ~line ~column bytepos in
+                    let pos = Pos.make ~file:!!file ~line ~column bytepos in
                     let loc = { Tok.str; pos } in
                     let t = Tok.tok_of_loc loc in
                     Some (spf "$%s" name, MV.Text (str, t, t))
                   with
                   | Not_found ->
-                      logger#debug "not found %s substring of %s in %s" name
-                        regexp.pattern matched_str;
+                      Logs.debug (fun m ->
+                          m ~tags "not found %s substring of %s in %s" name
+                            regexp.pattern matched_str);
                       None)
          in
          ((loc1, loc2), names_env @ numbers_env))
 
-let matches_of_regexs regexps lazy_content (file : string) =
+let matches_of_regexs regexps lazy_content (file : Fpath.t) origin =
   matches_of_matcher regexps
     {
       init = (fun _ -> Some (Lazy.force lazy_content));
       matcher = regexp_matcher;
     }
-    (Fpath.v file)
+    file origin
 [@@profiling]

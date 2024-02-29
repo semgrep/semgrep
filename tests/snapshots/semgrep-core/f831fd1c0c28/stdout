@@ -1,0 +1,5 @@
+input list: [1; 2; 3; 4]
+prev=None, cur=1, next=Some 2
+prev=Some 1, cur=2, next=Some 3
+prev=Some 2, cur=3, next=Some 4
+prev=Some 3, cur=4, next=None

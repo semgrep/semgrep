@@ -149,7 +149,7 @@ local containers = {
     opam_switch: '4.14.0',
     job: {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:alpine-2023-11-07',
+      container: 'returntocorp/ocaml:alpine-2024-01-18',
       // We need this hack because GHA tampers with the HOME in container
       // and this does not play well with 'opam' installed in /root
       env: {
@@ -167,21 +167,11 @@ local containers = {
     opam_switch: '4.14.0',
     job: {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:ubuntu-2023-11-07',
+      container: 'returntocorp/ocaml:ubuntu-2024-01-18',
       env: {
         HOME: '/root',
       },
       },
-   },
-   ocaml5_alpine: {
-     opam_switch: '5.1.0',
-     job: {
-      'runs-on': 'ubuntu-latest',
-       container: 'returntocorp/ocaml:alpine5.1-2023-11-07',
-       env: {
-        HOME: '/root',
-       },
-     },
    },
 };
 

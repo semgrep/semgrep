@@ -41,6 +41,9 @@ val hook_propagate_to :
   ref
 (** Pro hook, this is a bit complicated to avoid exposing `t`s internals. *)
 
+val hook_normalize_rev_offset : (IL.offset list -> IL.offset list) option ref
+(** Pro index sensitivity *)
+
 val empty : env
 val empty_inout : env Dataflow_core.inout
 
@@ -99,3 +102,4 @@ val equal_by_lval : env -> env -> IL.lval -> bool
 
 val to_string : (Taint.taints -> string) -> env -> string
 val seq_of_tainted : env -> (IL.lval * Taint.taints) Seq.t
+val find_tainted_lvals_of_common_base : env -> IL.base -> IL.lval list

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -22,6 +22,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Helpers to factorize code between the regexp and spacegrep matcher *)
 
 (*****************************************************************************)
 (* Types *)
@@ -34,12 +35,9 @@ type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : string (* filename *) -> 'target_content option;
+  init : Fpath.t -> 'target_content option;
   matcher :
-    'target_content ->
-    string (* filename *) ->
-    'xpattern ->
-    (match_range * MV.bindings) list;
+    'target_content -> Fpath.t -> 'xpattern -> (match_range * MV.bindings) list;
 }
 
 (* bugfix: I used to just report one token_location, and if the match
@@ -61,12 +59,13 @@ let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
       Fpath.t ->
+      Origin.t ->
       Core_profiling.times Core_result.match_result) =
- fun xpatterns matcher file ->
+ fun xpatterns matcher internal_path origin ->
   if xpatterns =*= [] then Core_result.empty_match_result
   else
     let target_content_opt, parse_time =
-      Common.with_time (fun () -> matcher.init !!file)
+      Common.with_time (fun () -> matcher.init internal_path)
     in
     match target_content_opt with
     | None ->
@@ -76,14 +75,20 @@ let (matches_of_matcher :
           Common.with_time (fun () ->
               xpatterns
               |> List.concat_map (fun (xpat, id, pstr) ->
-                     let xs = matcher.matcher target_content !!file xpat in
+                     let xs =
+                       matcher.matcher target_content internal_path xpat
+                     in
                      xs
                      |> List_.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {
                               PM.rule_id;
-                              file;
+                              path =
+                                {
+                                  internal_path_to_content = internal_path;
+                                  origin;
+                                };
                               range_loc = (loc1, loc2);
                               env;
                               taint_trace = None;
@@ -95,26 +100,20 @@ let (matches_of_matcher :
                               dependency = None;
                             })))
         in
-        RP.make_match_result res Core_error.ErrorSet.empty
+        RP.mk_match_result res Core_error.ErrorSet.empty
           { Core_profiling.parse_time; match_time }
 
-(* todo: same, we should not need that *)
-let hmemo = Hashtbl.create 101
+let hmemo : (Fpath.t, Pos.bytepos_linecol_converters) Hashtbl.t =
+  Hashtbl.create 101
 
-let line_col_of_charpos file charpos =
+let () =
+  UTmp.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
+
+let line_col_of_charpos (file : Fpath.t) (charpos : int) : int * int =
   let conv =
-    Common.memoized hmemo file (fun () -> Pos.full_converters_large file)
+    Common.memoized hmemo file (fun () -> Pos.full_converters_large !!file)
   in
   conv.bytepos_to_linecol_fun charpos
-
-(* Like Common2.with_tmp_file but also invalidates the hmemo cache when finished
- *
- * https://github.com/returntocorp/semgrep/issues/5277 *)
-let with_tmp_file ~str ~ext f =
-  Common2.with_tmp_file ~str ~ext (fun file ->
-      Common.protect
-        ~finally:(fun () -> Hashtbl.remove hmemo file)
-        (fun () -> f file))
 
 let mval_of_string str t =
   let literal =

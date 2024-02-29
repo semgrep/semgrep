@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open Either_
 module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
@@ -647,7 +648,7 @@ and pattern_expr_alt (env : env) (x : CST.pattern_expr_alt) =
   match x with
   | `Alt_pat (v1, v2) ->
       let v1 = pattern_expr_basic env v1 in
-      List.fold_right
+      List_.fold_right
         (fun (v1, pat) acc ->
           let _v1 = (* "|" *) token2 env v1 in
           let v2 = pattern_expr_basic env pat in
@@ -2427,7 +2428,7 @@ let program (env : env) ((v1, _v2interpreted) : CST.program) : AST.stmts =
 let parse file =
   let debug = false in
   H.wrap_parser
-    (fun () -> Tree_sitter_ruby.Parse.file file)
+    (fun () -> Tree_sitter_ruby.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       if debug then Boilerplate.dump_tree cst;
@@ -2438,7 +2439,7 @@ let parse_pattern string =
   H.wrap_parser
     (fun () -> Tree_sitter_ruby.Parse.string string)
     (fun cst ->
-      let file = "<file>" in
+      let file = Fpath.v "<file>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern string; extra = Pattern }
       in

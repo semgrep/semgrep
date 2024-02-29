@@ -14,6 +14,7 @@
  *)
 open Common
 open Either_
+open Fpath_.Operators
 module CST = Tree_sitter_hcl.CST
 module H = Parse_tree_sitter_helpers
 open AST_terraform
@@ -449,7 +450,7 @@ and map_object_elem (env : env) (x : CST.object_elem) : G.field =
         | N n -> G.EN n
         | _ -> G.EDynamic v1
       in
-      let ent = { G.name = n_or_dyn; attrs = []; tparams = [] } in
+      let ent = { G.name = n_or_dyn; attrs = []; tparams = None } in
       let vdef = { G.vinit = Some v3; vtype = None } in
       let def =
         match v2 with
@@ -630,7 +631,7 @@ let map_config_file (env : env) (x : CST.config_file) : any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_hcl.Parse.file file)
+    (fun () -> Tree_sitter_hcl.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_config_file env cst with
@@ -650,6 +651,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       map_config_file env cst)

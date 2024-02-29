@@ -29,6 +29,8 @@ module SS = Set.Make (String)
    from semgrep_main.py and core_runner.py.
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -40,6 +42,7 @@ type caps = < Cap.stdout ; Cap.network >
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
+  Logs_.sdebug ~tags "CLI_common.setup_logging";
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
@@ -88,8 +91,10 @@ let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
  * to avoid having the output of multiple child processes interwinded, hence
  * the use of Unix.lockf below.
  *)
-let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (_file : Fpath.t) (match_results : Core_result.matches_single_file) : unit =
+
+let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
+    (printer : Scan_CLI.conf -> OutJ.cli_match list -> unit) (_file : Fpath.t)
+    (match_results : Core_result.matches_single_file) : unit =
   let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
@@ -118,12 +123,23 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     Common.protect
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
-        Matches_report.pp_text_outputs
-          ~max_chars_per_line:conf.output_conf.max_chars_per_line
-          ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
-          ~color_output:conf.output_conf.force_color Format.std_formatter
-          cli_matches)
+        printer conf cli_matches)
       ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
+
+let incremental_text_printer (conf : Scan_CLI.conf)
+    (cli_matches : OutJ.cli_match list) : unit =
+  Matches_report.pp_text_outputs
+    ~max_chars_per_line:conf.output_conf.max_chars_per_line
+    ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
+    ~color_output:conf.output_conf.force_color Format.std_formatter cli_matches
+
+let incremental_json_printer (conf : Scan_CLI.conf)
+    (cli_matches : OutJ.cli_match list) : unit =
+  ignore conf;
+  List.iter
+    (fun cli_match ->
+      Fmt.pr "%s@." (Semgrep_output_v1_j.string_of_cli_match cli_match))
+    cli_matches
 
 (*****************************************************************************)
 (* Pretty Printing for CLI UX *)
@@ -329,20 +345,20 @@ let trim_core_match_fix (r : OutJ.core_match) =
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (head : Core_result.t)
     (renamed : (string (* filename *) * string (* filename *)) list) =
-  let extract_sig renamed m =
-    let rule_id = m.Pattern_match.rule_id in
+  let extract_sig renamed (m : Pattern_match.t) =
+    let rule_id = m.rule_id in
     let path =
-      !!(m.Pattern_match.file) |> fun p ->
+      !!(m.path.internal_path_to_content) |> fun p ->
       Option.bind renamed
         (List_.find_some_opt (fun (before, after) ->
              if after = p then Some before else None))
       |> Option.value ~default:p
     in
-    let start_range, end_range = m.Pattern_match.range_loc in
+    let start_range, end_range = m.range_loc in
     let syntactic_ctx =
       UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
-        m.Pattern_match.file
+        m.path.internal_path_to_content
     in
     (rule_id, path, syntactic_ctx)
   in
@@ -439,7 +455,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     r.processed_matches
                     |> List_.map
                          (fun ({ pm; _ } : Core_result.processed_match) ->
-                           !!(pm.Pattern_match.file))
+                           !!(pm.path.internal_path_to_content))
                     |> prepare_targets
                   in
                   let paths_in_scanned =
@@ -539,12 +555,28 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     let output_format, file_match_results_hook =
       match conf with
       | {
-       output_conf = { output_format = Output_format.Text; _ };
-       common = { maturity = Maturity.Develop; _ };
+          output_conf = { output_format = Output_format.Text; _ };
+          incremental_output = true;
+          _;
+        }
+      | {
+          output_conf = { output_format = Output_format.Text; _ };
+          common = { maturity = Maturity.Develop; _ };
+          _;
+        } ->
+          ( Output_format.Incremental,
+            Some
+              (mk_file_match_results_hook conf filtered_rules
+                 incremental_text_printer) )
+      | {
+       output_conf = { output_format = Output_format.Json; _ };
+       incremental_output = true;
        _;
       } ->
-          ( Output_format.TextIncremental,
-            Some (file_match_results_hook conf filtered_rules) )
+          ( Output_format.Incremental,
+            Some
+              (mk_file_match_results_hook conf filtered_rules
+                 incremental_json_printer) )
       | { output_conf; _ } -> (output_conf.output_format, None)
     in
     let scan_func = mk_scan_func conf file_match_results_hook errors in
@@ -742,20 +774,34 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
-     * and "underline off" *)
-    let esc =
-      if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[22m\027[24m"
-      else ""
+       and "underline off". It doesn't change how the text is rendered
+       but allows us to produce the same exact output as pysemgrep.
+       Remove the insertion of pysemgrep_hack once pysemgrep is gone.
+       Tip: to visualize special characters that are otherwise invisible
+       in a diff, use something like this:
+         grep 'METRICS: Using' path/to/output | LESS="X-E"
+    *)
+    let pysemgrep_hack1, pysemgrep_hack2 =
+      (*
+         1: make the line yellow using pysemgrep's exact escape sequence
+         2: ???
+      *)
+      match Std_msg.get_highlight () with
+      | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
+      | Off -> ("", "")
     in
-    Logs.warn (fun m ->
+    Logs.app (fun m ->
         m
           "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
-           reports pseudonymous rule metrics to semgrep.dev.@.To disable \
-           Registry rule metrics, use \"--metrics=off\".@.Using configs only \
-           from local files (like --config=xyz.yml) does not enable \
-           metrics.@.@.More information: https://semgrep.dev/docs/metrics"
-          esc);
-    Logs.app (fun m -> m "");
+           reports pseudonymous rule metrics to semgrep.dev."
+          pysemgrep_hack1);
+    Logs.app (fun m ->
+        m
+          "To disable Registry rule metrics, use \"--metrics=off\".@.Using \
+           configs only from local files (like --config=xyz.yml) does not \
+           enable metrics.@.@.More information: \
+           https://semgrep.dev/docs/metrics");
+    Logs.app (fun m -> m "%s" pysemgrep_hack2);
     let settings =
       {
         settings with
