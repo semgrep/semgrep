@@ -1,3 +1,19 @@
+(*
+   Extended module for list manipulation
+*)
+
+(*
+   Shadow the original, unsafe (@) by using 'open List_.Operators'.
+*)
+module Operators : sig
+  (* same as 'List_.append' defined below. *)
+  val ( @ ) : 'a list -> 'a list -> 'a list
+end
+
+(* Stack-safe implementation of List.append aka (@).
+   See also the Operators submodule which provides a safe (@). *)
+val append : 'a list -> 'a list -> 'a list
+
 (* Shortcut for xs =*= [].
  * It is not that shorter, but it avoids to use =*= which helps
  * to reduce the number of places to look for possible problems with =*=.
@@ -61,6 +77,9 @@ val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 
 val flatten : 'a list list -> 'a list
 (** Same as [List.flatten] but tail recursive. *)
+
+(* Stack-safe implementation of List.fold_right *)
+val fold_right : ('elt -> 'acc -> 'acc) -> 'elt list -> 'acc -> 'acc
 
 (* opposite of List.filter *)
 val exclude : ('a -> bool) -> 'a list -> 'a list

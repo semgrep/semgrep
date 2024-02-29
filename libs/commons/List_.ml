@@ -221,12 +221,19 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
 let map2 f l1 l2 = fast_map2 1000 f l1 l2
 
 (*****************************************************************************)
-(* Other faster alternative to List.xxx functions *)
+(* Other safer alternatives to List.xxx functions *)
 (*****************************************************************************)
 
 (* Tail-recursive to prevent stack overflows. *)
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev
+
+(* Stack-safe starting from OCaml 5.1 *)
+let append a b = List.rev_append (List.rev a) b
+let ( @ ) = append
+
+let fold_right func xs acc =
+  List.fold_left (fun acc x -> func x acc) acc (List.rev xs)
 
 (*****************************************************************************)
 (* Other list functions *)
@@ -386,3 +393,8 @@ let enum x n =
     if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
+
+(* for 'open List_.Operators' *)
+module Operators = struct
+  let ( @ ) = ( @ )
+end

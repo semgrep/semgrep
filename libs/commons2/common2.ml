@@ -2698,7 +2698,7 @@ let rec zip_safe xs ys =
   | x :: xs, y :: ys -> (x, y) :: zip_safe xs ys
 
 let unzip zs =
-  List.fold_right (fun e (xs, ys) -> (fst e :: xs, snd e :: ys)) zs ([], [])
+  List_.fold_right (fun e (xs, ys) -> (fst e :: xs, snd e :: ys)) zs ([], [])
 
 (* Same as Common2.unzip or List.split but with triples. Tail-recursive. *)
 let unzip3 l =
@@ -2942,7 +2942,7 @@ let _ = assert_equal (head_middle_tail [ 1; 3 ]) (1, [], 3)
  *)
 
 (* let (++) = (@), could do that, but if load many times the common, then pb *)
-(* let (++) l1 l2 = List.fold_right (fun x acc -> x::acc) l1 l2 *)
+(* let (++) l1 l2 = List_.fold_right (fun x acc -> x::acc) l1 l2 *)
 
 let remove x xs =
   let newxs = List.filter (fun y -> y <> x) xs in

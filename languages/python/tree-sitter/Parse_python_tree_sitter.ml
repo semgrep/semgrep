@@ -1173,7 +1173,7 @@ let map_with_clause (env : env) (x : CST.with_clause) (twith : tok)
             v2)
           ws
       in
-      List.fold_right
+      List_.fold_right
         (fun wclause acc ->
           match acc with
           | None -> Some (With (twith, wclause, body))
@@ -1476,7 +1476,7 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
         | None -> None
       in
       let orelse =
-        List.fold_right
+        List_.fold_right
           (fun (tif, test, stmts) acc -> Some [ If (tif, test, stmts, acc) ])
           elseifs else_
       in
