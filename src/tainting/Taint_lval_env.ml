@@ -19,11 +19,13 @@
 
 module T = Taint
 module Taints = T.Taint_set
-module LV = IL_helpers
+module S = Taint_shape
+module H = IL_helpers
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
-module LvalMap = Map.Make (LV.LvalOrdered)
-module LvalSet = Set.Make (LV.LvalOrdered)
+module LvalMap = Map.Make (H.LvalOrdered)
+module LvalSet = Set.Make (H.LvalOrdered)
+module NameMap = Map.Make (H.NameOrdered)
 
 let base_tag_strings = [ __MODULE__; "taint" ]
 let _tags = Logs_.create_tags base_tag_strings
@@ -33,11 +35,8 @@ type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
 
 type t = {
-  tainted : T.taints LvalMap.t;
+  tainted : S.ref NameMap.t;
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
-  cleaned : LvalSet.t;
-      (** Lvalues that are clean, these should be extensions of other lvalues that
-      are tainted. *)
   control : T.taints;
       (** Taints propagated via the flow of control (rather than the flow of data). *)
   taints_to_propagate : taints_to_propagate;
@@ -80,8 +79,7 @@ let hook_normalize_rev_offset = ref None
 
 let empty =
   {
-    tainted = LvalMap.empty;
-    cleaned = LvalSet.empty;
+    tainted = NameMap.empty;
     control = Taints.empty;
     taints_to_propagate = VarMap.empty;
     pending_propagation_dests = VarMap.empty;
@@ -91,17 +89,10 @@ let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
 
 let union le1 le2 =
   let tainted =
-    LvalMap.union (fun _ x y -> Some (Taints.union x y)) le1.tainted le2.tainted
-  in
-  let cleaned1 =
-    le1.cleaned |> LvalSet.filter (fun lv -> not @@ LvalMap.mem lv le2.tainted)
-  in
-  let cleaned2 =
-    le2.cleaned |> LvalSet.filter (fun lv -> not @@ LvalMap.mem lv le1.tainted)
+    NameMap.union (fun _ x y -> Some (S.union_ref x y)) le1.tainted le2.tainted
   in
   {
     tainted;
-    cleaned = LvalSet.union cleaned1 cleaned2;
     control = Taints.union le1.control le2.control;
     taints_to_propagate =
       Var_env.varmap_union Taints.union le1.taints_to_propagate
@@ -137,19 +128,19 @@ let normalize_lval lval =
     match base with
     (* explicit dereference of `ptr` e.g. `ptr->x` *)
     | Mem { e = Fetch { base = Var x; rev_offset = [] }; _ } ->
-        Some (IL.Var x, rev_offset)
+        Some (x, rev_offset)
     | Var name -> (
         match rev_offset with
         (* static class field, `C.x`, we normalize it to just `x` since `x` is
          * a unique global *)
-        | [ { o = IL.Dot var; _ } ] when is_class_name name -> Some (Var var, [])
-        | __else__ -> Some (base, rev_offset))
+        | [ { o = IL.Dot var; _ } ] when is_class_name name -> Some (var, [])
+        | __else__ -> Some (name, rev_offset))
     (* explicit dereference of `this` e.g. `this->x` *)
     | Mem { e = Fetch { base = VarSpecial (This, _); rev_offset = [] }; _ }
     | VarSpecial _ -> (
         match List.rev rev_offset with
         (* this.x o_1 ... o_N becomes x o_1 ... o_N *)
-        | { o = IL.Dot var; _ } :: offset' -> Some (Var var, List.rev offset')
+        | { o = IL.Dot var; _ } :: offset' -> Some (var, List.rev offset')
         (* we do not handle any other case *)
         | []
         | { o = IL.Index _; _ } :: _ ->
@@ -166,28 +157,7 @@ let normalize_lval lval =
                | IL.Index _ -> (* no index-sensitivity in OSS *) None)
     | Some normalize_rev_offset -> normalize_rev_offset rev_offset
   in
-  Some { IL.base; rev_offset }
-
-(* Test whether 'lval1' is the same as, or a prefix of, 'lval2'. *)
-let lval_is_prefix lval1 lval2 =
-  let open IL in
-  let eq_name x y = IL.compare_name x y = 0 in
-  let rec offset_prefix os1 os2 =
-    match (os1, os2) with
-    | [], _ -> true
-    | _ :: _, []
-    | { o = Index _; _ } :: _, { o = Dot _; _ } :: _
-    | { o = Dot _; _ } :: _, { o = Index _; _ } :: _ ->
-        false
-    | { o = Index _; _ } :: os1, { o = Index _; _ } :: os2 ->
-        offset_prefix os1 os2
-    | { o = Dot a; _ } :: os1, { o = Dot b; _ } :: os2 ->
-        eq_name a b && offset_prefix os1 os2
-  in
-  match (lval1, lval2) with
-  | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
-      eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
-  | __else__ -> false
+  Some (base, List.rev rev_offset)
 
 (* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
  * some benchmarks, if we can e.g. double the limit without affecting perf then
@@ -203,93 +173,90 @@ let remove_some_lval_from_tainted_set tainted =
    * of that. *)
   match
     tainted
-    |> LvalMap.find_first_opt (fun lval ->
-           match lval.base with
+    |> NameMap.find_first_opt (fun var ->
            (* auxiliary _tmp variables get fake tokens *)
-           | Var var -> Tok.is_fake (snd var.ident)
-           | VarSpecial _
-           | Mem _ ->
-               false)
+           Tok.is_fake (snd var.ident))
   with
   | None -> None
-  | Some (lval, _) -> Some (lval, LvalMap.remove lval tainted)
+  | Some (var, _) -> Some (var, NameMap.remove var tainted)
 
-let check_tainted_lvals_limit tainted new_lval =
+let check_tainted_lvals_limit tainted new_var =
   if
-    (not (LvalMap.mem new_lval tainted))
-    && !Flag_semgrep.max_tainted_lvals > 0
-    && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals
+    (not (NameMap.mem new_var tainted))
+    && !Flag_semgrep.max_tainted_vars > 0
+    && NameMap.cardinal tainted > !Flag_semgrep.max_tainted_vars
   then (
     match remove_some_lval_from_tainted_set tainted with
-    | Some (dropped_lval, tainted) ->
+    | Some (dropped_var, tainted) ->
         Logs.debug (fun m ->
             m ~tags:warning
               "Already tracking too many tainted l-values, dropped %s in order \
                to track %s"
-              (Display_IL.string_of_lval dropped_lval)
-              (Display_IL.string_of_lval new_lval));
+              (IL.str_of_name dropped_var)
+              (IL.str_of_name new_var));
         Some tainted
     | None ->
         Logs.debug (fun m ->
             m ~tags:warning
               "Already tracking too many tainted l-values, will not track %s"
-              (Display_IL.string_of_lval new_lval));
+              (IL.str_of_name new_var));
         None)
   else Some tainted
 
-let add lval taints
-    ({
-       tainted;
-       cleaned;
-       control;
-       taints_to_propagate;
-       pending_propagation_dests;
-     } as lval_env) =
+let add lval new_taints
+    ({ tainted; control; taints_to_propagate; pending_propagation_dests } as
+     lval_env) =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
-  | Some lval -> (
-      if Taints.is_empty taints then lval_env
+  | Some (var, offset) -> (
+      if Taints.is_empty new_taints then lval_env
       else
-        match check_tainted_lvals_limit tainted lval with
+        match check_tainted_lvals_limit tainted var with
         | None -> lval_env
         | Some tainted ->
-            let taints =
+            let new_taints =
               (* If the lvalue is a simple variable, we record it as part of
                  the taint trace. *)
               match lval with
               | { IL.base = Var var; rev_offset = [] } ->
                   let var_tok = snd var.ident in
-                  if Tok.is_fake var_tok then taints
+                  if Tok.is_fake var_tok then new_taints
                   else
-                    taints
+                    new_taints
                     |> Taints.map (fun t ->
                            { t with tokens = var_tok :: t.tokens })
-              | __else__ -> taints
+              | __else__ -> new_taints
+            in
+            let add_new_taints = function
+              | `None
+              | `Clean ->
+                  `Tainted new_taints
+              | `Tainted taints ->
+                  if
+                    !Flag_semgrep.max_taint_set_size = 0
+                    || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
+                  then `Tainted (Taints.union new_taints taints)
+                  else (
+                    Logs.debug (fun m ->
+                        m ~tags:warning
+                          "Already tracking too many taint sources for %s, \
+                           will not track more"
+                          (Display_IL.string_of_lval lval));
+                    `Tainted taints)
             in
             {
               tainted =
-                LvalMap.update lval
-                  (function
-                    | None -> Some taints
-                    (* THINK: couldn't we just replace the existing taints? *)
-                    | Some taints' ->
-                        if
-                          !Flag_semgrep.max_taint_set_size = 0
-                          || Taints.cardinal taints'
-                             < !Flag_semgrep.max_taint_set_size
-                        then Some (Taints.union taints taints')
-                        else (
-                          Logs.debug (fun m ->
-                              m ~tags:warning
-                                "Already tracking too many taint sources for \
-                                 %s, will not track more"
-                                (Display_IL.string_of_lval lval));
-                          Some taints'))
+                NameMap.update var
+                  (fun opt_var_ref ->
+                    let var_ref =
+                      opt_var_ref
+                      |> Option.value ~default:(S.Ref (`None, S.Bot))
+                    in
+                    Some (S.update_ref add_new_taints offset var_ref))
                   tainted;
-              cleaned = LvalSet.remove lval cleaned;
               control;
               taints_to_propagate;
               pending_propagation_dests;
@@ -316,15 +283,15 @@ let propagate_to prop_var taints env =
             { env with taints_to_propagate; pending_propagation_dests })
           ~add
 
-let dumb_find { tainted; cleaned; _ } lval =
+let find_var_opt { tainted; _ } var = NameMap.find_opt var tainted
+
+let dumb_find { tainted; _ } lval =
   match normalize_lval lval with
   | None -> `None
-  | Some lval -> (
-      if LvalSet.mem lval cleaned then `Clean
-      else
-        match LvalMap.find_opt lval tainted with
-        | None -> `None
-        | Some taints -> `Tainted taints)
+  | Some (var, offsets) -> (
+      match NameMap.find_opt var tainted with
+      | None -> `None
+      | Some var_ref -> S.find_xtaint_ref offsets var_ref)
 
 let propagate_from prop_var env =
   let opt_taints = VarMap.find_opt prop_var env.taints_to_propagate in
@@ -346,35 +313,21 @@ let pending_propagation prop_var lval env =
   }
 
 let clean
-    ({
-       tainted;
-       cleaned;
-       control;
-       taints_to_propagate;
-       pending_propagation_dests;
-     } as lval_env) lval =
+    ({ tainted; control; taints_to_propagate; pending_propagation_dests } as
+     lval_env) lval =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
-  | Some lval ->
-      let prefix_is_tainted =
-        tainted |> LvalMap.exists (fun lv _ -> lval_is_prefix lv lval)
-      in
-      let needs_clean_mark = prefix_is_tainted && lval.rev_offset <> [] in
+  | Some (var, offsets) ->
       {
         tainted =
-          (* If `x.a` is clean then `x.a` and any extension of it (`x.a.b`, `x.a.b.c`,
-           * and so on) are clean too, and we remove them all from tainted. *)
-          tainted |> LvalMap.filter (fun lv _ -> not (lval_is_prefix lval lv));
-        cleaned =
-          (* Similarly, if `x.a` will have a "clean" mark, then we can remove any
-           * such mark on any extension of `x.a`. It would be redundant to record
-           * `x.a.b` as clean when we already have that `x.a` is clean. *)
-          (cleaned
-          |> LvalSet.filter (fun lv -> not (lval_is_prefix lval lv))
-          |> if needs_clean_mark then LvalSet.add lval else fun x -> x);
+          NameMap.update var
+            (function
+              | None -> None
+              | Some var_ref -> Some (S.clean_ref offsets var_ref))
+            tainted;
         control;
         taints_to_propagate;
         pending_propagation_dests;
@@ -390,89 +343,54 @@ let get_control_taints { control; _ } = control
 let equal
     {
       tainted = tainted1;
-      cleaned = cleaned1;
       control = control1;
       taints_to_propagate = _;
       pending_propagation_dests = _;
     }
     {
       tainted = tainted2;
-      cleaned = cleaned2;
       control = control2;
       taints_to_propagate = _;
       pending_propagation_dests = _;
     } =
-  LvalMap.equal Taints.equal tainted1 tainted2
+  NameMap.equal S.equal_ref tainted1 tainted2
   (* NOTE: We ignore 'taints_to_propagate' and 'pending_propagation_dests',
    * we just care how they affect 'tainted'. *)
-  && LvalSet.equal cleaned1 cleaned2
   && Taints.equal control1 control2
 
-let equal_by_lval { tainted = tainted1; cleaned = cleaned1; _ }
-    { tainted = tainted2; cleaned = cleaned2; _ } lval =
+let equal_by_lval { tainted = tainted1; _ } { tainted = tainted2; _ } lval =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       false
-  | Some lval ->
+  | Some (var, _offsets) ->
       let equal_tainted =
-        LvalMap.merge
-          (fun lv opt_taint1 opt_taint2 ->
-            (* We need to consider both extensions of 'lval' as well as its
-             * prefixes. E.g. given `x.a`, if `x` is tainted then `x.a` is
-             * tainted too; and if `x.a.b` is tainted in one environment and
-             * not in the other, that implies that the taint "signature" of
-             * `x.a` has changed. *)
-            if lval_is_prefix lval lv || lval_is_prefix lv lval then
-              match (opt_taint1, opt_taint2) with
-              | None, None -> None
-              | Some _, None
-              | None, Some _ ->
-                  (* not equals *)
-                  (* TODO: Check if `t` is the empty set ? *)
-                  Some ()
-              | Some t1, Some t2 ->
-                  if Taints.equal t1 t2 then None else (* not equals *)
-                                                    Some ()
-            else None)
-          tainted1 tainted2
-        |> LvalMap.is_empty
+        match
+          (NameMap.find_opt var tainted1, NameMap.find_opt var tainted2)
+        with
+        | None, None -> true
+        | Some ref1, Some ref2 -> S.equal_ref ref1 ref2
+        | Some _, None
+        | None, Some _ ->
+            false
       in
       equal_tainted
-      && LvalSet.equal
-           (cleaned1
-           |> LvalSet.filter (fun lv ->
-                  lval_is_prefix lval lv || lval_is_prefix lv lval))
-           (cleaned2
-           |> LvalSet.filter (fun lv ->
-                  lval_is_prefix lval lv || lval_is_prefix lv lval))
 
-let to_string taint_to_str
-    {
-      tainted;
-      cleaned;
-      control;
-      taints_to_propagate;
-      pending_propagation_dests;
-    } =
+let to_string
+    { tainted; control; taints_to_propagate; pending_propagation_dests } =
   (* FIXME: lval_to_str *)
-  (if LvalMap.is_empty tainted then ""
+  (if NameMap.is_empty tainted then ""
    else
-     LvalMap.fold
-       (fun dn v s ->
-         s ^ Display_IL.string_of_lval dn ^ ":" ^ taint_to_str v ^ " ")
+     NameMap.fold
+       (fun dn v s -> s ^ IL.str_of_name dn ^ ":" ^ S.show_ref v ^ " ")
        tainted "[TAINTED]")
-  ^ (if LvalSet.is_empty cleaned then ""
-     else
-       LvalSet.fold
-         (fun dn s -> s ^ Display_IL.string_of_lval dn ^ " ")
-         cleaned "[CLEANED]")
-  ^ (if Taints.is_empty control then "" else "[CONTROL] " ^ taint_to_str control)
+  ^ (if Taints.is_empty control then ""
+     else "[CONTROL] " ^ T.show_taints control)
   ^ (if VarMap.is_empty taints_to_propagate then ""
      else
        VarMap.fold
-         (fun dn v s -> s ^ dn ^ "<-" ^ taint_to_str v ^ " ")
+         (fun dn v s -> s ^ dn ^ "<-" ^ T.show_taints v ^ " ")
          taints_to_propagate "[TAINT TO BE PROPAGATED]")
   ^
   if VarMap.is_empty pending_propagation_dests then ""
@@ -481,10 +399,4 @@ let to_string taint_to_str
       (fun dn v s -> s ^ dn ^ "->" ^ Display_IL.string_of_lval v ^ " ")
       pending_propagation_dests "[PENDING PROPAGATION DESTS]"
 
-let seq_of_tainted env = LvalMap.to_seq env.tainted
-
-let find_tainted_lvals_of_common_base { tainted; _ } base =
-  LvalMap.fold
-    (fun ({ base = base'; _ } as lval) _ l ->
-      if IL.equal_base base base' then lval :: l else l)
-    tainted []
+let seq_of_tainted env = NameMap.to_seq env.tainted

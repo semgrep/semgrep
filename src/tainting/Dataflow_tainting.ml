@@ -21,6 +21,7 @@ module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module PM = Pattern_match
 module R = Rule
+module S = Taint_shape
 module LV = IL_helpers
 module T = Taint
 module Lval_env = Taint_lval_env
@@ -118,7 +119,6 @@ type env = {
 
 let hook_function_taint_signature = ref None
 let hook_find_attribute_in_class = ref None
-let hook_arg_offset_of_il_offset = ref None
 let hook_check_tainted_at_exit_sinks = ref None
 
 (*****************************************************************************)
@@ -645,16 +645,6 @@ let fix_poly_taint_with_field env lval st =
     | Dot n -> !(n.id_info.id_type)
     | Index _ -> None
   in
-  let arg_offset_of_il_offset il_offset =
-    match !hook_arg_offset_of_il_offset with
-    | None -> (
-        match il_offset.IL.o with
-        | Dot n -> Some (T.Ofld n)
-        | Index _ ->
-            (* no index-sensitivity in OSS *)
-            None)
-    | Some arg_offset_of_il_offset -> arg_offset_of_il_offset il_offset
-  in
   (* TODO: Aren't we missing here C# and Go ? *)
   if env.lang =*= Lang.Java || Lang.is_js env.lang || env.lang =*= Lang.Python
   then
@@ -666,15 +656,15 @@ let fix_poly_taint_with_field env lval st =
     | `Tainted taints -> (
         match lval.rev_offset with
         | o :: _ -> (
-            match (type_of_il_offset o, arg_offset_of_il_offset o) with
+            match (type_of_il_offset o, T.offset_of_IL o) with
             | Some { t = TyFun _; _ }, _ ->
                 (* We have an l-value like `o.f` where `f` has a function type,
                  * so it's a method call, we do nothing here. *)
                 st
-            | _, None ->
+            | _, Oany ->
                 (* Cannot handle this offset. *)
                 st
-            | __any__, Some o ->
+            | __any__, o ->
                 (* Not a method call (to the best of our knowledge) or
                  * an unresolved Java `getX` method. *)
                 let taints' =
@@ -1292,27 +1282,45 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) :
   let os =
     sig_arg.offset
     |> List_.map (function
-         | T.Ofld x -> { o = Dot x; oorig = NoOrig }
+         | T.Ofld x -> Some { o = Dot x; oorig = NoOrig }
          | T.Oint i ->
-             {
-               o =
-                 Index
-                   { e = Literal (G.Int (Parsed_int.of_int i)); eorig = NoOrig };
-               oorig = NoOrig;
-             }
+             Some
+               {
+                 o =
+                   Index
+                     {
+                       e = Literal (G.Int (Parsed_int.of_int i));
+                       eorig = NoOrig;
+                     };
+                 oorig = NoOrig;
+               }
          | T.Ostr s ->
-             {
-               o =
-                 Index
-                   {
-                     e =
-                       Literal
-                         (G.String
-                            (Tok.unsafe_fake_bracket (s, Tok.unsafe_fake_tok s)));
-                     eorig = NoOrig;
-                   };
-               oorig = NoOrig;
-             })
+             Some
+               {
+                 o =
+                   Index
+                     {
+                       e =
+                         Literal
+                           (G.String
+                              (Tok.unsafe_fake_bracket
+                                 (s, Tok.unsafe_fake_tok s)));
+                       eorig = NoOrig;
+                     };
+                 oorig = NoOrig;
+               }
+         | T.Oany -> None)
+  in
+  let* os =
+    os
+    |> List.fold_left
+         (fun acc opt_o ->
+           match (acc, opt_o) with
+           | Some acc, Some o -> Some (o :: acc)
+           | _, None
+           | None, _ ->
+               None)
+         (Some [])
   in
   let* lval, obj =
     match sig_arg.base with
@@ -1729,37 +1737,35 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
   (* TOOD: We need to get a map of `lval` to `Taint.arg`, and if an extension
    * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
    * extension and generate an `ArgToArg` finding too. *)
-  enter_env |> Lval_env.seq_of_tainted
-  |> Seq.flat_map (fun ({ base; _ }, enter_taints) ->
-         (* We need to consider all lvals of the same base component
-            due to field and index sensitivity. *)
-         Lval_env.find_tainted_lvals_of_common_base exit_env base
-         |> List_.map (fun l -> (l, enter_taints))
-         |> List.to_seq)
-  |> List.of_seq
-  |> List.concat_map (fun (lval, enter_taints) ->
-         (* For each lval in the enter_env, we get its `T.arg`, and check
-          * if it got new taints at the exit_env. If so, we generate an
-          * ArgToArg. *)
-         match
-           enter_taints |> Taints.elements
-           |> List_.map_filter (fun taint ->
-                  match taint.T.orig with
-                  | T.Arg arg -> Some arg
-                  | _ -> None)
-         with
-         | []
-         | _ :: _ :: _ ->
-             []
-         | [ arg ] ->
-             let exit_taints =
-               Lval_env.dumb_find exit_env lval |> status_to_taints
-             in
-             let new_taints = Taints.diff exit_taints enter_taints in
-             (* TODO: Also report if taints are _cleaned_. *)
-             if not (Taints.is_empty new_taints) then
-               [ T.ToArg (new_taints |> Taints.elements, arg) ]
-             else [])
+  exit_env |> Lval_env.seq_of_tainted
+  |> Seq.map (fun (var, exit_var_ref) ->
+         match Lval_env.find_var_opt enter_env var with
+         | None -> Seq.empty
+         | Some (S.Ref ((`Clean | `None), _)) -> Seq.empty
+         | Some (S.Ref (`Tainted enter_taints, _)) -> (
+             (* For each lval in the enter_env, we get its `T.arg`, and check
+              * if it got new taints at the exit_env. If so, we generate an
+              * ArgToArg. *)
+             match
+               enter_taints |> Taints.elements
+               |> List_.map_filter (fun taint ->
+                      match taint.T.orig with
+                      | T.Arg arg -> Some arg
+                      | _ -> None)
+             with
+             | []
+             | _ :: _ :: _ ->
+                 Seq.empty
+             | [ { Taint.base; _ } ] ->
+                 S.enum_in_ref exit_var_ref
+                 |> Seq.filter_map (fun (offset, exit_taints) ->
+                        let arg = Taint.{ base; offset } in
+                        let new_taints = Taints.diff exit_taints enter_taints in
+                        (* TODO: Also report if taints are _cleaned_. *)
+                        if not (Taints.is_empty new_taints) then
+                          Some (T.ToArg (new_taints |> Taints.elements, arg))
+                        else None)))
+  |> Seq.concat |> List.of_seq
 
 let check_tainted_at_exit_sinks node env =
   match !hook_check_tainted_at_exit_sinks with

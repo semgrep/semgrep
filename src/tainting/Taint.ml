@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022-2024 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -138,10 +138,12 @@ type arg_pos = { name : string; index : int } [@@deriving show, ord]
 type arg_base = BGlob of IL.name | BThis | BArg of arg_pos
 [@@deriving show, ord]
 
-type arg_offset = Ofld of IL.name | Oint of int | Ostr of string
+type arg_offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
 [@@deriving show, ord]
 
 type arg = { base : arg_base; offset : arg_offset list } [@@deriving show]
+
+let hook_arg_offset_of_il_offset = ref None
 
 let compare_arg { base = base1; offset = offset1 }
     { base = base2; offset = offset2 } =
@@ -162,10 +164,21 @@ let _show_offset offset =
   | Ofld n -> "." ^ fst n.IL.ident
   | Oint i -> Printf.sprintf "[%d]" i
   | Ostr s -> Printf.sprintf "[%s]" s
+  | Oany -> "[*]"
 
 let _show_arg { base; offset = os } =
   _show_base base
   ^ if os <> [] then os |> List_.map _show_offset |> String.concat "" else ""
+
+let offset_of_IL il_offset =
+  match !hook_arg_offset_of_il_offset with
+  | None -> (
+      match il_offset.IL.o with
+      | Dot n -> Ofld n
+      | Index _ ->
+          (* no index-sensitivity in OSS *)
+          Oany)
+  | Some offset_of_IL -> offset_of_IL il_offset
 
 (*****************************************************************************)
 (* Taint *)
@@ -263,26 +276,34 @@ let rec _show_source { call_trace; label; precondition } =
      This may change, for instance, if we have ever propagated this taint to
      a different label.
   *)
-  let rec depth acc = function
-    | PM _ -> acc
-    | Call (_, _, x) -> depth (acc + 1) x
-  in
   let pm, ts = pm_of_trace call_trace in
-  let tok1, tok2 = pm.range_loc in
-  let r = Range.range_of_token_locations tok1 tok2 in
-  let precondition_prefix = _show_taints_with_precondition precondition in
-  let str =
-    let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-    toks |> List_.map Tok.content_of_tok |> String.concat "_"
+  let matched_str =
+    let tok1, tok2 = pm.range_loc in
+    let r = Range.range_of_token_locations tok1 tok2 in
+    Range.content_at_range pm.path.internal_path_to_content r
   in
-  Printf.sprintf "<%s(%d,%d)%s#%s/%s|t:%d>" precondition_prefix r.start r.end_
-    str ts.label label (depth 0 call_trace)
+  let matched_line =
+    let loc1, _ = pm.Pattern_match.range_loc in
+    loc1.Tok.pos.line
+  in
+  let num_calls = length_of_call_trace call_trace in
+  let num_calls_str =
+    if num_calls =|= 0 then "" else Printf.sprintf "%d> " num_calls
+  in
+  let label_str =
+    if label = R.default_source_label then ""
+    else if label = ts.label then Printf.sprintf " :%s" label
+    else Printf.sprintf " :%s->%s" ts.label label
+  in
+  let precondition_str = _show_taints_with_precondition precondition in
+  Printf.sprintf "[%s%s @l.%d%s%s]" num_calls_str matched_str matched_line
+    label_str precondition_str
 
 and _show_taints_with_precondition precondition =
   match precondition with
   | None -> ""
   | Some (ts, pre) ->
-      Common.spf "PRE|%s|if %s|"
+      Common.spf "/PRE|%s|if %s/"
         (List_.map _show_taint ts |> String.concat " + ")
         (_show_precondition pre)
 

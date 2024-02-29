@@ -41,12 +41,20 @@ type arg_offset =
   | Ofld of IL.name  (** A field, like `.a` *)
   | Oint of int  (** A constant integer index, like `[42]` *)
   | Ostr of string  (** A constant string index, like `['foo']` *)
+  | Oany
 [@@deriving show]
+
+val compare_arg_offset : arg_offset -> arg_offset -> int
+val _show_offset : arg_offset -> string
+val offset_of_IL : IL.offset -> arg_offset
 
 type arg = { base : arg_base; offset : arg_offset list } [@@deriving show]
 (** An 'arg' taint acts like a taint variable that refers to a specific formal
  * argument of a function/method, or to a specific offset of it. See 'signature'
  * for more details. *)
+
+val hook_arg_offset_of_il_offset : (IL.offset -> arg_offset) option ref
+(** Pro index sensitivity *)
 
 type source = {
   call_trace : Rule.taint_source call_trace;
