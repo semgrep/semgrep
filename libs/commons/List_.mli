@@ -10,6 +10,19 @@ val map : ('a -> 'b) -> 'a list -> 'b list
     left to right like for [List.iter].
 *)
 
+(* Generic iteration over a list, with a view into the previous and the next
+   element.
+
+   This function isn't used very often but when it is, it's good to have it.
+   It's convenient for printing lists with special handling for the first and
+   last elements.
+
+   Another potential use is for collecting or printing intervals or
+   differences between successive elements.
+*)
+val iter_with_view_into_neighbor_elements :
+  (prev:'a option -> cur:'a -> next:'a option -> unit) -> 'a list -> unit
+
 (* List_.hd_exn msg []' will raise
    the exception 'Failure msg' which is only a slight improvement over
    'List_.hd_exn "unexpected empty list"'.

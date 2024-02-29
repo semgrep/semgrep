@@ -117,6 +117,26 @@ let rec fast_map rec_calls_remaining f l =
 let map f l = fast_map 1000 f l
 
 (*****************************************************************************)
+(* Additional iterators *)
+(*****************************************************************************)
+
+let iter_with_view_into_neighbor_elements
+    (f : prev:'a option -> cur:'a -> next:'a option -> unit) xs =
+  let rec loop ~prev xs =
+    match xs with
+    | x :: tail ->
+        let next =
+          match tail with
+          | [] -> None
+          | next :: _ -> Some next
+        in
+        f ~prev ~cur:x ~next;
+        loop ~prev:(Some x) tail
+    | [] -> ()
+  in
+  loop ~prev:None xs
+
+(*****************************************************************************)
 (* Faster List.map2 *)
 (*****************************************************************************)
 
