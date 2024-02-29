@@ -1,0 +1,7 @@
+let one = a_function_call (wrap (the_argument))
+
+let two = a_function_call (wrap (the_argument))
+
+let three = a_function_call (wrap ((another_func the_argument)))
+
+let three = a_function_call (wrap ((tuple_member, threeple_member)))

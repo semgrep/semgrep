@@ -1,0 +1,16 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/python-delete-import.py
+   ❯❯❱ rules.autofix.python-typing-osemgrep
+          found one
+
+           ▶▶┆ Autofix ▶ delete
+            2┆ from typing import Dict
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ delete
+            3┆ from typing import List
+
