@@ -157,8 +157,8 @@ let unknown_metavar_in_comparison env f =
             Set.empty mv_sets
         in
         let mvs_to_check = Set.union mvs parent_mvs in
-        (* Check that all metavariables in this And-clause's metavariable-comparison
-           clauses appear somewhere else *)
+        (* Check that all metavariables in this And-clause's condition
+           clauses were already bound *)
         conditions |> List.iter (check_mvars_of_condition env mvs_to_check);
         (* Now collect the metavariables in the conditions, which could be used
            in the focus-metavariable clauses *)
@@ -173,7 +173,7 @@ let unknown_metavar_in_comparison env f =
                  | CondRegexp (_, regex, _) ->
                      Metavariable.mvars_of_regexp_string regex |> Set_.of_list
                  | CondNestedFormula (_, _, formula) ->
-                     collect_metavars mvs formula)
+                     collect_metavars mvs_to_check formula)
           |> List.fold_left Set.union Set.empty
         in
         (* Doing the same union twice feels wasteful, but we need to check
