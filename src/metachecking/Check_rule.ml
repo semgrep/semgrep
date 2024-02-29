@@ -153,16 +153,18 @@ let unknown_metavar_in_comparison env f =
         (* Collect and check from the conjuncts. Pass down the metavariables
            from the parent *)
         let mv_sets = List_.map (collect_metavars parent_mvs) conjuncts in
-        let mvs =
+        let conj_mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
             Set.empty mv_sets
         in
+
         (* Check the metavariables in the conditions (e.g. metavariable-pattern).
            From here on, both the metavariables from the conjuncts and the
            metavariables from the parent are already bound *)
-        let mvs_to_check = Set.union mvs parent_mvs in
-        conditions |> List.iter (check_mvars_of_condition env mvs_to_check);
+        let bound_mvs_for_conds = Set.union conj_mvs parent_mvs in
+        conditions
+        |> List.iter (check_mvars_of_condition env bound_mvs_for_conds);
         (* Now collect the metavariables defined in the conditions, which could
            be used in the focus-metavariable clauses, and check nested formulas *)
         let cond_mvs =
@@ -176,15 +178,16 @@ let unknown_metavar_in_comparison env f =
                  | CondRegexp (_, regex, _) ->
                      Metavariable.mvars_of_regexp_string regex |> Set_.of_list
                  | CondNestedFormula (_, _, formula) ->
-                     collect_metavars mvs_to_check formula)
+                     collect_metavars bound_mvs_for_conds formula)
           |> List.fold_left Set.union Set.empty
         in
+
         (* Check the focus-metavariable clauses last since they can use metavariables
            in any clause within the And *)
-        let mvs_to_check = Set.union cond_mvs mvs_to_check in
-        focus |> List.iter (check_mvars_of_focus env mvs_to_check);
+        let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
+        focus |> List.iter (check_mvars_of_focus env bound_mvs_for_focus);
         (* Return only the metavariables that were newly bound in this node *)
-        let mvs = Set.union cond_mvs mvs in
+        let mvs = Set.union cond_mvs conj_mvs in
         mvs
   in
   let _ = collect_metavars Set.empty f in
