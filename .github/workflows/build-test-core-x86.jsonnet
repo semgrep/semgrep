@@ -10,25 +10,17 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // exported for other workflows
 local artifact_name = 'ocaml-build-artifacts-release';
 
+local container = semgrep.containers.ocaml_alpine;
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run_test=true) =
-
-  local test_steps =
-    if run_test
-    then [{
-      name: 'Test semgrep-core',
-      run: 'opam exec -- make core-test',
-    }]
-    else [];
-
+local job =
   // This container has opam already installed, as well as an opam switch
   // already created, and a big set of packages already installed. Thus,
   // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
   // almost a noop.
-  // TODO? now that we use cache_opam, maybe we need less those containers
-  // and could use a more regular opam container (or setup-ocaml@v2)
+  // TODO: switch to setup-ocaml@v2 + GHA cache
   container.job
   {
     steps: [
@@ -61,10 +53,14 @@ local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run
         uses: 'actions/upload-artifact@v3',
         with: {
           path: 'ocaml-build-artifacts.tgz',
-          name: artifact,
+          name: artifact_name,
         },
       },
-    ] + test_steps,
+      {
+        name: 'Test semgrep-core',
+        run: 'opam exec -- make core-test',
+      }
+    ]
   };
 
 // ----------------------------------------------------------------------------
@@ -76,12 +72,10 @@ local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run
   // TODO: just make this job a func so no need to use GHA inherit/call
   on: gha.on_dispatch_or_call,
   jobs: {
-    job: job(),
+    job: job,
   },
   // to be reused by other workflows
   export:: {
     artifact_name: artifact_name,
-    // used by build-test-core-x86-ocaml5.jsonnet
-    job: job,
   },
 }
