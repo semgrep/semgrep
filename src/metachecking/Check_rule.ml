@@ -150,18 +150,21 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
     | And (_, { conjuncts; conditions; focus }) ->
+        (* Collect and check from the conjuncts. Pass down the metavariables
+           from the parent *)
         let mv_sets = List_.map (collect_metavars parent_mvs) conjuncts in
         let mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
             Set.empty mv_sets
         in
+        (* Check the metavariables in the conditions (e.g. metavariable-pattern).
+           From here on, both the metavariables from the conjuncts and the
+           metavariables from the parent are already bound *)
         let mvs_to_check = Set.union mvs parent_mvs in
-        (* Check that all metavariables in this And-clause's condition
-           clauses were already bound *)
         conditions |> List.iter (check_mvars_of_condition env mvs_to_check);
-        (* Now collect the metavariables in the conditions, which could be used
-           in the focus-metavariable clauses *)
+        (* Now collect the metavariables defined in the conditions, which could
+           be used in the focus-metavariable clauses, and check nested formulas *)
         let cond_mvs =
           conditions
           |> List_.map (fun (_, condition) ->
@@ -176,14 +179,12 @@ let unknown_metavar_in_comparison env f =
                      collect_metavars mvs_to_check formula)
           |> List.fold_left Set.union Set.empty
         in
-        (* Doing the same union twice feels wasteful, but we need to check
-           the parent metavariables in both the conditions and the focus,
-           while we only return the metavariables produced by the node *)
-        let mvs = Set.union cond_mvs mvs in
-        let mvs_to_check = Set.union cond_mvs mvs_to_check in
         (* Check the focus-metavariable clauses last since they can use metavariables
            in any clause within the And *)
+        let mvs_to_check = Set.union cond_mvs mvs_to_check in
         focus |> List.iter (check_mvars_of_focus env mvs_to_check);
+        (* Return only the metavariables that were newly bound in this node *)
+        let mvs = Set.union cond_mvs mvs in
         mvs
   in
   let _ = collect_metavars Set.empty f in
