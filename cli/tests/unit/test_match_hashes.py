@@ -7,7 +7,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchSet
+from semgrep.rule_match import RuleMatches
 
 
 @pytest.fixture
@@ -118,10 +118,10 @@ def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
     match_1 = get_rule_match(start_line=3, end_line=3)
     match_2 = get_rule_match(start_line=4, end_line=4)
-    matches = RuleMatchSet(eqeq_rule)
+    matches = RuleMatches(eqeq_rule)
     matches.update([match_1, match_2])
     matches = list(sorted(matches))
-    # Adding a RuleMatch to a RuleMatchSet does not update the index of the
+    # Adding a RuleMatch to a RuleMatches does not update the index of the
     # original RuleMatch object, instead it creates a copy of each RuleMatch
     # that gets added to the set, and updates those indexes
     assert matches[0].index == 0
@@ -141,10 +141,10 @@ def test_code_hash_changes_with_code(mocker, eqeq_rule, foo_contents):
     match_2 = get_rule_match(
         start_line=5, end_line=5, metavars={"$X": {"abstract_content": "6"}}
     )
-    matches = RuleMatchSet(eqeq_rule)
+    matches = RuleMatches(eqeq_rule)
     matches.update([match_1, match_2])
     matches = list(sorted(matches))
-    # Adding a RuleMatch to a RuleMatchSet does not update the index of the
+    # Adding a RuleMatch to a RuleMatches does not update the index of the
     # original RuleMatch object, instead it creates a copy of each RuleMatch
     # that gets added to the set, and updates those indexes
     assert matches[0].index == 0
@@ -158,7 +158,7 @@ def test_line_hashes_hash_correct_line(mocker, double_eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
     match_1 = get_rule_match(start_line=4, end_line=5)  # 5 == 5\n6 == 6\n
     match_2 = get_rule_match(start_line=5, end_line=6)  # 6 == 6\n5 == 5\n
-    matches = RuleMatchSet(double_eqeq_rule)
+    matches = RuleMatches(double_eqeq_rule)
     matches.update([match_1, match_2])
     matches = list(sorted(matches))
     assert matches[0].start_line_hash != matches[0].end_line_hash
