@@ -1,11 +1,6 @@
-import pytest
-
 from semgrep.git import clean_project_url
 
 
-@pytest.mark.quick
-@pytest.mark.no_semgrep_cli
-@pytest.mark.osemfail
 def test_git_url_clean(mocker):
     assert (
         clean_project_url(
