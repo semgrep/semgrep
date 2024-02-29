@@ -228,6 +228,7 @@ let map2 f l1 l2 = fast_map2 1000 f l1 l2
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev
 
+(* Stack-safe starting from OCaml 5.1 *)
 let append a b = List.rev_append (List.rev a) b
 let ( @ ) = append
 
