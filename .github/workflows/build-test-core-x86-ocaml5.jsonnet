@@ -5,8 +5,9 @@ local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+//TODO: currently fails because of conflicts with ocamlformat and jsoo
 //TODO: local opam_switch = '5.2.0~alpha1';
-local opam_switch = '5.2.0~alpha1';
+local opam_switch = '5.1.0';
 
 // ----------------------------------------------------------------------------
 // The job
