@@ -1,19 +1,59 @@
-// This is the same than build-test-core-x86.jsonnet but using OCaml 5,
-// just to make sure Semgrep is ready to be migrated to OCaml 5.
+// This is similar to build-test-core-x86.jsonnet but using OCaml 5
+// and setup-ocaml@v2 instead of ocaml-layer.
+// This is just to make sure Semgrep is ready to be migrated to OCaml 5.
 local gha = import 'libs/gha.libsonnet';
+local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
-local core_x86 = import 'build-test-core-x86.jsonnet';
+
+//TODO: local opam_switch = '5.2.0~alpha1';
+local opam_switch = '5.1.0';
 
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local job = core_x86.export.job(
-  container=semgrep.containers.ocaml5_alpine,
-  artifact='ocaml-build-artifacts-ocaml5-release',
-  // TODO: some tests are currently failing with OCaml5! but at least
-  // we can still check whether it builds
-  run_test=false,
-);
+local job = {
+  'runs-on': 'ubuntu-latest',
+  steps: [
+    actions.checkout_with_submodules(),
+    // this must be done after the checkout as opam installs itself
+    // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
+    {
+      uses: 'ocaml/setup-ocaml@v2',
+      with: {
+        'ocaml-compiler': opam_switch,
+      },
+    },
+    semgrep.cache_opam.step(
+      key=opam_switch + '-_opam-' + "${{ hashFiles('semgrep.opam') }}",
+      path="_opam",
+    ),
+    // alt: call 'sudo make install-deps-UBUNTU-for-semgrep-core'
+    // but looks like opam and setup-ocaml@ can automatically install
+    // depext dependencies.
+    {
+      name: 'Install semgrep dependencies',
+      run: |||
+        eval $(opam env)
+        make install-deps-for-semgrep-core
+      |||,
+    },
+    {
+      name: 'Build semgrep',
+      run: |||
+        eval $(opam env)
+        make
+      |||,
+    },
+    // TODO: some tests are currently failing with OCaml5! but at least
+    // we can still check whether it builds
+    {
+      name: 'Test semgrep',
+      run: |||
+        echo TODO
+      |||,
+    },
+  ],
+};
 
 // ----------------------------------------------------------------------------
 // The Workflow
