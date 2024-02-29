@@ -25,35 +25,33 @@ type 'spec call_trace =
         * was used to produce the match, e.g. one of the `pattern-sources`.  *)
   | Call of AST_generic.expr * tainted_tokens * 'spec call_trace
       (** An indirect match through a function call. *)
-[@@deriving show]
 
-type arg_pos = { name : string; index : int } [@@deriving show]
+type arg = { name : string; index : int } [@@deriving show]
 (** A formal argument of a function given by its name and it's index/position. *)
 
-type arg_base =
+type base =
   | BGlob of IL.name  (** A global variable or a static class field. *)
   | BThis
       (** The 'this' or 'self' object, treated here like an special argument. *)
-  | BArg of arg_pos  (** A formal parameter in a function/method definition. *)
+  | BArg of arg  (** A formal parameter in a function/method definition. *)
 [@@deriving show]
 
-type arg_offset =
+type offset =
   | Ofld of IL.name  (** A field, like `.a` *)
   | Oint of int  (** A constant integer index, like `[42]` *)
   | Ostr of string  (** A constant string index, like `['foo']` *)
   | Oany
-[@@deriving show]
 
-val compare_arg_offset : arg_offset -> arg_offset -> int
-val _show_offset : arg_offset -> string
-val offset_of_IL : IL.offset -> arg_offset
+val compare_offset : offset -> offset -> int
+val show_offset : offset -> string
+val offset_of_IL : IL.offset -> offset
 
-type arg = { base : arg_base; offset : arg_offset list } [@@deriving show]
-(** An 'arg' taint acts like a taint variable that refers to a specific formal
+type lval = { base : base; offset : offset list }
+(** An 'lval' taint acts like a taint variable that refers to a specific formal
  * argument of a function/method, or to a specific offset of it. See 'signature'
  * for more details. *)
 
-val hook_arg_offset_of_il_offset : (IL.offset -> arg_offset) option ref
+val hook_offset_of_IL : (IL.offset -> offset) option ref
 (** Pro index sensitivity *)
 
 type source = {
@@ -96,18 +94,16 @@ type source = {
        *    (['arg(x#0)'], PLabel A)
        *)
 }
-[@@deriving show]
 
 (** The origin of taint, where does taint comes from? *)
 and orig =
   | Src of source  (** An actual taint source (a `pattern-sources` match). *)
-  | Arg of arg
+  | Var of lval
       (** Polymorphic taint variable: arbitrary taint coming through one of the
        * arguments in a function definition. *)
   | Control
-[@@deriving show]
 
-and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+and taint = { orig : orig; tokens : tainted_tokens }
 (** At a given program location, taint is given by its origin (i.e. 'orig') and
  * the path it took from that origin to the current location (i.e. 'tokens'). *)
 
@@ -121,11 +117,8 @@ val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
    the same.
 *)
 val map_preconditions : (taint list -> taint list) -> taint -> taint option
-
-val _show_arg : arg -> string
-(** Debugging functions. (TODO: Rename to 'debug_xyz' ? Replace 'show_xyz' ?) *)
-
-val _show_taint : taint -> string
+val show_lval : lval -> string
+val show_taint : taint -> string
 
 (*****************************************************************************)
 (* Taint sets *)
@@ -166,7 +159,7 @@ val taints_of_pms :
 val show_taints : taints -> string
 
 (*****************************************************************************)
-(* Taint findings / signatures *)
+(* Taint results & signatures *)
 (*****************************************************************************)
 
 type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
@@ -195,30 +188,29 @@ type taints_to_sink = {
 }
 [@@deriving show]
 
-(** Function-level finding.
+(** Function-level result.
   *
-  * 'ToSink' findings where a taint source reaches a sink are candidates for
+  * 'ToSink' results where a taint source reaches a sink are candidates for
   * actual Semgrep findings, although some may be dropped by deduplication.
   *
-  * Findings are computed for each function/method definition, and formulated
-  * using 'arg' taints to act as placeholders of the taint that may be passed
-  * by an arbitrary caller via the function arguments. Thus the findings are
-  * polymorphic/context-sensitive, as the 'arg' taints can be instantiated
+  * Results are computed for each function/method definition, and formulated
+  * using 'lval' taints to act as placeholders of the taint that may be passed
+  * by an arbitrary caller via the function arguments. Thus the results are
+  * polymorphic/context-sensitive, as the 'lval' taints can be instantiated
   * accordingly at each call site.
   *)
-type finding =
+type result =
   | ToSink of taints_to_sink  (** Taints reach a sink. *)
   | ToReturn of taint list * AST_generic.tok
       (** Taints reach a `return` statement. *)
-  | ToArg of taint list * arg  (** Taints reach an argument of the function *)
-[@@deriving show]
+  | ToLval of taint list * lval  (** Taints reach an argument of the function *)
 
-val compare_finding : finding -> finding -> int
+val compare_result : result -> result -> int
 
-module Findings : Set.S with type elt = finding
-module Findings_tbl : Hashtbl.S with type key = finding
+module Results : Set.S with type elt = result
+module Results_tbl : Hashtbl.S with type key = result
 
-type signature = Findings.t
+type signature = Results.t
 (** A (polymorphic) taint signature: simply a set of findings for a function.
  *
  * Note that this signature is polymorphic/context-sensitive given that the
@@ -247,5 +239,5 @@ type signature = Findings.t
  *
  *)
 
-val _show_finding : finding -> string
-val _show_signature : signature -> string
+val show_result : result -> string
+val show_signature : signature -> string

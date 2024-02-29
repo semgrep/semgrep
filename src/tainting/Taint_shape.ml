@@ -31,9 +31,9 @@ let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 (*****************************************************************************)
 
 module Fields = Map.Make (struct
-  type t = T.arg_offset
+  type t = T.offset
 
-  let compare = T.compare_arg_offset
+  let compare = T.compare_offset
 end)
 
 type shape =
@@ -70,7 +70,7 @@ let find_offset_in_obj o obj =
         Logs.debug (fun m ->
             m ~tags:warning
               "Already tracking too many fields, will not track %s"
-              (T._show_offset o));
+              (T.show_offset o));
         (Oany, obj))
 
 (*****************************************************************************)
@@ -110,7 +110,7 @@ and show_shape = function
 and show_obj obj =
   obj |> Fields.to_seq
   |> Seq.map (fun (o, o_ref) ->
-         spf "%s : %s" (T._show_offset o) (show_ref o_ref))
+         spf "%s : %s" (T.show_offset o) (show_ref o_ref))
   |> List.of_seq |> String.concat "; "
 
 (*****************************************************************************)
@@ -278,7 +278,7 @@ and clean_obj offset obj =
 (* Enumerate tainted offsets *)
 (*****************************************************************************)
 
-let rec enum_in_ref ref : (T.arg_offset list * Taints.t) Seq.t =
+let rec enum_in_ref ref : (T.offset list * Taints.t) Seq.t =
   let (Ref (taints, shape)) = ref in
   let x =
     match taints with

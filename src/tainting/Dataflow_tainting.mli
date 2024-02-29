@@ -52,12 +52,12 @@ type config = {
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
-  handle_findings :
+  handle_results :
     var option (** function name ('None' if anonymous) *) ->
-    Taint.finding list ->
+    Taint.result list ->
     Taint_lval_env.t ->
     unit;
-      (** Callback to report findings. *)
+      (** Callback to report results. *)
 }
 (** Taint rule instantiated for a given file.
   *
