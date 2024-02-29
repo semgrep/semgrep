@@ -392,3 +392,8 @@ let enum x n =
     if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
+
+(* for 'open List_.Operators' *)
+module Operators = struct
+  let ( @ ) = ( @ )
+end
