@@ -107,7 +107,7 @@ let check_mvars_of_focus env bound_mvs (t, mv_list) =
          if not (mvar_is_ok mv bound_mvs) then mv_error env mv t)
 
 let unknown_metavar_in_comparison env f =
-  let rec collect_metavars f : MV.mvar Set.t =
+  let rec collect_metavars parent_mvs f : MV.mvar Set.t =
     match f with
     | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
@@ -134,10 +134,10 @@ let unknown_metavar_in_comparison env f =
         |> List.fold_left Set.union Set.empty
     | Inside (_, f)
     | Anywhere (_, f) ->
-        collect_metavars f
+        collect_metavars parent_mvs f
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
-        let mv_sets = List_.map collect_metavars xs in
+        let mv_sets = List_.map (collect_metavars parent_mvs) xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
            * speaking a metavariable needs to be in all cases of a pattern-either
@@ -150,16 +150,23 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
     | And (_, { conjuncts; conditions; focus }) ->
-        let mv_sets = List_.map collect_metavars conjuncts in
-        let mvs =
+        (* Collect and check from the conjuncts. Pass down the metavariables
+           from the parent *)
+        let mv_sets = List_.map (collect_metavars parent_mvs) conjuncts in
+        let conj_mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
             Set.empty mv_sets
         in
-        (* Check that all metavariables in this And-clause's metavariable-comparison clauses appear somewhere else *)
-        conditions |> List.iter (check_mvars_of_condition env mvs);
-        (* Now collect the metavariables in the conditions, which could be used
-           in the focus-metavariable clauses *)
+
+        (* Check the metavariables in the conditions (e.g. metavariable-pattern).
+           From here on, both the metavariables from the conjuncts and the
+           metavariables from the parent are already bound *)
+        let bound_mvs_for_conds = Set.union conj_mvs parent_mvs in
+        conditions
+        |> List.iter (check_mvars_of_condition env bound_mvs_for_conds);
+        (* Now collect the metavariables defined in the conditions, which could
+           be used in the focus-metavariable clauses, and check nested formulas *)
         let cond_mvs =
           conditions
           |> List_.map (fun (_, condition) ->
@@ -170,16 +177,20 @@ let unknown_metavar_in_comparison env f =
                      Set.empty
                  | CondRegexp (_, regex, _) ->
                      Metavariable.mvars_of_regexp_string regex |> Set_.of_list
-                 | CondNestedFormula (_, _, formula) -> collect_metavars formula)
+                 | CondNestedFormula (_, _, formula) ->
+                     collect_metavars bound_mvs_for_conds formula)
           |> List.fold_left Set.union Set.empty
         in
+
         (* Check the focus-metavariable clauses last since they can use metavariables
            in any clause within the And *)
-        let mvs = Set.union cond_mvs mvs in
-        focus |> List.iter (check_mvars_of_focus env mvs);
+        let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
+        focus |> List.iter (check_mvars_of_focus env bound_mvs_for_focus);
+        (* Return only the metavariables that were newly bound in this node *)
+        let mvs = Set.union cond_mvs conj_mvs in
         mvs
   in
-  let _ = collect_metavars f in
+  let _ = collect_metavars Set.empty f in
   ()
 
 (* call Check_pattern subchecker *)
