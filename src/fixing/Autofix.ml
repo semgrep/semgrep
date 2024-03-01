@@ -147,6 +147,7 @@ let transform_fix lang ast =
 
 (* Check whether the proposed fix results in syntactically valid code *)
 let validate_fix lang target_contents edit =
+  Logs.debug (fun m -> m ~tags "validate fix %s" (Textedit.show edit));
   let fail err =
     Error
       (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s"
@@ -376,14 +377,22 @@ let apply_fixes_to_file_exn path edits =
              .replacement_text)
 
 let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
-  (* TODO: *)
-  let modified_files, _failed_fixes = Textedit.apply_edits ~dryrun edits in
+  let modified_files, failed_fixes = Textedit.apply_edits ~dryrun edits in
 
-  if modified_files <> [] then
-    Logs.info (fun m ->
-        m "successfully modified %s."
-          (String_.unit_str (List.length modified_files) "file(s)"))
-  else Logs.info (fun m -> m "no files modified.")
+  (match modified_files with
+  | _ :: _ ->
+      Logs.info (fun m ->
+          m ~tags "%smodified %s."
+            (match failed_fixes with
+            | [] -> "successfully "
+            | _ -> "")
+            (String_.unit_str (List.length modified_files) "file(s)"))
+  | [] -> Logs.info (fun m -> m "no files modified."));
+  match failed_fixes with
+  | [] -> ()
+  | _ ->
+      Logs.warn (fun m ->
+          m ~tags "failed to apply %i fix(es)" (List.length failed_fixes))
 
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
   matches
