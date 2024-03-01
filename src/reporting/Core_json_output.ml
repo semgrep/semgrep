@@ -186,11 +186,6 @@ let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
   in
   let seen = Hashtbl.create 101 in
   xs
-  (* We sort first, because this preserves behavior with when this step
-     was in Cli_json_output. Otherwise, we would get different matches in
-     the cases where we have matches that have the same core_unique_key.
-  *)
-  |> OutUtils.sort_core_matches
   |> List.iter (fun x ->
          let key = core_unique_key x in
          match Hashtbl.find_opt seen key with
@@ -198,7 +193,7 @@ let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
          | Some y when should_report_instead (x, y) ->
              Hashtbl.replace seen key x
          | _ -> ());
-  Hashtbl.to_seq_values seen |> List.of_seq
+  Hashtbl.to_seq_values seen |> List.of_seq |> OutUtils.sort_core_matches
 
 (*****************************************************************************)
 (* Converters *)
