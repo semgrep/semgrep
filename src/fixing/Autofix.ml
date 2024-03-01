@@ -13,10 +13,9 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__; "autofix" ]
 let ( let/ ) = Result.bind
 
 (*****************************************************************************)
@@ -244,7 +243,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
 
       let edit =
         {
-          Textedit.path = !!(pm.path.internal_path_to_content);
+          Textedit.path = pm.path.internal_path_to_content;
           start;
           end_;
           replacement_text = text;
@@ -282,12 +281,7 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
   in
   let edit =
     Textedit.
-      {
-        path = !!(pm.path.internal_path_to_content);
-        start;
-        end_;
-        replacement_text;
-      }
+      { path = pm.path.internal_path_to_content; start; end_; replacement_text }
   in
   edit
 
@@ -336,12 +330,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
   in
   let edit =
     Textedit.
-      {
-        path = !!(pm.path.internal_path_to_content);
-        start;
-        end_;
-        replacement_text;
-      }
+      { path = pm.path.internal_path_to_content; start; end_; replacement_text }
   in
   edit
 
@@ -375,9 +364,10 @@ let produce_autofixes (matches : Core_result.processed_match list) =
       { m with autofix_edit = render_fix m.pm })
     matches
 
-let apply_fixes_to_file edits ~file =
-  let file_text = UFile.Legacy.read_file file in
-  match Textedit.apply_edits_to_text file_text edits with
+(* This is used for testing only. This is why it raises an exception. *)
+let apply_fixes_to_file_exn path edits =
+  let file_text = UFile.read_file path in
+  match Textedit.apply_edits_to_text path file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->
       failwith
@@ -401,7 +391,5 @@ let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
          let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in
-         Some
-           Textedit.
-             { path = Fpath.to_string m.path; start; end_; replacement_text })
+         Some Textedit.{ path = m.path; start; end_; replacement_text })
   |> apply_fixes ?dryrun

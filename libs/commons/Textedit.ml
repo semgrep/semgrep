@@ -15,8 +15,12 @@
 
 (* This module represents and applies edits to text *)
 
+open Fpath_.Operators
+
+let tags = Logs_.create_tags [ __MODULE__; "autofix" ]
+
 type t = {
-  path : string; (* filename *)
+  path : Fpath.t;
   (* 0-based byte index, inclusive *)
   start : int;
   (* 0-based byte index, exclusive *)
@@ -33,33 +37,50 @@ type edit_application_result =
       conflicting_edits : t list;
     }
 
-let remove_overlapping_edits edits =
-  let rec f edits conflicting_edits = function
-    | e1 :: e2 :: tl ->
-        if e1.end_ > e2.start then
-          let conflicting_edits =
-            (* If the edits are identical, they are not conflicting. We can
-             * apply just one. *)
-            if e1 = e2 then conflicting_edits else e2 :: conflicting_edits
-          in
-          f edits conflicting_edits (e1 :: tl)
-        else
-          let edits = e1 :: edits in
-          f edits conflicting_edits (e2 :: tl)
-    | [ edit ] ->
-        let edits = edit :: edits in
-        (List.rev edits, List.rev conflicting_edits)
-    | [] -> (List.rev edits, List.rev conflicting_edits)
-  in
-  f [] [] edits
+let overlaps (e1 : t) (e2 : t) =
+  (* overlap <=> not (no overlap)
+             <=> not (e1 ends before e2 or e2 ends before e1) *)
+  not (e1.end_ <= e2.start || e2.end_ <= e1.start)
 
-let apply_edit_to_text text { start; end_; replacement_text; _ } =
+let overlaps_with_an_interval (intervals : t list) (e1 : t) =
+  List.exists (fun e2 -> overlaps e1 e2) intervals
+
+(*
+   Remove overlapping edits by proceeding from left to right in the order
+   the edits are given to us.
+
+   This is an O(N^2) algorithm where N is the number of edits. It should be
+   small enough in practice since N is the number of edits to make in one
+   file. If it turns out this isn't good enough, we'll have to use a more
+   elaborate algorithm. The problem is that we have to apply the fixes
+   in the order in which they're discovered by semgrep rules rather than
+   than in the order in which they appear in the file.
+*)
+let remove_overlapping_edits edits =
+  let accepted_edits, conflicting_edits =
+    List.fold_left
+      (fun (accepted_edits, conflicting_edits) edit ->
+        if overlaps_with_an_interval accepted_edits edit then
+          (accepted_edits, edit :: conflicting_edits)
+        else (edit :: accepted_edits, conflicting_edits))
+      ([], []) edits
+  in
+  (List.rev accepted_edits, List.rev conflicting_edits)
+
+let apply_edit_to_text text ({ start; end_; replacement_text; _ } as edit) =
+  Logs.debug (fun m -> m ~tags "Apply edit %s" (show edit));
   let before = Str.string_before text start in
   let after = Str.string_after text end_ in
   before ^ replacement_text ^ after
 
-let apply_edits_to_text text edits =
-  let edits = List.sort (fun e1 e2 -> e1.start - e2.start) edits in
+let apply_edits_to_text path text edits =
+  (*
+     Don't sort the edits. They must be applied in the order in which they
+     were detected. If two rules report a problem at the same location,
+     the first rule that reports the problem has precedence.
+  *)
+  Logs.debug (fun m ->
+      m ~tags "Applying %i edits to file %s" (List.length edits) !!path);
   let edits, conflicting_edits = remove_overlapping_edits edits in
   (* Switch to bottom to top order so that we don't need to track offsets as
    * we apply multiple patches *)
@@ -71,6 +92,10 @@ let apply_edits_to_text text edits =
       (fun file_text edit -> apply_edit_to_text file_text edit)
       text edits
   in
+  Logs.debug (fun m ->
+      m ~tags "file %s: %i/%i edits were applied successfully" !!path
+        (List.length conflicting_edits)
+        (List.length edits));
   if conflicting_edits = [] then Success fixed_text
   else Overlap { partial_result = fixed_text; conflicting_edits }
 
@@ -113,20 +138,20 @@ let apply_edits ~dryrun edits =
   let edits_by_file = partition_edits_by_file edits in
   let all_conflicting_edits = ref [] in
   Hashtbl.iter
-    (fun file file_edits ->
-      let file_text = UFile.Legacy.read_file file in
+    (fun (path : Fpath.t) file_edits ->
+      let file_text = UFile.read_file path in
       let file_edits =
         List_.map (remove_newline_for_empty_replacement file_text) file_edits
       in
       let new_text =
-        match apply_edits_to_text file_text file_edits with
+        match apply_edits_to_text path file_text file_edits with
         | Success x -> x
         | Overlap { partial_result; conflicting_edits } ->
             Stack_.push conflicting_edits all_conflicting_edits;
             partial_result
       in
       (* TOPORT: when dryrun, report fixed lines *)
-      if not dryrun then UFile.Legacy.write_file ~file new_text)
+      if not dryrun then UFile.write_file ~file:path new_text)
     edits_by_file;
   let modified_files = Hashtbl.to_seq_keys edits_by_file |> List.of_seq in
   let conflicting_edits = List.concat !all_conflicting_edits in
