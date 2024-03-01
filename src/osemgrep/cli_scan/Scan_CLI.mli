@@ -64,4 +64,3 @@ val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
 val o_include : string list Cmdliner.Term.t
 val o_exclude : string list Cmdliner.Term.t
-val o_ast_caching : bool Cmdliner.Term.t

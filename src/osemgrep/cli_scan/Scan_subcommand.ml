@@ -868,9 +868,8 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * so better print a good error message for it.
    * coupling: see the 'NEW' section in Scan_CLI.ml for all those new flags
    *)
-  | Maturity.Default
-    when conf.registry_caching || conf.core_runner_conf.ast_caching ->
-      Error.abort "--registry_caching or --ast_caching require --experimental"
+  | Maturity.Default when conf.registry_caching ->
+      Error.abort "--registry_caching requires --experimental"
   | Maturity.Default -> (
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
       match conf with
