@@ -1,0 +1,17 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/flask-use-jsonify.py
+   ❯❯❱ rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify
+          flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from
+          Flask routes
+
+           ▶▶┆ Autofix ▶ flask.jsonify(user_dict)
+           10┆ return flask.jsonify(user_dict)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ flask.jsonify(user_dict)
+           18┆ return flask.jsonify(user_dict)
+

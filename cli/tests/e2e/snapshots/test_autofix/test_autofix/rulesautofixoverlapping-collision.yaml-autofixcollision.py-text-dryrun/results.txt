@@ -1,0 +1,21 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/collision.py
+    ❯❱ rules.autofix.first-rule
+          Semgrep found a match
+
+           ▶▶┆ Autofix ▶ once
+            2┆ once
+
+    ❯❱ rules.autofix.second-rule
+          Semgrep found a match
+
+           ▶▶┆ Autofix ▶ twice
+            3┆ b = 2
+            4┆ c = 3
+            5┆ d = 4
+
