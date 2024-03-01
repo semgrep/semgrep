@@ -20,6 +20,16 @@ module FileSet = Set.Make (String)
 (* Helpers *)
 (*****************************************************************************)
 
+(* Check if the taint trace of the pattern crosses functions *)
+
+let is_interprocedural_trace (trace : Pattern_match.taint_trace) =
+  trace
+  |> List.exists (fun (trace_item : Pattern_match.taint_trace_item) ->
+         match (trace_item.source_trace, trace_item.sink_trace) with
+         | Call _, _ -> true
+         | _, Call _ -> true
+         | Toks _, Toks _ -> false)
+
 (* Check if the taint trace of the pattern crosses files *)
 
 let union3 a b c = FileSet.union a (FileSet.union b c)
@@ -38,14 +48,11 @@ let files_of_trace_item (trace_item : Pattern_match.taint_trace_item) =
     match call_trace with
     | Toks ts -> files_of_toks ts
     | Call { call_toks; intermediate_vars; call_trace } ->
-        let intermediate_var =
-          match intermediate_vars with
-          | [] -> []
-          | x :: _ -> [ x ]
+        let _ =
+          intermediate_vars
+          (* intermediate variables will never be in a different file from the other tokens *)
         in
-        union3 (files_of_toks call_toks)
-          (files_of_toks intermediate_var)
-          (files_of_call_trace call_trace)
+        FileSet.union (files_of_toks call_toks) (files_of_call_trace call_trace)
   in
   union3
     (files_of_call_trace trace_item.source_trace)
@@ -62,20 +69,19 @@ let is_interfile_trace (trace : Pattern_match.taint_trace) =
   in
   FileSet.cardinal files_in_trace > 1
 
-(* Check if the taint trace of the pattern crosses functions *)
-
-let is_interprocedural_trace (trace : Pattern_match.taint_trace) =
-  trace
-  |> List.exists (fun (trace_item : Pattern_match.taint_trace_item) ->
-         match (trace_item.source_trace, trace_item.sink_trace) with
-         | Call _, _ -> true
-         | _, Call _ -> true
-         | Toks _, Toks _ -> false)
-
 (*****************************************************************************)
 (* Entrypoint *)
 (*****************************************************************************)
 
+(** Annotate a finding that was produced by the pro engine with more
+    information about the pro features used to find it, if possible.
+    If not, just report it as PRO
+
+    TODO this currently detects proprietary languages, interfile traces,
+    and interprocedural traces. We could also look at tokens in the
+    original values of constant values or (where typed metavariables are
+    used) at the tokens in inferred types to detect other instances.
+  *)
 let annotate_pro_findings (xtarget : Xtarget.t)
     (res : Core_profiling.partial_profiling Core_result.match_result) =
   {
