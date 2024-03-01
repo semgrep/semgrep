@@ -90,8 +90,8 @@ let annotate_pro_findings (xtarget : Xtarget.t)
                | Some trace ->
                    let trace = Lazy.force trace in
                    let interfile_trace = is_interfile_trace trace in
-                   (* All interfile findings are necessarily interprocedural, but
-                      the taint trace might not contain a Call node *)
+                   (* All interfile taint findings are necessarily also interprocedural
+                      taint findings, but the taint trace might not contain a Call node *)
                    ( is_interprocedural_trace trace || interfile_trace,
                      interfile_trace )
              in
