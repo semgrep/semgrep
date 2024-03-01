@@ -11,8 +11,6 @@ type conf = {
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
-  (* osemgrep-only: *)
-  ast_caching : bool;
 }
 [@@deriving show]
 

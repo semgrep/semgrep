@@ -1,0 +1,16 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/csv-writer.py
+   ❯❯❱ rules.autofix.python.lang.security.unquoted-csv-writer.unquoted-csv-writer
+          Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.
+
+           ▶▶┆ Autofix ▶ csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+            9┆ csv.writer(csvfile, delimiter=',', quotechar='"')
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ csv.writer(get_file(), delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+           12┆ csv.writer(get_file(), delimiter=',', quotechar='"')
+

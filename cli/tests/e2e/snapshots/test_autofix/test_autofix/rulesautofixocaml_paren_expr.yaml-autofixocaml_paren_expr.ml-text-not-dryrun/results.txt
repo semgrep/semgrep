@@ -1,0 +1,22 @@
+
+
+┌─────────────────┐
+│ 4 Code Findings │
+└─────────────────┘
+
+    targets/autofix/ocaml_paren_expr.ml
+   ❯❯❱ rules.autofix.wrap-afunc-arguments
+          Wrap the arguments to `a_function_call` with `wrap` first
+
+           ▶▶┆ Autofix ▶ a_function_call (wrap (the_argument))
+            1┆ let one = a_function_call the_argument
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ a_function_call (wrap (the_argument))
+            3┆ let two = a_function_call (the_argument)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ a_function_call (wrap ((another_func the_argument)))
+            5┆ let three = a_function_call (another_func the_argument)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ a_function_call (wrap ((tuple_member, threeple_member)))
+            7┆ let three = a_function_call (tuple_member, threeple_member)
+
