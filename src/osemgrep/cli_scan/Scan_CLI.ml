@@ -47,7 +47,6 @@ type conf = {
   incremental_output : bool;
   (* Networking options *)
   metrics : Metrics_.config;
-  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
@@ -129,8 +128,6 @@ let default : conf =
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
-    (* like ast_caching, better to default to false for now *)
-    registry_caching = false;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -809,15 +806,6 @@ let o_remote : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-(* TODO: add also an --offline flag? what about metrics? *)
-let o_registry_caching : bool Term.t =
-  H.negatable_flag [ "registry-caching" ] ~neg_options:[ "no-registry-caching" ]
-    ~default:default.registry_caching
-    ~doc:
-      {|Cache for 24 hours in ~/.semgrep/cache rules from the registry.
-Requires --experimental.
-|}
-
 (*
    Let's use the following convention: the prefix '--x-' means "forbidden"
    or "experimental".
@@ -849,11 +837,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       ls matching_explanations max_chars_per_line max_lines_per_finding
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
       nosem optimizations oss output pattern pro project_root pro_intrafile
-      pro_lang registry_caching remote replacement respect_gitignore
-      rewrite_rule_ids sarif scan_unknown_extensions secrets severity
-      show_supported_languages strict target_roots test test_ignore_todo text
-      time_flag timeout _timeout_interfileTODO timeout_threshold trace validate
-      version version_check vim =
+      pro_lang remote replacement respect_gitignore rewrite_rule_ids sarif
+      scan_unknown_extensions secrets severity show_supported_languages strict
+      target_roots test test_ignore_todo text time_flag timeout
+      _timeout_interfileTODO timeout_threshold trace validate version
+      version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
@@ -1154,7 +1142,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       core_runner_conf;
       error_on_findings = error;
       metrics;
-      registry_caching;
       version_check;
       output;
       output_conf;
@@ -1184,9 +1171,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
     $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
-    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
-    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
-    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_remote
+    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
