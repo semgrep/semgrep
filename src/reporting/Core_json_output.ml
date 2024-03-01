@@ -185,7 +185,12 @@ let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
     | _ -> false
   in
   let seen = Hashtbl.create 101 in
-  xs
+  xs |> OutUtils.sort_core_matches
+  (* This deduplication logic used to live in Pysemgrep, which would assume that
+     the matches had already been sorted via sort_core_matches.
+     If you run through this deduplication logic without that assumption, you'll
+     keep undesirable matches, such as those with less metavariables.
+  *)
   |> List.iter (fun x ->
          let key = core_unique_key x in
          match Hashtbl.find_opt seen key with
@@ -193,6 +198,13 @@ let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
          | Some y when should_report_instead (x, y) ->
              Hashtbl.replace seen key x
          | _ -> ());
+  (* Here, we must sort again, though.
+     This is because we yet again need to enforce that when Pysemgrep receives these
+     matches, that they are sorted via sort_core_matches.
+     If we don't do this, then stuff like test_baseline will start breaking.
+     So we end up sorting twice. Such is life.
+     LATER: Can optimize if necessary
+  *)
   Hashtbl.to_seq_values seen |> List.of_seq |> OutUtils.sort_core_matches
 
 (*****************************************************************************)
