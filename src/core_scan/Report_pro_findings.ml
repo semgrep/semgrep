@@ -49,8 +49,8 @@ let files_of_trace_item (trace_item : Pattern_match.taint_trace_item) =
     | Toks ts -> files_of_toks ts
     | Call { call_toks; intermediate_vars; call_trace } ->
         let _ =
-          intermediate_vars
           (* intermediate variables will never be in a different file from the other tokens *)
+          intermediate_vars
         in
         FileSet.union (files_of_toks call_toks) (files_of_call_trace call_trace)
   in
