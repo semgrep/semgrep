@@ -92,7 +92,7 @@ let annotate_pro_findings (xtarget : Xtarget.t)
                    let interfile_trace = is_interfile_trace trace in
                    (* All interfile taint findings are necessarily also interprocedural
                       taint findings, but the taint trace might not contain a Call node *)
-                   ( is_interprocedural_trace trace || interfile_trace,
+                   ( interfile_trace || is_interprocedural_trace trace,
                      interfile_trace )
              in
              let engine_of_match : Engine_kind.engine_of_finding =
