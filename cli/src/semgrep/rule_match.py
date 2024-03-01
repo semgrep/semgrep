@@ -25,6 +25,7 @@ from semgrep.constants import RuleScanSource
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PROREQUIRED
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines
@@ -481,6 +482,18 @@ class RuleMatch:
             )
             == "block"
         )
+
+    @property
+    def is_interfile_taint_finding(self) -> bool:
+        if isinstance(self.match.extra.engine_kind.value, PROREQUIRED):
+            return self.match.extra.engine_kind.value.value.interfile_taint
+        return False
+
+    @property
+    def is_interproc_taint_finding(self) -> bool:
+        if isinstance(self.match.extra.engine_kind.value, PROREQUIRED):
+            return self.match.extra.engine_kind.value.value.interproc_taint
+        return False
 
     @property
     def is_blocking(self) -> bool:

@@ -62,6 +62,11 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.SCA()), "reachable"): "Reachable Supply Chain Finding",
     (out.Product(out.SAST()), "nonblocking"): "Non-blocking Code Finding",
     (out.Product(out.SAST()), "blocking"): "Blocking Code Finding",
+    (out.Product(out.SAST()), "blocking interfile"): "Blocking Cross-file Code Finding",
+    (
+        out.Product(out.SAST()),
+        "blocking interproc",
+    ): "Blocking Cross-function Code Finding",
     (out.Product(out.SAST()), "merged"): "Code Finding",
     (out.Product(out.Secrets()), "valid"): "Valid Secrets Finding",
     (out.Product(out.Secrets()), "invalid"): "Invalid Secrets Finding",
@@ -789,6 +794,8 @@ class TextFormatter(BaseFormatter):
         with force_quiet_off(console), console.capture() as captured_output:
             grouped_matches: Dict[Tuple[out.Product, str], List[RuleMatch]] = {
                 # ordered most important to least important
+                (out.Product(out.SAST()), "blocking interfile"): [],
+                (out.Product(out.SAST()), "blocking interproc"): [],
                 (out.Product(out.SAST()), "blocking"): [],
                 (out.Product(out.SCA()), "reachable"): [],
                 (out.Product(out.Secrets()), "valid"): [],
@@ -802,7 +809,16 @@ class TextFormatter(BaseFormatter):
 
             for match in rule_matches:
                 if isinstance(match.product.value, out.SAST):
-                    subgroup = "blocking" if match.is_blocking else "nonblocking"
+                    if match.is_blocking:
+                        if match.is_interfile_taint_finding:
+                            subgroup = "blocking interfile"
+                        elif match.is_interproc_taint_finding:
+                            subgroup = "blocking interproc"
+                        else:
+                            subgroup = "blocking"
+                    else:
+                        print("NONBLOCK")
+                        subgroup = "nonblocking"
                 elif isinstance(match.product.value, out.Secrets):
                     state = match.validation_state
                     if state is None:
