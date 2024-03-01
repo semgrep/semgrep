@@ -1,0 +1,12 @@
+[IMPORTANT] Inter-file differential scanning is now enabled for all users.
+
+Inter-file differential scanning is now enabled for all users. While it may
+take longer than intra-file differential scanning, which is the current default
+for pro users, it offers deeper analysis of dataflow paths compared to
+intra-file differential scanning. Additionally, it is significantly faster
+than non-differential inter-file scanning, with scan times reduced to
+approximately 1/10 of the non-differential inter-file scan. Users who
+enable the pro engine and engage in differential PR scans on GitHub or
+GitLab may experience the impact of this update. If needed, users can
+revert to the previous intra-file differential scan behavior by configuring
+the `--diff-depth -1` command-line option.
