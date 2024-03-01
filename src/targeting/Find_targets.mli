@@ -4,10 +4,48 @@
  *)
 
 (* Git_remote should really be a URI *)
-type git_remote = { url : Uri.t; checkout_path : Fpath.t } [@@deriving show]
+type git_remote = { url : Uri.t; checkout_path : Rfpath.t } [@@deriving show]
 
-type project_root = Git_remote of git_remote | Filesystem of Fpath.t
+type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
 [@@deriving show]
+
+(*
+   Abstract type designed for quickly determining whether a path is in the
+   set of explicit targets. An explicit target is a target file passed directly
+   on the command line.
+
+   This is a bit fragile as it assumes that target file paths found in the file
+   system have the same form as those passed on the command line. It won't
+   work with unnormalized paths such as 'foo/../bar.js' that will likely
+   be rewritten into 'bar.js'. See:
+
+     $ git ls-files libs/../README.md
+     README.md
+
+   This results in 'README.md' being treated as non-explicit target file.
+
+   TODO: use pairs (project, ppath) instead as keys? If we use a dedicated
+   record for targets, we can extract the pair (project, ppath):
+
+     type target = {
+       project: Project.t; (* provides normalized project root *)
+       path: Fppath.t; (* provides (normalized) ppath *)
+     }
+
+   If we go this path, we could also add a field 'is_explicit: bool' to the
+   target type.
+*)
+module Explicit_targets : sig
+  type t
+
+  val empty : t
+  val of_list : Fpath.t list -> t
+  val to_list : t -> Fpath.t list
+
+  (* Fast O(1) operation *)
+  val mem : t -> Fpath.t -> bool
+  val pp : Format.formatter -> t -> unit
+end
 
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
@@ -25,12 +63,31 @@ type conf = {
   baseline_commit : string option;
   (* TODO: not used for now *)
   diff_depth : int;
-  (* TODO: not used for now *)
-  scan_unknown_extensions : bool;
+  (* Language-specific filtering: CLI option '--scan-unknown-extensions'
+     allows explicit targets (files on the command line) to bypass
+     normal language detection.
+     This forces all target files passed explicitly on the
+     command line to be analyzed any analyzer specified in rules (--config) or
+     command-line patterns (-e/-f):
+
+       semgrep scan --scan-unknown-extensions dockerfiles/*
+
+     Target files discovered by scanning folders are not affected by
+     this option.
+  *)
+  always_select_explicit_targets : bool;
+  (* Paths to target files specified directly on the command-line.
+     For the purpose of --scan-unknown-extensions, this
+     could also be stored as a bool alongside each target file.
+     It's a hash table for fast access.
+  *)
+  explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
   project_root : project_root option;
 }
 [@@deriving show]
+
+val default_conf : conf
 
 (* Entry point used by osemgrep.
 
@@ -50,13 +107,13 @@ type conf = {
 *)
 val get_targets :
   conf ->
-  Fpath.t list (* scanning roots *) ->
+  Scanning_root.t list ->
   Fppath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* Same as get_targets but drop the ppath (path within the project) *)
 val get_target_fpaths :
   conf ->
-  Fpath.t list (* scanning roots *) ->
+  Scanning_root.t list ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* internals used also in Find_targets_old.ml *)
