@@ -286,7 +286,7 @@ let unsafe_match_to_match
           Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
         is_ignored;
         (* TODO *)
-        engine_kind = x.engine_kind;
+        engine_kind = x.engine_of_match;
         validation_state = Some x.validation_state;
         historical_info;
         extra_extra = None;
