@@ -180,7 +180,7 @@ let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
   UTmp.with_tmp_file ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
-          ~registry_caching:false caps file
+          caps file
       with
       | Ok rules -> rules
       | Error _err ->
@@ -695,8 +695,6 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
   (match conf.common.maturity with
   (* coupling: copy-pasted from Scan_subcommand.ml *)
-  | Maturity.Default when conf.registry_caching ->
-      Error.abort "--registry_caching requires --experimental"
   | Maturity.Default -> (
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
       match conf with
@@ -741,7 +739,6 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         let rules_and_origins =
           Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
             ~rewrite_rule_ids:conf.rewrite_rule_ids
-            ~registry_caching:conf.registry_caching
             ~strict:conf.core_runner_conf.strict
             (caps :> < Cap.network >)
             conf.rules_source
