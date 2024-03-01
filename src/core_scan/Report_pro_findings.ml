@@ -14,38 +14,55 @@
   * findings we think users should prioritize.
   *)
 
+module FileSet = Set.Make (String)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(* Check if the taint trace of the pattern crosses functions or files *)
+(* Check if the taint trace of the pattern crosses files *)
 
-let tokens_of_trace_item (trace_item : Pattern_match.taint_trace_item) =
-  let rec tokens_of_call_trace (call_trace : Pattern_match.taint_call_trace) =
+let union3 a b c = FileSet.union a (FileSet.union b c)
+
+let files_of_toks (ts : Pattern_match.pattern_match_tokens) : FileSet.t =
+  ts
+  |> List.fold_left
+       (fun acc_files t ->
+         match Tok.loc_of_tok t with
+         | Ok { pos; _ } -> FileSet.add pos.file acc_files
+         | Error _ -> acc_files)
+       FileSet.empty
+
+let files_of_trace_item (trace_item : Pattern_match.taint_trace_item) =
+  let rec files_of_call_trace (call_trace : Pattern_match.taint_call_trace) =
     match call_trace with
-    | Toks ts -> ts
+    | Toks ts -> files_of_toks ts
     | Call { call_toks; intermediate_vars; call_trace } ->
-        call_toks @ intermediate_vars @ tokens_of_call_trace call_trace
+        let intermediate_var =
+          match intermediate_vars with
+          | [] -> []
+          | x :: _ -> [ x ]
+        in
+        union3 (files_of_toks call_toks)
+          (files_of_toks intermediate_var)
+          (files_of_call_trace call_trace)
   in
-  tokens_of_call_trace trace_item.source_trace
-  @ tokens_of_call_trace trace_item.sink_trace
-  @ trace_item.tokens
+  union3
+    (files_of_call_trace trace_item.source_trace)
+    (files_of_call_trace trace_item.sink_trace)
+    (files_of_toks trace_item.tokens)
 
 let is_interfile_trace (trace : Pattern_match.taint_trace) =
-  let trace_tokens = trace |> List.concat_map tokens_of_trace_item in
-  let token_filenames =
-    trace_tokens
-    |> List_.map_filter (fun t ->
-           match Tok.loc_of_tok t with
-           | Ok { pos; _ } -> Some pos.file
-           | Error _ -> None)
+  let files_in_trace =
+    trace
+    |> List.fold_left
+         (fun acc_files trace_item ->
+           FileSet.union acc_files (files_of_trace_item trace_item))
+         FileSet.empty
   in
-  (* iff two tokens have different filenames, the trace crosses files *)
-  match token_filenames with
-  | []
-  | [ _ ] ->
-      false
-  | f :: fs -> List.exists (fun x -> x <> f) fs
+  FileSet.cardinal files_in_trace > 1
+
+(* Check if the taint trace of the pattern crosses functions *)
 
 let is_interprocedural_trace (trace : Pattern_match.taint_trace) =
   trace
