@@ -18,6 +18,8 @@ from uuid import UUID
 from attrs import evolve
 from attrs import field
 from attrs import frozen
+from boltons.cacheutils import cachedmethod
+from boltons.cacheutils import LRU
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
@@ -25,9 +27,11 @@ from semgrep.constants import RuleScanSource
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.util import get_lines
+from semgrep.util import get_lines_from_file
+from semgrep.util import get_lines_from_git_blob
 
 
 CliUniqueKey = Tuple[str, str, int, int, str, Optional[str]]
@@ -88,6 +92,7 @@ class RuleMatch:
     match_formula_string: str = ""
 
     # derived attributes
+    line_cache: LRU = field(factory=LRU)
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
@@ -110,6 +115,18 @@ class RuleMatch:
     @property
     def path(self) -> Path:
         return Path(self.match.path.value)
+
+    @property
+    def git_blob(self) -> Optional[Sha1]:
+        if self.match.extra.historical_info:
+            return self.match.extra.historical_info.git_blob
+        return None
+
+    @property
+    def git_commit(self) -> Optional[Sha1]:
+        if self.match.extra.historical_info:
+            return self.match.extra.historical_info.git_commit
+        return None
 
     @property
     def start(self) -> out.Position:
@@ -151,8 +168,13 @@ class RuleMatch:
 
         return self.rule_id
 
+    @cachedmethod("line_cache", scoped=False)
     def get_individual_line(self, line_number: int) -> str:
-        line_array = get_lines(self.path, line_number, line_number)
+        line_array = (
+            get_lines_from_git_blob(self.git_blob, line_number, line_number)
+            if self.git_blob
+            else get_lines_from_file(self.path, line_number, line_number)
+        )
         if len(line_array) == 0:
             return ""
         else:
@@ -165,14 +187,19 @@ class RuleMatch:
 
         Assumes file exists.
 
-        Need to do on initialization instead of on read since file might not be the same
-        at read time
+        Need to do on initialization instead of on read since file might not be
+        the same at read time
         """
-        return get_lines(self.path, self.start.line, self.end.line)
+        if self.git_blob:
+            return get_lines_from_git_blob(
+                self.git_blob, self.start.line, self.end.line
+            )
+        return get_lines_from_file(self.path, self.start.line, self.end.line)
 
     @previous_line.default
     def get_previous_line(self) -> str:
-        """Return the line preceding the match, if any.
+        """
+        Return the line preceding the match, if any.
 
         This is meant for checking for the presence of a nosemgrep comment.
         """
@@ -220,7 +247,7 @@ class RuleMatch:
             # fetch the check ID from metadata. This fallback prevents breaking
             # current scan results if an issue arises.
             self.annotated_rule_name if self.from_transient_scan else self.rule_id,
-            str(self.path),
+            str(self.git_blob.value if self.git_blob else self.path),
             self.start.offset,
             self.end.offset,
             self.message,
@@ -312,7 +339,7 @@ class RuleMatch:
         when two findings match with different metavariables on the same code.
         """
         return (
-            self.path,
+            self.git_blob if self.git_blob else self.path,
             self.start,
             self.end,
             self.rule_id,

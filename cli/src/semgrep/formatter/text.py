@@ -30,7 +30,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
-from semgrep.util import get_lines
+from semgrep.util import get_lines_from_file
 from semgrep.util import MASK_CHAR
 from semgrep.util import MASK_SHOW_PCT
 from semgrep.util import truncate
@@ -254,7 +254,7 @@ def match_to_lines(
 ) -> Iterator[Text]:
     path = Path(location.path.value)
     is_same_file = path == ref_path
-    lines = get_lines(path, location.start.line, location.end.line)
+    lines = get_lines_from_file(path, location.start.line, location.end.line)
     yield from format_lines(
         path,
         location.start.line,
@@ -311,7 +311,9 @@ def call_trace_to_lines(
             for var in intermediate_vars:
                 loc = var.location
                 path = Path(loc.path.value)
-                lines = get_lines(Path(loc.path.value), loc.start.line, loc.end.line)
+                lines = get_lines_from_file(
+                    Path(loc.path.value), loc.start.line, loc.end.line
+                )
                 is_same_file = path == prev_path
                 yield from format_lines(
                     Path(loc.path.value),
@@ -377,7 +379,7 @@ def dataflow_trace_to_lines(
             for var in intermediate_vars:
                 loc = var.location
                 path = Path(loc.path.value)
-                lines = get_lines(path, loc.start.line, loc.end.line)
+                lines = get_lines_from_file(path, loc.start.line, loc.end.line)
                 is_same_file = path == prev_path
                 yield from format_lines(
                     path,
@@ -593,7 +595,11 @@ def print_text_output(
     # Sort the findings according to RuleMatch.get_ordering_key()
     sorted_rule_matches = sorted(rule_matches)
     for rule_index, rule_match in enumerate(sorted_rule_matches):
-        current_file = rule_match.path
+        current_file = (
+            f"{rule_match.path}@{rule_match.git_commit.value}"
+            if rule_match.git_commit
+            else rule_match.path
+        )
         message = rule_match.message
         fix = rule_match.fix
         if "sca_info" in rule_match.extra and (rule_match.extra["sca_info"].reachable):
