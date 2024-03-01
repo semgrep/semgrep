@@ -712,7 +712,7 @@ let cat_file_blob ?cwd (SHA sha) =
   | Error (`Msg s) ->
       Error s
 
-let batch_cat_file_blob ?cwd blob_shas =
+let batch_cat_file_blob ?cwd (blob_shas : sha list) =
   let cmd =
     Bos.Cmd.(
       v "git"
@@ -781,7 +781,9 @@ let batch_cat_file_blob ?cwd blob_shas =
             chan )
   in
   let output = UTmp.new_temp_file "git-batch-cat-files" ".log" in
-  let input = blob_shas |> String.concat "\n" in
+  let input =
+    blob_shas |> List_.map (function SHA str -> str) |> String.concat "\n"
+  in
   match Bos.OS.Cmd.(run_io cmd (in_string input) |> out_file output) with
   | Ok ((), (_, `Exited 0)) ->
       (* TODO: This is _really_ ugly, but to my knowledge there is no better
@@ -792,7 +794,7 @@ let batch_cat_file_blob ?cwd blob_shas =
   | Ok ((), (_, `Signaled s)) -> Error (spf "git terminated due to signal %d" s)
   | Error (`Msg s) -> Error s
 
-let object_size ?cwd sha =
+let object_size ?cwd (SHA sha) =
   let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> int_of_string_opt s

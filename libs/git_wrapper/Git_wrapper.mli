@@ -97,7 +97,10 @@ type status = {
 }
 [@@deriving show]
 
-type sha [@@deriving show, eq, ord, sexp]
+(* We avoid type aliases such as 'type sha = string' because it creates
+   bad error messages mentioning 'sha' instead of 'string'
+   in contexts where no SHAs are involved. *)
+type sha = SHA of string [@@unboxed] [@@deriving show, eq, ord, sexp]
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
