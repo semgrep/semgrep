@@ -22,6 +22,7 @@ from tests.fixtures import RunSemgrep
         ("rules/autofix/java-string-wrap.yaml", "autofix/java-string-wrap.java"),
         ("rules/autofix/exact-collision.yaml", "autofix/collision.py"),
         ("rules/autofix/order.yaml", "autofix/order.py"),
+        ("rules/autofix/redundant.yaml", "autofix/redundant.py"),
         ("rules/autofix/ocaml_paren_expr.yaml", "autofix/ocaml_paren_expr.ml"),
         ("rules/autofix/python-delete-import.yaml", "autofix/python-delete-import.py"),
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),

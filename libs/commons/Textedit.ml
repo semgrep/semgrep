@@ -57,15 +57,21 @@ let overlaps_with_an_interval (intervals : t list) (e1 : t) =
    than in the order in which they appear in the file.
 *)
 let remove_overlapping_edits edits =
-  let accepted_edits, conflicting_edits =
+  let already_applied_edits = Hashtbl.create 100 in
+  let accepted_edits, redundant_edits, conflicting_edits =
     List.fold_left
-      (fun (accepted_edits, conflicting_edits) edit ->
-        if overlaps_with_an_interval accepted_edits edit then
-          (accepted_edits, edit :: conflicting_edits)
-        else (edit :: accepted_edits, conflicting_edits))
-      ([], []) edits
+      (fun (accepted_edits, redundant_edits, conflicting_edits) edit ->
+        let key : t = edit in
+        if Hashtbl.mem already_applied_edits key then
+          (accepted_edits, edit :: redundant_edits, conflicting_edits)
+        else (
+          Hashtbl.add already_applied_edits key ();
+          if overlaps_with_an_interval accepted_edits edit then
+            (accepted_edits, redundant_edits, edit :: conflicting_edits)
+          else (edit :: accepted_edits, redundant_edits, conflicting_edits)))
+      ([], [], []) edits
   in
-  (List.rev accepted_edits, List.rev conflicting_edits)
+  (List.rev accepted_edits, List.rev redundant_edits, List.rev conflicting_edits)
 
 let apply_edit_to_text text ({ start; end_; replacement_text; _ } as edit) =
   Logs.debug (fun m -> m ~tags "Apply edit %s" (show edit));
@@ -81,20 +87,23 @@ let apply_edits_to_text path text edits =
   *)
   Logs.debug (fun m ->
       m ~tags "Applying %i edits to file %s" (List.length edits) !!path);
-  let edits, conflicting_edits = remove_overlapping_edits edits in
+  let applicable_edits, redundant_edits, conflicting_edits =
+    remove_overlapping_edits edits
+  in
   (* Switch to bottom to top order so that we don't need to track offsets as
    * we apply multiple patches *)
-  let edits = List.rev edits in
+  let applicable_edits = List.rev applicable_edits in
   let fixed_text =
     (* Apply the fixes. These string operations are inefficient but should
      * be fine. The Python CLI version of this code is even more inefficent. *)
     List.fold_left
       (fun file_text edit -> apply_edit_to_text file_text edit)
-      text edits
+      text applicable_edits
   in
   Logs.debug (fun m ->
+      let successful_edits = applicable_edits @ redundant_edits in
       m ~tags "file %s: %i/%i edits were applied successfully" !!path
-        (List.length conflicting_edits)
+        (List.length successful_edits)
         (List.length edits));
   if conflicting_edits = [] then Success fixed_text
   else Overlap { partial_result = fixed_text; conflicting_edits }
