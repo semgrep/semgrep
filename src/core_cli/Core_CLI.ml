@@ -41,7 +41,6 @@ let tags = Logs_.create_tags [ __MODULE__; "cli" ]
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
-let log_config_file = ref Core_scan_config.default.log_config_file
 let log_to_file = ref None
 let nosem = ref Core_scan_config.default.nosem
 let strict = ref Core_scan_config.default.strict
@@ -110,9 +109,6 @@ let ncores = ref Core_scan_config.default.ncores
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
 (* ------------------------------------------------------------------------- *)
-(* see Flag_semgrep.ml *)
-let use_parsing_cache = ref Core_scan_config.default.parsing_cache_dir
-
 (* similar to filter_irrelevant_patterns, but use the whole rule to extract
  * the regexp *)
 let filter_irrelevant_rules =
@@ -233,7 +229,6 @@ let dump_ast ?(naming = false) caps (lang : Language.t) (file : Fpath.t) =
 
 let mk_config () =
   {
-    log_config_file = !log_config_file;
     log_to_file = !log_to_file;
     nosem = !nosem;
     strict = !strict;
@@ -261,7 +256,6 @@ let mk_config () =
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
     ncores = !ncores;
-    parsing_cache_dir = !use_parsing_cache;
     target_source = !target_source;
     file_match_results_hook = None;
     action = !action;
@@ -282,12 +276,6 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
       Arg_.mk_action_1_conv Fpath.v Core_actions.generate_ast_json );
-    ( "-generate_ast_binary",
-      " <file> save in file.ast.binary the marshalled generic AST of file",
-      Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Core_actions.generate_ast_binary
-            (Xlang.lang_of_opt_xlang_exn !lang)
-            file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
       Arg_.mk_action_1_conv Fpath.v Core_actions.prefilter_of_rules );
@@ -453,9 +441,6 @@ let options caps actions =
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
-    ( "-use_parsing_cache",
-      Arg.String (fun s -> use_parsing_cache := Some (Fpath.v s)),
-      " <dir> store and use the parsed generic ASTs in dir" );
     ( "-max_target_bytes",
       Arg.Set_int Flag.max_target_bytes,
       " maximum size of a single target file, in bytes. This applies to \
@@ -554,9 +539,6 @@ let options caps actions =
     ( "-matching_explanations",
       Arg.Set matching_explanations,
       " output intermediate matching explanations" );
-    ( "-log_config_file",
-      Arg.String (fun s -> log_config_file := Fpath.v s),
-      " <file> logging configuration file" );
     ( "-log_to_file",
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );

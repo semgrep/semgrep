@@ -695,9 +695,8 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
   (match conf.common.maturity with
   (* coupling: copy-pasted from Scan_subcommand.ml *)
-  | Maturity.Default
-    when conf.registry_caching || conf.core_runner_conf.ast_caching ->
-      Error.abort "--registry_caching or --ast_caching require --experimental"
+  | Maturity.Default when conf.registry_caching ->
+      Error.abort "--registry_caching requires --experimental"
   | Maturity.Default -> (
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
       match conf with
