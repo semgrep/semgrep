@@ -47,9 +47,6 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_b_to_c_BAD",
-        "fixed_lines": [
-          "replaced_lines_b_to_c_BAD"
-        ],
         "is_ignored": false,
         "lines": "b\nc",
         "message": "slice b-c matches",
