@@ -295,19 +295,15 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
       in
       let check_id = rule_id in
       let metavars = Some metavars in
+      let metadata =
+        match metadata with
+        | None -> `Assoc []
+        | Some json -> json
+      in
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
       let severity = severity ||| rule.severity in
-      let metadata =
-        match rule.metadata with
-        | None -> `Assoc []
-        | Some json -> (
-            JSON.to_yojson json |> fun rule_metadata ->
-            match metadata with
-            | Some metadata -> JSON.update rule_metadata metadata
-            | None -> rule_metadata)
-      in
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
       let lines =
@@ -352,22 +348,6 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
             extra_extra;
           };
       }
-
-(*
- # Sort results so as to guarantee the same results across different
- # runs. Results may arrive in a different order due to parallelism
- # (-j option).
-*)
-let dedup_and_sort (xs : OutJ.cli_match list) : OutJ.cli_match list =
-  let seen = Hashtbl.create 101 in
-  xs
-  |> List.filter (fun x ->
-         let key = Semgrep_hashing_functions.cli_unique_key x in
-         if Hashtbl.mem seen key then false
-         else (
-           Hashtbl.replace seen key true;
-           true))
-  |> Semgrep_output_utils.sort_cli_matches
 
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
 (* match based ids have an index appended at the end which indicates what
@@ -494,12 +474,11 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
-         * TODO: handle the rule_match.cli_unique_key to dedup matches
          *)
         results =
           matches
           |> List_.map (cli_match_of_core_match ~dryrun ~applied_fixes hrules)
-          |> dedup_and_sort;
+          |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;
         skipped_rules;

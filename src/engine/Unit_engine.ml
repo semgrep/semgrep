@@ -343,6 +343,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
       pattern;
       inside = false;
       message = "";
+      metadata = None;
       severity = `Error;
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
