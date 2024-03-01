@@ -71,7 +71,8 @@ type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
 [@@deriving show]
 
 type batch_check_extra = { size : int } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+type batch_extra = { contents : string } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
 
 (*****************************************************************************)
 (* Error management *)
@@ -188,6 +189,14 @@ let temporary_remote_checkout_path url =
   let name = rand_prefix ^ "_" ^ name in
   let tmp_dir = UTmp.get_temp_dir_name () in
   Fpath.add_seg tmp_dir name
+
+let obj_type_of_string = function
+  | "commit" -> Some Commit
+  | "blob" -> Some Blob
+  | "tree" -> Some Tree
+  | "tag" -> Some Tag
+  | _ -> None
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -604,11 +613,18 @@ let commit ?cwd msg =
   | Error (`Msg s) ->
       raise (Error (Common.spf "Error running git commit: %s" s))
 
+(* Remove credentials in URL if present (e.g. in GitLab CI) *)
+let clean_project_url (url : string) : Uri.t =
+  let uri = Uri.of_string url in
+  match (Uri.user uri, Uri.password uri) with
+  | Some _, Some _ -> Uri.with_userinfo uri None
+  | _ -> uri
+
 (* TODO: should return Uri.t option *)
 let get_project_url ?cwd () : string option =
   let cmd = (git, cd cwd @ [ "ls-remote"; "--get-url" ]) in
   match UCmd.string_of_run ~trim:true cmd with
-  | Ok (url, _) -> Some url
+  | Ok (url, _) -> Some (Uri.to_string (clean_project_url url))
   | Error _ ->
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
 (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
@@ -670,26 +686,20 @@ let cat_file_batch_check_all_objects ?cwd () =
   let objects : batch_check_extra obj list =
     List.filter_map
       (fun obj ->
-        let parsed_obj =
-          match String.split_on_char ' ' obj with
-          | [ sha; "tag"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Tag; sha = SHA sha; extra = { size } }
-          | [ sha; "commit"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Commit; sha = SHA sha; extra = { size } }
-          | [ sha; "tree"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Tree; sha = SHA sha; extra = { size } }
-          | [ sha; "blob"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Blob; sha = SHA sha; extra = { size } }
-          | _ -> None
+        let mk_obj sha kind size =
+          let* size = int_of_string_opt size in
+          Some { kind; sha = SHA sha; extra = { size } }
         in
-        if Option.is_none parsed_obj then
-          Logs.warn (fun m ->
-              m "Issue parsing git object: %s; this object will be ignored" obj);
-        parsed_obj)
+        match String.split_on_char ' ' obj with
+        | [ sha; "tag"; size ] -> mk_obj sha Tag size
+        | [ sha; "commit"; size ] -> mk_obj sha Commit size
+        | [ sha; "tree"; size ] -> mk_obj sha Tree size
+        | [ sha; "blob"; size ] -> mk_obj sha Blob size
+        | _ ->
+            Logs.warn (fun m ->
+                m "Issue parsing git object: %s; this object will be ignored"
+                  obj);
+            None)
       objects
   in
   Some objects
@@ -702,7 +712,87 @@ let cat_file_blob ?cwd (SHA sha) =
   | Error (`Msg s) ->
       Error s
 
-let object_size ?cwd (SHA sha) =
+let batch_cat_file_blob ?cwd blob_shas =
+  let cmd =
+    Bos.Cmd.(
+      v "git"
+      %% of_list
+           (cd cwd
+           @ [
+               "cat-file";
+               (* Print object information and contents for each object
+                  provided on stdin. *)
+               "--batch";
+               (* Since we write to a file, ensure output is buffered. If we
+                  change to read from stdio, we probably should _not_ buffer so
+                  we can stream output. *)
+               "--buffer";
+             ]))
+  in
+  (* Each object is formatted as
+
+         <oid> SP <type> SP <size> NUL
+         <contents> LF
+
+     See also
+     <https://git-scm.com/docs/git-cat-file#:~:text=For%20example%2C%20%2D%2Dbatch%20without%20a%20custom%20format%20would%20produce%3A>
+
+     This gets the next output out of the channel, and then leaves the rest.
+     This is so we can generate a lazy Seq.t so we don't have to read all of
+     the objects into memory if we are going to write them back out to
+     tempfiles sequentially anyway.
+  *)
+  let get_next_obj chan =
+    (* Read the header line *)
+    match In_channel.input_line chan with
+    | None ->
+        (* Remember to close the channel when we're done.
+           Note that this means the user needs to consume the entire generated
+           stream currently in order to avoid a resource leak, but I think this
+           is fine.
+        *)
+        close_in chan;
+        None
+    | Some metadata ->
+        Some
+          ( (match String.split_on_char ' ' metadata with
+            | [ sha; kind; size ] ->
+                let ( let* ) = Result.bind in
+                let* kind =
+                  obj_type_of_string kind
+                  |> Option.to_result
+                       ~none:
+                         (spf "invalid object type %s for object %s" kind sha)
+                in
+                let* size =
+                  int_of_string_opt size
+                  |> Option.to_result
+                       ~none:
+                         (spf "invalid object size %s for object %s" size sha)
+                in
+                (* Now use the size from the header line to read the whole
+                   contents all at once *)
+                let contents = really_input_string chan size in
+                ignore (input_char chan);
+                (* discard trailing newline *)
+                let obj = { kind; sha = SHA sha; extra = { contents } } in
+                Ok obj
+            | _ -> Error ("invalid git object: " ^ metadata)),
+            chan )
+  in
+  let output = UTmp.new_temp_file "git-batch-cat-files" ".log" in
+  let input = blob_shas |> String.concat "\n" in
+  match Bos.OS.Cmd.(run_io cmd (in_string input) |> out_file output) with
+  | Ok ((), (_, `Exited 0)) ->
+      (* TODO: This is _really_ ugly, but to my knowledge there is no better
+         way to "stream" the output of the command. *)
+      let chan = In_channel.open_bin !!output in
+      Ok (Seq.unfold get_next_obj chan)
+  | Ok ((), (_, `Exited n)) -> Error (spf "git exited with nonzero code %d" n)
+  | Ok ((), (_, `Signaled s)) -> Error (spf "git terminated due to signal %d" s)
+  | Error (`Msg s) -> Error s
+
+let object_size ?cwd sha =
   let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
@@ -721,8 +811,13 @@ let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
     ( git,
       cd cwd
       @ ("ls-tree" :: (if recurse then [ "-r" ] else []))
-      @ [ "--full-tree"; "--format=%(objecttype) %(objectname) %(path)"; sha ]
-    )
+      (* NOTE: We use 0x00 to delimit the fields since other characters may
+         appear in path *)
+      @ [
+          "--full-tree";
+          "--format=%(objecttype)%x00%(objectname)%x00%(objectsize)%x00%(path)";
+          sha;
+        ] )
   in
   let* objects =
     match UCmd.lines_of_run ~trim:true cmd with
@@ -732,30 +827,33 @@ let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
   let objects =
     List.filter_map
       (fun obj ->
-        let parsed_obj =
-          match String.split_on_char ' ' obj with
-          | [ "commit"; sha; path ] -> (
-              (* possible for submodules *)
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Commit; sha = SHA sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "tree"; sha; path ] -> (
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tree; sha = SHA sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "blob"; sha; path ] -> (
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Blob; sha = SHA sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "tag"; sha; path ] -> (
-              (* possible, but we probably don't care. *)
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tag; sha = SHA sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
+        let obj_info =
+          (* NOTE: We split on 0x00 here since we've chosen that as the
+             delimiter in the format string for ls-tree's output above. *)
+          match String.split_on_char '\x00' obj with
+          (* possible for submodules *)
+          | [ "commit"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Commit)
+          | [ "tree"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Tree)
+          | [ "blob"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Blob)
+          (* possible, but we probably don't care. *)
+          | [ "tag"; sha; size; path ] ->
+              Ok (Fpath.of_string path, sha, int_of_string_opt size, Tag)
           | _ -> Error "invalid syntax"
         in
-        match parsed_obj with
-        | Ok obj -> Some obj
+        match obj_info with
+        | Ok (Ok path, sha, Some size, kind) ->
+            Some { kind; sha = SHA sha; extra = { path; size } }
+        | Ok (_, _, None, _) ->
+            Logs.warn (fun m ->
+                m
+                  "Issue parsing git object: %s -- invalid size; this object \
+                   will be ignored"
+                  obj);
+            None
+        | Ok (Error (`Msg s), _, _, _)
         | Error s ->
             Logs.warn (fun m ->
                 m

@@ -428,7 +428,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
        * was not given, but this feature was removed, so now we can KISS.
        *)
       List_files.list dir
-      |> List.filter Parse_rule.is_valid_rule_filename
+      |> List.filter Rule_file.is_valid_rule_filename
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                ~registry_caching caps file)

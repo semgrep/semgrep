@@ -6,6 +6,27 @@
 
 <!-- insertion point -->
 
+## [1.63.0](https://github.com/returntocorp/semgrep/releases/tag/v1.63.0) - 2024-02-27
+
+
+### Added
+
+
+- Dataflow: Added support for nested record patterns such as `{ body: { param } }`
+  in the LHS of an assignment. Now given `{ body: { param } } = tainted` Semgrep
+  will correctly mark `param` as tainted. (flow-68)
+- Matching: `metavariable-regex` can now match on metavariables of interpolated
+  strings which use variables that have known values. (saf-865)
+- Add support for parsing Swift Package Manager manifest and lockfiles (sc-1217)
+
+
+### Fixed
+
+
+- fix: taint signatures do not capture changes to parameters' fields (flow-70)
+- Scan summary links printed after `semgrep ci` scans now reflect a custom SEMGREP_APP_URL, if one is set. (saf-353)
+
+
 ## [1.62.0](https://github.com/returntocorp/semgrep/releases/tag/v1.62.0) - 2024-02-22
 
 

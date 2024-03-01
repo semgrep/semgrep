@@ -1088,7 +1088,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       opcall v2 [ v1; v3 ]
 
 and apply_pattern_kinds (_env : env) (pat : G.pattern) kinds =
-  List.fold_right (fun kind pat -> G.OtherPat (kind, [ G.P pat ])) kinds pat
+  List_.fold_right (fun kind pat -> G.OtherPat (kind, [ G.P pat ])) kinds pat
 
 and map_binding_pattern (env : env) ((_v1, v2, v3) : CST.binding_pattern) =
   let pat = map_no_expr_pattern_already_bound env v3 in
@@ -2741,7 +2741,7 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
            binary tree instead of a list...
         *)
         let later_pats =
-          List.fold_right
+          List_.fold_right
             (fun pat acc_opt ->
               match acc_opt with
               | None -> Some pat

@@ -128,9 +128,9 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns strict ISO 8601 time as str of head commit *)
-      let commit_timestamp : Timedesc.t =
+      let commit_timestamp : Timedesc.Timestamp.t =
         Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%cI" ]
-        |> Timedesc.of_iso8601 |> Result.get_ok
+        |> Timedesc.Timestamp.of_iso8601 |> Result.get_ok
       in
       {
         semgrep_version = Version.version;

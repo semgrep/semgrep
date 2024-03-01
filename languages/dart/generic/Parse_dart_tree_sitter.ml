@@ -2261,7 +2261,7 @@ and map_switch_block (env : env) ((v1, v2, v3) : CST.switch_block) :
   in
   let _v3 = (* "}" *) token env v3 in
   match
-    List.fold_right
+    List_.fold_right
       (fun either acc ->
         match (either, acc) with
         | Either.Left _case, (None, acc) ->

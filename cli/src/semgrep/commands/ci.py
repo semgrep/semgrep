@@ -617,11 +617,11 @@ def ci(
 
         ref_if_available = f"&ref={metadata.branch}" if metadata.branch else ""
         logger.info(
-            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_display_name}{ref_if_available}"
+            f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_display_name}{ref_if_available}"
         )
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(
-                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+                f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain"
             )
 
     audit_mode = metadata.event_name in audit_on

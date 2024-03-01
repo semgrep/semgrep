@@ -133,7 +133,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         ~max_lines_per_finding:conf.max_lines_per_finding
         ~color_output:conf.force_color Format.std_formatter cli_output
   (* matches have already been displayed in a file_match_results_hook *)
-  | TextIncremental -> ()
+  | Incremental -> ()
   | Sarif ->
       let sarif_json =
         Sarif_output.sarif_output is_logged_in hrules cli_output

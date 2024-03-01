@@ -224,6 +224,17 @@ let filter_existing_targets (targets : Target.t list) :
                    reason = Nonexistent_file;
                    details = Some "File does not exist";
                    rule_id = None;
+                 }
+           | GitBlob { sha; _ } ->
+               Right
+                 {
+                   Semgrep_output_v1_t.path = Target.internal_path target;
+                   reason = Nonexistent_file;
+                   details =
+                     Some
+                       (spf "Issue creating a target from git blob %s"
+                          (Git_wrapper.show_sha sha));
+                   rule_id = None;
                  })
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
@@ -533,7 +544,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 (*****************************************************************************)
 
 (* for -rules *)
-let%trace rules_from_rule_source (config : Core_scan_config.t) :
+let rules_from_rule_source (config : Core_scan_config.t) :
     Rule.t list * Rule.invalid_rule_error list =
   let rule_source =
     match config.rule_source with
@@ -570,9 +581,9 @@ let parse_equivalences equivalences_file =
 
 let handle_target_with_trace handle_target t =
   let target_name = Target.internal_path t |> Fpath.to_string in
-  let%trace span = "Core_scan.handle_target" in
-  Tracing.add_data_to_span span [ ("filename", `String target_name) ];
-  handle_target t
+  let data () = [ ("filename", `String target_name) ] in
+  Tracing.with_span ~__FILE__ ~__LINE__ ~data "Core_scan.handle_target"
+    (fun _sp -> handle_target t)
 
 (*
    Returns a list of match results and a separate list of scanned targets.
@@ -930,7 +941,12 @@ let select_applicable_rules_for_origin paths (origin : Origin.t) =
   match paths with
   | Some paths -> (
       match origin with
-      | File path -> Filter_target.filter_paths paths path)
+      | File path -> Filter_target.filter_paths paths path
+      | GitBlob { paths = target_paths; _ } ->
+          List.exists
+            (fun (_, path_at_commit) ->
+              Filter_target.filter_paths paths path_at_commit)
+            target_paths)
   | _else -> true
 
 (* This is also used by semgrep-proprietary. *)
@@ -1206,12 +1222,15 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 (* Entry point *)
 (*****************************************************************************)
 
+let time_and_trace_rules config =
+  (* TODO remove this wrapper function once we have a tracing ppx *)
+  Tracing.with_span ~__FILE__ ~__LINE__ "Core_scan.handle_target" (fun _sp ->
+      Common.with_time (fun () -> rules_from_rule_source config))
+
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    let timed_rules =
-      Common.with_time (fun () -> rules_from_rule_source config)
-    in
+    let timed_rules = time_and_trace_rules config in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and

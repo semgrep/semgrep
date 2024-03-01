@@ -23,6 +23,8 @@ type conf = {
   (* file or URL (None means output to stdout) *)
   output : string option;
   output_conf : Output.conf;
+  (* osemgrep-only: *)
+  incremental_output : bool;
   (* text output config (TODO: make a separate type gathering all of them)
    * or add them under Output_format.Text
    *)

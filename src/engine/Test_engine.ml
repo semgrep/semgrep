@@ -319,7 +319,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
 
 let find_rule_files roots =
   roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
-  |> List.filter Parse_rule.is_valid_rule_filename
+  |> List.filter Rule_file.is_valid_rule_filename
 
 (*****************************************************************************)
 (* Entry point *)

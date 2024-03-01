@@ -173,16 +173,6 @@ local containers = {
       },
       },
    },
-   ocaml5_alpine: {
-     opam_switch: '5.1.0',
-     job: {
-      'runs-on': 'ubuntu-latest',
-       container: 'returntocorp/ocaml:alpine5.1-2024-01-18',
-       env: {
-        HOME: '/root',
-       },
-     },
-   },
 };
 
 // ----------------------------------------------------------------------------

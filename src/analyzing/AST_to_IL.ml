@@ -28,7 +28,25 @@ module H = AST_generic_helpers
  *  - a lot ...
  *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
+let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
+
+let locate ?tok s =
+  let opt_loc =
+    try Option.map Tok.stringpos_of_tok tok with
+    | Tok.NoTokenLocation _ -> None
+  in
+  match opt_loc with
+  | Some loc -> spf "%s: %s" loc s
+  | None -> s
+
+let log_warning ?tok msg =
+  Logs.debug (fun m -> m ~tags:warning "%s" (locate ?tok msg))
+
+let log_error ?tok msg =
+  Logs.debug (fun m -> m ~tags:error "%s" (locate ?tok msg))
 
 (*****************************************************************************)
 (* Types *)
@@ -73,32 +91,17 @@ let sgrep_construct any_generic = raise (Fixme (Sgrep_construct, any_generic))
 let todo any_generic = raise (Fixme (ToDo, any_generic))
 let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
-let locate opt_tok s =
-  let opt_loc =
-    try Option.map Tok.stringpos_of_tok opt_tok with
-    | Tok.NoTokenLocation _ -> None
-  in
-  match opt_loc with
-  | Some loc -> spf "%s: %s" loc s
-  | None -> s
-
-let log_warning opt_tok msg =
-  Logs.debug (fun m -> m ~tags "warning: %s" (locate opt_tok msg))
-
-let log_error opt_tok msg =
-  Logs.err (fun m -> m ~tags "%s" (locate opt_tok msg))
-
 let log_fixme kind gany =
   let toks = AST_generic_helpers.ii_of_any gany in
-  let opt_tok = Common2.hd_opt toks in
+  let tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
-      log_warning opt_tok
+      log_warning ?tok
         "Unsupported construct(s) may affect the accuracy of dataflow analyses"
   | Sgrep_construct ->
-      log_error opt_tok "Cannot translate Semgrep construct(s) into IL"
+      log_error ?tok "Cannot translate Semgrep construct(s) into IL"
   | Impossible ->
-      log_error opt_tok "Impossible happened during AST-to-IL translation"
+      log_error ?tok "Impossible happened during AST-to-IL translation"
 
 let fixme_exp ?partial kind gany eorig =
   log_fixme kind (any_of_orig eorig);
@@ -141,7 +144,7 @@ let var_of_id_info id id_info =
     | None ->
         let id_str, id_tok = id in
         let msg = spf "the ident '%s' is not resolved" id_str in
-        log_warning (Some id_tok) msg;
+        log_warning ~tok:id_tok msg;
         G.SId.unsafe_default
   in
   { ident = id; sid; id_info }
@@ -471,62 +474,81 @@ and assign env lhs tok rhs_exp e_gen =
         (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
         (related_exp lhs)
   | G.Record (tok1, fields, tok2) ->
-      (* The assignment
-       *
-       *     {x1: v1, ..., xN: vN} = RHS
-       *
-       * where `xi` are field names, and `vi` are variables, becomes
-       *
-       *     tmp = RHS
-       *     v1 = tmp.x1
-       *     ...
-       *     vN = tmp.xN
-       *)
-      let tmp = fresh_var env tok2 in
-      let tmp_lval = lval_of_base (Var tmp) in
-      add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
-      let record_pairs : field list =
-        fields
-        |> List_.map (function
-             | G.F
-                 {
-                   s =
-                     G.DefStmt
-                       ( { name = EN (G.Id (id1, ii1)); _ },
-                         G.FieldDefColon
-                           { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ }
-                       );
-                   _;
-                 } ->
-                 let tok = snd id1 in
-                 let fldi = var_of_id_info id1 ii1 in
-                 let vari = var_of_id_info id2 ii2 in
-                 let vari_lval = lval_of_base (Var vari) in
-                 let offset = { o = Dot fldi; oorig = NoOrig } in
-                 let ei =
-                   mk_e
-                     (Fetch { base = Var tmp; rev_offset = [ offset ] })
-                     (related_tok tok)
-                 in
-                 add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
-                 Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
-             | field ->
-                 (* If a field is not of the form `x1: v1` then we translate it as
-                  * `__FIXME_AST_to_IL__: FixmeExp ToDo`.
-                  *)
-                 let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
-                 let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
-                 let tmpi = fresh_var env tok2 in
-                 let tmpi_lval = lval_of_base (Var tmpi) in
-                 add_instr env
-                   (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
-                 Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field))))
-      in
-      (* {x1: E1, ..., xN: En} *)
-      mk_e (Record record_pairs) (related_exp lhs)
+      assign_to_record env (tok1, fields, tok2) rhs_exp (related_exp lhs)
   | _ ->
       add_instr env (fixme_instr ToDo (G.E e_gen) (related_exp e_gen));
       fixme_exp ToDo (G.E e_gen) (related_exp lhs)
+
+and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
+  (* Assignments of the form
+   *
+   *     {x1: p1, ..., xN: pN} = RHS
+   *
+   * where `xi` are field names, and `pi` are patterns.
+   *
+   * In the simplest case, where the patterns are variables
+   * v1, ..., VN, this becomes:
+   *
+   *     tmp = RHS
+   *     v1 = tmp.x1
+   *     ...
+   *     vN = tmp.xN
+   *)
+  let tmp, _tmp_lval = mk_aux_var env tok1 rhs_exp in
+  let rec do_fields acc_rev_offsets fs =
+    fs |> List_.map (do_field acc_rev_offsets)
+  and do_field acc_rev_offsets f =
+    match f with
+    | G.F
+        {
+          s =
+            G.DefStmt
+              ( { name = EN (G.Id (id1, ii1)); _ },
+                G.FieldDefColon
+                  { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ } );
+          _;
+        } ->
+        (* fld = var ----> var := tmp. ... <accumulated offsets> ... .fld *)
+        let tok = snd id1 in
+        let fldi = var_of_id_info id1 ii1 in
+        let offset = { o = Dot fldi; oorig = NoOrig } in
+        let vari = var_of_id_info id2 ii2 in
+        let vari_lval = lval_of_base (Var vari) in
+        let ei =
+          mk_e
+            (Fetch { base = Var tmp; rev_offset = offset :: acc_rev_offsets })
+            (related_tok tok)
+        in
+        add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
+        Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
+    | G.F
+        {
+          s =
+            G.DefStmt
+              ( { name = EN (G.Id (id1, ii1)); _ },
+                G.FieldDefColon
+                  { vinit = Some { e = G.Record (_, fields, _); _ }; _ } );
+          _;
+        } ->
+        (* fld = { ... }, nested record pattern, we recurse. *)
+        let tok = snd id1 in
+        let fldi = var_of_id_info id1 ii1 in
+        let offset = { o = Dot fldi; oorig = NoOrig } in
+        let fields = do_fields (offset :: acc_rev_offsets) fields in
+        Field (fldi.ident, mk_e (Record fields) (related_tok tok))
+    | field ->
+        (* TODO: What other patterns could be nested ? *)
+        (* __FIXME_AST_to_IL__: FixmeExp ToDo *)
+        let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
+        let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
+        let tmpi = fresh_var env tok2 in
+        let tmpi_lval = lval_of_base (Var tmpi) in
+        add_instr env (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
+        Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field)))
+  in
+  let fields : field list = do_fields [] fields in
+  (* {x1: E1, ..., xN: En} *)
+  mk_e (Record fields) lhs_orig
 
 (*****************************************************************************)
 (* Expression *)
@@ -1069,8 +1091,7 @@ and record env ((_tok, origfields, _) as record_def) =
                 IL translation engine will brick the whole record if it is encountered.
                 To avoid this, we will just ignore any unrecognized fields for HCL specifically.
              *)
-             Logs.warn (fun m ->
-                 m ~tags "Skipping HCL record field during IL translation");
+             log_warning "Skipping HCL record field during IL translation";
              None
          | G.F _ -> todo (G.E e_gen))
   in
