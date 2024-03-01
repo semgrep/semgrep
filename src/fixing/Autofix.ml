@@ -392,7 +392,7 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
   | [] -> ()
   | _ ->
       Logs.warn (fun m ->
-          m ~tags "failed to apply %i fix(es)" (List.length failed_fixes))
+          m ~tags "failed to apply %i fix(es)." (List.length failed_fixes))
 
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
   matches
