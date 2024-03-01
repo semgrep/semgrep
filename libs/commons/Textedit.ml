@@ -92,7 +92,9 @@ let apply_edits_to_text path text edits =
   in
   (* Switch to bottom to top order so that we don't need to track offsets as
    * we apply multiple patches *)
-  let applicable_edits = List.rev applicable_edits in
+  let applicable_edits =
+    List.sort (fun a b -> Int.compare b.start a.start) applicable_edits
+  in
   let fixed_text =
     (* Apply the fixes. These string operations are inefficient but should
      * be fine. The Python CLI version of this code is even more inefficent. *)
