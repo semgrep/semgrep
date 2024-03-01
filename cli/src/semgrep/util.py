@@ -22,7 +22,6 @@ from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
-from semgrep.git import git_check_output
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
 
 
@@ -245,6 +244,9 @@ def get_lines_from_git_blob(
 
     Assumes blob exists.
     """
+    # Avoid circular import
+    from semgrep.git import git_check_output
+
     # Start and end line are one-indexed, but the subsequent slice call is
     # inclusive for start and exclusive for end, so only subtract from start
     start_line = start_line - 1
