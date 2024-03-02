@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2022-2024 r2c
+ * Copyright (C) 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,6 +20,24 @@ module Taints = T.Taint_set
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(*
+ * Record the "shape" of the things we track, taint shapes are a bit like types.
+ * Right now this is mainly to support field- and index-sensitivity. Shapes also
+ * provide a good foundation to later add alias analysis.
+ *
+ * This is somewhat inspired in
+ * "Polymorphic type, region and effect inference"
+ * by Jean-Pierre Talpin and Pierre Jouvelot.
+ *
+ * Previously, we had a flat environment from l-values to their taint, and we had
+ * to "reconstruct" the shape of objects when needed. For example, to check if a
+ * variable was a struct, we looked for l-values in the environment that were an
+ * "extension" of that variable. By recording shapes explicitly, implementing
+ * field-sensitivity becomes more natural.
+ *
+ * TODO: We want `Dataflow_tainting.check_tainted_xyz` to return a taint shape.
+ * TODO: Add 'Ptr' shapes and track aliasing.
+ *)
 
 let base_tag_strings = [ __MODULE__; "taint" ]
 let _tags = Logs_.create_tags base_tag_strings
@@ -36,19 +54,8 @@ module Fields = Map.Make (struct
   let compare = T.compare_offset
 end)
 
-type shape =
-  | Bot  (** don't know or don't care *)
-  | Ptr of ref  (** a pointer *)
-  | Obj of obj  (** a struct-like thing *)
-
-and ref =
-  | Ref of Xtaint.t * shape
-      (** INVARIANT(ref): If 'xtaint' is '`Clean', then every ref in 'shape' is "clean" too.
-   *     (If we add aliasing we may need to revisit this.) *)
-
-(* The "default" taints for non-constant indexes are given by the 'Oany' offset.
- *
- * THINK: Instead of 'Oany' maybe have an explicit field ? *)
+type shape = Bot | Obj of obj
+and ref = Ref of Xtaint.t * shape
 and obj = ref Fields.t
 
 (*****************************************************************************)
@@ -85,10 +92,8 @@ let rec equal_ref ref1 ref2 =
 and equal_shape shape1 shape2 =
   match (shape1, shape2) with
   | Bot, Bot -> true
-  | Ptr ref1, Ptr ref2 -> equal_ref ref1 ref2
   | Obj obj1, Obj obj2 -> equal_obj obj1 obj2
   | Bot, _
-  | Ptr _, _
   | Obj _, _ ->
       false
 
@@ -104,13 +109,11 @@ let rec show_ref ref =
 
 and show_shape = function
   | Bot -> "_|_"
-  | Ptr ref -> spf "ptr %s" (show_ref ref)
   | Obj obj -> spf "obj {|%s|}" (show_obj obj)
 
 and show_obj obj =
   obj |> Fields.to_seq
-  |> Seq.map (fun (o, o_ref) ->
-         spf "%s : %s" (T.show_offset o) (show_ref o_ref))
+  |> Seq.map (fun (o, o_ref) -> spf "%s: %s" (T.show_offset o) (show_ref o_ref))
   |> List.of_seq |> String.concat "; "
 
 (*****************************************************************************)
@@ -129,15 +132,7 @@ and union_shape shape1 shape2 =
   | Bot, shape
   | shape, Bot ->
       shape
-  | Ptr ref1, Ptr ref2 -> Ptr (union_ref ref1 ref2)
   | Obj obj1, Obj obj2 -> Obj (union_obj obj1 obj2)
-  | Ptr _, (Obj _ as shape_obj)
-  | (Obj _ as shape_obj), Ptr _ ->
-      Logs.debug (fun m ->
-          m ~tags:error "Union of incompatible shapes: %s U %s"
-            (show_shape shape1) (show_shape shape2));
-      (* THINK: Keep the 'Ptr' one ? Do something else ? *)
-      shape_obj
 
 and union_obj obj1 obj2 =
   Fields.union (fun _ x y -> Some (union_ref x y)) obj1 obj2
@@ -159,7 +154,6 @@ let union_taints_in_ref =
     | `Tainted taints -> go_shape (Taints.union taints acc) shape
   and go_shape acc = function
     | Bot -> acc
-    | Ptr ref -> go_ref acc ref
     | Obj obj -> go_obj acc obj
   and go_obj acc obj =
     Fields.fold (fun _ o_ref acc -> go_ref acc o_ref) obj acc
@@ -179,7 +173,6 @@ let rec find_xtaint_ref offset ref =
 and find_xtaint_shape offset = function
   (* offset <> [] *)
   | Bot -> `None
-  | Ptr ref -> find_xtaint_ref offset ref
   | Obj obj -> find_xtaint_obj offset obj
 
 and find_xtaint_obj offset obj =
@@ -202,28 +195,27 @@ and find_xtaint_obj offset obj =
           | Some o_ref -> find_xtaint_ref offset o_ref))
 
 (*****************************************************************************)
-(* Update the xtaint of an offset *)
+(* [UNSAFE] Update the xtaint of an offset *)
 (*****************************************************************************)
 
-let rec update_ref f offset ref =
+(* Unsafe because it does not guarantee preserving INVARIANT(ref). *)
+
+let rec unsafe_update_ref f offset ref =
   match (ref, offset) with
   | Ref (xtaint, shape), [] -> Ref (f xtaint, shape)
   | Ref (xtaint, shape), _ :: _ ->
-      let shape = update_shape f offset shape in
+      let shape = unsafe_update_shape f offset shape in
       Ref (xtaint, shape)
 
-and update_shape f offset = function
+and unsafe_update_shape f offset = function
   | Bot ->
       let shape = Obj Fields.empty in
-      update_shape f offset shape
-  | Ptr ref ->
-      let ref = update_ref f offset ref in
-      Ptr ref
+      unsafe_update_shape f offset shape
   | Obj obj ->
-      let obj = update_obj f offset obj in
+      let obj = unsafe_update_obj f offset obj in
       Obj obj
 
-and update_obj f offset obj =
+and unsafe_update_obj f offset obj =
   match offset with
   | [] ->
       Logs.debug (fun m ->
@@ -232,9 +224,38 @@ and update_obj f offset obj =
   | o :: offset -> (
       let o, obj = find_offset_in_obj o obj in
       match o with
-      | Oany -> Fields.map (update_ref f offset) obj
+      | Oany -> Fields.map (unsafe_update_ref f offset) obj
       | o ->
-          Fields.update o (Option.map (fun ref -> update_ref f offset ref)) obj)
+          Fields.update o
+            (Option.map (fun ref -> unsafe_update_ref f offset ref))
+            obj)
+
+(*****************************************************************************)
+(* Tainting an offset *)
+(*****************************************************************************)
+
+let taint_ref new_taints offset ref =
+  let add_new_taints = function
+    | `None
+    | `Clean ->
+        `Tainted new_taints
+    | `Tainted taints ->
+        if
+          !Flag_semgrep.max_taint_set_size =|= 0
+          || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
+        then `Tainted (Taints.union new_taints taints)
+        else (
+          Logs.debug (fun m ->
+              m ~tags:warning
+                "Already tracking too many taint sources for %s, will not \
+                 track more"
+                (Display_IL.string_of_offset_list offset));
+          `Tainted taints)
+  in
+  if Taints.is_empty new_taints then
+    Logs.debug (fun m ->
+        m ~tags:error "taint_ref: Impossible happened: empty taint set");
+  unsafe_update_ref add_new_taints offset ref
 
 (*****************************************************************************)
 (* Clean taint *)
@@ -259,7 +280,6 @@ and clean_shape offset = function
   | Bot ->
       let shape = Obj Fields.empty in
       clean_shape offset shape
-  | Ptr ref -> Ptr (clean_ref offset ref)
   | Obj obj -> Obj (clean_obj offset obj)
 
 and clean_obj offset obj =
@@ -291,7 +311,6 @@ let rec enum_in_ref ref : (T.offset list * Taints.t) Seq.t =
 
 and enum_in_shape = function
   | Bot -> Seq.empty
-  | Ptr ref -> enum_in_ref ref
   | Obj obj -> enum_in_obj obj
 
 and enum_in_obj obj =

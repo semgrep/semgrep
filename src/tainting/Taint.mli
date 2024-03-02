@@ -26,30 +26,40 @@ type 'spec call_trace =
   | Call of AST_generic.expr * tainted_tokens * 'spec call_trace
       (** An indirect match through a function call. *)
 
-type arg = { name : string; index : int } [@@deriving show]
+type arg = { name : string; index : int }
 (** A formal argument of a function given by its name and it's index/position. *)
 
+val show_arg : arg -> string
+
+(** Base of an 'lval'. *)
 type base =
   | BGlob of IL.name  (** A global variable or a static class field. *)
-  | BThis
-      (** The 'this' or 'self' object, treated here like an special argument. *)
+  | BThis  (** The 'this' or 'self' object. *)
   | BArg of arg  (** A formal parameter in a function/method definition. *)
-[@@deriving show]
 
+val show_base : base -> string
+
+(** Offset of an 'lval'. *)
 type offset =
   | Ofld of IL.name  (** A field, like `.a` *)
   | Oint of int  (** A constant integer index, like `[42]` *)
   | Ostr of string  (** A constant string index, like `['foo']` *)
-  | Oany
+  | Oany  (** An arbitrary non-constant index, `[*]` *)
 
 val compare_offset : offset -> offset -> int
 val show_offset : offset -> string
 val offset_of_IL : IL.offset -> offset
 
 type lval = { base : base; offset : offset list }
-(** An 'lval' taint acts like a taint variable that refers to a specific formal
- * argument of a function/method, or to a specific offset of it. See 'signature'
- * for more details. *)
+(** A restriction of 'IL.lval', the l-values that are in the scope of a
+ * function/method, and on which we can track taint:
+ *
+ * - global variables and static class fields
+ * - instance fields of the callee object
+ * - formal arguments of the function/method
+ *
+ * See 'orig' and 'result' / 'signature' for more details.
+ *)
 
 val hook_offset_of_IL : (IL.offset -> offset) option ref
 (** Pro index sensitivity *)
@@ -99,9 +109,32 @@ type source = {
 and orig =
   | Src of source  (** An actual taint source (a `pattern-sources` match). *)
   | Var of lval
-      (** Polymorphic taint variable: arbitrary taint coming through one of the
-       * arguments in a function definition. *)
-  | Control
+      (** Polymorphic taint variable.
+       *
+       * Taint variables are introduced by variables that are in the scope of
+       * a function/method definition, and that are considered like "inputs"
+       * or parameters. We identify the variables with the l-value from which
+       * they originate. For example given:
+       *
+       *     def foo(x):
+       *       return x.a
+       *
+       * We assign `x` the taint variable `x` too, that is:
+       *
+       *     { base = BArg {name = "x"; index = 0}; offset = [] }
+       *
+       * And `x.a` would be another taint variable resulting from adding the
+       * offset `.a` to the taint of `x`, that is:
+       *
+       *     { base = BArg {name = "x"; index = 0}; offset = [Ofld "a"] }
+       *
+       * It is then trivial to instantiate taint variables, for a concrete call.
+       * If we encounter a call `foo(obj)`, we can easily compute the taint
+       * returned by that function by 1) subtituting `x` with `obj` thus obtaining
+       * the l-value `obj.a`, and 2) looking up the taint attached to `obj.a` in
+       * the environment.
+       *)
+  | Control  (** Polymorphic taint variable, but for the "control-flow". *)
 
 and taint = { orig : orig; tokens : tainted_tokens }
 (** At a given program location, taint is given by its origin (i.e. 'orig') and
@@ -203,7 +236,8 @@ type result =
   | ToSink of taints_to_sink  (** Taints reach a sink. *)
   | ToReturn of taint list * AST_generic.tok
       (** Taints reach a `return` statement. *)
-  | ToLval of taint list * lval  (** Taints reach an argument of the function *)
+  | ToLval of taint list * lval
+      (** Taints reach an l-value in the scope of the function/method. *)
 
 val compare_result : result -> result -> int
 
@@ -211,32 +245,34 @@ module Results : Set.S with type elt = result
 module Results_tbl : Hashtbl.S with type key = result
 
 type signature = Results.t
-(** A (polymorphic) taint signature: simply a set of findings for a function.
+(** A (polymorphic) taint signature: simply a set of results for a function.
  *
  * Note that this signature is polymorphic/context-sensitive given that the
  * potential taints coming into the function via its arguments are represented
- * by 'arg' taints, that can be instantiated as needed.
- *
- * Also note that, within each function, if there are multiple paths through
- * which a taint source may reach a sink, we do not keep all of them but only
- * the shortest one.
+ * by 'lval' taints, that can be instantiated as needed.
  *
  * For example given:
  *
  *     def foo(x):
  *         sink(x.a)
  *
- * We infer a signature that states (via a `ToSink` finding) that whatever
- * taints come via the `.a` field of the argument `x` of `foo`, denoted by an
- * 'arg' taint "variable", will reach the `sink`. So, when `foo(x)` is called in
- * a context where the actual argument for `x` has it's `.a` field tainted,
- * Semgrep will instantiate this signature and report a finding.
+ * We infer the signature (simplified):
  *
- * THINK: We could use a type-and-effect language to represent taint sigantures,
- * e.g.
+ *     {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
  *
- *     forall 'a. {x: 'a} -{ sink('a) }-> unit
+ * where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
+ * of the parameter `x` of the function `foo`. The signature tells us that
+ * '(x#0).a' will reaach a sink.
  *
+ * Given a concrete call `foo(obj)`, Semgrep will instantiate this signature with
+ * taint assigned to `obj.a` in that calling context. If it is tainted, then
+ * Semgrep will report a finding.
+ *
+ * Also note that, within each function, if there are multiple paths through
+ * which a taint source may reach a sink, we do not keep all of them but only
+ * the shortest one.
+ *
+ * THINK: Could we have a "taint shape" for functions/methods ?
  *)
 
 val show_result : result -> string

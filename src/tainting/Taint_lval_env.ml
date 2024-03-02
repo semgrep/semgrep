@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -230,23 +230,6 @@ let add lval new_taints
                            { t with tokens = var_tok :: t.tokens })
               | __else__ -> new_taints
             in
-            let add_new_taints = function
-              | `None
-              | `Clean ->
-                  `Tainted new_taints
-              | `Tainted taints ->
-                  if
-                    !Flag_semgrep.max_taint_set_size = 0
-                    || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
-                  then `Tainted (Taints.union new_taints taints)
-                  else (
-                    Logs.debug (fun m ->
-                        m ~tags:warning
-                          "Already tracking too many taint sources for %s, \
-                           will not track more"
-                          (Display_IL.string_of_lval lval));
-                    `Tainted taints)
-            in
             {
               tainted =
                 NameMap.update var
@@ -255,7 +238,7 @@ let add lval new_taints
                       opt_var_ref
                       |> Option.value ~default:(S.Ref (`None, S.Bot))
                     in
-                    Some (S.update_ref add_new_taints offset var_ref))
+                    Some (S.taint_ref new_taints offset var_ref))
                   tainted;
               control;
               taints_to_propagate;

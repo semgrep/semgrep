@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2022-2024 r2c
+ * Copyright (C) 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,7 +15,8 @@
 
 module Taints = Taint.Taint_set
 
-type t = [ `Tainted of Taints.t | `None  (** no info *) | `Clean ]
+type t = [ `Tainted of Taints.t | `None | `Clean ]
+type t_or_sanitized = [ t | `Sanitized ]
 
 let equal xt1 xt2 =
   match (xt1, xt2) with
@@ -46,3 +47,10 @@ let union xt1 xt2 =
   | `Clean, `None ->
       (* THINK *)
       `Clean
+
+let to_taints = function
+  | `None
+  | `Clean
+  | `Sanitized ->
+      Taints.empty
+  | `Tainted taints -> taints

@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -154,13 +154,6 @@ let _show_fun_exp fun_exp =
     ->
       Printf.sprintf "%s.%s" (fst obj.ident) (fst method_.ident)
   | _ -> "<FUNC>"
-
-let status_to_taints = function
-  | `None (* no info *)
-  | `Clean (* clean, from previous sanitization *)
-  | `Sanitized (* clean, because a sanitizer matched "right now" *) ->
-      Taints.empty
-  | `Tainted taints -> taints
 
 let union_map_taints_and_vars env f xs =
   let taints, lval_env =
@@ -639,7 +632,7 @@ let find_pos_in_actual_args args_taints fparams =
             "Cannot match taint variable with function arguments (%i: %s)" i s);
     taint_opt
 
-let fix_poly_taint_with_field env lval st =
+let fix_poly_taint_with_field env lval xtaint =
   let type_of_il_offset il_offset =
     match il_offset.IL.o with
     | Dot n -> !(n.id_info.id_type)
@@ -648,11 +641,11 @@ let fix_poly_taint_with_field env lval st =
   (* TODO: Aren't we missing here C# and Go ? *)
   if env.lang =*= Lang.Java || Lang.is_js env.lang || env.lang =*= Lang.Python
   then
-    match st with
+    match xtaint with
     | `Sanitized
     | `Clean
     | `None ->
-        st
+        xtaint
     | `Tainted taints -> (
         match lval.rev_offset with
         | o :: _ -> (
@@ -660,10 +653,10 @@ let fix_poly_taint_with_field env lval st =
             | Some { t = TyFun _; _ }, _ ->
                 (* We have an l-value like `o.f` where `f` has a function type,
                  * so it's a method call, we do nothing here. *)
-                st
+                xtaint
             | _, Oany ->
                 (* Cannot handle this offset. *)
-                st
+                xtaint
             | __any__, o ->
                 (* Not a method call (to the best of our knowledge) or
                  * an unresolved Java `getX` method. *)
@@ -706,8 +699,8 @@ let fix_poly_taint_with_field env lval st =
                              taint)
                 in
                 `Tainted taints')
-        | [] -> st)
-  else st
+        | [] -> xtaint)
+  else xtaint
 
 (*****************************************************************************)
 (* Tainted *)
@@ -893,7 +886,7 @@ let find_lval_taint_sources env incoming_taints lval =
 
 let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
-  let taints_from_env = status_to_taints lval_in_env in
+  let taints_from_env = Xtaint.to_taints lval_in_env in
   let taints = Taints.union new_taints taints_from_env in
   let taints =
     check_type_and_drop_taints_if_bool_or_number env taints type_of_lval lval
@@ -979,12 +972,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
   | __else__ -> (Taints.empty, env.lval_env)
 
 and check_tainted_lval_aux env (lval : IL.lval) :
-    Taints.t
-    (* `Sanitized means that the lval matched a sanitizer "right now", whereas
-     * `Clean means that the lval has been _previously_ sanitized. They are
-     * handled differently, see NOTE [lval/sanitized]. *)
-    * [ `Sanitized | `Clean | `None | `Tainted of Taints.t ]
-    * Lval_env.t =
+    Taints.t * Xtaint.t_or_sanitized * Lval_env.t =
   (* Recursively checks an l-value bottom-up.
    *
    *  This check needs to combine matches from pattern-{sources,sanitizers,sinks}
@@ -1044,9 +1032,9 @@ and check_tainted_lval_aux env (lval : IL.lval) :
         | `Sanitized ->
             (* See NOTE [lval/sanitized] *)
             `Sanitized
-        | (`Clean | `None | `Tainted _) as st -> (
+        | (`Clean | `None | `Tainted _) as xtaint -> (
             match Lval_env.dumb_find lval_env lval with
-            | (`Clean | `Tainted _) as st' -> st'
+            | (`Clean | `Tainted _) as xtaint' -> xtaint'
             | `None ->
                 (* HACK(field-sensitivity): If we encounter `obj.x` and `obj` has
                    * polymorphic taint, and we know nothing specific about `obj.x`, then
@@ -1059,9 +1047,9 @@ and check_tainted_lval_aux env (lval : IL.lval) :
                    * where `obj.y` is tainted but `obj.x` is not tainted, we will not
                    * produce a finding.
                 *)
-                fix_poly_taint_with_field env lval st)
+                fix_poly_taint_with_field env lval xtaint)
       in
-      let taints_from_env = status_to_taints lval_in_env in
+      let taints_from_env = Xtaint.to_taints lval_in_env in
       (* Find taint sources matching lval. *)
       let current_taints = Taints.union sub_new_taints taints_from_env in
       let taints_from_sources, lval_env =
