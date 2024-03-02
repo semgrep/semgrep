@@ -1,0 +1,86 @@
+#
+# This test is designed to check that rules are applied to a file in
+# the order in which appear here, and that the autofixes are applied
+# in that same order. Some autofixes cannot be applied due to earlier
+# autofixes.
+#
+# TODO: fix pysemgrep and/or osemgrep so that the order in which the
+# fixes are applied is consistent with what's reported in both text
+# and JSON formats.
+#
+rules:
+  - id: slice-df
+    pattern: |
+      d
+      ...
+      f
+    fix: |
+      replaced_lines_d_to_f_OK
+    message: slice d-f matches
+    languages:
+      - python
+    severity: WARNING
+
+  # This match overlaps with a previous match, making the autofix
+  # impossible.
+  - id: slice-eg
+    pattern: |
+      e
+      ...
+      g
+    fix: |
+      replaced_lines_e_to_g_BAD
+    message: slice e-g matches
+    languages:
+      - python
+    severity: WARNING
+
+  - id: slice-gh
+    pattern: |
+      g
+      ...
+      h
+    fix: |
+      replaced_lines_g_to_h_OK
+    message: slice g-h matches
+    languages:
+      - python
+    severity: WARNING
+
+  - id: slice-ab
+    pattern: |
+      a
+      ...
+      b
+    fix: |
+      replaced_lines_a_to_b_OK
+    message: slice a-b matches
+    languages:
+      - python
+    severity: WARNING
+
+  # The 'z-' prefix is to check against alphabetical reordering of the rules.
+  - id: z-slice-bc
+    pattern: |
+      b
+      ...
+      c
+    fix: |
+      replaced_lines_b_to_c_OK
+    message: slice b-c matches
+    languages:
+      - python
+    severity: WARNING
+
+  # The 'a-' prefix is to check against alphabetical reordering of the rules.
+  - id: a-slice-bc
+    pattern: |
+      b
+      ...
+      c
+    fix: |
+      replaced_lines_b_to_c_BAD
+    message: slice b-c matches
+    languages:
+      - python
+    severity: WARNING
