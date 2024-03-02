@@ -34,12 +34,12 @@ from semgrep.constants import OutputFormat
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
         ("rules/autofix/csv-writer.yaml", "autofix/csv-writer.py"),
         ("rules/autofix/defaulthttpclient.yaml", "autofix/defaulthttpclient.java"),
+        ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
         ("rules/autofix/requests-use-timeout.yaml", "autofix/requests-use-timeout.py"),
         (
             "rules/autofix/django-none-password-default.yaml",
             "autofix/django-none-password-default.py",
         ),
-        ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
         ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
         (
             "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
