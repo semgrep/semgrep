@@ -1,0 +1,16 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/java-string-wrap.java
+    ❯❱ rules.autofix.wrap-strings
+          Wrap strings
+
+           ▶▶┆ Autofix ▶ wrap("a")
+            3┆ return wrap("a") + "b";
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ wrap("b")
+            3┆ return "a" + wrap("b");
+

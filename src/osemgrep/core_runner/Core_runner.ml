@@ -1,5 +1,4 @@
 open Common
-open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 module Env = Semgrep_envvars
 
@@ -33,8 +32,6 @@ type conf = {
    * even if it was not requested by the CLI
    *)
   dataflow_traces : bool;
-  (* osemgrep-only: *)
-  ast_caching : bool;
 }
 [@@deriving show]
 
@@ -232,7 +229,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    timeout_threshold;
    max_memory_mb;
    optimizations;
-   ast_caching;
    matching_explanations;
    nosem;
    strict;
@@ -246,10 +242,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
        *)
       let output_format = Core_scan_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
-      let parsing_cache_dir =
-        if ast_caching then Some (!Env.v.user_dot_semgrep_dir / "cache" / "asts")
-        else None
-      in
       {
         Core_scan_config.default with
         ncores = num_jobs;
@@ -258,7 +250,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         timeout_threshold;
         max_memory_mb;
         filter_irrelevant_rules;
-        parsing_cache_dir;
         matching_explanations;
         nosem;
         strict;

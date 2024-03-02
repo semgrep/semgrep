@@ -41,7 +41,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
   let rules, errors =
     let rules_and_origins, errors =
       Rule_fetching.rules_from_dashdash_config ~token_opt:(Some caps#token)
-        ~rewrite_rule_ids:true ~registry_caching:false
+        ~rewrite_rule_ids:true
         (caps :> < Cap.network >)
         (Rules_config.File (Fpath.v rule_file))
     in

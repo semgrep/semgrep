@@ -76,7 +76,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
    *)
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false ~strict:conf.core_runner_conf.strict
+      ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network >)
       conf.rules_source
   in
@@ -121,7 +121,6 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         let metarules_and_origin, _errors =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            ~registry_caching:false
             (caps :> < Cap.network >)
             config
         in

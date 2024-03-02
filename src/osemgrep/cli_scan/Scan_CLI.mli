@@ -30,7 +30,6 @@ type conf = {
    *)
   (* Networking options *)
   metrics : Metrics_.config;
-  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
@@ -64,4 +63,3 @@ val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
 val o_include : string list Cmdliner.Term.t
 val o_exclude : string list Cmdliner.Term.t
-val o_ast_caching : bool Cmdliner.Term.t

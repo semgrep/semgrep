@@ -62,17 +62,16 @@ let find_targets_conf_of_t settings : Find_targets.conf =
   }
 
 let core_runner_conf_of_t settings : Core_runner.conf =
-  {
-    num_jobs = settings.jobs;
-    optimizations = true;
-    max_memory_mb = settings.max_memory;
-    timeout = float_of_int settings.timeout;
-    timeout_threshold = settings.timeout_threshold;
-    (* TODO: This is breaks things in LSP.js *)
-    ast_caching = false;
-    dataflow_traces = false;
-    nosem = true;
-    strict = false;
-    matching_explanations = false;
-    time_flag = false;
-  }
+  Core_runner.
+    {
+      num_jobs = settings.jobs;
+      optimizations = true;
+      max_memory_mb = settings.max_memory;
+      timeout = float_of_int settings.timeout;
+      timeout_threshold = settings.timeout_threshold;
+      dataflow_traces = false;
+      nosem = true;
+      strict = false;
+      matching_explanations = false;
+      time_flag = false;
+    }
