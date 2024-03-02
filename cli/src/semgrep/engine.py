@@ -51,7 +51,7 @@ class EngineType(Enum):
             and requested_engine is None
             and run_secrets
         ):
-            requested_engine = cls.PRO_LANG
+            requested_engine = cls.PRO_INTRAFILE
         elif run_secrets and requested_engine is cls.OSS:
             # Should be impossible if the CLI gates impossible arguement combinations.
             raise SemgrepError("Semgrep Secrets is not part of the open source engine")
@@ -76,9 +76,9 @@ class EngineType(Enum):
             logger.info(
                 "Running only supply chain rules so running without extra interfile analysis"
             )
-            return cls.PRO_LANG
+            return cls.PRO_INTRAFILE
 
-        return requested_engine or cls.OSS
+        return requested_engine or cls.PRO_INTRAFILE
 
     def get_pro_version(self) -> str:
         binary_path = self.get_binary_path()

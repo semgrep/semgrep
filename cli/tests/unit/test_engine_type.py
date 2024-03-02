@@ -29,13 +29,13 @@ from semgrep.meta import GitMeta
         (True, False, False, ET.PRO_INTERFILE, ET.PRO_INTRAFILE),
         (True, False, True, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
         # semgrep ci with toggle off, full scan
-        (False, True, False, None, ET.OSS),
+        (False, True, False, None, ET.PRO_INTRAFILE),
         (False, True, False, ET.OSS, ET.OSS),
         (False, True, False, ET.PRO_LANG, ET.PRO_LANG),
         (False, True, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
         (False, True, False, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
         # semgrep ci with toggle off, diff scan
-        (False, False, False, None, ET.OSS),
+        (False, False, False, None, ET.PRO_INTRAFILE),
         (False, False, False, ET.OSS, ET.OSS),
         (False, False, False, ET.PRO_LANG, ET.PRO_LANG),
         (False, False, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
