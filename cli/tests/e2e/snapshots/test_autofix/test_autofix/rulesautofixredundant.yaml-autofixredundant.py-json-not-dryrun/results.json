@@ -1,0 +1,65 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/redundant.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.replace-ac",
+      "end": {
+        "col": 2,
+        "line": 3,
+        "offset": 5
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_a_to_c_OK",
+        "is_ignored": false,
+        "lines": "a\nb\nc",
+        "message": "slice a-c matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/redundant.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.autofix.replace-ac-copy",
+      "end": {
+        "col": 2,
+        "line": 3,
+        "offset": 5
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_a_to_c_OK",
+        "is_ignored": false,
+        "lines": "a\nb\nc",
+        "message": "slice a-c matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/redundant.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
