@@ -156,7 +156,7 @@ def format_lines(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
-    show_path: bool,
+    is_different_file: bool,
 ) -> Iterator[Text]:
     trimmed = 0
 
@@ -181,6 +181,15 @@ def format_lines(
     end_col -= indent_len
     for i, line in enumerate(dedented_lines):
         line = line.rstrip()
+        # Taint findings can span multiple files, so the line number reported by
+        # 'format_finding_line' below may not belong to the same file where the
+        # finding is reported! For the very first line, if 'is_different_file'
+        # is True, we print the file.
+        if i == 0 and is_different_file:
+            yield Text.from_ansi(
+                f" " * (BASE_INDENT + 1)
+                + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
+            )
         # NOTE: need to consider length of line number when calculating max chars
         yield format_finding_line(
             line,
@@ -253,7 +262,10 @@ def match_to_lines(
     per_line_max_chars_limit: Optional[int],
 ) -> Iterator[Text]:
     path = Path(location.path.value)
-    is_same_file = path == ref_path
+    # If 'is_different_file' is True, it means that we are going to print a
+    # bunch of lines that belong to a different file, so instruct 'format_lines'
+    # to print the name of that file too.
+    is_different_file = path != ref_path
     lines = get_lines_from_file(path, location.start.line, location.end.line)
     yield from format_lines(
         path,
@@ -267,7 +279,7 @@ def match_to_lines(
         per_finding_max_lines_limit,
         per_line_max_chars_limit,
         False,
-        not is_same_file,
+        is_different_file,
     )
 
 
@@ -314,7 +326,7 @@ def call_trace_to_lines(
                 lines = get_lines_from_file(
                     Path(loc.path.value), loc.start.line, loc.end.line
                 )
-                is_same_file = path == prev_path
+                is_different_file = path != prev_path
                 yield from format_lines(
                     Path(loc.path.value),
                     loc.start.line,
@@ -327,7 +339,7 @@ def call_trace_to_lines(
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                     False,
-                    not is_same_file,
+                    is_different_file,
                 )
                 prev_path = path
 
@@ -380,7 +392,7 @@ def dataflow_trace_to_lines(
                 loc = var.location
                 path = Path(loc.path.value)
                 lines = get_lines_from_file(path, loc.start.line, loc.end.line)
-                is_same_file = path == prev_path
+                is_different_file = path != prev_path
                 yield from format_lines(
                     path,
                     loc.start.line,
@@ -393,7 +405,7 @@ def dataflow_trace_to_lines(
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                     False,
-                    not is_same_file,
+                    is_different_file,
                 )
                 prev_path = path
 
