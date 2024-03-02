@@ -67,7 +67,7 @@ class EngineType(Enum):
             ):
                 requested_engine = cls.PRO_INTRAFILE
 
-        # Using PRO_LANG engine since PRO_INTERFILE/PRO_INTRAFILE defaults to -j 1
+        # Using PRO_INTRAFILE engine since PRO_INTERFILE defaults to -j 1
         # note if using OSS, then will keep using OSS
         if (
             requested_engine in {cls.PRO_INTERFILE, cls.PRO_INTRAFILE}
