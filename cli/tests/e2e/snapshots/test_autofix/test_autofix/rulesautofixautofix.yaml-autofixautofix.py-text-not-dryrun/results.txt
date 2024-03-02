@@ -1,0 +1,16 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/autofix.py
+   ❯❯❱ rules.autofix.use-dict-get
+          Use `.get()` method to avoid a KeyNotFound error
+
+           ▶▶┆ Autofix ▶ inputs.get(x)
+            5┆ inputs[x] = 1
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ inputs.get((x + 1))
+            6┆ if inputs[x + 1] == True:
+

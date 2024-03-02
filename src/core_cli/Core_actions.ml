@@ -117,16 +117,6 @@ let generate_ast_json file =
   | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]
 
-let generate_ast_binary lang file =
-  let final =
-    Parse_with_caching.ast_cached_value_of_file Version.version lang file
-  in
-  let file = Fpath.(file + Parse_with_caching.binary_suffix) in
-  assert (Parse_with_caching.is_binary_ast_filename file);
-  Common2.write_value final !!file;
-  UCommon.pr2 (spf "saved marshalled generic AST in %s" !!file)
-[@@action]
-
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys

@@ -47,7 +47,6 @@ type conf = {
   incremental_output : bool;
   (* Networking options *)
   metrics : Metrics_.config;
-  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
@@ -113,11 +112,6 @@ let default : conf =
         time_flag = false;
         nosem = true;
         strict = false;
-        (* better to set to false for now; annoying to add --ast-caching to
-         * each command, but while we're still developing osemgrep it is
-         * better to eliminate some source of complexity by default.
-         *)
-        ast_caching = false;
       };
     error_on_findings = false;
     (* could be move in CLI_common.default_conf? *)
@@ -134,8 +128,6 @@ let default : conf =
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
-    (* like ast_caching, better to default to false for now *)
-    registry_caching = false;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -814,23 +806,6 @@ let o_remote : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-let o_ast_caching : bool Term.t =
-  H.negatable_flag [ "ast-caching" ] ~neg_options:[ "no-ast-caching" ]
-    ~default:default.core_runner_conf.ast_caching
-    ~doc:
-      {|Store in ~/.semgrep/cache/asts/ the parsed ASTs to speedup things.
-Requires --experimental.
-|}
-
-(* TODO: add also an --offline flag? what about metrics? *)
-let o_registry_caching : bool Term.t =
-  H.negatable_flag [ "registry-caching" ] ~neg_options:[ "no-registry-caching" ]
-    ~default:default.registry_caching
-    ~doc:
-      {|Cache for 24 hours in ~/.semgrep/cache rules from the registry.
-Requires --experimental.
-|}
-
 (*
    Let's use the following convention: the prefix '--x-' means "forbidden"
    or "experimental".
@@ -855,15 +830,14 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine allow_untrusted_validators ast_caching autofix baseline_commit
-      common config dataflow_traces diff_depth dryrun dump_ast
-      dump_command_for_core dump_engine_path emacs error exclude_
-      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_
-      incremental_output json junit_xml lang ls matching_explanations
-      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
-      metrics num_jobs no_secrets_validation nosem optimizations oss output
-      pattern pro project_root pro_intrafile pro_lang registry_caching remote
-      replacement respect_gitignore rewrite_rule_ids sarif
+  let combine allow_untrusted_validators autofix baseline_commit common config
+      dataflow_traces diff_depth dryrun dump_ast dump_command_for_core
+      dump_engine_path emacs error exclude_ exclude_rule_ids force_color
+      gitlab_sast gitlab_secrets include_ incremental_output json junit_xml lang
+      ls matching_explanations max_chars_per_line max_lines_per_finding
+      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang remote replacement respect_gitignore rewrite_rule_ids sarif
       scan_unknown_extensions secrets severity show_supported_languages strict
       target_roots test test_ignore_todo text time_flag timeout
       _timeout_interfileTODO timeout_threshold trace validate version
@@ -1029,7 +1003,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         timeout;
         timeout_threshold;
         max_memory_mb;
-        ast_caching;
         dataflow_traces;
         nosem;
         strict;
@@ -1169,7 +1142,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       core_runner_conf;
       error_on_findings = error;
       metrics;
-      registry_caching;
       version_check;
       output;
       output_conf;
@@ -1190,20 +1162,20 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_allow_untrusted_validators $ o_ast_caching $ o_autofix
-    $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
-    $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
-    $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
-    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include
-    $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
-    $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output
-    $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
-    $ o_registry_caching $ o_remote $ o_replacement $ o_respect_gitignore
-    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    const combine $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
+    $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_diff_depth
+    $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
+    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color
+    $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_incremental_output
+    $ o_json $ o_junit_xml $ o_lang $ o_ls $ o_matching_explanations
+    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
+    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_remote
+    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
     $ o_version $ o_version_check $ o_vim)
 

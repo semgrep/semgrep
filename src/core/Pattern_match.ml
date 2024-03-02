@@ -87,7 +87,7 @@ type t = {
    * TODO? do we want to consider the same match but with different engine
    * as separate matches? or better make them equal for dedup purpose?
    *)
-  engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
+  engine_of_match : Engine_kind.engine_of_finding; [@equal fun _a _b -> true]
   (* location info *)
   path : Target.path;
   (* less: redundant with location? *)
@@ -223,7 +223,7 @@ let no_submatches pms =
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
 [@@profiling]
 
-let to_proprietary pm = { pm with engine_kind = `PRO }
+let to_proprietary pm = { pm with engine_of_match = `PRO }
 
 (* DEAD ?
 

@@ -393,6 +393,7 @@ local benchmarks_full_job = {
 };
 
 local trigger_semgrep_comparison_argo = {
+  'if': "${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}",
   secrets: 'inherit',
   needs: [
     'push-docker-returntocorp',

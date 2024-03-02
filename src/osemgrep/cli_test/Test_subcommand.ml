@@ -46,7 +46,7 @@ let rule_files_and_rules_of_config_string caps
   (* LESS: restrict to just File? *)
   let (rules_and_origin : Rule_fetching.rules_and_origin list), errors =
     Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
-      ~token_opt:None ~registry_caching:false caps config
+      ~token_opt:None caps config
   in
 
   if errors <> [] then

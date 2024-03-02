@@ -1,0 +1,27 @@
+
+
+┌─────────────────┐
+│ 5 Code Findings │
+└─────────────────┘
+
+    targets/autofix/requests-use-timeout.py
+    ❯❱ rules.autofix.python.requests.best-practice.use-timeout.use-timeout
+          'requests' calls default to waiting until the connection is closed. This means a 'requests' call
+          without a timeout will hang the program if a response is never received. Consider setting a timeout
+          for all 'requests'.
+
+           ▶▶┆ Autofix ▶ requests.get(url, timeout=30)
+            6┆ r = requests.get(url, timeout=30)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ requests.post(url, timeout=30)
+            9┆ r = requests.post(url, timeout=30)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ requests.request("GET", url, timeout=30)
+           12┆ r = requests.request("GET", url, timeout=30)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ requests.request("GET", return_url(), timeout=30)
+           18┆ r = requests.request("GET", return_url(), timeout=30)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ post(url, timeout=30)
+           29┆ r = post(url, timeout=30)
+

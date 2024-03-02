@@ -1,9 +1,15 @@
 import pytest
 from tests.fixtures import RunSemgrep
 
+from semgrep.constants import OutputFormat
 
+
+@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
+@pytest.mark.parametrize(
+    "output_format", [OutputFormat.JSON, OutputFormat.TEXT], ids=["json", "text"]
+)
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -42,17 +48,33 @@ from tests.fixtures import RunSemgrep
     ],
 )
 def test_autofix(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot, rule, target, dryrun
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
+    rule,
+    target,
+    dryrun,
+    output_format,
 ):
     # Use run_semgrep_on_copied_files to prevent alteration of the source-controlled test directory
     semgrep_result = run_semgrep_on_copied_files(
         rule,
         target_name=target,
         options=["--autofix", *(["--dryrun"] if dryrun else [])],
+        output_format=output_format,
     )
+    if output_format == OutputFormat.JSON:
+        results_file = "results.json"
+    else:
+        results_file = "results.txt"
     snapshot.assert_match(
         semgrep_result.stdout,
-        "results.json",
+        results_file,
+    )
+
+    snapshot.assert_match(
+        semgrep_result.stderr,
+        "stderr.txt",
     )
 
     # Now make sure the files are actually updated
