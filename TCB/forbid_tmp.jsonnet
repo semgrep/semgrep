@@ -22,17 +22,15 @@ local funcs = [
       languages: ['ocaml'],
       paths: {
         exclude: [
-           "UTmp.ml", // TODO: remove at some point
-	   "CapTmp.ml",
+           "UTmp.ml", "CapTmp.ml",
            'TCB/*',
            'tools/*', 'scripts/*', 'stats/*',
            'Test*.ml',  'Unit_*.ml',
         ],
       },
       severity: 'ERROR',
-      //TODO: tell to use CapTmp.ml
       message: |||
-        Do not use directly Filename. Use UTmp.ml instead.
+        Do not use directly Filename or UTmp. Try to use CapTmp instead.
       |||,
     },
   ],
