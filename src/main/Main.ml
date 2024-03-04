@@ -59,10 +59,11 @@ let () =
       | "osemgrep.exe" ->
           let exit_code = CLI.main (caps :> CLI.caps) argv in
           (* remove? or make debug-only? or use Logs.info? *)
-          if not (Exit_code.Equal.ok exit_code) then
+          if exit_code <> Exit_code.ok then
             Printf.eprintf "Error: %s\nExiting with error status %i: %s\n%!"
-              exit_code.description exit_code.code
+              (Exit_code.to_message exit_code)
+              (Exit_code.to_int exit_code)
               (String.concat " " (Array.to_list argv));
-          CapStdlib.exit caps#exit exit_code.code
+          CapStdlib.exit caps#exit (Exit_code.to_int exit_code)
       (* legacy semgrep-core *)
       | _ -> Core_CLI.main caps argv)

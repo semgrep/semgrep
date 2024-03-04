@@ -58,12 +58,7 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
              |> List.iter (fun strategy ->
                     let str_strategy = Conf.show_eval_strategy strategy in
                     try
-                      (* TODO: make timeouts proportional to local host
-                         capabilities or make them very high.
-                         This used to run under 0.5s and suddenly started
-                         to take over 1s on my machine without me touching
-                         ojsonnet's code. *)
-                      let timeout = 2.0 in
+                      let timeout = 0.5 in
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->

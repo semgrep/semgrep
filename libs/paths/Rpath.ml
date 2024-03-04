@@ -34,64 +34,18 @@
    https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
 *)
 
-open Common
-
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
+type t = Rpath of Fpath.t [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
 (*****************************************************************************)
 
-let bug_repro path =
-  let rpath = Unix.realpath path in
-  let cwd = Unix.getcwd () in
-  let rcwd = Unix.realpath cwd in
-  Logs.debug (fun m ->
-      m ~tags
-        "bug repro: path=%s, Unix.realpath(path)=%s, Unix.getcwd()=%s, \
-         Unix.realpath(cwd)=%s"
-        path rpath cwd rcwd)
-
-let of_string path =
-  try
-    let rpath = Unix.realpath path in
-    bug_repro path;
-    Ok (Rpath (Fpath.v rpath))
-  with
-  | Unix.Unix_error (err, _, _) ->
-      let msg =
-        spf "Cannot determine physical path for %S: %s" path
-          (Unix.error_message err)
-      in
-      Error msg
-  | other_exn ->
-      let msg =
-        spf "Cannot determine physical path for %S: %s" path
-          (Printexc.to_string other_exn)
-      in
-      Error msg
-
-let of_string_exn path_str =
-  match of_string path_str with
-  | Ok rpath -> rpath
-  | Error msg -> failwith msg
-
-let of_fpath path = of_string (Fpath.to_string path)
-let of_fpath_exn fpath = of_string_exn (Fpath.to_string fpath)
+let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
+let of_string s = Rpath (Unix.realpath s |> Fpath.v)
 let to_fpath (Rpath x) = x
 let to_string (Rpath x) = Fpath.to_string x
-
-let getcwd () =
-  (* We could call 'Unix.getcwd' but it's not documented as returning
-     necessarily a physical path. Hopefully, this is fast enough. *)
-  of_string_exn "."
-
-let parent (Rpath path) =
-  let res = Fpath.parent path |> Fpath.rem_empty_seg in
-  if res <> path then Some (Rpath res) else None
+let canonical s = to_string (of_string s)

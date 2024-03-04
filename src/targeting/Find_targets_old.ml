@@ -94,7 +94,7 @@ let group_by_project_root func paths =
 
    TODO? move in paths/Project.ml?
 *)
-let group_roots_by_project conf (paths : Scanning_root.t list) =
+let group_roots_by_project conf paths =
   let force_root =
     match conf.project_root with
     | Some (Find_targets.Git_remote _)
@@ -105,24 +105,17 @@ let group_roots_by_project conf (paths : Scanning_root.t list) =
   in
   if conf.respect_gitignore then
     paths
-    |> group_by_project_root (fun (path : Scanning_root.t) ->
-           let ( kind,
-                 ({ project_root = root; inproject_path = git_path } :
-                   Git_project.scanning_root_info) ) =
-             Git_project.find_any_project_root ?force_root
-               (Scanning_root.to_fpath path)
+    |> group_by_project_root (fun path ->
+           let kind, root, git_path =
+             Git_project.find_any_project_root ?force_root path
            in
-           ((kind, root), Ppath.to_fpath (Rfpath.to_fpath root) git_path))
+           ((kind, root), Ppath.to_fpath root git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths
-    |> group_by_project_root (fun (path : Scanning_root.t) ->
-           let ({ project_root = root; inproject_path = git_path }
-                 : Git_project.scanning_root_info) =
-             Git_project.force_project_root (Scanning_root.to_fpath path)
-           in
-           ( (Project.Other_project, root),
-             Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path ))
+    |> group_by_project_root (fun path ->
+           let root, git_path = Git_project.force_project_root path in
+           ((Project.Other_project, root), Ppath.to_fpath root git_path))
 
 (*************************************************************************)
 (* Finding (old) *)
@@ -234,7 +227,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
    See the documentation for the conf object for the various filters
    that we apply.
 *)
-let get_targets conf (scanning_roots : Scanning_root.t list) =
+let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   group_roots_by_project conf scanning_roots
   |> List_.map (fun ((proj_kind, project_root), scanning_roots) ->
@@ -257,18 +250,14 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
              ~cli_patterns:conf.exclude ~builtin_semgrepignore:Empty
-             ~exclusion_mechanism
-             ~project_root:(Rfpath.to_fpath project_root)
-             ()
+             ~exclusion_mechanism ~project_root ()
          in
          let paths, skipped_paths1 =
            paths
            |> Either_.partition_either (fun path ->
                   Logs.debug (fun m -> m "Considering path %s" !!path);
                   let rel_path =
-                    match
-                      Fpath.relativize ~root:(Rfpath.to_fpath project_root) path
-                    with
+                    match Fpath.relativize ~root:project_root path with
                     | Some x -> x
                     | None ->
                         (* we're supposed to be working with clean paths by now *)

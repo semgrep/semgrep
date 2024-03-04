@@ -119,7 +119,8 @@ let target_kind_of_roots_and_config target_roots config =
   | _, _ :: _ :: _ ->
       (* stricter: removed 'config directory' *)
       Error.abort "only one config allowed for tests"
-  | [], _ -> Error.abort "bug: no valid target roots"
+      (* target_roots should always contain at least ["."] *)
+  | [], _ -> assert false
 
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order

@@ -20,7 +20,7 @@ type t
    return "/".
 
    This is purely syntactic.
-   It is required to work on physical paths as returned by 'realpath()'
+   It is recommended to work on physical paths as returned by 'realpath()'
    to ensure that both paths below share the longest common prefix.
 
    Example of use:
@@ -31,10 +31,8 @@ type t
    equals to
 
      Ok ([""; "b"; "c"], "/b/c" )
-
-   Note that the input path may be a symbolic link.
 *)
-val in_project : root:Rfpath.t -> Fpath.t -> (t, string) result
+val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
 
 (* Creates a ppath from a list of segments. Segments may not contain
    slashes. The first segment must be "" because ppath must be

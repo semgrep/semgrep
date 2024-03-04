@@ -10,21 +10,6 @@ open Common
  *)
 
 (*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(* Log every external command.
-
-   Let's not log environment variables because they may contain sensitive
-   secrets.
-*)
-let log_command cmd =
-  Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd))
-
-let log_shell_command cmd =
-  Logs.info (fun m -> m "Running shell command: %s" cmd)
-
-(*****************************************************************************)
 (* Old Common.cmd_to_list *)
 (*****************************************************************************)
 
@@ -61,28 +46,22 @@ let cmd_to_list ?verbose command =
 (*****************************************************************************)
 
 let string_of_run ~trim cmd =
-  log_command cmd;
   (* nosemgrep: forbid-exec *)
   let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
   (* nosemgrep: forbid-exec *)
   Bos.OS.Cmd.out_string ~trim out
 
 let lines_of_run ~trim cmd =
-  log_command cmd;
   (* nosemgrep: forbid-exec *)
   let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
   (* nosemgrep: forbid-exec *)
   Bos.OS.Cmd.out_lines ~trim out
 
 (* nosemgrep: forbid-exec *)
-let status_of_run ?quiet cmd =
-  log_command cmd;
-  (* nosemgrep: forbid-exec *)
-  Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet) cmd
+let status_of_run ?quiet = Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet)
 
 (* TODO: switch to type Cmd.t for cmd *)
 let with_open_process_in (cmd : string) f =
-  log_shell_command cmd;
   (* nosemgrep: forbid-exec *)
   let chan = UUnix.open_process_in cmd in
   Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan)

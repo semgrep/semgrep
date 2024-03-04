@@ -19,4 +19,4 @@ let run ~target_roots ~targeting_conf:conf () =
            (spf "ignored %s [%s]" (Fpath.to_string x.path)
               (x.reason |> OutJ.string_of_skip_reason
              |> JSON.remove_enclosing_quotes_of_jstring)));
-  Exit_code.ok ~__LOC__
+  Exit_code.ok

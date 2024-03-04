@@ -50,7 +50,6 @@ let tests (caps : Cap.all_caps) =
       Unit_memory_limit.tests;
       Unit_tok.tests;
       Unit_Rpath.tests;
-      Unit_git_wrapper.tests;
       Unit_ugly_print_AST.tests;
       Unit_autofix_printer.tests;
       Unit_synthesizer.tests;
@@ -97,12 +96,7 @@ let tests (caps : Cap.all_caps) =
    to allow what we want without this workaround.
 *)
 let tests_with_delayed_error caps =
-  try
-    Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
-    let tests = tests caps in
-    Printf.printf "Done gathering tests.\n%!";
-    tests
-  with
+  try tests caps with
   | e ->
       let exn = Exception.catch e in
       [
@@ -131,6 +125,7 @@ let main (caps : Cap.all_caps) : unit =
            one of its submodules."
   in
   Testutil_files.with_chdir repo_root (fun () ->
+      print_endline ("Running tests from directory: " ^ Sys.getcwd ());
       Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
       Parsing_init.init ();
       Data_init.init ();

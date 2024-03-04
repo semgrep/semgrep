@@ -2,8 +2,7 @@ open Fpath_.Operators
 
 let pp_targets_debug ppf (target_roots, semgrepignored_targets, targets) =
   Fmt.pf ppf "target roots: [@.";
-  target_roots
-  |> List.iter (fun root -> Fmt.pf ppf "  %s@." !!(Scanning_root.to_fpath root));
+  target_roots |> List.iter (fun root -> Fmt.pf ppf "  %s@." !!root);
   Fmt.pf ppf "]@.";
   Fmt.pf ppf "skipped targets: [@.";
   semgrepignored_targets

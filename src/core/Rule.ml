@@ -952,7 +952,8 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     mode = `Search (P xpat);
     min_version = None;
     max_version = None;
-    message = fst xpat.pstr;
+    (* alt: could put xpat.pstr for the message *)
+    message = "";
     severity = `Error;
     target_selector;
     target_analyzer;

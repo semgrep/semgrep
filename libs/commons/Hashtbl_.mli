@@ -1,7 +1,3 @@
-(*
-   Extension of the standard library module Hashtbl
-*)
-
 val hash_of_list : ('a * 'b) list -> ('a, 'b) Hashtbl.t
 val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 val hkeys : ('a, 'b) Hashtbl.t -> 'a list

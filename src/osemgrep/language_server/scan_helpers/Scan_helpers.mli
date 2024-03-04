@@ -1,7 +1,7 @@
 val run_semgrep :
-  ?targets:Fpath.t list ->
-  ?rules:Rule.rules ->
-  ?git_ref:string ->
+  ?targets:Fpath.t list option ->
+  ?rules:Rule.rules option ->
+  ?git_ref:string option ->
   RPC_server.t ->
   Semgrep_output_v1_t.cli_match list * Fpath.t list
 (** [run_semgrep server] runs semgrep on the given server. If [targets] is

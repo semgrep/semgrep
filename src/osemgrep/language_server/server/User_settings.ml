@@ -45,23 +45,23 @@ let t_of_yojson json = of_yojson json
 let yojson_of_t settings = to_yojson settings
 let pp fmt settings = Yojson.Safe.pretty_print fmt (yojson_of_t settings)
 
-let find_targets_conf_of_t settings : Find_targets.conf =
+let find_targets_conf_of_t settings =
   let include_ =
     if settings.include_ <> [] then Some settings.include_ else None
   in
-  {
-    exclude = settings.exclude;
-    include_;
-    max_target_bytes = settings.max_target_bytes;
-    respect_gitignore = true;
-    baseline_commit = None;
-    diff_depth = 0;
-    always_select_explicit_targets = false;
-    explicit_targets = Find_targets.Explicit_targets.empty;
-    project_root = None;
-  }
+  Find_targets.
+    {
+      exclude = settings.exclude;
+      include_;
+      max_target_bytes = settings.max_target_bytes;
+      respect_gitignore = true;
+      baseline_commit = None;
+      diff_depth = 0;
+      scan_unknown_extensions = false;
+      project_root = None;
+    }
 
-let core_runner_conf_of_t settings : Core_runner.conf =
+let core_runner_conf_of_t settings =
   Core_runner.
     {
       num_jobs = settings.jobs;

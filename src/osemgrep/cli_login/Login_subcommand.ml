@@ -54,10 +54,10 @@ let save_token ?(display_name = None) token =
         | None -> deployment_config.display_name
       in
       print_success_message display_name;
-      Exit_code.ok ~__LOC__
+      Exit_code.ok
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
-      Exit_code.fatal ~__LOC__
+      Exit_code.fatal
 
 let print_preamble () : unit =
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Login");
@@ -121,12 +121,12 @@ let fetch_token caps session_id =
   with
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
-      Exit_code.fatal ~__LOC__
+      Exit_code.fatal
   | Ok (_, display_name) ->
       Console_Spinner.erase_spinner ();
       print_did_save_token ();
       print_success_message display_name;
-      Exit_code.ok ~__LOC__
+      Exit_code.ok
 
 (*****************************************************************************)
 (* Main logic *)
@@ -153,7 +153,7 @@ let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
       | Some _ -> (
           let session_id = start_interactive_flow () in
           match session_id with
-          | None -> Exit_code.fatal ~__LOC__
+          | None -> Exit_code.fatal
           | Some session_id -> (
               Unix.sleepf 0.1;
               (* wait 100ms for the browser to open and then start showing the spinner *)
@@ -163,7 +163,7 @@ let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
               with
               | Error msg ->
                   Logs.err (fun m -> m "%s" msg);
-                  Exit_code.fatal ~__LOC__
+                  Exit_code.fatal
               | Ok (token, display_name) ->
                   Console_Spinner.erase_spinner ();
                   let caps = Auth.cap_token_and_network token caps in
@@ -174,8 +174,7 @@ let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
             (Std_msg.error_tag ()));
-      Exit_code.fatal ~__LOC__
-
+      Exit_code.fatal
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
