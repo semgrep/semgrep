@@ -41,32 +41,71 @@ Pipfile.lock: setup.py
 # Tests
 ###############################################################################
 
+# Note that '-n auto' parallelizes with too much overhead when running just
+# the quick tests but for the sake of maintainability, we use the same options
+# everywhere.
+#
+PYTEST ?= \
+  pipenv run pytest \
+    -n auto -vv --tb=short --durations=10 $(PYTEST_EXTRA_ARGS)
+
 # This is run from .github/workflow/tests.jsonnet (which sets
 # PYTEST_EXTRA_ARGS to some value for snapshot update).
 # Note that there are no tests/e2e/ argument to pytest below so it will
 # run all the tests specified in cli/pyproject.toml which are
 # all tests/xxx except tests/qa/ (which is run separately in another job
 # see tests.jsonnet).
-.PHONY: test-for-ci
-test-for-ci:
-	pipenv run pytest -n auto -vv $(PYTEST_EXTRA_ARGS)
+#
+# coupling: this must run the same tests as 'make test-fast'.
+#
+# !!! Make sure to pass a folder to pytest !!!
+# due to the following unexpected behavior:
+# $ pipenv run pytest --collect-only        # shows only 1567 tests
+# $ pipenv run pytest --collect-only tests  # shows 1728 tests
+# $ pipenv run pytest --collect-only .      # also shows 1728 tests
+#
+.PHONY: test
+test:
+	# To fail faster, consider running 'make test-dev' instead.
+	$(MAKE) check
+	$(PYTEST) tests
 
-# From fastest to slowest (on pad's machine):
-# - 'make quick-tests' (=~ 30s)
+# Run the same tests as 'make test' but try to fail faster.
+#
+# Each test must be marked with one of 3 markers
+# (@pytest.mark.quick, @pytest.mark.kinda_slow, or @pytest.mark.slow)
+# See 'pyproject.toml', section 'markers'. This is checked by 'check-markers'.
+# It allows us to run the quick tests first and fail faster which is
+# desirable during development.
+#
+# From fastest to slowest (on Martin's machine):
+# - 'make test-dev':
+#     - quick: 30 s,
+#     - kinda_slow: 10 min
+#     - slow: ???
+# Old from Pad's machine:
 # - 'make e2e' (=~ 2m20s?)
 # - 'make e2e-pro' (=~ 2m20s?)
 # - 'make kinda-quick-tests' (=~ 3min40s )
 # - 'make test' (=~ 11min)
 #
 # Note that none of the targets below are used in our CI test workflow.
-
-PYTEST ?= pipenv run pytest -v --tb=short --durations=10
-
-# Typecheck and run all basic tests from quickest to slowest.
-.PHONY: test
-test:
-	$(MAKE) kinda-quick-tests
-	$(PYTEST) -n auto -m 'not quick and not kinda_slow' tests
+#
+# coupling: this must run the same tests as 'make test'.
+#
+# TODO: find a way to run these tests in a single pytest command and
+# merge 'test-dev' with 'test'. For example, use pytest-order for this.
+# See https://pytest-dev.github.io/pytest-order/stable/intro.html
+#
+.PHONY: test-dev
+test-dev:
+	$(MAKE) check
+	# Run the quick tests first
+	time $(PYTEST) -m quick tests
+	# Now run the medium-quick tests
+	time $(PYTEST) -m kinda_slow tests
+	# Finally, run the slowest tests
+	time $(PYTEST) -m 'not quick and not kinda_slow' tests
 
 # Run the end-to-end tests only. These are tests that invoke the semgrep
 # command line, excluding unit tests. They don't include the quality assurance
@@ -75,31 +114,16 @@ test:
 # We exclude the few tests that don't invoke the semgrep command directly.
 .PHONY: e2e
 e2e:
-	$(PYTEST) -n auto -v tests/e2e
+	$(PYTEST) tests/e2e
 
 .PHONY: e2e-pro
 e2e-pro:
-	$(PYTEST) -n auto -v -m 'not no_semgrep_cli and not todo' tests/e2e-pro
+	$(PYTEST) -m 'not no_semgrep_cli and not todo' tests/e2e-pro
 
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
 qa:
-	$(PYTEST) -n auto -v tests/qa
-
-# Run only the tests marked as quick (@pytest.mark.quick)
-# We have also 'kinda_slow' and 'slow'. See 'tox.ini', section 'pytest'.
-#
-# '-n auto' parallelizes with too much overhead for the quick tests.
-#
-.PHONY: quick-tests
-quick-tests:
-	$(MAKE) check
-	$(PYTEST) -m quick tests
-
-.PHONY: kinda-quick-tests
-kinda-quick-tests:
-	$(MAKE) quick-tests
-	$(PYTEST) -n auto -m kinda_slow tests
+	$(PYTEST) tests/qa
 
 ###############################################################################
 # Osemgrep tests
