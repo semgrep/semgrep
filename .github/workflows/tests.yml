@@ -227,7 +227,7 @@ jobs:
           unset CI
           unset "${!GITHUB_@}"
 
-          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
+          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
         working-directory: cli
       - if: failure()
         name: Prepare repo for snapshot commit
@@ -417,7 +417,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
 name: tests
-"on":
+on:
   pull_request:
     paths-ignore:
       - '**.md'

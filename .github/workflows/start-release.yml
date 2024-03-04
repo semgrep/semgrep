@@ -492,7 +492,7 @@ jobs:
         name: Wait for checks to complete
         run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
 name: start-release
-"on":
+on:
   workflow_dispatch:
     inputs:
       bumpVersionFragment:
