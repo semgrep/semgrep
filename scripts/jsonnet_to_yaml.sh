@@ -13,4 +13,4 @@ set -euo pipefail
 # but ojsonnet is still buggy and some people (infra) don't have the ocaml
 # toolchain installed so it's easier for them to rely on jsonnet and yq
 
-jsonnet "$@" | yq -P
+jsonnet "$@" | yq eval -P
