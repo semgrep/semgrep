@@ -406,15 +406,12 @@ def enable_dependency_query() -> bool:
 def start_scan_mock_maker(
     requests_mock, scan_config, mocked_scan_id, enable_dependency_query
 ):
-    def _start_scan_func(
-        semgrep_url: str = "https://semgrep.dev", historical_scan=False
-    ):
+    def _start_scan_func(semgrep_url: str = "https://semgrep.dev"):
         start_scan_response = out.ScanResponse.from_json(
             {
                 "info": {
                     **({"id": mocked_scan_id} if mocked_scan_id else {}),
-                    "enabled_products": ["sast", "sca"]
-                    + (["secrets"] if historical_scan else []),
+                    "enabled_products": ["sast", "sca"],
                     "deployment_id": DEPLOYMENT_ID,
                     "deployment_name": "org_name",
                 },
@@ -427,16 +424,9 @@ def start_scan_mock_maker(
                         "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
                     ],
                 },
-                "engine_params": (
-                    {
-                        **(
-                            {"historical_config": {"enabled": True}}
-                            if historical_scan
-                            else {}
-                        ),
-                        "dependency_query": enable_dependency_query,
-                    }
-                ),
+                "engine_params": {
+                    "dependency_query": enable_dependency_query,
+                },
             }
         )
         return requests_mock.post(
@@ -1483,122 +1473,6 @@ def test_nosem(
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,  # TODO: probably because rely on some mocking
-    )
-    snapshot.assert_match(
-        result.as_snapshot(),
-        "output.txt",
-    )
-
-
-def scan_config_secret():
-    return dedent(
-        """
-rules:
-- id: secret
-  pattern-regex: '"(?<REGEX>.*)"'
-  message: "found secret"
-  languages: [regex]
-  severity: ERROR
-  metadata:
-    product: secrets
-  validators:
-    - http:
-        request:
-          url: https://www.example.com/$REGEX
-          method: GET
-          headers:
-            Content-Type: charset=utf-8
-            User-Agent: Semgrep (test)
-        response:
-          - match:
-            - status-code: "200"
-            result:
-              validity: valid
-          - match:
-            - status-code: "401"
-            result:
-              validity: invalid
-"""
-    ).lstrip()
-
-
-@pytest.mark.parametrize(
-    "scan_config", [scan_config_secret()], ids=["secret_scan_conf"]
-)
-@pytest.mark.osemfail
-def test_historical_scan(
-    git_tmp_path,
-    tmp_path,
-    snapshot,
-    monkeypatch,
-    mocker,
-    run_semgrep: RunSemgrep,
-    start_scan_mock_maker,
-    complete_scan_mock_maker,
-    upload_results_mock_maker,
-):
-    foo = git_tmp_path / "foo.py"
-    foo.open("w").write(f'def test():\n    return "MY SECRET"\n')
-    _bad = _git_commit(1, add=True)
-    foo.open("w").write(f'def test():\n    return "DELETED!"\n')
-    _okay = _git_commit(1, add=True)
-    subprocess.run(["git", "checkout", "-b", BRANCH_NAME])
-
-    # Mock Github Actions Env Vars
-    env = {
-        "CI": "true",
-        "GITHUB_ACTIONS": "true",
-        "GITHUB_EVENT_NAME": "unknown",
-        "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-        # Sent in metadata but no functionality change
-        "GITHUB_RUN_ID": "35",
-        "GITHUB_ACTOR": "some_test_username",
-        "GITHUB_REF": BRANCH_NAME,
-    }
-    event: dict = {}
-    event_path = tmp_path / "event_path.json"
-    event_path.write_text(json.dumps(event))
-    env["GITHUB_EVENT_PATH"] = str(event_path)
-    env["SEMGREP_APP_TOKEN"] = "fake-key-from-tests"
-
-    network_path = tmp_path / "mock-network"
-    shutil.copy(
-        Path(__file__).parent.parent
-        / "e2e-pro"
-        / "network"
-        / "historical_scan.network",
-        network_path,
-    )
-    env["SEMGREP_MOCK_NETWORK"] = str(network_path)
-
-    # Mimic having a remote by having a new repo dir and pointing origin to the repo
-    # we setup above
-    repo_copy_base = tmp_path / "copy"
-    repo_copy_base.mkdir()
-    monkeypatch.chdir(repo_copy_base)
-    mocker.patch.object(ScanHandler, "deepsemgrep", True)
-    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
-    subprocess.run(["git", "init"], check=True, capture_output=True)
-    subprocess.run(
-        ["git", "remote", "add", "origin", git_tmp_path],
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(["git", "fetch", "origin"])
-    subprocess.run(["git", "checkout", BRANCH_NAME], check=True, capture_output=True)
-
-    start_scan_mock = start_scan_mock_maker("https://semgrep.dev", historical_scan=True)
-    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
-    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
-
-    result = run_semgrep(
-        subcommand="ci",
-        options=["--no-suppress-errors", "--allow-untrusted-validators"],
-        target_name=None,
-        strict=False,
-        assert_exit_code=1,
-        env=env,
-        use_click_runner=True,
     )
     snapshot.assert_match(
         result.as_snapshot(),

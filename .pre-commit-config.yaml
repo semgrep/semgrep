@@ -61,7 +61,7 @@ repos:
       - id: requirements-txt-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: 'snapshots|.*\.network'
+        exclude: 'snapshots'
 
   # ----------------------------------------------------------
   # Extra hooks with repositories defining their own hooks
