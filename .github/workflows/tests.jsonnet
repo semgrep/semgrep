@@ -10,8 +10,9 @@ local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
-// some jobs rely on artifacts produced by this workflow
+// some jobs rely on artifacts produced by these workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
+local core_pro_x86 = import 'check-semgrep-pro.jsonnet';
 
 // intermediate image produced by build-push-action
 local docker_artifact_name = 'image-test';
@@ -220,6 +221,40 @@ local install_x86_artifacts = {
   |||,
 };
 
+local download_x86_pro_artifacts = {
+  uses: 'actions/download-artifact@v3',
+  with: {
+    name: core_pro_x86.export.artifact_name,
+  },
+};
+local install_x86_pro_artifacts = {
+  name: 'Install pro artifacts',
+  run: |||
+    tar xf ocaml-build-artifacts.tgz
+    sudo cp ocaml-build-artifacts/bin/* /usr/bin
+
+    # The version is stored in cli/src/semgrep/__init__.py
+    # and the file content looks like
+    #   __VERSION__ = "x.xx.x"
+    # so we try to get the x.xx.x part from that file below.
+
+    # First, read the file content
+    version=$(<cli/src/semgrep/__init__.py)
+
+    # Next, we remove the prefix that leads up to the number.
+    version="${version##__VERSION__ = \"}"
+
+    # Finally, we remove the final quote suffix.
+    version="${version%*\"}"
+
+    # By writing the version number to this file and putting it
+    # in the same directory as semgrep-core-proprietary,
+    # the binary will pass the cli's checks and can be run.
+    echo "$version" > pro-installed-by.txt
+    sudo cp pro-installed-by.txt /usr/bin
+  |||,
+};
+
 local install_python_deps = {
   name: 'Install Python dependencies',
   'working-directory': 'cli',
@@ -231,7 +266,8 @@ local test_cli_job = {
   name: 'test semgrep-cli',
   'runs-on': 'ubuntu-22.04',
   needs: [
-    'build-test-core-x86',
+    // Needed for semgrep-core and semgrep-core-proprietary binary artifacts.
+    'check-semgrep-pro',
   ],
   permissions: {
     contents: 'write',
@@ -252,8 +288,8 @@ local test_cli_job = {
     fetch_submodules_step,
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
-    download_x86_artifacts,
-    install_x86_artifacts,
+    download_x86_pro_artifacts,
+    install_x86_pro_artifacts,
     install_python_deps,
     {
       name: 'Run pytest',
@@ -578,8 +614,9 @@ local ignore_md = {
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
-    // Pysemgrep tests, requires build-test-core-x86 job
+    // Pysemgrep tests that require check-semgrep-pro
     'test-cli': test_cli_job,
+    // Pysemgrep tests that require build-test-core-x86
     'test-qa': test_qa_job,
     'benchmarks-lite': benchmarks_lite_job,
     'benchmarks-full': benchmarks_full_job,
@@ -600,6 +637,10 @@ local ignore_md = {
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
+      secrets: 'inherit',
+    },
+    'check-semgrep-pro': {
+      uses: './.github/workflows/check-semgrep-pro.yml',
       secrets: 'inherit',
     },
     'build-test-windows-x86': {
