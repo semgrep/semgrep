@@ -411,6 +411,13 @@ def ci(
         else:
             run_install_semgrep_pro()
 
+    # Base arguments for actually running the scan. This is done here so we can
+    # re-use this in the event we need to perform a second scan. Currently the
+    # only case for this is a separate "historical" scan, where we scan the git
+    # history for secrets. This must be split since the targeting logic for the
+    # historical scans is entirely in pro, but otherwise here is still
+    # performed by the python. Once osemgrep is complete we need only combine
+    # the two target lists and perform one scan.
     run_scan_args = {
         "engine_type": engine_type,
         "run_secrets": run_secrets,
@@ -523,7 +530,10 @@ def ci(
                 _historical_contributions,
                 _executed_rule_count,
                 _missed_rule_count,
-            ) = semgrep.run_scan.run_scan(historical_secrets=True, **run_scan_args)
+            ) = semgrep.run_scan.run_scan(
+                **run_scan_args,
+                historical_secrets=True,
+            )
 
             for key, value in historical_filtered_matches_by_rule.items():
                 filtered_matches_by_rule[key].extend(value)

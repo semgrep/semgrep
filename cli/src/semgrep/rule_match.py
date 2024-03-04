@@ -18,8 +18,6 @@ from uuid import UUID
 from attrs import evolve
 from attrs import field
 from attrs import frozen
-from boltons.cacheutils import cachedmethod
-from boltons.cacheutils import LRU
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
@@ -92,7 +90,6 @@ class RuleMatch:
     match_formula_string: str = ""
 
     # derived attributes
-    line_cache: LRU = field(factory=LRU)
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
@@ -168,7 +165,6 @@ class RuleMatch:
 
         return self.rule_id
 
-    @cachedmethod("line_cache", scoped=False)
     def get_individual_line(self, line_number: int) -> str:
         line_array = (
             get_lines_from_git_blob(self.git_blob, line_number, line_number)

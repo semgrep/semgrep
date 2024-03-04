@@ -723,9 +723,9 @@ class CoreRunner:
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w+", suffix=".json")
         )
-        if target_mode_config.is_historical_scan:
-            pass
-        else:
+        # A historical scan does not create a targeting file since targeting is
+        # performed directly by core.
+        if not target_mode_config.is_historical_scan:
             target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
                 if dump_command_for_core

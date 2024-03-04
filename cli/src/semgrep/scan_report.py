@@ -3,9 +3,9 @@
 ##############################################################################
 # Helpers to run_scan.py to report scan status
 import sys
-from collections.abc import Sequence
 from textwrap import wrap
 from typing import List
+from typing import Sequence
 
 from attrs import evolve
 from rich.columns import Columns

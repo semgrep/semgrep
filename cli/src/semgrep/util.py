@@ -234,13 +234,17 @@ def get_lines_from_file(
     return result
 
 
+@functools.lru_cache
 def get_lines_from_git_blob(
     blob_sha: Sha1,
     start_line: int,
     end_line: int,
 ) -> List[str]:
     """
-    Return lines in the given git blob.
+    Return lines in the given git blob. Result is cached since calling git
+    multiple times may be expensive and the contents of a blob are stable
+    (addressed by sha), since (among other reasons) the sha is directly related
+    to the content.
 
     Assumes blob exists.
     """
