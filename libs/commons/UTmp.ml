@@ -131,6 +131,6 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     | _ -> None
 
 let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
-  let data = In_channel.input_all stdin in
+  let data = In_channel.input_all UStdlib.stdin in
   Logs.debug (fun m -> m ~tags "stdin data: %s" (*String_.show*) data);
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data
