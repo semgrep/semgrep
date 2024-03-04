@@ -245,7 +245,8 @@ let display_rule_source ~(rule_source : Rules_source.t) : unit =
    [(Rule.t, number of matches : int) list].
    This is use for rule metrics.
 *)
-let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
+let rules_and_counted_matches (res : Core_to_cli.core_runner_result) :
+    (Rule.t * int) list =
   let update = function
     | Some n -> Some (succ n)
     | None -> Some 1
@@ -496,8 +497,9 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
-    (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
-    =
+    ( Rule.rule list * Core_to_cli.core_runner_result * OutJ.cli_output,
+      Exit_code.t )
+    result =
   Metrics_.add_engine_type conf.engine_type;
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -614,8 +616,8 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
             filtered_rules commit status scan_func
     in
-    let (res : Core_runner.result) =
-      let res = Core_runner.create_core_result filtered_rules exn_and_matches in
+    let (res : Core_to_cli.core_runner_result) =
+      let res = Core_to_cli.create_core_result filtered_rules exn_and_matches in
       (* step 3'': filter via nosemgrep *)
       let keep_ignored =
         (not conf.core_runner_conf.nosem)
@@ -633,7 +635,7 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (* step 4: adjust the skipped_targets *)
     let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
     let skipped = skipped @ errors_skipped in
-    let (res : Core_runner.result) =
+    let (res : Core_to_cli.core_runner_result) =
       (* TODO: what is in core.skipped_targets? should we add them to
        * skipped above too?
        *)

@@ -39,7 +39,7 @@ let set_session_targets (session : Session.t) folders =
   Session.cache_workspace_targets session;
   session
 
-let mock_run_results (files : string list) : Core_runner.result =
+let mock_run_results (files : string list) : Core_to_cli.core_runner_result =
   let pattern_string = "print(...)" in
   let lang = Lang.Python in
   let fk = Tok.unsafe_fake_tok "" in
@@ -97,7 +97,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       interfile_languages_used = Some [];
     }
   in
-  Core_runner.{ core; hrules; scanned }
+  Core_to_cli.{ core; hrules; scanned }
 
 let mock_workspace ?(git = false) () =
   let rand_dir () =

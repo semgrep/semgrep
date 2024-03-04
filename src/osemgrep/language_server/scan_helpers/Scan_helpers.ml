@@ -93,7 +93,7 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
           scan_func ~respect_git_ignore:true ~file_match_results_hook:None
             runner_conf rules [] targets
         in
-        Core_runner.create_core_result rules res
+        Core_to_cli.create_core_result rules res
       in
       let errors =
         res.core.errors

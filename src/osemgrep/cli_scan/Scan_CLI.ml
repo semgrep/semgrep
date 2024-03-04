@@ -40,10 +40,10 @@ type conf = {
   (* Engine selection *)
   engine_type : Engine_type.t;
   (* Performance options *)
-  core_runner_conf : Core_runner.conf;
+  core_runner_conf : Core_to_cli.core_runner_conf;
   (* file or URL (None means output to stdout) *)
   output : string option;
-  output_conf : Output.conf;
+  output_conf : Core_to_cli.output_conf;
   incremental_output : bool;
   (* Networking options *)
   metrics : Metrics_.config;
@@ -101,7 +101,7 @@ let default : conf =
          * we don't believe that Parmap works in those environments
          * TODO: figure out a solution for Windows multi-processing (OCaml 5 in the worst case)
          *)
-        Core_runner.num_jobs =
+        Core_to_cli.num_jobs =
           min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
         timeout = 5.0;
         (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
@@ -124,7 +124,7 @@ let default : conf =
       };
     engine_type = OSS;
     output = None;
-    output_conf = Output.default;
+    output_conf = Core_to_cli.default_output_conf;
     incremental_output = false;
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
@@ -904,7 +904,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _ when junit_xml -> Output_format.Junit_xml
       | _else_ -> default.output_conf.output_format
     in
-    let output_conf : Output.conf =
+    let output_conf : Core_to_cli.output_conf =
       {
         nosem;
         autofix;
@@ -1010,7 +1010,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let core_runner_conf =
       {
-        Core_runner.num_jobs;
+        Core_to_cli.num_jobs;
         optimizations;
         timeout;
         timeout_threshold;

@@ -16,48 +16,6 @@ module Env = Semgrep_envvars
 (* Types *)
 (*************************************************************************)
 
-(* input *)
-type conf = {
-  (* opti and limits *)
-  num_jobs : int;
-  optimizations : bool;
-  max_memory_mb : int;
-  timeout : float;
-  timeout_threshold : int; (* output flags *)
-  nosem : bool;
-  strict : bool;
-  time_flag : bool;
-  matching_explanations : bool;
-  (* TODO: actually seems like semgrep-core always return them,
-   * even if it was not requested by the CLI
-   *)
-  dataflow_traces : bool;
-}
-[@@deriving show]
-
-(* output *)
-(* LATER: ideally we should just return Core_result.t
-   without the need for the intermediate Out.core_output.
-*)
-type result = {
-  (* ocaml: not in original python implem, but just enough to get
-   * Semgrep_scan.cli_output_of_core_results to work
-   *)
-  core : OutJ.core_output;
-  hrules : Rule.hrules;
-  scanned : Fpath.t Set_.t;
-      (* in python implem *)
-      (* TODO: original intermediate data structures in python *)
-      (*
-     findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
-     errors : Error.t list;
-     all_targets: path Set_.t;
-     (*profiling_data: profiling_data; TOPORT: do we need to translate this? *)
-     parsing_data : Parsing_data.t;
-     explanations : Out.matching_explanation list option;
-  *)
-}
-
 (* Type for the scan function, which can either be built by
    mk_scan_func_for_osemgrep() or set in Scan_subcommand.hook_pro_scan_func *)
 
@@ -65,7 +23,7 @@ type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
     (Fpath.t -> Core_result.matches_single_file -> unit) option ->
-  conf ->
+  Core_to_cli.core_runner_conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
@@ -200,7 +158,8 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
          then None
          else Some ({ xlang; targets; rules } : Lang_job.t))
 
-let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
+let core_scan_config_of_conf (conf : Core_to_cli.core_runner_conf) :
+    Core_scan_config.t =
   match conf with
   | {
    num_jobs;
@@ -263,38 +222,6 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     rule_source = Some (Rules rules);
   }
 
-(* Create the core result structure from the results *)
-(* LATER: we want to avoid this intermediate data structure but
- * for now that's what pysemgrep used to get so simpler to return it.
- *)
-let create_core_result (all_rules : Rule.rule list)
-    (result_or_exn : Core_result.result_or_exn) =
-  (* similar to Core_command.output_core_results code *)
-  let res =
-    match result_or_exn with
-    | Ok r -> r
-    | Error (exn, _core_error_opt) ->
-        (* TODO: use _core_error_opt instead? reraise the exn instead?
-         * TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead.
-         *)
-        let err = Core_error.exn_to_error None "" exn in
-        Core_result.mk_final_result_with_just_errors [ err ]
-  in
-  let scanned = Set_.of_list res.scanned in
-  let match_results = Core_json_output.core_output_of_matches_and_errors res in
-  (* TOPORT? or move in semgrep-core so get info ASAP
-     if match_results.skipped_targets:
-         for skip in match_results.skipped_targets:
-             if skip.rule_id:
-                 rule_info = f"rule {skip.rule_id}"
-             else:
-                 rule_info = "all rules"
-             logger.verbose(
-                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-             )
-  *)
-  { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
-
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
@@ -305,7 +232,7 @@ let create_core_result (all_rules : Rule.rule list)
 let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
     scan_func_for_osemgrep =
  fun ?(respect_git_ignore = true) ?(file_match_results_hook = None)
-     (conf : conf) (all_rules : Rule.t list)
+     (conf : Core_to_cli.core_runner_conf) (all_rules : Rule.t list)
      (invalid_rules : Rule.invalid_rule_error list) (all_targets : Fpath.t list)
      : Core_result.result_or_exn ->
   let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in

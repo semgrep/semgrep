@@ -62,7 +62,7 @@ val targets : t -> Fpath.t list
     workspace folders, with includes and excludes in [t.user_settings], and git
     status taken into account if [t.user_settings.only_git_dirty] is set *)
 
-val runner_conf : t -> Core_runner.conf
+val runner_conf : t -> Core_to_cli.core_runner_conf
 (** [runner_conf t] returns the configuration for the runner. This includes scan settings from
     [t.user_settings] *)
 

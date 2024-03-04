@@ -84,6 +84,7 @@ let output_core_results caps (result_or_exn : Core_result.result_or_exn)
         yojson) for pretty-printing json.
       *)
       let s = OutJ.string_of_core_output res in
+
       Logs.debug (fun m ->
           m ~tags "size of returned JSON string: %d" (String.length s));
       Out.put s;

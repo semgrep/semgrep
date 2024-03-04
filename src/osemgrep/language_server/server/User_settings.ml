@@ -62,7 +62,7 @@ let find_targets_conf_of_t settings =
     }
 
 let core_runner_conf_of_t settings =
-  Core_runner.
+  Core_to_cli.
     {
       num_jobs = settings.jobs;
       optimizations = true;

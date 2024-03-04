@@ -1,32 +1,9 @@
-(* input *)
-type conf = {
-  (* opti and limits *)
-  num_jobs : int;
-  optimizations : bool;
-  max_memory_mb : int;
-  timeout : float;
-  timeout_threshold : int; (* output flags *)
-  nosem : bool;
-  strict : bool;
-  time_flag : bool;
-  matching_explanations : bool;
-  dataflow_traces : bool;
-}
-[@@deriving show]
-
-(* output *)
-type result = {
-  core : Semgrep_output_v1_t.core_output;
-  hrules : Rule.hrules;
-  scanned : Fpath.t Set_.t;
-}
-
 (* similar to Core_scan.core_scan_func *)
 type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
     (Fpath.t -> Core_result.matches_single_file -> unit) option ->
-  conf ->
+  Core_to_cli.core_runner_conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
@@ -47,8 +24,6 @@ val hook_pro_git_remote_scan_setup :
   option
   ref
 
-val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
-
 (* Core_scan_func adapter to be used in osemgrep.
 
    This will eventually call a core scan like pysemgrep but without
@@ -65,7 +40,8 @@ val mk_scan_func_for_osemgrep :
   Core_scan.core_scan_func -> scan_func_for_osemgrep
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
-val core_scan_config_of_conf : conf -> Core_scan_config.t
+val core_scan_config_of_conf :
+  Core_to_cli.core_runner_conf -> Core_scan_config.t
 
 (* reused in semgrep-server *)
 val split_jobs_by_language : Rule.t list -> Fpath.t list -> Lang_job.t list

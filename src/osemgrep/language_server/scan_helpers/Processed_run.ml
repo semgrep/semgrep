@@ -50,14 +50,15 @@ let filter_clean_lines git_ref matches =
   let not_in_git_matches = not_in_git |> List.concat_map snd in
   in_git_matches @ not_in_git_matches
 
-let scan_conf = { Output.default with strict = false; nosem = true }
+let scan_conf =
+  { Core_to_cli.default_output_conf with strict = false; nosem = true }
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
 let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true)
-    ?(git_ref = None) (result : Core_runner.result) =
-  let result = Output.preprocess_result scan_conf result in
+    ?(git_ref = None) (result : Core_to_cli.core_runner_result) =
+  let result = Core_to_cli.preprocess_core_runner_result scan_conf result in
   (* Match the rules with the matches so we can get fixes/rule-ids/messages *)
   let matches =
     result.results

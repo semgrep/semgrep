@@ -19,10 +19,10 @@ type conf = {
   rewrite_rule_ids : bool;
   engine_type : Engine_type.t;
   (* Performance options *)
-  core_runner_conf : Core_runner.conf;
+  core_runner_conf : Core_to_cli.core_runner_conf;
   (* file or URL (None means output to stdout) *)
   output : string option;
-  output_conf : Output.conf;
+  output_conf : Core_to_cli.output_conf;
   (* osemgrep-only: *)
   incremental_output : bool;
   (* text output config (TODO: make a separate type gathering all of them)

@@ -16,35 +16,6 @@ module OutT = Semgrep_output_v1_t
    display findings even with --quiet.
 *)
 
-type conf = {
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
-  strict : bool;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
-  force_color : bool;
-  logging_level : Logs.level option;
-  (* Display options *)
-  (* mix of --json, --emacs, --vim, etc. *)
-  output_format : Output_format.t;
-  max_chars_per_line : int;
-  max_lines_per_finding : int;
-}
-[@@deriving show]
-
-let default : conf =
-  {
-    nosem = true;
-    autofix = false;
-    dryrun = false;
-    strict = false;
-    logging_level = Some Logs.Warning;
-    output_format = Output_format.Text;
-    force_color = false;
-    max_chars_per_line = 160;
-    max_lines_per_finding = 10;
-  }
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -57,8 +28,9 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (* Format dispatcher *)
 (*****************************************************************************)
 
-let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) is_logged_in (hrules : Rule.hrules) =
+let dispatch_output_format (output_format : Output_format.t)
+    (conf : Core_to_cli.output_conf) (cli_output : OutJ.cli_output) is_logged_in
+    (hrules : Rule.hrules) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -155,33 +127,18 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
 (* Entry points *)
 (*****************************************************************************)
 
-(* This function takes a core runner output and makes it suitable for the user,
- * by filtering out nosem, setting messages, adding fingerprinting etc.
- *)
-let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
-    =
-  let cli_output : OutJ.cli_output =
-    Cli_json_output.cli_output_of_core_results ~dryrun:conf.dryrun
-      ~logging_level:conf.logging_level res.core res.hrules res.scanned
-  in
-  cli_output |> fun results ->
-  {
-    results with
-    results = Cli_json_output.index_match_based_ids results.results;
-  }
-
 (* python: mix of output.OutputSettings(), output.OutputHandler(), and
  * output.output() all at once.
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : conf) (profiler : Profiler.t) ~is_logged_in
-    (res : Core_runner.result) : OutJ.cli_output =
+let output_result (conf : Core_to_cli.output_conf) (profiler : Profiler.t)
+    ~is_logged_in (res : Core_to_cli.core_runner_result) : OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
    * it here.
    *)
-  let cli_output () = preprocess_result conf res in
+  let cli_output () = Core_to_cli.preprocess_core_runner_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
   dispatch_output_format conf.output_format conf cli_output is_logged_in

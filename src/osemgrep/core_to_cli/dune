@@ -1,24 +1,21 @@
 ;LATER: to merge with semgrep_reporting at some point
 (library
- (public_name semgrep.osemgrep_reporting)
- (name osemgrep_reporting)
+ (public_name semgrep.osemgrep_core_to_cli)
+ (name osemgrep_core_to_cli)
  (wrapped false)
  (libraries
-   commons
-   fmt
-   terminal_size
-   digestif
-   xmlm
-   sarif
+   ; commons
+   ; fmt
+   ; terminal_size
+   ; digestif
+   ; xmlm
+   ; sarif
    python-str-repr
 
    murmur3
-   osemgrep_configuring
-   osemgrep_core
-   osemgrep_core_runner
-   osemgrep_core_to_cli
+   semgrep.core
    semgrep.reporting
-   semgrep.targeting
+   ; semgrep.targeting
  )
  (preprocess
    (pps

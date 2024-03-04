@@ -6,6 +6,7 @@
 
    osemgrep_core
    osemgrep_configuring
+   osemgrep_core_to_cli
    semgrep.running
 
   )

@@ -49,7 +49,7 @@ type conf = {
    * Do we allow to --validate --config p/python ?
    *)
   rules_source : Rules_source.t;
-  core_runner_conf : Core_runner.conf;
+  core_runner_conf : Core_to_cli.core_runner_conf;
   common : CLI_common.conf;
 }
 [@@deriving show]
@@ -137,7 +137,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         let result_and_exn =
           scan_func conf.core_runner_conf metarules [] targets
         in
-        let res = Core_runner.create_core_result metarules result_and_exn in
+        let res = Core_to_cli.create_core_result metarules result_and_exn in
         (* TODO? sanity check errors below too? *)
         let OutJ.{ results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results ~dryrun:true

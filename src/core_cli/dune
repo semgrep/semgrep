@@ -28,5 +28,6 @@
     semgrep.synthesizing
     ojsonnet ; ojsonnet dumper
     otarzan
+    semgrep.osemgrep_core_to_cli
  )
 )

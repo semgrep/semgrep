@@ -5,7 +5,7 @@
 
 type conf = {
   rules_source : Rules_source.t;
-  core_runner_conf : Core_runner.conf;
+  core_runner_conf : Core_to_cli.core_runner_conf;
   common : CLI_common.conf;
 }
 [@@deriving show]
