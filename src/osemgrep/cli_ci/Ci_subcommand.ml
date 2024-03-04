@@ -85,8 +85,9 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (* TODO: probably far more needed at some point
  * - exec for git.
+ * - tmp for decode_json_rules
  *)
-type caps = < Cap.stdout ; Cap.network ; Cap.exec >
+type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp >
 
 (*****************************************************************************)
 (* Error management *)
@@ -177,7 +178,7 @@ let at_url_maybe ppf () : unit =
  * TODO: factorize with Session.decode_rules()
  *)
 let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
-  UTmp.with_tmp_file ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_tmp_file caps#tmp ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           caps file
@@ -241,7 +242,9 @@ let scan_config_and_rules_from_deployment ~dry_run
 
       let rules_and_origins =
         try
-          decode_json_rules (caps :> < Cap.network >) scan_config.rule_config
+          decode_json_rules
+            (caps :> < Cap.network ; Cap.tmp >)
+            scan_config.rule_config
         with
         | Error.Semgrep_error (_, opt_ex) as e ->
             let ex = Option.value ~default:Exit_code.fatal opt_ex in
@@ -745,7 +748,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         in
         (None, rules_and_origins)
     | Some (token, depl) ->
-        let caps = Auth.cap_token_and_network token caps in
+        let caps = Auth.cap_token_and_network_and_tmp token caps in
         let scan_id, scan_config, rules =
           scan_config_and_rules_from_deployment ~dry_run prj_meta caps depl
         in

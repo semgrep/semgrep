@@ -16,13 +16,13 @@ local funcs = [
         any:
           [('Filename.' + p) for p in funcs] +
           [('UFilename.' + p) for p in funcs] +
-          // TODO: UTmp
-          [],
+          ["UTmp.with_tmp_file"], # TODO: UTmp.$F at some point
       },
       languages: ['ocaml'],
       paths: {
         exclude: [
-	   "UTmp.ml", // TODO: remove at some point
+           "UTmp.ml", // TODO: remove at some point
+	   "CapTmp.ml",
            'TCB/*',
            'tools/*', 'scripts/*', 'stats/*',
            'Test*.ml',  'Unit_*.ml',
