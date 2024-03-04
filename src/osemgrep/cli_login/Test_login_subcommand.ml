@@ -63,7 +63,7 @@ let test_logout_not_logged_in caps : Testo.test =
     __FUNCTION__
     (with_login_test_env (fun () ->
          let exit_code = Logout_subcommand.main caps [| "semgrep-logout" |] in
-         Exit_code.Check.ok exit_code))
+         assert (exit_code =*= Exit_code.ok)))
 
 let test_login_no_tty caps : Testo.test =
   t ~checked_output:Stderr
@@ -79,7 +79,7 @@ let test_login_no_tty caps : Testo.test =
          Unix.dup2 in_ Unix.stdin;
          let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
          Unix.dup2 old_stdin Unix.stdin;
-         Exit_code.Check.fatal exit_code))
+         assert (exit_code =*= Exit_code.fatal)))
 
 (* This token does not have to be valid because we mock the deployment
  * request and response that is supposed to come from our endpoint and
@@ -118,11 +118,11 @@ let test_login_with_env_token caps : Testo.test =
                  let exit_code =
                    Login_subcommand.main caps [| "semgrep-login" |]
                  in
-                 Exit_code.Check.ok exit_code);
+                 assert (exit_code =*= Exit_code.ok));
 
              (* login should fail on second call *)
              let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
-             Exit_code.Check.fatal exit_code);
+             assert (exit_code =*= Exit_code.fatal));
 
          (* clear login (by logging out) *)
          let exit_code =
@@ -130,7 +130,7 @@ let test_login_with_env_token caps : Testo.test =
              (caps :> < Cap.stdout >)
              [| "semgrep-logout" |]
          in
-         Exit_code.Check.ok exit_code;
+         assert (exit_code =*= Exit_code.ok);
 
          (* logout twice should work *)
          let exit_code =
@@ -138,7 +138,7 @@ let test_login_with_env_token caps : Testo.test =
              (caps :> < Cap.stdout >)
              [| "semgrep-logout" |]
          in
-         Exit_code.Check.ok exit_code))
+         assert (exit_code =*= Exit_code.ok)))
 
 (*****************************************************************************)
 (* Entry point *)

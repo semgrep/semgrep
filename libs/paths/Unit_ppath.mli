@@ -1,5 +1,5 @@
 (*
-   Unit tests for Git_wrapper
+   Unit tests for ppath
 *)
 
 val tests : Testo.test list

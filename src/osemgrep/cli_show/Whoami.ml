@@ -31,11 +31,11 @@ let print
               Logs.app (fun m ->
                   m "%s Your deployment info is %s" (Std_msg.success_tag ()) str)
           ));
-      Exit_code.ok ~__LOC__
+      Exit_code.ok
   | None ->
       Logs.err (fun m ->
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep whoami`"
             (Std_msg.warning_tag ()));
-      Exit_code.fatal ~__LOC__
+      Exit_code.fatal

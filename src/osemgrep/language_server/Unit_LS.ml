@@ -99,7 +99,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   in
   Core_runner.{ core; hrules; scanned }
 
-let mock_workspace ?(git = false) () : Fpath.t =
+let mock_workspace ?(git = false) () =
   let rand_dir () =
     let uuid = Uuidm.v `V4 in
     let dir_name = "test_workspace_" ^ Uuidm.to_string uuid in
@@ -112,17 +112,14 @@ let mock_workspace ?(git = false) () : Fpath.t =
   if git then setup_git workspace |> ignore;
   workspace
 
-(* TODO: make sure to delete temporary files when done.
-   Use Testutil.with_tempdir for this. *)
 let add_file ?(git = false) ?(dirty = false)
-    ?(content = "print(\"hello world\")\n") (workspace : Fpath.t) () =
-  let cwd = workspace in
-  let file = Filename.temp_file ~temp_dir:!!cwd "test" ".py" in
+    ?(content = "print(\"hello world\")\n") workspace () =
+  let file = Filename.temp_file ~temp_dir:!!workspace "test" ".py" in
   let oc = open_out_bin file in
   output_string oc content;
   close_out oc;
-  if git then Git_wrapper.add ~cwd [ Fpath.v file ];
-  if (not dirty) && git then Git_wrapper.commit ~cwd "test";
+  if git then Git_wrapper.add ~cwd:workspace [ Fpath.v file ];
+  if (not dirty) && git then Git_wrapper.commit ~cwd:workspace "test";
   file
 
 let with_mock_envvars f () =

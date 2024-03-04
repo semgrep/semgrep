@@ -904,6 +904,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             runner = StreamingSemgrepCore(cmd, total=total, engine_type=engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
+
             # Process output
             output_json = self._extract_core_output(
                 rules,

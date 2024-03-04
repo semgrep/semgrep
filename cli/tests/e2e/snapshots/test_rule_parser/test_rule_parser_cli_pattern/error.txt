@@ -3,7 +3,7 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 24 files tracked by git with 1 Code rule:
+  Scanning 23 files tracked by git with 1 Code rule:
   Scanning 1 file.
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Pattern parse error in rule -:
  Invalid pattern for C:

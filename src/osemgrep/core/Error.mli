@@ -1,9 +1,7 @@
 (* See also Core_error.ml and semgrep_output_v1.atd error_type *)
 
 exception Semgrep_error of string * Exit_code.t option
-
-(* Please avoid the name 'Exit' since it's already a standard exception. *)
-exception Exit_code of Exit_code.t
+exception Exit of Exit_code.t
 
 (* shortcut *)
 val abort : string -> 'a

@@ -8,8 +8,6 @@
     aliengrep
     spacegrep_tests
     graph_code
-    paths
-    git_wrapper
 
     ; unix platform stuff
     lwt_platform.unix
