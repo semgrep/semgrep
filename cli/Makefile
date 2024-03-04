@@ -56,7 +56,7 @@ PYTEST ?= \
 # all tests/xxx except tests/qa/ (which is run separately in another job
 # see tests.jsonnet).
 #
-# coupling: this must run the same tests as 'make test-fast'.
+# coupling: this must run the same tests as 'make test-dev'.
 #
 # !!! Make sure to pass a folder to pytest !!!
 # due to the following unexpected behavior:
