@@ -144,6 +144,9 @@ jobs:
   build-test-windows-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-windows-x86.yml
+  check-semgrep-pro:
+    secrets: inherit
+    uses: ./.github/workflows/check-semgrep-pro.yml
   push-docker-nonroot-returntocorp:
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     needs:
@@ -197,7 +200,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     needs:
-      - build-test-core-x86
+      - check-semgrep-pro
     permissions:
       contents: write
       pull-requests: write
@@ -213,11 +216,31 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
+          name: pro-ocaml-build-artifacts-release
+      - name: Install pro artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
+
+          # The version is stored in cli/src/semgrep/__init__.py
+          # and the file content looks like
+          #   __VERSION__ = "x.xx.x"
+          # so we try to get the x.xx.x part from that file below.
+
+          # First, read the file content
+          version=$(<cli/src/semgrep/__init__.py)
+
+          # Next, we remove the prefix that leads up to the number.
+          version="${version##__VERSION__ = \"}"
+
+          # Finally, we remove the final quote suffix.
+          version="${version%*\"}"
+
+          # By writing the version number to this file and putting it
+          # in the same directory as semgrep-core-proprietary,
+          # the binary will pass the cli's checks and can be run.
+          echo "$version" > pro-installed-by.txt
+          sudo cp pro-installed-by.txt /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
