@@ -67,7 +67,9 @@ def test_decide_engine_type(
     )
 
     # Expect engine to be non-interfile/intrafile pro
-    expected_supply_chain_only_engine = expected if expected == ET.OSS else ET.PRO_LANG
+    expected_supply_chain_only_engine = (
+        expected if expected == ET.OSS else ET.PRO_INTRAFILE
+    )
     assert (
         ET.decide_engine_type(
             requested_engine=requested,

@@ -69,16 +69,13 @@ class EngineType(Enum):
 
         # Using PRO_INTRAFILE engine since PRO_INTERFILE defaults to -j 1
         # note if using OSS, then will keep using OSS
-        if (
-            requested_engine in {cls.PRO_INTERFILE, cls.PRO_INTRAFILE}
-            and supply_chain_only
-        ):
+        if requested_engine == cls.PRO_INTERFILE and supply_chain_only:
             logger.info(
                 "Running only supply chain rules so running without extra interfile analysis"
             )
             return cls.PRO_INTRAFILE
 
-        return requested_engine or cls.PRO_INTRAFILE
+        return requested_engine or (cls.PRO_INTRAFILE if scan_handler else cls.OSS)
 
     def get_pro_version(self) -> str:
         binary_path = self.get_binary_path()
