@@ -182,7 +182,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
               subcmd_argv
         | "publish" when experimental ->
             Publish_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network >)
+              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
               subcmd_argv
         | "login" when experimental ->
             Login_subcommand.main
@@ -197,7 +197,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" ->
             Scan_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network >)
+              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
               subcmd_argv
         | "ci" ->
             Ci_subcommand.main
@@ -209,11 +209,11 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         | "interactive" -> !hook_semgrep_interactive subcmd_argv
         | "show" ->
             Show_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network >)
+              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
               subcmd_argv
         | "test" ->
             Test_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network >)
+              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
               subcmd_argv
         | _else_ ->
             if experimental then

@@ -743,7 +743,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
             ~rewrite_rule_ids:conf.rewrite_rule_ids
             ~strict:conf.core_runner_conf.strict
-            (caps :> < Cap.network >)
+            (caps :> < Cap.network ; Cap.tmp >)
             conf.rules_source
         in
         (None, rules_and_origins)

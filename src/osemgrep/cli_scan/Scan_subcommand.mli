@@ -5,11 +5,14 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < Cap.stdout ; Cap.network > -> string array -> Exit_code.t
+val main : < Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < Cap.stdout ; Cap.network > -> Scan_CLI.conf -> Exit_code.t
-val run_scan_conf : < Cap.stdout ; Cap.network > -> Scan_CLI.conf -> Exit_code.t
+val run_conf :
+  < Cap.stdout ; Cap.network ; Cap.tmp > -> Scan_CLI.conf -> Exit_code.t
+
+val run_scan_conf :
+  < Cap.stdout ; Cap.network ; Cap.tmp > -> Scan_CLI.conf -> Exit_code.t
 
 (* internal: scan all the files - also used in CI *)
 val run_scan_files :

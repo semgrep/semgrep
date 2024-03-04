@@ -20,7 +20,7 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -104,7 +104,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
           ~token_opt
-          (caps :> < Cap.network >)
+          (caps :> < Cap.network ; Cap.tmp >)
           config
       in
 

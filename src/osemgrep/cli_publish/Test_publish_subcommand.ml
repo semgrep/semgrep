@@ -88,7 +88,7 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-let test_publish (caps : < Cap.network ; Cap.stdout >) () =
+let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -120,7 +120,9 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
           (* log back in *)
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               let exit_code =
-                Login_subcommand.main caps [| "semgrep-login" |]
+                Login_subcommand.main
+                  (caps :> < Cap.network ; Cap.stdout >)
+                  [| "semgrep-login" |]
               in
               assert (exit_code =*= Exit_code.ok));
 
@@ -191,7 +193,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Cap.network ; Cap.stdout >) =
+let tests (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) =
   Testo.categorize "Osemgrep Publish (e2e)"
     [
       t
