@@ -394,7 +394,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
                taint_trace = None;
-               engine_kind = `OSS;
+               engine_of_match = `OSS;
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;

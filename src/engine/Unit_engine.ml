@@ -479,12 +479,11 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
   let processed_matches =
     Autofix.produce_autofixes (List_.map Core_result.mk_processed_match matches)
   in
-  let file = Fpath.to_string file in
   let fixed_text =
     processed_matches
     |> List_.map_filter (fun (m : Core_result.processed_match) ->
            m.autofix_edit)
-    |> Autofix.apply_fixes_to_file ~file
+    |> Autofix.apply_fixes_to_file_exn file
   in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
