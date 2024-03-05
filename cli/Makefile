@@ -20,7 +20,6 @@ build:
 
 .PHONY: check
 check:
-	pre-commit run -a mypy
 	$(MAKE) check-markers
 
 # Check that all the test_* functions are categorized by duration.
@@ -99,6 +98,8 @@ test:
 #
 .PHONY: test-dev
 test-dev:
+	# TODO: run mypy checks without relying on 'pre-commit'
+	pre-commit run -a mypy
 	$(MAKE) check
 	# Run the quick tests first
 	time $(PYTEST) -m quick tests
