@@ -1,1 +1,1 @@
-val tests : < Cap.network > -> Testo.test list
+val tests : < Cap.network ; Cap.tmp > -> Testo.test list

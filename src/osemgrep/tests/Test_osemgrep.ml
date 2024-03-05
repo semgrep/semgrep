@@ -107,5 +107,5 @@ let tests (caps : CLI.caps) =
     [
       test_scan_config_registry_no_token caps;
       test_scan_config_registry_with_invalid_token
-        (caps :> < Cap.stdout ; Cap.network >);
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
     ]

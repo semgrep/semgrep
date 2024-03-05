@@ -157,7 +157,7 @@ let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
    *)
   AST_generic_to_jsonnet.program gen
 
-let mk_import_callback (caps : < Cap.network ; .. >) base str =
+let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
       (* On the fly conversion from yaml to jsonnet. We can do
@@ -205,7 +205,7 @@ let mk_import_callback (caps : < Cap.network ; .. >) base str =
               * header mimetype when downloading the URL to decide how to
               * convert it further?
               *)
-             UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+             CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
 [@@profiling]
@@ -336,7 +336,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
       | _failure -> (ext, content)
     else (ext, content)
   in
-  UTmp.with_tmp_file ~str:content ~ext (fun file ->
+  CapTmp.with_tmp_file caps#tmp ~str:content ~ext (fun file ->
       load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
   |> Lwt.return
 
@@ -385,7 +385,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       let%lwt content =
         fetch_content_from_registry_url_async ~token_opt caps url
       in
-      UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+      CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition_result Fun.id
       |> Lwt.return
@@ -399,11 +399,12 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
                   token")
         | Some token -> token
       in
-      let caps = Auth.cap_token_and_network token caps in
-      let uri = Semgrep_App.url_for_policy caps in
+      let caps' = Auth.cap_token_and_network token caps in
+      let uri = Semgrep_App.url_for_policy caps' in
+      let caps'' = Auth.cap_token_and_network_and_tmp token caps in
       let%lwt rules_and_errors =
-        load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry caps
-          uri
+        load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry
+          caps'' uri
       in
       Metrics_.g.is_using_app <- true;
       [ rules_and_errors ] |> Result_.partition_result Fun.id |> Lwt.return

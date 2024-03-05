@@ -35,7 +35,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 (* TODO: probably far more needed at some point *)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
@@ -317,7 +317,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
       ~strict
-      (caps :> < Cap.network >)
+      (caps :> < Cap.network ; Cap.tmp >)
       rules_source
   in
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
@@ -821,7 +821,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~strict:conf.core_runner_conf.strict
-      (caps :> < Cap.network >)
+      (caps :> < Cap.network ; Cap.tmp >)
       conf.rules_source
   in
   (* step2: getting the targets *)
@@ -907,15 +907,15 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       Exit_code.ok
   | _ when conf.test <> None ->
       Test_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.validate)
   | _ when conf.show <> None ->
       Show_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots

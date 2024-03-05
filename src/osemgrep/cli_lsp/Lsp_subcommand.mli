@@ -5,7 +5,8 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < Cap.random ; Cap.network > -> string array -> Exit_code.t
+val main : < Cap.random ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < Cap.random ; Cap.network > -> Lsp_CLI.conf -> Exit_code.t
+val run_conf :
+  < Cap.random ; Cap.network ; Cap.tmp > -> Lsp_CLI.conf -> Exit_code.t
