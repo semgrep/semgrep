@@ -9,4 +9,4 @@ approximately 1/10 of the non-differential inter-file scan. Users who
 enable the pro engine and engage in differential PR scans on GitHub or
 GitLab may experience the impact of this update. If needed, users can
 revert to the previous intra-file differential scan behavior by configuring
-the `--diff-depth -1` command-line option.
+the `--no-interfile-diff-scan` command-line option.

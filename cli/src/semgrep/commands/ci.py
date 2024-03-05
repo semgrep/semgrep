@@ -177,6 +177,7 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
+    disable_interfile_diff_scan_flag: bool,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -387,7 +388,7 @@ def ci(
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=diff_depth >= 0,
+        enable_pro_diff_scan=not disable_interfile_diff_scan_flag,
         supply_chain_only=supply_chain_only,
     )
 
