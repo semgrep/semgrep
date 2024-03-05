@@ -22,6 +22,7 @@ from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
 
 
 T = TypeVar("T")
@@ -208,7 +209,7 @@ def read_range(fd: TextIOWrapper, start_offset: int, end_offset: int) -> str:
     return fd.read(length)
 
 
-def get_lines(
+def get_lines_from_file(
     path: Path,
     start_line: int,
     end_line: int,
@@ -231,6 +232,35 @@ def get_lines(
         result = list(itertools.islice(fd, start_line, end_line))
 
     return result
+
+
+@functools.lru_cache
+def get_lines_from_git_blob(
+    blob_sha: Sha1,
+    start_line: int,
+    end_line: int,
+) -> List[str]:
+    """
+    Return lines in the given git blob. Result is cached since calling git
+    multiple times may be expensive and the contents of a blob are stable
+    (addressed by sha), since (among other reasons) the sha is directly related
+    to the content.
+
+    Assumes blob exists.
+    """
+    # Avoid circular import
+    from semgrep.git import git_check_output
+
+    # Start and end line are one-indexed, but the subsequent slice call is
+    # inclusive for start and exclusive for end, so only subtract from start
+    start_line = start_line - 1
+
+    if start_line == -1 and end_line == 0:
+        # Completely empty file
+        return []
+
+    contents = git_check_output(["git", "cat-file", "blob", blob_sha.value])
+    return list(itertools.islice(contents.splitlines(), start_line, end_line))
 
 
 def with_feature_status(*, enabled: bool = False) -> str:

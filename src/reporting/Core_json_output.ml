@@ -25,6 +25,17 @@ module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type rule_scan_source =
+  | Unchanged
+  | NewVersion
+  | NewRule
+  | PreviousScan
+  | Unannotated
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -80,6 +91,29 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
+let get_scan_source (metadata : J.t) =
+  let res =
+    let* j = J.member "semgrep.dev" metadata in
+    let* j2 = J.member "src" j in
+    Some
+      (match j2 with
+      | J.String "unchanged" -> Unchanged
+      | J.String "new-version" -> NewVersion
+      | J.String "new-rule" -> NewRule
+      | J.String "previous-scan" -> PreviousScan
+      | _ -> Unannotated)
+  in
+  match res with
+  | None -> Unannotated
+  | Some v -> v
+
+let annotated_rule_name (metadata : J.t) =
+  let* a = J.member "semgrep.dev" metadata in
+  let* a = J.member "rule" a in
+  match J.member "rule_name" a with
+  | Some (J.String s) -> Some s
+  | _ -> None
+
 (*****************************************************************************)
 (* Deduplication *)
 (*****************************************************************************)
@@ -89,78 +123,66 @@ let range_of_any_opt startp_of_match_range any =
 *)
 let core_unique_key (c : OutJ.core_match) =
   (* type-wise this is a tuple of string * string * int * int * string * string option *)
-  (* # NOTE: We include the previous scan's rules in the config for
-      # consistent fixed status work. For unique hashing/grouping,
-      # previous and current scan rules must have distinct check IDs.
-      # Hence, previous scan rules are annotated with a unique check ID,
-      # while the original ID is kept in metadata. As check_id is used
-      # for unique_key, this patch fetches the check ID from metadata
-      # for previous scan findings.
-      # TODO: Once the fixed status work is stable, all findings should
-      # fetch the check ID from metadata. This fallback prevents breaking
-      # current scan results if an issue arises.
-      self.annotated_rule_name if self.from_transient_scan else self.rule_id,
+  (* self.annotated_rule_name if self.from_transient_scan else self.rule_id,
       str(self.path),
       self.start.offset,
       self.end.offset,
       self.message,
-      # TODO: Bring this back.
-      # This is necessary so we don't deduplicate taint findings which
-      # have different sources.
-      #
-      # self.match.extra.dataflow_trace.to_json_string
-      # if self.match.extra.dataflow_trace
-      # else None,
-      None,
-      # NOTE: previously, we considered self.match.extra.validation_state
-      # here, but since in some cases (e.g., with `anywhere`) we generate
-      # many matches in certain cases, we want to consider secrets
-      # matches unique under the above set of things, but with a priority
-      # associated with the validation state; i.e., a match with a
-      # confirmed valid state should replace all matches equal under the
-      # above key. We can't do that just by not considering validation
-      # state since we would pick one arbitrarily, and if we added it
-      # below then we would report _both_ valid and invalid (but we only
-      # want to report valid, if a valid one is present and unique per
-      # above fields). See also `should_report_instead`.
   *)
-  let semgrep_dev_json =
+  let metadata =
     match c.extra.metadata with
-    | None -> None
-    | Some json -> JSON.member "semgrep.dev" (JSON.from_yojson json)
+    | None -> J.Null
+    | Some json -> JSON.from_yojson json
   in
   let name =
-    let transient =
-      match semgrep_dev_json with
-      | Some dev -> (
-          match JSON.member "src" dev with
-          | Some (JSON.String x) -> String.equal x "previous_scan"
-          | Some _
-          | None ->
-              false)
-      | None -> false
-    in
-    let default = Rule_ID.to_string c.check_id in
-    if transient then
-      match semgrep_dev_json with
-      | Some dev -> (
-          match JSON.member "rule" dev with
-          | Some rule -> (
-              match JSON.member "rule_name" rule with
-              | Some (JSON.String rule) -> rule
-              | Some _
-              | None ->
-                  default)
-          | None -> default)
-      | None -> default
+    if get_scan_source metadata =*= PreviousScan then
+      match annotated_rule_name metadata with
+      | None -> failwith ""
+      | Some s -> s
     else Rule_ID.to_string c.check_id
   in
+  let path =
+    match c.extra.historical_info with
+    | Some { git_blob = Some sha; _ } -> ATD_string_wrap.Sha1.unwrap sha
+    | _ -> Fpath.to_string c.path
+  in
+  (* NOTE: We include the previous scan's rules in the config for
+     consistent fixed status work. For unique hashing/grouping,
+     previous and current scan rules must have distinct check IDs.
+     Hence, previous scan rules are annotated with a unique check ID,
+     while the original ID is kept in metadata. As check_id is used
+     for unique_key, this patch fetches the check ID from metadata
+     for previous scan findings.
+     TODO: Once the fixed status work is stable, all findings should
+     fetch the check ID from metadata. This fallback prevents breaking
+     current scan results if an issue arises.
+  *)
   ( name,
-    Fpath.to_string c.path,
+    path,
     c.start.offset,
     c.end_.offset,
     c.extra.message,
-    None )
+    (* TODO: Bring this back.
+       This is necessary so we don't deduplicate taint findings which
+       have different sources.
+
+       self.match.extra.dataflow_trace.to_json_string
+       if self.match.extra.dataflow_trace
+       else None,
+    *)
+    None
+    (* NOTE: previously, we considered self.match.extra.validation_state
+       here, but since in some cases (e.g., with `anywhere`) we generate
+       many matches in certain cases, we want to consider secrets
+       matches unique under the above set of things, but with a priority
+       associated with the validation state; i.e., a match with a
+       confirmed valid state should replace all matches equal under the
+       above key. We can't do that just by not considering validation
+       state since we would pick one arbitrarily, and if we added it
+       below then we would report _both_ valid and invalid (but we only
+       want to report valid, if a valid one is present and unique per
+       above fields). See also `should_report_instead`.
+    *) )
 
 (*
  # Sort results so as to guarantee the same results across different
