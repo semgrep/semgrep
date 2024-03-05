@@ -38,6 +38,22 @@ let test_show () =
   print_endline (String_.show ~max_len:5 "123456789");
   print_endline (String_.show ~max_len:20 "123456789")
 
+let test_trim_cr () =
+  let check expected input =
+    Alcotest.(check string) __LOC__ expected (String_.trim_cr input)
+  in
+  check "" "";
+  check "a" "a";
+  check "asdf asdf" "asdf asdf";
+  check "foo\r\nbar" "foo\r\nbar";
+  check "foo\r\n" "foo\r\n";
+  check "foo" "foo\r";
+  check "" "\r"
+
 let tests =
   Testo.categorize "String_"
-    [ t "safe_sub" test_safe_sub; t ~checked_output:Stdout "show" test_show ]
+    [
+      t "safe_sub" test_safe_sub;
+      t ~checked_output:Stdout "show" test_show;
+      t "trim_cr" test_trim_cr;
+    ]

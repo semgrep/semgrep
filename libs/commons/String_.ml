@@ -1,8 +1,6 @@
-open Common
-
 let unit_str ?(pad = false) count str =
   let str = if count <> 1 then str ^ "s" else if pad then str ^ " " else str in
-  spf "%d %s" count str
+  Printf.sprintf "%d %s" count str
 
 let search ~term str =
   try Some (Str.search_forward (Str.regexp_string term) str 0) with
@@ -37,3 +35,7 @@ let show ?(max_len = 200) str =
       (safe_sub str 0 max_len ^ "...")
       (String.length str)
   else Printf.sprintf "%S" str
+
+let trim_cr s =
+  let len = String.length s in
+  if len > 0 && s.[len - 1] = '\r' then String.sub s 0 (len - 1) else s

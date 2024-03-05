@@ -31,3 +31,8 @@ val safe_sub : string -> int -> int -> string
    This function is intended for logs.
 *)
 val show : ?max_len:int -> string -> string
+
+(* Removes a trailing carriage return ('\r') from the given string. For use when
+ * reading an input line from an input stream or when splitting a string by the
+ * line feed character ('\n'). *)
+val trim_cr : string -> string
