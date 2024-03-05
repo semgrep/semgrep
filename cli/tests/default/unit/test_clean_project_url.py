@@ -1,6 +1,9 @@
+import pytest
+
 from semgrep.git import clean_project_url
 
 
+@pytest.mark.quick
 def test_git_url_clean():
     assert (
         clean_project_url(

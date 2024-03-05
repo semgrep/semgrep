@@ -1,9 +1,9 @@
 import json
 
 import pytest
+from tests.conftest import TESTS_PATH
 from tests.fixtures import RunSemgrep
 
-from ..conftest import TESTS_PATH
 from semgrep.constants import OutputFormat
 
 syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"

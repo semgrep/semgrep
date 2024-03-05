@@ -89,7 +89,7 @@ jobs:
           # TODO: Replace with `osemgrep-pro test` when that is ready.
           ../../semgrep-proprietary/bin/semgrep-core-proprietary -test_rules .
 name: check-semgrep-pro
-"on":
+on:
   pull_request: null
   push:
     branches:

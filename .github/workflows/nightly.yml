@@ -37,7 +37,7 @@ jobs:
     with:
       dry-run: true
 name: nightly
-"on":
+on:
   schedule:
     - cron: 26 9 * * *
   workflow_dispatch: null

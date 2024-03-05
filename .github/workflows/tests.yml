@@ -227,7 +227,7 @@ jobs:
           unset CI
           unset "${!GITHUB_@}"
 
-          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
+          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
         working-directory: cli
       - if: failure()
         name: Prepare repo for snapshot commit
@@ -248,7 +248,7 @@ jobs:
         name: Commit snapshot updates
         uses: EndBug/add-and-commit@v9
         with:
-          add: cli/tests/e2e/snapshots
+          add: cli/tests/default/e2e/snapshots
           default_author: github_actions
           message: Update pytest snapshots
           new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
@@ -417,7 +417,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
 name: tests
-"on":
+on:
   pull_request:
     paths-ignore:
       - '**.md'

@@ -14,7 +14,7 @@
 
 (* For -targets.
  * coupling: if you change the type here, you probably also want to change
- * tests/e2e/target
+ * tests/default/e2e/target
 *)
 
 type xlang <ocaml attr="deriving show"> = string wrap <ocaml module="Xlang">

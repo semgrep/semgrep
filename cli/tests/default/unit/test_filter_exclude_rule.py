@@ -9,7 +9,7 @@ from semgrep.exclude_rules import filter_exclude_rule
 MAX_RULES_TO_EXCLUDE = 10
 
 
-@pytest.mark.quick
+@pytest.mark.slow
 def test_parse_exclude_rules_auto() -> None:
     configs_obj, _ = get_config(
         pattern=None,
