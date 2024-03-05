@@ -46,13 +46,16 @@ type t = private Rpath of Fpath.t [@@deriving show, eq]
 
 (* only way to build a Rpath *)
 val of_fpath : Fpath.t -> t
-val of_string : string -> t
 
 (* converters *)
 val to_fpath : t -> Fpath.t
 
+(* <=> to_fpath (of_fpath s) *)
+val canonical : Fpath.t -> Fpath.t
+
 (* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
+val of_string : string -> t
 val to_string : t -> string
 
 (* <=> to_string (of_string s) *)
-val canonical : string -> string
+val canonical_string : string -> string
