@@ -518,7 +518,7 @@ class OutputHandler:
 
         # TODO: I thought we could guard this code with 'if self.extra:', and raise
         # a SemgrepError otherwise, but it seems that when semgrep got an error
-        # (for example in tests/e2e/test_ci.py::test_bad_config),
+        # (for example in tests/default/e2e/test_ci.py::test_bad_config),
         # then this code still get called and self.extra is not set but we still want
         # to output things. This is why I have those ugly 'if self.extra' below
         # that possibly return None.

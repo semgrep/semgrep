@@ -2,9 +2,8 @@ from pathlib import Path
 
 import pytest
 from tests.conftest import mask_variable_text
+from tests.conftest import TESTS_PATH
 from tests.fixtures import RunSemgrep
-
-from ..conftest import TESTS_PATH
 
 
 @pytest.mark.kinda_slow

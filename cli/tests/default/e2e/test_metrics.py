@@ -16,7 +16,8 @@ import freezegun.api
 import pytest
 from pytest import mark
 from pytest import MonkeyPatch
-from tests.conftest import TESTS_PATH
+from tests.conftest import RULES_PATH
+from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SemgrepRunner
 
@@ -207,12 +208,10 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
         f"anonymous_user_id: {str(uuid.UUID('1' * 32))}"
     )
     copytree(
-        Path(TESTS_PATH / "e2e" / "targets" / "metrics_send").resolve(),
+        Path(TARGETS_PATH / "metrics_send").resolve(),
         tmp_path / "metrics_files",
     )
-    (tmp_path / "rule.yaml").symlink_to(
-        TESTS_PATH / "e2e" / "rules" / "metrics_send" / "deep.yaml"
-    )
+    (tmp_path / "rule.yaml").symlink_to(RULES_PATH / "metrics_send" / "deep.yaml")
     monkeypatch.chdir(tmp_path)
 
     runner = SemgrepRunner(

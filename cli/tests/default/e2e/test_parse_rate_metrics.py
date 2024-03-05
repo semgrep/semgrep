@@ -10,7 +10,7 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-from tests.conftest import TESTS_PATH
+from tests.conftest import TARGETS_PATH
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
@@ -41,7 +41,7 @@ def test_parse_metrics(tmp_path, snapshot, mocker, monkeypatch):
     # snapshot (if it looks reasonable) should be fine.
 
     copytree(
-        Path(TESTS_PATH / "e2e" / "targets" / "parse_metrics").resolve(),
+        Path(TARGETS_PATH / "parse_metrics").resolve(),
         tmp_path / "parse_metrics",
     )
 

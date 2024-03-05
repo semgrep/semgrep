@@ -50,7 +50,7 @@ def test_message_interpolation(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, t
     )
 
 
-@pytest.mark.quick
+@pytest.mark.slow
 def test_no_double_interpolation(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/message_interpolation/interpolated_message.yaml",
