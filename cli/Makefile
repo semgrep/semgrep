@@ -50,10 +50,10 @@ PYTEST ?= \
 
 # This is run from .github/workflow/tests.jsonnet (which sets
 # PYTEST_EXTRA_ARGS to some value for snapshot update).
-# Note that there are no tests/e2e/ argument to pytest below so it will
-# run all the tests specified in cli/pyproject.toml which are
-# all tests/xxx except tests/qa/ (which is run separately in another job
-# see tests.jsonnet).
+#
+# Note that pytest without an argument will run the tests configured in
+# 'pyproject.toml'. This should be equivalent to running on 'tests/default'
+# if the principle of least surprise is respected.
 #
 # coupling: this must run the same tests as 'make test-dev'.
 #
@@ -133,7 +133,7 @@ qa:
 # Run the end-to-end tests using osemgrep instead of pysemgrep.
 # See tests/semgrep_runner.py for the use of the environment variables below.
 # To run individual tests, export PYTEST_USE_OSEMGREP=true
-# and run 'pytest tests/e2e/test_output.py' in a shell for example.
+# and run 'pytest tests/default/e2e/test_output.py' in a shell for example.
 #TODO: right now we just run the e2e-only because it's our main goal for Q4
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
@@ -148,7 +148,7 @@ osempass:
 # to be used to discover tests that we should remove the osemfail pytest mark
 osempass-check-if-new-osempass:
 	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto -v --no-summary \
-	  -m 'not no_semgrep_cli and osemfail' tests/e2e \
+	  -m 'not no_semgrep_cli and osemfail' tests/default/e2e \
 	 | (grep PASSED || echo 'Found no new passing tests')
 
 # Run the quality assurance tests using osemgrep instead of the Python CLI.

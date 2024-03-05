@@ -132,7 +132,7 @@ def test_create_model_map():
                 },
                 "severity": "INFO",
             },
-            "path": "tests/e2e/targets/join_rules/user-input-escaped-with-safe/app.py",
+            "path": "tests/default/e2e/targets/join_rules/user-input-escaped-with-safe/app.py",
             "start": {"col": 5, "line": 22},
         },
         {
@@ -171,7 +171,7 @@ def test_create_model_map():
                 },
                 "severity": "INFO",
             },
-            "path": "tests/e2e/targets/join_rules/user-input-escaped-with-safe/app.py",
+            "path": "tests/default/e2e/targets/join_rules/user-input-escaped-with-safe/app.py",
             "start": {"col": 12, "line": 31},
         },
         {
@@ -210,7 +210,7 @@ def test_create_model_map():
                 },
                 "severity": "INFO",
             },
-            "path": "tests/e2e/targets/join_rules/user-input-escaped-with-safe/app.py",
+            "path": "tests/default/e2e/targets/join_rules/user-input-escaped-with-safe/app.py",
             "start": {"col": 12, "line": 31},
         },
     ]

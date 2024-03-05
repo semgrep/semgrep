@@ -14,8 +14,8 @@ def test_dump_command_for_core():
         SEMGREP_BASE_SCAN_COMMAND
         + [
             "--config",
-            "tests/e2e/rules/eqeq-basic.yaml",
-            "tests/e2e/targets/basic",
+            "tests/default/e2e/rules/eqeq-basic.yaml",
+            "tests/default/e2e/targets/basic",
             "-d",
         ],
         encoding="utf-8",
