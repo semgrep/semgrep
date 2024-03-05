@@ -2,6 +2,7 @@
    Skip targets.
 *)
 open Common
+module In = Input_to_core_j
 module Resp = Semgrep_output_v1_t
 
 (****************************************************************************)
@@ -27,7 +28,7 @@ module Resp = Semgrep_output_v1_t
   is that Semgrep would likely take longer as it scans more costly minified
   files. TODO we might want to do some benchmarking and change this default
 *)
-let min_whitespace_frequency = 0.07
+let min_whitespace_frequency = 0.035
 
 (*
    This is for the few minified files that embed a bunch of space-separated
@@ -77,43 +78,55 @@ let whitespace_stat_of_block ?block_size path =
 let is_minified (path : Fpath.t) =
   if not !Flag_semgrep.skip_minified_files then Ok path
   else
-    let stat = whitespace_stat_of_block ~block_size:4096 path in
-    (*
+    let size = UFile.filesize path in
+    if size < Limits_semgrep.minified_MIN_SIZE then Ok path
+    else
+      let stat = whitespace_stat_of_block ~block_size:4096 path in
+      (*
      A small file could contain a long URL with no whitespace without being
      minified. That's why we require a minimum file size.
   *)
-    if stat.sample_size > 1000 then
-      if stat.ws_freq < min_whitespace_frequency then
-        Error
-          {
-            Resp.path;
-            reason = Minified;
-            details =
-              Some
-                (spf
-                   "file contains too little whitespace: %.3f%% (min = %.1f%%)"
-                   (100. *. stat.ws_freq)
-                   (100. *. min_whitespace_frequency));
-            rule_id = None;
-          }
-      else if stat.line_freq < min_line_frequency then
-        Error
-          {
-            Resp.path;
-            reason = Minified;
-            details =
-              Some
-                (spf
-                   "file contains too few lines for its size: %.4f%% (min = \
-                    %.2f%%)"
-                   (100. *. stat.line_freq)
-                   (100. *. min_line_frequency));
-            rule_id = None;
-          }
+      if stat.sample_size > 1000 then
+        if stat.ws_freq < min_whitespace_frequency then
+          Error
+            {
+              Resp.path;
+              reason = Minified;
+              details =
+                Some
+                  (spf
+                     "file contains too little whitespace: %.3f%% (min = \
+                      %.1f%%)"
+                     (100. *. stat.ws_freq)
+                     (100. *. min_whitespace_frequency));
+              rule_id = None;
+            }
+        else if stat.line_freq < min_line_frequency then
+          Error
+            {
+              Resp.path;
+              reason = Minified;
+              details =
+                Some
+                  (spf
+                     "file contains too few lines for its size: %.4f%% (min = \
+                      %.2f%%)"
+                     (100. *. stat.line_freq)
+                     (100. *. min_line_frequency));
+              rule_id = None;
+            }
+        else Ok path
       else Ok path
-    else Ok path
 
 let exclude_minified_files paths = Result_.partition_result is_minified paths
+
+let exclude_minified_targets targets =
+  targets
+  |> Result_.partition_result (fun (target : Target.t) ->
+         let path = Target.internal_path target in
+         match is_minified path with
+         | Ok _ -> Ok target
+         | Error err -> Error err)
 
 (****************************************************************************)
 (* Big file filtering *)

@@ -214,37 +214,41 @@ let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
  *)
 let filter_existing_targets (targets : Target.t list) :
     Target.t list * OutJ.skipped_target list =
-  targets
-  |> Either_.partition_either (fun (target : Target.t) ->
-         let internal_path = Target.internal_path target in
-         if Sys.file_exists !!internal_path then Left target
-         else
-           match Target.origin target with
-           | File path ->
-               Right
-                 {
-                   Semgrep_output_v1_t.path;
-                   reason = Nonexistent_file;
-                   details = Some "File does not exist";
-                   rule_id = None;
-                 }
-           | GitBlob { sha; _ } ->
-               Right
-                 {
-                   Semgrep_output_v1_t.path = Target.internal_path target;
-                   reason = Nonexistent_file;
-                   details =
-                     Some
-                       (spf "Issue creating a target from git blob %s"
-                          (Git_wrapper.show_sha sha));
-                   rule_id = None;
-                 })
+  let targets, skipped1 =
+    targets
+    |> Either_.partition_either (fun (target : Target.t) ->
+           let internal_path = Target.internal_path target in
+           if Sys.file_exists !!internal_path then Left target
+           else
+             match Target.origin target with
+             | File path ->
+                 Right
+                   {
+                     Semgrep_output_v1_t.path;
+                     reason = Nonexistent_file;
+                     details = Some "File does not exist";
+                     rule_id = None;
+                   }
+             | GitBlob { sha; _ } ->
+                 Right
+                   {
+                     Semgrep_output_v1_t.path = Target.internal_path target;
+                     reason = Nonexistent_file;
+                     details =
+                       Some
+                         (spf "Issue creating a target from git blob %s"
+                            (Git_wrapper.show_sha sha));
+                     rule_id = None;
+                   })
+  in
+  let targets, skipped2 = Skip_target.exclude_minified_targets targets in
+  (targets, List_.Operators.(skipped1 @ skipped2))
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     (matches : RP.matches_single_file) : RP.matches_single_file =
   (* If our target is a proprietary language, or we've been using the
    * proprietary engine, then label all the resulting matches with the Pro
-   * engine kind. This can't really be done any later, because we need the
+  * engine kind. This can't really be done any later, because we need the
    * language that we're running on.
    *
    * If those hooks are set, it's probably a pretty good indication that
