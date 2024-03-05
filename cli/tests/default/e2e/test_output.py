@@ -128,7 +128,7 @@ def test_promql_duration_captures(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # This test is just for making sure that our YAML parser interacts properly
 # with metavariables. We don't want to introduce regressions which might
 # mess this up.
-@pytest.mark.quick
+@pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
@@ -154,7 +154,7 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stdout, "report.json")
 
 
-@pytest.mark.quick
+@pytest.mark.kinda_slow
 def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
@@ -413,7 +413,7 @@ def test_git_repo_output(
 # differs between pysemgrep and osemgrep because it's a location in the rule
 # (not in the target), and pysemgrep passes a preprocessed rule file to
 # semgrep-core hence the mistmatch.
-@pytest.mark.quick
+@pytest.mark.slow
 @pytest.mark.osemfail
 def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(

@@ -40,7 +40,7 @@ jobs:
               echo "Job was not blocked because dry-run was true."
           fi
 name: check-semgrep-pro-version
-"on":
+on:
   workflow_call:
     inputs:
       bucket-name:

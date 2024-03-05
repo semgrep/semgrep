@@ -141,7 +141,7 @@ jobs:
 
           aws s3 cp --recursive --cache-control "${cache_control}" /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"
 name: build-test-javascript
-"on":
+on:
   workflow_call:
     inputs:
       upload-artifacts:

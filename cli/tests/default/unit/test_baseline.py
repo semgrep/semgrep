@@ -6,7 +6,7 @@ import pytest
 from semgrep.git import BaselineHandler
 
 
-@pytest.mark.quick
+@pytest.mark.kinda_slow
 def test_baseline_context(monkeypatch, tmp_path):
     """
     Unit test verifies baseline_context can checkout a commit and return to

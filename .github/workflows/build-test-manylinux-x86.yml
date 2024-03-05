@@ -46,6 +46,6 @@ jobs:
           export PATH=/opt/python/cp38-cp38/bin:$PATH
           echo '1 == 1' | semgrep -l python -e '$X == $X' -
 name: build-test-manylinux-x86
-"on":
+on:
   workflow_call: null
   workflow_dispatch: null
