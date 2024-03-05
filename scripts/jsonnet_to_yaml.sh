@@ -15,7 +15,9 @@ set -euo pipefail
 #
 # The sed command is because 'on' is printed with or without quotes depending
 # on the version. It's a dirty hack that may break some input.
+# TODO: fix this by specifying which version of yq we should use.
 #
 jsonnet "$@" \
 | yq eval -P \
-| sed -e 's/^\( *\)"on":/\1on:/'
+| sed -e 's/^\( *\)"on":/\1on:/' \
+| sed -e 's/: "yes"$/: yes/'
