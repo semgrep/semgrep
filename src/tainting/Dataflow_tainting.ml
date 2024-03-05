@@ -63,6 +63,8 @@ module SMap = Map.Make (String)
 
 let base_tag_strings = [ __MODULE__; "taint" ]
 let _tags = Logs_.create_tags base_tag_strings
+let sigs = Logs_.create_tags (base_tag_strings @ [ "taint_sigs" ])
+let transfer = Logs_.create_tags (base_tag_strings @ [ "taint_transfer" ])
 let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (*****************************************************************************)
@@ -1299,7 +1301,7 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
                }
          | T.Oany -> None)
   in
-  let* os =
+  let* rev_offset =
     os
     |> List.fold_left
          (fun acc opt_o ->
@@ -1312,7 +1314,7 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
   in
   let* lval, obj =
     match sig_lval.base with
-    | BGlob gvar -> Some ({ base = Var gvar; rev_offset = List.rev os }, gvar)
+    | BGlob gvar -> Some ({ base = Var gvar; rev_offset }, gvar)
     | BThis -> (
         match fun_exp with
         | {
@@ -1320,24 +1322,21 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
          _;
         } ->
             (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
-            Some ({ base = Var obj; rev_offset = List.rev os }, obj)
+            Some ({ base = Var obj; rev_offset }, obj)
         | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
             (* We're calling a `method` on the same instace of the caller,
              * and `this.x` is just `this.x` *)
             let this =
               VarSpecial (This, Tok.fake_tok (snd method_.ident) "this")
             in
-            Some ({ base = this; rev_offset = List.rev os }, method_)
+            Some ({ base = this; rev_offset }, method_)
         | __else__ -> None)
     | BArg pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
         match (arg_exp.e, sig_lval.offset) with
         | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
             let lval =
-              {
-                arg_lval with
-                rev_offset = List.rev_append os arg_lval.rev_offset;
-              }
+              { arg_lval with rev_offset = rev_offset @ arg_lval.rev_offset }
             in
             Some (lval, obj)
         | Record fields, [ Ofld o ] -> (
@@ -1388,6 +1387,9 @@ let check_function_signature env fun_exp args args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
+      Logs.debug (fun m ->
+          m ~tags:sigs "Call to %s : %s" (_show_fun_exp fun_exp)
+            (T.show_signature fun_sig));
       (* This function simply produces the corresponding taints to the
           given argument, within the body of the function.
       *)
@@ -1461,8 +1463,7 @@ let check_function_signature env fun_exp args args_taints =
                            (lval_taints
                            |> Taints.map (fun taint ->
                                   let tokens =
-                                    List.rev_append t.tokens
-                                      (snd ident :: taint.tokens)
+                                    t.tokens @ (snd ident :: taint.tokens)
                                   in
                                   { taint with tokens })))
                    | Control ->
@@ -1561,8 +1562,7 @@ let check_function_signature env fun_exp args args_taints =
                          res
                          |> Taints.map (fun taint ->
                                 let tokens =
-                                  List.rev_append t.tokens
-                                    (tainted_tok :: taint.T.tokens)
+                                  t.tokens @ (tainted_tok :: taint.T.tokens)
                                 in
                                 { taint with tokens })
                      | Control ->
@@ -1743,14 +1743,16 @@ let results_from_arg_updates_at_exit enter_env exit_env : T.result list =
              | []
              | _ :: _ :: _ ->
                  Seq.empty
-             | [ { Taint.base; _ } ] ->
+             | [ lval ] ->
                  S.enum_in_ref exit_var_ref
                  |> Seq.filter_map (fun (offset, exit_taints) ->
-                        let arg = Taint.{ base; offset } in
+                        let lval =
+                          { lval with offset = lval.offset @ offset }
+                        in
                         let new_taints = Taints.diff exit_taints enter_taints in
                         (* TODO: Also report if taints are _cleaned_. *)
                         if not (Taints.is_empty new_taints) then
-                          Some (T.ToLval (new_taints |> Taints.elements, arg))
+                          Some (T.ToLval (new_taints |> Taints.elements, lval))
                         else None)))
   |> Seq.concat |> List.of_seq
 
@@ -1892,6 +1894,11 @@ let transfer :
         in'
   in
   check_tainted_at_exit_sinks node { env with lval_env = out' };
+  Logs.debug (fun m ->
+      m ~tags:transfer "Taint transfer %s\n  %s:\n  IN:  %s\n  OUT: %s"
+        (env.fun_name |> Option.value ~default:"<FUN>")
+        (Display_IL.short_string_of_node_kind node.F.n)
+        (Lval_env.to_string in') (Lval_env.to_string out'));
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)

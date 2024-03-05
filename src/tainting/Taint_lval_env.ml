@@ -218,17 +218,11 @@ let add lval new_taints
         | None -> lval_env
         | Some tainted ->
             let new_taints =
-              (* If the lvalue is a simple variable, we record it as part of
-                 the taint trace. *)
-              match lval with
-              | { IL.base = Var var; rev_offset = [] } ->
-                  let var_tok = snd var.ident in
-                  if Tok.is_fake var_tok then new_taints
-                  else
-                    new_taints
-                    |> Taints.map (fun t ->
-                           { t with tokens = var_tok :: t.tokens })
-              | __else__ -> new_taints
+              let var_tok = snd var.ident in
+              if Tok.is_fake var_tok then new_taints
+              else
+                new_taints
+                |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
             in
             {
               tainted =

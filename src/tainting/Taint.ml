@@ -397,7 +397,7 @@ type signature = Results.t
 
 let show_signature s =
   s |> Results.to_seq |> List.of_seq |> List_.map show_result
-  |> [%show: string list]
+  |> String.concat " + "
 
 (*****************************************************************************)
 (* Taint sets *)
