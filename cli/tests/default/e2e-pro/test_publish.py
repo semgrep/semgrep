@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from tests.conftest import TESTS_PATH
+from tests.conftest import TARGETS_PATH
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
@@ -16,7 +16,7 @@ def test_publish(tmp_path, mocker):
         use_click_runner=True,
     )
 
-    tests_path = Path(TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "valid")
+    tests_path = Path(TARGETS_PATH / "semgrep-publish" / "valid")
     valid_target = str(tests_path.resolve())
     valid_single_file_target = str((tests_path / "valid1.yaml").resolve())
 
@@ -51,11 +51,7 @@ def test_publish(tmp_path, mocker):
         cli,
         subcommand="publish",
         args=[
-            str(
-                Path(
-                    TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "invalid"
-                ).resolve()
-            ),
+            str(Path(TARGETS_PATH / "semgrep-publish" / "invalid").resolve()),
         ],
     )
     assert result.exit_code == 2
@@ -66,11 +62,7 @@ def test_publish(tmp_path, mocker):
         cli,
         subcommand="publish",
         args=[
-            str(
-                Path(
-                    TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "multirule"
-                ).resolve()
-            ),
+            str(Path(TARGETS_PATH / "semgrep-publish" / "multirule").resolve()),
         ],
     )
     assert result.exit_code == 2
