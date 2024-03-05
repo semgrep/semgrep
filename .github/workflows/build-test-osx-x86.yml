@@ -75,7 +75,7 @@ jobs:
           fi;
         shell: bash {0}
 name: build-test-osx-x86
-"on":
+on:
   workflow_call:
     inputs:
       use-cache:

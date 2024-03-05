@@ -1,0 +1,49 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "In semgrep YAML configuration, null values are prohibited",
+      "short_msg": "null values prohibited",
+      "spans": [
+        {
+          "context_end": {
+            "col": 0,
+            "line": 9,
+            "offset": -1
+          },
+          "context_start": {
+            "col": 0,
+            "line": 7,
+            "offset": -1
+          },
+          "end": {
+            "col": 21,
+            "line": 8,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad10.yaml",
+          "source_hash": "9bf69aa52b0a57d7f67b6200f2434646c150331285aa0e3903c2a92d4dc9bbb3",
+          "start": {
+            "col": 20,
+            "line": 8,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

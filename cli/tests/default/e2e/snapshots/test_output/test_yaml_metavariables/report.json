@@ -1,0 +1,325 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/yaml/target.yaml"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 13,
+        "line": 1,
+        "offset": 12
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: \"one\"",
+        "message": "\"one\"\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\"one\"",
+            "end": {
+              "col": 13,
+              "line": 1,
+              "offset": 12
+            },
+            "start": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 1,
+        "offset": 2
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 13,
+        "line": 2,
+        "offset": 25
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: 'two'",
+        "message": "'two'\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "'two'",
+            "end": {
+              "col": 13,
+              "line": 2,
+              "offset": 25
+            },
+            "start": {
+              "col": 8,
+              "line": 2,
+              "offset": 20
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 2,
+        "offset": 15
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 11,
+        "line": 4,
+        "offset": 45
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |\n    three",
+        "message": "\n    three\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\n    three\n",
+            "end": {
+              "col": 11,
+              "line": 4,
+              "offset": 45
+            },
+            "start": {
+              "col": 9,
+              "line": 3,
+              "offset": 34
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 3,
+        "offset": 28
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 9,
+        "line": 6,
+        "offset": 62
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |\n   four",
+        "message": "\n   four\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\n   four\n",
+            "end": {
+              "col": 9,
+              "line": 6,
+              "offset": 62
+            },
+            "start": {
+              "col": 9,
+              "line": 5,
+              "offset": 53
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 5,
+        "offset": 47
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 8,
+        "line": 10,
+        "offset": 93
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |       \n    fi\n\n    ve",
+        "message": "       \n    fi\n\n    ve\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "       \n    fi\n\n    ve\n",
+            "end": {
+              "col": 8,
+              "line": 10,
+              "offset": 93
+            },
+            "start": {
+              "col": 9,
+              "line": 7,
+              "offset": 70
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 7,
+        "offset": 64
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 6,
+        "line": 15,
+        "offset": 123
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: |\n    si\n\n      x",
+        "message": "\n    si\n\n      x\n    \n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\n    si\n\n      x\n    \n",
+            "end": {
+              "col": 6,
+              "line": 15,
+              "offset": 123
+            },
+            "start": {
+              "col": 9,
+              "line": 11,
+              "offset": 101
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 11,
+        "offset": 95
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 11,
+        "line": 17,
+        "offset": 142
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: >\n    seven",
+        "message": "\n    seven\n\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\n    seven\n",
+            "end": {
+              "col": 11,
+              "line": 17,
+              "offset": 142
+            },
+            "start": {
+              "col": 9,
+              "line": 16,
+              "offset": 131
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 16,
+        "offset": 125
+      }
+    },
+    {
+      "check_id": "rules.yaml-key",
+      "end": {
+        "col": 7,
+        "line": 21,
+        "offset": 166
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "- key: >\n    eig\n\n    ht",
+        "message": "\n    eig\n\n    ht\n",
+        "metadata": {},
+        "metavars": {
+          "$VALUE": {
+            "abstract_content": "\n    eig\n\n    ht",
+            "end": {
+              "col": 7,
+              "line": 21,
+              "offset": 166
+            },
+            "start": {
+              "col": 9,
+              "line": 18,
+              "offset": 150
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/yaml/target.yaml",
+      "start": {
+        "col": 3,
+        "line": 18,
+        "offset": 144
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

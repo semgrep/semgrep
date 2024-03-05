@@ -1,0 +1,187 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Untrusted dataflow from targets/taint/taint.py:3 to targets/taint/taint.py:9"
+              },
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Source: 'source1()' @ 'targets/taint/taint.py:3'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "targets/taint/taint.py"
+                          },
+                          "region": {
+                            "endColumn": 18,
+                            "endLine": 3,
+                            "message": {
+                              "text": "Source: 'source1()' @ 'targets/taint/taint.py:3'"
+                            },
+                            "snippet": {
+                              "text": "source1()"
+                            },
+                            "startColumn": 9,
+                            "startLine": 3
+                          }
+                        }
+                      },
+                      "nestingLevel": 0
+                    },
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "targets/taint/taint.py"
+                          },
+                          "region": {
+                            "endColumn": 6,
+                            "endLine": 3,
+                            "message": {
+                              "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
+                            },
+                            "snippet": {
+                              "text": "a"
+                            },
+                            "startColumn": 5,
+                            "startLine": 3
+                          }
+                        }
+                      },
+                      "nestingLevel": 0
+                    },
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Propagator : 'b' @ 'targets/taint/taint.py:8'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "targets/taint/taint.py"
+                          },
+                          "region": {
+                            "endColumn": 10,
+                            "endLine": 8,
+                            "message": {
+                              "text": "Propagator : 'b' @ 'targets/taint/taint.py:8'"
+                            },
+                            "snippet": {
+                              "text": "b"
+                            },
+                            "startColumn": 9,
+                            "startLine": 8
+                          }
+                        }
+                      },
+                      "nestingLevel": 0
+                    },
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Sink: 'sink1(b)' @ 'targets/taint/taint.py:9'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "targets/taint/taint.py"
+                          },
+                          "region": {
+                            "endColumn": 13,
+                            "endLine": 9,
+                            "message": {
+                              "text": "Sink: 'sink1(b)' @ 'targets/taint/taint.py:9'"
+                            },
+                            "snippet": {
+                              "text": "    sink1(b)"
+                            },
+                            "startColumn": 5,
+                            "startLine": 9
+                          }
+                        }
+                      },
+                      "nestingLevel": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "fingerprints": {
+            "matchBasedId/v1": "b7d9e6f63610bc461ccd05b612b609b516a1ba6c6fb63268160f62de8bb894cd8c2ef9e389681db5d538050af75010b0219f21d41f67488da439ca426798dbde_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/taint/taint.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 13,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": "    sink1(b)"
+                  },
+                  "startColumn": 5,
+                  "startLine": 9
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "A user input source() went into a dangerous sink()"
+          },
+          "properties": {},
+          "ruleId": "rules.classic"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "fullDescription": {
+                "text": "A user input source() went into a dangerous sink()"
+              },
+              "help": {
+                "markdown": "A user input source() went into a dangerous sink()",
+                "text": "A user input source() went into a dangerous sink()"
+              },
+              "id": "rules.classic",
+              "name": "rules.classic",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.classic"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

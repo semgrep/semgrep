@@ -1,0 +1,112 @@
+=== command
+SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_REPO_URL="https://test@dev.azure.com/test/TestName/_git/Core.Thing" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --no-suppress-errors
+=== end of command
+
+=== exit code
+1
+=== end of exit code
+
+=== stdout - plain
+                            
+                            
+┌──────────────────────────┐
+│ 6 Blocking Code Findings │
+└──────────────────────────┘
+           
+    foo.py 
+       eqeq-bad             
+          useless comparison
+                            
+            4┆ a == a
+            ⋮┆----------------------------------------
+            5┆ a == a
+            ⋮┆----------------------------------------
+            7┆ a == a
+            ⋮┆----------------------------------------
+           11┆ y == y
+            ⋮┆----------------------------------------
+       eqeq-four                 
+          useless comparison to 4
+                                 
+           19┆ baz == 4
+            ⋮┆----------------------------------------
+       taint-test             
+          unsafe use of danger
+                              
+           27┆ sink(d2)
+                                    
+                                    
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
+                
+    poetry.lock 
+       supply-chain1        
+          found a dependency
+                            
+            1┆ [[package]]
+            2┆ name = "badlib"
+                               
+                               
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+           
+    foo.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (x == 2)
+           15┆ x == 5
+                            
+  BLOCKING CODE RULES FIRED:
+    eqeq-bad
+    eqeq-four
+    taint-test
+
+
+=== end of stdout - plain
+
+=== stderr - plain
+                  
+                  
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+                  
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
+            
+  CONNECTION
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+            
+            
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+                    
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+CI scan completed successfully.
+  Found 8 findings (6 blocking) from 6 rules.
+  Uploading findings.
+  View results in Semgrep App:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
+  Has findings for blocking rules so exiting with code 1
+
+=== end of stderr - plain

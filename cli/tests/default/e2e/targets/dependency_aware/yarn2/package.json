@@ -1,0 +1,8 @@
+{
+    "name": "test",
+    "version": "1.0.0",
+    "main": "foo.js",
+    "dependencies": {
+        "@babel/core": "^7.19.6"
+    }
+}

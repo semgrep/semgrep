@@ -1,8 +1,0 @@
-{
-    "name": "foodorderapp",
-    "version": "1.0.0",
-    "main": "foo.js",
-    "dependencies": {
-      "lodash":"^1.0.0"
-    }
-  }

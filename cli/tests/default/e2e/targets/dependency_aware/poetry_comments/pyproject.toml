@@ -1,0 +1,35 @@
+# comment
+[tool.poetry]
+name = "test"
+version = "0.0.1"
+# comment
+# comment
+description = "test"
+authors = ["r2c"]
+
+[tool.poetry.dependencies]
+# comment
+python = "^3.10"
+faker = "^13.11.0"
+
+# comment
+# comment
+# comment
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+# The default maximum line length for black is 88 characters, but we opt to use 120 character lines.f
+# (Everyone has a big monitor these days, yes?)
+line-length = 120
+target-version = ['py37']
+preview = true
+
+[[tool.poetry.source]]
+# comments
+name = "semgrep"
+url = "https://artifact.semgrep.com/"
+secondary = false
