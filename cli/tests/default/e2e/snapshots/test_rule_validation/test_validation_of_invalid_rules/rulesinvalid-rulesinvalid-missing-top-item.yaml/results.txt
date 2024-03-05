@@ -1,12 +1,41 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
-semgrep error: Invalid rule schema
-  --> rules/invalid-rules/invalid-missing-top-item.yaml:2
-2 |   - id: blah
-3 |     message: blah
-4 |     languages: [python]
-5 |     pattern: $X == $X
+[ERROR] WARNING: unable to find a config; path `rules/invalid-rules/invalid-missing-top-item.yaml` does not exist
+[ERROR] Error while running rules:
+                    You are seeing this because the engine was killed.
 
-One of these properties is missing: 'severity'
+                    The most common reason this happens is because it used too much memory.
+                    If your repo is large (~10k files or more), you have three options:
+                    1. Increase the amount of memory available to semgrep
+                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
+                        recommend using 1 job if you are running out of memory.
+                    3. Scan the repo in parts (contact us for help)
 
-[ERROR] Rule parse error in rule blah:
- Missing required field severity
+                    Otherwise, it is likely that semgrep is hitting the limit on only some
+                    files. In this case, you can try to set the limit on the amount of memory
+                    semgrep can use on each file with `--max-memory <memory>`. We recommend
+                    lowering this to a limit 70% of the available memory. For CI runs with
+                    interfile analysis, the default max-memory is 5000MB. Without, the default
+                    is unlimited.
+
+                    The last thing you can try if none of these work is to raise the stack
+                    limit with `ulimit -s <limit>`.
+
+                    If you have tried all these steps and still are seeing this error, please
+                    contact us.
+
+                       Error: semgrep-core exited with unexpected output
+
+                       [00.07][[34mINFO[0m](cli, Core_CLI): Executed as: /usr/bin/semgrep-core -json -check_rules <MASKED> rules/invalid-rules/invalid-missing-top-item.yaml
+[00.07][[34mINFO[0m](cli, Core_CLI): Version: semgrep-core version: <MASKED>
+Exception: Sys_error("rules/invalid-rules/invalid-missing-top-item.yaml: No such file or directory")
+Raised by primitive operation at UFile.Legacy.files_of_dirs_or_files_no_vcs_nofilter.(fun) in file "libs/commons/UFile.ml", line 177, characters 14-33
+Called from List_.fast_map in file "libs/commons/List_.ml", line 80, characters 17-20
+Called from UFile.Legacy.files_of_dirs_or_files_no_vcs_nofilter in file "libs/commons/UFile.ml", line 175, characters 4-204
+Called from UFile.files_of_dirs_or_files_no_vcs_nofilter in file "libs/commons/UFile.ml", line 191, characters 2-74
+Called from File_type.files_of_dirs_or_files in file "libs/commons/File_type.ml", line 423, characters 2-52
+Called from Check_rule.run_checks in file "src/metachecking/Check_rule.ml", line 266, characters 4-145
+Called from Check_rule.check_files in file "src/metachecking/Check_rule.ml", line 313, characters 26-65
+Called from Core_CLI.with_exception_trace in file "src/core_cli/Core_CLI.ml", line 725, characters 6-10
+
+
+

@@ -3,15 +3,5 @@
   "config_missing_tests": [],
   "config_with_errors": [],
   "fixtest_results": {},
-  "results": {
-    "rules/cli_test/ignore_rule_paths/foo.yaml": {
-      "checks": {
-        "ATS-insecure-media-loads": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": true
-        }
-      }
-    }
-  }
+  "results": {}
 }

@@ -1,118 +1,22 @@
 {
-  "errors": [],
-  "interfile_languages_used": [],
-  "paths": {
-    "scanned": [
-      "targets/exclude_include/included/excluded.js",
-      "targets/exclude_include/included/included.js"
-    ]
-  },
-  "results": [
+  "errors": [
     {
-      "check_id": "rules.javascript-basic-eqeq-bad",
-      "end": {
-        "col": 19,
-        "line": 3,
-        "offset": 30
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "console.log(x == x)",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 14,
-              "line": 3,
-              "offset": 25
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "1",
-              "svalue_end": {
-                "col": 10,
-                "line": 1,
-                "offset": 9
-              },
-              "svalue_start": {
-                "col": 9,
-                "line": 1,
-                "offset": 8
-              }
-            },
-            "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 24
-            }
-          }
-        },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/exclude_include/included/excluded.js",
-      "start": {
-        "col": 13,
-        "line": 3,
-        "offset": 24
-      }
+      "code": 2,
+      "level": "error",
+      "message": "WARNING: unable to find a config; path `rules/eqeq.yaml` does not exist",
+      "type": "SemgrepError"
     },
     {
-      "check_id": "rules.javascript-basic-eqeq-bad",
-      "end": {
-        "col": 19,
-        "line": 3,
-        "offset": 30
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "console.log(x == x)",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 14,
-              "line": 3,
-              "offset": 25
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "1",
-              "svalue_end": {
-                "col": 10,
-                "line": 1,
-                "offset": 9
-              },
-              "svalue_start": {
-                "col": 9,
-                "line": 1,
-                "offset": 8
-              }
-            },
-            "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 24
-            }
-          }
-        },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/exclude_include/included/included.js",
-      "start": {
-        "col": 13,
-        "line": 3,
-        "offset": 24
-      }
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
     }
   ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
   "skipped_rules": [],
   "version": "0.42"
 }

@@ -1,6 +1,18 @@
 {
-  "errors": [],
-  "interfile_languages_used": [],
+  "errors": [
+    {
+      "code": 2,
+      "level": "error",
+      "message": "WARNING: unable to find a config; path `rules/eqeq.yaml` does not exist",
+      "type": "SemgrepError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
   "paths": {
     "scanned": []
   },

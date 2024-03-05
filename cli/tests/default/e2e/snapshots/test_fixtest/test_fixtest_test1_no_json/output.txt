@@ -1,2 +1,2 @@
-1/1: ✓ All tests passed
-1/1: ✓ All fix tests passed
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
+No tests for fixes found.
