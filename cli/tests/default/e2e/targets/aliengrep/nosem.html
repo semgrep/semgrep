@@ -1,0 +1,25 @@
+<h4>From: {{ from_email }}</h4>
+<h4>To:
+    {% for recipient in recipients %}
+    {{ recipient }}&nbsp;
+    {% endfor %}
+</h4>
+<h4>Subject: {{subject}}</h4>
+<div class="email" style="display: block;">
+    {{ message }}
+</div>
+<div class="email-text" style="display: none;">
+    <pre>{{ body }}</pre>
+    <a href='{{ link }}'>{{ link_text }}</a> <!-- nosem: var-in-href -->
+    <a href = '{{ link }}' >{{ link_text }}</a> <!-- nosemgrep: var-in-href -->
+    <a href = "{{ link }}" >{{ link_text }}</a>
+    <a
+        href = "{{ link }}" nosem="var-in-href"
+    >
+        {{ link_text }}
+    </a>
+    <a href="{{ url_for('index') }}">{{ link_text }}</a>
+    <a href="https://example.com/">{{ link_text }}</a>
+    <a href="https://example.com/{{ link_path }}">{{ link_text }}</a>
+</div>
+<hr>

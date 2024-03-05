@@ -57,17 +57,11 @@ PYTEST ?= \
 #
 # coupling: this must run the same tests as 'make test-dev'.
 #
-# !!! Make sure to pass a folder to pytest !!!
-# due to the following unexpected behavior:
-# $ pipenv run pytest --collect-only        # shows only 1567 tests
-# $ pipenv run pytest --collect-only tests  # shows 1728 tests
-# $ pipenv run pytest --collect-only .      # also shows 1728 tests
-#
 .PHONY: test
 test:
 	# To fail faster, consider running 'make test-dev' instead.
 	$(MAKE) check
-	$(PYTEST) tests
+	$(PYTEST) tests/default
 
 # Run the same tests as 'make test' but try to fail faster.
 #
@@ -102,11 +96,11 @@ test-dev:
 	pre-commit run -a mypy
 	$(MAKE) check
 	# Run the quick tests first
-	time $(PYTEST) -m quick tests
+	time $(PYTEST) -m quick tests/default
 	# Now run the medium-quick tests
-	time $(PYTEST) -m kinda_slow tests
+	time $(PYTEST) -m kinda_slow tests/default
 	# Finally, run the slowest tests
-	time $(PYTEST) -m 'not quick and not kinda_slow' tests
+	time $(PYTEST) -m 'not quick and not kinda_slow' tests/default
 
 # Run the end-to-end tests only. These are tests that invoke the semgrep
 # command line, excluding unit tests. They don't include the quality assurance
@@ -115,16 +109,16 @@ test-dev:
 # We exclude the few tests that don't invoke the semgrep command directly.
 .PHONY: e2e
 e2e:
-	$(PYTEST) tests/e2e
+	$(PYTEST) tests/default/e2e
 
 .PHONY: e2e-pro
 e2e-pro:
-	$(PYTEST) -m 'not no_semgrep_cli and not todo' tests/e2e-pro
+	$(PYTEST) -m 'not no_semgrep_cli and not todo' tests/default/e2e-pro
 
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
 qa:
-	$(PYTEST) tests/qa
+	$(PYTEST) tests/default/qa
 
 ###############################################################################
 # Osemgrep tests
@@ -143,7 +137,7 @@ osemgrep-e2e:
 # coupling: this is run in CI in .github/workflows/tests.yml
 osempass:
 	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto \
-	  -m 'not osemfail' tests/e2e
+	  -m 'not osemfail' tests/default/e2e
 
 # to be used to discover tests that we should remove the osemfail pytest mark
 osempass-check-if-new-osempass:

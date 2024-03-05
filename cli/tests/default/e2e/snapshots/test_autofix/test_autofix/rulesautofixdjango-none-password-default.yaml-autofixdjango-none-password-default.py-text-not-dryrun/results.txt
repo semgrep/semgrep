@@ -1,0 +1,39 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/django-none-password-default.py
+   ❯❯❱ rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default
+          'new_password' is using the empty string as its default and is being used to set the password on
+          'user'. If you meant to set an unusable password, set the default value to 'None' or call
+          'set_unusable_password()'.
+
+           ▶▶┆ Autofix ▶ new_password = request.data.get("password", None)validate_password(new_password,
+              user=user)user.set_password(new_password)user.save()
+           60┆ new_password = request.data.get("password", "")
+           61┆ validate_password(new_password, user=user)
+           62┆ user.set_password(new_password)
+           63┆ user.save()
+            ⋮┆----------------------------------------
+   ❯❯❱ rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default
+          'password' is using the empty string as its default and is being used to set the password on 'user'.
+          If you meant to set an unusable password, set the default value to 'None' or call
+          'set_unusable_password()'.
+
+           ▶▶┆ Autofix ▶ def create_user(self, email, password=None):"""Creates and saves a Poster with the given email
+              and password."""if not email:raise ValueError('Users must have an email
+              address')user = self.model(email=self.normalize_email(email))user.set_password(pass
+              word)user.save(using=self._db)return user
+           71┆ def create_user(self, email, password=""):
+           72┆     """
+           73┆     Creates and saves a Poster with the given email and password.
+           74┆     """
+           75┆     if not email:
+           76┆         raise ValueError('Users must have an email address')
+           77┆
+           78┆     user = self.model(email=self.normalize_email(email))
+           79┆     user.set_password(password)
+           80┆     user.save(using=self._db)
+             [hid 1 additional lines, adjust with --max-lines-per-finding]

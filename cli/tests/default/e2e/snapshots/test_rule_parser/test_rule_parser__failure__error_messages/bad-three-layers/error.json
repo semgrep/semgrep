@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "One of these properties is missing: 'languages'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 8,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad-three-layers.yaml",
+          "source_hash": "230ae0cfd32c4a669eb5edbc9f5a3574609dfe147a7440bfcb85c35e1828ac54",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

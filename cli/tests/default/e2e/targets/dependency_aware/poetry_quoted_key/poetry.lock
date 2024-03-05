@@ -1,0 +1,10 @@
+# This file has an arbitrary comment on the top that means nothing @foo 2.9.infinity
+
+[[package]]
+name = "faker"
+version = "13.11.1"
+description = "Faker is a Python package that generates fake data for you."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+"weird quoted key" = "foo"

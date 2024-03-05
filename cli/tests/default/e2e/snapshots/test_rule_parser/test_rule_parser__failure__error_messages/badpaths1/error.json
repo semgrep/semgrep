@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "['*.py', 'test/*'] is not of type 'object'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 5,
+            "line": 10,
+            "offset": -1
+          },
+          "file": "rules/syntax/badpaths1.yaml",
+          "source_hash": "5f729ef631099eaddf81dca6b10c2e399989ff7c923ac53ab0e4e51b6124d1a1",
+          "start": {
+            "col": 7,
+            "line": 8,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

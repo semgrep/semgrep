@@ -1,4 +1,0 @@
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 1 files not matching --include patterns, 1 files matching --exclude patterns, 1 files matching .semgrepignore patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.

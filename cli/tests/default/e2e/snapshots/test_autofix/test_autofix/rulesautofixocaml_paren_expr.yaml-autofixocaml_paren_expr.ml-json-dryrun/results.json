@@ -1,0 +1,185 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/ocaml_paren_expr.ml"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.wrap-afunc-arguments",
+      "end": {
+        "col": 39,
+        "line": 1,
+        "offset": 38
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "a_function_call (wrap (the_argument))",
+        "fixed_lines": [
+          "let one = a_function_call (wrap (the_argument))"
+        ],
+        "is_ignored": false,
+        "lines": "let one = a_function_call the_argument",
+        "message": "Wrap the arguments to `a_function_call` with `wrap` first",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "the_argument",
+            "end": {
+              "col": 39,
+              "line": 1,
+              "offset": 38
+            },
+            "start": {
+              "col": 27,
+              "line": 1,
+              "offset": 26
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/ocaml_paren_expr.ml",
+      "start": {
+        "col": 11,
+        "line": 1,
+        "offset": 10
+      }
+    },
+    {
+      "check_id": "rules.autofix.wrap-afunc-arguments",
+      "end": {
+        "col": 41,
+        "line": 3,
+        "offset": 80
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "a_function_call (wrap (the_argument))",
+        "fixed_lines": [
+          "let two = a_function_call (wrap (the_argument))"
+        ],
+        "is_ignored": false,
+        "lines": "let two = a_function_call (the_argument)",
+        "message": "Wrap the arguments to `a_function_call` with `wrap` first",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "the_argument",
+            "end": {
+              "col": 40,
+              "line": 3,
+              "offset": 79
+            },
+            "start": {
+              "col": 28,
+              "line": 3,
+              "offset": 67
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/ocaml_paren_expr.ml",
+      "start": {
+        "col": 11,
+        "line": 3,
+        "offset": 50
+      }
+    },
+    {
+      "check_id": "rules.autofix.wrap-afunc-arguments",
+      "end": {
+        "col": 56,
+        "line": 5,
+        "offset": 137
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "a_function_call (wrap ((another_func the_argument)))",
+        "fixed_lines": [
+          "let three = a_function_call (wrap ((another_func the_argument)))"
+        ],
+        "is_ignored": false,
+        "lines": "let three = a_function_call (another_func the_argument)",
+        "message": "Wrap the arguments to `a_function_call` with `wrap` first",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "another_func the_argument",
+            "end": {
+              "col": 56,
+              "line": 5,
+              "offset": 137
+            },
+            "start": {
+              "col": 29,
+              "line": 5,
+              "offset": 110
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/ocaml_paren_expr.ml",
+      "start": {
+        "col": 13,
+        "line": 5,
+        "offset": 94
+      }
+    },
+    {
+      "check_id": "rules.autofix.wrap-afunc-arguments",
+      "end": {
+        "col": 60,
+        "line": 7,
+        "offset": 198
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "a_function_call (wrap ((tuple_member, threeple_member)))",
+        "fixed_lines": [
+          "let three = a_function_call (wrap ((tuple_member, threeple_member)))"
+        ],
+        "is_ignored": false,
+        "lines": "let three = a_function_call (tuple_member, threeple_member)",
+        "message": "Wrap the arguments to `a_function_call` with `wrap` first",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "(tuple_member threeple_member)",
+            "end": {
+              "col": 60,
+              "line": 7,
+              "offset": 198
+            },
+            "start": {
+              "col": 29,
+              "line": 7,
+              "offset": 167
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/ocaml_paren_expr.ml",
+      "start": {
+        "col": 13,
+        "line": 7,
+        "offset": 151
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

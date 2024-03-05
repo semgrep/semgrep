@@ -1,0 +1,169 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/order.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.slice-ab",
+      "end": {
+        "col": 2,
+        "line": 6,
+        "offset": 190
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_a_to_b_OK",
+        "is_ignored": false,
+        "lines": "a\nb",
+        "message": "slice a-b matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/order.py",
+      "start": {
+        "col": 1,
+        "line": 5,
+        "offset": 187
+      }
+    },
+    {
+      "check_id": "rules.autofix.a-slice-bc",
+      "end": {
+        "col": 2,
+        "line": 7,
+        "offset": 192
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_b_to_c_BAD",
+        "is_ignored": false,
+        "lines": "b\nc",
+        "message": "slice b-c matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/order.py",
+      "start": {
+        "col": 1,
+        "line": 6,
+        "offset": 189
+      }
+    },
+    {
+      "check_id": "rules.autofix.z-slice-bc",
+      "end": {
+        "col": 2,
+        "line": 7,
+        "offset": 192
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_b_to_c_OK",
+        "is_ignored": false,
+        "lines": "b\nc",
+        "message": "slice b-c matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/order.py",
+      "start": {
+        "col": 1,
+        "line": 6,
+        "offset": 189
+      }
+    },
+    {
+      "check_id": "rules.autofix.slice-df",
+      "end": {
+        "col": 2,
+        "line": 10,
+        "offset": 198
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_d_to_f_OK",
+        "is_ignored": false,
+        "lines": "d\ne\nf",
+        "message": "slice d-f matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/order.py",
+      "start": {
+        "col": 1,
+        "line": 8,
+        "offset": 193
+      }
+    },
+    {
+      "check_id": "rules.autofix.slice-eg",
+      "end": {
+        "col": 2,
+        "line": 11,
+        "offset": 200
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_e_to_g_BAD",
+        "is_ignored": false,
+        "lines": "e\nf\ng",
+        "message": "slice e-g matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/order.py",
+      "start": {
+        "col": 1,
+        "line": 9,
+        "offset": 195
+      }
+    },
+    {
+      "check_id": "rules.autofix.slice-gh",
+      "end": {
+        "col": 2,
+        "line": 12,
+        "offset": 202
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "replaced_lines_g_to_h_OK",
+        "is_ignored": false,
+        "lines": "g\nh",
+        "message": "slice g-h matches",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/order.py",
+      "start": {
+        "col": 1,
+        "line": 11,
+        "offset": 199
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

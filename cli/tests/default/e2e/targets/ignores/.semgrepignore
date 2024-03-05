@@ -1,0 +1,24 @@
+# Ignore git items
+.gitignore
+.git/
+:include .gitignore
+
+# Common large paths
+node_modules/
+build/
+dist/
+vendor/
+env/
+.env/
+venv/
+.venv/
+.tox/
+*.min.js
+
+# Common test paths
+test/
+tests/
+*_test.js
+
+# Semgrep rules folder
+.semgrep

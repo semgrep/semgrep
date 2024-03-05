@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'object'\n[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 7,
+            "line": 12,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad1.yaml",
+          "source_hash": "58787bea35443f02072f84af73a97dc567e47abfd67214fe739bebf7cf138c2f",
+          "start": {
+            "col": 9,
+            "line": 4,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

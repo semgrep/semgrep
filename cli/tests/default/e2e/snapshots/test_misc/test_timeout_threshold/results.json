@@ -1,0 +1,27 @@
+{
+  "errors": [
+    {
+      "code": 2,
+      "level": "warn",
+      "message": "Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ",
+      "path": "targets/equivalence/open_redirect.py",
+      "rule_id": "rules.forcetimeout",
+      "type": "Timeout"
+    }
+  ],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ],
+    "skipped": [
+      {
+        "path": "targets/equivalence/open_redirect.py",
+        "reason": "analysis_failed_parser_or_internal_error"
+      }
+    ]
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}
