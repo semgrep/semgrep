@@ -1,6 +1,6 @@
 (* Brandon Wu, Yoann Padioleau
  *
- * Copyright (C) 2022-2023 Semgrep Inc.
+ * Copyright (C) 2022-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -45,7 +45,10 @@ type t = Rpath of Fpath.t [@@deriving show, eq]
 (*****************************************************************************)
 
 let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
-let of_string s = Rpath (Unix.realpath s |> Fpath.v)
 let to_fpath (Rpath x) = x
+let canonical s = to_fpath (of_fpath s)
+
+(* deprecated *)
+let of_string s = Rpath (Unix.realpath s |> Fpath.v)
 let to_string (Rpath x) = Fpath.to_string x
-let canonical s = to_string (of_string s)
+let canonical_string s = to_string (of_string s)
