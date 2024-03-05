@@ -9,3 +9,4 @@
           Basic test
 
             2┆ print([1m1 == 1[0m)
+

@@ -28,12 +28,12 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "metavariable_comparison_test_strip('100')",
+        "lines": "metavariable_comparison_test_strip(\"100\")",
         "message": "Metavariable regex test",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "'100'",
+            "abstract_content": "\"100\"",
             "end": {
               "col": 41,
               "line": 1,

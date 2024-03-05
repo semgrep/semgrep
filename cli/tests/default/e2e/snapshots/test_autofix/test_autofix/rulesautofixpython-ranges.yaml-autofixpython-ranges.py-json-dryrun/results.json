@@ -17,17 +17,17 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix": "bar('abc')",
+        "fix": "bar(\"abc\")",
         "fixed_lines": [
-          "bar('abc')"
+          "bar(\"abc\")"
         ],
         "is_ignored": false,
-        "lines": "foo('abc')",
+        "lines": "foo(\"abc\")",
         "message": "change it",
         "metadata": {},
         "metavars": {
           "$E": {
-            "abstract_content": "'abc'",
+            "abstract_content": "\"abc\"",
             "end": {
               "col": 10,
               "line": 1,

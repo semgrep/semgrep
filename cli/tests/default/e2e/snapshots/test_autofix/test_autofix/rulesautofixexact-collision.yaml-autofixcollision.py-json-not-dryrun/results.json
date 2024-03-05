@@ -11,8 +11,8 @@
       "check_id": "rules.autofix.first-rule",
       "end": {
         "col": 6,
-        "line": 2,
-        "offset": 6
+        "line": 1,
+        "offset": 5
       },
       "extra": {
         "engine_kind": "OSS",
@@ -29,16 +29,16 @@
       "path": "targets/autofix/collision.py",
       "start": {
         "col": 5,
-        "line": 2,
-        "offset": 5
+        "line": 1,
+        "offset": 4
       }
     },
     {
       "check_id": "rules.autofix.second-rule",
       "end": {
         "col": 6,
-        "line": 2,
-        "offset": 6
+        "line": 1,
+        "offset": 5
       },
       "extra": {
         "engine_kind": "OSS",
@@ -55,8 +55,8 @@
       "path": "targets/autofix/collision.py",
       "start": {
         "col": 5,
-        "line": 2,
-        "offset": 5
+        "line": 1,
+        "offset": 4
       }
     }
   ],

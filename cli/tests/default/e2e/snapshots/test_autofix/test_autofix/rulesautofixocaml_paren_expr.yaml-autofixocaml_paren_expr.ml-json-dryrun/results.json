@@ -53,9 +53,9 @@
     {
       "check_id": "rules.autofix.wrap-afunc-arguments",
       "end": {
-        "col": 41,
-        "line": 3,
-        "offset": 80
+        "col": 39,
+        "line": 2,
+        "offset": 77
       },
       "extra": {
         "engine_kind": "OSS",
@@ -65,21 +65,21 @@
           "let two = a_function_call (wrap (the_argument))"
         ],
         "is_ignored": false,
-        "lines": "let two = a_function_call (the_argument)",
+        "lines": "let two = a_function_call the_argument",
         "message": "Wrap the arguments to `a_function_call` with `wrap` first",
         "metadata": {},
         "metavars": {
           "$X": {
             "abstract_content": "the_argument",
             "end": {
-              "col": 40,
-              "line": 3,
-              "offset": 79
+              "col": 39,
+              "line": 2,
+              "offset": 77
             },
             "start": {
-              "col": 28,
-              "line": 3,
-              "offset": 67
+              "col": 27,
+              "line": 2,
+              "offset": 65
             }
           }
         },
@@ -89,16 +89,16 @@
       "path": "targets/autofix/ocaml_paren_expr.ml",
       "start": {
         "col": 11,
-        "line": 3,
-        "offset": 50
+        "line": 2,
+        "offset": 49
       }
     },
     {
       "check_id": "rules.autofix.wrap-afunc-arguments",
       "end": {
         "col": 56,
-        "line": 5,
-        "offset": 137
+        "line": 3,
+        "offset": 133
       },
       "extra": {
         "engine_kind": "OSS",
@@ -116,13 +116,13 @@
             "abstract_content": "another_func the_argument",
             "end": {
               "col": 56,
-              "line": 5,
-              "offset": 137
+              "line": 3,
+              "offset": 133
             },
             "start": {
               "col": 29,
-              "line": 5,
-              "offset": 110
+              "line": 3,
+              "offset": 106
             }
           }
         },
@@ -132,16 +132,16 @@
       "path": "targets/autofix/ocaml_paren_expr.ml",
       "start": {
         "col": 13,
-        "line": 5,
-        "offset": 94
+        "line": 3,
+        "offset": 90
       }
     },
     {
       "check_id": "rules.autofix.wrap-afunc-arguments",
       "end": {
         "col": 60,
-        "line": 7,
-        "offset": 198
+        "line": 4,
+        "offset": 193
       },
       "extra": {
         "engine_kind": "OSS",
@@ -159,13 +159,13 @@
             "abstract_content": "(tuple_member threeple_member)",
             "end": {
               "col": 60,
-              "line": 7,
-              "offset": 198
+              "line": 4,
+              "offset": 193
             },
             "start": {
               "col": 29,
-              "line": 7,
-              "offset": 167
+              "line": 4,
+              "offset": 162
             }
           }
         },
@@ -175,8 +175,8 @@
       "path": "targets/autofix/ocaml_paren_expr.ml",
       "start": {
         "col": 13,
-        "line": 7,
-        "offset": 151
+        "line": 4,
+        "offset": 146
       }
     }
   ],

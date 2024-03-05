@@ -12,7 +12,7 @@
       "end": {
         "col": 21,
         "line": 3,
-        "offset": 44
+        "offset": 42
       },
       "extra": {
         "engine_kind": "OSS",
@@ -40,12 +40,12 @@
             "end": {
               "col": 10,
               "line": 2,
-              "offset": 20
+              "offset": 18
             },
             "start": {
               "col": 9,
               "line": 2,
-              "offset": 19
+              "offset": 17
             }
           }
         },
@@ -56,7 +56,7 @@
       "start": {
         "col": 5,
         "line": 2,
-        "offset": 15
+        "offset": 13
       }
     },
     {
@@ -64,7 +64,7 @@
       "end": {
         "col": 21,
         "line": 6,
-        "offset": 79
+        "offset": 77
       },
       "extra": {
         "engine_kind": "OSS",
@@ -92,12 +92,12 @@
             "end": {
               "col": 10,
               "line": 5,
-              "offset": 55
+              "offset": 53
             },
             "start": {
               "col": 9,
               "line": 5,
-              "offset": 54
+              "offset": 52
             }
           }
         },
@@ -108,7 +108,7 @@
       "start": {
         "col": 5,
         "line": 5,
-        "offset": 50
+        "offset": 48
       }
     }
   ],

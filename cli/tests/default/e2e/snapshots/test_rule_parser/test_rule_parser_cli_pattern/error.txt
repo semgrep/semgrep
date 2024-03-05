@@ -11,3 +11,4 @@
 #include<asdf><<>>><$X>
 --- end pattern ---
 Pattern error: Stdlib.Parsing.Parse_error
+

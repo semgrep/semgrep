@@ -11,8 +11,8 @@
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",
       "end": {
         "col": 33,
-        "line": 10,
-        "offset": 209
+        "line": 13,
+        "offset": 212
       },
       "extra": {
         "engine_kind": "OSS",
@@ -30,13 +30,13 @@
             "abstract_content": "user",
             "end": {
               "col": 9,
-              "line": 7,
-              "offset": 99
+              "line": 10,
+              "offset": 102
             },
             "start": {
               "col": 5,
-              "line": 7,
-              "offset": 95
+              "line": 10,
+              "offset": 98
             }
           }
         },
@@ -46,16 +46,16 @@
       "path": "targets/autofix/flask-use-jsonify.py",
       "start": {
         "col": 12,
-        "line": 10,
-        "offset": 188
+        "line": 13,
+        "offset": 191
       }
     },
     {
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",
       "end": {
         "col": 28,
-        "line": 18,
-        "offset": 368
+        "line": 23,
+        "offset": 373
       },
       "extra": {
         "engine_kind": "OSS",
@@ -73,13 +73,13 @@
             "abstract_content": "user",
             "end": {
               "col": 9,
-              "line": 15,
-              "offset": 263
+              "line": 20,
+              "offset": 268
             },
             "start": {
               "col": 5,
-              "line": 15,
-              "offset": 259
+              "line": 20,
+              "offset": 264
             }
           }
         },
@@ -89,8 +89,8 @@
       "path": "targets/autofix/flask-use-jsonify.py",
       "start": {
         "col": 12,
-        "line": 18,
-        "offset": 352
+        "line": 23,
+        "offset": 357
       }
     }
   ],

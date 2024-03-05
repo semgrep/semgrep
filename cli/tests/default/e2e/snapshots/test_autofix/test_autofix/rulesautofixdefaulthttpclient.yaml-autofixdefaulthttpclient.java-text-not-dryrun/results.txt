@@ -13,3 +13,4 @@
 
            ▶▶┆ Autofix ▶ HttpClient client = new SystemDefaultHttpClient()
            15┆ HttpClient client = new DefaultHttpClient();
+

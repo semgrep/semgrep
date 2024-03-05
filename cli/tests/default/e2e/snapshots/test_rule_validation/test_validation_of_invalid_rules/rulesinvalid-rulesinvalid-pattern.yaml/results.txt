@@ -5,3 +5,4 @@ Configuration is invalid - found 1 configuration error(s), and 2 rule(s).
 print..);
 --- end pattern ---
 Pattern error: Stdlib.Parsing.Parse_error
+

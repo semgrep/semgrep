@@ -12,7 +12,7 @@
       "end": {
         "col": 22,
         "line": 3,
-        "offset": 45
+        "offset": 43
       },
       "extra": {
         "engine_kind": "OSS",
@@ -40,12 +40,12 @@
             "end": {
               "col": 10,
               "line": 2,
-              "offset": 20
+              "offset": 18
             },
             "start": {
               "col": 9,
               "line": 2,
-              "offset": 19
+              "offset": 17
             }
           },
           "$MSG": {
@@ -53,12 +53,12 @@
             "end": {
               "col": 21,
               "line": 3,
-              "offset": 44
+              "offset": 42
             },
             "start": {
               "col": 15,
               "line": 3,
-              "offset": 38
+              "offset": 36
             }
           }
         },
@@ -69,7 +69,7 @@
       "start": {
         "col": 9,
         "line": 3,
-        "offset": 32
+        "offset": 30
       }
     },
     {
@@ -77,7 +77,7 @@
       "end": {
         "col": 21,
         "line": 6,
-        "offset": 80
+        "offset": 78
       },
       "extra": {
         "engine_kind": "OSS",
@@ -105,12 +105,12 @@
             "end": {
               "col": 10,
               "line": 5,
-              "offset": 56
+              "offset": 54
             },
             "start": {
               "col": 9,
               "line": 5,
-              "offset": 55
+              "offset": 53
             }
           },
           "$MSG": {
@@ -118,12 +118,12 @@
             "end": {
               "col": 20,
               "line": 6,
-              "offset": 79
+              "offset": 77
             },
             "start": {
               "col": 15,
               "line": 6,
-              "offset": 74
+              "offset": 72
             }
           }
         },
@@ -134,7 +134,7 @@
       "start": {
         "col": 9,
         "line": 6,
-        "offset": 68
+        "offset": 66
       }
     },
     {
@@ -142,14 +142,14 @@
       "end": {
         "col": 21,
         "line": 9,
-        "offset": 115
+        "offset": 113
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        print('ble')",
-        "message": "'print('ble')' detected in method 'D' in class 'A'",
+        "lines": "        print(\"ble\")",
+        "message": "'print(\"ble\")' detected in method 'D' in class 'A'",
         "metadata": {},
         "metavars": {
           "$CLASS": {
@@ -170,25 +170,25 @@
             "end": {
               "col": 10,
               "line": 8,
-              "offset": 91
+              "offset": 89
             },
             "start": {
               "col": 9,
               "line": 8,
-              "offset": 90
+              "offset": 88
             }
           },
           "$MSG": {
-            "abstract_content": "'ble'",
+            "abstract_content": "\"ble\"",
             "end": {
               "col": 20,
               "line": 9,
-              "offset": 114
+              "offset": 112
             },
             "start": {
               "col": 15,
               "line": 9,
-              "offset": 109
+              "offset": 107
             }
           }
         },
@@ -199,15 +199,15 @@
       "start": {
         "col": 9,
         "line": 9,
-        "offset": 103
+        "offset": 101
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 24,
-        "line": 16,
-        "offset": 192
+        "line": 18,
+        "offset": 190
       },
       "extra": {
         "engine_kind": "OSS",
@@ -221,12 +221,12 @@
             "abstract_content": "F",
             "end": {
               "col": 8,
-              "line": 14,
+              "line": 16,
               "offset": 152
             },
             "start": {
               "col": 7,
-              "line": 14,
+              "line": 16,
               "offset": 151
             }
           },
@@ -234,26 +234,26 @@
             "abstract_content": "G",
             "end": {
               "col": 10,
-              "line": 15,
-              "offset": 165
+              "line": 17,
+              "offset": 163
             },
             "start": {
               "col": 9,
-              "line": 15,
-              "offset": 164
+              "line": 17,
+              "offset": 162
             }
           },
           "$MSG": {
             "abstract_content": "\"qwerty\"",
             "end": {
               "col": 23,
-              "line": 16,
-              "offset": 191
+              "line": 18,
+              "offset": 189
             },
             "start": {
               "col": 15,
-              "line": 16,
-              "offset": 183
+              "line": 18,
+              "offset": 181
             }
           }
         },
@@ -263,8 +263,8 @@
       "path": "targets/message_interpolation/multi_pattern_inside.py",
       "start": {
         "col": 9,
-        "line": 16,
-        "offset": 177
+        "line": 18,
+        "offset": 175
       }
     }
   ],

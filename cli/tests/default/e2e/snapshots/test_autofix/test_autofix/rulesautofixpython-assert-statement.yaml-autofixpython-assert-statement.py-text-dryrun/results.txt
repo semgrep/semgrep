@@ -12,4 +12,5 @@
             1┆ assert "a"
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ assert "b"
-            4┆ assert "b"
+            2┆ assert "b"
+

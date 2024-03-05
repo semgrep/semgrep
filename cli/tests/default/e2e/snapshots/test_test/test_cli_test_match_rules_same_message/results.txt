@@ -14,3 +14,4 @@
           Same message as other rule.
 
             2┆ print([1m1 == 1[0m)
+

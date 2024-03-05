@@ -10,46 +10,46 @@
     {
       "check_id": "rules.autofix.use-dict-get",
       "end": {
-        "col": 12,
-        "line": 5,
-        "offset": 54
+        "col": 14,
+        "line": 3,
+        "offset": 44
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "inputs.get(x)",
         "fixed_lines": [
-          "  inputs.get(x) = 1"
+          "    inputs.get(x) = 1"
         ],
         "is_ignored": false,
-        "lines": "  inputs[x] = 1",
+        "lines": "    inputs[x] = 1",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
         "metavars": {
           "$DICT": {
             "abstract_content": "inputs",
             "end": {
-              "col": 9,
-              "line": 5,
-              "offset": 51
+              "col": 11,
+              "line": 3,
+              "offset": 41
             },
             "start": {
-              "col": 3,
-              "line": 5,
-              "offset": 45
+              "col": 5,
+              "line": 3,
+              "offset": 35
             }
           },
           "$KEY": {
             "abstract_content": "x",
             "end": {
-              "col": 11,
-              "line": 5,
-              "offset": 53
+              "col": 13,
+              "line": 3,
+              "offset": 43
             },
             "start": {
-              "col": 10,
-              "line": 5,
-              "offset": 52
+              "col": 12,
+              "line": 3,
+              "offset": 42
             }
           }
         },
@@ -58,54 +58,54 @@
       },
       "path": "targets/autofix/autofix.py",
       "start": {
-        "col": 3,
-        "line": 5,
-        "offset": 45
+        "col": 5,
+        "line": 3,
+        "offset": 35
       }
     },
     {
       "check_id": "rules.autofix.use-dict-get",
       "end": {
-        "col": 19,
-        "line": 6,
-        "offset": 77
+        "col": 21,
+        "line": 4,
+        "offset": 69
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "inputs.get((x + 1))",
         "fixed_lines": [
-          "  if inputs.get((x + 1)) == True:"
+          "    if inputs.get((x + 1)) == True:"
         ],
         "is_ignored": false,
-        "lines": "  if inputs[x + 1] == True:",
+        "lines": "    if inputs[x + 1] == True:",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
         "metavars": {
           "$DICT": {
             "abstract_content": "inputs",
             "end": {
-              "col": 12,
-              "line": 6,
-              "offset": 70
+              "col": 14,
+              "line": 4,
+              "offset": 62
             },
             "start": {
-              "col": 6,
-              "line": 6,
-              "offset": 64
+              "col": 8,
+              "line": 4,
+              "offset": 56
             }
           },
           "$KEY": {
             "abstract_content": "x+1",
             "end": {
-              "col": 18,
-              "line": 6,
-              "offset": 76
+              "col": 20,
+              "line": 4,
+              "offset": 68
             },
             "start": {
-              "col": 13,
-              "line": 6,
-              "offset": 71
+              "col": 15,
+              "line": 4,
+              "offset": 63
             }
           }
         },
@@ -114,9 +114,9 @@
       },
       "path": "targets/autofix/autofix.py",
       "start": {
-        "col": 6,
-        "line": 6,
-        "offset": 64
+        "col": 8,
+        "line": 4,
+        "offset": 56
       }
     }
   ],

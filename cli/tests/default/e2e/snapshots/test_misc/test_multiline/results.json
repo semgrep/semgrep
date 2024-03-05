@@ -65,8 +65,8 @@
       "check_id": "rules.assign-multiline-comment",
       "end": {
         "col": 4,
-        "line": 14,
-        "offset": 248
+        "line": 15,
+        "offset": 249
       },
       "extra": {
         "engine_kind": "OSS",
@@ -80,26 +80,26 @@
             "abstract_content": "\n    abc\n    def\n",
             "end": {
               "col": 9,
-              "line": 13,
-              "offset": 245
+              "line": 14,
+              "offset": 246
             },
             "start": {
               "col": 8,
-              "line": 11,
-              "offset": 228
+              "line": 12,
+              "offset": 229
             }
           },
           "$X": {
             "abstract_content": "x",
             "end": {
               "col": 2,
-              "line": 11,
-              "offset": 222
+              "line": 12,
+              "offset": 223
             },
             "start": {
               "col": 1,
-              "line": 11,
-              "offset": 221
+              "line": 12,
+              "offset": 222
             }
           }
         },
@@ -109,8 +109,8 @@
       "path": "targets/multiline/stupid.py",
       "start": {
         "col": 1,
-        "line": 11,
-        "offset": 221
+        "line": 12,
+        "offset": 222
       }
     }
   ],

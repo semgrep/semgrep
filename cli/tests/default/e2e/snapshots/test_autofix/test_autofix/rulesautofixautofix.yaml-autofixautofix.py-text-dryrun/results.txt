@@ -9,7 +9,8 @@
           Use `.get()` method to avoid a KeyNotFound error
 
            ▶▶┆ Autofix ▶ inputs.get(x)
-            5┆ inputs.get(x) = 1
+            3┆ inputs.get(x) = 1
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ inputs.get((x + 1))
-            6┆ if inputs.get((x + 1)) == True:
+            4┆ if inputs.get((x + 1)) == True:
+

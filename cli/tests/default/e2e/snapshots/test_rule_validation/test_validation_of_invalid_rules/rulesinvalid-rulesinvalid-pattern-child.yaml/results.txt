@@ -6,3 +6,4 @@ semgrep error: Invalid rule schema
 9  |           - pattern-not: $Z == $Z
 
 Additional properties are not allowed ('pattern-not' was unexpected)
+

@@ -11,4 +11,4 @@
 │ Scan Summary │
 └──────────────┘
 
-Ran 1 rule on 1 file: 2 findings.
+Ran 1 rule on 1 file: 0 findings.

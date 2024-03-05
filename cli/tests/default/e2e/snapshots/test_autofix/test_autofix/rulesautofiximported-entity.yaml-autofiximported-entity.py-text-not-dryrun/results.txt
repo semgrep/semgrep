@@ -9,4 +9,5 @@
           Found useless parentheses
 
            ▶▶┆ Autofix ▶ raise RandomError
-            4┆ raise RandomError()
+            5┆ raise RandomError()
+

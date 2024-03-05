@@ -11,8 +11,8 @@
       "check_id": "rules.pattern-not-regex.pattern-not-regex-bug",
       "end": {
         "col": 4,
-        "line": 1,
-        "offset": 3
+        "line": 2,
+        "offset": 18
       },
       "extra": {
         "engine_kind": "OSS",
@@ -28,8 +28,8 @@
       "path": "targets/pattern-not-regex/issue2465.requirements.txt",
       "start": {
         "col": 1,
-        "line": 1,
-        "offset": 0
+        "line": 2,
+        "offset": 15
       }
     }
   ],

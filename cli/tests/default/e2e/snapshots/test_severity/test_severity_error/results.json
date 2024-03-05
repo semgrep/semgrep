@@ -73,8 +73,8 @@
       "check_id": "rules.open-from-request",
       "end": {
         "col": 12,
-        "line": 14,
-        "offset": 262
+        "line": 18,
+        "offset": 260
       },
       "extra": {
         "engine_kind": "OSS",
@@ -88,26 +88,26 @@
             "abstract_content": "z",
             "end": {
               "col": 11,
-              "line": 14,
-              "offset": 261
+              "line": 18,
+              "offset": 259
             },
             "propagated_value": {
               "svalue_abstract_content": "request.get(\"unsafe\")",
               "svalue_end": {
                 "col": 26,
-                "line": 12,
-                "offset": 239
+                "line": 14,
+                "offset": 235
               },
               "svalue_start": {
                 "col": 5,
-                "line": 12,
-                "offset": 218
+                "line": 14,
+                "offset": 214
               }
             },
             "start": {
               "col": 10,
-              "line": 14,
-              "offset": 260
+              "line": 18,
+              "offset": 258
             }
           }
         },
@@ -117,8 +117,8 @@
       "path": "targets/basic/inside.py",
       "start": {
         "col": 5,
-        "line": 14,
-        "offset": 255
+        "line": 18,
+        "offset": 253
       }
     }
   ],

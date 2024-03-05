@@ -12,7 +12,7 @@
       "end": {
         "col": 13,
         "line": 9,
-        "offset": 162
+        "offset": 158
       },
       "extra": {
         "dataflow_trace": {
@@ -23,13 +23,13 @@
                 "end": {
                   "col": 6,
                   "line": 3,
-                  "offset": 62
+                  "offset": 58
                 },
                 "path": "targets/taint/taint.py",
                 "start": {
                   "col": 5,
                   "line": 3,
-                  "offset": 61
+                  "offset": 57
                 }
               }
             },
@@ -39,13 +39,13 @@
                 "end": {
                   "col": 10,
                   "line": 8,
-                  "offset": 145
+                  "offset": 141
                 },
                 "path": "targets/taint/taint.py",
                 "start": {
                   "col": 9,
                   "line": 8,
-                  "offset": 144
+                  "offset": 140
                 }
               }
             }
@@ -57,13 +57,13 @@
                 "end": {
                   "col": 13,
                   "line": 9,
-                  "offset": 162
+                  "offset": 158
                 },
                 "path": "targets/taint/taint.py",
                 "start": {
                   "col": 5,
                   "line": 9,
-                  "offset": 154
+                  "offset": 150
                 }
               },
               "sink1(b)"
@@ -76,13 +76,13 @@
                 "end": {
                   "col": 18,
                   "line": 3,
-                  "offset": 74
+                  "offset": 70
                 },
                 "path": "targets/taint/taint.py",
                 "start": {
                   "col": 9,
                   "line": 3,
-                  "offset": 65
+                  "offset": 61
                 }
               },
               "source1()"
@@ -103,7 +103,7 @@
       "start": {
         "col": 5,
         "line": 9,
-        "offset": 154
+        "offset": 150
       }
     }
   ],

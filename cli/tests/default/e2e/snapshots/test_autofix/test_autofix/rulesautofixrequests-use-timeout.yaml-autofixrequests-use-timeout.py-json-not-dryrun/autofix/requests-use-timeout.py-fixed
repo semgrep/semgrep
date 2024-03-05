@@ -11,8 +11,10 @@ r = requests.post(url, timeout=30)
 # ruleid: use-timeout
 r = requests.request("GET", url, timeout=30)
 
+
 def return_url():
     return url
+
 
 # ruleid: use-timeout
 r = requests.request("GET", return_url(), timeout=30)
@@ -20,13 +22,16 @@ r = requests.request("GET", return_url(), timeout=30)
 # ok
 r = requests.get(url, timeout=50)
 
+
 def from_import_test1(url):
     from requests import get, post
+
     # ok
     r = get(url, timeout=3)
 
     # ruleid: use-timeout
-    r = post(url, timeout=30)
+    post(url, timeout=30)
+
 
 def test2():
     """Perform a requests.get and default headers set"""

@@ -11,8 +11,8 @@
       "check_id": "rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default",
       "end": {
         "col": 20,
-        "line": 63,
-        "offset": 2427
+        "line": 56,
+        "offset": 1945
       },
       "extra": {
         "engine_kind": "OSS",
@@ -33,52 +33,52 @@
             "abstract_content": "user",
             "end": {
               "col": 13,
-              "line": 62,
-              "offset": 2380
+              "line": 55,
+              "offset": 1898
             },
             "start": {
               "col": 9,
-              "line": 62,
-              "offset": 2376
+              "line": 55,
+              "offset": 1894
             }
           },
           "$VAR": {
             "abstract_content": "new_password",
             "end": {
               "col": 21,
-              "line": 60,
-              "offset": 2281
+              "line": 53,
+              "offset": 1799
             },
             "start": {
               "col": 9,
-              "line": 60,
-              "offset": 2269
+              "line": 53,
+              "offset": 1787
             }
           },
           "$W": {
             "abstract_content": "data",
             "end": {
               "col": 36,
-              "line": 60,
-              "offset": 2296
+              "line": 53,
+              "offset": 1814
             },
             "start": {
               "col": 32,
-              "line": 60,
-              "offset": 2292
+              "line": 53,
+              "offset": 1810
             }
           },
           "$X": {
             "abstract_content": "\"password\"",
             "end": {
               "col": 51,
-              "line": 60,
-              "offset": 2311
+              "line": 53,
+              "offset": 1829
             },
             "start": {
               "col": 41,
-              "line": 60,
-              "offset": 2301
+              "line": 53,
+              "offset": 1819
             }
           }
         },
@@ -88,23 +88,23 @@
       "path": "targets/autofix/django-none-password-default.py",
       "start": {
         "col": 9,
-        "line": 60,
-        "offset": 2269
+        "line": 53,
+        "offset": 1787
       }
     },
     {
       "check_id": "rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default",
       "end": {
         "col": 20,
-        "line": 81,
-        "offset": 3058
+        "line": 75,
+        "offset": 2577
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix": "def create_user(self, email, password=None):\n        \"\"\"\n        Creates and saves a Poster with the given email and password.\n        \"\"\"\n        if not email:\n            raise ValueError('Users must have an email address')\n\n        user = self.model(email=self.normalize_email(email))\n        user.set_password(password)\n        user.save(using=self._db)\n        return user",
+        "fix": "def create_user(self, email, password=None):\n        \"\"\"\n        Creates and saves a Poster with the given email and password.\n        \"\"\"\n        if not email:\n            raise ValueError(\"Users must have an email address\")\n\n        user = self.model(email=self.normalize_email(email))\n        user.set_password(password)\n        user.save(using=self._db)\n        return user",
         "is_ignored": false,
-        "lines": "    def create_user(self, email, password=\"\"):\n        \"\"\"\n        Creates and saves a Poster with the given email and password.\n        \"\"\"\n        if not email:\n            raise ValueError('Users must have an email address')\n\n        user = self.model(email=self.normalize_email(email))\n        user.set_password(password)\n        user.save(using=self._db)\n        return user",
+        "lines": "    def create_user(self, email, password=\"\"):\n        \"\"\"\n        Creates and saves a Poster with the given email and password.\n        \"\"\"\n        if not email:\n            raise ValueError(\"Users must have an email address\")\n\n        user = self.model(email=self.normalize_email(email))\n        user.set_password(password)\n        user.save(using=self._db)\n        return user",
         "message": "'password' is using the empty string as its default and is being used to set\nthe password on 'user'. If you meant to set an unusable password, set\nthe default value to 'None' or call 'set_unusable_password()'.\n",
         "metadata": {
           "cwe": "CWE-521: Weak Password Requirements",
@@ -118,52 +118,52 @@
             "abstract_content": "create_user",
             "end": {
               "col": 20,
-              "line": 71,
-              "offset": 2698
+              "line": 65,
+              "offset": 2217
             },
             "start": {
               "col": 9,
-              "line": 71,
-              "offset": 2687
+              "line": 65,
+              "offset": 2206
             }
           },
           "$MODEL": {
             "abstract_content": "user",
             "end": {
               "col": 13,
-              "line": 79,
-              "offset": 2981
+              "line": 73,
+              "offset": 2500
             },
             "propagated_value": {
               "svalue_abstract_content": "self.model(email self.normalize_email(email))",
               "svalue_end": {
                 "col": 61,
-                "line": 78,
-                "offset": 2968
+                "line": 72,
+                "offset": 2487
               },
               "svalue_start": {
                 "col": 16,
-                "line": 78,
-                "offset": 2923
+                "line": 72,
+                "offset": 2442
               }
             },
             "start": {
               "col": 9,
-              "line": 79,
-              "offset": 2977
+              "line": 73,
+              "offset": 2496
             }
           },
           "$VAR": {
             "abstract_content": "password",
             "end": {
               "col": 42,
-              "line": 71,
-              "offset": 2720
+              "line": 65,
+              "offset": 2239
             },
             "start": {
               "col": 34,
-              "line": 71,
-              "offset": 2712
+              "line": 65,
+              "offset": 2231
             }
           }
         },
@@ -173,8 +173,8 @@
       "path": "targets/autofix/django-none-password-default.py",
       "start": {
         "col": 5,
-        "line": 71,
-        "offset": 2683
+        "line": 65,
+        "offset": 2202
       }
     }
   ],

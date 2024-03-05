@@ -19,3 +19,4 @@
           captured duration "15m"
 
             9┆ expr: sum_over_time(sum(foobarbaz)[15m:30s])
+

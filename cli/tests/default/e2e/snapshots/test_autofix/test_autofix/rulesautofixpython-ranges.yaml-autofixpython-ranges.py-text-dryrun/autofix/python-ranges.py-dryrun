@@ -1,4 +1,4 @@
-foo('abc')
+foo("abc")
 foo("abc")
 foo("""abc""")
 foo(r"abc")

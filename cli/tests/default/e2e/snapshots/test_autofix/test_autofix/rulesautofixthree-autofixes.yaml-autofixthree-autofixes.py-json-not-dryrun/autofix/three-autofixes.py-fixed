@@ -1,5 +1,6 @@
 import requests
 
+
 def _do_stuff():
     return requests.post(headers=auth_headers, url=self.url, endpoints="endpoint", _injected=True)
 

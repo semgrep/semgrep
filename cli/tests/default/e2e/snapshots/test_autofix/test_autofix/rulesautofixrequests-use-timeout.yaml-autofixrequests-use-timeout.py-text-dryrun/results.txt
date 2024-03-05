@@ -20,7 +20,8 @@
            12┆ r = requests.request("GET", url, timeout=30)
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ requests.request("GET", return_url(), timeout=30)
-           18┆ r = requests.request("GET", return_url(), timeout=30)
+           20┆ r = requests.request("GET", return_url(), timeout=30)
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ post(url, timeout=30)
-           29┆ r = post(url, timeout=30)
+           33┆ post(url, timeout=30)
+

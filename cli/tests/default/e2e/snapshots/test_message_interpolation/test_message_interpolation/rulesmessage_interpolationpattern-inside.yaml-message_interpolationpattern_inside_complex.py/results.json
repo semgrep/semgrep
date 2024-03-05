@@ -12,7 +12,7 @@
       "end": {
         "col": 21,
         "line": 3,
-        "offset": 44
+        "offset": 42
       },
       "extra": {
         "engine_kind": "OSS",
@@ -40,12 +40,12 @@
             "end": {
               "col": 10,
               "line": 2,
-              "offset": 20
+              "offset": 18
             },
             "start": {
               "col": 9,
               "line": 2,
-              "offset": 19
+              "offset": 17
             }
           }
         },
@@ -56,7 +56,7 @@
       "start": {
         "col": 5,
         "line": 2,
-        "offset": 15
+        "offset": 13
       }
     },
     {
@@ -64,7 +64,7 @@
       "end": {
         "col": 21,
         "line": 6,
-        "offset": 79
+        "offset": 77
       },
       "extra": {
         "engine_kind": "OSS",
@@ -92,12 +92,12 @@
             "end": {
               "col": 10,
               "line": 5,
-              "offset": 55
+              "offset": 53
             },
             "start": {
               "col": 9,
               "line": 5,
-              "offset": 54
+              "offset": 52
             }
           }
         },
@@ -108,15 +108,15 @@
       "start": {
         "col": 5,
         "line": 5,
-        "offset": 50
+        "offset": 48
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 18,
-        "line": 10,
-        "offset": 122
+        "line": 11,
+        "offset": 119
       },
       "extra": {
         "engine_kind": "OSS",
@@ -130,26 +130,26 @@
             "abstract_content": "B",
             "end": {
               "col": 8,
-              "line": 8,
-              "offset": 88
+              "line": 9,
+              "offset": 87
             },
             "start": {
               "col": 7,
-              "line": 8,
-              "offset": 87
+              "line": 9,
+              "offset": 86
             }
           },
           "$FUNC": {
             "abstract_content": "C",
             "end": {
               "col": 10,
-              "line": 9,
-              "offset": 101
+              "line": 10,
+              "offset": 98
             },
             "start": {
               "col": 9,
-              "line": 9,
-              "offset": 100
+              "line": 10,
+              "offset": 97
             }
           }
         },
@@ -159,8 +159,8 @@
       "path": "targets/message_interpolation/pattern_inside_complex.py",
       "start": {
         "col": 5,
-        "line": 9,
-        "offset": 96
+        "line": 10,
+        "offset": 93
       }
     }
   ],

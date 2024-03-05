@@ -12,3 +12,4 @@
            ▶▶┆ Autofix ▶ y: false
             3┆ y:
             4┆   foo: true
+

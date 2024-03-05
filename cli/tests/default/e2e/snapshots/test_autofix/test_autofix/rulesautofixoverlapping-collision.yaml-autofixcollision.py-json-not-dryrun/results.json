@@ -11,8 +11,8 @@
       "check_id": "rules.autofix.first-rule",
       "end": {
         "col": 6,
-        "line": 4,
-        "offset": 18
+        "line": 3,
+        "offset": 17
       },
       "extra": {
         "engine_kind": "OSS",
@@ -27,26 +27,26 @@
             "abstract_content": "3",
             "end": {
               "col": 6,
-              "line": 4,
-              "offset": 18
+              "line": 3,
+              "offset": 17
             },
             "start": {
               "col": 5,
-              "line": 4,
-              "offset": 17
+              "line": 3,
+              "offset": 16
             }
           },
           "$FOO": {
             "abstract_content": "1",
             "end": {
               "col": 6,
-              "line": 2,
-              "offset": 6
+              "line": 1,
+              "offset": 5
             },
             "start": {
               "col": 5,
-              "line": 2,
-              "offset": 5
+              "line": 1,
+              "offset": 4
             }
           }
         },
@@ -56,16 +56,16 @@
       "path": "targets/autofix/collision.py",
       "start": {
         "col": 1,
-        "line": 2,
-        "offset": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
       "check_id": "rules.autofix.second-rule",
       "end": {
         "col": 6,
-        "line": 5,
-        "offset": 24
+        "line": 4,
+        "offset": 23
       },
       "extra": {
         "engine_kind": "OSS",
@@ -80,26 +80,26 @@
             "abstract_content": "2",
             "end": {
               "col": 6,
-              "line": 3,
-              "offset": 12
+              "line": 2,
+              "offset": 11
             },
             "start": {
               "col": 5,
-              "line": 3,
-              "offset": 11
+              "line": 2,
+              "offset": 10
             }
           },
           "$XD": {
             "abstract_content": "4",
             "end": {
               "col": 6,
-              "line": 5,
-              "offset": 24
+              "line": 4,
+              "offset": 23
             },
             "start": {
               "col": 5,
-              "line": 5,
-              "offset": 23
+              "line": 4,
+              "offset": 22
             }
           }
         },
@@ -109,8 +109,8 @@
       "path": "targets/autofix/collision.py",
       "start": {
         "col": 1,
-        "line": 3,
-        "offset": 7
+        "line": 2,
+        "offset": 6
       }
     }
   ],

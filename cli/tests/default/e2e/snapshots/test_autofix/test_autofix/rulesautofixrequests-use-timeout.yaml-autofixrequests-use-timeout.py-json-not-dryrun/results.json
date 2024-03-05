@@ -89,8 +89,8 @@
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
         "col": 42,
-        "line": 18,
-        "offset": 285
+        "line": 20,
+        "offset": 287
       },
       "extra": {
         "engine_kind": "OSS",
@@ -107,15 +107,15 @@
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
         "col": 5,
-        "line": 18,
-        "offset": 248
+        "line": 20,
+        "offset": 250
       }
     },
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
-        "col": 18,
-        "line": 29,
+        "col": 14,
+        "line": 33,
         "offset": 471
       },
       "extra": {
@@ -123,7 +123,7 @@
         "fingerprint": "0x42",
         "fix": "post(url, timeout=30)",
         "is_ignored": false,
-        "lines": "    r = post(url)",
+        "lines": "    post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
         "metavars": {},
@@ -132,8 +132,8 @@
       },
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
-        "col": 9,
-        "line": 29,
+        "col": 5,
+        "line": 33,
         "offset": 462
       }
     }

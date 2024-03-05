@@ -12,10 +12,11 @@
             1┆ let one = a_function_call the_argument
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ a_function_call (wrap (the_argument))
-            3┆ let two = a_function_call (the_argument)
+            2┆ let two = a_function_call the_argument
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ a_function_call (wrap ((another_func the_argument)))
-            5┆ let three = a_function_call (another_func the_argument)
+            3┆ let three = a_function_call (another_func the_argument)
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ a_function_call (wrap ((tuple_member, threeple_member)))
-            7┆ let three = a_function_call (tuple_member, threeple_member)
+            4┆ let three = a_function_call (tuple_member, threeple_member)
+

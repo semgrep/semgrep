@@ -21,8 +21,8 @@
       "check_id": "rules.metavar-test-multi-rule",
       "end": {
         "col": 37,
-        "line": 3,
-        "offset": 81
+        "line": 5,
+        "offset": 83
       },
       "extra": {
         "engine_kind": "OSS",
@@ -36,13 +36,13 @@
             "abstract_content": "method",
             "end": {
               "col": 35,
-              "line": 3,
-              "offset": 79
+              "line": 5,
+              "offset": 81
             },
             "start": {
               "col": 29,
-              "line": 3,
-              "offset": 73
+              "line": 5,
+              "offset": 75
             }
           }
         },
@@ -52,8 +52,8 @@
       "path": "targets/basic/metavariable-regex-multi-rule.py",
       "start": {
         "col": 5,
-        "line": 3,
-        "offset": 49
+        "line": 5,
+        "offset": 51
       }
     }
   ],

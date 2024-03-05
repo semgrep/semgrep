@@ -8,8 +8,8 @@
    ❯❯❱ rules.autofix.range-test
           change it
 
-           ▶▶┆ Autofix ▶ bar('abc')
-            1┆ foo('abc')
+           ▶▶┆ Autofix ▶ bar("abc")
+            1┆ foo("abc")
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ bar("abc")
             2┆ foo("abc")
@@ -34,3 +34,4 @@
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ bar(x[1, 2])
             9┆ foo(x[1, 2])
+

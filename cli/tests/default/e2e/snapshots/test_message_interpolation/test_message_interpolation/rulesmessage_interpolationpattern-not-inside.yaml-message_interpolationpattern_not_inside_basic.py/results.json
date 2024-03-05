@@ -11,8 +11,8 @@
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 18,
-        "line": 9,
-        "offset": 107
+        "line": 10,
+        "offset": 106
       },
       "extra": {
         "engine_kind": "OSS",
@@ -26,13 +26,13 @@
             "abstract_content": "D",
             "end": {
               "col": 6,
-              "line": 8,
-              "offset": 86
+              "line": 9,
+              "offset": 85
             },
             "start": {
               "col": 5,
-              "line": 8,
-              "offset": 85
+              "line": 9,
+              "offset": 84
             }
           }
         },
@@ -42,8 +42,8 @@
       "path": "targets/message_interpolation/pattern_not_inside_basic.py",
       "start": {
         "col": 1,
-        "line": 8,
-        "offset": 81
+        "line": 9,
+        "offset": 80
       }
     }
   ],

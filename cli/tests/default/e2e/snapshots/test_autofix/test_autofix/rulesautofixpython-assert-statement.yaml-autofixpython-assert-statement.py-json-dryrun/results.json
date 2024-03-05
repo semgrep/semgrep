@@ -10,9 +10,9 @@
     {
       "check_id": "rules.autofix.assert_eq-true",
       "end": {
-        "col": 2,
-        "line": 3,
-        "offset": 26
+        "col": 21,
+        "line": 1,
+        "offset": 20
       },
       "extra": {
         "engine_kind": "OSS",
@@ -22,21 +22,21 @@
           "assert \"a\""
         ],
         "is_ignored": false,
-        "lines": "assert_eq(\n    True, \"a\"\n)",
+        "lines": "assert_eq(True, \"a\")",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},
         "metavars": {
           "$ACTUAL": {
             "abstract_content": "\"a\"",
             "end": {
-              "col": 14,
-              "line": 2,
-              "offset": 24
+              "col": 20,
+              "line": 1,
+              "offset": 19
             },
             "start": {
-              "col": 11,
-              "line": 2,
-              "offset": 21
+              "col": 17,
+              "line": 1,
+              "offset": 16
             }
           }
         },
@@ -53,9 +53,9 @@
     {
       "check_id": "rules.autofix.assert_eq-true",
       "end": {
-        "col": 2,
-        "line": 6,
-        "offset": 53
+        "col": 21,
+        "line": 2,
+        "offset": 41
       },
       "extra": {
         "engine_kind": "OSS",
@@ -65,21 +65,21 @@
           "assert \"b\""
         ],
         "is_ignored": false,
-        "lines": "assert_eq(\n    True, \"b\"\n)",
+        "lines": "assert_eq(True, \"b\")",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},
         "metavars": {
           "$ACTUAL": {
             "abstract_content": "\"b\"",
             "end": {
-              "col": 14,
-              "line": 5,
-              "offset": 51
+              "col": 20,
+              "line": 2,
+              "offset": 40
             },
             "start": {
-              "col": 11,
-              "line": 5,
-              "offset": 48
+              "col": 17,
+              "line": 2,
+              "offset": 37
             }
           }
         },
@@ -89,8 +89,8 @@
       "path": "targets/autofix/python-assert-statement.py",
       "start": {
         "col": 1,
-        "line": 4,
-        "offset": 27
+        "line": 2,
+        "offset": 21
       }
     }
   ],

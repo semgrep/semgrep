@@ -21,3 +21,4 @@
             7┆   ami           = "ami-005e54dee72cc1d02"
             8┆   instance_type = "t2.micro"
             9┆ }
+

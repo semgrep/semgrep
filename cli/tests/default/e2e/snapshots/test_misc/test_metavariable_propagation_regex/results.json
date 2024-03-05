@@ -63,8 +63,8 @@
       "check_id": "rules.metavariable_propagation.my_pattern_id",
       "end": {
         "col": 13,
-        "line": 5,
-        "offset": 48
+        "line": 6,
+        "offset": 49
       },
       "extra": {
         "engine_kind": "OSS",
@@ -91,13 +91,13 @@
             "abstract_content": "bar",
             "end": {
               "col": 8,
-              "line": 4,
-              "offset": 32
+              "line": 5,
+              "offset": 33
             },
             "start": {
               "col": 5,
-              "line": 4,
-              "offset": 29
+              "line": 5,
+              "offset": 30
             }
           }
         },
@@ -107,8 +107,8 @@
       "path": "targets/metavariable_propagation/metavariable-regex-propagation.py",
       "start": {
         "col": 5,
-        "line": 5,
-        "offset": 40
+        "line": 6,
+        "offset": 41
       }
     }
   ],

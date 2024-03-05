@@ -1,4 +1,4 @@
-bar('abc')
+bar("abc")
 bar("abc")
 bar("""abc""")
 bar(r"abc")

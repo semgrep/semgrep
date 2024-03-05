@@ -11,8 +11,8 @@
       "check_id": "rules.message_interpolation.interpolated-message",
       "end": {
         "col": 25,
-        "line": 2,
-        "offset": 25
+        "line": 1,
+        "offset": 24
       },
       "extra": {
         "engine_kind": "OSS",
@@ -26,13 +26,13 @@
             "abstract_content": "\"$X is a cool name\"",
             "end": {
               "col": 24,
-              "line": 2,
-              "offset": 24
+              "line": 1,
+              "offset": 23
             },
             "start": {
               "col": 5,
-              "line": 2,
-              "offset": 5
+              "line": 1,
+              "offset": 4
             }
           }
         },
@@ -42,8 +42,8 @@
       "path": "targets/message_interpolation/target_with_metavariable.py",
       "start": {
         "col": 1,
-        "line": 2,
-        "offset": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ],

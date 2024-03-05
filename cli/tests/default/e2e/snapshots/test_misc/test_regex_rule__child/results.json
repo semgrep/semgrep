@@ -21,8 +21,8 @@
       "check_id": "rules.test-regex",
       "end": {
         "col": 35,
-        "line": 2,
-        "offset": 47
+        "line": 3,
+        "offset": 48
       },
       "extra": {
         "engine_kind": "OSS",
@@ -38,8 +38,8 @@
       "path": "targets/basic/regex.py",
       "start": {
         "col": 20,
-        "line": 2,
-        "offset": 32
+        "line": 3,
+        "offset": 33
       }
     }
   ],

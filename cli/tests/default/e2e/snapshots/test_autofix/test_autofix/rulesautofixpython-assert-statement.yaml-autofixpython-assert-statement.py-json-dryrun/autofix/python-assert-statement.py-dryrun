@@ -1,7 +1,3 @@
-assert_eq(
-    True, "a"
-)
-assert_eq(
-    True, "b"
-)
+assert_eq(True, "a")
+assert_eq(True, "b")
 x = "abc"

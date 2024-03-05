@@ -10,33 +10,33 @@
     {
       "check_id": "rules.autofix.exception-useless-parentheses",
       "end": {
-        "col": 22,
-        "line": 4,
-        "offset": 80
+        "col": 24,
+        "line": 5,
+        "offset": 83
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "raise RandomError",
         "fixed_lines": [
-          "  raise RandomError"
+          "    raise RandomError"
         ],
         "is_ignored": false,
-        "lines": "  raise RandomError()",
+        "lines": "    raise RandomError()",
         "message": "Found useless parentheses",
         "metadata": {},
         "metavars": {
           "$X": {
             "abstract_content": "RandomError RandomError RandomError",
             "end": {
-              "col": 20,
-              "line": 4,
-              "offset": 78
+              "col": 22,
+              "line": 5,
+              "offset": 81
             },
             "start": {
-              "col": 9,
-              "line": 4,
-              "offset": 67
+              "col": 11,
+              "line": 5,
+              "offset": 70
             }
           }
         },
@@ -45,9 +45,9 @@
       },
       "path": "targets/autofix/imported-entity.py",
       "start": {
-        "col": 3,
-        "line": 4,
-        "offset": 61
+        "col": 5,
+        "line": 5,
+        "offset": 64
       }
     }
   ],

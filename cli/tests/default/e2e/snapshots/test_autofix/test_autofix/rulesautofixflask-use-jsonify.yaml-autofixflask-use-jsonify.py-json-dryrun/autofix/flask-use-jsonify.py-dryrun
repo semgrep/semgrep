@@ -1,7 +1,10 @@
 ## Normal import
-import flask
 import json
+
+import flask
+
 app = flask.Flask(__name__)
+
 
 @app.route("/user")
 def user():
@@ -9,7 +12,9 @@ def user():
     # ruleid:use-jsonify
     return json.dumps(user_dict)
 
+
 from json import dumps
+
 
 @app.route("/user")
 def user():
@@ -17,8 +22,11 @@ def user():
     # ruleid:use-jsonify
     return dumps(user_dict)
 
+
 # should not catch the following
 def dumps():
-  pass
+    pass
+
+
 def test_empty_dumps():
     dumps()

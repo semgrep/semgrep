@@ -10,7 +10,7 @@
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
-        "col": 21,
+        "col": 22,
         "line": 4,
         "offset": 57
       },
@@ -18,7 +18,7 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "       return x == 0",
+        "lines": "        return x == 0",
         "message": "equal comparison of x (0) in A",
         "metadata": {},
         "metavars": {
@@ -38,25 +38,25 @@
           "$X": {
             "abstract_content": "x",
             "end": {
-              "col": 16,
+              "col": 17,
               "line": 4,
               "offset": 52
             },
             "propagated_value": {
               "svalue_abstract_content": "0",
               "svalue_end": {
-                "col": 13,
-                "line": 3,
-                "offset": 36
-              },
-              "svalue_start": {
-                "col": 12,
+                "col": 14,
                 "line": 3,
                 "offset": 35
+              },
+              "svalue_start": {
+                "col": 13,
+                "line": 3,
+                "offset": 34
               }
             },
             "start": {
-              "col": 15,
+              "col": 16,
               "line": 4,
               "offset": 51
             }
@@ -67,7 +67,7 @@
       },
       "path": "targets/message_interpolation/propagated_constant.py",
       "start": {
-        "col": 15,
+        "col": 16,
         "line": 4,
         "offset": 51
       }
@@ -75,15 +75,15 @@
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
-        "col": 21,
+        "col": 22,
         "line": 7,
-        "offset": 92
+        "offset": 93
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "       return 0 == 0",
+        "lines": "        return 0 == 0",
         "message": "equal comparison of 0 (0) in A",
         "metadata": {},
         "metavars": {
@@ -103,14 +103,14 @@
           "$X": {
             "abstract_content": "0",
             "end": {
+              "col": 17,
+              "line": 7,
+              "offset": 88
+            },
+            "start": {
               "col": 16,
               "line": 7,
               "offset": 87
-            },
-            "start": {
-              "col": 15,
-              "line": 7,
-              "offset": 86
             }
           }
         },
@@ -119,9 +119,9 @@
       },
       "path": "targets/message_interpolation/propagated_constant.py",
       "start": {
-        "col": 15,
+        "col": 16,
         "line": 7,
-        "offset": 86
+        "offset": 87
       }
     }
   ],

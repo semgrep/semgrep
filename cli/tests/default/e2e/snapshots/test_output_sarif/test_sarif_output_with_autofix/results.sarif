@@ -23,13 +23,13 @@
                   "replacements": [
                     {
                       "deletedRegion": {
-                        "endColumn": 12,
-                        "endLine": 5,
-                        "startColumn": 3,
-                        "startLine": 5
+                        "endColumn": 14,
+                        "endLine": 3,
+                        "startColumn": 5,
+                        "startLine": 3
                       },
                       "insertedContent": {
-                        "text": "  inputs.get(x) = 1"
+                        "text": "    inputs.get(x) = 1"
                       }
                     }
                   ]
@@ -48,13 +48,13 @@
                   "uriBaseId": "%SRCROOT%"
                 },
                 "region": {
-                  "endColumn": 12,
-                  "endLine": 5,
+                  "endColumn": 14,
+                  "endLine": 3,
                   "snippet": {
-                    "text": "  inputs[x] = 1"
+                    "text": "    inputs[x] = 1"
                   },
-                  "startColumn": 3,
-                  "startLine": 5
+                  "startColumn": 5,
+                  "startLine": 3
                 }
               }
             }
@@ -79,13 +79,13 @@
                   "replacements": [
                     {
                       "deletedRegion": {
-                        "endColumn": 19,
-                        "endLine": 6,
-                        "startColumn": 6,
-                        "startLine": 6
+                        "endColumn": 21,
+                        "endLine": 4,
+                        "startColumn": 8,
+                        "startLine": 4
                       },
                       "insertedContent": {
-                        "text": "  if inputs.get((x + 1)) == True:"
+                        "text": "    if inputs.get((x + 1)) == True:"
                       }
                     }
                   ]
@@ -104,13 +104,13 @@
                   "uriBaseId": "%SRCROOT%"
                 },
                 "region": {
-                  "endColumn": 19,
-                  "endLine": 6,
+                  "endColumn": 21,
+                  "endLine": 4,
                   "snippet": {
-                    "text": "  if inputs[x + 1] == True:"
+                    "text": "    if inputs[x + 1] == True:"
                   },
-                  "startColumn": 6,
-                  "startLine": 6
+                  "startColumn": 8,
+                  "startLine": 4
                 }
               }
             }

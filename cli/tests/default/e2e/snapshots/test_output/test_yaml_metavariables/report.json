@@ -168,22 +168,22 @@
       "end": {
         "col": 8,
         "line": 10,
-        "offset": 93
+        "offset": 86
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "- key: |       \n    fi\n\n    ve",
-        "message": "       \n    fi\n\n    ve\n\n",
+        "lines": "- key: |\n    fi\n\n    ve",
+        "message": "\n    fi\n\n    ve\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "       \n    fi\n\n    ve\n",
+            "abstract_content": "\n    fi\n\n    ve\n",
             "end": {
               "col": 8,
               "line": 10,
-              "offset": 93
+              "offset": 86
             },
             "start": {
               "col": 9,
@@ -205,29 +205,29 @@
     {
       "check_id": "rules.yaml-key",
       "end": {
-        "col": 6,
+        "col": 2,
         "line": 15,
-        "offset": 123
+        "offset": 112
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n    si\n\n      x",
-        "message": "\n    si\n\n      x\n    \n\n",
+        "message": "\n    si\n\n      x\n\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "\n    si\n\n      x\n    \n",
+            "abstract_content": "\n    si\n\n      x\n\n",
             "end": {
-              "col": 6,
+              "col": 2,
               "line": 15,
-              "offset": 123
+              "offset": 112
             },
             "start": {
               "col": 9,
               "line": 11,
-              "offset": 101
+              "offset": 94
             }
           }
         },
@@ -238,7 +238,7 @@
       "start": {
         "col": 3,
         "line": 11,
-        "offset": 95
+        "offset": 88
       }
     },
     {
@@ -246,7 +246,7 @@
       "end": {
         "col": 11,
         "line": 17,
-        "offset": 142
+        "offset": 131
       },
       "extra": {
         "engine_kind": "OSS",
@@ -261,12 +261,12 @@
             "end": {
               "col": 11,
               "line": 17,
-              "offset": 142
+              "offset": 131
             },
             "start": {
               "col": 9,
               "line": 16,
-              "offset": 131
+              "offset": 120
             }
           }
         },
@@ -277,35 +277,35 @@
       "start": {
         "col": 3,
         "line": 16,
-        "offset": 125
+        "offset": 114
       }
     },
     {
       "check_id": "rules.yaml-key",
       "end": {
-        "col": 7,
+        "col": 8,
         "line": 21,
-        "offset": 166
+        "offset": 156
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: >\n    eig\n\n    ht",
-        "message": "\n    eig\n\n    ht\n",
+        "message": "\n    eig\n\n    ht\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "\n    eig\n\n    ht",
+            "abstract_content": "\n    eig\n\n    ht\n",
             "end": {
-              "col": 7,
+              "col": 8,
               "line": 21,
-              "offset": 166
+              "offset": 156
             },
             "start": {
               "col": 9,
               "line": 18,
-              "offset": 150
+              "offset": 139
             }
           }
         },
@@ -316,7 +316,7 @@
       "start": {
         "col": 3,
         "line": 18,
-        "offset": 144
+        "offset": 133
       }
     }
   ],
