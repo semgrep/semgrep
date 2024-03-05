@@ -15,7 +15,7 @@ val temporary_remote_checkout_path : string -> Fpath.t
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
  *)
-val git_check_output : Cap.Exec.t -> Cmd.args -> string
+val git_check_output : < Cap.exec > -> Cmd.args -> string
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,
@@ -67,7 +67,7 @@ val get_merge_base : string -> string
    don't need to git stash anything, or expect a clean working tree.
 *)
 val run_with_worktree :
-  commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
+  < Cap.chdir > -> commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
 
 type status = {
   added : string list;

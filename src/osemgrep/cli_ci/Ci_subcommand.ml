@@ -86,8 +86,11 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* TODO: probably far more needed at some point
  * - exec for git.
  * - tmp for decode_json_rules
+ *
+ * This is mostly a superset of Scan_subcommand.caps so see the comment
+ * in Scan_subcommand.ml for more explanations.
  *)
-type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp >
+type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir >
 
 (*****************************************************************************)
 (* Error management *)
@@ -722,9 +725,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
       (conf.rules_source =*= Configs [])
   in
   (* TODO: pass baseline commit! *)
-  let prj_meta =
-    generate_meta_from_environment (caps :> < Cap.exec ; .. >) None
-  in
+  let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
 
@@ -837,7 +838,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 
     let res =
       Scan_subcommand.run_scan_files
-        (caps :> < Cap.stdout >)
+        (caps :> < Cap.stdout ; Cap.chdir >)
         conf profiler rules_and_origin targets_and_ignored
     in
     match res with

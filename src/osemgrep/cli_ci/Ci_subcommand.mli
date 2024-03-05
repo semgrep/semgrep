@@ -8,13 +8,13 @@ module OutJ = Semgrep_output_v1_j
    This function returns an exit code to be passed to the 'exit' function.
 *)
 val main :
-  < Cap.network ; Cap.stdout ; Cap.exec ; Cap.tmp > ->
+  < Cap.network ; Cap.stdout ; Cap.exec ; Cap.tmp ; Cap.chdir > ->
   string array ->
   Exit_code.t
 
 (* internal *)
 val run_conf :
-  < Cap.network ; Cap.stdout ; Cap.exec ; Cap.tmp > ->
+  < Cap.network ; Cap.stdout ; Cap.exec ; Cap.tmp ; Cap.chdir > ->
   Ci_CLI.conf ->
   Exit_code.t
 

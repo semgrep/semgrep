@@ -35,7 +35,16 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 (* TODO: probably far more needed at some point *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+type caps =
+  < Cap.stdout
+  ; (* mainly to access the registry *)
+    Cap.network
+  ; (* TODO: we should get rid of that *)
+    Cap.tmp
+  ; (* this is for Git_remote for semgrep query console and also for
+     * differential scans as we use Git_wrapper.run_with_worktree.
+     *)
+    Cap.chdir >
 
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
@@ -343,7 +352,7 @@ let trim_core_match_fix (r : OutJ.core_match) =
    baseline commit scan. Matches are considered identical if the
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
-let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
+let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
     (head : Core_result.t)
     (renamed : (string (* filename *) * string (* filename *)) list) =
   let extract_sig renamed (m : Pattern_match.t) =
@@ -364,7 +373,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (rule_id, path, syntactic_ctx)
   in
   let sigs = Hashtbl.create 10 in
-  Git_wrapper.run_with_worktree ~commit (fun () ->
+  Git_wrapper.run_with_worktree caps ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
           pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
@@ -403,9 +412,10 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
    the files and rules linked with matches from the head checkout
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
-let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
-    (profiler : Profiler.t) (result_or_exn : Core_result.result_or_exn)
-    (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
+let scan_baseline_and_remove_duplicates (caps : < Cap.chdir >)
+    (conf : Scan_CLI.conf) (profiler : Profiler.t)
+    (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
+    (commit : string) (status : Git_wrapper.status)
     (core :
       Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
@@ -437,7 +447,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         in
         let baseline_result =
           Profiler.record profiler ~name:"baseline_core_time" (fun () ->
-              Git_wrapper.run_with_worktree ~commit (fun () ->
+              Git_wrapper.run_with_worktree caps ~commit (fun () ->
                   let prepare_targets paths =
                     paths |> SS.of_list |> add_renamed |> remove_added
                     |> SS.to_seq
@@ -486,13 +496,15 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         match baseline_result with
         | Error _exn -> baseline_result
         | Ok baseline_r ->
-            Ok (remove_matches_in_baseline commit baseline_r r status.renamed)
+            Ok
+              (remove_matches_in_baseline caps commit baseline_r r
+                 status.renamed)
       else Ok r
 
 (*****************************************************************************)
 (* Conduct the scan *)
 (*****************************************************************************)
-let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
+let run_scan_files (caps : < Cap.stdout ; Cap.chdir >) (conf : Scan_CLI.conf)
     (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
@@ -611,8 +623,10 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
                    (Differential_scan_config.Depth (diff_targets, diff_depth))
                  filtered_rules)
           in
-          scan_baseline_and_remove_duplicates conf profiler head_scan_result
-            filtered_rules commit status scan_func
+          scan_baseline_and_remove_duplicates
+            (caps :> < Cap.chdir >)
+            conf profiler head_scan_result filtered_rules commit status
+            scan_func
     in
     let (res : Core_runner.result) =
       let res = Core_runner.create_core_result filtered_rules exn_and_matches in
@@ -834,12 +848,12 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    *)
   (match conf.targeting_conf.project_root with
   | Some (Find_targets.Git_remote { checkout_path; _ }) ->
-      Sys.chdir (Fpath.to_string checkout_path)
+      CapSys.chdir caps#chdir (Fpath.to_string checkout_path)
   | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files
-      (caps :> < Cap.stdout >)
+      (caps :> < Cap.stdout ; Cap.chdir >)
       conf profiler rules_and_origins targets_and_skipped
   in
   match res with

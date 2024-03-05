@@ -114,22 +114,23 @@ let env : env Term.t =
 (* Entry point *)
 (*****************************************************************************)
 
-class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
+class meta (caps : < Cap.exec >) ~scan_environment
+  ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title : string =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%B" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%B" ]
       in
       let commit_author_email : Emile.mailbox =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%ae" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%ae" ]
         |> Emile.of_string |> Result.get_ok
       in
       let commit_author_name : string =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%an" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns strict ISO 8601 time as str of head commit *)
       let commit_timestamp : Timedesc.Timestamp.t =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%cI" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%cI" ]
         |> Timedesc.Timestamp.of_iso8601 |> Result.get_ok
       in
       {
@@ -173,8 +174,7 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
       | Some repo_name -> repo_name
       | None ->
           let str =
-            Git_wrapper.git_check_output caps#exec
-              [ "rev-parse"; "--show-toplevel" ]
+            Git_wrapper.git_check_output caps [ "rev-parse"; "--show-toplevel" ]
           in
           Printf.sprintf "local_scan/%s" (Fpath.basename (Fpath.v str))
 

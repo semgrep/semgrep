@@ -38,7 +38,13 @@ module Env = Semgrep_envvars
 (*****************************************************************************)
 
 type caps =
-  < Cap.stdout ; Cap.network ; Cap.exec ; Cap.random ; Cap.signal ; Cap.tmp >
+  < Cap.stdout
+  ; Cap.network
+  ; Cap.exec
+  ; Cap.random
+  ; Cap.signal
+  ; Cap.tmp
+  ; Cap.chdir >
 
 let default_subcommand = "scan"
 
@@ -197,15 +203,18 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" ->
             Scan_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
+              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >)
               subcmd_argv
         | "ci" ->
             Ci_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp >)
+              (caps
+                :> < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir >)
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" ->
-            Install_subcommand.main (caps :> < Cap.random >) subcmd_argv
+            Install_subcommand.main
+              (caps :> < Cap.random ; Cap.chdir >)
+              subcmd_argv
         | "interactive" -> !hook_semgrep_interactive subcmd_argv
         | "show" ->
             Show_subcommand.main
