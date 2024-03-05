@@ -1,0 +1,24 @@
+import requests
+
+def _do_stuff():
+    return requests.post(
+        headers=auth_headers,
+        url=self.url,
+        endpoints="endpoint",
+    )
+
+
+def _do_other_stuff():
+    return requests.post(
+        headers=auth_headers,
+        url=self.url,
+        endpoints="endpoint",
+    )
+
+
+def _do_other_stuff2():
+    return requests.post(
+        headers=auth_headers,
+        url=self.url,
+        endpoints="endpoint"
+    )

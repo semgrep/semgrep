@@ -1,0 +1,143 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "4a1a7f92c1f9d4d48ea96c4353e75c3b1e0bcb51e3c5a84d9edbaa810f7a1814f5fbf4a4cd1f88de224f007c4c3fb666a9fa61d669d739c2d78215ec73d02e7c_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/nosemgrep/eqeq-nosemgrep.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 26,
+                  "endLine": 2,
+                  "snippet": {
+                    "text": "    return a + b == a + b  # nosemgrep: rules.eqeq-is-bad"
+                  },
+                  "startColumn": 12,
+                  "startLine": 2
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`"
+          },
+          "properties": {},
+          "ruleId": "rules.eqeq-is-bad",
+          "suppressions": [
+            {
+              "kind": "inSource"
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "help": {
+                "markdown": "possibly useless comparison but in eq function",
+                "text": "possibly useless comparison but in eq function"
+              },
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+              },
+              "help": {
+                "markdown": "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+              },
+              "helpUri": "https://semgrep.dev/r/eqeq-bad",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.eqeq-is-bad"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison"
+              },
+              "help": {
+                "markdown": "useless comparison",
+                "text": "useless comparison"
+              },
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "markdown": "this function is only available on Python 3.7+",
+                "text": "this function is only available on Python 3.7+"
+              },
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

@@ -1,3 +1,0 @@
-func f() {
-	return bad()
-}

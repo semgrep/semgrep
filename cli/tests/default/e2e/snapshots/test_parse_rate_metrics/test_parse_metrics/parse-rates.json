@@ -1,0 +1,26 @@
+{
+  "ocaml": {
+    "bytes_parsed": 865,
+    "num_bytes": 865,
+    "num_targets": 1,
+    "targets_parsed": 1
+  },
+  "php": {
+    "bytes_parsed": 4539,
+    "num_bytes": 4539,
+    "num_targets": 1,
+    "targets_parsed": 1
+  },
+  "ruby": {
+    "bytes_parsed": 37509,
+    "num_bytes": 37600,
+    "num_targets": 2,
+    "targets_parsed": 1
+  },
+  "scala": {
+    "bytes_parsed": 3563,
+    "num_bytes": 9371,
+    "num_targets": 3,
+    "targets_parsed": 1
+  }
+}

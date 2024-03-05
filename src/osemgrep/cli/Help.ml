@@ -24,7 +24,8 @@
  * message so this isn't too bad.
  *
  * LATER: add 'interactive' and 'test' new osemgrep-only
- * subcommands (not added yet to avoid regressions in tests/e2e/test_help.py).
+ * subcommands (not added yet to avoid regressions in
+   tests/default/e2e/test_help.py).
  *)
 
 (*****************************************************************************)

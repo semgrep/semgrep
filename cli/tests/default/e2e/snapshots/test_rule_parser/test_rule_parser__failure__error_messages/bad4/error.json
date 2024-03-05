@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "{'pattern-inside': 'def foo($X):\\n    ...\\n', 'pattern': '$X = 1'} is not of type 'array'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 5,
+            "line": 8,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad4.yaml",
+          "source_hash": "df19d059fbcde7ca517f3dcbd6d58733d738f332467bc02d1d11051ab62e2549",
+          "start": {
+            "col": 7,
+            "line": 4,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

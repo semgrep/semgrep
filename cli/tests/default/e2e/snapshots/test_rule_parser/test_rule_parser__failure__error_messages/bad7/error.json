@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "123 is not of type 'string'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 12,
+            "line": 3,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad7.yaml",
+          "source_hash": "99c414681ffa893e6d96ca71e262787fd058d3da094abe7425e470a21879205c",
+          "start": {
+            "col": 9,
+            "line": 3,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

@@ -1,0 +1,7 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+org.webjars.npm:swagger-ui-dist:3.35.2=productionRuntimeClasspath,runtimeClasspath,testRuntimeClasspath
+org.xmlunit:xmlunit-core:2.8.4=testCompileClasspath,testRuntimeClasspath
+org.yaml:snakeyaml:1.29=compileClasspath,productionRuntimeClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+empty=

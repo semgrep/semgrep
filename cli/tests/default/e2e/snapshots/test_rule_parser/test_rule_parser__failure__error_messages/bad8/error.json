@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 1,
+            "line": 7,
+            "offset": -1
+          },
+          "file": "rules/syntax/bad8.yaml",
+          "source_hash": "f821234ba9175efc8d66b3226996144ba05bdc0aea35a50321cbb9c6f349f6a0",
+          "start": {
+            "col": 5,
+            "line": 2,
+            "offset": -1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "invalid configuration file found (1 configs were invalid)",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "scanned": []
+  },
+  "results": [],
+  "skipped_rules": [],
+  "version": "0.42"
+}

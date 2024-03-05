@@ -1,0 +1,132 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/inside.py",
+      "targets/basic/metavariable-comparison-bad-content.py",
+      "targets/basic/metavariable-comparison-base.py",
+      "targets/basic/metavariable-comparison-strip.py",
+      "targets/basic/metavariable-comparison.py",
+      "targets/basic/metavariable-regex-multi-regex.py",
+      "targets/basic/metavariable-regex-multi-rule.py",
+      "targets/basic/metavariable-regex.py",
+      "targets/basic/nested-patterns.js",
+      "targets/basic/nosem.go",
+      "targets/basic/nosem.java",
+      "targets/basic/nosem.js",
+      "targets/basic/nosem.py",
+      "targets/basic/regex.py",
+      "targets/basic/stupid.js",
+      "targets/basic/stupid.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 67
+      },
+      "extra": {
+        "fingerprint": "26682c31d5fdf7711c4a49e58af66f7c86c6c4e01fe08ef91caf88aad21785fe536057f2c0de5f0a6069c5dc04f79db545397194cf6a49be3d51019ff3d8c7dc_0",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
+        "message": "Detected a useless comparison operation `x == x` or `x != x`. This operation is always true. If testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
+        "metadata": {
+          "category": "correctness",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "shortlink": "https://sg.run/Kl6n",
+          "source": "https://semgrep.dev/r/javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
+          "technology": [
+            "javascript"
+          ]
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 62
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "window.prompt()",
+              "svalue_end": {
+                "col": 24,
+                "line": 1,
+                "offset": 23
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 61
+            }
+          }
+        },
+        "engine_kind": "OSS",
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/stupid.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 61
+      }
+    },
+    {
+      "check_id": "python.lang.correctness.useless-eqeq.useless-eqeq",
+      "end": {
+        "col": 26,
+        "line": 3,
+        "offset": 69
+      },
+      "extra": {
+        "fingerprint": "604a9137e4fb9b559395f8e30003b1e2c5df02173bd602e4732e00d4a5a4ef001e11194aec68bb030f8dc37d9a8f72588fcf3ea5f8acce46fe824e6e4e1abfdc_0",
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "This expression is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`, or `cmath.isnan(a + b)` if the number is complex.",
+        "metadata": {
+          "category": "correctness",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "shortlink": "https://sg.run/GeAp",
+          "source": "https://semgrep.dev/r/python.lang.correctness.useless-eqeq.useless-eqeq",
+          "technology": [
+            "python"
+          ]
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            }
+          }
+        },
+        "engine_kind": "OSS",
+        "severity": "INFO"
+      },
+      "path": "targets/basic/stupid.py",
+      "start": {
+        "col": 12,
+        "line": 3,
+        "offset": 55
+      }
+    }
+  ],
+  "version": "0.42"
+}
