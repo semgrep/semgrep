@@ -1,3 +1,5 @@
+local common = import 'common.libsonnet';
+
 // helpers
 local funcs = [
   "temp_file",
@@ -21,12 +23,7 @@ local funcs = [
       },
       languages: ['ocaml'],
       paths: {
-        exclude: [
-           "UTmp.ml", "CapTmp.ml",
-           'TCB/*',
-           'tools/*', 'scripts/*', 'stats/*',
-           'Test*.ml',  'Unit_*.ml',
-        ],
+        exclude: common.exclude_paths + ["UTmp.ml", "CapTmp.ml"],
       },
       severity: 'ERROR',
       message: |||
