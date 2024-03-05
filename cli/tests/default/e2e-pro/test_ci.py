@@ -26,8 +26,8 @@ from tests.conftest import load_anonymous_user_id
 from tests.conftest import make_semgrepconfig_file
 from tests.conftest import make_settings_file
 from tests.conftest import str_containing
-from tests.e2e.test_baseline import _git_commit
-from tests.e2e.test_baseline import _git_merge
+from tests.default.e2e.test_baseline import _git_commit
+from tests.default.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -74,7 +74,7 @@ DUMMY_APP_TOKEN_BOB = "coolcucumber"
 
 # To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
 # the app code uses, so the tests can enforce the env is mocked appropriately.
-_cli_src = (Path(__file__).parent.parent.parent / "src").resolve()
+_cli_src = (Path(__file__).parent.parent.parent.parent / "src").resolve()
 USED_GITHUB_VARS = set(
     subprocess.run(
         f"git grep --recurse-submodules -hPo 'GITHUB_[\\w_]*' {_cli_src}",
