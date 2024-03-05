@@ -68,8 +68,10 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       CapConsole.out stdout Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok
-  | Identity -> Whoami.print caps Whoami.Identity
-  | Deployment -> Whoami.print caps Whoami.Deployment
+  | Identity ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Identity
+  | Deployment ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
   | SupportedLanguages ->
       CapConsole.out stdout
         (spf "supported languages are: %s" Xlang.supported_xlangs);

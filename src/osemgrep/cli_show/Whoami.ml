@@ -6,9 +6,8 @@ module OutJ = Semgrep_output_v1_j
 
 type identity_kind = Identity | Deployment
 
-let print
-    (caps : < network : Cap.Network.t ; stdout : Cap.Console.stdout ; .. >)
-    (kind : identity_kind) : Exit_code.t =
+let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
+    Exit_code.t =
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with

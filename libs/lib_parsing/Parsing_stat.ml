@@ -191,8 +191,7 @@ let print_regression_information ~ext xs newscore =
   let xs = Fpath_.to_strings xs in
   let dirname_opt =
     match xs with
-    | [ x ] when UFile.is_directory (Fpath.v x) ->
-        Some (UFile.Legacy.fullpath x)
+    | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
     | _ -> None
   in
   (* nosemgrep *)

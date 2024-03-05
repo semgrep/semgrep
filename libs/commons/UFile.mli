@@ -12,11 +12,6 @@
 (* Paths *)
 (*****************************************************************************)
 
-(* Check that the file exists and produce a valid absolute path for the file.
- * Deprecated: use Unix.realpath in OCaml >= 4.13, or Rpath.mli
- *)
-val fullpath : Fpath.t -> Fpath.t
-
 (* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
 val follow_symlinks : bool ref
 
@@ -110,8 +105,6 @@ val dir_exists : Fpath.t -> bool
 
 (* Deprecated! *)
 module Legacy : sig
-  val fullpath : string (* filename *) -> string (* filename *)
-
   val files_of_dirs_or_files_no_vcs_nofilter :
     string (* root *) list -> string (* filename *) list
 
