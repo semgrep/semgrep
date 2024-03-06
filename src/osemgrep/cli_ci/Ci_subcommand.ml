@@ -124,17 +124,22 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
 (*****************************************************************************)
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
+let caps_with_token token_opt caps =
+  let token =
+    match token_opt with
+    | Some tok -> tok
+    | None ->
+        Logs.app (fun m ->
+            m
+              "run `semgrep login` before using `semgrep ci` or use `semgrep \
+               scan` and set `--config`");
+        Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
+  in
+  Auth.cap_token_and_network_and_tmp token caps
+
 (* if something fails, we Error.exit_code_exn *)
-let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >)
-    (empty_config : bool) : OutJ.deployment_config =
-  if not empty_config then (
-    Logs.app (fun m ->
-        m
-          "Cannot run `semgrep ci` with --config. The `semgrep ci` command \
-           will upload findings to semgrep-app and those findings must come \
-           from rules configured there. Drop the `--config` to use rules \
-           configured on semgrep.dev or use semgrep scan.");
-    Error.exit_code_exn (Exit_code.fatal ~__LOC__));
+let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
+    OutJ.deployment_config =
   match Semgrep_App.get_deployment_from_token caps with
   | None ->
       Logs.app (fun m ->
@@ -684,11 +689,13 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   | Maturity.Default -> (
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
       match conf with
+      (* for now we allways fallback to pysemgrep :( *)
       | _else_ -> raise Pysemgrep.Fallback)
   | Maturity.Legacy -> raise Pysemgrep.Fallback
   | Maturity.Experimental
   | Maturity.Develop ->
       ());
+  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
 
   (* step1: initialization *)
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
@@ -696,22 +703,23 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
   let dry_run = conf.output_conf.dryrun in
 
-  (* step2: token -> deployment_config -> scan_id -> scan_config -> rules *)
-  let token =
-    match settings.api_token with
-    | Some tok -> tok
-    | None ->
-        Logs.app (fun m ->
-            m
-              "run `semgrep login` before using `semgrep ci` or use `semgrep \
-               scan` and set `--config`");
-        Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
-  in
-  let caps' = Auth.cap_token_and_network_and_tmp token caps in
-  let depl = deployment_config caps' (conf.rules_source =*= Configs []) in
+  (* step2: sanity checking *)
+  (match conf.rules_source with
+  | Configs [] -> ()
+  | _else_ ->
+      Logs.app (fun m ->
+          m
+            "Cannot run `semgrep ci` with --config. The `semgrep ci` command \
+             will upload findings to semgrep-app and those findings must come \
+             from rules configured there. Drop the `--config` to use rules \
+             configured on semgrep.dev or use semgrep scan.");
+      Error.exit_code_exn (Exit_code.fatal ~__LOC__));
+
+  (* step3: token -> deployment_config -> scan_id -> scan_config -> rules *)
+  let caps' = caps_with_token settings.api_token caps in
+  let depl = deployment_config caps' in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
@@ -720,6 +728,35 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id, scan_config, rules_and_origin =
     scan_config_and_rules_from_deployment ~dry_run prj_meta caps' depl
+  in
+  (* TODO: we should use those fields! the pattern match is useless but it's
+   * just to get compilation error when we add new fields in scan_config
+   *)
+  let {
+    (* this is used in scan_config_and_rules_from_deployment *)
+    OutJ.rule_config = _;
+    (* those two fields do not matter; they should be in a separate
+     * scan_response actually in the futur.
+     *)
+    deployment_id = _;
+    deployment_name = _;
+    (* TODO: seems unused *)
+    policy_names = _;
+    (* TODO: lots of info in there to customize, should
+     * adjust the environment and maybe recall
+     * generate_meta_from_environment
+     *)
+    ci_config_from_cloud = _;
+    (* TODO *)
+    autofix = _;
+    deepsemgrep = _;
+    dependency_query = _;
+    ignored_files = _;
+    enabled_products = _;
+    triage_ignored_match_based_ids = _;
+    triage_ignored_syntactic_ids = _;
+  } =
+    scan_config
   in
 
   (* TODO:
@@ -752,7 +789,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
      exclude = ( *exclude, *yield_exclude_paths(excludes_from_app))
   *)
 
-  (* step3: run the scan *)
+  (* step4: run the scan *)
   try
     (* TODO: call with:
        target = os.curdir
@@ -768,38 +805,6 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     let targets_and_ignored =
       Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
     in
-    let
-        (* TODO: should use those fields! the pattern match is useless but it's
-         * just to get compilation error when we add new fields in scan_config
-         *)
-        {
-      (* this is used in scan_config_and_rules_from_deployment *)
-      OutJ.rule_config = _;
-      (* those 2 do not matter; they should be in a separate
-       * scan_response actually in the futur
-       *)
-      deployment_id = _;
-      deployment_name = _;
-      (* TODO: seems unused *)
-      policy_names = _;
-      (* TODO: lots of info in there to customize, should
-       * adjust the environment and maybe recall
-       * generate_meta_from_environment
-       *)
-      ci_config_from_cloud = _;
-      (* TODO *)
-      autofix = _;
-      deepsemgrep = _;
-      dependency_query = _;
-      ignored_files = _;
-      enabled_products = _;
-      (* ?? *)
-      triage_ignored_match_based_ids = _;
-      triage_ignored_syntactic_ids = _;
-    } =
-      scan_config
-    in
-
     let res =
       Scan_subcommand.run_scan_files
         (caps :> < Cap.stdout ; Cap.chdir >)
@@ -811,12 +816,13 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         Logs.err (fun m -> m "Encountered error when running rules");
         e
     | Ok (filtered_rules, _res, cli_output) ->
-        (* step4: upload the findings *)
+        (* step5: upload the findings *)
         let _cai_rules, blocking_rules, non_blocking_rules =
           partition_rules filtered_rules
         in
         let keep_ignored = false in
-        (* TODO: the syntactic_id and match_based_id are hashes over parts of the finding, not yet implemented in OCaml
+        (* TODO: the syntactic_id and match_based_id are hashes over parts of
+           the finding.
            # Since we keep nosemgrep disabled for the actual scan, we have to apply
            # that flag here
            keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
@@ -860,11 +866,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           ~app_block_override blocking_findings
   with
   | Error.Semgrep_error (_, ex) as e ->
-      let r =
-        match ex with
-        | None -> Exit_code.fatal ~__LOC__
-        | Some exit_code -> exit_code
-      in
+      let r = ex ||| Exit_code.fatal ~__LOC__ in
       Semgrep_App.report_failure ~dry_run caps' ~scan_id r;
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));
