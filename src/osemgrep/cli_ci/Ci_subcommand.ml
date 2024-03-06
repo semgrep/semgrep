@@ -125,8 +125,8 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
 (* if something fails, we Error.exit_code_exn *)
-let deployment_config caps (api_token : Auth.token option) (empty_config : bool)
-    : Auth.token * OutJ.deployment_config =
+let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >)
+    (empty_config : bool) : OutJ.deployment_config =
   if not empty_config then (
     Logs.app (fun m ->
         m
@@ -135,29 +135,18 @@ let deployment_config caps (api_token : Auth.token option) (empty_config : bool)
            from rules configured there. Drop the `--config` to use rules \
            configured on semgrep.dev or use semgrep scan.");
     Error.exit_code_exn (Exit_code.fatal ~__LOC__));
-  match api_token with
+  match Semgrep_App.get_deployment_from_token caps with
   | None ->
       Logs.app (fun m ->
           m
-            "run `semgrep login` before using `semgrep ci` or use `semgrep \
-             scan` and set `--config`");
+            "API token not valid. Try to run `semgrep logout` and `semgrep \
+             login` again.");
       Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
-  | Some token -> (
-      match
-        Semgrep_App.get_deployment_from_token
-          (Auth.cap_token_and_network token caps)
-      with
-      | None ->
-          Logs.app (fun m ->
-              m
-                "API token not valid. Try to run `semgrep logout` and `semgrep \
-                 login` again.");
-          Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
-      | Some deployment_config ->
-          Logs.debug (fun m ->
-              m "received deployment = %s"
-                (OutJ.show_deployment_config deployment_config));
-          (token, deployment_config))
+  | Some deployment_config ->
+      Logs.debug (fun m ->
+          m "received deployment = %s"
+            (OutJ.show_deployment_config deployment_config));
+      deployment_config
 
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () : unit =
@@ -711,16 +700,24 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let dry_run = conf.output_conf.dryrun in
 
   (* step2: token -> deployment_config -> scan_id -> scan_config -> rules *)
-  let token, depl =
-    deployment_config caps settings.api_token (conf.rules_source =*= Configs [])
+  let token =
+    match settings.api_token with
+    | Some tok -> tok
+    | None ->
+        Logs.app (fun m ->
+            m
+              "run `semgrep login` before using `semgrep ci` or use `semgrep \
+               scan` and set `--config`");
+        Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
   in
+  let caps' = Auth.cap_token_and_network_and_tmp token caps in
+  let depl = deployment_config caps' (conf.rules_source =*= Configs []) in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
 
   (* TODO: fix_head_if_github_action(metadata) *)
-  let caps' = Auth.cap_token_and_network_and_tmp token caps in
   let scan_id, scan_config, rules_and_origin =
     scan_config_and_rules_from_deployment ~dry_run prj_meta caps' depl
   in
