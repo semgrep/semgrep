@@ -11,8 +11,7 @@ open Fpath_.Operators
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO: FS too *)
-type caps = < Cap.random ; Cap.chdir >
+type caps = < Cap.random ; Cap.chdir ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -371,7 +370,7 @@ let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
     in
     tmp_dir / repo
 
-let write_workflow_file (caps : < Cap.chdir >) ~git_dir:dir : unit =
+let write_workflow_file (caps : < Cap.chdir ; Cap.tmp >) ~git_dir:dir : unit =
   let commit = get_default_branch_in ~dst:dir in
   Logs.debug (fun m -> m "Using '%s' as default branch." commit);
   let res =
@@ -424,7 +423,7 @@ let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
   | _else_ ->
       Logs.info (fun m -> m "Preparing Semgrep workflow for %s" !!repo);
       let dir = prep_repo caps repo in
-      write_workflow_file (caps :> < Cap.chdir >) ~git_dir:dir;
+      write_workflow_file (caps :> < Cap.chdir ; Cap.tmp >) ~git_dir:dir;
       if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
         Logs.info (fun m -> m "Semgrep secret already present, skipping")
       else add_semgrep_gh_secret ~git_dir:dir ~token;

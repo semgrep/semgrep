@@ -179,7 +179,7 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
-let temporary_remote_checkout_path url =
+let temporary_remote_checkout_path caps url =
   let name =
     match remote_repo_name url with
     | Some name -> name
@@ -187,7 +187,7 @@ let temporary_remote_checkout_path url =
   in
   let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
   let name = rand_prefix ^ "_" ^ name in
-  let tmp_dir = UTmp.get_temp_dir_name () in
+  let tmp_dir = CapTmp.get_temp_dir_name caps#tmp in
   Fpath.add_seg tmp_dir name
 
 let obj_type_of_string = function
@@ -400,7 +400,8 @@ let get_merge_base commit =
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
   | _ -> raise (Error "Could not get merge base from git merge-base")
 
-let run_with_worktree caps ~commit ?(branch = None) f =
+let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?(branch = None)
+    f =
   let cwd = getcwd () |> Fpath.to_dir_path in
   let git_root = get_project_root_exn () |> Fpath.to_dir_path in
   let relative_path =
@@ -411,7 +412,7 @@ let run_with_worktree caps ~commit ?(branch = None) f =
   let rand_dir () =
     let uuid = Uuidm.v `V4 in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
-    let dir = UTmp.get_temp_dir_name () / dir_name in
+    let dir = CapTmp.get_temp_dir_name caps#tmp / dir_name in
     UUnix.mkdir !!dir 0o777;
     dir
   in
@@ -713,7 +714,7 @@ let cat_file_blob ?cwd (SHA sha) =
   | Error (`Msg s) ->
       Error s
 
-let batch_cat_file_blob ?cwd (blob_shas : sha list) =
+let batch_cat_file_blob ?cwd (caps : < Cap.tmp >) (blob_shas : sha list) =
   let cmd =
     Bos.Cmd.(
       v "git"
@@ -781,7 +782,8 @@ let batch_cat_file_blob ?cwd (blob_shas : sha list) =
             | _ -> Error ("invalid git object: " ^ metadata)),
             chan )
   in
-  let output = UTmp.new_temp_file "git-batch-cat-files" ".log" in
+  (* TODO: can probably use a pipe to git cat instead of using /tmp *)
+  let output = CapTmp.new_temp_file caps#tmp "git-batch-cat-files" ".log" in
   let input =
     blob_shas |> List_.map (function SHA str -> str) |> String.concat "\n"
   in

@@ -7,9 +7,10 @@ exception Error of string
 val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
 
-val temporary_remote_checkout_path : string -> Fpath.t
-(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"] will return
-    [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid remote repo name *)
+val temporary_remote_checkout_path : < Cap.tmp > -> string -> Fpath.t
+(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"]
+    will return [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid
+    remote repo name *)
 
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
@@ -86,7 +87,11 @@ val get_merge_base : string -> string
    don't need to git stash anything, or expect a clean working tree.
 *)
 val run_with_worktree :
-  < Cap.chdir > -> commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
+  < Cap.chdir ; Cap.tmp > ->
+  commit:string ->
+  ?branch:string option ->
+  (unit -> 'a) ->
+  'a
 
 type status = {
   added : string list;
@@ -216,6 +221,7 @@ val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
 
 val batch_cat_file_blob :
   ?cwd:Fpath.t ->
+  < Cap.tmp > ->
   sha list ->
   ((batch_extra obj, string) result Seq.t, string) result
 (** [batch_cat_file_blob blobs] will run [git cat-file --batch] for each blob

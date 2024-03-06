@@ -8,6 +8,9 @@
     'Main.ml',
     'Test*.ml',
     'Unit_*.ml',
+    // TODO: we should check those modules are only
+    // called from testing code
+    '*_test_utils.ml',
   ],
 
   exclude: {

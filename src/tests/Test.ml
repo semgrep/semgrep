@@ -65,7 +65,7 @@ let tests (caps : Cap.all_caps) =
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
       Unit_jsonnet.tests ();
-      Unit_metachecking.tests ();
+      Unit_metachecking.tests (caps :> < Cap.tmp >);
       (* OSemgrep tests *)
       Unit_LS.tests (caps :> < Cap.random ; Cap.network ; Cap.tmp >);
       Unit_Login.tests caps;

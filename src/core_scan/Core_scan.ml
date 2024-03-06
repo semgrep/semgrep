@@ -179,16 +179,18 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
 
    coupling: this functionality is implemented also in semgrep-python.
 *)
-let replace_named_pipe_by_regular_file (path : Fpath.t) =
+let replace_named_pipe_by_regular_file (caps : < Cap.tmp >) (path : Fpath.t) =
   match
-    UTmp.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-"
-      path
+    CapTmp.replace_named_pipe_by_regular_file_if_needed caps#tmp
+      ~prefix:"semgrep-core-" path
   with
   | Some new_path -> new_path
   | None -> path
 
-let replace_named_pipe_by_regular_file_root (path : Scanning_root.t) =
-  path |> Scanning_root.to_fpath |> replace_named_pipe_by_regular_file
+let replace_named_pipe_by_regular_file_root (caps : < Cap.tmp >)
+    (path : Scanning_root.t) =
+  path |> Scanning_root.to_fpath
+  |> replace_named_pipe_by_regular_file caps
   |> Scanning_root.of_fpath
 
 (*
@@ -552,7 +554,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 (*****************************************************************************)
 
 (* for -rules *)
-let rules_from_rule_source (config : Core_scan_config.t) :
+let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Rule.t list * Rule.invalid_rule_error list =
   let rule_source =
     match config.rule_source with
@@ -561,7 +563,8 @@ let rules_from_rule_source (config : Core_scan_config.t) :
          * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
          *)
         Some
-          (Core_scan_config.Rule_file (replace_named_pipe_by_regular_file file))
+          (Core_scan_config.Rule_file
+             (replace_named_pipe_by_regular_file caps file))
     | other -> other
   in
   match rule_source with
@@ -791,7 +794,7 @@ let target_of_input_to_core (input : In.target) : Target.t =
  * certain rules for certain targets in the semgrep-cli wrapper
  * by using the include/exclude fields.).
  *)
-let targets_of_config (config : Core_scan_config.t) :
+let targets_of_config (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Target.t list * OutJ.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
@@ -802,7 +805,9 @@ let targets_of_config (config : Core_scan_config.t) :
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots = roots |> List_.map replace_named_pipe_by_regular_file_root in
+      let roots =
+        roots |> List_.map (replace_named_pipe_by_regular_file_root caps)
+      in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -1108,13 +1113,13 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
-let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
-    Core_result.t =
+let scan ?match_hook (caps : < Cap.tmp >) config
+    ((valid_rules, invalid_rules), rules_parse_time) : Core_result.t =
   let rule_errors = errors_of_invalid_rule_errors invalid_rules in
 
   (* The basic targets.
    * TODO: possibly extract (recursively) from generated stuff? *)
-  let basic_targets, skipped = targets_of_config config in
+  let basic_targets, skipped = targets_of_config caps config in
   let basic_code_targets, _basic_lockfile_targets =
     Either_.partition_either
       (function
@@ -1219,22 +1224,22 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 (* Entry point *)
 (*****************************************************************************)
 
-let time_and_trace_rules config =
+let time_and_trace_rules (caps : < Cap.tmp >) config =
   (* TODO remove this wrapper function once we have a tracing ppx *)
   Tracing.with_span ~__FILE__ ~__LINE__ "Core_scan.handle_target" (fun _sp ->
-      Common.with_time (fun () -> rules_from_rule_source config))
+      Common.with_time (fun () -> rules_from_rule_source caps config))
 
-let scan_with_exn_handler (config : Core_scan_config.t) :
+let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    let timed_rules = time_and_trace_rules config in
+    let timed_rules = time_and_trace_rules caps config in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and
        results. *)
     let res =
-      Pre_post_core_scan.call_with_pre_and_post_processor Fun.id scan config
-        timed_rules
+      Pre_post_core_scan.call_with_pre_and_post_processor Fun.id (scan caps)
+        config timed_rules
     in
     sanity_check_invalid_patterns res
   with

@@ -864,7 +864,7 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
            stdin or named pipes");
   (target_roots, !imply_always_select_explicit_targets)
 
-let cmdline_term ~allow_empty_config : conf Term.t =
+let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators autofix baseline_commit common config
@@ -900,7 +900,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             match !Semgrep_envvars.v.remote_clone_dir with
             | Some dir -> Rfpath.of_fpath_exn dir
             | None ->
-                Git_wrapper.temporary_remote_checkout_path url
+                Git_wrapper.temporary_remote_checkout_path caps url
                 |> Rfpath.of_fpath_exn
           in
           let url = Uri.of_string url in
@@ -1268,8 +1268,8 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : conf =
+let parse_argv (caps : < Cap.tmp >) (argv : string array) : conf =
   let cmd : conf Cmd.t =
-    Cmd.v cmdline_info (cmdline_term ~allow_empty_config:false)
+    Cmd.v cmdline_info (cmdline_term caps ~allow_empty_config:false)
   in
   CLI_common.eval_value ~argv cmd
