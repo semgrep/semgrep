@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 module TL = Test_login_subcommand
 
 (*****************************************************************************)
@@ -47,7 +46,7 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
                 "r/python.lang.correctness.useless-eqeq.useless-eqeq";
               |]
           in
-          assert (exit_code =*= Exit_code.ok)))
+          Exit_code.Check.ok exit_code))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Testo.test =
@@ -67,7 +66,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
                      (caps :> < Cap.stdout ; Cap.network >)
                      [| "semgrep-login" |]
                  in
-                 assert (exit_code =*= Exit_code.ok)));
+                 Exit_code.Check.ok exit_code));
 
          (* Even if we are allowed to login with a fake token (because
           * of the with_fake_deployment_response), outside of it

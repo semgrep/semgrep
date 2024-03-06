@@ -28,7 +28,9 @@ let chop_origin_if_needed branch : string =
        *)
       "develop"
   (* let's chop the origin *)
-  | _ when Base.String.is_prefix ~prefix:"origin/" branch ->
+  | _
+    when (* TODO: don't use JaneStreet Base until we agree to do so *)
+         Base.String.is_prefix ~prefix:"origin/" branch ->
       Base.String.chop_prefix_exn ~prefix:"origin/" branch
   | _ -> branch
 
@@ -451,7 +453,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
             (Std_msg.error_tag ()));
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
   | Some token ->
       (* setup gh *)
       install_gh_cli_if_needed ();
@@ -462,7 +464,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
             (Std_msg.success_tag ()));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

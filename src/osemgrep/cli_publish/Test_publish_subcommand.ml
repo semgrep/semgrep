@@ -103,19 +103,13 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
               (caps :> < Cap.stdout >)
               [| "semgrep-logout" |]
           in
-          assert (exit_code =*= Exit_code.ok);
+          Exit_code.Check.ok exit_code;
 
           (* should require login *)
           let exit_code =
             Publish_subcommand.main caps [| "semgrep-publish"; !!valid_target |]
           in
-          assert (exit_code =*= Exit_code.fatal);
-
-          (*
-          assert (
-            String_.contains res.logs
-              ~term:"run `semgrep login` before using upload");
-          *)
+          Exit_code.Check.fatal exit_code;
 
           (* log back in *)
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
@@ -124,13 +118,13 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
                   (caps :> < Cap.network ; Cap.stdout >)
                   [| "semgrep-login" |]
               in
-              assert (exit_code =*= Exit_code.ok));
+              Exit_code.Check.ok exit_code);
 
           (* fails if no rule specified *)
           let exit_code =
             Publish_subcommand.main caps [| "semgrep-publish" |]
           in
-          assert (exit_code =*= Exit_code.fatal);
+          Exit_code.Check.fatal exit_code;
 
           (* fails if invalid rule specified *)
           let exit_code =
@@ -139,11 +133,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
             in
             Publish_subcommand.main caps [| "semgrep-publish"; !!path |]
           in
-          assert (exit_code =*= Exit_code.fatal);
-
-          (*
-          assert (String_.contains res.logs ~term:"Invalid rule definition:");
-          *)
+          Exit_code.Check.fatal exit_code;
 
           (* fails if a yaml with more than one rule is specified *)
           let exit_code =
@@ -152,28 +142,14 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
             in
             Publish_subcommand.main caps [| "semgrep-publish"; !!path |]
           in
-          assert (exit_code =*= Exit_code.fatal);
+          Exit_code.Check.fatal exit_code;
 
-          (*
-          assert (
-                String_.contains res.logs
-                  ~term:
-                    "Rule contains more than one rule: only yaml files with a \
-                     single can be published");
-          *)
           let exit_code =
             Publish_subcommand.main caps
               [| "semgrep-publish"; "--visibility=public"; !!valid_target |]
           in
-          assert (exit_code =*= Exit_code.fatal);
+          Exit_code.Check.fatal exit_code;
 
-          (*
-              assert (
-                String_.contains res.logs
-                  ~term:
-                    "Only one public rule can be uploaded at a time: specify a \
-                     single Semgrep rule"));
-          *)
           let exit_code =
             Publish_subcommand.main caps
               [|
@@ -182,12 +158,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
                 !!valid_single_file_target;
               |]
           in
-          assert (exit_code =*= Exit_code.fatal)
-          (*
-              assert (
-                String_.contains res.logs
-                  ~term:"--visibility=public requires --registry-id"));
-          *)))
+          Exit_code.Check.fatal exit_code))
 
 (*****************************************************************************)
 (* Entry point *)
