@@ -23,7 +23,7 @@ let t = Testo.create
 (*****************************************************************************)
 (* Port of test_publish.py to OCaml.
  *
- * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
+ * Note that unlike most cli/tests/default/e2e/test_xxx.py tests, we can't reuse
  * test_publish.py to test osemgrep because of the use of mocking
  * and 'use_click+runner=True' in test_publish.py
  *)

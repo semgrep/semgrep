@@ -12,5 +12,12 @@ set -euo pipefail
 # alt: use ../../_build/install/default/bin/ojsonnet --envir --yaml $< >> $@ ...
 # but ojsonnet is still buggy and some people (infra) don't have the ocaml
 # toolchain installed so it's easier for them to rely on jsonnet and yq
-
-jsonnet "$@" | yq -P
+#
+# The sed command is because 'on' is printed with or without quotes depending
+# on the version. It's a dirty hack that may break some input.
+# TODO: fix this by specifying which version of yq we should use.
+#
+jsonnet "$@" \
+| yq eval -P \
+| sed -e 's/^\( *\)"on":/\1on:/' \
+| sed -e 's/: "yes"$/: yes/'

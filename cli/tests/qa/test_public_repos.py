@@ -10,9 +10,9 @@ from pathlib import Path
 
 import appdirs
 import pytest
+from tests.conftest import TESTS_PATH
+from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
-from ..conftest import TESTS_PATH
-from ..semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 from .public_repos import REPOS
 
 # Some improbable string that was implanted in test targets [how?] [why?].
