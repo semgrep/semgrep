@@ -8,78 +8,120 @@
   },
   "results": [
     {
-      "check_id": "rules.extract_rules.check-for-data",
+      "check_id": "rules.extract_rules.extract-jupyter-to-python",
       "end": {
-        "col": 39,
-        "line": 27,
-        "offset": 556
+        "col": 7,
+        "line": 20,
+        "offset": 347
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "      \"source\": [",
-        "message": "check for data",
+        "lines": "     {\n      \"cell_type\": \"code\",\n      \"execution_count\": 2,\n      \"id\": \"6cb7c3d3\",\n      \"metadata\": {},\n      \"outputs\": [],\n      \"source\": [\n       \"import pickle\"\n      ]\n     },",
+        "message": "None",
         "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
+        "metavars": {
+          "$CODE": {
+            "abstract_content": "[\"import pickle\"]",
+            "end": {
+              "col": 8,
+              "line": 19,
+              "offset": 340
+            },
+            "start": {
+              "col": 17,
+              "line": 17,
+              "offset": 308
+            }
+          }
+        },
+        "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/python_jupyter_paths_include.ipynb",
       "start": {
-        "col": 1,
-        "line": 27,
-        "offset": 518
+        "col": 6,
+        "line": 11,
+        "offset": 168
       }
     },
     {
-      "check_id": "rules.extract_rules.forbid-pickle",
+      "check_id": "rules.extract_rules.extract-jupyter-to-python",
       "end": {
-        "col": 25,
-        "line": 31,
-        "offset": 618
+        "col": 7,
+        "line": 33,
+        "offset": 686
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "       \"    pickle.dump(data, f)\"",
-        "message": "found pickle",
+        "lines": "     {\n      \"cell_type\": \"code\",\n      \"execution_count\": 3,\n      \"id\": \"28ed696c\",\n      \"metadata\": {},\n      \"outputs\": [],\n      \"source\": [\n       \"#ruleid: check-for-data\",\n       \"data = [\\\"This\\\", \\\"is\\\", \\\"an\\\", \\\"example\\\"] \\n\",\n       \"with open(\\\"test.pkl\\\", 'wb') as f:\\n\",\n       \"    pickle.dump(data, f)\"\n      ]\n     },",
+        "message": "None",
         "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
+        "metavars": {
+          "$CODE": {
+            "abstract_content": "[\"#ruleid: check-for-data\"\"data = [\\\"This\\\", \\\"is\\\", \\\"an\\\", \\\"example\\\"] \\n\"\"with open(\\\"test.pkl\\\", 'wb') as f:\\n\"\"    pickle.dump(data, f)\"]",
+            "end": {
+              "col": 8,
+              "line": 32,
+              "offset": 679
+            },
+            "start": {
+              "col": 17,
+              "line": 27,
+              "offset": 494
+            }
+          }
+        },
+        "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/python_jupyter_paths_include.ipynb",
       "start": {
-        "col": 5,
-        "line": 31,
-        "offset": 598
+        "col": 6,
+        "line": 21,
+        "offset": 354
       }
     },
     {
-      "check_id": "rules.extract_rules.test123",
+      "check_id": "rules.extract_rules.extract-jupyter-to-python",
       "end": {
-        "col": 24,
-        "line": 39,
-        "offset": 843
+        "col": 7,
+        "line": 43,
+        "offset": 870
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "      \"outputs\": [],",
-        "message": "left `test123` in the code",
+        "lines": "     {\n      \"cell_type\": \"code\",\n      \"execution_count\": null,\n      \"id\": \"68eb1af3\",\n      \"metadata\": {},\n      \"outputs\": [],\n      \"source\": [\n        \"test123\"\n      ]\n     }",
+        "message": "None",
         "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
+        "metavars": {
+          "$CODE": {
+            "abstract_content": "[\"test123\"]",
+            "end": {
+              "col": 8,
+              "line": 42,
+              "offset": 863
+            },
+            "start": {
+              "col": 17,
+              "line": 40,
+              "offset": 836
+            }
+          }
+        },
+        "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/python_jupyter_paths_include.ipynb",
       "start": {
-        "col": 17,
-        "line": 39,
-        "offset": 836
+        "col": 6,
+        "line": 34,
+        "offset": 693
       }
     }
   ],
