@@ -2,14 +2,14 @@ from pathlib import Path
 
 import pytest
 from tests.conftest import mask_variable_text
-from tests.conftest import TESTS_PATH
+from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
 def test_semgrepignore(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
-        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
     )
 
     snapshot.assert_match(
@@ -52,7 +52,7 @@ def test_internal_explicit_semgrepignore(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
     (tmp_path / ".semgrepignore").symlink_to(
-        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
     )
 
     explicit_ignore_file = tmp_path / ".semgrepignore_explicit"

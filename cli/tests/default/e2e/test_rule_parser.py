@@ -1,12 +1,12 @@
 import json
 
 import pytest
-from tests.conftest import TESTS_PATH
+from tests.conftest import RULES_PATH
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
-syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
+syntax_dir = RULES_PATH / "syntax"
 syntax_passes = [f.with_suffix("").name for f in syntax_dir.glob("good*.yaml")]
 syntax_fails = [
     f.with_suffix("").name
