@@ -30,11 +30,11 @@ let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
               Logs.app (fun m ->
                   m "%s Your deployment info is %s" (Std_msg.success_tag ()) str)
           ));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | None ->
       Logs.err (fun m ->
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep whoami`"
             (Std_msg.warning_tag ()));
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__

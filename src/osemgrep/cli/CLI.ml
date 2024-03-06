@@ -92,7 +92,7 @@ let metrics_init (caps : < Cap.random >) : unit =
 *)
 let log_cli_feature (flag : string) : unit =
   Metrics_.add_feature "cli-flag"
-    (flag
+    (flag (* TODO: don't use Base unless there's some agreement about it. *)
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
     |> Base.String.chop_prefix_if_exists ~prefix:"-")
 
@@ -140,7 +140,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
   | [ _; "--experimental" ] ->
       Help.print_help caps#stdout;
       Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | [ _; ("-h" | "--help") ]
   (* ugly: this --experimental management here is a bit ugly, to allow the
    * different combination.
@@ -150,7 +150,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
       Help.print_semgrep_dashdash_help caps#stdout;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | argv0 :: args -> (
       let subcmd, subcmd_args =
         match args with
@@ -171,7 +171,9 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
       Metrics_.add_feature "subcommand" subcmd;
       Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x ->
+             (* TODO: don't use JaneStreet Base until we agree to do so *)
+             not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
@@ -224,7 +226,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
             Test_subcommand.main
               (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
               subcmd_argv
-        | _else_ ->
+        | _ ->
             if experimental then
               (* this should never happen because we default to 'scan',
                * but better to be safe than sorry.
@@ -252,21 +254,22 @@ let safe_run ~debug f : Exit_code.t =
     | Error.Semgrep_error (s, opt_exit_code) -> (
         Logs.err (fun m -> m "%s" s);
         match opt_exit_code with
-        | None -> Exit_code.fatal
+        | None -> Exit_code.fatal ~__LOC__
         | Some code -> code)
-    | Error.Exit code -> code
+    | Error.Exit_code code -> code
     (* should never happen, you should prefer Error.Exit to Common.UnixExit
      * but just in case *)
-    | Common.UnixExit i -> Exit_code.of_int i
+    | Common.UnixExit i ->
+        Exit_code.of_int ~__LOC__ ~code:i ~description:"rogue UnixExit"
     (* TOPORT: PLEASE_FILE_ISSUE_TEXT for unexpected exn *)
     | Failure msg ->
         Logs.err (fun m -> m "Error: %s%!" msg);
-        Exit_code.fatal
+        Exit_code.fatal ~__LOC__
     | e ->
         let trace = Printexc.get_backtrace () in
         Logs.err (fun m ->
             m "Error: exception %s\n%s%!" (Printexc.to_string e) trace);
-        Exit_code.fatal
+        Exit_code.fatal ~__LOC__
 
 let before_exit ~profile () : unit =
   (* alt: could be done in Main.ml instead, just before the call to exit() *)
