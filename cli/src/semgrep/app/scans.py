@@ -175,6 +175,15 @@ class ScanHandler:
             return [p.to_json() for p in self.scan_response.info.enabled_products]
         return []
 
+    @property
+    def historical_config(self) -> out.HistoricalConfiguration:
+        config = None
+        if self.scan_response:
+            config = self.scan_response.engine_params.historical_config
+        if config:
+            return config
+        return out.HistoricalConfiguration(enabled=False)
+
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
     ) -> None:

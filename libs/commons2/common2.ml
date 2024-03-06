@@ -4930,8 +4930,8 @@ module Infix = struct
   let ( ==~ ) = ( ==~ )
 end
 
-let with_pr2_to_string f =
-  UTmp.with_tmp_file ~str:"" ~ext:"out" (fun path ->
+let with_pr2_to_string caps f =
+  CapTmp.with_tmp_file caps ~str:"" ~ext:"out" (fun path ->
       let file = Fpath.to_string path in
       redirect_stdout_stderr file f;
       cat file)

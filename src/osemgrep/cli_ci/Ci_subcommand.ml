@@ -85,8 +85,12 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (* TODO: probably far more needed at some point
  * - exec for git.
+ * - tmp for decode_json_rules
+ *
+ * This is mostly a superset of Scan_subcommand.caps so see the comment
+ * in Scan_subcommand.ml for more explanations.
  *)
-type caps = < Cap.stdout ; Cap.network ; Cap.exec >
+type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir >
 
 (*****************************************************************************)
 (* Error management *)
@@ -116,8 +120,8 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
   | Some reason when not audit_mode ->
       Logs.app (fun m ->
           m "  semgrep.dev is suggesting a non-zero exit code (%s)" reason);
-      Exit_code.findings
-  | _else_ -> exit_code
+      Exit_code.findings ~__LOC__
+  | _else_ -> exit_code ~__LOC__
 
 (*****************************************************************************)
 (* Scan config *)
@@ -133,7 +137,7 @@ let deployment_config_opt caps (api_token : Auth.token option)
           m
             "run `semgrep login` before using `semgrep ci` or use `semgrep \
              scan` and set `--config`");
-      Error.exit Exit_code.invalid_api_key
+      Error.exit (Exit_code.invalid_api_key ~__LOC__)
   | Some _, false ->
       Logs.app (fun m ->
           m
@@ -141,7 +145,7 @@ let deployment_config_opt caps (api_token : Auth.token option)
              `semgrep ci` command will upload findings to semgrep-app and \
              those findings must come from rules configured there. Drop the \
              `--config` to use rules configured on semgrep.dev or log out.");
-      Error.exit Exit_code.fatal
+      Error.exit (Exit_code.fatal ~__LOC__)
   (* TODO: document why we support running the ci command without a token *)
   | None, _ -> None
   | Some token, _ -> (
@@ -154,7 +158,7 @@ let deployment_config_opt caps (api_token : Auth.token option)
               m
                 "API token not valid. Try to run `semgrep logout` and `semgrep \
                  login` again.");
-          Error.exit Exit_code.invalid_api_key
+          Error.exit (Exit_code.invalid_api_key ~__LOC__)
       | Some deployment_config ->
           Logs.debug (fun m ->
               m "received deployment = %s"
@@ -177,7 +181,7 @@ let at_url_maybe ppf () : unit =
  * TODO: factorize with Session.decode_rules()
  *)
 let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
-  UTmp.with_tmp_file ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_tmp_file caps#tmp ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           caps file
@@ -217,7 +221,7 @@ let scan_config_and_rules_from_deployment ~dry_run
   match Semgrep_App.start_scan ~dry_run caps prj_meta scan_metadata with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
-      Error.exit Exit_code.fatal
+      Error.exit (Exit_code.fatal ~__LOC__)
   | Ok scan_id ->
       (* TODO: should be concatenated with the "Reporting start ..." *)
       Logs.app (fun m -> m " (scan_id=%s)" scan_id);
@@ -233,7 +237,7 @@ let scan_config_and_rules_from_deployment ~dry_run
         with
         | Error msg ->
             Logs.err (fun m -> m "Failed to download configuration: %s" msg);
-            let r = Exit_code.fatal in
+            let r = Exit_code.fatal ~__LOC__ in
             Semgrep_App.report_failure ~dry_run caps ~scan_id r;
             Error.exit r
         | Ok config -> config
@@ -241,10 +245,16 @@ let scan_config_and_rules_from_deployment ~dry_run
 
       let rules_and_origins =
         try
-          decode_json_rules (caps :> < Cap.network >) scan_config.rule_config
+          decode_json_rules
+            (caps :> < Cap.network ; Cap.tmp >)
+            scan_config.rule_config
         with
         | Error.Semgrep_error (_, opt_ex) as e ->
-            let ex = Option.value ~default:Exit_code.fatal opt_ex in
+            let ex =
+              match opt_ex with
+              | None -> Exit_code.fatal ~__LOC__
+              | Some exit_code -> exit_code
+            in
             Semgrep_App.report_failure ~dry_run caps ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
@@ -719,9 +729,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
       (conf.rules_source =*= Configs [])
   in
   (* TODO: pass baseline commit! *)
-  let prj_meta =
-    generate_meta_from_environment (caps :> < Cap.exec ; .. >) None
-  in
+  let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
 
@@ -740,12 +748,12 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
             ~rewrite_rule_ids:conf.rewrite_rule_ids
             ~strict:conf.core_runner_conf.strict
-            (caps :> < Cap.network >)
+            (caps :> < Cap.network ; Cap.tmp >)
             conf.rules_source
         in
         (None, rules_and_origins)
     | Some (token, depl) ->
-        let caps = Auth.cap_token_and_network token caps in
+        let caps = Auth.cap_token_and_network_and_tmp token caps in
         let scan_id, scan_config, rules =
           scan_config_and_rules_from_deployment ~dry_run prj_meta caps depl
         in
@@ -834,7 +842,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 
     let res =
       Scan_subcommand.run_scan_files
-        (caps :> < Cap.stdout >)
+        (caps :> < Cap.stdout ; Cap.chdir >)
         conf profiler rules_and_origin targets_and_ignored
     in
     match res with
@@ -899,7 +907,11 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   | Error.Semgrep_error (_, ex) as e ->
       (match (depl_opt, scan_config_opt) with
       | Some (token, _), Some (scan_id, _scan_config) ->
-          let r = Option.value ~default:Exit_code.fatal ex in
+          let r =
+            match ex with
+            | None -> Exit_code.fatal ~__LOC__
+            | Some exit_code -> exit_code
+          in
           let caps = Auth.cap_token_and_network token caps in
           Semgrep_App.report_failure ~dry_run caps ~scan_id r
       | _else -> ());

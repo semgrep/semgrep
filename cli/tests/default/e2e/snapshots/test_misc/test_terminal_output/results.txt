@@ -41,7 +41,7 @@ More information: https://semgrep.dev/docs/metrics
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 23 files tracked by git with 4 Code rules:
+  Scanning 24 files tracked by git with 4 Code rules:
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
@@ -95,7 +95,7 @@ More information: https://semgrep.dev/docs/metrics
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 23 files tracked by git with 4 Code rules:
+  Scanning 24 files tracked by git with 4 Code rules:
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
