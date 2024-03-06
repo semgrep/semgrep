@@ -5,7 +5,7 @@ local common = import 'common.libsonnet';
     {
       id: 'forbid-random',
       match: { any: [
-	'Random.$F',
+        'Random.$F',
       ] },
       languages: ['ocaml'],
       paths: common.exclude,
@@ -17,7 +17,7 @@ local common = import 'common.libsonnet';
     {
       id: 'forbid-obj-magic',
       match: { any: [
-	'Obj.magic',
+        'Obj.magic',
       ] },
       languages: ['ocaml'],
       paths: {

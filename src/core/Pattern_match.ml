@@ -150,6 +150,9 @@ and dependency_match = Dependency.t * Rule.dependency_pattern
  * where for example we embed the filename in it, not just a position).
  * alt: reuse Mini_rule.t
  *)
+(* !!WARNING!!: If you add a field to this type, if you would like it to be passed
+   down to the Pattern_match.t, you need to touch `range_to_pattern_match_adjusted`!
+*)
 and rule_id = {
   (* This id is usually a string like 'check-double-equal'.
    * It can be the id of a rule or mini rule.
@@ -163,6 +166,8 @@ and rule_id = {
    * TODO should we remove these fields and just pass around a Rule.t or
    * mini_rule? *)
   message : string;
+  (* so we can calculate core_unique_key later *)
+  metadata : JSON.t option;
   fix : string option;
   fix_regexp : Rule.fix_regexp option;
   (* ?? why we need that? *)

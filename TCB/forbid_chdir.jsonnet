@@ -6,7 +6,7 @@ local common = import 'common.libsonnet';
       id: 'forbid-chdir',
       match: { any: [
         'Unix.chdir','UUnix.chdir',
-	'Sys.chdir', 'USys.chdir',
+        'Sys.chdir', 'USys.chdir',
       ] },
       languages: ['ocaml'],
       paths: common.exclude,

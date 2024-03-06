@@ -69,7 +69,7 @@ exception Exit_code of Exit_code.t
 (*****************************************************************************)
 
 let abort msg = raise (Semgrep_error (msg, None))
-let exit code = raise (Exit_code code)
+let exit_code_exn code = raise (Exit_code code)
 
 (*****************************************************************************)
 (* string of/registering exns *)
