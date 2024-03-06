@@ -20,6 +20,7 @@ logger = getLogger(__name__)
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_url_block_parser(original: str, output: str):
     result = swiftpm.url_block.parse(original)
     assert result == output
@@ -37,6 +38,7 @@ def test_swift_url_block_parser(original: str, output: str):
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_from_block_parser(original: str):
     result = swiftpm.from_block.parse_partial(original)
     assert result[0] == original
@@ -46,6 +48,7 @@ def test_swift_from_block_parser(original: str):
 @pytest.mark.parametrize("original", ['"1.2.3"..<"1.2.6"', '"7.2.3"..<"11.2.6"'])
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_range_block_parser(original: str):
     result = swiftpm.range_block.parse_partial(original)
     assert result[0] == original
@@ -55,6 +58,7 @@ def test_swift_range_block_parser(original: str):
 @pytest.mark.parametrize("original", ['.exact("1.2.3")', '.exact("1.3-testing")'])
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_exact_block_parser(original: str):
     result = swiftpm.exact_block.parse_partial(original)
     assert result[0] == original
@@ -70,6 +74,7 @@ def test_swift_exact_block_parser(original: str):
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_revision_block_parser(original: str):
     result = swiftpm.revision_block.parse_partial(original)
     assert result[0] == original
@@ -87,6 +92,7 @@ def test_swift_revision_block_parser(original: str):
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_up_to_next_major_block_parser(original: str):
     result = swiftpm.up_to_next_major_block.parse_partial(original)
     assert result[0] == original
@@ -104,6 +110,7 @@ def test_swift_up_to_next_major_block_parser(original: str):
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_up_to_next_minor_block_parser(original: str):
     result = swiftpm.up_to_next_minor_block.parse_partial(original)
     assert result[0] == original
@@ -115,6 +122,7 @@ def test_swift_up_to_next_minor_block_parser(original: str):
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_branch_block_parser(original: str):
     result = swiftpm.branch_block.parse_partial(original)
     assert result[0] == original
@@ -152,6 +160,7 @@ def test_swift_branch_block_parser(original: str):
 )
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_package_block_parser(original: str, expected: str):
     result = swiftpm.package_block.parse_partial(original)
     assert result[0][1] == expected
@@ -160,6 +169,7 @@ def test_swift_package_block_parser(original: str, expected: str):
 
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_manifest_parser():
     file_str = textwrap.dedent(
         """// swift-tools-version: 5.9
@@ -212,6 +222,7 @@ def test_swift_manifest_parser():
 
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_multiple_package_blocks_parser():
     deps = (
         '.package(url: "https://github.com/repo_1/package_1.git/", from: "7.8.1"),\n'
@@ -232,6 +243,7 @@ def test_swift_multiple_package_blocks_parser():
 
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
+@pytest.mark.quick
 def test_swift_dependencies_block_parser():
     deps = textwrap.dedent(
         """dependencies: [

@@ -44,7 +44,7 @@ def test_configs_hash(first, second, is_equal) -> None:
         assert first_metrics != second_metrics
 
 
-@pytest.mark.quick
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "first, second, is_equal",
     [

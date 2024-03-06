@@ -2,7 +2,8 @@ import logging
 from pathlib import Path
 
 import pytest
-from tests.conftest import TESTS_PATH
+from tests.conftest import RULES_PATH
+from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
 from semdep.package_restrictions import is_in_range
@@ -365,8 +366,8 @@ def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
 @pytest.mark.osemfail
 def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
-    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
-    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    (tmp_path / "targets").symlink_to(TARGETS_PATH.resolve())
+    (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path / "targets" / "basic")
 
     snapshot.assert_match(

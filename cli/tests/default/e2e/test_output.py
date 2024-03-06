@@ -7,7 +7,8 @@ from typing import Dict
 from xml.etree import cElementTree
 
 import pytest
-from tests.conftest import TESTS_PATH
+from tests.conftest import RULES_PATH
+from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -128,7 +129,7 @@ def test_promql_duration_captures(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # This test is just for making sure that our YAML parser interacts properly
 # with metavariables. We don't want to introduce regressions which might
 # mess this up.
-@pytest.mark.quick
+@pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
@@ -154,7 +155,7 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stdout, "report.json")
 
 
-@pytest.mark.quick
+@pytest.mark.kinda_slow
 def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
@@ -302,7 +303,7 @@ def test_semgrepignore_ignore_log_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
     (tmp_path / ".semgrepignore").symlink_to(
-        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
     )
 
     _, stderr = run_semgrep_in_tmp(
@@ -341,7 +342,7 @@ def test_semgrepignore_ignore_log_json_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
     (tmp_path / ".semgrepignore").symlink_to(
-        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
     )
 
     stdout, _ = run_semgrep_in_tmp(
@@ -391,11 +392,11 @@ def test_git_repo_output(
         subprocess.run(["git", "init"], check=True, capture_output=True)
         # Symlink the gitignore to the temp directory
         (repo_base / ".gitignore").symlink_to(
-            Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".gitignore").resolve()
+            Path(TARGETS_PATH / "ignores" / ".gitignore").resolve()
         )
 
     # Symlink rules
-    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
 
     monkeypatch.chdir(tmp_path)
     snapshot.assert_match(
@@ -413,7 +414,7 @@ def test_git_repo_output(
 # differs between pysemgrep and osemgrep because it's a location in the rule
 # (not in the target), and pysemgrep passes a preprocessed rule file to
 # semgrep-core hence the mistmatch.
-@pytest.mark.quick
+@pytest.mark.slow
 @pytest.mark.osemfail
 def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
