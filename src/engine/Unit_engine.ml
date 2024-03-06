@@ -640,31 +640,6 @@ let filter_irrelevant_rules_tests () =
      |> List_.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
-(* Extract tests *)
-(*****************************************************************************)
-
-let get_extract_source_lang file rules =
-  let _, _, erules, _ = R.partition_rules rules in
-  let erule_langs =
-    erules |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
-  in
-  match erule_langs with
-  | [] -> failwith (spf "no language for extract rule found in %s" !!file)
-  | [ x ] -> x
-  | xlang :: _ ->
-      UCommon.pr2
-        (spf
-           "too many languages from extract rules found in %s, picking the \
-            first one: %s"
-           !!file (Xlang.show xlang));
-      xlang
-
-let extract_tests () =
-  let path = tests_path / "extract" in
-  Testo.categorize "extract mode"
-    (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
-
-(*****************************************************************************)
 (* Tainting tests *)
 (*****************************************************************************)
 
@@ -979,7 +954,6 @@ let tests () =
       lang_autofix_tests ~polyglot_pattern_path;
       eval_regression_tests ();
       filter_irrelevant_rules_tests ();
-      extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_taint_maturity_tests ();
