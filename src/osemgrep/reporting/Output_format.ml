@@ -12,6 +12,7 @@ type t =
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
+  | Files_only
   (* used to disable the final display of match results because
    * we displayed them incrementally instead
    *)
@@ -27,5 +28,6 @@ let keep_ignores = function
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
+  | Files_only
   | Incremental ->
       false
