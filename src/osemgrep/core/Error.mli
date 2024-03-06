@@ -7,7 +7,7 @@ exception Exit_code of Exit_code.t
 
 (* shortcut *)
 val abort : string -> 'a
-val exit : Exit_code.t -> 'a
+val exit_code_exn : Exit_code.t -> 'a
 
 (* used for CLI text output and for the metrics payload.errors.errors *)
 val string_of_error_type : Semgrep_output_v1_t.error_type -> string
