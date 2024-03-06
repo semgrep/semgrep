@@ -8,6 +8,8 @@
 
 open Common
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*************************************************************************)
 (* Entry points *)
 (*************************************************************************)
@@ -16,8 +18,8 @@ exception Fallback
 
 (* dispatch back to pysemgrep! *)
 let pysemgrep (caps : < Cap.exec >) argv =
-  Logs.info (fun m ->
-      m "execute pysemgrep: %s"
+  Logs.debug (fun m ->
+      m ~tags "execute pysemgrep: %s"
         (argv |> Array.to_list
         |> List_.map (fun arg -> spf "%S" arg)
         |> String.concat " "));
