@@ -480,7 +480,7 @@ class RuleValidation:
 def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:
     """
     Heuristic that returns meaningful error messages in all examples from
-    tests/e2e/rules/syntax/badXXX.yaml
+    tests/default/e2e/rules/syntax/badXXX.yaml
     """
 
     contexts = (error.parent.context or []) if error.parent else [error]

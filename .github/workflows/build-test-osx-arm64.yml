@@ -111,7 +111,7 @@ jobs:
           fi;
         shell: bash {0}
 name: build-test-osx-arm64
-"on":
+on:
   workflow_call:
     inputs:
       use-cache:
