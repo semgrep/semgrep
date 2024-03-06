@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties is missing: 'languages'",
+      "long_msg": "Error parsing rule (0) `eqeq-is-bad`:\n  - received `{'tappern': 'whoops, typo'}`\n  - Union Tag Not Found: Unable to extract tag using discriminator pattern_either_discriminator()",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

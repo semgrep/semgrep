@@ -1,10 +1,17 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/string-pattern-under-patterns.yaml:4
+  --> rules/invalid-rules/string-pattern-under-patterns.yaml:2
+2 | - id: eqeq
+3 |   patterns:
 4 |     - "foo"
-  |       ^^^^^
+5 |   message: |
+6 |     You can't use string literals as patterns in old-style rules!
+7 |   languages: [py]
+8 |   severity: WARNING
 
-'foo' is not of type 'object'
+Error parsing rule (0) `eqeq`:
+  - received `foo`
+  - Union Tag Not Found: Unable to extract tag using discriminator pattern_discriminator()
 
 [ERROR] Rule parse error in rule eqeq:
  Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?

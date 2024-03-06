@@ -48,3 +48,4 @@ typing_extensions = "*"
 [packages]
 jsonschema = "==4.6.1"
 semgrep = {editable = true, extras = ["experiments"], path = "."}
+pydantic = "==2.6.1"

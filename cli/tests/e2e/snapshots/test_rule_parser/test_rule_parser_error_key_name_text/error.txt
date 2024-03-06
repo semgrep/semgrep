@@ -1,5 +1,7 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
-  --> rules/syntax/invalid-key-name.yml:4
+  --> rules/syntax/invalid-key-name.yml:2
+[94m[22m[24m2  | [0m  - id: dockerfile-source-not-pinned
+[94m[22m[24m3  | [0m    patterns:
 [94m[22m[24m4  | [0m      - patterns-either:   # this is an invalid key name
 [94m[22m[24m5  | [0m          - patterns:
 [94m[22m[24m6  | [0m              - pattern: FROM $IMAGE:$VERSION@$HASH
@@ -11,7 +13,21 @@
 [94m[22m[24m12 | [0m              - pattern: FROM $IMAGE:$VERSION
 [94m[22m[24m13 | [0m              - pattern-not-inside: FROM $IMAGE:$VERSION@$HASH
 [94m[22m[24m14 | [0m    message: To ensure reproducible builds, pin Dockerfile `FROM` commands to a
+[94m[22m[24m15 | [0m      specific hash. You can find the hash by running `docker pull $IMAGE` and then
+[94m[22m[24m16 | [0m      specify it with `$IMAGE:$VERSION@sha256:<hash goes here>`
+[94m[22m[24m17 | [0m    fix: FROM $IMAGE:$VERSION@sha256:$HASH
+[94m[22m[24m18 | [0m    languages:
+[94m[22m[24m19 | [0m      - dockerfile
+[94m[22m[24m20 | [0m    severity: ERROR
+[94m[22m[24m21 | [0m    metadata:
+[94m[22m[24m22 | [0m      references:
+[94m[22m[24m23 | [0m        - https://stackoverflow.com/a/33511811/4965
+[94m[22m[24m24 | [0m      category: best-practice
+[94m[22m[24m25 | [0m      technology:
+[94m[22m[24m26 | [0m        - docker
 
-[31m[22m[24mAdditional properties are not allowed ('patterns-either' was unexpected)[0m
+[31m[22m[24mError parsing rule (0) `dockerfile-source-not-pinned`:
+  - received `{'patterns-either': [{'patterns': [{'pattern': 'FROM $IMAGE:$VERSION@$HASH'}, {'metavariable-regex': {'metavariable': '$HASH', 'regex': '(?!sha256:)'}}]}, {'patterns': [{'pattern': 'FROM $IMAGE'}, {'pattern': 'FROM $IMAGE:$VERSION'}, {'pattern-not-inside': 'FROM $IMAGE:$VERSION@$HASH'}]}]}`
+  - Union Tag Not Found: Unable to extract tag using discriminator pattern_discriminator()[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

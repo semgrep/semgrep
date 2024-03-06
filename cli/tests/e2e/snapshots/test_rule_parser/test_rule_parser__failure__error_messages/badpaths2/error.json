@@ -3,20 +3,20 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Additional properties are not allowed ('filename' was unexpected)",
+      "long_msg": "Error parsing rule (0) `arg-reassign`:\n  - received `*.py`\n  - Extra Forbidden: Extra inputs are not permitted",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 5,
-            "line": 9,
+            "col": 1,
+            "line": 12,
             "offset": -1
           },
           "file": "rules/syntax/badpaths2.yaml",
           "source_hash": "e8a29e15677c634a77353a6099e2c0acf18909672c87d06292a1caece7cd4d3c",
           "start": {
-            "col": 7,
-            "line": 8,
+            "col": 5,
+            "line": 2,
             "offset": -1
           }
         }

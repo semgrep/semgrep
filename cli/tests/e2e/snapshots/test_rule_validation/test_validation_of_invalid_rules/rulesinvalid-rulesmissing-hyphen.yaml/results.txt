@@ -1,15 +1,21 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/missing-hyphen.yaml:4
-4 |     - pattern: |
-5 |         foo
-6 |       pattern-not: |
-7 |         bar
-8 |   message: |
+  --> rules/invalid-rules/missing-hyphen.yaml:2
+2  | - id: eqeq
+3  |   patterns:
+4  |     - pattern: |
+5  |         foo
+6  |       pattern-not: |
+7  |         bar
+8  |   message: |
+9  |     You need to hyphenate each pattern so it's a different item in the list.
+10 |   languages: [py]
+11 |   severity: WARNING
 
-Additional properties are not allowed ('pattern' was unexpected)
-Additional properties are not allowed ('pattern', 'pattern-not' were unexpected)
-Additional properties are not allowed ('pattern-not' was unexpected)
+Error parsing rule (0) `eqeq`:
+  - received `bar
+`
+  - Extra Forbidden: Extra inputs are not permitted
 
 [ERROR] Rule parse error in rule eqeq:
  Expected object with only one entry -- did you forget a hyphen?
