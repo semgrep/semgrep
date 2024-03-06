@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 
 (*****************************************************************************)
 (* Faster List.map *)
@@ -276,7 +275,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
@@ -390,7 +389,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
