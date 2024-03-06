@@ -429,7 +429,7 @@ def run_join_rule(
     These are the conditions which must be satisfied for this rule to report results.
     All conditions must be satisfied.
 
-    See cli/tests/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml
+    See cli/tests/default/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml
     for an example.
     """
     join_contents = join_rule.get("join", {})

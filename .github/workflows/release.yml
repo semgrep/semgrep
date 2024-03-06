@@ -233,7 +233,7 @@ jobs:
       - name: Continue
         run: echo "All Platforms have been built and tested - proceeding!"
 name: release
-"on":
+on:
   push:
     tags:
       - v*

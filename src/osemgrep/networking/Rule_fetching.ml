@@ -67,7 +67,8 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
     else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
   in
   (* LATER: we should use Fpath.normalize first, but pysemgrep
-   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * doesn't as shown by
+     tests/default/e2e/test_check.py::test_basic_rule__relative
    * so we reproduce the same behavior, leading sometimes to some
    * weird rule id like "rules....rules.test" when passing
    * rules/../rules/test.yaml to --config.
