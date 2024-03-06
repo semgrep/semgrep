@@ -229,29 +229,11 @@ local download_x86_pro_artifacts = {
 };
 local install_x86_pro_artifacts = {
   name: 'Install pro artifacts',
+  'working-directory': 'cli',
   run: |||
     tar xf ocaml-build-artifacts.tgz
     sudo cp ocaml-build-artifacts/bin/* /usr/bin
-
-    # The version is stored in cli/src/semgrep/__init__.py
-    # and the file content looks like
-    #   __VERSION__ = "x.xx.x"
-    # so we try to get the x.xx.x part from that file below.
-
-    # First, read the file content
-    version=$(<cli/src/semgrep/__init__.py)
-
-    # Next, we remove the prefix that leads up to the number.
-    version="${version##__VERSION__ = \"}"
-
-    # Finally, we remove the final quote suffix.
-    version="${version%*\"}"
-
-    # By writing the version number to this file and putting it
-    # in the same directory as semgrep-core-proprietary,
-    # the binary will pass the cli's checks and can be run.
-    echo "$version" > pro-installed-by.txt
-    sudo cp pro-installed-by.txt /usr/bin
+    pipenv run semgrep install-semgrep-pro --custom-binary /usr/bin/semgrep-core-proprietary
   |||,
 };
 
@@ -289,6 +271,8 @@ local test_cli_job = {
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
     download_x86_pro_artifacts,
+    // This step must be done after setting up python and pipenv,
+    // because it will configure the cli to use the pro binary.
     install_x86_pro_artifacts,
     install_python_deps,
     {
