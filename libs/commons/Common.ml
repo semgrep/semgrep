@@ -436,8 +436,8 @@ let s_to_i = int_of_string
 *)
 let input_text_line ic =
   let s = input_line ic in
-  let len = String.length s in
-  if len > 0 && s.[len - 1] =$= '\r' then String.sub s 0 (len - 1) else s
+  String_.trim_cr s
+
 (*###########################################################################*)
 (* Containers *)
 (*###########################################################################*)
