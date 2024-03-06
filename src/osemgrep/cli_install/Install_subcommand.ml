@@ -354,7 +354,7 @@ let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
   if UFile.dir_exists repo then repo
   else
     let tmp_dir =
-      UTmp.get_temp_dir_name ()
+      CapTmp.get_temp_dir_name caps#tmp
       / spf "semgrep_install_ci_%6X" (CapRandom.int caps#random 0xFFFFFF)
     in
     mkdir_if_needed !!tmp_dir;

@@ -826,8 +826,9 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
    experimental = we're sure that we won't invoke pysemgrep later with the
    same argv; allows us to consume stdin and named pipes.
 *)
-let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
-    (target_roots : string list) : Scanning_root.t list * bool =
+let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
+    ~(experimental : bool) (target_roots : string list) :
+    Scanning_root.t list * bool =
   let imply_always_select_explicit_targets = ref false in
   let target_roots =
     target_roots
@@ -838,7 +839,8 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
                if experimental then
                  (* consumes stdin, preventing command-line forwarding to
                     pysemgrep or another osemgrep! *)
-                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+                 CapTmp.replace_stdin_by_regular_file caps#tmp
+                   ~prefix:"osemgrep-stdin-" ()
                else
                  (* remove this hack when no longer forward the command line
                     to another program *)
@@ -847,7 +849,7 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
                let orig_path = Fpath.v str in
                if experimental then (
                  match
-                   UTmp.replace_named_pipe_by_regular_file_if_needed
+                   CapTmp.replace_named_pipe_by_regular_file_if_needed caps#tmp
                      ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
                  with
                  | None -> orig_path
@@ -884,7 +886,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
     Logs_.setup_logging ~level:common.CLI_common.logging_level ();
     let target_roots, imply_always_select_explicit_targets =
-      replace_target_roots_by_regular_files_where_needed
+      replace_target_roots_by_regular_files_where_needed caps
         ~experimental:(common.maturity =*= Maturity.Experimental)
         target_roots
     in

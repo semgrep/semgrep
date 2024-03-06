@@ -90,6 +90,7 @@ let offsets_of_mval extract_mvalue =
 let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
     extracted_target =
   let suffix = Xlang.informative_suffix dst_lang in
+  (* nosemgrep: forbid-tmp *)
   let f = UTmp.new_temp_file "extracted" suffix in
   UFile.write_file ~file:f contents;
   Extracted f

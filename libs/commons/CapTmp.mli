@@ -11,4 +11,7 @@ val new_temp_file :
 val replace_named_pipe_by_regular_file_if_needed :
   Cap.FS.tmp -> ?prefix:string -> Fpath.t -> Fpath.t option
 
+val replace_stdin_by_regular_file :
+  Cap.FS.tmp -> ?prefix:string -> unit -> Fpath.t
+
 val erase_temp_files : Cap.FS.tmp -> unit

@@ -18,7 +18,7 @@ local funcs = [
         any:
           [('Filename.' + p) for p in funcs] +
           [('UFilename.' + p) for p in funcs] +
-          ["UTmp.xxx"], #TODO $F
+          ["UTmp.$F"],
       },
       languages: ['ocaml'],
       paths: {
