@@ -65,17 +65,6 @@ val targets_of_config :
   The rule ids argument is useful only when you don't use -target.
  *)
 
-val extracted_targets_of_config :
-  Core_scan_config.t ->
-  Rule.extract_rule list ->
-  Target.regular list ->
-  Target.t list * Extract.adjusters
-(**
-   Generate a list of new targets, which are extracted with extract rules
-   from original targets. This returns also "adjusters" which are functions
-   to map back matches on extracted targets to matches on the original target.
-*)
-
 (* This is also used by semgrep-proprietary. It filters the rules that
    apply to a given target file for a given analyzer.
    It takes into account the analyzer (specified by 'languages' field)
