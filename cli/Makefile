@@ -118,7 +118,7 @@ e2e-pro:
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
 qa:
-	$(PYTEST) tests/default/qa
+	$(PYTEST) tests/qa
 
 ###############################################################################
 # Osemgrep tests
