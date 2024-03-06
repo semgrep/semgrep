@@ -93,7 +93,6 @@ class RuleMatch:
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
-    cli_unique_key: CliUniqueKey = field(init=False, repr=False)
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     match_based_key: Tuple = field(init=False, repr=False)
@@ -222,74 +221,12 @@ class RuleMatch:
         code = code.strip()
         return code
 
-    @cli_unique_key.default
-    def get_cli_unique_key(self) -> CliUniqueKey:
-        """
-        A unique key designed with data-completeness & correctness in mind.
-
-        Results in more unique findings than ci_unique_key.
-
-        Used for deduplication in the CLI before writing output.
-        """
-        return (
-            # NOTE: We include the previous scan's rules in the config for
-            # consistent fixed status work. For unique hashing/grouping,
-            # previous and current scan rules must have distinct check IDs.
-            # Hence, previous scan rules are annotated with a unique check ID,
-            # while the original ID is kept in metadata. As check_id is used
-            # for cli_unique_key, this patch fetches the check ID from metadata
-            # for previous scan findings.
-            # TODO: Once the fixed status work is stable, all findings should
-            # fetch the check ID from metadata. This fallback prevents breaking
-            # current scan results if an issue arises.
-            self.annotated_rule_name if self.from_transient_scan else self.rule_id,
-            str(self.git_blob.value if self.git_blob else self.path),
-            self.start.offset,
-            self.end.offset,
-            self.message,
-            # TODO: Bring this back.
-            # This is necessary so we don't deduplicate taint findings which
-            # have different sources.
-            #
-            # self.match.extra.dataflow_trace.to_json_string
-            # if self.match.extra.dataflow_trace
-            # else None,
-            None,
-            # NOTE: previously, we considered self.match.extra.validation_state
-            # here, but since in some cases (e.g., with `anywhere`) we generate
-            # many matches in certain cases, we want to consider secrets
-            # matches unique under the above set of things, but with a priority
-            # associated with the validation state; i.e., a match with a
-            # confirmed valid state should replace all matches equal under the
-            # above key. We can't do that just by not considering validation
-            # state since we would pick one arbitrarily, and if we added it
-            # below then we would report _both_ valid and invalid (but we only
-            # want to report valid, if a valid one is present and unique per
-            # above fields). See also `should_report_instead`.
-        )
-
-    def should_report_instead(self, other: "RuleMatch") -> bool:
-        """
-        Returns True iff we should report `self` in lieu of reporting `other`.
-        This is currently only used for the following items:
-        - secrets: a valid finding is reported over an invalid one
-
-        Assumes that self.cli_unique_key == other.cli_unique_key
-        """
-        if self.validation_state is None:
-            return False
-        if other.validation_state is None:
-            return True
-        return isinstance(
-            self.validation_state.value, out.ConfirmedValid
-        ) and not isinstance(other.validation_state.value, out.ConfirmedValid)
-
     @ci_unique_key.default
     def get_ci_unique_key(self) -> Tuple:
         """
         A unique key designed with notification user experience in mind.
 
-        Results in fewer unique findings than cli_unique_key.
+        Results in fewer unique findings than core_unique_key.
         """
         try:
             path = self.path.relative_to(Path.cwd())
@@ -314,7 +251,7 @@ class RuleMatch:
         """
         A unique key that accounts for filepath renames.
 
-        Results in fewer unique findings than cli_unique_key.
+        Results in fewer unique findings than core_unique_key.
         """
         try:
             path = str(self.path.relative_to(Path.cwd()))
@@ -621,24 +558,13 @@ class RuleMatch:
     def annotated_rule_name(self) -> str:
         return self.metadata.get("semgrep.dev", {}).get("rule", {}).get("rule_name")
 
-    def __hash__(self) -> int:
-        """
-        We use the "data-correctness" key to prevent keeping around duplicates.
-        """
-        return hash(self.cli_unique_key)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, type(self)):
-            return False
-        return self.cli_unique_key == other.cli_unique_key
-
     def __lt__(self, other: "RuleMatch") -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
         return self.ordering_key < other.ordering_key
 
 
-class RuleMatchSet(Iterable[RuleMatch]):
+class RuleMatches(Iterable[RuleMatch]):
     """
     A custom set type which is aware when findings are the same.
 
@@ -652,9 +578,9 @@ class RuleMatchSet(Iterable[RuleMatch]):
         self._ci_key_counts: CounterType[Tuple] = Counter()
         self._rule = rule
         if __iterable is None:
-            self._set = set()
+            self._store = []
         else:
-            self._set = set(__iterable)
+            self._store = list(__iterable)
 
     def add(self, match: RuleMatch) -> None:
         """
@@ -674,7 +600,7 @@ class RuleMatchSet(Iterable[RuleMatch]):
             match,
             match_based_index=self._match_based_counts[match.get_match_based_key()] - 1,
         )
-        self._set.add(match)
+        self._store.append(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
         """
@@ -689,7 +615,7 @@ class RuleMatchSet(Iterable[RuleMatch]):
                 self.add(rule_match)
 
     def __iter__(self) -> Iterator[RuleMatch]:
-        return iter(self._set)
+        return iter(self._store)
 
 
 # Our code orders findings at one point and then just assumes they're in order.
