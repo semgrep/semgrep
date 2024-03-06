@@ -63,9 +63,10 @@ val of_string_exn : string -> t
 
 (* converters *)
 val to_fpath : t -> Fpath.t
-
-(* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
 val to_string : t -> string
+
+(* <=> to_fpath (of_fpath s) *)
+val canonical_exn : Fpath.t -> Fpath.t
 
 (*
    Get the current working directory from the system.

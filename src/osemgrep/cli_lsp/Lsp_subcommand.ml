@@ -9,7 +9,7 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.random ; Cap.network >
+type caps = < Cap.random ; Cap.network ; Cap.tmp >
 
 module Io = RPC_server.MakeLSIO (struct
   type input = Lwt_io.input_channel

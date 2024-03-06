@@ -17,7 +17,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -222,7 +222,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
     | Test_CLI.File (path, config_str)
     | Test_CLI.Dir (path, Some config_str) ->
         let rule_files_and_rules =
-          rule_files_and_rules_of_config_string (caps :> Cap.network) config_str
+          rule_files_and_rules_of_config_string
+            (caps :> < Cap.network ; Cap.tmp >)
+            config_str
         in
         (* alt: use Find_targets.get_target_fpaths but then it requires
          * a Find_targets.conf, and this will respect the .semgrepignore

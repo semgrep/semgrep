@@ -1,6 +1,6 @@
 (* Brandon Wu, Yoann Padioleau
  *
- * Copyright (C) 2022-2023 Semgrep Inc.
+ * Copyright (C) 2022-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -36,8 +36,6 @@
 
 open Common
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -48,20 +46,9 @@ type t = Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 (* Main functions *)
 (*****************************************************************************)
 
-let bug_repro path =
-  let rpath = Unix.realpath path in
-  let cwd = Unix.getcwd () in
-  let rcwd = Unix.realpath cwd in
-  Logs.debug (fun m ->
-      m ~tags
-        "bug repro: path=%s, Unix.realpath(path)=%s, Unix.getcwd()=%s, \
-         Unix.realpath(cwd)=%s"
-        path rpath cwd rcwd)
-
 let of_string path =
   try
     let rpath = Unix.realpath path in
-    bug_repro path;
     Ok (Rpath (Fpath.v rpath))
   with
   | Unix.Unix_error (err, _, _) ->
@@ -85,6 +72,9 @@ let of_string_exn path_str =
 let of_fpath path = of_string (Fpath.to_string path)
 let of_fpath_exn fpath = of_string_exn (Fpath.to_string fpath)
 let to_fpath (Rpath x) = x
+let canonical_exn s = to_fpath (of_fpath_exn s)
+
+(* deprecated *)
 let to_string (Rpath x) = Fpath.to_string x
 
 let getcwd () =

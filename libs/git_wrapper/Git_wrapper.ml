@@ -201,7 +201,7 @@ let obj_type_of_string = function
 (* Entry points *)
 (*****************************************************************************)
 
-let git_check_output _caps (args : Cmd.args) : string =
+let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
@@ -400,7 +400,7 @@ let get_merge_base commit =
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
   | _ -> raise (Error "Could not get merge base from git merge-base")
 
-let run_with_worktree ~commit ?(branch = None) f =
+let run_with_worktree caps ~commit ?(branch = None) f =
   let cwd = getcwd () |> Fpath.to_dir_path in
   let git_root = get_project_root_exn () |> Fpath.to_dir_path in
   let relative_path =
@@ -425,11 +425,12 @@ let run_with_worktree ~commit ?(branch = None) f =
   match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) ->
       let work () =
-        Fpath.append temp_dir relative_path |> Fpath.to_string |> UUnix.chdir;
+        Fpath.append temp_dir relative_path
+        |> Fpath.to_string |> CapSys.chdir caps#chdir;
         f ()
       in
       let cleanup () =
-        cwd |> Fpath.to_string |> UUnix.chdir;
+        cwd |> Fpath.to_string |> CapSys.chdir caps#chdir;
         let cmd = (git, [ "worktree"; "remove"; !!temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
         | Ok (`Exited 0) ->

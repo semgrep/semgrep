@@ -20,7 +20,7 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -68,8 +68,10 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       CapConsole.out stdout Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok ~__LOC__
-  | Identity -> Whoami.print caps Whoami.Identity
-  | Deployment -> Whoami.print caps Whoami.Deployment
+  | Identity ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Identity
+  | Deployment ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
   | SupportedLanguages ->
       CapConsole.out stdout
         (spf "supported languages are: %s" Xlang.supported_xlangs);
@@ -104,7 +106,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
           ~token_opt
-          (caps :> < Cap.network >)
+          (caps :> < Cap.network ; Cap.tmp >)
           config
       in
 

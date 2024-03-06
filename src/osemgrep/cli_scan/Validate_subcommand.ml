@@ -39,7 +39,7 @@ module OutJ = Semgrep_output_v1_t
 (*****************************************************************************)
 
 (* TODO: should use stdout, right now we abuse Logs.app *)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (* a slice of Scan_CLI.conf *)
 type conf = {
@@ -77,7 +77,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
       ~strict:conf.core_runner_conf.strict
-      (caps :> < Cap.network >)
+      (caps :> < Cap.network ; Cap.tmp >)
       conf.rules_source
   in
   let rules, errors =
@@ -121,7 +121,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         let metarules_and_origin, _errors =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            (caps :> < Cap.network >)
+            (caps :> < Cap.network ; Cap.tmp >)
             config
         in
         let metarules, metaerrors =

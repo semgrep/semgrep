@@ -403,6 +403,11 @@ def scan_options(func: Callable) -> Callable:
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
 )
+@click.option(
+    "--historical-secrets-targets",
+    "historical_secrets",
+    is_flag=True,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -416,6 +421,7 @@ def scan(
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
     disable_secrets_validation_flag: bool,
+    historical_secrets: bool,
     dryrun: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
@@ -649,6 +655,7 @@ def scan(
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
                     disable_secrets_validation=disable_secrets_validation_flag,
+                    historical_secrets=historical_secrets,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,

@@ -37,7 +37,7 @@ type t = {
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
-  caps : < Cap.random ; Cap.network >; [@opaque]
+  caps : < Cap.random ; Cap.network ; Cap.tmp >; [@opaque]
 }
 [@@deriving show]
 
@@ -76,7 +76,7 @@ let dirty_files_of_folder folder =
 
 (* TODO: registry caching is not anymore in semgrep-OSS! *)
 let decode_rules caps data =
-  UTmp.with_tmp_file ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_tmp_file caps#tmp ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           caps file

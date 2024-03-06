@@ -336,6 +336,7 @@ def run_scan(
     disable_secrets_validation: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
+    historical_secrets: bool = False,
     pattern: Optional[str],
     lang: Optional[str],
     configs: Sequence[
@@ -523,8 +524,9 @@ def run_scan(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
-    target_mode_config = TargetModeConfig.whole_scan()
-    if baseline_handler is not None:
+    if historical_secrets:
+        target_mode_config = TargetModeConfig.historical_scan()
+    elif baseline_handler is not None:
         if engine_type.is_interfile:
             target_mode_config = TargetModeConfig.pro_diff_scan(
                 # `target_manager.get_all_files()` will only return changed files
@@ -534,6 +536,8 @@ def run_scan(
             )
         else:
             target_mode_config = TargetModeConfig.diff_scan()
+    else:
+        target_mode_config = TargetModeConfig.whole_scan()
 
     core_start_time = time.time()
     core_runner = CoreRunner(
