@@ -5,11 +5,11 @@ local common = import 'common.libsonnet';
     {
       id: 'forbid-exit',
       match: { any: [
-	'exit $N',
+        'exit $N',
         'Stdlib.exit',
         'UStdlib.exit',
-	'Unix._exit',
-	'UUnix._exit'
+        'Unix._exit',
+        'UUnix._exit'
       ] },
       languages: ['ocaml'],
       paths: common.exclude,

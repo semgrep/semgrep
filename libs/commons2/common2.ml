@@ -1768,20 +1768,6 @@ let normalize_path (file : string) : string =
   let xs' = aux [] xs in
   (if is_rel then "" else "/") ^ join "/" xs'
 
-(*
-let relative_to_absolute s =
-  if Filename.is_relative s
-  then
-    begin
-      let old = USys.getcwd () in
-      Sys.chdir s;
-      let current = USys.getcwd () in
-      Sys.chdir old;
-      s
-    end
-  else s
-*)
-
 let relative_to_absolute s =
   if s = "." then USys.getcwd ()
   else if Filename.is_relative s then USys.getcwd () ^ "/" ^ s
