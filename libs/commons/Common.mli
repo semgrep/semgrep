@@ -26,27 +26,8 @@
  *
  * See also the Operators submodule at the end of this file.
  *)
-val ( = ) : string -> string -> bool
 
-(* If you need to use '=', at least use the more precise operators below. *)
-val ( =|= ) : int -> int -> bool
-val ( =$= ) : char -> char -> bool
-val ( =:= ) : bool -> bool -> bool
-
-(* if you really really need to use the polymorphic '=', at least use
- * the operator below so it's easier to grep for it if one needs to refactor
- * the code to use 'deriving eq' instead.
- *)
-val ( =*= ) : 'a -> 'a -> bool
-
-val equal_ref_option :
-  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
-
-(*
-   Disable the use of (==) since some people confuse it with structural
-   equality. We do this here since we're disabling in with semgrep anyway
-   and it's quicker if the compiler can report it.
-*)
+include module type of Eq.Operators
 
 (* Physical (shallow) equality, normally available as (==) *)
 val phys_equal : 'a -> 'a -> bool
@@ -54,10 +35,8 @@ val phys_equal : 'a -> 'a -> bool
 (* Physical (shallow) inequality, normally available as (!=) *)
 val phys_not_equal : 'a -> 'a -> bool
 
-type hidden_by_your_nanny
-
-val ( == ) : hidden_by_your_nanny
-val ( != ) : hidden_by_your_nanny
+val equal_ref_option :
+  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
 
 (*****************************************************************************)
 (* Comparison *)
@@ -274,8 +253,8 @@ module Operators : sig
   val ( =$= ) : char -> char -> bool
   val ( =:= ) : bool -> bool -> bool
   val ( =*= ) : 'a -> 'a -> bool
-  val ( == ) : hidden_by_your_nanny
-  val ( != ) : hidden_by_your_nanny
+  val ( == ) : Eq.hidden_by_your_nanny
+  val ( != ) : Eq.hidden_by_your_nanny
 end
 
 (*****************************************************************************)
