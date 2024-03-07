@@ -21,7 +21,7 @@ local job = container.job {
   // installed, as well as an opam switch already created, and a big set of
   // packages already installed. Thus, the
   // 'make install-deps-ALPINE-for-semgrep-core' below is very fast and almost a
-  // noop.
+  // noop. Better to still include the build anyway in case the container changes.
   // As of now, we are unable to use setup-ocaml@v2 because it uses apt-get
   // which is not available on alpine.
   // alt: use our r2c ubuntu-ocaml but get 'git ls-files exit 128' error under
