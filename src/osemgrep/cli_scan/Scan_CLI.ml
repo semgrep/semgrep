@@ -472,7 +472,7 @@ let o_incremental_output : bool Term.t =
 
 let o_files_only : bool Term.t =
   let info =
-    Arg.info [ "files_only" ]
+    Arg.info [ "files-only" ]
       ~doc:{|Output only the names of files containing matches|}
   in
   Arg.value (Arg.flag info)
