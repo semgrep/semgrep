@@ -163,7 +163,7 @@ def generate_reachable_sca_findings(
         for match in matches:
             try:
                 lockfile_path = target_manager.find_single_lockfile(
-                    match.path, ecosystem
+                    match.path, ecosystem, ignore_baseline_handler=True
                 )
                 if lockfile_path is None:
                     continue
