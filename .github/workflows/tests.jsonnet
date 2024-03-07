@@ -232,8 +232,9 @@ local install_x86_pro_artifacts = {
   'working-directory': 'cli',
   run: |||
     tar xf ocaml-build-artifacts.tgz
+
+    PATH=$(pwd)/ocaml-build-artifacts/bin pipenv run semgrep install-semgrep-pro --custom-binary /usr/bin/semgrep-core-proprietary
     sudo cp ocaml-build-artifacts/bin/* /usr/bin
-    pipenv run semgrep install-semgrep-pro --custom-binary /usr/bin/semgrep-core-proprietary
   |||,
 };
 
@@ -270,11 +271,11 @@ local test_cli_job = {
     fetch_submodules_step,
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
+    install_python_deps,
     download_x86_pro_artifacts,
     // This step must be done after setting up python and pipenv,
     // because it will configure the cli to use the pro binary.
     install_x86_pro_artifacts,
-    install_python_deps,
     {
       name: 'Run pytest',
       'working-directory': 'cli',
