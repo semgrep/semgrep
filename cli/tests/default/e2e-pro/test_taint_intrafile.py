@@ -10,7 +10,9 @@ from semgrep.constants import OutputFormat
     "rule,target",
     [("rules/taint_intrafile.yaml", "taint/taint_intrafile.py")],
 )
-def test_taint_traces(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot, rule, target):
+def test_taint_intrafile(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot, rule, target
+):
     semgrep_result = run_semgrep_in_tmp(
         rule,
         target_name=target,
