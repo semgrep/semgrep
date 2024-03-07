@@ -139,13 +139,13 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
             let i = max 0 (min i (len - 1)) in
             (line_arr.{i}, col_arr.{i}));
         linecol_to_bytepos_fun =
-          (let cmp = Common.to_comparison Int.compare in
+          (let cmp = Ord.to_comparison Int.compare in
            (* This is the line/col we're trying to find the pos of.
            *)
            fun (line, col) ->
              let res =
                line_arr
-               |> Common.binary_search_bigarr1 ~f:(fun bytepos line' ->
+               |> Ord.binary_search_bigarr1 ~f:(fun bytepos line' ->
                       let col' = col_arr.{bytepos} in
                       (* We want the relationship of the varying line' with respect to the
                          line we are trying to search for.
@@ -153,9 +153,9 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
                          should want to say Greater, because we want to go greater.
                       *)
                       match cmp line line' with
-                      | Equal -> cmp col col'
-                      | Less -> Less
-                      | Greater -> Greater)
+                      | Ord.Equal -> cmp col col'
+                      | Ord.Less -> Ord.Less
+                      | Ord.Greater -> Ord.Greater)
              in
              match res with
              | Error _idx -> raise Not_found

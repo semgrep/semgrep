@@ -1,2 +1,0 @@
-Removed the AST caching experimental feature (--experimental --ast-caching
-in osemgrep and -parsing_cache_dir in semgrep-core).

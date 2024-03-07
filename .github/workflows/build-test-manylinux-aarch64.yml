@@ -44,6 +44,6 @@ jobs:
           name: manylinux-aarch64-wheel
           path: semgrep/cli/dist.zip
 name: build-test-manylinux-aarch64
-"on":
+on:
   workflow_call: null
   workflow_dispatch: null

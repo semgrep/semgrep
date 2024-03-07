@@ -38,6 +38,8 @@ from semgrep.constants import OutputFormat
 ##############################################################################
 
 TESTS_PATH = Path(__file__).parent
+RULES_PATH = Path(TESTS_PATH / "default" / "e2e" / "rules")
+TARGETS_PATH = Path(TESTS_PATH / "default" / "e2e" / "targets")
 
 ##############################################################################
 # Pytest hacks
@@ -382,7 +384,7 @@ def _run_semgrep(
     """Run the semgrep CLI.
 
     :param config: what to pass as --config's value
-    :param target_name: which path (either relative or absolute) within ./e2e/targets/ to scan
+    :param target_name: which path (either relative or absolute) within ./default/e2e/targets/ to scan
     :param options: additional CLI flags to add
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
@@ -497,8 +499,8 @@ def run_semgrep_in_tmp(
     """
     Note that this can cause failures if Semgrep pollutes either the targets or rules path
     """
-    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
-    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    (tmp_path / "targets").symlink_to(TARGETS_PATH.resolve())
+    (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path)
 
     return _run_semgrep
@@ -512,8 +514,8 @@ def run_semgrep_on_copied_files(
     Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
     directory pollution, also avoids issues with symlink navigation
     """
-    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
-    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
+    copytree(TARGETS_PATH.resolve(), tmp_path / "targets")
+    copytree(RULES_PATH.resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
     return _run_semgrep
@@ -544,8 +546,8 @@ def git_tmp_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 @pytest.fixture
 def parse_lockfile_path_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
-    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    (tmp_path / "targets").symlink_to(TARGETS_PATH.resolve())
+    (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path
 
@@ -559,6 +561,6 @@ def parse_lockfile_path_in_tmp_for_perf(
     (tmp_path / "targets_perf_sca").symlink_to(
         Path(TESTS_PATH / "performance" / "targets_perf_sca").resolve()
     )
-    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path

@@ -39,6 +39,6 @@ jobs:
       - name: Test semgrep-core
         run: opam exec -- make core-test
 name: build-test-core-x86
-"on":
+on:
   workflow_call: null
   workflow_dispatch: null

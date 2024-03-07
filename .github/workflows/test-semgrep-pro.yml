@@ -49,7 +49,7 @@ jobs:
       - name: Run Semgrep Pro Engine!
         run: docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
 name: test-semgrep-pro
-"on":
+on:
   workflow_call:
     inputs:
       artifact-name:
