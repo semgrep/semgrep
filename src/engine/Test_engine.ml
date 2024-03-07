@@ -180,37 +180,6 @@ let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
     failwith (spf "parsing error(s) on %s:\n%s" !!rule_file errors)
 
 (*****************************************************************************)
-(* Extract mode special handling *)
-(*****************************************************************************)
-
-let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
-    (rules : Rule.t list) (rule_file : Fpath.t) (xtarget : Xtarget.t) :
-    RP.matches_single_file list =
-  (* coupling: This is basically duplicated from Core_scan
-     TODO we should test extract mode through integration tests
-     rather than duplicating all this
-  *)
-  let (extracted_targets : Extract.extracted_target_and_adjuster list) =
-    Match_extract_mode.extract
-      ~match_hook:(fun _ _ -> ())
-      ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
-  in
-  let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
-  try
-    extracted_targets
-    |> List_.map
-         (fun Extract.{ extracted = Extracted file; analyzer = xlang; _ } ->
-           let xtarget = xtarget_of_file xlang file in
-           let xconf = Match_env.default_xconfig in
-           Match_rules.check
-             ~match_hook:(fun _ _ -> ())
-             ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-           |> Extract.adjust_location_extracted_targets_if_needed adjusters file)
-  with
-  | exn ->
-      failwith (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
-
-(*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
@@ -263,7 +232,6 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         (* actual *)
         let xtarget = xtarget_of_file xlang target in
         let xconf = Match_env.default_xconfig in
-        let rules, extract_rules = Extract.partition_rules rules in
 
         E.g_errors := [];
         Core_profiling.profiling := true;
@@ -280,14 +248,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         in
         check_can_marshall rule_file res;
         check_parse_errors rule_file res.errors;
-        let eres =
-          run_check_for_extract_rules extract_rules rules rule_file xtarget
-        in
 
-        res :: eres
-        |> List.iter (fun (res : Core_result.matches_single_file) ->
-               check_profiling rule_file target res;
-               res.matches |> List.iter Core_json_output.match_to_push_error);
+        check_profiling rule_file target res;
+        res.matches |> List.iter Core_json_output.match_to_push_error;
         let actual_errors = !E.g_errors in
         E.g_errors := [];
         actual_errors

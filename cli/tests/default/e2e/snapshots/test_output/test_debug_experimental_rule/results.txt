@@ -64,8 +64,6 @@ Running Semgrep engine with command:
     }
   ]
 }
-[<MASKED>][DEBUG]: extracting nested content from 1 files
-[<MASKED>][DEBUG](Match_rules): checking <MASKED> with 0 rules
 [<MASKED>][INFO](Core_scan): processing 1 files, skipping 0 files
 [<MASKED>][INFO]: Analyzing <MASKED> (contents in <MASKED>
 [<MASKED>][DEBUG](Match_rules): checking <MASKED> with 1 rules
@@ -231,8 +229,6 @@ Running Semgrep engine with command:
     }
   ]
 }
-[<MASKED>][[32mDEBUG[0m]: extracting nested content from 1 files
-[<MASKED>][[32mDEBUG[0m](Match_rules): checking <MASKED> with 0 rules
 [<MASKED>][[34mINFO[0m](Core_scan): processing 1 files, skipping 0 files
 [<MASKED>][[34mINFO[0m]: Analyzing <MASKED> (contents in <MASKED>
 [<MASKED>][[32mDEBUG[0m](Match_rules): checking <MASKED> with 1 rules
