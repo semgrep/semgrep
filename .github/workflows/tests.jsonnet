@@ -229,12 +229,19 @@ local download_x86_pro_artifacts = {
 };
 local install_x86_pro_artifacts = {
   name: 'Install pro artifacts',
-  'working-directory': 'cli',
   run: |||
     tar xf ocaml-build-artifacts.tgz
 
-    PATH=$(pwd)/ocaml-build-artifacts/bin pipenv run semgrep install-semgrep-pro --custom-binary /usr/bin/semgrep-core-proprietary
-    sudo cp ocaml-build-artifacts/bin/* /usr/bin
+    # All binaries will be placed in cli/tmp-bin first
+    # before copying over to /usr/bin. This is so that
+    # we don't need to run semgrep with sudo.
+    mkdir cli/tmp-bin
+    mv ocaml-build-artifacts/semgrep-core cli/tmp-bin
+    cd cli
+    PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
+
+    # Later we copy these files to /usr/bin which requires sudo
+    sudo cp tmp-bin/* /usr/bin
   |||,
 };
 
