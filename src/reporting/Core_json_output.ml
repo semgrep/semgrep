@@ -39,55 +39,15 @@ type rule_scan_source =
 (* Helpers *)
 (*****************************************************************************)
 
-let range_of_any_opt startp_of_match_range any =
+let range_of_any startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
-  match any with
+  match AST_generic_helpers.range_of_any any with
   (* those are ok and we don't want to generate a NoTokenLocation for those.
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
    *)
-  | Ss []
-  | Params []
-  | Args []
-  | Xmls [] ->
-      Some empty_range
-  (* TODO? Flds [] ? Pr []? *)
-  | Ss _
-  | Params _
-  | Args _
-  | Xmls _
-  | E _
-  | S _
-  | T _
-  | P _
-  | At _
-  | XmlAt _
-  | Fld _
-  | Flds _
-  | Partial _
-  | Name _
-  | Raw _
-  | I _
-  | Str _
-  | Def _
-  | Dir _
-  | Pr _
-  | Tk _
-  | TodoK _
-  | Ar _
-  | Pa _
-  | Tp _
-  | Ta _
-  | Modn _
-  | Ce _
-  | Cs _
-  | ForOrIfComp _
-  | ModDk _
-  | En _
-  | Dk _
-  | Di _
-  | Lbli _
-  | Anys _ ->
-      let* min_loc, max_loc = AST_generic_helpers.range_of_any_opt any in
+  | No_range_expected -> Some empty_range
+  | No_range_error -> None
+  | Range (min_loc, max_loc) ->
       let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
@@ -248,7 +208,7 @@ let metavar_string_of_any any =
 
 let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =
-    match range_of_any_opt default_start any with
+    match range_of_any default_start any with
     | Some (start, end_) ->
         Some
           OutJ.
@@ -280,7 +240,7 @@ let get_propagated_value default_start mvalue =
 
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
-  match range_of_any_opt startp_of_match_range any with
+  match range_of_any startp_of_match_range any with
   | None ->
       raise
         (Tok.NoTokenLocation

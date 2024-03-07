@@ -29,6 +29,15 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type any_range =
+  | No_range_error
+  | No_range_expected
+  | Range of Tok.location * Tok.location
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -584,28 +593,38 @@ let range_of_tokens tokens =
   | tokens -> Some (Tok_range.min_max_toks_by_pos tokens)
 [@@profiling]
 
-let range_of_any_opt any =
+let range_of_any any =
   (* Even if the ranges are cached, calling `extract_ranges` to get them
    * is extremely expensive (due to `mk_visitor`). Testing taint-mode
    * open-redirect rule on Django, we spent ~16 seconds computing range
    * info (despite caching). If we bypass `extract_ranges` as we do here,
    * that time drops to just ~1.5 seconds! *)
   match any with
-  | G.E e when Option.is_some e.e_range -> e.e_range
-  | G.S s when Option.is_some s.s_range -> s.s_range
+  | G.Ss []
+  | G.Pr []
+  | Params []
+  | Args []
+  | Xmls [] ->
+      No_range_expected
+  (* TODO? Flds [] ? Pr []? *)
+  | G.E { e_range = Some (l, r); _ } -> Range (l, r)
+  | G.S { s_range = Some (l, r); _ } -> Range (l, r)
   | G.Tk tok -> (
       match Tok.loc_of_tok tok with
-      | Ok tok_loc -> Some (tok_loc, tok_loc)
-      | Error _ -> None)
-  | G.Anys [] -> None
-  | _ -> extract_ranges any
+      | Ok tok_loc -> Range (tok_loc, tok_loc)
+      | Error _ -> No_range_error)
+  | G.Anys [] -> No_range_error
+  | _ -> (
+      match extract_ranges any with
+      | None -> No_range_error
+      | Some (l, r) -> Range (l, r))
 [@@profiling]
 
 (*****************************************************************************)
 (* Nearest Any node of a position *)
 (*****************************************************************************)
 
-type any_range = {
+type any_range_helper = {
   range : (Tok.location * Tok.location) option ref;
   any : (AST_generic.any * (Tok.location * Tok.location)) option ref;
   position : int; (* charpos *)
