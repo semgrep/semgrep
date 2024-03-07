@@ -214,17 +214,18 @@ jobs:
           cache: pipenv
           python-version: ${{ matrix.python }}
       - run: pip install pipenv==2022.6.7
+      - name: Install Python dependencies
+        run: pipenv install --dev
+        working-directory: cli
       - uses: actions/download-artifact@v3
         with:
           name: pro-ocaml-build-artifacts-release
       - name: Install pro artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
+
+          PATH=$(pwd)/ocaml-build-artifacts/bin pipenv run semgrep install-semgrep-pro --custom-binary /usr/bin/semgrep-core-proprietary
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-          cd cli
-          pipenv run semgrep install-semgrep-pro --custom-binary /usr/bin/semgrep-core-proprietary
-      - name: Install Python dependencies
-        run: pipenv install --dev
         working-directory: cli
       - name: Run pytest
         run: |
