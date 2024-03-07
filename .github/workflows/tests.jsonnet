@@ -292,7 +292,7 @@ local test_cli_job = {
         unset CI
         unset "${!GITHUB_@}"
 
-        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
+        SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
       |||,
     },
   ] + snapshot_update_pr_steps,
