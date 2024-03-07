@@ -6,6 +6,27 @@
 
 <!-- insertion point -->
 
+## [1.64.0](https://github.com/returntocorp/semgrep/releases/tag/v1.64.0) - 2024-03-07
+
+
+### Changed
+
+
+- Removed the AST caching experimental feature (--experimental --ast-caching
+  in osemgrep and -parsing_cache_dir in semgrep-core). (ast_caching)
+- Removed the Registry caching experimental feature (--experimental --registry-caching)
+  in osemgrep. (registry_caching)
+
+
+### Fixed
+
+
+- Clean any credentials from project URL before using it, to prevent leakage. (saf-876)
+- `ci`: Updated logic for informational message printed when no rules are sent to
+  correctly display when secrets is enabled (in additional to
+  when code is). (scrt-455)
+
+
 ## [1.63.0](https://github.com/returntocorp/semgrep/releases/tag/v1.63.0) - 2024-02-27
 
 

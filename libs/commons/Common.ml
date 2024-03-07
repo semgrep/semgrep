@@ -69,17 +69,11 @@ let protect ~finally work =
 (*****************************************************************************)
 (* Equality *)
 (*****************************************************************************)
-let ( =|= ) : int -> int -> bool = ( = )
-let ( =$= ) : char -> char -> bool = ( = )
-let ( =:= ) : bool -> bool -> bool = ( = )
 
-(* dangerous, do not use, see the comment in Common.mli *)
-let ( =*= ) = ( = )
+include Eq.Operators
 
-(* To forbid people to use the polymorphic '='.
- * See https://blog.janestreet.com/the-perils-of-polymorphic-compare/
- *)
-let ( = ) = String.equal
+let phys_equal = Eq.phys_equal
+let phys_not_equal = Eq.phys_not_equal
 
 (* Used to give choice whether id_info fields should be checked in semgrep *)
 let equal_ref_option equal_f a b =
@@ -93,14 +87,7 @@ let equal_ref_option equal_f a b =
 (*****************************************************************************)
 (* Disable physical equality/inequality operators *)
 (*****************************************************************************)
-
-let phys_equal = ( == )
-let phys_not_equal = ( != )
-
-type hidden_by_your_nanny = unit
-
-let ( == ) : hidden_by_your_nanny = ()
-let ( != ) : hidden_by_your_nanny = ()
+(* now in Eq.ml *)
 
 (*****************************************************************************)
 (* Comparison *)

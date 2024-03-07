@@ -22,7 +22,7 @@ let t = Testo.create
 (*****************************************************************************)
 (* Partial port of test_login.py to OCaml (some is in Test_osemgrep.ml)
  *
- * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
+ * Note that unlike most cli/tests/default/e2e/test_xxx.py tests, we can't reuse
  * test_login.py to test osemgrep because of the use of mocking
  * and 'use_click_runner=True' in test_login.py
  *)

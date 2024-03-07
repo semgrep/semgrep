@@ -37,7 +37,7 @@ jobs:
           cache-dependency-path: .github/workflows/lint.yml
           python-version: "3.11"
       - env:
-          SKIP_OCAMLFORMAT: "yes"
+          SKIP_OCAMLFORMAT: yes
         uses: pre-commit/action@v3.0.0
   pre-commit-manual:
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
 name: lint
-"on":
+on:
   pull_request: null
   push:
     branches:
