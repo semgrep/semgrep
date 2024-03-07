@@ -4,6 +4,7 @@ from tests.fixtures import RunSemgrep
 from semgrep.constants import OutputFormat
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.osemfail
 @pytest.mark.parametrize(
     "rule,target",
