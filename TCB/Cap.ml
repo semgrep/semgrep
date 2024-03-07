@@ -225,7 +225,7 @@ type all_caps =
   ; network
   ; misc >
 
-type no_cap = unit (* better than [type no_cap = cap] :) *)
+type no_caps = < >
 
 let powerbox : all_caps =
   object
@@ -277,6 +277,11 @@ let powerbox : all_caps =
 let network_caps_UNSAFE () =
   object
     method network = ()
+  end
+
+let tmp_caps_UNSAFE () =
+  object
+    method tmp = ()
   end
 
 (**************************************************************************)

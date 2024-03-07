@@ -152,13 +152,14 @@ type all_caps =
  *)
 
 (* pure computation, just cpu/ram *)
-type no_cap
+type no_caps = < >
 
 (**************************************************************************)
 (* Temporary unsafe caps to help migration *)
 (**************************************************************************)
 (* !!DO NOT USE!! *)
-val network_caps_UNSAFE : unit -> < network : Network.t >
+val network_caps_UNSAFE : unit -> < network >
+val tmp_caps_UNSAFE : unit -> < tmp >
 
 (**************************************************************************)
 (* Entry point *)
