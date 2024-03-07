@@ -117,6 +117,56 @@ def test_rule_match_sorting(mocker):
 
 
 @pytest.mark.quick
+def test_rule_match_sorting_with_git_info(mocker):
+    file_content = dedent(
+        """
+        # first line
+        def foo():
+            5 == 5 # nosem
+            6 == 6 # nosem
+        """
+    ).lstrip()
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    line3 = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule_id"),
+            path=out.Fpath("foo.py"),
+            start=out.Position(3, 1, 24),
+            end=out.Position(3, 15, 38),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+            ),
+        ),
+    )
+    line4 = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule_id"),
+            path=out.Fpath("/tmp/fakepath.py"),
+            start=out.Position(4, 1, 36),
+            end=out.Position(4, 15, 50),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+                historical_info=out.HistoricalInfo(
+                    git_blob=out.Sha1("d7a45f0ee770d69753179824d1c828557ce19054"),
+                    git_commit=out.Sha1("d7a45f0ee770d69753179824d1c828557ce19054"),
+                    git_commit_timestamp=out.Datetime("2024-03-07T20:11:35Z"),
+                ),
+            ),
+        ),
+    )
+    # Should not raise; the values should be comparable without typing issues.
+    [line4, line3].sort()
+
+
+@pytest.mark.quick
 def test_rule_match_hashing(mocker):
     file_content = dedent(
         """
