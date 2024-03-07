@@ -57,7 +57,7 @@ local snapshot_update_pr_steps = [
     'if': failure_and_right_event,
     uses: 'EndBug/add-and-commit@v9',
     with: {
-      add: 'cli/tests/e2e/snapshots',
+      add: 'cli/tests/default/e2e/snapshots',
       default_author: 'github_actions',
       message: 'Update pytest snapshots',
       new_branch: 'snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}',
@@ -265,7 +265,7 @@ local test_cli_job = {
         unset CI
         unset "${!GITHUB_@}"
 
-        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
+        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
       |||,
     },
   ] + snapshot_update_pr_steps,
@@ -393,6 +393,7 @@ local benchmarks_full_job = {
 };
 
 local trigger_semgrep_comparison_argo = {
+  'if': "${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}",
   secrets: 'inherit',
   needs: [
     'push-docker-returntocorp',

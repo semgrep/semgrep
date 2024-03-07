@@ -1,0 +1,20 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/python-assert-statement.py
+     ❱ rules.autofix.assert_eq-true
+          Change assert_eq(True, x) to assert x
+
+           ▶▶┆ Autofix ▶ assert "a"
+            1┆ assert_eq(
+            2┆     True, "a"
+            3┆ )
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ assert "b"
+            4┆ assert_eq(
+            5┆     True, "b"
+            6┆ )
+

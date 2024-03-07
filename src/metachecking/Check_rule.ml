@@ -79,42 +79,66 @@ let error env t s =
 (* Checks *)
 (*****************************************************************************)
 
+let mv_error env mv t =
+  (* TODO make this message more helpful by detecting specific
+     variants of this *)
+  error env t
+    (mv
+   ^ " is used in a 'metavariable-*' conditional or 'focus-metavariable' \
+      operator but is never bound by a positive pattern (or is only bound by \
+      negative patterns like 'pattern-not')")
+
+let mvar_is_ok mv mvs =
+  (* TODO: remove first condition when we kill numeric capture groups *)
+  Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
+
+let check_mvars_of_condition env bound_mvs (t, condition) =
+  match condition with
+  | CondEval _ -> ()
+  | CondRegexp (mv, _, _)
+  | CondType (mv, _, _, _)
+  | CondNestedFormula (mv, _, _)
+  | CondAnalysis (mv, _) ->
+      if not (mvar_is_ok mv bound_mvs) then mv_error env mv t
+
+let check_mvars_of_focus env bound_mvs (t, mv_list) =
+  mv_list
+  |> List.iter (fun mv ->
+         if not (mvar_is_ok mv bound_mvs) then mv_error env mv t)
+
 let unknown_metavar_in_comparison env f =
-  let mvar_is_ok mv mvs =
-    (* TODO: remove when we kill numeric capture groups *)
-    Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
-  in
-  let rec collect_metavars { f; conditions; focus } : MV.mvar Set.t =
-    let mvs = collect_metavars' f in
-    (* Check that all metavariables in this and-clause's metavariable-comparison clauses appear somewhere else *)
-    let mv_error mv t =
-      (* TODO make this message more helpful by detecting specific
-          variants of this *)
-      error env t
-        (mv
-       ^ " is used in a 'metavariable-*' conditional or 'focus-metavariable' \
-          operator but is never bound by a positive pattern (or is only bound \
-          by negative patterns like 'pattern-not')")
+  let rec collect_metavars parent_mvs { f; conditions; focus } : MV.mvar Set.t =
+    (* Check the metavariables in the conditions (e.g. metavariable-pattern).
+       From here on, both the metavariables from the conjuncts and the
+       metavariables from the parent are already bound *)
+    let inner_mvs = collect_metavars' parent_mvs f in
+    let bound_mvs_for_conds = Set.union inner_mvs parent_mvs in
+    conditions |> List.iter (check_mvars_of_condition env bound_mvs_for_conds);
+    (* Now collect the metavariables defined in the conditions, which could
+       be used in the focus-metavariable clauses, and check nested formulas *)
+    let cond_mvs =
+      conditions
+      |> List_.map (fun (_, condition) ->
+             match condition with
+             | CondEval _
+             | CondType _
+             | CondAnalysis _ ->
+                 Set.empty
+             | CondRegexp (_, regex, _) ->
+                 Metavariable.mvars_of_regexp_string regex |> Set_.of_list
+             | CondNestedFormula (_, _, formula) ->
+                 collect_metavars bound_mvs_for_conds formula)
+      |> List.fold_left Set.union Set.empty
     in
-    conditions
-    |> List.iter (fun (t, metavar_cond) ->
-           match metavar_cond with
-           | CondEval _ -> ()
-           | CondRegexp (mv, _, _) ->
-               if not (mvar_is_ok mv mvs) then mv_error mv t
-           | CondType (mv, _, _, _) ->
-               if not (mvar_is_ok mv mvs) then mv_error mv t
-           | CondNestedFormula (mv, _, _) ->
-               if not (mvar_is_ok mv mvs) then mv_error mv t
-           | CondAnalysis (mv, _) ->
-               if not (mvar_is_ok mv mvs) then mv_error mv t);
-    focus
-    |> List.iter (fun (t, mv_list) ->
-           mv_list
-           |> List.iter (fun mv ->
-                  if not (mvar_is_ok mv mvs) then mv_error mv t));
+
+    (* Check the focus-metavariable clauses last since they can use metavariables
+       in any clause within the And *)
+    let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
+    focus |> List.iter (check_mvars_of_focus env bound_mvs_for_focus);
+    (* Return only the metavariables that were newly bound in this node *)
+    let mvs = Set.union cond_mvs inner_mvs in
     mvs
-  and collect_metavars' kind : MV.mvar Set.t =
+  and collect_metavars' parent_mvs kind : MV.mvar Set.t =
     match kind with
     | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
@@ -141,11 +165,13 @@ let unknown_metavar_in_comparison env f =
         |> List.fold_left Set.union Set.empty
     | Inside (_, f)
     | Anywhere (_, f) ->
-        collect_metavars f
+        collect_metavars parent_mvs f
     | Not (_, _) -> Set.empty
     | And (_, xs)
     | Or (_, xs) ->
-        let mv_sets = List_.map collect_metavars xs in
+        (* Collect and check from the conjuncts. Pass down the metavariables
+           from the parent *)
+        let mv_sets = List_.map (collect_metavars parent_mvs) xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
            * speaking a metavariable needs to be in all cases of a pattern-either
@@ -158,7 +184,7 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
   in
-  let _ = collect_metavars f in
+  let _ = collect_metavars Set.empty f in
   ()
 
 (* call Check_pattern subchecker *)
@@ -212,7 +238,7 @@ let semgrep_check config metachecks rules : Core_error.t list =
       rule_source = Some (Rule_file metachecks);
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
-      roots = rules;
+      roots = List_.map Scanning_root.of_fpath rules;
     }
   in
   let res = Core_scan.scan_with_exn_handler config in

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2023 Semgrep Inc.
+ * Copyright (C) 2020-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -154,6 +154,18 @@ type target_handler = Target.t -> RP.matches_single_file * was_scanned
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: hook for
+   ~parsing_cache_dir:config.parsing_cache_dir
+   AST_generic.version)
+*)
+
+let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
+    AST_generic.program * Tok.location list =
+  let { Parsing_result2.ast; skipped_tokens; _ } =
+    Parse_target.parse_and_resolve_name lang fpath
+  in
+  (ast, skipped_tokens)
+
 (*
    If the target is a named pipe, copy it into a regular file and return
    that. This allows multiple reads on the file.
@@ -167,8 +179,17 @@ type target_handler = Target.t -> RP.matches_single_file * was_scanned
 
    coupling: this functionality is implemented also in semgrep-python.
 *)
-let replace_named_pipe_by_regular_file path =
-  UTmp.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
+let replace_named_pipe_by_regular_file (path : Fpath.t) =
+  match
+    UTmp.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-"
+      path
+  with
+  | Some new_path -> new_path
+  | None -> path
+
+let replace_named_pipe_by_regular_file_root (path : Scanning_root.t) =
+  path |> Scanning_root.to_fpath |> replace_named_pipe_by_regular_file
+  |> Scanning_root.of_fpath
 
 (*
    Sort targets by decreasing size. This is meant for optimizing
@@ -242,11 +263,7 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     Option.is_some !Match_tainting_mode.hook_setup_hook_function_taint_signature
     || Option.is_some !Dataflow_tainting.hook_function_taint_signature
     || Xlang.is_proprietary xtarget.xlang
-  then
-    {
-      matches with
-      Core_result.matches = List_.map PM.to_proprietary matches.matches;
-    }
+  then Report_pro_findings.annotate_pro_findings xtarget matches
   else matches
 
 (*****************************************************************************)
@@ -785,7 +802,7 @@ let targets_of_config (config : Core_scan_config.t) :
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots = roots |> List_.map replace_named_pipe_by_regular_file in
+      let roots = roots |> List_.map replace_named_pipe_by_regular_file_root in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -797,7 +814,9 @@ let targets_of_config (config : Core_scan_config.t) :
         | Xlang.L (_, _) -> assert false
       in
       let files, skipped =
-        Find_targets_old.files_of_dirs_or_files lang_opt roots
+        roots
+        |> List_.map Scanning_root.to_fpath
+        |> Find_targets_old.files_of_dirs_or_files lang_opt
       in
       let target_mappings =
         files
@@ -846,13 +865,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
     |> List.concat_map (fun (t : Target.regular) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
-           let xtarget =
-             Xtarget.resolve
-               (Parse_with_caching.parse_and_resolve_name
-                  ~parsing_cache_dir:config.parsing_cache_dir
-                  AST_generic.version)
-               t
-           in
+           let xtarget = Xtarget.resolve parse_and_resolve_name t in
            let extracted_targets =
              Match_extract_mode.extract ~match_hook ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extract_rules xtarget
@@ -1027,12 +1040,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
 
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
-      let xtarget =
-        Xtarget.resolve
-          (Parse_with_caching.parse_and_resolve_name
-             ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version)
-          target
-      in
+      let xtarget = Xtarget.resolve parse_and_resolve_name target in
       let lockfile_target =
         Option.map
           (Lockfile_xtarget.resolve Parse_lockfile.parse_manifest

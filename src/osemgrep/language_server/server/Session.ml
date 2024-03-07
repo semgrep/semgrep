@@ -37,7 +37,7 @@ type t = {
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
-  caps : < Cap.random ; Cap.network >; [@opaque]
+  caps : < Cap.random ; Cap.network ; Cap.tmp >; [@opaque]
 }
 [@@deriving show]
 
@@ -74,11 +74,12 @@ let dirty_files_of_folder folder =
     Some (List_.map (fun x -> folder // x) dirty_files)
   else None
 
+(* TODO: registry caching is not anymore in semgrep-OSS! *)
 let decode_rules caps data =
-  UTmp.with_tmp_file ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_tmp_file caps#tmp ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
-          ~registry_caching:true caps file
+          caps file
       with
       | Ok res ->
           Logs.info (fun m ->
@@ -90,13 +91,17 @@ let decode_rules caps data =
           (* There shouldn't be any errors, because we got these rules from CI. *)
           failwith "impossible: received invalid rules from CI")
 
-let get_targets session root =
+let get_targets session (root : Fpath.t) =
   let targets_conf =
     User_settings.find_targets_conf_of_t session.user_settings
   in
+  let proj_root = Rfpath.of_fpath_exn root in
   Find_targets.get_target_fpaths
-    { targets_conf with project_root = Some (Find_targets.Filesystem root) }
-    [ root ]
+    {
+      targets_conf with
+      project_root = Some (Find_targets.Filesystem proj_root);
+    }
+    [ Scanning_root.of_fpath root ]
   |> fst
 
 let send_metrics session =
@@ -178,7 +183,7 @@ let targets session =
     | None -> true
     | Some files -> List.mem file files
   in
-  let member_workspace_folder file folder =
+  let member_workspace_folder file (folder : Fpath.t) =
     Fpath.is_prefix folder file
     && ((not session.user_settings.only_git_dirty)
        || member_folder_dirty_files file folder)
@@ -221,9 +226,10 @@ let fetch_rules session =
       (fun source ->
         let in_docker = !Semgrep_envvars.v.in_docker in
         let config = Rules_config.parse_config_string ~in_docker source in
+        (* TODO: registry_caching is not anymore in semgrep-OSS! *)
         Rule_fetching.rules_from_dashdash_config_async
           ~rewrite_rule_ids:true (* default *)
-          ~token_opt:(auth_token ()) ~registry_caching:true session.caps config)
+          ~token_opt:(auth_token ()) session.caps config)
       rules_source
   in
 
@@ -312,7 +318,8 @@ let save_local_skipped_fingerprints session =
   if not (Sys.file_exists (Fpath.to_string save_dir)) then
     Sys.mkdir (Fpath.to_string save_dir) 0o755;
   let save_file_name =
-    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    String.concat "_"
+      (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in
@@ -324,7 +331,8 @@ let save_local_skipped_fingerprints session =
 let load_local_skipped_fingerprints session =
   let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
   let save_file_name =
-    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    String.concat "_"
+      (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in

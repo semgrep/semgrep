@@ -1,0 +1,2 @@
+Removed the Registry caching experimental feature (--experimental --registry-caching)
+in osemgrep.

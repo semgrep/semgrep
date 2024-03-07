@@ -80,6 +80,7 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                  {
                    id = fst rule.R.id;
                    message = rule.R.message;
+                   metadata = rule.R.metadata;
                    fix = rule.R.fix;
                    fix_regexp = rule.R.fix_regexp;
                    langs = Xlang.to_langs rule.R.target_analyzer;
@@ -87,8 +88,8 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                    pattern_string = "";
                  };
                path = xtarget.target.path;
-               (* TODO: should be pro? Where is this supposed to be set? *)
-               engine_kind = `OSS;
+               (* TODO: should be pro if the pro engine is used in the match *)
+               engine_of_match = `OSS;
                range_loc = dep.Dependency.loc;
                tokens = lazy dep.Dependency.toks;
                env = [];

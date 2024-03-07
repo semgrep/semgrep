@@ -78,6 +78,6 @@ jobs:
           name: ocaml-build-artifacts-release-w64
           path: archive/ocaml-build-artifacts.tgz
 name: build-test-windows-x86
-"on":
+on:
   workflow_call: null
   workflow_dispatch: null

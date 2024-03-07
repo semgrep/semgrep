@@ -17,7 +17,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -46,14 +46,14 @@ let rule_files_and_rules_of_config_string caps
   (* LESS: restrict to just File? *)
   let (rules_and_origin : Rule_fetching.rules_and_origin list), errors =
     Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
-      ~token_opt:None ~registry_caching:false caps config
+      ~token_opt:None caps config
   in
 
   if errors <> [] then
     raise
       (Error.Semgrep_error
          ( Common.spf "invalid configuration string found: %s" config_string,
-           Some Exit_code.missing_config ));
+           Some (Exit_code.missing_config ~__LOC__) ));
 
   rules_and_origin
   |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
@@ -222,7 +222,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
     | Test_CLI.File (path, config_str)
     | Test_CLI.Dir (path, Some config_str) ->
         let rule_files_and_rules =
-          rule_files_and_rules_of_config_string (caps :> Cap.network) config_str
+          rule_files_and_rules_of_config_string
+            (caps :> < Cap.network ; Cap.tmp >)
+            config_str
         in
         (* alt: use Find_targets.get_target_fpaths but then it requires
          * a Find_targets.conf, and this will respect the .semgrepignore
@@ -262,7 +264,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
       }
   in
   report_tests_result ~json:conf.json res;
-  if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
+  if !total_mismatch > 0 then Exit_code.fatal ~__LOC__
+  else Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

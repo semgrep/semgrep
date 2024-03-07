@@ -34,19 +34,19 @@ let (match_result_to_range : Pattern_match.t -> t) =
   { r; mvars; origin = m; kind = Plain }
 
 let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
- fun r range ->
+ fun (r : Rule.t) range ->
   let m = range.origin in
   let rule_id = m.rule_id in
-  let langs = Xlang.to_langs r.Rule.target_analyzer in
+  let langs = Xlang.to_langs r.target_analyzer in
   (* adjust the rule id *)
   let rule_id : Pattern_match.rule_id =
     {
       rule_id with
-      id = fst r.Rule.id;
-      fix = r.Rule.fix;
+      id = fst r.id;
+      fix = r.fix;
       langs;
-      message =
-        r.Rule.message (* keep pattern_str which can be useful to debug *);
+      message = r.message (* keep pattern_str which can be useful to debug *);
+      metadata = r.metadata;
     }
   in
   (* Need env to be the result of evaluate_formula, which propagates metavariables *)

@@ -47,7 +47,7 @@ let visit_toplevel prog : G.dotted_ident list =
   (* we only collect top-level wildcard imports, for the reasons
      discussed above
   *)
-  List.fold_right
+  List_.fold_right
     (fun x acc ->
       match x with
       | { G.s = DirectiveStmt { d = ImportAll (_t, modname, _t'); _ }; _ } -> (

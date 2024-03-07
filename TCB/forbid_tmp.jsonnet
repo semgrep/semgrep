@@ -1,3 +1,5 @@
+local common = import 'common.libsonnet';
+
 // helpers
 local funcs = [
   "temp_file",
@@ -16,22 +18,16 @@ local funcs = [
         any:
           [('Filename.' + p) for p in funcs] +
           [('UFilename.' + p) for p in funcs] +
-          // TODO: UTmp
-          [],
+          # TODO: UTmp.$F at some point, especially new_temp_file()
+          ["UTmp.with_tmp_file"],
       },
       languages: ['ocaml'],
       paths: {
-        exclude: [
-	   "UTmp.ml", // TODO: remove at some point
-           'TCB/*',
-           'tools/*', 'scripts/*', 'stats/*',
-           'Test*.ml',  'Unit_*.ml',
-        ],
+        exclude: common.exclude_paths + ["UTmp.ml", "CapTmp.ml"],
       },
       severity: 'ERROR',
-      //TODO: tell to use CapTmp.ml
       message: |||
-        Do not use directly Filename. Use UTmp.ml instead.
+        Do not use directly Filename or UTmp. Try to use CapTmp instead.
       |||,
     },
   ],

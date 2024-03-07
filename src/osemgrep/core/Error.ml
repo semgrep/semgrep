@@ -22,7 +22,7 @@ module OutJ = Semgrep_output_v1_j
    See CLI.safe_run()
 *)
 exception Semgrep_error of string * Exit_code.t option
-exception Exit of Exit_code.t
+exception Exit_code of Exit_code.t
 
 (* TOPORT?
    (*
@@ -69,7 +69,7 @@ exception Exit of Exit_code.t
 (*****************************************************************************)
 
 let abort msg = raise (Semgrep_error (msg, None))
-let exit code = raise (Exit code)
+let exit_code_exn code = raise (Exit_code code)
 
 (*****************************************************************************)
 (* string of/registering exns *)
@@ -83,14 +83,12 @@ let () =
           (match opt_exit_code with
           | None -> base_msg
           | Some exit_code ->
-              Printf.sprintf "%s\nExit code %i: %s" base_msg
-                (Exit_code.to_int exit_code)
-                (Exit_code.to_message exit_code))
-    | Exit exit_code ->
+              Printf.sprintf "%s\nExit code %i: %s" base_msg exit_code.code
+                exit_code.description)
+    | Exit_code exit_code ->
         Some
-          (Printf.sprintf "Exit code %i: %s"
-             (Exit_code.to_int exit_code)
-             (Exit_code.to_message exit_code))
+          (Printf.sprintf "Exit code %i: %s" exit_code.code
+             exit_code.description)
     | _ -> None)
 
 (*****************************************************************************)

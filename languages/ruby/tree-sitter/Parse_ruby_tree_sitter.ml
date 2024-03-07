@@ -648,7 +648,7 @@ and pattern_expr_alt (env : env) (x : CST.pattern_expr_alt) =
   match x with
   | `Alt_pat (v1, v2) ->
       let v1 = pattern_expr_basic env v1 in
-      List.fold_right
+      List_.fold_right
         (fun (v1, pat) acc ->
           let _v1 = (* "|" *) token2 env v1 in
           let v2 = pattern_expr_basic env pat in

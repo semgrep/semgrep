@@ -22,9 +22,8 @@ from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
-from semgrep.rule_match import CliUniqueKey
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchSet
+from semgrep.rule_match import RuleMatches
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -122,16 +121,12 @@ def core_matches_to_rule_matches(
             fix=fix,
         )
 
-    by_unique_key: Dict[CliUniqueKey, RuleMatch] = {}
+    # TODO: Dict[out.RuleId, RuleMatches]
+    # We used to deduplicate by `cli_unique_key` here, but now no longer need to,
+    # because it is deduplicated in semgrep-core as core_unique_key!
+    findings: Dict[Rule, RuleMatches] = {rule: RuleMatches(rule) for rule in rules}
     for match in res.results:
         rule_match = convert_to_rule_match(match)
-        curr = by_unique_key.setdefault(rule_match.cli_unique_key, rule_match)
-        if rule_match.should_report_instead(curr):
-            by_unique_key[rule_match.cli_unique_key] = rule_match
-
-    # TODO: Dict[out.RuleId, RuleMatchSet]
-    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
-    for rule_match in by_unique_key.values():
         rule = rule_table[rule_match.rule_id]
         findings[rule].add(rule_match)
 

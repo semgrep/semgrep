@@ -27,7 +27,6 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
 (* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)
 type t = {
   (* Debugging/profiling/logging flags *)
-  log_config_file : Fpath.t;
   log_to_file : Fpath.t option;
   nosem : bool;
   strict : bool;
@@ -45,7 +44,8 @@ type t = {
   rule_source : rule_source option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
-  roots : Fpath.t list;
+  (* Scanning roots. They are mutually exclusive with target_source! *)
+  roots : Scanning_root.t list;
   output_format : output_format;
   match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
@@ -59,7 +59,6 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  parsing_cache_dir : Fpath.t option;
   filter_irrelevant_rules : bool;
   (* Hook to display match results incrementally, after a file has been fully
    * processed. Note that this hook run in a child process of Parmap
@@ -90,7 +89,6 @@ type t = {
 let default =
   {
     (* Debugging/profiling/logging flags *)
-    log_config_file = Fpath.v "log_config.json";
     log_to_file = None;
     nosem = true;
     strict = false;
@@ -122,7 +120,6 @@ let default =
     max_memory_mb = 0;
     max_match_per_file = 10_000;
     ncores = 1;
-    parsing_cache_dir = None;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     file_match_results_hook = None;

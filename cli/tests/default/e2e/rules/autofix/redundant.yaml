@@ -1,0 +1,28 @@
+# Check that two identical autofixes don't result in a warning or
+# error.
+#
+# TODO: check that indeed no warning message is printed.
+#
+rules:
+  - id: replace-ac
+    pattern: |
+      a
+      ...
+      c
+    fix: |
+      replaced_lines_a_to_c_OK
+    message: slice a-c matches
+    languages:
+      - python
+    severity: WARNING
+  - id: replace-ac-copy
+    pattern: |
+      a
+      ...
+      c
+    fix: |
+      replaced_lines_a_to_c_OK
+    message: slice a-c matches
+    languages:
+      - python
+    severity: WARNING

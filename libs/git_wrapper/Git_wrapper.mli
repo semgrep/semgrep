@@ -15,7 +15,7 @@ val temporary_remote_checkout_path : string -> Fpath.t
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
  *)
-val git_check_output : Cap.Exec.t -> Cmd.args -> string
+val git_check_output : < Cap.exec > -> Cmd.args -> string
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,
@@ -47,6 +47,25 @@ val ls_files :
   Fpath.t list ->
   Fpath.t list
 
+(*
+   This is identical to the 'ls_files' but works even if the current directory
+   is outside the git project.
+
+   The result is a list of file paths that are specified relative to the
+   current directory (unless it's not possible like on Windows if the
+   project is on another volume than the current directory; in that case,
+   we return absolute paths).
+
+   The behavior is unspecified if 'project_root' is not the root of a git
+   project.
+*)
+val ls_files_relative :
+  ?exclude_standard:bool ->
+  ?kinds:ls_files_kind list ->
+  project_root:Rpath.t ->
+  Fpath.t list ->
+  Fpath.t list
+
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string
 
@@ -67,7 +86,7 @@ val get_merge_base : string -> string
    don't need to git stash anything, or expect a clean working tree.
 *)
 val run_with_worktree :
-  commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
+  < Cap.chdir > -> commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
 
 type status = {
   added : string list;
@@ -78,7 +97,10 @@ type status = {
 }
 [@@deriving show]
 
-type sha [@@deriving show, eq, ord, sexp]
+(* We avoid type aliases such as 'type sha = string' because it creates
+   bad error messages mentioning 'sha' instead of 'string'
+   in contexts where no SHAs are involved. *)
+type sha = SHA of string [@@unboxed] [@@deriving show, eq, ord, sexp]
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
 
 (* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
@@ -238,3 +260,10 @@ val ls_tree :
    specified to be true (it is false by default) then the `-r` option is passed
    and git will recurse into subtrees.
  *)
+
+(*
+   Create a temporary git repo for testing purposes, cd into it,
+   call a function, tear down the repo, and restore the original cwd.
+   This is an extension of Testutil_files.
+*)
+val with_git_repo : Testutil_files.t list -> (unit -> 'a) -> 'a

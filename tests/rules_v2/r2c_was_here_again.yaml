@@ -1,0 +1,7 @@
+rules:
+- id: here
+  languages:
+  - cpp
+  match: stuff($ARG);
+  message: rule_template_message
+  severity: ERROR

@@ -49,7 +49,7 @@ let in_pattern env =
 (* In Jane Street Core, this exists as Option.all, reeee
  *)
 let option_all xs =
-  List.fold_right
+  List_.fold_right
     (fun x acc ->
       match (x, acc) with
       | _, None -> None
@@ -656,7 +656,7 @@ and map_scoped_identifier_exp (env : env) ((v1, v2, v3) : CST.scoped_identifier)
   (* given xn xn-1 ... x2
      we do a right fold starting with x1, adding everything to the end
   *)
-  List.fold_right
+  List_.fold_right
     (fun (tok, field) acc ->
       match field with
       | Left id -> DotAccess (acc, tok, FN (H2.name_of_id id)) |> G.e
@@ -2063,7 +2063,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
               | None -> None
             in
             let _v7 = (* "end" *) token env v7 in
-            List.fold_right (fun k acc -> Some (k acc)) v5 v6
+            List_.fold_right (fun k acc -> Some (k acc)) v5 v6
           in
           [ If (v1, Cond v2, v4, elses) |> G.s ]
       | `Try_stmt (v1, v2, v3, v4, v5) -> (

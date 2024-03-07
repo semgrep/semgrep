@@ -64,6 +64,7 @@ let ranges_matched (lang : Lang.t) (file : Fpath.t) pattern : Range.t list =
       pattern;
       inside = false;
       message = "";
+      metadata = None;
       severity = `Error;
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";

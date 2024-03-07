@@ -1,0 +1,14 @@
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 2 findings.

@@ -384,7 +384,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
             Some (blist env body |> block |> as_stmt)
       in
       let opt_stmt =
-        List.fold_right
+        List_.fold_right
           (fun if_ (else_stmt : G.stmt option) ->
             let _loc1, if_, cond, _then_, body = if_ in
             (* pad: TODO:  use more complex CondDecl when ready? *)

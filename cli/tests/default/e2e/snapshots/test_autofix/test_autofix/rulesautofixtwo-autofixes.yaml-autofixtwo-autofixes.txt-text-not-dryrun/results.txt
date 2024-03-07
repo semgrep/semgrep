@@ -1,0 +1,21 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/two-autofixes.txt
+   ❯❯❱ rules.autofix.remove-two
+          This rule changes the line numbers for the other rule's match
+
+           ▶▶┆ Autofix ▶ one
+            1┆ one
+            2┆ two
+
+   ❯❯❱ rules.autofix.remove-four
+          If semgrep is not smart enough, the match of this rule will be out of range
+
+           ▶▶┆ Autofix ▶ four
+            3┆ three
+            4┆ four
+

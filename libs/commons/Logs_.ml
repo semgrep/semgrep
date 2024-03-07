@@ -27,8 +27,11 @@ open Common
      This variable is set when we configure loggers.
 *)
 
-(* in seconds *)
-let time_program_start = ref 0.
+(* alt: use Mtime_clock.now () *)
+let now () : float = UUnix.gettimeofday ()
+
+(* unix time in seconds *)
+let time_program_start = now ()
 
 let default_skip_libs =
   [
@@ -122,9 +125,6 @@ let pp_sgr ppf style =
   Format.pp_print_as ppf 0 style;
   Format.pp_print_as ppf 0 "m"
 
-(* alt: use Mtime_clock.now () *)
-let now () : float = UUnix.gettimeofday ()
-
 (* a complicated way of saying (not (is_empty (inter a b))) *)
 let has_nonempty_intersection tag_str_list tag_set =
   Logs.Tag.fold
@@ -175,7 +175,7 @@ let reporter ~dst ~require_one_of_these_tags
             (* Add a header *)
             Format.kfprintf k dst
               ("@[[%05.2f]%a%a: " ^^ fmt ^^ "@]@.")
-              (current -. !time_program_start)
+              (current -. time_program_start)
               Logs_fmt.pp_header (level, header) pp_tags tags
           in
           match level with
@@ -293,7 +293,6 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
-  time_program_start := now ();
   Logs.set_reporter
     (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
   Logs.debug (fun m ->

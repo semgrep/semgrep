@@ -9,8 +9,8 @@ type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
-  (* can be a list of files or directories *)
-  target_roots : Fpath.t list;
+  (* can be a list of files or directories; symlinks ok *)
+  target_roots : Scanning_root.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
@@ -30,7 +30,6 @@ type conf = {
    *)
   (* Networking options *)
   metrics : Metrics_.config;
-  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
@@ -64,4 +63,3 @@ val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
 val o_include : string list Cmdliner.Term.t
 val o_exclude : string list Cmdliner.Term.t
-val o_ast_caching : bool Cmdliner.Term.t

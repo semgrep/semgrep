@@ -1,0 +1,18 @@
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 24 files tracked by git with 4 Code rules:
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Scan skipped: 14 files larger than 1e-06 MB
+  For a full list of skipped files, run semgrep with the --verbose flag.
+
+Ran 4 rules on 0 files: 0 findings.

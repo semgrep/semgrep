@@ -161,6 +161,6 @@ class EngineType(Enum):
 
     def to_engine_kind(self) -> out.EngineKind:
         if self.value == EngineType.OSS.value:
-            return out.EngineKind(out.OSS())
+            return out.EngineKind(out.OSS_())
         else:
-            return out.EngineKind(out.PRO())
+            return out.EngineKind(out.PRO_())
