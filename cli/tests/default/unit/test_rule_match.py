@@ -392,6 +392,38 @@ def test_rule_match_to_app_finding(snapshot, mocker):
     snapshot.assert_match(app_finding_str, "results.json")
 
 
+@pytest.mark.quick
+def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
+    mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
+    match = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule.id"),
+            path=out.Fpath("foo.py"),
+            start=out.Position(0, 0, 0),
+            end=out.Position(0, 0, 0),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+                historical_info=out.HistoricalInfo(
+                    git_blob=out.Sha1("a" * 40),
+                    git_commit=out.Sha1("b" * 40),
+                    git_commit_timestamp=out.Datetime("2020-12-09T16:09:53Z"),
+                ),
+            ),
+        ),
+        extra={},
+    )
+    app_finding = match.to_app_finding_format("0")
+    app_finding.commit_date = "1970-01-01T00:00:00"
+    app_finding_str = (
+        json.dumps(app_finding.to_json(), indent=2, sort_keys=True) + "\n"
+    )  # Needed because pre-commit always adds a newline, seems weird
+    snapshot.assert_match(app_finding_str, "results.json")
+
+
 def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
     dependency_match = out.DependencyMatch(
         dependency_pattern=out.DependencyPattern(

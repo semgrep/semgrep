@@ -530,6 +530,8 @@ class RuleMatch:
             validation_state=self.match.extra.validation_state,
             historical_info=self.match.extra.historical_info,
         )
+        print(f"hist={self.match.extra.historical_info}")
+        print(f"ret={ret}")
 
         if self.extra.get("fixed_lines"):
             ret.fixed_lines = self.extra.get("fixed_lines")
