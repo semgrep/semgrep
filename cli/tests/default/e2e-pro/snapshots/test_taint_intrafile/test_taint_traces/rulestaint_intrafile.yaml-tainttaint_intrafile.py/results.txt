@@ -1,0 +1,36 @@
+
+
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+
+    targets/taint/taint_intrafile.py
+   ❯❯❱ rules.test
+          Found
+
+            2┆ sink(x)
+
+
+          Taint comes from:
+
+            5┆ y = "taint"
+
+
+          Taint flows through these intermediate variables:
+
+            5┆ y = "taint"
+
+
+                This is how taint reaches the sink:
+
+            6┆ foo(y)
+
+          Taint flows through these intermediate variables:
+
+            1┆ def foo(x):
+
+          then reaches:
+
+            2┆ sink(x)
+
+
