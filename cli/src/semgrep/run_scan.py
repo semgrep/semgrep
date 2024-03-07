@@ -289,7 +289,9 @@ def run_rules(
 
         # Generate stats per lockfile:
         for ecosystem in ECOSYSTEM_TO_LOCKFILES.keys():
-            for lockfile in target_manager.get_lockfiles(ecosystem):
+            for lockfile in target_manager.get_lockfiles(
+                ecosystem, ignore_baseline_handler=True
+            ):
                 # Add lockfiles as a target that was scanned
                 output_extra.all_targets.add(lockfile)
                 # Warning temporal assumption: this is the only place we process

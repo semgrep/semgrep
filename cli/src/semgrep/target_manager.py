@@ -494,7 +494,7 @@ class Target:
         )
 
     @lru_cache(maxsize=None)
-    def files(self) -> FrozenSet[Path]:
+    def files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
         """
         Recursively go through a directory and return list of all files with
         default file extension of language
@@ -503,6 +503,10 @@ class Target:
             return frozenset([self.path])
 
         if self.baseline_handler is not None:
+            # Adding this conditional to scan all lockfiles for their dependencies, even in diff-aware scans
+            if ignore_baseline_handler:
+                return self.files_from_filesystem()
+
             try:
                 return self.files_from_git_diff()
             except (subprocess.CalledProcessError, FileNotFoundError):
@@ -716,12 +720,17 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_all_files(self) -> FrozenSet[Path]:
-        return frozenset(f for target in self.targets for f in target.files())
+    def get_all_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+        return frozenset(
+            f for target in self.targets for f in target.files(ignore_baseline_handler)
+        )
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
-        self, lang: Union[None, Language, Ecosystem], product: out.Product
+        self,
+        lang: Union[None, Language, Ecosystem],
+        product: out.Product,
+        ignore_baseline_handler: bool = False,
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
@@ -732,7 +741,7 @@ class TargetManager:
 
         Note also filters out any directory and descendants of `.git`
         """
-        all_files = self.get_all_files()
+        all_files = self.get_all_files(ignore_baseline_handler)
 
         if lang:
             files = self.filter_by_language(lang, candidates=all_files)
@@ -830,16 +839,23 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_lockfiles(
-        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT
+        self,
+        ecosystem: Ecosystem,
+        product: out.Product = SCA_PRODUCT,
+        ignore_baseline_handler: bool = False,
     ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
         """
-        return self.get_files_for_language(ecosystem, product).kept
+        return self.get_files_for_language(
+            ecosystem, product, ignore_baseline_handler
+        ).kept
 
-    def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
+    def find_single_lockfile(
+        self, p: Path, ecosystem: Ecosystem, ignore_baseline_handler: bool = False
+    ) -> Optional[Path]:
         """
         Find the nearest lockfile in a given ecosystem to P
         Searches only up the directory tree
@@ -847,7 +863,9 @@ class TargetManager:
         If lockfile not in self.get_lockfiles(ecosystem) then return None
         this would happen if the lockfile is ignored by a .semgrepignore or --exclude
         """
-        candidates = self.get_lockfiles(ecosystem)
+        candidates = self.get_lockfiles(
+            ecosystem, ignore_baseline_handler=ignore_baseline_handler
+        )
 
         for path in p.parents:
             for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
