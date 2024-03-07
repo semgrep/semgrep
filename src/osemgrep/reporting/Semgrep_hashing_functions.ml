@@ -160,14 +160,15 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let formulae = Rule.formula_of_mode mode in
   (* We need to do this as flattening and sorting does not always produce the
    * same result: [[a c] b] become "a c b" while [a c b] becomes "a b c". *)
-  let rec go = function
+  let rec go formula =
+    match formula.Rule.f with
     | Rule.P p -> fst p.pstr
     | Rule.Anywhere (_, formula)
     | Rule.Inside (_, formula)
     | Rule.Not (_, formula) ->
         go formula
     | Rule.Or (_, formulae)
-    | Rule.And (_, { Rule.conjuncts = formulae; _ }) ->
+    | Rule.And (_, formulae) ->
         let xs = List_.map go formulae in
         String.concat " " (List.sort String.compare xs)
   in
