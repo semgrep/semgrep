@@ -1,1 +1,0 @@
-Clean any credentials from project URL before using it, to prevent leakage.
