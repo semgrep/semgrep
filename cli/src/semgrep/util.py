@@ -234,7 +234,6 @@ def get_lines_from_file(
     return result
 
 
-@functools.lru_cache
 def get_lines_from_git_blob(
     blob_sha: Sha1,
     start_line: int,
