@@ -138,6 +138,7 @@ let range_of_tokens xs =
 let hmemo : (Fpath.t, string) Hashtbl.t = Hashtbl.create 101
 
 let () =
+  (* nosemgrep: forbid-tmp *)
   UTmp.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
 
 let content_at_range file r =

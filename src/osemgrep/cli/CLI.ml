@@ -215,7 +215,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" ->
             Install_subcommand.main
-              (caps :> < Cap.random ; Cap.chdir >)
+              (caps :> < Cap.random ; Cap.chdir ; Cap.tmp >)
               subcmd_argv
         | "interactive" -> !hook_semgrep_interactive subcmd_argv
         | "show" ->
@@ -271,13 +271,13 @@ let safe_run ~debug f : Exit_code.t =
             m "Error: exception %s\n%s%!" (Printexc.to_string e) trace);
         Exit_code.fatal ~__LOC__
 
-let before_exit ~profile () : unit =
+let before_exit ~profile caps : unit =
   (* alt: could be done in Main.ml instead, just before the call to exit() *)
   !Hooks.exit |> List.iter (fun f -> f ());
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.print_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)
-  UTmp.erase_temp_files ();
+  CapTmp.erase_temp_files caps#tmp;
   ()
 
 (*****************************************************************************)
@@ -346,5 +346,5 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
   Metrics_.add_exit_code exit_code;
   send_metrics (caps :> < Cap.network >);
-  before_exit ~profile ();
+  before_exit ~profile (caps :> < Cap.tmp >);
   exit_code

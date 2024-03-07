@@ -3,12 +3,15 @@
 //
 // related work:
 //  - ppx_base_lint
+//
+// TODO:
+//  - forbid_fs, forbid_process, etc.
+//  - Cap.xxx_caps_UNSAFE()
 
 local forbid_exit = import 'forbid_exit.jsonnet';
 local forbid_network = import 'forbid_network.jsonnet';
 local forbid_exec = import 'forbid_exec.jsonnet';
 local forbid_chdir = import 'forbid_chdir.jsonnet';
-//TODO: forbid_fs, forbid_process, etc.
 local forbid_tmp = import "forbid_tmp.jsonnet";
 local forbid_misc = import 'forbid_misc.jsonnet';
 

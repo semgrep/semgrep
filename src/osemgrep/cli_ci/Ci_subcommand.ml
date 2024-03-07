@@ -807,7 +807,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
     let res =
       Scan_subcommand.run_scan_files
-        (caps :> < Cap.stdout ; Cap.chdir >)
+        (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
         conf profiler rules_and_origin targets_and_ignored
     in
     match res with
@@ -878,5 +878,5 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Ci_CLI.parse_argv argv in
+  let conf = Ci_CLI.parse_argv (caps :> < Cap.tmp >) argv in
   run_conf caps conf

@@ -16,7 +16,7 @@ val run_scan_conf : caps -> Scan_CLI.conf -> Exit_code.t
 
 (* internal: scan all the files - also used in CI *)
 val run_scan_files :
-  < Cap.stdout ; Cap.chdir > ->
+  < Cap.stdout ; Cap.chdir ; Cap.tmp > ->
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->

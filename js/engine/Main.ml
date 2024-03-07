@@ -64,7 +64,11 @@ let _ =
              }
            in
            let timed_rules = (rules_and_errors, 0.) in
-           let res = Core_scan.scan config timed_rules in
+           (* Core_scan.scan needs /tmp just to handle Git_remove rules_source,
+            * but this should not happen here, so it's ok to use tmp_caps_UNSAFE
+            *)
+           let caps = Cap.tmp_caps_UNSAFE () in
+           let res = Core_scan.scan caps config timed_rules in
            let res =
              Core_runner.create_core_result (fst rules_and_errors) (Ok res)
            in

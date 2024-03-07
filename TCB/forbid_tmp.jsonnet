@@ -18,8 +18,7 @@ local funcs = [
         any:
           [('Filename.' + p) for p in funcs] +
           [('UFilename.' + p) for p in funcs] +
-          # TODO: UTmp.$F at some point, especially new_temp_file()
-          ["UTmp.with_tmp_file"],
+          ["UTmp.$F"],
       },
       languages: ['ocaml'],
       paths: {

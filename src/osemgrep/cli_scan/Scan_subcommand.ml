@@ -296,12 +296,14 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Select and execute the scan func based on the configured engine settings.
    Yet another mk_scan_func adapter. TODO: can we simplify?
 *)
-let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
+let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
+    file_match_results_hook errors targets
     ?(diff_config = Differential_scan_config.WholeScan) rules () =
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.engine_type with
     | OSS ->
-        Core_runner.mk_core_run_for_osemgrep Core_scan.scan_with_exn_handler
+        Core_runner.mk_core_run_for_osemgrep
+          (Core_scan.scan_with_exn_handler caps)
     | PRO _ -> (
         match !Core_runner.hook_pro_core_run_for_osemgrep with
         | None ->
@@ -429,7 +431,7 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
    the files and rules linked with matches from the head checkout
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
-let scan_baseline_and_remove_duplicates (caps : < Cap.chdir >)
+let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
     (commit : string) (status : Git_wrapper.status)
@@ -525,8 +527,8 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir >)
    files).
 *)
 (*****************************************************************************)
-let run_scan_files (caps : < Cap.stdout ; Cap.chdir >) (conf : Scan_CLI.conf)
-    (profiler : Profiler.t)
+let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+    (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
     (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
@@ -615,7 +617,9 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir >) (conf : Scan_CLI.conf)
     in
     (* TODO: What is this wrapping for? It makes things really hard to
        follow. *)
-    let scan_func = mk_scan_func conf file_match_results_hook errors in
+    let scan_func =
+      mk_scan_func (caps :> < Cap.tmp >) conf file_match_results_hook errors
+    in
     (* step 3': call the engine! *)
     let exn_and_matches =
       (* TODO: this long code block should not be here!
@@ -650,7 +654,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir >) (conf : Scan_CLI.conf)
                  filtered_rules)
           in
           scan_baseline_and_remove_duplicates
-            (caps :> < Cap.chdir >)
+            (caps :> < Cap.chdir ; Cap.tmp >)
             conf profiler head_scan_result filtered_rules commit status
             scan_func
     in
@@ -882,7 +886,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* step3: let's go *)
   let res =
     run_scan_files
-      (caps :> < Cap.stdout ; Cap.chdir >)
+      (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       conf profiler rules_and_origins targets_and_skipped
   in
   match res with
@@ -974,5 +978,5 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Scan_CLI.parse_argv argv in
+  let conf = Scan_CLI.parse_argv (caps :> < Cap.tmp >) argv in
   run_conf caps conf

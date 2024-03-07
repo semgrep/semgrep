@@ -4841,9 +4841,6 @@ let cmdline_flags_devel () =
     ( "-debugger",
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
-    ( "-keep_tmp_files",
-      Arg.Set UTmp.save_tmp_files,
-      " keep temporary generated files" );
   ]
 
 let cmdline_flags_verbose () =
@@ -4858,7 +4855,6 @@ let cmdline_flags_other () =
   [
     ("-nocheck_stack", Arg.Clear _check_stack, " ");
     ("-batch_mode", Arg.Set _batch_mode, " no interactivity");
-    ("-keep_tmp_files", Arg.Set UTmp.save_tmp_files, " ");
   ]
 
 (* potentially other common options but not yet integrated:

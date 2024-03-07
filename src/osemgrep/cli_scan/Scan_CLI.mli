@@ -52,11 +52,16 @@ val default : conf
 
    This function may raise an exn in case of an error parsing argv
    but this should be caught by CLI.safe_run.
+
+   TODO: ugly but need to pass Cap.tmp to support query console
+   Find_targets.Git_remove. Would be better to do that in
+   Scan_subcommand.ml instead after parsing the arguments.
 *)
-val parse_argv : string array -> conf
+val parse_argv : < Cap.tmp > -> string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
-val cmdline_term : allow_empty_config:bool -> conf Cmdliner.Term.t
+val cmdline_term :
+  < Cap.tmp > -> allow_empty_config:bool -> conf Cmdliner.Term.t
 
 (* exported because used by Interactive_CLI.ml too *)
 val o_lang : string option Cmdliner.Term.t

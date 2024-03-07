@@ -29,6 +29,13 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (*****************************************************************************)
 
 let _temp_files_created = Hashtbl.create 101
+
+(* old: was in Common2.cmdline_flags_devel()
+    ( "-keep_tmp_files",
+      Arg.Set UTmp.save_tmp_files,
+      " keep temporary generated files" );
+*)
+
 let save_tmp_files = ref false
 
 let erase_temp_files () =

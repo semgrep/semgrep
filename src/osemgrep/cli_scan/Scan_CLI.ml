@@ -826,8 +826,9 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
    experimental = we're sure that we won't invoke pysemgrep later with the
    same argv; allows us to consume stdin and named pipes.
 *)
-let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
-    (target_roots : string list) : Scanning_root.t list * bool =
+let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
+    ~(experimental : bool) (target_roots : string list) :
+    Scanning_root.t list * bool =
   let imply_always_select_explicit_targets = ref false in
   let target_roots =
     target_roots
@@ -838,7 +839,8 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
                if experimental then
                  (* consumes stdin, preventing command-line forwarding to
                     pysemgrep or another osemgrep! *)
-                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+                 CapTmp.replace_stdin_by_regular_file caps#tmp
+                   ~prefix:"osemgrep-stdin-" ()
                else
                  (* remove this hack when no longer forward the command line
                     to another program *)
@@ -847,7 +849,7 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
                let orig_path = Fpath.v str in
                if experimental then (
                  match
-                   UTmp.replace_named_pipe_by_regular_file_if_needed
+                   CapTmp.replace_named_pipe_by_regular_file_if_needed caps#tmp
                      ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
                  with
                  | None -> orig_path
@@ -864,7 +866,7 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
            stdin or named pipes");
   (target_roots, !imply_always_select_explicit_targets)
 
-let cmdline_term ~allow_empty_config : conf Term.t =
+let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators autofix baseline_commit common config
@@ -884,7 +886,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
     Logs_.setup_logging ~level:common.CLI_common.logging_level ();
     let target_roots, imply_always_select_explicit_targets =
-      replace_target_roots_by_regular_files_where_needed
+      replace_target_roots_by_regular_files_where_needed caps
         ~experimental:(common.maturity =*= Maturity.Experimental)
         target_roots
     in
@@ -900,7 +902,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             match !Semgrep_envvars.v.remote_clone_dir with
             | Some dir -> Rfpath.of_fpath_exn dir
             | None ->
-                Git_wrapper.temporary_remote_checkout_path url
+                Git_wrapper.temporary_remote_checkout_path caps url
                 |> Rfpath.of_fpath_exn
           in
           let url = Uri.of_string url in
@@ -1268,8 +1270,8 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : conf =
+let parse_argv (caps : < Cap.tmp >) (argv : string array) : conf =
   let cmd : conf Cmd.t =
-    Cmd.v cmdline_info (cmdline_term ~allow_empty_config:false)
+    Cmd.v cmdline_info (cmdline_term caps ~allow_empty_config:false)
   in
   CLI_common.eval_value ~argv cmd

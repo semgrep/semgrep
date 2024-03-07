@@ -37,7 +37,7 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
 (* This is the entry point for scanning, returns /relevant/ matches,
    and all files scanned. *)
 let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
-    ({ session; _ } : RPC_server.t) =
+    ({ session; state = _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
   match (rules, targets) with
   | [], _ ->
@@ -97,7 +97,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                    You may need to acquire a different binary."
                 |> ignore;
               Core_runner.mk_core_run_for_osemgrep
-                Core_scan.scan_with_exn_handler
+                (Core_scan.scan_with_exn_handler (session.caps :> < Cap.tmp >))
         in
 
         let res =
