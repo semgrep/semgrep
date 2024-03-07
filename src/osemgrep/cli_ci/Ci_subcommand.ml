@@ -729,9 +729,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let scan_id, scan_config, rules_and_origin =
     scan_config_and_rules_from_deployment ~dry_run prj_meta caps' depl
   in
-  (* TODO: we should use those fields! the pattern match is useless but it's
-   * just to get compilation error when we add new fields in scan_config
-   *)
+  (* TODO: we should use those fields! *)
   let {
     (* this is used in scan_config_and_rules_from_deployment *)
     OutJ.rule_config = _;
@@ -740,6 +738,8 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
      *)
     deployment_id = _;
     deployment_name = _;
+    (* since 1.64.0 *)
+    actions;
     (* TODO: seems unused *)
     policy_names = _;
     (* TODO: lots of info in there to customize, should
@@ -758,6 +758,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   } =
     scan_config
   in
+  actions |> List.iter Eval_ci_action.eval;
 
   (* TODO:
      if dataflow_traces is None:
