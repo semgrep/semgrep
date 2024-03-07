@@ -1,3 +1,0 @@
-`ci`: Updated logic for informational message printed when no rules are sent to
-correctly display when secrets is enabled (in additional to
-when code is).
