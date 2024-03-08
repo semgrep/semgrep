@@ -533,6 +533,7 @@ class RuleMatch:
             # string instead of a ValidationState. Fix the monkey
             # patchable version if you want monkey patching to work.
             validation_state=self.match.extra.validation_state,
+            historical_info=self.match.extra.historical_info,
         )
 
         if self.extra.get("fixed_lines"):
