@@ -21,22 +21,26 @@ def mask_ignored(text: str) -> str:
     return re.sub(IGNORED_TARGET_LINE, "", text)
 
 
+# --quiet is to suppress logs that differ between pysemgrep and osemgrep.
+LS = ["--x-ls"]
+
+
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "options",
     [
-        ["--x-ls", "--exclude", "excluded.*"],
-        ["--x-ls", "--include", "included.*"],
-        ["--x-ls", "--exclude", "excluded"],
-        ["--x-ls", "--include", "included"],
-        ["--x-ls", "--include", "included", "--exclude", "excluded.*"],
-        ["--x-ls", "--exclude", "excluded", "--include", "included.*"],
-        ["--x-ls", "--exclude", "excluded.*", "--exclude", "included.*"],
-        ["--x-ls", "--exclude", "excluded", "--exclude", "included"],
-        ["--x-ls", "--include", "excluded.*", "--include", "included.*"],
-        ["--x-ls", "--include", "excluded", "--include", "included"],
-        ["--x-ls", "--include", "included.vue"],
-        ["--x-ls", "--include", "included.vue", "--skip-unknown-extensions"],
+        LS + ["--exclude", "excluded.*"],
+        LS + ["--include", "included.*"],
+        LS + ["--exclude", "excluded"],
+        LS + ["--include", "included"],
+        LS + ["--include", "included", "--exclude", "excluded.*"],
+        LS + ["--exclude", "excluded", "--include", "included.*"],
+        LS + ["--exclude", "excluded.*", "--exclude", "included.*"],
+        LS + ["--exclude", "excluded", "--exclude", "included"],
+        LS + ["--include", "excluded.*", "--include", "included.*"],
+        LS + ["--include", "excluded", "--include", "included"],
+        LS + ["--include", "included.vue"],
+        LS + ["--include", "included.vue", "--skip-unknown-extensions"],
     ],
     ids=idfn,
 )
