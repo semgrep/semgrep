@@ -45,6 +45,8 @@ type loc = {
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
 
+let pp_loc fmt x = Format.pp_print_string fmt (show_loc x)
+
 type compiled_pattern = { source : loc; re : Pcre_.t }
 
 let string_loc ?(source_name = "<pattern>") ~source_kind pat =
@@ -144,7 +146,7 @@ let run matcher path =
   (match Logs.level () with
   | Some Debug ->
       Logs.debug (fun m ->
-          m ~tags "** glob: %S  pcre: %s  path: %S  matches: %B\n%!"
+          m ~tags "glob: %S  pcre: %s  path: %S  matches: %B"
             matcher.source.line_contents matcher.re.pattern path res)
   | _ -> ());
   res
@@ -152,5 +154,8 @@ let run matcher path =
 
 let source matcher = matcher.source
 
-let show x =
+let show_compiled_pattern x =
   Printf.sprintf "pattern at %s:\n%s" (show_loc x.source) x.re.pattern
+
+let pp_compiled_pattern fmt x =
+  Format.pp_print_string fmt (show_compiled_pattern x)

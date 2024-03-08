@@ -4,9 +4,7 @@
 *)
 
 (* A compiled pattern matcher. *)
-type compiled_pattern
-
-val show : compiled_pattern -> string
+type compiled_pattern [@@deriving show]
 
 (* The location of a pattern, for logging and troubleshooting. *)
 type loc = {
@@ -19,8 +17,7 @@ type loc = {
   line_number : int;
   line_contents : string;
 }
-
-val show_loc : loc -> string
+[@@deriving show]
 
 (*
    Compile the pattern into something efficient (currently uses the

@@ -4,11 +4,14 @@
 
 open Ppath.Operators
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 type t = {
   project_root : Fpath.t;
   glob_matchers : Glob.Match.compiled_pattern list;
   no_match_loc : Glob.Match.loc;
 }
+[@@deriving show]
 
 let check_nonnegated_pattern str =
   match Gitignore.remove_negator str with
@@ -54,6 +57,9 @@ let rec find_first func xs =
    file is selected.
 *)
 let select t (full_git_path : Ppath.t) =
+  Logs.debug (fun m ->
+      m ~tags "Include_filter.select %s %s" (show t)
+        (Ppath.to_string full_git_path));
   let rec scan_segments matcher parent_path segments =
     (* add a segment to the path and check if it's selected *)
     match segments with
@@ -78,7 +84,7 @@ let select t (full_git_path : Ppath.t) =
   let rel_segments =
     match Ppath.segments full_git_path with
     | "" :: xs -> xs
-    | __else__ -> assert false
+    | _ -> assert false
   in
   match
     t.glob_matchers

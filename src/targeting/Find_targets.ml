@@ -165,7 +165,7 @@ let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
   match status with
   | Ignored ->
       Logs.debug (fun m ->
-          m "Ignoring path %s:\n%s" !!fpath
+          m ~tags "Ignoring path %s:\n%s" !!fpath
             (Gitignore.show_selection_events selection_events));
       let reason = get_reason_for_exclusion selection_events in
       Skip
@@ -236,7 +236,7 @@ let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
   (* mostly a copy-paste of List_files.list_regular_files() *)
   let rec aux (dir : Fppath.t) =
     Logs.debug (fun m ->
-        m "listing dir %s (ppath = %s)" !!(dir.fpath)
+        m ~tags "listing dir %s (ppath = %s)" !!(dir.fpath)
           (Ppath.to_string dir.ppath));
     (* TODO? should we sort them first? *)
     let entries = List_files.read_dir_entries dir.fpath in
@@ -516,7 +516,8 @@ let get_targets_for_project conf (project_roots : project_roots) =
     match (git_tracked, git_untracked) with
     | Some tracked, Some untracked ->
         Logs.debug (fun m ->
-            m "target file candidates from git: tracked: %i, untracked: %i"
+            m ~tags
+              "target file candidates from git: tracked: %i, untracked: %i"
               (Fppath_set.cardinal tracked)
               (Fppath_set.cardinal untracked));
         let all_files = Fppath_set.union tracked untracked in
@@ -533,7 +534,7 @@ let clone_if_remote_project_root conf =
   | Some (Git_remote { url; checkout_path }) ->
       let checkout_path = Rfpath.to_fpath checkout_path in
       Logs.debug (fun m ->
-          m "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
+          m ~tags "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
       (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
       | Ok () -> ()
       | Error msg ->
@@ -541,7 +542,7 @@ let clone_if_remote_project_root conf =
             (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
                !!checkout_path msg));
       Git_wrapper.checkout ~cwd:checkout_path ();
-      Logs.debug (fun m -> m "Sparse cloning done")
+      Logs.debug (fun m -> m ~tags "Sparse cloning done")
   | Some (Filesystem _)
   | None ->
       ()

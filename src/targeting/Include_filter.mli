@@ -20,7 +20,7 @@
      by specific semgrep rules
 *)
 
-type t
+type t [@@deriving show]
 
 val create : project_root:Fpath.t -> string list -> t
 val select : t -> Ppath.t -> Gitignore.status * Gitignore.selection_event list
