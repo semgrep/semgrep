@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from tests.fixtures import RunSemgrep
 
@@ -8,22 +10,33 @@ def idfn(options):
     return "-and-".join(flag.strip("-") for flag in options if flag.startswith("--"))
 
 
+IGNORED_TARGET_LINE = re.compile("ignored .*\n")
+
+
+# We mask the lines such as the following in the output of --x-ls:
+# ignored targets/exclude_include/excluded/excluded.js [cli_exclude_flags_match]
+# because it's only a debug help and osemgrep and pysemgrep show different
+# things.
+def mask_ignored(text: str) -> str:
+    return re.sub(IGNORED_TARGET_LINE, "", text)
+
+
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "options",
     [
-        ["--exclude", "excluded.*"],
-        ["--include", "included.*"],
-        ["--exclude", "excluded"],
-        ["--include", "included"],
-        ["--include", "included", "--exclude", "excluded.*"],
-        ["--exclude", "excluded", "--include", "included.*"],
-        ["--exclude", "excluded.*", "--exclude", "included.*"],
-        ["--exclude", "excluded", "--exclude", "included"],
-        ["--include", "excluded.*", "--include", "included.*"],
-        ["--include", "excluded", "--include", "included"],
-        ["--include", "included.vue"],
-        ["--include", "included.vue", "--skip-unknown-extensions"],
+        ["--x-ls", "--exclude", "excluded.*"],
+        ["--x-ls", "--include", "included.*"],
+        ["--x-ls", "--exclude", "excluded"],
+        ["--x-ls", "--include", "included"],
+        ["--x-ls", "--include", "included", "--exclude", "excluded.*"],
+        ["--x-ls", "--exclude", "excluded", "--include", "included.*"],
+        ["--x-ls", "--exclude", "excluded.*", "--exclude", "included.*"],
+        ["--x-ls", "--exclude", "excluded", "--exclude", "included"],
+        ["--x-ls", "--include", "excluded.*", "--include", "included.*"],
+        ["--x-ls", "--include", "excluded", "--include", "included"],
+        ["--x-ls", "--include", "included.vue"],
+        ["--x-ls", "--include", "included.vue", "--skip-unknown-extensions"],
     ],
     ids=idfn,
 )
@@ -35,8 +48,7 @@ def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
         target_name="exclude_include",
         assert_exit_code=None,
     )
-    snapshot.assert_match(stdout, "results.json")
-    snapshot.assert_match(stderr, "err.out")
+    snapshot.assert_match(mask_ignored(stdout), "files.list")
 
 
 @pytest.mark.kinda_slow
