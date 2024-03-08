@@ -605,8 +605,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let origin = Target.origin target in
-           Logs.info (fun m ->
-               m "Analyzing %s (contents in %s)" (Origin.to_string origin)
+           Logs.debug (fun m ->
+               m ~tags "Analyzing %s (contents in %s)" (Origin.to_string origin)
                  !!internal_path);
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -672,7 +672,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      let errors =
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
-                           Logs.info (fun m ->
+                           Logs.debug (fun m ->
                                m ~tags "Timeout on %s (contents in %s)"
                                  (Origin.to_string origin) !!internal_path);
                            (* TODO what happened here is several rules
@@ -1071,7 +1071,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   in
 
   (* Let's go! *)
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "processing %d files, skipping %d files" (List.length all_targets)
         (List.length skipped));
   let file_results, scanned_targets =
@@ -1107,7 +1107,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
       (List_.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "found %d matches, %d errors"
         (List.length res.processed_matches)
         (List.length res.errors));
@@ -1127,7 +1127,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 
   (* Concatenate all the skipped targets *)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "there were %d skipped targets" (List.length skipped_targets));
   (* TODO: returning, or not skipped_targets does not seem to have any impact
    * on our testsuite, weird. We need to add more tests. Maybe because
@@ -1160,6 +1160,6 @@ let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
-      Logs.info (fun m ->
+      Logs.debug (fun m ->
           m ~tags "Uncaught exception: %s" (Exception.to_string e));
       Error (e, None)
