@@ -469,6 +469,7 @@ let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
       (* TODO *)
       dataflow_trace = None;
       validation_state = None;
+      historical_info = None;
     }
   in
   r
