@@ -38,10 +38,11 @@ let test_filter (files : F.t list) () =
       |> List.iter (fun path ->
              let path = Ppath.of_string_for_tests (Fpath.to_string path) in
              let status, selection_events =
-               Common.save_excursion Glob.Match.debug true (fun () ->
-                   let selection_events = [] in
-                   (* TODO *)
-                   Gitignore_filter.select filter selection_events path)
+               let selection_events = [] in
+               (* Glob.Match.run is supposed to print detailed logs on which
+                  path is matched against which pattern. Requires Debug
+                  log level. *)
+               Gitignore_filter.select filter selection_events path
              in
              printf "Selection events for path %s:\n" (Ppath.to_string path);
              print_string (Gitignore.show_selection_events selection_events);

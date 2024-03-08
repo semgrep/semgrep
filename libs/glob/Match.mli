@@ -60,11 +60,6 @@ val compile : source:loc -> Pattern.t -> compiled_pattern
 *)
 val run : compiled_pattern -> string -> bool
 
-(* This is used by the unit tests and prints the activity of the
-   'run' function. I'm worried that logger#debug would be too expensive
-   when not debugging. *)
-val debug : bool ref
-
 (* Create a location from a pattern string rather than a location in a file. *)
 val string_loc :
   ?source_name:string -> source_kind:string option -> string -> loc
