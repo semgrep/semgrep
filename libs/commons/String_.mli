@@ -36,3 +36,8 @@ val show : ?max_len:int -> string -> string
  * reading an input line from an input stream or when splitting a string by the
  * line feed character ('\n'). *)
 val trim_cr : string -> string
+
+(* Returns the entirety of all of the lines in the given string that are
+ * included in the given range. Strips trailing newline characters from each
+ * line. See unit tests for examples. *)
+val lines_of_range : int * int -> string -> string list
