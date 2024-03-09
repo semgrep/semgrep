@@ -19,3 +19,5 @@ start-release.yml
 release.yml
 release-homebrew.yml
 trigger-semgrep-comparison-argo.yml
+push-docker.yml
+promote-canary-to-latest.yml

@@ -60,7 +60,7 @@ local unless_dry_run = {
 // this workflow can also be triggered by pushing to a 'vXxx' branch
 // (see the on: at the end of this file), and in that case inputs.dry-run
 // will not be false but Null, which is then casted as an empty string '',
-// which can not be passed to the push-docker.yaml workflow which expects
+// which can not be passed to the push-docker.yml workflow which expects
 // a proper boolean. Hence the || false boolean to normalize to a boolean.
 //
 // See https://docs.github.com/en/actions/learn-github-actions/expressions
@@ -150,7 +150,7 @@ local push_docker_job(artifact_name, repository_name) = {
   needs: [
     'wait-for-build-test',
   ],
-  uses: './.github/workflows/push-docker.yaml',
+  uses: './.github/workflows/push-docker.yml',
   secrets: 'inherit',
   with: {
     'artifact-name': artifact_name,

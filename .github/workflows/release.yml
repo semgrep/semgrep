@@ -149,7 +149,7 @@ jobs:
     needs:
       - wait-for-build-test
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-release
       dry-run: ${{ inputs.dry-run || false }}
@@ -158,7 +158,7 @@ jobs:
     needs:
       - wait-for-build-test
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-release-nonroot
       dry-run: ${{ inputs.dry-run || false }}
@@ -167,7 +167,7 @@ jobs:
     needs:
       - wait-for-build-test
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-release
       dry-run: ${{ inputs.dry-run || false }}
@@ -176,7 +176,7 @@ jobs:
     needs:
       - wait-for-build-test
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-release-nonroot
       dry-run: ${{ inputs.dry-run || false }}
