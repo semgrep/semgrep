@@ -1,5 +1,28 @@
-// Workflow to manually promote the returntocorp/semgrep:canary docker image
-// to returntocorp/semgrep:latest that most customers are using
+// Workflow to manually promote the semgrep/semgrep:canary docker image
+// to semgrep/semgrep:latest that most customers are using.
+//
+// Promoting an image via Docker tags is typically done via:
+//    $ docker pull source-image
+//    $ docker tag source-image target-image
+//    $ docker push target-image
+//
+// Sadly, this falls apart when dealing with multi-arch docker images. This is
+// because a multi-arch image (e.g. semgrep/semgrep:latest) doesn't actually
+// point to a specific docker image manifest, but rather, a "manifest list" which
+// is effectively a mapping of OS architectures to actual docker image manifests.
+//
+// When `docker pull` encounters a manifest list, it implicitly grabs the
+// arch-specific image for the machine that's docker is running on, which means
+// that the subsequent tag and push will never push the multi-arch image.
+//
+// Instead, we use `docker buildx imagetools create` which only operates on
+// manifest lists. This allows us to point to a manifest list successfully.
+//
+// For more info:
+// - manifest lists: https://docs.docker.com/registry/spec/manifest-v2-2/
+// - imagetools create: https://docs.docker.com/engine/reference/commandline/buildx_imagetools_create/
+
+local actions = import 'libs/actions.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Input
@@ -9,7 +32,7 @@ local inputs = {
     docker_image: {
       type: 'choice',
       options: [
-        // testing image, we will eventually remove the option and hardcode to returntocorp/semgrep
+        // testing image
         'returntocorp/semgrep-test',
         'returntocorp/semgrep',
         'semgrep/semgrep',
@@ -38,13 +61,7 @@ local inputs = {
 local job = {
   'runs-on': 'ubuntu-22.04',
   steps: [
-    {
-      uses: 'docker/login-action@v3',
-      with: {
-        username: '${{ secrets.DOCKER_USERNAME }}',
-        password: '${{ secrets.DOCKER_PASSWORD }}',
-      },
-    },
+    actions.docker_login_step,
     {
       name: 'promote-canary-to-latest',
       env: {
@@ -52,29 +69,8 @@ local job = {
         confirmed: '${{ inputs.confirmed }}',
         debug: '${{ inputs.debug }}',
       },
-      run: |||
-        #
-        # Promoting an image via Docker tags is typically done via:
-        # docker pull source-image
-        # docker tag source-image target-image
-        # docker push target-image
-        #
-        # Sadly, this falls apart when dealing with multi-arch docker images. This is
-        # because a multi-arch image (e.g. returntocorp/semgrep:latest) doesn't actually
-        # point to a specific docker image manifest, but rather, a "manifest list" which
-        # is effectively a mapping of OS architectures to actual docker image manifests.
-        #
-        # When `docker pull` encounters a manifest list, it implicitly grabs the
-        # arch-specific image for the machine that's docker is running on, which means
-        # that the subsequent tag and push will never push the multi-arch image.
-        #
-        # Instead, we use `docker buildx imagetools create` which only operates on
-        # manifest lists. This allows us to point to a manifest list successfully
-        #
-        # For more info:
-        # - manifest lists: https://docs.docker.com/registry/spec/manifest-v2-2/
-        # - imagetools create: https://docs.docker.com/engine/reference/commandline/buildx_imagetools_create/
 
+      run: |||
         if [[ "${debug}" == "true" ]]; then
           echo "Enabling debug logging..."
           set -x

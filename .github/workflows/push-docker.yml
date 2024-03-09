@@ -22,7 +22,8 @@ jobs:
             echo "Found images: ${image_filenames[@]}"
           fi
 
-          # Create an empty manifest list. This will ultimately be the union of all the arch-specific image manifests we intend to publish.
+          # Create an empty manifest list. This will ultimately be the union of
+          # all the arch-specific image manifests we intend to publish.
           cat << "EOF" > ${MERGED_IMAGE_PATH}/index.json
           {
             "schemaVersion": 2,
@@ -32,13 +33,15 @@ jobs:
           EOF
           echo "Wrote empty manifest list to ${MERGED_IMAGE_PATH}/index.json"
 
-          # Merge the contents (blobs and manifest) of each docker image into one big multi-arch image
+          # Merge the contents (blobs and manifest) of each docker image into one
+          # big multi-arch image
           for image_filename in ${image_filenames[@]}; do
             echo "Merging contents of ${image_filename}"
             cd $(dirname $image_filename)
             tar xvf image.tar
 
-            # Copy image's blobs into merged blobs folder (overwrite is fine since this is content-addressable storage)
+            # Copy image's blobs into merged blobs folder (overwrite is fine
+            # since this is content-addressable storage)
             cp -rvf blobs/sha256/* ${MERGED_IMAGE_PATH}/blobs/sha256/
 
             # Merge image's manifest list into our merged manifest list
@@ -84,7 +87,7 @@ on:
   workflow_call:
     inputs:
       artifact-name:
-        description: Name (key) to use when uploading the docker image tarball as a artifact
+        description: Name (key) to use when uploading the docker image tarball as an artifact
         required: true
         type: string
       dry-run:
@@ -92,13 +95,13 @@ on:
         required: true
         type: boolean
       repository-name:
-        description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        description: The repository/name of the docker image to push, e.g., semgrep/semgrep
         required: true
         type: string
   workflow_dispatch:
     inputs:
       artifact-name:
-        description: Name (key) to use when uploading the docker image tarball as a artifact
+        description: Name (key) to use when uploading the docker image tarball as an artifact
         required: true
         type: string
       dry-run:
@@ -106,6 +109,6 @@ on:
         required: true
         type: boolean
       repository-name:
-        description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        description: The repository/name of the docker image to push, e.g., semgrep/semgrep
         required: true
         type: string
