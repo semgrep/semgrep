@@ -1073,11 +1073,12 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   (* Add information to the trace *)
   let num_targets = List.length all_targets in
   let num_skipped_targets = List.length skipped in
+  UCommon.pr2 "We're adding data to the span";
   Tracing.add_data_to_opt_span config.top_level_span
     [
-      ("num_rules", `Int (List.length valid_rules));
-      ("num_targets", `Int num_targets);
-      ("num_skipped_targets", `Int num_skipped_targets);
+      ("numrules", `Int (List.length valid_rules));
+      ("numtargets", `Int num_targets);
+      ("numskipped_targets", `Int num_skipped_targets);
     ];
 
   (* Let's go! *)
@@ -1120,7 +1121,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   let num_matches = List.length res.processed_matches in
   let num_errors = List.length res.errors in
   Tracing.add_data_to_opt_span config.top_level_span
-    [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
+    [ ("nummatches", `Int num_matches); ("numerrors", `Int num_errors) ];
   Logs.info (fun m ->
       m ~tags "found %d matches, %d errors"
         (List.length res.processed_matches)
