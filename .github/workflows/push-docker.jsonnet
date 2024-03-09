@@ -1,3 +1,20 @@
+// Push docker images to https://hub.docker.com/r/semgrep/semgrep
+// (and before that https://hub.docker.com/r/returntocorp/semgrep).
+//
+// This is actually a workflow called from other workflows, so
+// see release.jsonnet and tests.jsonnet for example of use.
+//
+// Note that we now support multi-arch docker images, one for
+// linux/amd64 and a linux/arm64 (which is useful for macOS actually).
+// See https://docs.docker.com/build/building/multi-platform/,
+// but that means this workflow is more complicated than just
+// a 'docker push'. Instead, we rely on regctl
+// https://github.com/regclient/regclient/tree/main
+//
+// See also promote-canary-to-latest.jsonnet for more info.
+
+local actions = import 'libs/actions.libsonnet';
+
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
@@ -5,12 +22,12 @@ local inputs = {
   inputs: {
     'artifact-name': {
       type: 'string',
-      description: 'Name (key) to use when uploading the docker image tarball as a artifact',
+      description: 'Name (key) to use when uploading the docker image tarball as an artifact',
       required: true,
     },
     'repository-name': {
       type: 'string',
-      description: 'The repository/name of the docker image to push, e.g., returntocorp/semgrep',
+      description: 'The repository/name of the docker image to push, e.g., semgrep/semgrep',
       required: true,
     },
     'dry-run': {
@@ -19,6 +36,10 @@ local inputs = {
       required: true,
     },
   },
+};
+
+local unless_dry_run = {
+  'if': "${{ ! inputs.dry-run }}"
 };
 
 // ----------------------------------------------------------------------------
@@ -41,6 +62,7 @@ local job = {
       env: {
         MERGED_IMAGE_PATH: '/tmp/merged-image',
       },
+      //TODO: link to a blog post explaining those magic incantations?
       run: |||
         mkdir -p ${MERGED_IMAGE_PATH}/blobs/sha256
 
@@ -53,7 +75,8 @@ local job = {
           echo "Found images: ${image_filenames[@]}"
         fi
 
-        # Create an empty manifest list. This will ultimately be the union of all the arch-specific image manifests we intend to publish.
+        # Create an empty manifest list. This will ultimately be the union of
+        # all the arch-specific image manifests we intend to publish.
         cat << "EOF" > ${MERGED_IMAGE_PATH}/index.json
         {
           "schemaVersion": 2,
@@ -63,13 +86,15 @@ local job = {
         EOF
         echo "Wrote empty manifest list to ${MERGED_IMAGE_PATH}/index.json"
 
-        # Merge the contents (blobs and manifest) of each docker image into one big multi-arch image
+        # Merge the contents (blobs and manifest) of each docker image into one
+        # big multi-arch image
         for image_filename in ${image_filenames[@]}; do
           echo "Merging contents of ${image_filename}"
           cd $(dirname $image_filename)
           tar xvf image.tar
 
-          # Copy image's blobs into merged blobs folder (overwrite is fine since this is content-addressable storage)
+          # Copy image's blobs into merged blobs folder (overwrite is fine
+          # since this is content-addressable storage)
           cp -rvf blobs/sha256/* ${MERGED_IMAGE_PATH}/blobs/sha256/
 
           # Merge image's manifest list into our merged manifest list
@@ -80,17 +105,9 @@ local job = {
         done
       |||,
     },
-    {
-      uses: 'docker/login-action@v3',
-      'if': '${{ ! inputs.dry-run }}',
-      with: {
-        username: '${{ secrets.DOCKER_USERNAME }}',
-        password: '${{ secrets.DOCKER_PASSWORD }}',
-      },
-    },
+    actions.docker_login_step + unless_dry_run,
     {
       name: 'Push merged image',
-      'if': '${{ ! inputs.dry-run }}',
       env: {
         MERGED_IMAGE_PATH: '/tmp/merged-image',
       },
@@ -118,7 +135,7 @@ local job = {
 
         echo "Done!"
       |||,
-    },
+    } + unless_dry_run,
   ],
 };
 
