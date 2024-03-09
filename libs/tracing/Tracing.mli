@@ -12,6 +12,16 @@ type top_level_data = { version : string }
 (* Functions to instrument the code *)
 (*****************************************************************************)
 
+val enter_span :
+  ?__FUNCTION__:string ->
+  __FILE__:string ->
+  __LINE__:int ->
+  ?data:(unit -> (string * Trace_core.user_data) list) ->
+  string ->
+  int64
+
+val exit_span : int64 -> unit
+
 val with_span :
   ?__FUNCTION__:string ->
   __FILE__:string ->
