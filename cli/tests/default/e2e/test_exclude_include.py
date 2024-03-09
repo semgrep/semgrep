@@ -47,7 +47,7 @@ LS = ["--x-ls"]
 @pytest.mark.osemfail
 def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
     stdout, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
+        "rules/eqeq.yaml",  # unused
         options=options,
         target_name="exclude_include",
         assert_exit_code=None,

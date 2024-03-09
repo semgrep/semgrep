@@ -47,14 +47,50 @@ let rec find_first func xs =
       | Some _ as res -> res)
 
 (*
-   Each pattern is matched not just against the given path but also against
-   its parents:
+   Command line options look like this:
 
-     Path    /src/a.c
-     Pattern /src/      --> will be tested against /src, /src/, and /src/a.c
+     --include <PATTERN1> --include PATTERN2 SCANNING_ROOT
 
-   If any of the patterns matches on any variant of the path, the
-   file is selected.
+   This results in (Some [PATTERN1; PATTERN2]). It means that any path
+   or subpath in SCANNING_ROOT or one of its children matching PATTERN1
+   or PATTERN2 will be selected as valid scanning roots.
+   Other paths will be filtered out.
+
+   Example:
+
+    file tree:
+
+    a
+    └── b
+       ├── c
+       └── d
+
+    command: --include b/c a
+
+    paths and subpaths to consider for selection:
+    - /a
+    - /a/b
+    - /a/b/c
+    - /a/b/d
+    - a
+    - a/b
+    - a/b/c
+    - a/b/d
+    - b
+    - b/c
+    - b/d
+    - c
+    - d
+
+    selected paths:
+    - /a/b/c (via the subpath b/c matching the pattern b/c)
+
+   The 'select' function below receives the path to a file within a project
+   rather than a whole file tree. The selection is performed by breaking
+   down the path into subpaths and matching them against the patterns.
+
+   The path is selected if any of its subpaths matches any of the include
+   patterns.
 *)
 let select t (full_git_path : Ppath.t) =
   Logs.debug (fun m ->

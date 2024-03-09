@@ -22,5 +22,16 @@
 
 type t [@@deriving show]
 
+(*
+   Create a filter from a nonempty list of patterns.
+   An empty list of patterns would result in all paths being ignored.
+*)
 val create : project_root:Fpath.t -> string list -> t
+
+(*
+   Run a filter against the path of a file within a project.
+   The result indicates whether the path should be selected or ignored
+   and provides details for debugging purposes. See the Gitignore module
+   for details.
+*)
 val select : t -> Ppath.t -> Gitignore.status * Gitignore.selection_event list
