@@ -7,37 +7,123 @@ jobs:
         with:
           password: ${{ secrets.DOCKER_PASSWORD }}
           username: ${{ secrets.DOCKER_USERNAME }}
-      - env:
-          confirmed: ${{ inputs.confirmed }}
-          debug: ${{ inputs.debug }}
-          docker_image: ${{ inputs.docker_image }}
-        name: promote-canary-to-latest
+      - name: Promoting ${{ inputs.docker_image }}:canary to ${{ inputs.docker_image }}:latest
         run: |
-          if [[ "${debug}" == "true" ]]; then
+          if [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Enabling debug logging..."
             set -x
           fi
 
-          canary_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${docker_image}:canary || echo "")
-          latest_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${docker_image}:latest || echo "(not set)")
+          canary_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${{ inputs.docker_image }}:canary || echo "")
+          latest_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${{ inputs.docker_image }}:latest || echo "(not set)")
 
           if [[ "${canary_digest}" == "" ]]; then
-            echo "Error: ${docker_image}:canary did not resolve to a manifest list"
+            echo "Error: ${{ inputs.docker_image }}:canary did not resolve to a manifest list"
             echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to promote an arch-specific image:"
-            echo "docker pull ${docker_image}:canary"
-            echo "docker tag ${docker_image}:canary ${docker_image}:latest"
-            echo "docker push ${docker_image}:latest"
+            echo "docker pull ${{ inputs.docker_image }}:canary"
+            echo "docker tag ${{ inputs.docker_image }}:canary ${{ inputs.docker_image }}:latest"
+            echo "docker push ${{ inputs.docker_image }}:latest"
             exit 1
           fi
 
-          echo "Promoting ${docker_image}:canary (${canary_digest}) to ${docker_image}:latest (was ${latest_digest})"
+          echo "Promoting ${{ inputs.docker_image }}:canary (${canary_digest}) to ${{ inputs.docker_image }}:latest (was ${latest_digest})"
           echo ""
 
-          if [[ "${confirmed}" == "true" ]]; then
-            docker buildx imagetools create -t ${docker_image}:latest ${docker_image}:canary
+          if [[ "${{ inputs.confirmed }}" == "true" ]]; then
+            docker buildx imagetools create -t ${{ inputs.docker_image }}:latest ${{ inputs.docker_image }}:canary
           else
             echo "(dry run)"
-            docker buildx imagetools create --dry-run -t ${docker_image}:latest ${docker_image}:canary
+            docker buildx imagetools create --dry-run -t ${{ inputs.docker_image }}:latest ${{ inputs.docker_image }}:canary
+            echo "(dry run)"
+          fi
+      - if: ${{ inputs.update_also_nonroot }}
+        name: Promoting ${{ inputs.docker_image }}:canary-nonroot to ${{ inputs.docker_image }}:latest-nonroot
+        run: |
+          if [[ "${{ inputs.debug }}" == "true" ]]; then
+            echo "Enabling debug logging..."
+            set -x
+          fi
+
+          canary_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${{ inputs.docker_image }}:canary-nonroot || echo "")
+          latest_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${{ inputs.docker_image }}:latest-nonroot || echo "(not set)")
+
+          if [[ "${canary_digest}" == "" ]]; then
+            echo "Error: ${{ inputs.docker_image }}:canary-nonroot did not resolve to a manifest list"
+            echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to promote an arch-specific image:"
+            echo "docker pull ${{ inputs.docker_image }}:canary-nonroot"
+            echo "docker tag ${{ inputs.docker_image }}:canary-nonroot ${{ inputs.docker_image }}:latest-nonroot"
+            echo "docker push ${{ inputs.docker_image }}:latest-nonroot"
+            exit 1
+          fi
+
+          echo "Promoting ${{ inputs.docker_image }}:canary-nonroot (${canary_digest}) to ${{ inputs.docker_image }}:latest-nonroot (was ${latest_digest})"
+          echo ""
+
+          if [[ "${{ inputs.confirmed }}" == "true" ]]; then
+            docker buildx imagetools create -t ${{ inputs.docker_image }}:latest-nonroot ${{ inputs.docker_image }}:canary-nonroot
+          else
+            echo "(dry run)"
+            docker buildx imagetools create --dry-run -t ${{ inputs.docker_image }}:latest-nonroot ${{ inputs.docker_image }}:canary-nonroot
+            echo "(dry run)"
+          fi
+      - if: ${{ inputs.update_also_semgrep_semgrep }}
+        name: Promoting semgrep/semgrep:canary to semgrep/semgrep:latest
+        run: |
+          if [[ "${{ inputs.debug }}" == "true" ]]; then
+            echo "Enabling debug logging..."
+            set -x
+          fi
+
+          canary_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' semgrep/semgrep:canary || echo "")
+          latest_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' semgrep/semgrep:latest || echo "(not set)")
+
+          if [[ "${canary_digest}" == "" ]]; then
+            echo "Error: semgrep/semgrep:canary did not resolve to a manifest list"
+            echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to promote an arch-specific image:"
+            echo "docker pull semgrep/semgrep:canary"
+            echo "docker tag semgrep/semgrep:canary semgrep/semgrep:latest"
+            echo "docker push semgrep/semgrep:latest"
+            exit 1
+          fi
+
+          echo "Promoting semgrep/semgrep:canary (${canary_digest}) to semgrep/semgrep:latest (was ${latest_digest})"
+          echo ""
+
+          if [[ "${{ inputs.confirmed }}" == "true" ]]; then
+            docker buildx imagetools create -t semgrep/semgrep:latest semgrep/semgrep:canary
+          else
+            echo "(dry run)"
+            docker buildx imagetools create --dry-run -t semgrep/semgrep:latest semgrep/semgrep:canary
+            echo "(dry run)"
+          fi
+      - if: ${{ inputs.update_also_semgrep_semgrep && inputs.update_also_nonroot }}
+        name: Promoting semgrep/semgrep:canary-nonroot to semgrep/semgrep:latest-nonroot
+        run: |
+          if [[ "${{ inputs.debug }}" == "true" ]]; then
+            echo "Enabling debug logging..."
+            set -x
+          fi
+
+          canary_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' semgrep/semgrep:canary-nonroot || echo "")
+          latest_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' semgrep/semgrep:latest-nonroot || echo "(not set)")
+
+          if [[ "${canary_digest}" == "" ]]; then
+            echo "Error: semgrep/semgrep:canary-nonroot did not resolve to a manifest list"
+            echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to promote an arch-specific image:"
+            echo "docker pull semgrep/semgrep:canary-nonroot"
+            echo "docker tag semgrep/semgrep:canary-nonroot semgrep/semgrep:latest-nonroot"
+            echo "docker push semgrep/semgrep:latest-nonroot"
+            exit 1
+          fi
+
+          echo "Promoting semgrep/semgrep:canary-nonroot (${canary_digest}) to semgrep/semgrep:latest-nonroot (was ${latest_digest})"
+          echo ""
+
+          if [[ "${{ inputs.confirmed }}" == "true" ]]; then
+            docker buildx imagetools create -t semgrep/semgrep:latest-nonroot semgrep/semgrep:canary-nonroot
+          else
+            echo "(dry run)"
+            docker buildx imagetools create --dry-run -t semgrep/semgrep:latest-nonroot semgrep/semgrep:canary-nonroot
             echo "(dry run)"
           fi
 name: promote-canary-to-latest
@@ -55,10 +141,19 @@ on:
         required: true
         type: boolean
       docker_image:
-        description: Semgrep docker image to update
+        description: Semgrep docker image to promote
         options:
           - returntocorp/semgrep-test
           - returntocorp/semgrep
-          - semgrep/semgrep
         required: true
         type: choice
+      update_also_nonroot:
+        default: false
+        description: Check to also promote returntocorp/semgrep:canary-nonroot to :latest-nonroot
+        required: true
+        type: boolean
+      update_also_semgrep_semgrep:
+        default: false
+        description: Check to also promote semgrep/semgrep:canary to :latest
+        required: true
+        type: boolean
