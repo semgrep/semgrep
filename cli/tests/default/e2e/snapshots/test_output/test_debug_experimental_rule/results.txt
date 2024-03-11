@@ -64,6 +64,8 @@ Running Semgrep engine with command:
     }
   ]
 }
+We're adding data to the span
+no span
 [<MASKED>][INFO](Core_scan): processing 1 files, skipping 0 files
 [<MASKED>][INFO]: Analyzing <MASKED> (contents in <MASKED>
 [<MASKED>][DEBUG](Match_rules): checking <MASKED> with 1 rules
@@ -118,6 +120,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](Match_search_mode): evaluating the formula
 [<MASKED>][DEBUG](Match_search_mode): found 2 final ranges
 [<MASKED>][DEBUG](Core_scan): done with <MASKED> (contents in <MASKED>
+no span
 [<MASKED>][INFO](Core_scan): found 2 matches, 0 errors
 [<MASKED>][INFO](Core_scan): there were 0 skipped targets
 [<MASKED>][DEBUG](Core_command): size of returned JSON string: <MASKED>
@@ -229,6 +232,8 @@ Running Semgrep engine with command:
     }
   ]
 }
+We're adding data to the span
+no span
 [<MASKED>][[34mINFO[0m](Core_scan): processing 1 files, skipping 0 files
 [<MASKED>][[34mINFO[0m]: Analyzing <MASKED> (contents in <MASKED>
 [<MASKED>][[32mDEBUG[0m](Match_rules): checking <MASKED> with 1 rules
@@ -283,6 +288,7 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](Match_search_mode): evaluating the formula
 [<MASKED>][[32mDEBUG[0m](Match_search_mode): found 2 final ranges
 [<MASKED>][[32mDEBUG[0m](Core_scan): done with <MASKED> (contents in <MASKED>
+no span
 [<MASKED>][[34mINFO[0m](Core_scan): found 2 matches, 0 errors
 [<MASKED>][[34mINFO[0m](Core_scan): there were 0 skipped targets
 [<MASKED>][[32mDEBUG[0m](Core_command): size of returned JSON string: <MASKED>
