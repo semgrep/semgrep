@@ -286,7 +286,10 @@ let of_string_for_tests string =
     match String.split_on_char '/' string with
     | [ "" ] -> (* should be an error? *) [ "." ]
     | [] -> assert false
-    | x -> x
+    | "" :: _ as segs -> segs
+    | _ :: _ ->
+        invalid_arg
+          (Printf.sprintf "Invalid ppath %s: must start with a slash" string)
   in
   { string; segments }
 
