@@ -6,6 +6,15 @@
 
 <!-- insertion point -->
 
+## [1.65.0](https://github.com/returntocorp/semgrep/releases/tag/v1.65.0) - 2024-03-11
+
+
+### Changed
+
+
+- Removed the extract-mode rules experimental feature. (extract_mode)
+
+
 ## [1.64.0](https://github.com/returntocorp/semgrep/releases/tag/v1.64.0) - 2024-03-07
 
 
