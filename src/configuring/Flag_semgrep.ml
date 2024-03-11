@@ -24,7 +24,7 @@ let filter_irrelevant_patterns = ref false
 let max_target_bytes = ref 5_000_000
 
 (* Maximum number of tainted lvals to save. *)
-let max_tainted_lvals = ref Limits_semgrep.taint_MAX_TAINTED_LVALS
+let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
 
 (* Maximum size of the taints set for each lval *)
 let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
