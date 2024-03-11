@@ -479,7 +479,7 @@ For more information see https://semgrep.dev
     ; tracing
     trace
     ppx_trace
-    (opentelemetry (>= 0.6))
+    (opentelemetry (>= 0.8))
     opentelemetry-client-ocurl
     ambient-context-lwt
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
