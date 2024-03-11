@@ -32,5 +32,3 @@
           then reaches:
 
             2┆ sink(x)
-
-
