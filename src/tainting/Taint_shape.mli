@@ -7,7 +7,7 @@ module Fields : Map.S with type key = Taint.offset
  * the shape `obj {| a: ref<{"tainted"}>(_|_) |}`. Note that `b` is omitted
  * because it has no taint.
  *
- * 'Obj' shapes are open, if a field is not specified then it has the same
+ * 'Obj' shapes are extensible, if a field is not specified then it has the same
  * taint as its parent 'ref'. *)
 type shape =
   | Bot  (** _|_, don't know or don't care *)

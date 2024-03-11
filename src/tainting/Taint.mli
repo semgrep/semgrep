@@ -261,8 +261,8 @@ type signature = Results.t
  *     {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
  *
  * where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
- * of the parameter `x` of the function `foo`. The signature tells us that
- * '(x#0).a' will reaach a sink.
+ * of the parameter `x` (where '#0' means it is the first argument) of `foo`.
+ * The signature tells us that '(x#0).a' will reach a sink.
  *
  * Given a concrete call `foo(obj)`, Semgrep will instantiate this signature with
  * taint assigned to `obj.a` in that calling context. If it is tainted, then

@@ -25,7 +25,7 @@ module Taints = T.Taint_set
  * Right now this is mainly to support field- and index-sensitivity. Shapes also
  * provide a good foundation to later add alias analysis.
  *
- * This is somewhat inspired in
+ * This is somewhat inspired by
  * "Polymorphic type, region and effect inference"
  * by Jean-Pierre Talpin and Pierre Jouvelot.
  *
@@ -55,6 +55,8 @@ module Fields = Map.Make (struct
 end)
 
 type shape = Bot | Obj of obj
+
+(* THINK: rename 'ref' as 'cell' or 'var' to make it less confusing wrt OCaml 'ref' type ? *)
 and ref = Ref of Xtaint.t * shape
 and obj = ref Fields.t
 
@@ -62,9 +64,12 @@ and obj = ref Fields.t
 (* Helpers *)
 (*****************************************************************************)
 
+(* Violates INVARIANT(ref), see 'unsafe_find_offset_in_obj *)
 let ref_none_bot = Ref (`None, Bot)
 
-let find_offset_in_obj o obj =
+(* Temporarily breaks 'unsafe_find_offset_in_obj' by initializing a field with a
+ * 'ref<0>(_|_)' shape, the field will immediately be after be tainted or cleaned. *)
+let unsafe_find_offset_in_obj o obj =
   let o = T.offset_of_IL o in
   match Fields.find_opt o obj with
   | Some _ -> (o, obj)
@@ -135,6 +140,7 @@ and union_shape shape1 shape2 =
   | Obj obj1, Obj obj2 -> Obj (union_obj obj1 obj2)
 
 and union_obj obj1 obj2 =
+  (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
   Fields.union (fun _ x y -> Some (union_ref x y)) obj1 obj2
 
 (*****************************************************************************)
@@ -222,7 +228,7 @@ and unsafe_update_obj f offset obj =
           m ~tags:error "update_obj: Impossible happened: empty offset");
       obj
   | o :: offset -> (
-      let o, obj = find_offset_in_obj o obj in
+      let o, obj = unsafe_find_offset_in_obj o obj in
       match o with
       | Oany -> Fields.map (unsafe_update_ref f offset) obj
       | o ->
@@ -289,7 +295,7 @@ and clean_obj offset obj =
           m ~tags:error "clean_obj: Impossible happened: empty offset");
       obj
   | o :: offset -> (
-      let o, obj = find_offset_in_obj o obj in
+      let o, obj = unsafe_find_offset_in_obj o obj in
       match o with
       | Oany -> Fields.map (clean_ref offset) obj
       | o -> Fields.update o (Option.map (fun ref -> clean_ref offset ref)) obj)
