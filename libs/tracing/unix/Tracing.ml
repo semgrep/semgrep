@@ -52,23 +52,49 @@ module Otel = Opentelemetry
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type top_level_data = { version : string }
+
+(*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
 let default_endpoint = "https://telemetry.dev2.semgrep.dev"
 let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
 
+(* TODO this isn't great because this doesn't make child spans properly,
+   since the span_id isn't actually real. *)
+let top_scope () =
+  {
+    Otel.Scope.span_id = Otel.Span_id.create ();
+    trace_id = Otel.Trace_id.create ();
+    events = [];
+    attrs = [];
+  }
+
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
 
+let enter_span = Trace_core.enter_span
+let exit_span = Trace_core.exit_span
 let with_span = Trace_core.with_span
 let add_data_to_span = Trace_core.add_data_to_span
+
+let add_data_to_opt_span sp data =
+  match sp with
+  | None ->
+      UCommon.pr2 "no span";
+      ()
+  | Some sp ->
+      UCommon.pr2 "span found";
+      Trace_core.add_data_to_span sp data
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
-
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let configure_tracing service_name =
   Otel.Globals.service_name := service_name;
@@ -78,7 +104,7 @@ let configure_tracing service_name =
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_setup f =
+let with_setup (config : top_level_data) f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -91,9 +117,14 @@ let with_setup f =
     | Some url -> url
     | None -> default_endpoint
   in
+  let data () = [ ("version", `String config.version) ] in
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
-  with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
+  Opentelemetry.Scope.with_ambient_scope (top_scope ()) (fun () ->
+      let sp = enter_span ~data ~__FILE__ ~__LINE__ "All time" in
+      let res = f sp in
+      exit_span sp;
+      res)
 
 (* Alt: using cohttp_lwt
 
