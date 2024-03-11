@@ -1,6 +1,6 @@
 (* Iago Abal, Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -518,7 +518,7 @@ let sources_of_taints ?preferred_label taints =
            | Src src -> Some (src, tokens, sink_trace)
            (* even if there is any taint "variable", it's irrelevant for the
             * finding, since the precondition is satisfied. *)
-           | Arg _
+           | Var _
            | Control ->
                None)
   in
@@ -565,7 +565,7 @@ let trace_of_source source =
 
 let pms_of_finding ~match_on finding =
   match finding with
-  | T.ToArg _
+  | T.ToLval _
   | T.ToReturn _ ->
       []
   | ToSink
@@ -634,7 +634,7 @@ let pms_of_finding ~match_on finding =
 (*****************************************************************************)
 
 let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
-    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_results =
   let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
@@ -743,7 +743,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
         (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
       is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
-      handle_findings;
+      handle_results;
     },
     {
       sources = sources_ranges;
@@ -945,14 +945,14 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
           `Source
       | `Sink, `Sink -> `Sink
     in
-    let handle_findings _ findings _env =
-      findings
-      |> List.iter (fun finding ->
-             pms_of_finding ~match_on finding
+    let handle_results _ results _env =
+      results
+      |> List.iter (fun result ->
+             pms_of_finding ~match_on result
              |> List.iter (fun pm -> Stack_.push pm matches))
     in
     taint_config_of_rule ~per_file_formula_cache xconf
-      !!internal_path_to_content (ast, []) rule handle_findings
+      !!internal_path_to_content (ast, []) rule handle_results
   in
 
   (match !hook_setup_hook_function_taint_signature with

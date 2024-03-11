@@ -52,12 +52,12 @@ type config = {
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
-  handle_findings :
+  handle_results :
     var option (** function name ('None' if anonymous) *) ->
-    Taint.finding list ->
+    Taint.result list ->
     Taint_lval_env.t ->
     unit;
-      (** Callback to report findings. *)
+      (** Callback to report results. *)
 }
 (** Taint rule instantiated for a given file.
   *
@@ -90,10 +90,6 @@ val hook_function_taint_signature :
 val hook_find_attribute_in_class :
   (AST_generic.name -> string -> AST_generic.name option) option ref
 (** Pro inter-file (aka deep) *)
-
-val hook_arg_offset_of_il_offset :
-  (IL.offset -> Taint.arg_offset option) option ref
-(** Pro index sensitivity *)
 
 val hook_check_tainted_at_exit_sinks :
   (config ->

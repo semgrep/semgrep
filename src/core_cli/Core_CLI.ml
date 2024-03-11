@@ -555,9 +555,9 @@ let options caps actions =
        when running out of memory. This value should be less than the actual \
        memory available because the limit will be exceeded before it gets \
        detected. Try 5% less or 15000 if you have 16 GB." );
-    ( "-max_tainted_lvals",
-      Arg.Set_int Flag_semgrep.max_tainted_lvals,
-      "<int> maximum number of lvals to store. This is mostly for internal use \
+    ( "-max_tainted_vars",
+      Arg.Set_int Flag_semgrep.max_tainted_vars,
+      "<int> maximum number of vars to store. This is mostly for internal use \
        to make performance testing easier" );
     ( "-max_taint_set_size",
       Arg.Set_int Flag_semgrep.max_taint_set_size,
