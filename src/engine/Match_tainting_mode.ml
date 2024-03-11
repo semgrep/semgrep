@@ -133,9 +133,18 @@ let option_bind_list opt f =
 (* Finds all matches of a taint-spec pattern formula. *)
 let range_w_metas_of_formula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (rule : R.t) (formula : R.formula) : RM.ranges * ME.t list =
+  (* TODO: Ideally this should occur farther up, earlier on in the
+     Match_tainting_mode process.
+     But, this would run into trouble with the formula cache.
+     We'll leave that to a future PR so we don't change too much right now.
+  *)
+  let iformula =
+    if xconf.matching_explanations then Formula_internal.of_rule_formula formula
+    else Optimize_formula.optimize (Formula_internal.of_rule_formula formula)
+  in
   (* !! Calling Match_search_mode here !! *)
   let report, ranges =
-    Match_search_mode.matches_of_formula xconf rule xtarget formula None
+    Match_search_mode.matches_of_formula xconf rule xtarget iformula None
   in
   (ranges, report.explanations)
 

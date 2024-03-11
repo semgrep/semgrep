@@ -8,7 +8,7 @@
  *)
 val get_nested_metavar_pattern_bindings :
   (Match_env.env ->
-  Rule.formula ->
+  Formula_internal.formula ->
   Range_with_metavars.t ->
   Range_with_metavars.t list) ->
   Match_env.env ->
@@ -16,5 +16,5 @@ val get_nested_metavar_pattern_bindings :
   (* The arguments in CondNestedFormula *)
   Metavariable.mvar ->
   Xlang.t option ->
-  Rule.formula ->
+  Formula_internal.formula ->
   Metavariable.bindings list

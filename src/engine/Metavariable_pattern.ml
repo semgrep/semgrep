@@ -109,7 +109,7 @@ let get_persistent_bindings revert_loc r nested_matches =
 (* Entry point *)
 (*****************************************************************************)
 let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
-    (opt_xlang : Xlang.t option) formula =
+    (opt_xlang : Xlang.t option) (formula : Formula_internal.formula) =
   let bindings = r.RM.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
