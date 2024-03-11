@@ -65,6 +65,28 @@ let default_endpoint = "https://telemetry.dev2.semgrep.dev"
 let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* Poor man's Git repo detection. Running git repo detection again
+   seems wasteful, but checking two env vars is pretty cheap.
+
+   TODO the more we port of semgrep scan and semgrep ci, the more
+   of this information will already be in OCaml *)
+let repo_name () =
+  match Sys.getenv_opt "SEMGREP_REPO_DISPLAY_NAME" with
+  | Some name -> name
+  | None -> (
+      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
+      | Some name -> name
+      | None -> "<local run>")
+
+(* In case we don't have a repo name, report the base folder where
+   semgrep was run. We report only the base name to avoid leaking
+   user information they may not have expected us to include. *)
+let current_working_folder () = Filename.basename (Sys.getcwd ())
+
+(*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
 
@@ -75,12 +97,8 @@ let add_data_to_span = Trace_core.add_data_to_span
 
 let add_data_to_opt_span sp data =
   match sp with
-  | None ->
-      UCommon.pr2 "no span";
-      ()
-  | Some sp ->
-      UCommon.pr2 "span found";
-      Trace_core.add_data_to_span sp data
+  | None -> ()
+  | Some sp -> Trace_core.add_data_to_span sp data
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
@@ -107,7 +125,13 @@ let with_setup (config : top_level_data) f =
     | Some url -> url
     | None -> default_endpoint
   in
-  let data () = [ ("version", `String config.version) ] in
+  let data () =
+    [
+      ("version", `String config.version);
+      ("folder", `String (current_working_folder ()));
+      ("repo_name", `String (repo_name ()));
+    ]
+  in
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
   with_span ~__FILE__ ~__LINE__ ~data "All time" @@ fun sp -> f sp
