@@ -55,7 +55,15 @@ module Otel = Opentelemetry
 (* Types *)
 (*****************************************************************************)
 
-type top_level_data = { version : string }
+type analysis_flags = {
+  secrets_validators : bool;
+  historical_scan : bool;
+  allow_all_origins : bool;
+  deep_intra_file : bool;
+  deep_inter_file : bool;
+}
+
+type top_level_data = { version : string; analysis_flags : analysis_flags }
 
 (*****************************************************************************)
 (* Constants *)
@@ -67,6 +75,21 @@ let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let oss_analysis () =
+  {
+    secrets_validators = false;
+    historical_scan = false;
+    allow_all_origins = false;
+    deep_intra_file = false;
+    deep_inter_file = false;
+  }
+
+(* Set the descriptor for allowed origins. This is not simply
+   a boolean because we will likely include new origins in the
+   future *)
+let allowed_origins allow_all_origins =
+  if allow_all_origins then "all_origins" else "pro_rules_only"
 
 (* Poor man's Git repo detection. Running git repo detection again
    seems wasteful, but checking two env vars is pretty cheap.
@@ -130,7 +153,18 @@ let with_setup (config : top_level_data) f =
       ("version", `String config.version);
       ("folder", `String (current_working_folder ()));
       ("repo_name", `String (repo_name ()));
+      ("pro_secrets_validators", `Bool config.analysis_flags.secrets_validators);
+      ("pro_historical_scanning", `Bool config.analysis_flags.historical_scan);
+      ("pro_deep_intrafile", `Bool config.analysis_flags.deep_intra_file);
+      ("pro_deep_interfile", `Bool config.analysis_flags.deep_inter_file);
     ]
+    @
+    if config.analysis_flags.secrets_validators then
+      [
+        ( "pro_secrets_allowed_origins",
+          `String (allowed_origins config.analysis_flags.allow_all_origins) );
+      ]
+    else []
   in
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->

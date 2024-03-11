@@ -6,7 +6,22 @@
 (* Types *)
 (*****************************************************************************)
 
-type top_level_data = { version : string }
+type analysis_flags = {
+  secrets_validators : bool;
+  historical_scan : bool;
+  allow_all_origins : bool;
+  deep_intra_file : bool;
+  deep_inter_file : bool;
+}
+
+type top_level_data = { version : string; analysis_flags : analysis_flags }
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+val oss_analysis : unit -> analysis_flags
+(** For analysis run with the oss engine, we know all the flags will be false *)
 
 (*****************************************************************************)
 (* Functions to instrument the code *)
