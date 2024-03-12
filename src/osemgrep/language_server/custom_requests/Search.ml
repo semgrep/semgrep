@@ -13,6 +13,11 @@ let meth = "semgrep/search"
 module Request_params = struct
   type t = { pattern : string; lang : Xlang.t option }
 
+  (* This schema means that it matters what order the arguments are in!
+     This is a little undesirable, but it's annoying to be truly
+     order-agnostic, and this is what `ocaml-lsp` also does.
+     https://github.com/ocaml/ocaml-lsp/blob/ad209576feb8127e921358f2e286e68fd60345e7/ocaml-lsp-server/src/custom_requests/req_wrapping_ast_node.ml#L8
+  *)
   let of_jsonrpc_params params : t option =
     match params with
     | Some (`Assoc [ ("pattern", `String pattern); ("language", lang) ]) ->
@@ -39,9 +44,7 @@ end
     scan like normal, only returning the match ranges per file *)
 let on_request runner params =
   match Request_params.of_jsonrpc_params params with
-  | None ->
-      Logs.debug (fun m -> m "no params received in semgrep/search");
-      None
+  | None -> None
   | Some params ->
       (* TODO: figure out why rules_from_rules_source_async hangs *)
       (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
