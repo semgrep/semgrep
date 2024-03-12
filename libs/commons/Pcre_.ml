@@ -92,18 +92,6 @@ let full_split ?iflags ?flags ~rex ?pos ?max ?callout subj =
   with
   | Pcre2.Error err -> Error err
 
-(* TODO: why do we have this plus a derivied show? *)
-let string_of_error (error : Pcre2.error) =
-  match error with
-  | Partial -> "Partial"
-  | BadPattern (msg, pos) -> sprintf "Pcre2.BadPattern(%S, pos=%i)" msg pos
-  | BadUTF -> "BadUTF"
-  | BadUTFOffset -> "BadUTFOffset"
-  | MatchLimit -> "MatchLimit"
-  | DepthLimit -> "DepthLimit"
-  | WorkspaceSize -> "WorkspaceSize"
-  | InternalError msg -> sprintf "InternalError(%S)" msg
-
 let log_error rex subj err =
   let string_fragment =
     let len = String.length subj in
@@ -111,8 +99,8 @@ let log_error rex subj err =
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
   Logs.warn (fun m ->
-      m ~tags "PCRE error: %s on input %S. Source regexp: %S"
-        (string_of_error err) string_fragment rex.pattern)
+      m ~tags "PCRE error: %a on input %S. Source regexp: %S" pp_error err
+        string_fragment rex.pattern)
 
 let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
   match pmatch ?iflags ?flags ~rex ?pos ?callout subj with
@@ -144,11 +132,10 @@ let split_noerr ?iflags ?flags ~rex ?pos ?max ?callout ~on_error subj =
 
 let string_of_exn (e : exn) =
   match e with
-  | Pcre2.Error error ->
-      Some (sprintf "Pcre2.Error(%s)" (string_of_error error))
+  | Pcre2.Error error -> Some (sprintf "Pcre2.Error(%s)" (show_error error))
   | Pcre2.Backtrack -> Some "Pcre2.Backtrack"
   | Pcre2.Regexp_or (pat, error) ->
-      Some (sprintf "Pcre2.Regexp_or(pat=%S, %s)" pat (string_of_error error))
+      Some (sprintf "Pcre2.Regexp_or(pat=%S, %s)" pat (show_error error))
   | _not_from_pcre -> None
 
 (*
