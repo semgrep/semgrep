@@ -42,26 +42,88 @@ module Request_params = struct
 end
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* Get the languages that are in play in this workspace, by consulting all the
+   current targets' languages.
+   TODO: Maybe buggy if cached_workspace_targets only has dirty files or
+   whatever, I don't think it's always all of the targets in the workspace.
+   I tried Find_targets.get_targets, but this ran into an error because of some
+   path relativity stuff, I think.
+*)
+let get_relevant_xlangs (server : RPC_server.t) : Xlang.t list =
+  let files =
+    server.session.cached_workspace_targets |> Hashtbl.to_seq_values
+    |> List.of_seq |> List.concat
+  in
+  let lang_set = Hashtbl.create 10 in
+  List.iter
+    (fun file ->
+      let file_langs = Lang.langs_of_filename file in
+      List.iter (fun lang -> Hashtbl.replace lang_set lang ()) file_langs)
+    files;
+  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
+
+(* Get the rules to run based on the pattern and state of the LSP. *)
+let get_relevant_rules (params : Request_params.t) (server : RPC_server.t) :
+    Rule.t list =
+  (* TODO: figure out why rules_from_rules_source_async hangs *)
+  (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
+  let rules_and_origins =
+    Rule_fetching.rules_from_pattern (params.pattern, params.lang, None)
+  in
+  let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
+  let xlangs = get_relevant_xlangs server in
+  let rules_with_relevant_xlang =
+    List.filter
+      (fun (rule : Rule.t) -> List.mem rule.target_analyzer xlangs)
+      rules
+  in
+  match rules_with_relevant_xlang with
+  (* Unfortunately, almost everything parses as YAML, because you can specify
+     no quotes and it will be interpreted as a YAML string
+     So if we are getting a pattern which only parses as YAML, it's probably
+     safe to say it's a non-language-specific pattern.
+  *)
+  | []
+  | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
+      (* should be a singleton *)
+      let rules_and_origins =
+        Rule_fetching.rules_from_pattern
+          (params.pattern, Some Xlang.LRegex, None)
+      in
+      Rule_fetching.partition_rules_and_errors rules_and_origins |> fst
+  | other -> other
+
+(*
+  let relevant_xtargets_for_lang (files: Fpath.t list) (xlang: Xlang.t) : Xtarget.t list =
+    let filtered_files: Fpath.t list =
+      files
+      |> List.filter (fun target ->
+          Filter_target.filter_target_for_xlang xlang target)
+    in
+    filtered_files
+    |> List_.map (fun (file) ->
+      Xtarget.resolve parse_and_resolve_name
+      (Target.mk_regular xlang Product.all (File file))
+    )
+   *)
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let on_request runner params =
+let on_request server runner params =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
       None
   | Some params ->
-      (* TODO: figure out why rules_from_rules_source_async hangs *)
-      (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
-      let rules_and_origins =
-        Rule_fetching.rules_from_pattern (params.pattern, params.lang, None)
-      in
-      let rules, _ =
-        Rule_fetching.partition_rules_and_errors rules_and_origins
-      in
+      let rules = get_relevant_rules params server in
       let rules_with_fixes =
         rules |> List_.map (fun rule -> { rule with Rule.fix = params.fix })
       in
