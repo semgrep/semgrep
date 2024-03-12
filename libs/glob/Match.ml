@@ -60,7 +60,7 @@ let string_loc ?(source_name = "<pattern>") ~source_kind pat =
 
 let add = Buffer.add_string
 let addc = Buffer.add_char
-let quote_char buf c = add buf (Pcre.quote (String.make 1 c))
+let quote_char buf c = add buf (Pcre_.quote (String.make 1 c))
 
 let translate_frag buf pos (frag : Pattern.segment_fragment) =
   match frag with

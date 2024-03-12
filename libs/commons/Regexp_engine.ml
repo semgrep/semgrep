@@ -57,10 +57,10 @@ let pcre_regexp (x : t) = x.regexp
 let show (x : t) = x.pattern
 let pp fmt (x : t) = Format.fprintf fmt "\"%s\"" x.pattern
 let equal (x1 : t) (x2 : t) = x1.pattern = x2.pattern
-let matching_exact_string s : t = Pcre_.regexp (Pcre.quote s)
+let matching_exact_string s : t = Pcre_.regexp (Pcre_.quote s)
 
 let matching_exact_word s =
-  let pattern = "\b" ^ Pcre.quote s ^ "\b" in
+  let pattern = "\b" ^ Pcre_.quote s ^ "\b" in
   Pcre_.regexp pattern
 
 let pcre_compile_with_flags ~flags pat = Pcre_.regexp ~flags pat [@@profiling]

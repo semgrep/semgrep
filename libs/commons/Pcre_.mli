@@ -226,3 +226,9 @@ val get_named_substring_and_ofs :
   string ->
   Pcre2.substrings ->
   ((string * (int * int)) option, string) Result.t
+
+val quote : string -> string
+(** [quote str] is the quoted version of [str], i.e., it is [str] but with any
+    characters or sequences which need escaping to be treated literally
+    modified in the required manner.
+ *)
