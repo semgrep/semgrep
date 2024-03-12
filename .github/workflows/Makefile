@@ -21,9 +21,8 @@ OBJS = \
   test-e2e-semgrep-ci.yml nightly.yml \
   check-semgrep-pro.yml check-semgrep-pro-version.yml test-semgrep-pro.yml \
   push-docker.yml promote-canary-to-latest.yml \
-  start-release.yml release.yml release-homebrew.yml
-
-#TODO: put back: trigger-semgrep-comparison-argo.yml
+  start-release.yml release.yml release-homebrew.yml \
+  trigger-semgrep-comparison-argo.yml
 
 #TODO: in theory we should have a 'make depend' as modifying some .jsonnet
 # actually requires then to regenerate other files that depends on this .jsonnet
