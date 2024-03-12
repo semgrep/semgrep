@@ -16,7 +16,7 @@ let read_lines_from_string =
     | Ok res -> res
     | Error err ->
         (* not sure why it would happen so we let it fail *)
-        raise (Pcre.Error err)
+        raise (Pcre2.Error err)
 
 let is_ignored_line =
   let rex = Pcre_.regexp "^(?:[ \t]$|#.*)$" in

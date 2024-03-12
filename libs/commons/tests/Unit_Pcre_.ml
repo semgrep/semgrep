@@ -8,7 +8,7 @@ let test_match_limit_ok () =
   let rex = Pcre_.regexp "(a+)+$" in
   match Pcre_.pmatch ~rex "aaaaaaaaaaaaaaaaa!" with
   | Ok _ -> ()
-  | Error Pcre.MatchLimit ->
+  | Error Pcre2.MatchLimit ->
       Alcotest.fail "should not have failed with error MatchLimit"
   | Error _ -> Alcotest.fail "unexpected error"
 
@@ -16,7 +16,7 @@ let test_match_limit_fail () =
   let rex = Pcre_.regexp "(a+)+$" in
   match Pcre_.pmatch ~rex "aaaaaaaaaaaaaaaaaa!" with
   | Ok _ -> Alcotest.fail "should have failed with error MatchLimit"
-  | Error Pcre.MatchLimit -> ()
+  | Error Pcre2.MatchLimit -> ()
   | Error _ -> Alcotest.fail "unexpected error"
 
 let test_register_exception_printer () =

@@ -101,6 +101,7 @@ a few other projects developed at r2c.
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
     (pcre (>= "7.5.0" ))
+    (pcre2 (>= "7.5.2" ))
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))

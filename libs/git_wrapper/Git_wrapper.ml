@@ -148,7 +148,7 @@ let flag name (is_set : bool) : string list =
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
   let range_of_substrings substrings =
-    let line = Pcre.get_substring substrings 1 in
+    let line = Pcre2.get_substring substrings 1 in
     let lines = Str.split (Str.regexp ",") line in
     let first_line =
       match lines with
@@ -176,7 +176,7 @@ let range_of_git_diff lines =
 
 let remote_repo_name url =
   match Pcre_.exec ~rex:remote_repo_name_re url with
-  | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
+  | Ok (Some substrings) -> Some (Pcre2.get_substring substrings 1)
   | _ -> None
 
 let temporary_remote_checkout_path caps url =

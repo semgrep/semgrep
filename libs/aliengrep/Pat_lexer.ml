@@ -93,19 +93,19 @@ let read_string ?(source_name = "<pattern>") conf str =
   | Ok res ->
       res
       |> List.filter_map (function
-           | Pcre.Delim _
-           | Pcre.NoGroup ->
+           | Pcre2.Delim _
+           | Pcre2.NoGroup ->
                None
-           | Pcre.Text txt ->
+           | Pcre2.Text txt ->
                pattern_error source_name
                  (sprintf
                     "Internal error while parsing aliengrep pattern: Text node \
                      %S; pattern: %s"
                     txt conf.pcre.pattern)
-           | Pcre.Group (_, "") ->
+           | Pcre2.Group (_, "") ->
                (* no capture *)
                None
-           | Pcre.Group (num, capture) ->
+           | Pcre2.Group (num, capture) ->
                Some
                  (match num with
                  | 1 -> LONG_ELLIPSIS

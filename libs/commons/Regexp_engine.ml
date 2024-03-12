@@ -73,7 +73,7 @@ let pcre_compile pat = Pcre_.regexp ~flags:[ `MULTILINE ] pat [@@profiling]
 
 let anchored_match ?on_error =
   (* ~iflags are precompiled flags for better performance compared to ~flags *)
-  let iflags = Pcre.rflags [ `ANCHORED ] in
+  let iflags = Pcre2.rflags [ `ANCHORED ] in
   fun rex str -> Pcre_.pmatch_noerr ?on_error ~iflags ~rex str
 
 let unanchored_match ?on_error rex str = Pcre_.pmatch_noerr ?on_error ~rex str

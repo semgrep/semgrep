@@ -135,7 +135,7 @@ let parse_shebang_line s =
   match matched with
   | None -> None
   | Some matched -> (
-      match Pcre.get_substrings matched with
+      match Pcre2.get_substrings matched with
       | [| _; arg0; "" |] -> Some [ arg0 ]
       | [| _; "/usr/bin/env" as arg0; arg1 |] -> (
           (* approximate emulation of 'env -S'; should work if the command
