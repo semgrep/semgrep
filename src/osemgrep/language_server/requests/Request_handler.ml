@@ -41,7 +41,7 @@ let search_handler (server : RPC_server.t) params =
     { server with session }
   in
   let runner rules = Scan_helpers.run_semgrep server ~rules |> fst in
-  Search.on_request runner params
+  Search.on_request server runner params
 
 (* Dispatch to the various custom request handlers. *)
 let handle_custom_request server (meth : string)
