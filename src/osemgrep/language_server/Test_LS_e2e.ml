@@ -116,9 +116,9 @@ if x == 4: # CI rule
 |}
 
 let login_url_regex =
-  Regexp_engine.pcre_compile "https://semgrep.dev/login\\?cli-token=.*"
+  Pcre2_.pcre_compile {|https://semgrep.dev/login\?cli-token=.*"|}
 
-let prog_regex = Regexp_engine.pcre_compile "Pr([\\s\\S]*)"
+let prog_regex = Pcre2_.pcre_compile {|Pr([\s\S]*)|}
 
 (* Not setting this means that really nasty errors happen when an exception
    is raised inside of an Lwt.async, when running the Alcotests.
@@ -923,7 +923,7 @@ let test_ls_ext caps () =
                    let resp =
                      resp.result |> Result.get_ok |> YS.Util.to_string
                    in
-                   assert (Regexp_engine.unanchored_match prog_regex resp);
+                   assert (Pcre2_.unanchored_match prog_regex resp);
                    Lwt.return_unit)
           in
 
@@ -1003,7 +1003,7 @@ let test_login caps () =
             YS.Util.(msg.result |> Result.get_ok |> member "url" |> to_string)
           in
 
-          assert (Regexp_engine.unanchored_match login_url_regex url);
+          assert (Pcre2_.unanchored_match login_url_regex url);
           Semgrep_settings.save settings |> ignore;
           send_exit info))
 
