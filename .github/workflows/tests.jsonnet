@@ -293,7 +293,7 @@ local test_cli_job = {
         unset "${!GITHUB_@}"
 
         PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
-        SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make e2e-pro-need-login
+        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make e2e-pro-need-login
       |||,
     },
   ] + snapshot_update_pr_steps,
