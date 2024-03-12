@@ -469,6 +469,7 @@ For more information see https://semgrep.dev
     ; regexps
     re
     pcre
+    (pcre2 (>= "7.5.2" ))
     ; misc
     ocamlgraph
     parmap
