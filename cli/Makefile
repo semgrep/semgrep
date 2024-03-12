@@ -115,7 +115,8 @@ e2e:
 e2e-pro:
 	$(PYTEST) -m 'not no_semgrep_cli and not todo' tests/default/e2e-pro
 
-# Pro tests that require login and the pro binary.
+# For tests that require login and the pro binary.
+#
 .PHONY: e2e-pro-need-login
 e2e-pro-need-login:
 	$(PYTEST) tests/e2e-pro-need-login
