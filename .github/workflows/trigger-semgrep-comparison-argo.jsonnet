@@ -35,7 +35,7 @@ local util = import 'libs/util.libsonnet';
         // up to 17 minutes because the reaper task that watches this timeout runs every 5 minutes.
         { name: 'timeout_in_minutes', value: '12' },
         // for PR comments
-        { name: 'issue_number', value: '${{ github.event.issue.number }}' },
+        { name: 'issue_number', value: '${{ github.event.pull_request.number }}' },
       ],
     ),
   },

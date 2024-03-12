@@ -44,7 +44,7 @@ jobs:
       - env:
           CONTAINER_IMAGE_BASE: ${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'latest' || 'develop' }}
           CONTAINER_IMAGE_DEVELOPMENT: ${{ needs.setup-docker-tag.outputs.docker-tag }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
           RULESET: p/default-v2
           SHA: ${{ needs.get-sha.outputs.sha }}
