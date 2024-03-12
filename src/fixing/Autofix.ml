@@ -406,3 +406,45 @@ let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
          let end_ = m.end_.offset in
          Some Textedit.{ path = m.path; start; end_; replacement_text })
   |> apply_fixes ?dryrun
+
+(* Mapping of file path to a list of ranges affected by previous autofixes. *)
+type fixed_lines_env = (Fpath.t, (int * int) list) Hashtbl.t
+
+let make_fixed_lines_env () = Hashtbl.create 13
+
+let make_fixed_lines_of_string env file_contents (edit : Textedit.t) =
+  let previous_edits =
+    match Hashtbl.find_opt env edit.path with
+    | Some xs -> xs
+    | None -> []
+  in
+  let fix_overlaps =
+    (* O(n). But realistically the list will probably be short. We're reading
+     * the whole file contents in anyway each time, too. *)
+    List.exists
+      (fun (st, en) -> st < edit.end_ && en > edit.start)
+      previous_edits
+  in
+  if fix_overlaps then None
+  else
+    (* First, apply the edit *)
+    let updated_contents = Textedit.apply_edit_to_text file_contents edit in
+    (* Now, compute the range in the updated string that was affected by the
+     * edit. *)
+    let start = edit.start in
+    let end_ = start + String.length edit.replacement_text in
+    (* Then, get the lines in the updated string that were affected by the edit.
+     * *)
+    let lines = String_.lines_of_range (start, end_) updated_contents in
+    (* Record that we did this edit, so that subsequent overlapping edits can be
+     * omitted. *)
+    Hashtbl.replace env edit.path ((edit.start, edit.end_) :: previous_edits);
+    match lines with
+    (* If we are deleting whole line(s) only, we omit fixed_lines. This is odd
+     * behavior, but it matches pysemgrep and is exercised by e2e tests. *)
+    | [ "" ] -> None
+    | _ -> Some lines
+
+let make_fixed_lines env (edit : Textedit.t) =
+  let file_contents = UFile.read_file edit.path in
+  make_fixed_lines_of_string env file_contents edit
