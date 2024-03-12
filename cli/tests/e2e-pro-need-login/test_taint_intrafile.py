@@ -51,12 +51,15 @@ def test_taint_intrafile(
     semgrep_result = run_semgrep_in_tmp(
         rule,
         target_name=target,
-        # The text format could have worked, but it may have trailing white
-        # spaces, and lint complains, so json output is a bit more robust.
-        output_format=OutputFormat.JSON,
+        output_format=OutputFormat.TEXT,
         options=["--pro-intrafile"],
     )
+
+    # Hack: results may include trailing whitespaces, but pre-commit
+    # and CI force us to remove them.
+    expected = semgrep_result.stdout.rstrip()
+
     snapshot.assert_match(
-        semgrep_result.stdout,
-        "results.json",
+        expected,
+        "results.txt",
     )
