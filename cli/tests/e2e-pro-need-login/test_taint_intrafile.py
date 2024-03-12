@@ -55,11 +55,7 @@ def test_taint_intrafile(
         options=["--pro-intrafile"],
     )
 
-    # Hack: results may include trailing whitespaces, but pre-commit
-    # and CI force us to remove them.
-    expected = semgrep_result.stdout.rstrip()
-
     snapshot.assert_match(
-        expected,
+        semgrep_result.stdout,
         "results.txt",
     )
