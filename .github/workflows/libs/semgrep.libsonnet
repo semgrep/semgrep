@@ -149,7 +149,7 @@ local containers = {
     opam_switch: '4.14.0',
     job: {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:alpine-2024-03-07',
+      container: 'returntocorp/ocaml:alpine5.1-2024-03-07-x86_64',
       // We need this hack because GHA tampers with the HOME in container
       // and this does not play well with 'opam' installed in /root
       env: {
