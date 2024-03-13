@@ -127,7 +127,7 @@ let cmdline_term caps : conf Term.t =
    *)
   let combine scan_conf audit_on beta_testing_secrets code dry_run
       _internal_ci_scan_results secrets supply_chain suppress_errors _git_meta
-      _github_meta historical_secrets =
+      _github_meta _historical_secrets =
     let products =
       (if beta_testing_secrets || secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
