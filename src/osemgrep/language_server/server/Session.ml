@@ -35,6 +35,7 @@ type t = {
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
+  search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
   caps : < Cap.random ; Cap.network ; Cap.tmp >; [@opaque]
@@ -62,6 +63,7 @@ let create caps capabilities =
     cached_session;
     skipped_local_fingerprints = [];
     user_settings = User_settings.default;
+    search_config = None;
     metrics = LS_metrics.default;
     is_intellij = false;
     caps;
