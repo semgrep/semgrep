@@ -43,11 +43,6 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (* Types and constants *)
 (*****************************************************************************)
 
-(* TODO: could also do
- * [type git_cap] abstract type and then
- * let git_cap_of_exec _caps = unit
- *)
-
 type status = {
   added : string list;
   modified : string list;
@@ -57,9 +52,19 @@ type status = {
 }
 [@@deriving show]
 
+(* To make sure we don't call other commands!
+ * TODO: we could create a special git_cap capabilities instead of using
+ * Cap.exec. We could have
+ *   type git_cap
+ *   val git_cap_of_exec: Cap.exec -> git_cap
+ *)
 let git : Cmd.name = Cmd.Name "git"
 
 type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+
+(* We avoid type aliases such as 'type sha = string' because it creates
+   bad error messages mentioning 'sha' instead of 'string'
+   in contexts where no SHAs are involved. *)
 type sha = SHA of string [@@deriving eq, ord, sexp] [@@unboxed]
 
 (* print no quotes *)
@@ -220,6 +225,10 @@ Failed to run %s. Possible reasons:
 Try running the command yourself to debug the issue.|}
             (Cmd.to_string cmd));
       raise (Error "Error when we run a git command")
+
+let head (caps : < Cap.exec >) ?(cwd = Fpath.v ".") () : sha =
+  let args = [ "-C"; !!cwd; "rev-parse"; "HEAD" ] in
+  SHA (git_check_output caps args)
 
 type ls_files_kind =
   | Cached (* --cached, the default *)
