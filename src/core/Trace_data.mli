@@ -3,17 +3,14 @@
 (* Types *)
 
 type analysis_flags = {
-  secrets_validators : bool;
-  (* True when secrets validators are enabled *)
+  secrets_validators : bool;  (** True when secrets validators are enabled *)
   allow_all_origins : bool;
-  (* True when secrets validators from any origin may be used.
-     This value is discarded if secrets_validators is false *)
-  historical_scan : bool;
-  (* True when historical scans are enabled *)
+      (** True when secrets validators from any origin may be used. This value is discarded if secrets_validators is false *)
+  historical_scan : bool;  (** True when historical scans are enabled *)
   deep_intra_file : bool;
-  (* True when deep intrafile scans (aka interproc taint) is enabled *)
+      (** True when deep intrafile scans (aka interproc taint) is enabled *)
   deep_inter_file : bool;
-      (* True when interfile scans are enabled. Only one of `deep_inter_file`
+      (** True when interfile scans are enabled. Only one of `deep_inter_file`
          and `deep_intra_file` should be true. *)
 }
 [@@derving show]
