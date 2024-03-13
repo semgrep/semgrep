@@ -136,10 +136,11 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
+    let fixes_env = Autofix.make_fixed_lines_env () in
     core_matches
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
-            ~dryrun:conf.output_conf.dryrun hrules)
+            ~dryrun:conf.output_conf.dryrun fixes_env hrules)
   in
   let cli_matches =
     cli_matches

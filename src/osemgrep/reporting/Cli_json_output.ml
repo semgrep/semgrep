@@ -227,38 +227,15 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let make_fixed_lines ?applied_fixes lines fix path (start : OutJ.position)
+let make_fixed_lines fixes_env fix path (start : OutJ.position)
     (end_ : OutJ.position) =
-  let fix_overlaps, add_fix =
-    match applied_fixes with
-    | None -> (false, fun () -> ())
-    | Some table ->
-        let v =
-          match Hashtbl.find_opt table !!path with
-          | Some xs -> xs
-          | None -> []
-        in
-        ( List.exists
-            (fun (st, en) -> st <= start.offset && en >= start.offset)
-            v,
-          fun () ->
-            Hashtbl.replace table !!path ((start.offset, end_.offset) :: v) )
+  let edit =
+    Textedit.
+      { path; start = start.offset; end_ = end_.offset; replacement_text = fix }
   in
-  if String.equal fix "" then None
-  else if fix_overlaps then None
-  else
-    match (lines, List.rev lines) with
-    | line :: _, last_line :: _ ->
-        let first_line_part = Str.first_chars line (start.col - 1)
-        and last_line_part = Str.string_after last_line (end_.col - 1) in
-        add_fix ();
-        Some
-          (String.split_on_char '\n' (first_line_part ^ fix ^ last_line_part))
-    | [], _
-    | _, [] ->
-        None
+  Autofix.make_fixed_lines fixes_env edit
 
-let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
+let cli_match_of_core_match ~dryrun fixes_env (hrules : Rule.hrules)
     (m : OutJ.core_match) : OutJ.cli_match =
   match m with
   | {
@@ -304,18 +281,18 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
        * and merged with Constants.rule_severity
        *)
       let severity = severity ||| rule.severity in
-      (* TODO? at this point why not using content_of_file_at_range since
-       * we concatenate the lines after? *)
-      let lines =
-        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
-      in
       let fixed_lines =
         match (fix, dryrun) with
         | None, _
         | _, false ->
             None
-        | Some fix, true ->
-            make_fixed_lines ?applied_fixes lines fix path start end_
+        | Some fix, true -> make_fixed_lines fixes_env fix path start end_
+      in
+      (* Can't use content_of_file_at_range because we want to include the
+       * entirety of every line involved in the match, not just the text that
+       * matched. *)
+      let lines =
+        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
       in
       let lines = lines |> String.concat "\n" in
       {
@@ -470,14 +447,14 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
         ignore skipped_rules;
         []
       in
-      let applied_fixes = Hashtbl.create 13 in
+      let fixes_env = Autofix.make_fixed_lines_env () in
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
          *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match ~dryrun ~applied_fixes hrules)
+          |> List_.map (cli_match_of_core_match ~dryrun fixes_env hrules)
           |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;
