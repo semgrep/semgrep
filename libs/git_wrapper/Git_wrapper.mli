@@ -4,19 +4,15 @@
 
 exception Error of string
 
-val remote_repo_name : string -> string option
-(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
-
-val temporary_remote_checkout_path : < Cap.tmp > -> string -> Fpath.t
-(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"]
-    will return [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid
-    remote repo name *)
-
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
- * raise an Error otherwise
+ * raise an Error exn otherwise.
  *)
 val git_check_output : < Cap.exec > -> Cmd.args -> string
+
+type sha = SHA of string [@@unboxed] [@@deriving show, eq, ord, sexp]
+
+val head : < Cap.exec > -> ?cwd:Fpath.t -> unit -> sha
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,
@@ -102,20 +98,6 @@ type status = {
 }
 [@@deriving show]
 
-(* We avoid type aliases such as 'type sha = string' because it creates
-   bad error messages mentioning 'sha' instead of 'string'
-   in contexts where no SHAs are involved. *)
-type sha = SHA of string [@@unboxed] [@@deriving show, eq, ord, sexp]
-type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-
-(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
-type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
-[@@deriving show]
-
-type batch_check_extra = { size : int } [@@deriving show]
-type batch_extra = { contents : string } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
-
 (* git status *)
 val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
@@ -198,6 +180,16 @@ val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
     the commits since the specified time.
  *)
 
+type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+
+(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
+type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+[@@deriving show]
+
+type batch_check_extra = { size : int } [@@deriving show]
+type batch_extra = { contents : string } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
+
 val cat_file_batch_check_all_objects :
   ?cwd:Fpath.t -> unit -> batch_check_extra obj list option
 (** [cat_file_batch_all_objects ()] will run [git log
@@ -266,6 +258,18 @@ val ls_tree :
    specified to be true (it is false by default) then the `-r` option is passed
    and git will recurse into subtrees.
  *)
+
+val remote_repo_name : string -> string option
+(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
+
+val temporary_remote_checkout_path : < Cap.tmp > -> string -> Fpath.t
+(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"]
+    will return [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid
+    remote repo name *)
+
+(*****************************************************************************)
+(* For testing *)
+(*****************************************************************************)
 
 (*
    Create a temporary git repo for testing purposes, cd into it,
