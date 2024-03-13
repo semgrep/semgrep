@@ -22,7 +22,7 @@ jobs:
   # check whether similar commands are working fine in CircleCI.
   build-ubuntu:
     docker:
-      - image: returntocorp/ocaml:ubuntu-2024-03-07
+      - image: returntocorp/ocaml:ubuntu5.1-2024-03-07-x86_64
         user: root
     working_directory: /src
     steps:

@@ -167,7 +167,7 @@ local containers = {
     opam_switch: '4.14.0',
     job: {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:ubuntu-2024-03-07',
+      container: 'returntocorp/ocaml:ubuntu5.1-2024-03-07-x86_64',
       env: {
         HOME: '/root',
       },

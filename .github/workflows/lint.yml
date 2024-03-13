@@ -49,7 +49,7 @@ jobs:
         with:
           extra_args: --hook-stage manual
   pre-commit-ocaml:
-    container: returntocorp/ocaml:ubuntu-2024-03-07
+    container: returntocorp/ocaml:ubuntu5.1-2024-03-07-x86_64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
