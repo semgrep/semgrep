@@ -173,8 +173,10 @@ let test_explicit_brackets () =
      There's only so much we can do when braces are mismatched. *)
   check slconf {|(...)|} {|([)|} [ Num_matches 1; Match_value {|([)|} ];
   check slconf {|(...)|} {|(])|} [ Num_matches 1; Match_value {|(])|} ];
-  check slconf {|(...)|} {|([)]|} [ Num_matches 0 ];
-  check slconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
+  (* NOTE: These tests previously had zero matches; with the switch to PCRE2, it
+     now matches. *)
+  check slconf {|(...)|} {|([)]|} [ Num_matches 1; Match_value {|([)|} ];
+  check slconf {|(...)|} {|[([)]|} [ Num_matches 1; Match_value {|([)|} ]
 
 let test_custom_brackets () =
   check mlconf {|(...)|} "((x))" [ Num_matches 1; Match_value "((x))" ];
