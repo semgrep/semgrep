@@ -92,7 +92,7 @@ local pre_commit_ocaml_job(submodules=false) =
     // This custom image provides 'ocamlformat' with a specific version needed to check
     // OCaml code (must be the same than the one in dev/dev.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: 'returntocorp/ocaml:ubuntu-2023-10-17',
+    container: 'returntocorp/ocaml:ubuntu-2024-03-07',
     steps: [
       if submodules then actions.checkout_with_submodules() else actions.checkout(),
       // HOME in the container is tampered by GHA and modified from /root to /home/github
