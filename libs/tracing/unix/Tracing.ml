@@ -53,7 +53,13 @@ module Otel = Opentelemetry
 (* Types *)
 (*****************************************************************************)
 
-type span = Int64.t [@@deriving show]
+type span = Trace_core.span
+
+(* Implement the show and pp functions manually since we know
+   Trace_core.span is int64*)
+let show_span = Int64.to_string
+let pp_span fmt = Format.fprintf fmt "%Ldl"
+
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)

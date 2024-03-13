@@ -24,7 +24,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type span = Trace_core.span [@@deriving show]
+type span = int64 [@@deriving show]
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)
@@ -45,4 +45,4 @@ let add_data_to_opt_span (_i : span option)
 (*****************************************************************************)
 
 let configure_tracing (_service_name : string) = ()
-let with_tracing f = f (Int64.of_int 0)
+let with_tracing f = f 0L

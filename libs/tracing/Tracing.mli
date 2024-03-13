@@ -19,7 +19,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type span = Int64.t [@@deriving show]
+type span = Trace_core.span [@@deriving show]
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)
