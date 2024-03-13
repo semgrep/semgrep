@@ -24,6 +24,8 @@
 (* Types *)
 (*****************************************************************************)
 
+type span = Trace_core.span [@@deriving show]
+
 type analysis_flags = {
   secrets_validators : bool;
   historical_scan : bool;
@@ -31,14 +33,16 @@ type analysis_flags = {
   deep_intra_file : bool;
   deep_inter_file : bool;
 }
+[@@deriving show]
 
 type top_level_data = { version : string; analysis_flags : analysis_flags }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let oss_analysis () =
+let no_analysis_features () =
   {
     secrets_validators = false;
     historical_scan = false;
@@ -55,11 +59,11 @@ let enter_span = Trace_core.enter_span
 let exit_span = Trace_core.exit_span
 let with_span = Trace_core.with_span
 
-let add_data_to_span (_i : int64) (_data : (string * Trace_core.user_data) list)
+let add_data_to_span (_i : span) (_data : (string * Trace_core.user_data) list)
     =
   ()
 
-let add_data_to_opt_span (_i : int64 option)
+let add_data_to_opt_span (_i : span option)
     (_data : (string * Trace_core.user_data) list) =
   ()
 

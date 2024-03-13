@@ -73,7 +73,7 @@ type t = {
   (* Other *)
   version : string;
   (* To add data to our opentelemetry top span, which makes it easier to filter *)
-  top_level_span : int64 option;
+  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 

@@ -55,15 +55,19 @@ module Otel = Opentelemetry
 (* Types *)
 (*****************************************************************************)
 
+type asdf_span = Int64.t [@@deriving show]
+
 type analysis_flags = {
   secrets_validators : bool;
-  historical_scan : bool;
   allow_all_origins : bool;
+  historical_scan : bool;
   deep_intra_file : bool;
   deep_inter_file : bool;
 }
+[@@deriving show]
 
 type top_level_data = { version : string; analysis_flags : analysis_flags }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Constants *)
@@ -76,7 +80,7 @@ let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
 (* Helpers *)
 (*****************************************************************************)
 
-let oss_analysis () =
+let no_analysis_features () =
   {
     secrets_validators = false;
     historical_scan = false;
@@ -119,9 +123,7 @@ let with_span = Trace_core.with_span
 let add_data_to_span = Trace_core.add_data_to_span
 
 let add_data_to_opt_span sp data =
-  match sp with
-  | None -> ()
-  | Some sp -> Trace_core.add_data_to_span sp data
+  Option.iter (fun sp -> Trace_core.add_data_to_span sp data) sp
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
@@ -135,7 +137,7 @@ let configure_tracing service_name =
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_setup (config : top_level_data) f =
+let with_setup fname (config : top_level_data) f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -168,7 +170,7 @@ let with_setup (config : top_level_data) f =
   in
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
-  with_span ~__FILE__ ~__LINE__ ~data "All time" @@ fun sp -> f sp
+  with_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp -> f sp
 
 (* Alt: using cohttp_lwt
 
