@@ -19,7 +19,8 @@ open Fpath_.Operators
 module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
-let meth = "semgrep/search"
+let start_meth = "semgrep/search"
+let ongoing_meth = "semgrep/searchOngoing"
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,6 +28,27 @@ let meth = "semgrep/search"
 
 (* The main logic for the /semgrep/search LSP command, which is meant to be
    run on a manual search.
+
+   This is a _streaming_ search, meaning that we service partial results. In
+   particular, we choose to service results within the RPC_server loop as
+   _one file per request_.
+
+   As such, we have two different commands: /semgrep/search, and /semgrep/searchOngoing.
+   Our protocol with them are as follows:
+   - when starting a search, the LS receives /semgrep/search and stores some
+     information of what to do next in the `server` value
+   - the server then receives /semgrep/searchOngoing until either a new search
+     is started, or the search is finished.
+   - both searches will return the matches found in the next file in the queue
+
+   Effectively, think of `Search.ml` as a pinata, which is consistently hit by
+   /semgrep/search and /semgrep/searchOngoing until it runs out of files to
+   search.
+
+   TODO: Things that would be nice:
+   - AST caching
+   - Parallelism (Parmap or threads?)
+   - Moving work up to folder-open time rather than search-time
 *)
 
 (*****************************************************************************)
@@ -147,48 +169,113 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
       search_rules_of_langs (Some Xlang.LRegex)
   | other -> other
 
-(*****************************************************************************)
-(* Running Semgrep! *)
-(*****************************************************************************)
-
-let runner (env : env) rules =
+let get_rules_and_targets (env : env) =
+  let rules = get_relevant_rules env in
   (* Ideally we would just use this, but it seems to err.
      I suspect that Find_targets.git_list_files is not quite correct.
   *)
   (* let _res = Find_targets.get_target_fpaths Scan_CLI.default.targeting_conf env.roots in *)
-  (* TODO: Streaming matches!! *)
+  let rules_and_targets =
+    rules
+    |> List_.map (fun (rule : Rule.search_rule) ->
+           let xlang = rule.target_analyzer in
+           (* We have to look at all the initial files again when we do this.
+               TODO: Maybe could be better to infer languages from each file,
+               so we only have to look at each file once.
+           *)
+           let filtered_files : Fpath.t list =
+             env.initial_files
+             |> List.filter (fun target ->
+                    Filter_target.filter_target_for_xlang xlang target)
+           in
+           ( rule,
+             filtered_files
+             |> List_.map (fun file ->
+                    Xtarget.resolve parse_and_resolve_name
+                      (Target.mk_regular xlang Product.all (File file))) ))
+  in
+  rules_and_targets
+
+(*****************************************************************************)
+(* Output *)
+(*****************************************************************************)
+
+let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
+  let json =
+    List_.map
+      (fun (path, matches) ->
+        let uri = !!path |> Uri.of_path |> Uri.to_string in
+        let matches =
+          matches
+          |> List_.map (fun (m : Pattern_match.t) ->
+                 let range_json =
+                   Range.yojson_of_t (Conv.range_of_toks m.range_loc)
+                 in
+                 let fix_json =
+                   match m.rule_id.fix with
+                   | None -> `Null
+                   | Some s -> `String s
+                 in
+                 `Assoc [ ("range", range_json); ("fix", fix_json) ])
+        in
+        `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
+      matches_by_file
+  in
+  Some (`Assoc [ ("locations", `List json) ])
+
+(*****************************************************************************)
+(* Running Semgrep! *)
+(*****************************************************************************)
+
+let rec next_rule_and_xtarget (server : RPC_server.t) =
+  match server.session.search_config with
+  | None
+  | Some { rules_and_targets = [] } ->
+      None
+  | Some { rules_and_targets = (_rule, []) :: rest } ->
+      let new_session =
+        {
+          server.session with
+          search_config = Some { rules_and_targets = rest };
+        }
+      in
+      next_rule_and_xtarget { server with session = new_session }
+  | Some { rules_and_targets = (rule, xtarget :: rest_xtargets) :: rest } ->
+      let new_session =
+        {
+          server.session with
+          search_config =
+            Some { rules_and_targets = (rule, rest_xtargets) :: rest };
+        }
+      in
+      Some ((rule, xtarget), { server with session = new_session })
+
+let rec search_single_target (server : RPC_server.t) =
   let hook _file _pm = () in
-  rules
-  |> List.concat_map (fun (rule : Rule.search_rule) ->
-         let xlang = rule.target_analyzer in
-         (* We have to look at all the initial files again when we do this.
-            TODO: Maybe could be better to infer languages from each file,
-            so we only have to look at each file once.
-         *)
-         let filtered_files : Fpath.t list =
-           env.initial_files
-           |> List.filter (fun target ->
-                  Filter_target.filter_target_for_xlang xlang target)
-         in
-         filtered_files
-         |> List_.map (fun file ->
-                Xtarget.resolve parse_and_resolve_name
-                  (Target.mk_regular xlang Product.all (File file)))
-         |> List_.map_filter (fun xtarget ->
-                try
-                  (* !!calling the engine!! *)
-                  let ({ Core_result.matches; _ } : _ Core_result.match_result)
-                      =
-                    Match_search_mode.check_rule rule hook
-                      Match_env.default_xconfig xtarget
-                  in
-                  match (matches, xtarget.path.origin) with
-                  | [], _ -> None
-                  | _, File path -> Some (path, matches)
-                  (* This shouldn't happen. *)
-                  | _, GitBlob _ -> None
-                with
-                | Parsing_error.Syntax_error _ -> None))
+  match next_rule_and_xtarget server with
+  | None ->
+      (* Since we are done with our searches (no more targets), reset our internal state to
+         no longer have this scan config.
+      *)
+      ( json_of_matches [],
+        { server with session = { server.session with search_config = None } }
+      )
+  | Some ((rule, xtarget), server) -> (
+      try
+        (* !!calling the engine!! *)
+        let ({ Core_result.matches; _ } : _ Core_result.match_result) =
+          Match_search_mode.check_rule rule hook Match_env.default_xconfig
+            xtarget
+        in
+        match (matches, xtarget.path.origin) with
+        | [], _ -> search_single_target server
+        | _, File path ->
+            let json = json_of_matches [ (path, matches) ] in
+            (json, server)
+        (* This shouldn't happen. *)
+        | _, GitBlob _ -> search_single_target server
+      with
+      | Parsing_error.Syntax_error _ -> search_single_target server)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -197,34 +284,22 @@ let runner (env : env) rules =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let on_request (server : RPC_server.t) params =
+let start_search (server : RPC_server.t) params =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
-      None
+      (None, server)
   | Some params ->
       let env = mk_env server params in
-      let rules = get_relevant_rules env in
+      let rules_and_targets = get_rules_and_targets env in
       (* !!calling the engine!! *)
-      let matches_by_file = runner env rules in
-      let json =
-        List_.map
-          (fun (path, matches) ->
-            let uri = !!path |> Uri.of_path |> Uri.to_string in
-            let matches =
-              matches
-              |> List_.map (fun (m : Pattern_match.t) ->
-                     let range_json =
-                       Range.yojson_of_t (Conv.range_of_toks m.range_loc)
-                     in
-                     let fix_json =
-                       match m.rule_id.fix with
-                       | None -> `Null
-                       | Some s -> `String s
-                     in
-                     `Assoc [ ("range", range_json); ("fix", fix_json) ])
-            in
-            `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
-          matches_by_file
-      in
-      Some (`Assoc [ ("locations", `List json) ])
+      search_single_target
+        {
+          server with
+          session =
+            { server.session with search_config = Some { rules_and_targets } };
+        }
+
+let search_next_file (server : RPC_server.t) _params =
+  (* The params are nullary, so we don't actually need to check them. *)
+  search_single_target server
