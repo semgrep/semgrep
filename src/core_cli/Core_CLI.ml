@@ -758,14 +758,12 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
            * TODO when osemgrep is the default entry point, we will also be able to
              instrument the pre- and post-scan code in the same way. *)
           if config.trace then (
-            let trace_data : Tracing.top_level_data =
-              {
-                version = config.version;
-                analysis_flags = Tracing.no_analysis_features ();
-              }
+            let trace_data =
+              Trace_data.get_top_level_data config.version
+                (Trace_data.no_analysis_features ())
             in
             Tracing.configure_tracing "semgrep-oss";
-            Tracing.with_setup "Core_command.semgrep_core_dispatch" trace_data
+            Tracing.with_tracing "Core_command.semgrep_core_dispatch" trace_data
               (fun sp ->
                 Core_command.semgrep_core_dispatch caps
                   { config with top_level_span = Some sp }))
