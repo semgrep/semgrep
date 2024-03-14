@@ -506,7 +506,7 @@ def run_benchmarks(
                         include_time,
                         hard_timeout,
                         trace,
-                        traces_entpoint
+                        traces_entpoint,
                     )
                 except subprocess.TimeoutExpired:
                     logger.warning(
@@ -679,7 +679,7 @@ def main() -> None:
         "--traces_endpoint",
         metavar="SEMGREP_OTEL_ENDPOINT",
         help="Add endpoint for collecting tracing",
-        type=str
+        type=str,
     )
     parser.add_argument(
         "--output-time-per-rule-json",
