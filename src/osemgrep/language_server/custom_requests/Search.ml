@@ -298,8 +298,9 @@ let rec search_single_target (server : RPC_server.t) =
       | GitBlob _ -> search_single_target server
       | File path ->
           let is_relevant_rule =
-            true
-            (* Match_rules.is_relevant_rule_for_xtarget (rule :> Rule.rule) conf.xconf xtarget *)
+            Match_rules.is_relevant_rule_for_xtarget
+              (rule :> Rule.rule)
+              conf.xconf xtarget
           in
           if is_relevant_rule then
             try
