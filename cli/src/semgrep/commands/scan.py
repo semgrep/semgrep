@@ -28,7 +28,6 @@ from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
-from semgrep.constants import DEFAULT_SEMGREP_OTEL_ENDPOINT
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
@@ -217,7 +216,7 @@ _scan_options: List[Callable] = [
     optgroup.option(
         "--traces-endpoint",
         envvar="SEMGREP_OTEL_ENDPOINT",
-        default=DEFAULT_SEMGREP_OTEL_ENDPOINT,
+        default=None,
         help="Url to send OpenTelemetry traces",
     ),
     optgroup.option(
