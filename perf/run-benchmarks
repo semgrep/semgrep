@@ -224,7 +224,7 @@ def run_semgrep(
     include_time: bool,
     hard_timeout: int = 0,
     trace: bool = False,
-    traces_entpoint: Optional[str] = None,
+    traces_endpoint: Optional[str] = None,
 ) -> Tuple[float, dict]:
     args = []
     common_args = [
@@ -272,8 +272,8 @@ def run_semgrep(
         args.extend(["--time"])
     if trace:
         args.extend(["--trace"])
-    if traces_entpoint:
-        args.extend(["--traces-endpoint", traces_entpoint])
+    if traces_endpoint:
+        args.extend(["--traces-endpoint", traces_endpoint])
 
     # Finally, add target
     if not docker:
@@ -428,7 +428,7 @@ def run_benchmarks(
     include_time: bool,
     clean: bool,
     trace: bool,
-    traces_entpoint: Optional[str],
+    traces_endpoint: Optional[str],
     summary_file_path: str,
     findings_file_path: str,
     called_dir: str,
@@ -506,7 +506,7 @@ def run_benchmarks(
                         include_time,
                         hard_timeout,
                         trace,
-                        traces_entpoint,
+                        traces_endpoint,
                     )
                 except subprocess.TimeoutExpired:
                     logger.warning(
