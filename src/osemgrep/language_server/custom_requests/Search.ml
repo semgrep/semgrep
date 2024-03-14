@@ -197,7 +197,25 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
       search_rules_of_langs (Some Xlang.LRegex)
-  | other -> other
+  | other ->
+      let has_python3 =
+        List.exists
+          (fun x ->
+            match x.Rule.target_analyzer with
+            | Xlang.L (Python3, _) -> true
+            | _ -> false)
+          other
+      in
+      (* If a pattern parses with python3, don't run any more Python rules. *)
+      if has_python3 then
+        List.filter
+          (fun x ->
+            match x.Rule.target_analyzer with
+            | Xlang.L (Python2, _) -> false
+            | Xlang.L (Python, _) -> false
+            | _ -> true)
+          other
+      else other
 
 let get_rules_and_targets (env : env) =
   let rules = get_relevant_rules env in
