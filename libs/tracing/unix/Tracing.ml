@@ -95,8 +95,7 @@ let with_setup f traces_endpoint =
         | "semgrep-local" -> default_local_endpoint
         | "dev" -> default_dev_endpoint
         | "local" -> default_local_endpoint
-        | _ -> url
-      )
+        | _ -> url)
     | None -> default_endpoint
   in
   let config = Opentelemetry_client_ocurl.Config.make ~url () in

@@ -585,7 +585,9 @@ let options caps actions =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-trace", Arg.Set trace, " output tracing information");
-    ("-traces-endpoint", Arg.String (fun url -> traces_endpoint := Some url), " url endpoint for collecting tracing information");
+    ( "-traces-endpoint",
+      Arg.String (fun url -> traces_endpoint := Some url),
+      " url endpoint for collecting tracing information" );
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -761,8 +763,9 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
              instrument the pre- and post-scan code in the same way. *)
           if config.trace then (
             Tracing.configure_tracing "semgrep";
-            Tracing.with_setup (fun () ->
-                Core_command.semgrep_core_dispatch caps config) config.traces_endpoint)
+            Tracing.with_setup
+              (fun () -> Core_command.semgrep_core_dispatch caps config)
+              config.traces_endpoint)
           else Core_command.semgrep_core_dispatch caps config)
 
 let with_exception_trace f =

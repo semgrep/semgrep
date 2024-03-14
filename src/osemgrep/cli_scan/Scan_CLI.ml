@@ -436,9 +436,7 @@ let o_trace : bool Term.t =
 
 let o_traces_endpoint : string option Term.t =
   let info =
-    Arg.info [ "traces-endpoint" ]
-      ~doc:
-        "Url to send OpenTelemetry traces"
+    Arg.info [ "traces-endpoint" ] ~doc:"Url to send OpenTelemetry traces"
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -889,8 +887,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       pro_lang remote replacement respect_gitignore rewrite_rule_ids sarif
       scan_unknown_extensions secrets severity show_supported_languages strict
       target_roots test test_ignore_todo text time_flag timeout
-      _timeout_interfileTODO timeout_threshold trace traces_endpoint validate version
-      version_check vim =
+      _timeout_interfileTODO timeout_threshold trace traces_endpoint validate
+      version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
