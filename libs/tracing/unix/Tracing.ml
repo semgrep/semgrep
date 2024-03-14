@@ -93,6 +93,8 @@ let with_setup f traces_endpoint =
         match url with
         | "semgrep-dev" -> default_dev_endpoint
         | "semgrep-local" -> default_local_endpoint
+        | "dev" -> default_dev_endpoint
+        | "local" -> default_local_endpoint
         | _ -> url
       )
     | None -> default_endpoint

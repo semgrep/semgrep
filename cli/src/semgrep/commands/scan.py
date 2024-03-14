@@ -218,6 +218,7 @@ _scan_options: List[Callable] = [
         "--traces-endpoint",
         envvar="SEMGREP_OTEL_ENDPOINT",
         default=DEFAULT_SEMGREP_OTEL_ENDPOINT,
+        help="Url to send OpenTelemetry traces",
     ),
     optgroup.option(
         "--matching-explanations",

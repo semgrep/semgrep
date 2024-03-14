@@ -585,7 +585,7 @@ let options caps actions =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-trace", Arg.Set trace, " output tracing information");
-    ("-traces-endpoint", Arg.Set traces_endpoint, " endpoint for collecting tracing information");
+    ("-traces-endpoint", Arg.String (fun url -> traces_endpoint := Some url), " url endpoint for collecting tracing information");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
