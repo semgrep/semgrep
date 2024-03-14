@@ -1,3 +1,5 @@
+// Release workflow part 1 (part 2 is release.jsonnet).
+//
 // This workflow is used interactively when we want to trigger a new release;
 // most of the release is automated thanks to this workflow and release.jsonnet
 // which is triggered when start-release.jsonnet creates a PR for a new release.
@@ -7,10 +9,6 @@
 //  - scripts/release/ which contains helper scripts for the release
 //    (e.g., towncrier to manage the changelog)
 //  - scripts/validate-docker-release.sh
-//
-// LATER:
-//  - remove intermediate SEMGREP_RELEASE_NEXT_VERSION, use ref to the step
-//  - remove step.release-branch, use directly release-%s % version
 
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -235,8 +233,6 @@ local release_setup_job = {
   outputs: {
     // other jobs can refer to this output via 'pr_number' constant above
     'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
-    // TODO: delete, can be derived from version, it's release-<version>
-    'release-branch': '${{ steps.release-branch.outputs.release-branch }}',
   },
   // TODO: again why we need this token? we release from
   // the repo of the workflow, can't we just checkout?
@@ -250,13 +246,7 @@ local release_setup_job = {
       },
     },
     {
-      name: 'Create release branch',
-      id: 'release-branch',
-      run: |||
-        RELEASE_BRANCH="release-%s"
-        git checkout -b ${RELEASE_BRANCH}
-        echo "release-branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
-      ||| % version,
+      run: 'git checkout -b "release-%s"' % version,
     },
     {
       env: {
@@ -310,14 +300,14 @@ local release_setup_job = {
         %s
         git add --all
         git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
-        git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
-      ||| % gha.git_config_user,
+        git push --set-upstream origin release-%s
+      ||| % [gha.git_config_user, version],
     } + unless_dry_run,
     {
       name: 'Create PR',
       id: 'open-pr',
       env: {
-        SOURCE: '${{ steps.release-branch.outputs.release-branch }}',
+        SOURCE: 'release-%s' % version,
         TARGET: '${{ github.event.repository.default_branch }}',
         TITLE: 'Release Version %s' % version,
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
@@ -326,7 +316,6 @@ local release_setup_job = {
         # check if the branch already has a pull request open
 
         if gh pr list --head ${SOURCE} | grep -vq "no pull requests"; then
-            # pull request already open
             echo "pull request from SOURCE ${SOURCE} to TARGET ${TARGET} is already open";
             echo "cancelling release"
             exit 1
@@ -389,7 +378,7 @@ local create_tag_job = {
       with: {
         submodules: true,
         // checkout the release branch this time
-        ref: '${{ needs.release-setup.outputs.release-branch }}',
+        ref: 'release-%s' % version,
         token: semgrep.github_bot.token_ref,
       },
     },
