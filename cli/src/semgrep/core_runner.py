@@ -855,7 +855,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 cmd.append("-trace")
 
             if self._traces_endpoint:
-                cmd.append("-traces-endpoint")
+                cmd.extend(["-traces-endpoint", self._traces_endpoint])
 
             if run_secrets and not disable_secrets_validation:
                 cmd += ["-secrets"]
