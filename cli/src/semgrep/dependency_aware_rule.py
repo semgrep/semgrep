@@ -127,7 +127,7 @@ def generate_unreachable_sca_findings(
 
 
 @lru_cache(maxsize=100_000)
-def transivite_dep_is_also_direct(
+def transitive_dep_is_also_direct(
     package: str, deps: Tuple[Tuple[str, Transitivity], ...]
 ) -> bool:
     """
@@ -169,7 +169,7 @@ def generate_reachable_sca_findings(
                 for dep_pat, found_dep in dependency_matches:
                     if found_dep.transitivity == Transitivity(
                         Transitive()
-                    ) and transivite_dep_is_also_direct(found_dep.package, frozen_deps):
+                    ) and transitive_dep_is_also_direct(found_dep.package, frozen_deps):
                         continue
                     reachable_deps.add(
                         (
