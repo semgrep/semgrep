@@ -548,11 +548,12 @@ def create_validator_rule_match(
     match_validation_state: Union[
         out.ConfirmedValid, out.ConfirmedInvalid, out.ValidationError, out.NoValidator
     ],
+    action: str = "monitor",
 ):
     return RuleMatch(
         message="message",
         metadata={
-            "dev.semgrep.actions": ["monitor"],
+            "dev.semgrep.actions": [action],
             "dev.semgrep.validation_state.actions": validation_state_actions,
         },
         severity=out.MatchSeverity(out.Error()),
@@ -573,49 +574,56 @@ def create_validator_rule_match(
 
 @pytest.mark.quick
 @pytest.mark.parametrize(
-    ("validation_state_actions", "match_validation_state", "is_blocking"),
+    ("validation_state_actions", "match_validation_state", "action", "is_blocking"),
     [
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.ConfirmedValid(),
+            "block",
             False,
         ),
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.ConfirmedInvalid(),
+            "block",
             False,
         ),
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.ValidationError(),
+            "monitor",
             True,
         ),
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.NoValidator(),
+            "block",
             False,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
             out.ConfirmedValid(),
+            "monitor",
             True,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
             out.ConfirmedInvalid(),
+            "monitor",
             True,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
             out.NoValidator(),
+            "monitor",
             True,
         ),
     ],
 )
 def test_validator_rule_blocking(
-    validation_state_actions, match_validation_state, is_blocking
+    validation_state_actions, match_validation_state, action, is_blocking
 ):
     rule_match = create_validator_rule_match(
-        validation_state_actions, match_validation_state
+        validation_state_actions, match_validation_state, action
     )
     assert rule_match.is_blocking == is_blocking

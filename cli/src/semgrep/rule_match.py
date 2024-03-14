@@ -438,7 +438,7 @@ class RuleMatch:
             out.NoValidator: "valid",  # Fallback to valid action for no validator
         }
 
-        validation_state = action_map.get(type(self.validation_state.value))
+        validation_state = action_map.get(type(self.validation_state.value), "valid")
 
         return (
             self.metadata.get("dev.semgrep.validation_state.actions", {}).get(
@@ -461,8 +461,10 @@ class RuleMatch:
                 return False
             else:
                 return blocking
-        else:
-            return self.is_validation_state_blocking or blocking
+        elif self.validation_state is not None:
+            return self.is_validation_state_blocking
+
+        return blocking
 
     @property
     def dataflow_trace(self) -> Optional[out.MatchDataflowTrace]:
