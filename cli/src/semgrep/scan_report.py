@@ -332,14 +332,7 @@ def print_scan_status(
         return plans
 
     if simple_ux:
-        logo = with_color(Colors.green, "○○○")
-        console.print(
-            f"""
-┌──── {logo} ────┐
-│ Semgrep CLI │
-└─────────────┘
-"""
-        )
+        pass  # We are hoisting the logo for snappy response
     else:
         console.print(Title("Scan Status"))
 
