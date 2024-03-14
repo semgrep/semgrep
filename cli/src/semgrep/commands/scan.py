@@ -1,5 +1,6 @@
 # THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
 import os
+import sys
 import tempfile
 from itertools import chain
 from pathlib import Path
@@ -14,6 +15,8 @@ from typing import Tuple
 import click
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
+from colorama import Fore
+from colorama import Style
 
 import semgrep.config_resolver
 import semgrep.run_scan
@@ -50,6 +53,50 @@ from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def has_color() -> bool:
+    """
+    Determine if color should be used in the output.
+    """
+    force_color = os.environ.get("SEMGREP_FORCE_COLOR") is not None
+    # See https://no-color.org/
+    no_color = (
+        os.environ.get("NO_COLOR") is not None
+        or os.environ.get("SEMGREP_FORCE_NO_COLOR") is not None
+    )
+    # Should not have both force color and no color set
+    # If both are set, force color should take precedence
+    if force_color and no_color:
+        return True
+    if no_color:
+        return False
+    return force_color or sys.stdout.isatty()
+
+
+def with_logo_color(text: str) -> str:
+    """
+    Wrap text with our brand color if color is enabled.
+    """
+    if has_color():
+        return f"{Fore.GREEN}{text}{Style.RESET_ALL}"
+    return text
+
+
+def welcome() -> None:
+    """
+    Print a welcome message with the Semgrep logo.
+    """
+    logo = with_logo_color("○○○")
+    print(
+        f"""
+┌──── {logo} ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+""",
+        file=sys.stderr,
+    )
 
 
 class MetricsStateType(click.ParamType):
@@ -465,6 +512,14 @@ def scan(
     version: bool,
     x_ls: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
+    # Print the welcome message with the Semgrep logo,
+    # intending to so as quickly as possible to give a sense of
+    # a smooth startup experience.
+    # NOTE: We have been asked to skip printing the welcome message
+    # for pattern and lang usage.
+    if not pattern and not lang:
+        welcome()
+
     if version:
         print(__VERSION__)
         if enable_version_check:
