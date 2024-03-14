@@ -27,6 +27,7 @@ from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
+from semgrep.constants import DEFAULT_SEMGREP_OTEL_ENDPOINT
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
@@ -212,6 +213,11 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
+    ),
+    optgroup.option(
+        "--traces-endpoint",
+        envvar="SEMGREP_OTEL_ENDPOINT",
+        default=DEFAULT_SEMGREP_OTEL_ENDPOINT,
     ),
     optgroup.option(
         "--matching-explanations",
@@ -459,6 +465,7 @@ def scan(
     timeout_threshold: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    traces_entpoint: Optional[str],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -613,6 +620,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             trace=trace,
+                            traces_entpoint=traces_entpoint,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
@@ -678,6 +686,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     trace=trace,
+                    traces_entpoint=traces_entpoint,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,
