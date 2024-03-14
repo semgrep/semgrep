@@ -45,10 +45,10 @@ Experimental Rules:
   Scanning 1 file.
 Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
-<MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast -traces-endpoint https://telemetry.semgrep.dev --debug
+<MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 [<MASKED>][DEBUG]: setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED>][INFO](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast -traces-endpoint https://telemetry.semgrep.dev --debug
+[<MASKED>][INFO](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 [<MASKED>][INFO](cli, Core_CLI): Version: semgrep-core version: <MASKED>
 [<MASKED>][DEBUG](Core_scan): Parsing <MASKED>:
 {
@@ -210,10 +210,10 @@ Experimental Rules:
   Scanning 1 file.
 Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
-<MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast -traces-endpoint https://telemetry.semgrep.dev --debug
+<MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 [<MASKED>][[32mDEBUG[0m]: setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED>][[34mINFO[0m](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast -traces-endpoint https://telemetry.semgrep.dev --debug
+[<MASKED>][[34mINFO[0m](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 [<MASKED>][[34mINFO[0m](cli, Core_CLI): Version: semgrep-core version: <MASKED>
 [<MASKED>][[32mDEBUG[0m](Core_scan): Parsing <MASKED>:
 {
