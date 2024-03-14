@@ -205,7 +205,7 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with:
-          ref: ${{ needs.release-setup.outputs.release-branch }}
+          ref: release-${{ needs.get-version.outputs.version }}
           submodules: true
           token: ${{ steps.token.outputs.token }}
       - name: Create semgrep release version tag
@@ -317,7 +317,6 @@ jobs:
       - check-semgrep-pro
     outputs:
       pr-number: ${{ steps.open-pr.outputs.pr-number }}
-      release-branch: ${{ steps.release-branch.outputs.release-branch }}
     runs-on: ubuntu-20.04
     steps:
       - env:
@@ -342,12 +341,7 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           submodules: recursive
           token: ${{ steps.token.outputs.token }}
-      - id: release-branch
-        name: Create release branch
-        run: |
-          RELEASE_BRANCH="release-${{ needs.get-version.outputs.version }}"
-          git checkout -b ${RELEASE_BRANCH}
-          echo "release-branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
+      - run: git checkout -b "release-${{ needs.get-version.outputs.version }}"
       - env:
           SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
         run: make release
@@ -388,10 +382,10 @@ jobs:
 
           git add --all
           git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
-          git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
+          git push --set-upstream origin release-${{ needs.get-version.outputs.version }}
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
-          SOURCE: ${{ steps.release-branch.outputs.release-branch }}
+          SOURCE: release-${{ needs.get-version.outputs.version }}
           TARGET: ${{ github.event.repository.default_branch }}
           TITLE: Release Version ${{ needs.get-version.outputs.version }}
         id: open-pr
@@ -401,7 +395,6 @@ jobs:
           # check if the branch already has a pull request open
 
           if gh pr list --head ${SOURCE} | grep -vq "no pull requests"; then
-              # pull request already open
               echo "pull request from SOURCE ${SOURCE} to TARGET ${TARGET} is already open";
               echo "cancelling release"
               exit 1
