@@ -30,5 +30,6 @@ module OutJ = Semgrep_output_v1_t
 
 type t = {
   rules_and_targets : (Rule.search_rule * (Xtarget.t[@opaque]) list) list;
+  xconf : Match_env.xconfig; [@opaque]
 }
 [@@deriving show]
