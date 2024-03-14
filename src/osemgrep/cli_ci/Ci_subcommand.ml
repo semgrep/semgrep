@@ -336,6 +336,10 @@ let finding_is_blocking (m : OutJ.cli_match) =
 
   match metadata with
   | JSON.Object xs ->
+      let should_check_validation_state =
+        Option.is_some m.extra.validation_state
+      in
+
       let validation_state_should_block =
         match
           ( m.extra.validation_state,
@@ -347,12 +351,15 @@ let finding_is_blocking (m : OutJ.cli_match) =
             |> Option.value ~default:false
         | _ -> false
       in
-      let should_block =
-        match List.assoc_opt "dev.semgrep.actions" xs with
-        | Some (JSON.Array actions) -> contains_blocking actions
-        | _ -> false
-      in
-      validation_state_should_block || should_block
+
+      if should_check_validation_state then validation_state_should_block
+      else
+        let should_block =
+          match List.assoc_opt "dev.semgrep.actions" xs with
+          | Some (JSON.Array actions) -> contains_blocking actions
+          | _ -> false
+        in
+        should_block
   | _ -> false
 
 let rule_is_blocking (json : JSON.t) =
