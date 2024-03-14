@@ -21,7 +21,10 @@ type analysis_flags = {
 val no_analysis_features : unit -> analysis_flags
 (** For analysis run with the oss engine, we know all the flags will be false *)
 
+val data_of_languages : Xlang.t list -> (string * Tracing.user_data) list
+(** Convenience function to turn a list of interfile languages into otel data *)
+
 val get_top_level_data :
-  string -> analysis_flags -> (string * Tracing.user_data) list
+  int -> string -> analysis_flags -> (string * Tracing.user_data) list
 (** Create the tags for the top level span. These tags make it easy to see
     the traces we care about *)

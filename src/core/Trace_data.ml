@@ -71,9 +71,13 @@ let no_analysis_features () =
     deep_inter_file = false;
   }
 
-let get_top_level_data version analysis_flags =
+let data_of_languages (languages : Xlang.t list) =
+  languages |> List_.map (fun l -> (Xlang.to_string l, `Bool true))
+
+let get_top_level_data jobs version analysis_flags =
   [
     ("version", `String version);
+    ("jobs", `Int jobs);
     ("folder", `String (current_working_folder ()));
     ("repo_name", `String (repo_name ()));
     ("pro_secrets_validators", `Bool analysis_flags.secrets_validators);

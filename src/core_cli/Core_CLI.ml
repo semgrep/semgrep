@@ -759,7 +759,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
              instrument the pre- and post-scan code in the same way. *)
           if config.trace then (
             let trace_data =
-              Trace_data.get_top_level_data config.version
+              Trace_data.get_top_level_data config.ncores config.version
                 (Trace_data.no_analysis_features ())
             in
             Tracing.configure_tracing "semgrep-oss";

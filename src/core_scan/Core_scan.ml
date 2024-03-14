@@ -1075,7 +1075,6 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   let num_skipped_targets = List.length skipped in
   Tracing.add_data_to_opt_span config.top_level_span
     [
-      ("jobs", `Int config.ncores);
       ("num_rules", `Int (List.length valid_rules));
       ("num_targets", `Int num_targets);
       ("num_skipped_targets", `Int num_skipped_targets);
@@ -1123,9 +1122,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   Tracing.add_data_to_opt_span config.top_level_span
     [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
   Logs.info (fun m ->
-      m ~tags "found %d matches, %d errors"
-        (List.length res.processed_matches)
-        (List.length res.errors));
+      m ~tags "found %d matches, %d errors" num_matches num_errors);
 
   let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
