@@ -224,6 +224,7 @@ def run_semgrep(
     include_time: bool,
     hard_timeout: int = 0,
     trace: bool = False,
+    traces_entpoint: Optional[str] = None,
 ) -> Tuple[float, dict]:
     args = []
     common_args = [
@@ -271,6 +272,8 @@ def run_semgrep(
         args.extend(["--time"])
     if trace:
         args.extend(["--trace"])
+    if traces_entpoint:
+        args.extend(["--traces-endpoint", traces_entpoint])
 
     # Finally, add target
     if not docker:
@@ -425,6 +428,7 @@ def run_benchmarks(
     include_time: bool,
     clean: bool,
     trace: bool,
+    traces_entpoint: Optional[str],
     summary_file_path: str,
     findings_file_path: str,
     called_dir: str,
@@ -502,6 +506,7 @@ def run_benchmarks(
                         include_time,
                         hard_timeout,
                         trace,
+                        traces_entpoint,
                     )
                 except subprocess.TimeoutExpired:
                     logger.warning(
@@ -671,6 +676,12 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--traces_endpoint",
+        metavar="SEMGREP_OTEL_ENDPOINT",
+        help="Add endpoint for collecting tracing",
+        type=str,
+    )
+    parser.add_argument(
         "--output-time-per-rule-json",
         nargs="?",
         default=None,
@@ -702,6 +713,7 @@ def main() -> None:
             include_time=not args.no_time,
             clean=args.clean,
             trace=args.trace,
+            traces_endpoint=args.traces_endpoint,
             summary_file_path=args.save_to,
             findings_file_path=args.save_findings_to,
             called_dir=called_dir,
