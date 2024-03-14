@@ -6,5 +6,6 @@
    semgrep.language_server.util
    osemgrep_language_server_server
    semgrep.osemgrep_cli_scan
+   glob
  )
 )

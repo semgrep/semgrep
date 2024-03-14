@@ -55,10 +55,27 @@ let ongoing_meth = "semgrep/searchOngoing"
 (* Parameters *)
 (*****************************************************************************)
 
-module Request_params = struct
-  type t = { pattern : string; lang : Xlang.t option; fix : string option }
+let parse_globs ~kind (strs : Yojson.Safe.t list) =
+  strs
+  |> List_.map_filter (function
+       | `String s -> (
+           try
+             let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
+             Some (Glob.Match.compile ~source:loc (Glob.Parse.parse_string s))
+           with
+           | Glob.Lexer.Syntax_error _ -> None)
+       | _ -> None)
 
-  let of_jsonrpc_params params : t option =
+module Request_params = struct
+  type t = {
+    pattern : string;
+    lang : Xlang.t option;
+    fix : string option;
+    includes : Glob.Match.compiled_pattern list;
+    excludes : Glob.Match.compiled_pattern list;
+  }
+
+  let of_jsonrpc_params (params : Jsonrpc.Structured.t option) : t option =
     match params with
     | Some
         (`Assoc
@@ -66,6 +83,8 @@ module Request_params = struct
             ("pattern", `String pattern);
             ("language", lang);
             ("fix", fix_pattern);
+            ("includes", `List includes);
+            ("excludes", `List excludes);
           ]) ->
         let lang_opt =
           match lang with
@@ -77,7 +96,9 @@ module Request_params = struct
           | `String fix -> Some fix
           | _ -> None
         in
-        Some { pattern; lang = lang_opt; fix = fix_opt }
+        let includes = parse_globs ~kind:"includes" includes in
+        let excludes = parse_globs ~kind:"excludes" excludes in
+        Some { pattern; lang = lang_opt; fix = fix_opt; includes; excludes }
     | __else__ -> None
 
   let _of_jsonrpc_params_exn params : t =
@@ -133,7 +154,7 @@ let filter_by_gitignore (files : Fpath.t list)
 (* Information gathering *)
 (*****************************************************************************)
 
-let mk_env (server : RPC_server.t) params =
+let mk_env (server : RPC_server.t) (params : Request_params.t) =
   let scanning_roots =
     List_.map Scanning_root.of_fpath server.session.workspace_folders
   in
@@ -149,7 +170,23 @@ let mk_env (server : RPC_server.t) params =
     *)
     if false then filter_by_gitignore files scanning_roots else files
   in
-  { roots = scanning_roots; initial_files = filtered_files; params }
+  UCommon.pr2 "before incl/excl filter";
+  let filtered_by_includes_excludes =
+    filtered_files
+    |> List.filter (fun x ->
+           (* Must be included for all includes... *)
+           List.for_all (fun inc -> Glob.Match.run inc !!x) params.includes
+           (* and not excluded, for all excludes *)
+           && List.for_all
+                (fun exc -> not (Glob.Match.run exc !!x))
+                params.excludes)
+  in
+  UCommon.pr2 "aft incl/excl filter";
+  {
+    roots = scanning_roots;
+    initial_files = filtered_by_includes_excludes;
+    params;
+  }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.
@@ -348,7 +385,12 @@ let rec search_single_target (server : RPC_server.t) =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let start_search (server : RPC_server.t) params =
+let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
+    =
+  UCommon.pr2
+    (Common.spf "got params %s"
+       (Common2.string_of_option Yojson.Safe.to_string
+          (Option.map Jsonrpc.Structured.yojson_of_t params)));
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
