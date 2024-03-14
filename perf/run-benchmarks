@@ -677,8 +677,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--traces_endpoint",
-        metavar="SEMGREP_OTEL_ENDPOINT"
-        help="Add endpoint for collecting tracing"
+        metavar="SEMGREP_OTEL_ENDPOINT",
+        help="Add endpoint for collecting tracing",
         type=str
     )
     parser.add_argument(
