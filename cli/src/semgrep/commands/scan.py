@@ -28,6 +28,7 @@ from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
+from semgrep.constants import DEFAULT_SEMGREP_OTEL_ENDPOINT
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
@@ -212,6 +213,12 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
+    ),
+    optgroup.option(
+        "--traces-endpoint",
+        envvar="SEMGREP_OTEL_ENDPOINT",
+        default=DEFAULT_SEMGREP_OTEL_ENDPOINT,
+        help="Url to send OpenTelemetry traces",
     ),
     optgroup.option(
         "--matching-explanations",
@@ -459,6 +466,7 @@ def scan(
     timeout_threshold: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    traces_endpoint: Optional[str],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -613,6 +621,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             trace=trace,
+                            traces_endpoint=traces_endpoint,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
@@ -678,6 +687,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     trace=trace,
+                    traces_endpoint=traces_endpoint,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,
