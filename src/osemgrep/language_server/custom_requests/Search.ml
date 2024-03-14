@@ -107,6 +107,28 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   in
   (ast, skipped_tokens)
 
+let filter_by_gitignore (files : Fpath.t list)
+    (scanning_roots : Scanning_root.t list) : Fpath.t list =
+  (* Filter all files by gitignores *)
+  let project_root =
+    match
+      List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
+    with
+    | Error _ -> failwith "somehow unable to get project root from first root"
+    | Ok rfpath -> rfpath
+  in
+  let gitignore_filter =
+    Gitignore_filter.create ~project_root:(Rfpath.to_fpath project_root) ()
+  in
+  files
+  |> List.filter (fun file ->
+         match Ppath.in_project ~root:project_root file with
+         | Error _ -> failwith "err"
+         | Ok ppath -> (
+             match Gitignore_filter.select gitignore_filter [] ppath with
+             | Gitignore.Ignored, _ -> false
+             | _ -> true))
+
 (*****************************************************************************)
 (* Information gathering *)
 (*****************************************************************************)
@@ -125,26 +147,7 @@ let mk_env (server : RPC_server.t) params =
        This adds 10s to startup time in `semgrep-app` on my machine.
        Gitignore is expensive! I don't know why.
     *)
-    if false then
-      let project_root =
-        match
-          List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
-        with
-        | Error _ -> failwith "wtf"
-        | Ok rfpath -> rfpath
-      in
-      let gitignore_filter =
-        Gitignore_filter.create ~project_root:(Rfpath.to_fpath project_root) ()
-      in
-      files
-      |> List.filter (fun file ->
-             match Ppath.in_project ~root:project_root file with
-             | Error _ -> failwith "err"
-             | Ok ppath -> (
-                 match Gitignore_filter.select gitignore_filter [] ppath with
-                 | Gitignore.Ignored, _ -> false
-                 | _ -> true))
-    else files
+    if false then filter_by_gitignore files scanning_roots else files
   in
   { roots = scanning_roots; initial_files = filtered_files; params }
 
@@ -296,7 +299,7 @@ let rec search_single_target (server : RPC_server.t) =
       | File path ->
           let is_relevant_rule =
             true
-            (* Match_rules.is_relevant_rule_for_xtarget (rule :> Rule.rule) conf.xconf xtarget  *)
+            (* Match_rules.is_relevant_rule_for_xtarget (rule :> Rule.rule) conf.xconf xtarget *)
           in
           if is_relevant_rule then
             try
@@ -326,17 +329,14 @@ let start_search (server : RPC_server.t) params =
       Logs.debug (fun m -> m "no params received in semgrep/search");
       (None, server)
   | Some params ->
-      let env, t1 = Common.with_time (fun () -> mk_env server params) in
-      let rules_and_targets, t2 =
-        Common.with_time (fun () -> get_rules_and_targets env)
-      in
+      let env = mk_env server params in
+      let rules_and_targets = get_rules_and_targets env in
       let xconf =
         {
           Match_env.default_xconfig with
           filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
         }
       in
-      UCommon.pr2 (Common.spf "env time: %f, rules time %f" t1 t2);
       (* !!calling the engine!! *)
       search_single_target
         {
