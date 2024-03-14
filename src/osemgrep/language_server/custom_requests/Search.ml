@@ -119,7 +119,34 @@ let mk_env (server : RPC_server.t) params =
     server.session.cached_workspace_targets |> Hashtbl.to_seq_values
     |> List.of_seq |> List.concat
   in
-  { roots = scanning_roots; initial_files = files; params }
+  (* Filter all files by gitignores *)
+  let filtered_files =
+    (* Gitignore code. We hard-code it to be false for now.
+       This adds 10s to startup time in `semgrep-app` on my machine.
+       Gitignore is expensive! I don't know why.
+    *)
+    if false then
+      let project_root =
+        match
+          List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
+        with
+        | Error _ -> failwith "wtf"
+        | Ok rfpath -> rfpath
+      in
+      let gitignore_filter =
+        Gitignore_filter.create ~project_root:(Rfpath.to_fpath project_root) ()
+      in
+      files
+      |> List.filter (fun file ->
+             match Ppath.in_project ~root:project_root file with
+             | Error _ -> failwith "err"
+             | Ok ppath -> (
+                 match Gitignore_filter.select gitignore_filter [] ppath with
+                 | Gitignore.Ignored, _ -> false
+                 | _ -> true))
+    else files
+  in
+  { roots = scanning_roots; initial_files = filtered_files; params }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.
@@ -230,25 +257,27 @@ let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
 let rec next_rule_and_xtarget (server : RPC_server.t) =
   match server.session.search_config with
   | None
-  | Some { rules_and_targets = [] } ->
+  | Some { rules_and_targets = []; _ } ->
       None
-  | Some { rules_and_targets = (_rule, []) :: rest } ->
+  | Some ({ rules_and_targets = (_rule, []) :: rest; _ } as conf) ->
       let new_session =
         {
           server.session with
-          search_config = Some { rules_and_targets = rest };
+          search_config = Some { conf with rules_and_targets = rest };
         }
       in
       next_rule_and_xtarget { server with session = new_session }
-  | Some { rules_and_targets = (rule, xtarget :: rest_xtargets) :: rest } ->
+  | Some
+      ({ rules_and_targets = (rule, xtarget :: rest_xtargets) :: rest; _ } as
+       conf) ->
       let new_session =
         {
           server.session with
           search_config =
-            Some { rules_and_targets = (rule, rest_xtargets) :: rest };
+            Some { conf with rules_and_targets = (rule, rest_xtargets) :: rest };
         }
       in
-      Some ((rule, xtarget), { server with session = new_session })
+      Some ((rule, xtarget, conf), { server with session = new_session })
 
 let rec search_single_target (server : RPC_server.t) =
   let hook _file _pm = () in
@@ -260,22 +289,29 @@ let rec search_single_target (server : RPC_server.t) =
       ( json_of_matches [],
         { server with session = { server.session with search_config = None } }
       )
-  | Some ((rule, xtarget), server) -> (
-      try
-        (* !!calling the engine!! *)
-        let ({ Core_result.matches; _ } : _ Core_result.match_result) =
-          Match_search_mode.check_rule rule hook Match_env.default_xconfig
-            xtarget
-        in
-        match (matches, xtarget.path.origin) with
-        | [], _ -> search_single_target server
-        | _, File path ->
-            let json = json_of_matches [ (path, matches) ] in
-            (json, server)
-        (* This shouldn't happen. *)
-        | _, GitBlob _ -> search_single_target server
-      with
-      | Parsing_error.Syntax_error _ -> search_single_target server)
+  | Some ((rule, xtarget, conf), server) -> (
+      match xtarget.path.origin with
+      (* This shouldn't happen. *)
+      | GitBlob _ -> search_single_target server
+      | File path ->
+          let is_relevant_rule =
+            true
+            (* Match_rules.is_relevant_rule_for_xtarget (rule :> Rule.rule) conf.xconf xtarget  *)
+          in
+          if is_relevant_rule then
+            try
+              (* !!calling the engine!! *)
+              let ({ Core_result.matches; _ } : _ Core_result.match_result) =
+                Match_search_mode.check_rule rule hook conf.xconf xtarget
+              in
+              match matches with
+              | [] -> search_single_target server
+              | _ ->
+                  let json = json_of_matches [ (path, matches) ] in
+                  (json, server)
+            with
+            | Parsing_error.Syntax_error _ -> search_single_target server
+          else search_single_target server)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -290,14 +326,26 @@ let start_search (server : RPC_server.t) params =
       Logs.debug (fun m -> m "no params received in semgrep/search");
       (None, server)
   | Some params ->
-      let env = mk_env server params in
-      let rules_and_targets = get_rules_and_targets env in
+      let env, t1 = Common.with_time (fun () -> mk_env server params) in
+      let rules_and_targets, t2 =
+        Common.with_time (fun () -> get_rules_and_targets env)
+      in
+      let xconf =
+        {
+          Match_env.default_xconfig with
+          filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
+        }
+      in
+      UCommon.pr2 (Common.spf "env time: %f, rules time %f" t1 t2);
       (* !!calling the engine!! *)
       search_single_target
         {
           server with
           session =
-            { server.session with search_config = Some { rules_and_targets } };
+            {
+              server.session with
+              search_config = Some { rules_and_targets; xconf };
+            };
         }
 
 let search_next_file (server : RPC_server.t) _params =
