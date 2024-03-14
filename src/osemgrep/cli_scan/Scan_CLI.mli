@@ -38,6 +38,7 @@ type conf = {
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
   trace : bool;
+  traces_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]

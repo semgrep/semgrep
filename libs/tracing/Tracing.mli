@@ -27,6 +27,6 @@ val add_data_to_span : int64 -> (string * Trace_core.user_data) list -> unit
 val configure_tracing : string -> unit
 (** Before instrumenting anything, configure some settings. *)
 
-val with_setup : (unit -> 'a) -> 'a
+val with_setup : (unit -> 'a) -> string option -> 'a
 (** Setup instrumentation and run the passed function.
    Stops instrumenting once that function is finished. *)
