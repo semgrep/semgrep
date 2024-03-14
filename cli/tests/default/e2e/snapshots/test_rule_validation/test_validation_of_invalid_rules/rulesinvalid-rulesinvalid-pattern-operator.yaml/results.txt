@@ -1,5 +1,10 @@
-scan() got an unexpected keyword argument 'traces_endpoint'
-Traceback (most recent call last):
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
-    func(*args, **kwargs)
-TypeError: scan() got an unexpected keyword argument 'traces_endpoint'
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/invalid-pattern-operator.yaml:4
+4 |     foo: bar
+5 |   message: Useless comparison
+
+One of these properties is missing: 'all', 'any', 'anywhere', 'inside', 'not', 'pattern', 'regex', 'taint'
+
+[ERROR] Rule parse error in rule eqeq:
+ Expected one of pattern,all,any,regex,taint,not,inside,anywhere to be present

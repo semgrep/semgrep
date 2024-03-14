@@ -1,5 +1,12 @@
-scan() got an unexpected keyword argument 'traces_endpoint'
-Traceback (most recent call last):
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
-    func(*args, **kwargs)
-TypeError: scan() got an unexpected keyword argument 'traces_endpoint'
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/invalid-missing-top-item.yaml:2
+2 |   - id: blah
+3 |     message: blah
+4 |     languages: [python]
+5 |     pattern: $X == $X
+
+One of these properties is missing: 'severity'
+
+[ERROR] Rule parse error in rule blah:
+ Missing required field severity

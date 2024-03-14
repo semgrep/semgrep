@@ -1,5 +1,0 @@
-scan() got an unexpected keyword argument 'traces_endpoint'
-Traceback (most recent call last):
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
-    func(*args, **kwargs)
-TypeError: scan() got an unexpected keyword argument 'traces_endpoint'
