@@ -1,5 +1,6 @@
 from semgrep.cli import cli
 
+
 # Note that it is pretty standard in Python to have a __main__.py file
 # (see https://docs.python.org/3/library/__main__.html#main-py-in-python-packages)
 # to provide a command-line interface for a package. One can then run
