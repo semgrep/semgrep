@@ -898,15 +898,14 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       | Some root, None ->
           Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
       | None, Some url when is_git_repo url ->
-          let checkout_path =
-            match !Semgrep_envvars.v.remote_clone_dir with
-            | Some dir -> Rfpath.of_fpath_exn dir
-            | None ->
-                Git_wrapper.temporary_remote_checkout_path caps url
-                |> Rfpath.of_fpath_exn
-          in
+          (* CWD must be empty for this to work *)
+          let has_files = List_files.list (Fpath.v ".") <> [] in
+          if has_files then
+            Error.abort
+              "Cannot use --remote with a git remote when the current \
+               directory is not empty";
           let url = Uri.of_string url in
-          Some (Find_targets.Git_remote { url; checkout_path })
+          Some (Find_targets.Git_remote { url })
       | None, Some _url ->
           Error.abort
             "Remote arg is not a valid git remote, expected something like \

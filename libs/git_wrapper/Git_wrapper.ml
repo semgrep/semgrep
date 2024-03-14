@@ -193,7 +193,10 @@ let temporary_remote_checkout_path caps url =
   let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
   let name = rand_prefix ^ "_" ^ name in
   let tmp_dir = CapTmp.get_temp_dir_name caps#tmp in
-  Fpath.add_seg tmp_dir name
+  let fpath = Fpath.add_seg tmp_dir name in
+  (* Make path *)
+  UUnix.mkdir !!fpath 0o777;
+  fpath
 
 let obj_type_of_string = function
   | "commit" -> Some Commit
