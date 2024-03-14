@@ -15,8 +15,6 @@ from typing import Tuple
 import click
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
-from colorama import Fore
-from colorama import Style
 
 import semgrep.config_resolver
 import semgrep.run_scan
@@ -79,7 +77,7 @@ def with_logo_color(text: str) -> str:
     Wrap text with our brand color if color is enabled.
     """
     if has_color():
-        return f"{Fore.GREEN}{text}{Style.RESET_ALL}"
+        return click.style(text, fg=Colors.green.value)
     return text
 
 
@@ -88,14 +86,14 @@ def welcome() -> None:
     Print a welcome message with the Semgrep logo.
     """
     logo = with_logo_color("○○○")
-    print(
+    click.echo(
         f"""
 ┌──── {logo} ────┐
 │ Semgrep CLI │
 └─────────────┘
 
 """,
-        file=sys.stderr,
+        err=True,
     )
 
 
