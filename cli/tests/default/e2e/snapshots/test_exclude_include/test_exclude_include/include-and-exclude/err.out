@@ -1,19 +1,5 @@
-Paths that match both --include and --exclude will be skipped by Semgrep.
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules:
-  Scanning 1 file.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 2 files not matching --include patterns, 1 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
-Ran 1 rule on 1 file: 1 finding.
+scan() got an unexpected keyword argument 'traces_endpoint'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+TypeError: scan() got an unexpected keyword argument 'traces_endpoint'
