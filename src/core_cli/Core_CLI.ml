@@ -60,6 +60,7 @@ let debug = ref Core_scan_config.default.debug
 let error_recovery = ref Core_scan_config.default.error_recovery
 let profile = ref Core_scan_config.default.profile
 let trace = ref Core_scan_config.default.trace
+let traces_endpoint = ref Core_scan_config.default.traces_endpoint
 
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
@@ -238,6 +239,7 @@ let mk_config () =
     test = !test;
     debug = !debug;
     trace = !trace;
+    traces_endpoint = !traces_endpoint;
     profile = !profile;
     report_time = !report_time;
     error_recovery = !error_recovery;
@@ -583,6 +585,7 @@ let options caps actions =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-trace", Arg.Set trace, " output tracing information");
+    ("-traces-endpoint", Arg.String (fun url -> traces_endpoint := Some url), " url endpoint for collecting tracing information");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -759,7 +762,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
           if config.trace then (
             Tracing.configure_tracing "semgrep";
             Tracing.with_setup (fun () ->
-                Core_command.semgrep_core_dispatch caps config))
+                Core_command.semgrep_core_dispatch caps config) config.traces_endpoint)
           else Core_command.semgrep_core_dispatch caps config)
 
 let with_exception_trace f =
