@@ -1,12 +1,5 @@
-running 1 rules from 1 config rules/bad-java-rule.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-Rules:
-- rules.broken-rule
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
+scan() got an unexpected keyword argument 'traces_endpoint'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+TypeError: scan() got an unexpected keyword argument 'traces_endpoint'
