@@ -20,7 +20,7 @@ module MV = Metavariable
 let tags = Logs_.create_tags [ __MODULE__ ]
 
 let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
-  let subs = Pcre_.exec_all_noerr ~rex:regexp big_str in
+  let subs = Regex.exec_all_noerr ~rex:regexp big_str in
   subs |> Array.to_list
   |> List_.map (fun sub ->
          (* Below, we add `base_offset` to any instance of `bytepos`, because

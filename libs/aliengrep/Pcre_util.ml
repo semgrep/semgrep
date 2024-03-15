@@ -56,7 +56,7 @@ let char_class_of_list ?(contents_only = false) chars =
    the extended mode in addition to other special characters.
 *)
 let quote =
-  let rex = Pcre_.regexp "[[:space:]#]" in
+  let rex = Legacy_regex.regexp "[[:space:]#]" in
   let subst str =
     assert (String.length str = 1);
     (* escape all characters so that it works regardless of whether they're
@@ -66,4 +66,4 @@ let quote =
     | '\t' -> {|\t|}
     | c (* other whitespace or '#' *) -> sprintf {|\x%02X|} (Char.code c)
   in
-  fun str -> Pcre.quote str |> Pcre_.substitute ~rex ~subst
+  fun str -> Legacy_regex.quote str |> Legacy_regex.substitute ~rex ~subst

@@ -107,8 +107,8 @@ exception Error of string
  * We use a named capture group for the lines, and then split on the comma if
  * it's a multiline diff
  *)
-let git_diff_lines_re = Pcre_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let remote_repo_name_re = Pcre_.regexp {|^http.*\/(.*)\.git$|}
+let git_diff_lines_re = Regex.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
+let remote_repo_name_re = Regex.regexp {|^http.*\/(.*)\.git$|}
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -162,7 +162,7 @@ let range_of_git_diff lines =
     let end_ = change_count + start in
     (start, end_)
   in
-  let matched_ranges = Pcre_.exec_all ~rex:git_diff_lines_re lines in
+  let matched_ranges = Regex.exec_all ~rex:git_diff_lines_re lines in
   (* get the first capture group, then optionally split the comma if multiline
      diff *)
   match matched_ranges with
@@ -175,7 +175,7 @@ let range_of_git_diff lines =
   | Error _ -> [||]
 
 let remote_repo_name url =
-  match Pcre_.exec ~rex:remote_repo_name_re url with
+  match Regex.exec ~rex:remote_repo_name_re url with
   | Ok (Some substrings) -> Some (Pcre2.get_substring substrings 1)
   | _ -> None
 

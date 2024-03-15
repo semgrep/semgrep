@@ -9,7 +9,7 @@ open Printf
 
 type compiled_conf = {
   conf : Conf.t;
-  pcre : Pcre_.t; (* holds the source pattern and the compiled regexp *)
+  pcre : Legacy_regex.t; (* holds the source pattern and the compiled regexp *)
 }
 
 type token =
@@ -68,7 +68,7 @@ let compile conf =
       ]
   in
   let pcre =
-    try Pcre_.regexp pat with
+    try Legacy_regex.regexp pat with
     | exn ->
         let e = Exception.catch exn in
         Logs.err (fun m ->
@@ -84,28 +84,28 @@ let char_of_string str =
   else str.[0]
 
 let read_string ?(source_name = "<pattern>") conf str =
-  match Pcre_.full_split ~rex:conf.pcre str with
+  match Legacy_regex.full_split ~rex:conf.pcre str with
   | Error pcre_err ->
       pattern_error source_name
         (sprintf "PCRE error while parsing aliengrep pattern: %s; pattern: %s"
-           (Pcre_.show_error pcre_err)
+           (Legacy_regex.show_error pcre_err)
            conf.pcre.pattern)
   | Ok res ->
       res
       |> List.filter_map (function
-           | Pcre2.Delim _
-           | Pcre2.NoGroup ->
+           | Pcre.Delim _
+           | Pcre.NoGroup ->
                None
-           | Pcre2.Text txt ->
+           | Pcre.Text txt ->
                pattern_error source_name
                  (sprintf
                     "Internal error while parsing aliengrep pattern: Text node \
                      %S; pattern: %s"
                     txt conf.pcre.pattern)
-           | Pcre2.Group (_, "") ->
+           | Pcre.Group (_, "") ->
                (* no capture *)
                None
-           | Pcre2.Group (num, capture) ->
+           | Pcre.Group (num, capture) ->
                Some
                  (match num with
                  | 1 -> LONG_ELLIPSIS
