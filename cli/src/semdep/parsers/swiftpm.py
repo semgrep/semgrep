@@ -95,7 +95,7 @@ package_block = (
 
 comment = whitespace >> regex(r" *//") >> line
 
-multiple_package_blocks = (comment | package_block).sep_by(new_lines, max=5)
+multiple_package_blocks = (comment | package_block).sep_by(new_lines)
 
 dependencies_block = (
     regex(r"dependencies:\s*\[")
