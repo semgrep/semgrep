@@ -423,19 +423,34 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
 (* Entry point *)
 (*****************************************************************************)
 
-let rules_from_pattern pattern : rules_and_origin list =
-  let pat, xlang_opt, fix = pattern in
+let rules_from_patterns (patterns, xlang_opt, fix) : rules_and_origin list =
   let fk = Tok.unsafe_fake_tok "" in
   let rules_and_origin_for_xlang xlang =
-    let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-    (* force the parsing of the pattern to get the parse error if any *)
-    (match xpat.XP.pat with
-    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-    | XP.Spacegrep _
-    | XP.Aliengrep _
-    | XP.Regexp _ ->
-        ());
-    let rule = Rule.rule_of_xpattern xlang xpat in
+    let xpats =
+      List_.map
+        (fun (positive, pat) ->
+          let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+          (* force the parsing of the pattern to get the parse error if any *)
+          (match xpat.XP.pat with
+          | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+          | XP.Spacegrep _
+          | XP.Aliengrep _
+          | XP.Regexp _ ->
+              ());
+          (positive, xpat))
+        patterns
+    in
+    let of_xpat (positive, xpat) =
+      if positive then Rule.f (Rule.P xpat)
+      else Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat)))
+    in
+    let formula =
+      match xpats with
+      | [ (positive, xpat) ] -> of_xpat (positive, xpat)
+      | _ ->
+          Rule.And (Tok.unsafe_fake_tok "", List_.map of_xpat xpats) |> Rule.f
+    in
+    let rule = Rule.rule_of_formula xlang formula in
     let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
     { rules = [ rule ]; errors = []; origin = CLI_argument }
   in
@@ -520,7 +535,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
        * better: '-e foo -l generic' was not handled in semgrep-core
     *)
     | Pattern (pat, xlang_opt, fix) ->
-        Lwt.return (rules_from_pattern (pat, xlang_opt, fix), [])
+        Lwt.return (rules_from_patterns ([ (true, pat) ], xlang_opt, fix), [])
   in
 
   (* error handling: *)

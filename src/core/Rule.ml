@@ -955,15 +955,16 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
 (* create a fake rule when we only have a pattern and language.
  * This is used when someone calls `semgrep -e print -l python`
  *)
-let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
+
+let rule_of_formula (xlang : Xlang.t) (formula : formula) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
     id = (Rule_ID.of_string "-e", fk);
-    mode = `Search (f (P xpat));
+    mode = `Search formula;
     min_version = None;
     max_version = None;
-    message = fst xpat.pstr;
+    message = "simple search rule";
     severity = `Error;
     target_selector;
     target_analyzer;
@@ -977,6 +978,9 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     product = `SAST;
     dependency_formula = None;
   }
+
+let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
+  rule_of_formula xlang (f (P xpat))
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
    serialise the rule into JSON format, then produce the hash from this
