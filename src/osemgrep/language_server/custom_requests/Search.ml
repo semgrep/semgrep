@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 
+module R = Range
 open Lsp
 open Lsp.Types
 open Fpath_.Operators
@@ -180,13 +181,13 @@ let mk_env (server : RPC_server.t) (params : Request_params.t) =
     filtered_files
     |> List.filter (fun file ->
            (* Why must we do this?
-               The paths that we receive are absolute paths in the machine.
-               This means something like /Users/brandonspark/test/test.py.
-               When we match it against a blob, like `test.py`, obviously this
-               will not match, because of the giant absolute prefix.
-               We actually want the path _relative to the project root_, which is
-               `test.py` for the project `test`.
-               So we use `Fpath.rem_prefix` here, which emulates that functionality.
+              The paths that we receive are absolute paths in the machine.
+              This means something like /Users/brandonspark/test/test.py.
+              When we match it against a blob, like `test.py`, obviously this
+              will not match, because of the giant absolute prefix.
+              We actually want the path _relative to the project root_, which is
+              `test.py` for the project `test`.
+              So we use `Fpath.rem_prefix` here, which emulates that functionality.
            *)
            match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
            | None ->
@@ -321,7 +322,16 @@ let get_rules_and_targets (env : env) =
 (* Output *)
 (*****************************************************************************)
 
-let json_of_matches
+let go line begin_col end_col =
+  let before_col = Int.max 0 (begin_col - 8) in
+  let before = String.sub line before_col (begin_col - before_col) in
+  let inside = String.sub line begin_col (end_col - begin_col) in
+  let after =
+    String.sub line end_col (Int.min 8 (String.length line - end_col))
+  in
+  (before, inside, after)
+
+let json_of_matches (xtarget : Xtarget.t)
     (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
   let json =
     List_.map
@@ -330,15 +340,31 @@ let json_of_matches
         let matches =
           matches
           |> List_.map (fun (m : Core_result.processed_match) ->
-                 let range_json =
-                   Range.yojson_of_t (Conv.range_of_toks m.pm.range_loc)
+                 let range = Conv.range_of_toks m.pm.range_loc in
+                 let range_json = Range.yojson_of_t range in
+                 let line =
+                   List.nth
+                     (Common2.lines (Lazy.force xtarget.lazy_content))
+                     range.start.line
+                 in
+                 let before, inside, after =
+                   if range.start.line = range.end_.line then
+                     go line range.start.character range.end_.character
+                   else go line range.start.character (String.length line)
                  in
                  let fix_json =
                    match m.autofix_edit with
                    | None -> `Null
                    | Some edit -> `String edit.replacement_text
                  in
-                 `Assoc [ ("range", range_json); ("fix", fix_json) ])
+                 `Assoc
+                   [
+                     ("range", range_json);
+                     ("fix", fix_json);
+                     ("before", `String before);
+                     ("inside", `String inside);
+                     ("after", `String after);
+                   ])
         in
         `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
       matches_by_file
@@ -381,7 +407,7 @@ let rec search_single_target (server : RPC_server.t) =
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
       *)
-      ( json_of_matches [],
+      ( Some (`Assoc [ ("locations", `List []) ]),
         { server with session = { server.session with search_config = None } }
       )
   | Some ((rule, xtarget, conf), server) -> (
@@ -408,7 +434,9 @@ let rec search_single_target (server : RPC_server.t) =
               match matches with
               | [] -> search_single_target server
               | _ ->
-                  let json = json_of_matches [ (path, matches_with_fixes) ] in
+                  let json =
+                    json_of_matches xtarget [ (path, matches_with_fixes) ]
+                  in
                   (json, server)
             with
             | Parsing_error.Syntax_error _ -> search_single_target server
