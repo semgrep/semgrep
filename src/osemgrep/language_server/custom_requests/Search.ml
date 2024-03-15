@@ -322,12 +322,55 @@ let get_rules_and_targets (env : env) =
 (* Output *)
 (*****************************************************************************)
 
-let preview_of_line line ~col_range:(begin_col, end_col) =
-  let before_col = Int.max 0 (begin_col - 8) in
+(* [first_non_whitespace_after s start] finds the first occurrence
+   of a non-whitespace character after index [start] in string [s]*)
+let first_non_whitespace_after s start =
+  try Str.search_forward (Str.regexp "[^ ]") s start with
+  | Not_found -> start
+
+(* TODO: unit tests would be nice *)
+let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
+  let before_col, is_cut_off =
+    let ideal_start = Int.max 0 (begin_col - before_length) in
+    let ideal_end = Int.max 0 (begin_col - (before_length * 2)) in
+    if ideal_start = 0 then (first_non_whitespace_after line 0, false)
+    else
+      (* The picture looks like this:
+         xxxxxoooooxxxxxoooooxxxxxoooooxxxxx
+                                      ^  ^
+                          ^ ideal_end
+              ^ ideal_start
+              |___________| ideal range
+
+         the "ideal_start" and "ideal_end" indices denote the ends of the
+         "ideal range", which is by default 12-24 characters before the
+         start of the match.
+         We want to find a "natural beginning" of the preview, such as a space.
+         If at all possible, though, it should exist in the ideal range, because
+         if our preview starts too early, we won't be able to see the match.
+         So we'll look to the left from the ideal end, and hopefully find a good
+         place to the right of the ideal start.
+         If we don't find a nice starting point, then we'll just go with the ideal start.
+      *)
+      (* Find the nearest space that occurred before the match
+         This is in the hopes of finding a "natural" stopping point.
+      *)
+      match String.rindex_from_opt line ideal_end ' ' with
+      (* We don't want the preview to be too far, though.
+         It needs to be at most as early as the ideal start.
+         We don't need to call `first_non_whitespace_after` because we know
+         this index is right after the closest whitespace to ideal_end.
+      *)
+      | Some idx when idx > ideal_start -> (idx + 1, false)
+      (* If we didn't find a good starting point, let's just take the ideal
+         start.
+      *)
+      | _ -> (first_non_whitespace_after line ideal_start, true)
+  in
   let before = String.sub line before_col (begin_col - before_col) in
   let inside = String.sub line begin_col (end_col - begin_col) in
   let after = Str.string_after line end_col in
-  (before, inside, after)
+  ((if is_cut_off then "..." ^ before else before), inside, after)
 
 let json_of_matches (xtarget : Xtarget.t)
     (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
@@ -351,9 +394,7 @@ let json_of_matches (xtarget : Xtarget.t)
                        ~col_range:(range.start.character, range.end_.character)
                    else
                      preview_of_line line
-                       ~col_range:
-                         ( range.start.character,
-                           String.length line - range.start.character )
+                       ~col_range:(range.start.character, String.length line)
                  in
                  let fix_json =
                    match m.autofix_edit with
