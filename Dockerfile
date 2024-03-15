@@ -149,7 +149,7 @@ RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.wh
 # We change container, bringing the 'semgrep-core' binary with us.
 
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
-FROM python:3.11.4-alpine AS semgrep-oss
+FROM python:3.11-alpine AS semgrep-oss
 
 WORKDIR /semgrep
 
@@ -158,6 +158,7 @@ WORKDIR /semgrep
 # See docker-library/python#761 for an example of such an issue in the past
 # where the time between the CVE was discovered and the package update was X days, but
 # the new base image was updated only after Y days.
+# See also https://docs.docker.com/develop/security-best-practices/
 RUN apk upgrade --no-cache && \
 # Here is why we need the apk packages below:
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
@@ -228,16 +229,15 @@ RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
 RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
 
-# In case of problems, if you need to debug the docker image, run 'docker build .',
-# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
-# to interactively explore the docker image.
-CMD ["semgrep", "--help"]
-LABEL maintainer="support@semgrep.com"
-
-# Why not having an `ENTRYPOINT ["semgrep"]` so that people can simply run
-# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help` instead
-# of `docker run ... returntocorp/semgrep semgrep --help`? (It's even worse
-# now that we switched company name with `... semgrep/semgrep semgrep --help`).
+# Note that we just use CMD below, but not ENTRYPOINT. Why not having also
+#   ENTRYPOINT ["semgrep"] ?
+# so that people can simply run
+# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help` instead of
+# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --help`?
+# (It's even worse now that we switched company name with
+# `docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep --help`, we now
+# have three semgrep, hmmm).
+#
 # This is mainly to play well with CI providers like Gitlab. Indeed,
 # gitlab CI sets up all CI jobs by first running other commands in the
 # container; setting an ENTRYPOINT would break those commands and cause jobs
@@ -245,6 +245,12 @@ LABEL maintainer="support@semgrep.com"
 # image's entrypoint in a .gitlab-ci.yml.
 # => Simpler to not have any ENTRYPOINT, even it means forcing the user
 # to repeat multiple times semgrep in the docker command line.
+#
+# In case of problems, if you need to debug the docker image, run 'docker build .',
+# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
+# to interactively explore the docker image.
+CMD ["semgrep", "--help"]
+LABEL maintainer="support@semgrep.com"
 
 ###############################################################################
 # Step4: install semgrep-pro
