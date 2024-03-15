@@ -377,6 +377,10 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
+    if not run_secrets and historical_secrets:
+        logger.info("Cannot run historical secrets scan without secrets enabled.")
+        sys.exit(FATAL_EXIT_CODE)
+
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
@@ -503,10 +507,6 @@ def ci(
     # place we wouldn't need this seprarately. There are some benefits
     # (e.g., separate progress bar), but it would simplify output logic if we
     # simply had one "scan".
-    if not run_secrets and historical_secrets:
-        logger.info("Cannot run historical secrets scan without secrets enabled.")
-        sys.exit(FATAL_EXIT_CODE)
-
     run_historical_secrets_scan = (
         run_secrets and scan_handler and scan_handler.historical_config.enabled
     ) or historical_secrets
