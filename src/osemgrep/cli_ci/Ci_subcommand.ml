@@ -346,7 +346,7 @@ let finding_is_blocking (m : OutJ.cli_match) =
           List.assoc_opt (validation_state_to_action validation_state) vs
           |> Option.map (JSON.equal (JSON.String "block"))
           |> Option.value ~default:false
-      | None, Some (JSON.Object _vs), Some (JSON.Array actions) ->
+      | None, _, Some (JSON.Array actions) ->
           contains_blocking actions
       | _ -> false)
   | _ -> false
