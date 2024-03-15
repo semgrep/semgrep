@@ -331,9 +331,7 @@ def print_scan_status(
     if minimal_ux:
         return plans
 
-    if simple_ux:
-        pass  # We are hoisting the logo for snappy response
-    else:
+    if legacy_ux:
         console.print(Title("Scan Status"))
 
     _print_scan_plan_header(

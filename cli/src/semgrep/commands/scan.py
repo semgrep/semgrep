@@ -513,9 +513,9 @@ def scan(
     # Print the welcome message with the Semgrep logo,
     # intending to so as quickly as possible to give a sense of
     # a smooth startup experience.
-    # NOTE: We have been asked to skip printing the welcome message
-    # for pattern and lang usage.
-    if not pattern and not lang:
+    if (pattern and lang) or quiet:
+        pass  # do not print welcome message
+    else:
         welcome()
 
     if version:
