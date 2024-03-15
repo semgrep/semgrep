@@ -1,3 +1,9 @@
+
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/missing-field.yaml:3
 [94m[22m[24m3  | [0m  - id: flask-secure-set-cookie
