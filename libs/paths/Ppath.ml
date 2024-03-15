@@ -1,5 +1,3 @@
-open Fpath_.Operators
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -15,6 +13,8 @@ open Fpath_.Operators
    and 'paths'?
 *)
 
+open Fpath_.Operators
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -25,7 +25,7 @@ open Fpath_.Operators
 
      in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
 
-    will return { segments = [""; "b"; "c"]; string = "/b/c"; }
+   will return { segments = [""; "b"; "c"]; string = "/b/c"; }
  *)
 type t = {
   (* Path segments within the project root.
@@ -71,15 +71,20 @@ let check_segment str =
   if String.contains str '/' then
     invalid_arg ("Ppath.create: path segment may not contain a slash: " ^ str)
 
-let unsafe_create segments = { string = String.concat "/" segments; segments }
+let very_unsafe_create segments =
+  { string = String.concat "/" segments; segments }
 
 (* Note that this does not ensure the segments represent an absolute path
  * and this does not normalize either those segments.
  * Use from_segments( or in_project() instead.
  *)
-let create segments =
-  List.iter check_segment segments;
-  unsafe_create segments
+let unsafe_create segments =
+  (match segments with
+  | "" :: segments -> List.iter check_segment segments
+  | _ ->
+      invalid_arg
+        ("Ppath.create: not an absolute path: " ^ String.concat "/" segments));
+  very_unsafe_create segments
 
 (*****************************************************************************)
 (* Append *)
@@ -101,12 +106,12 @@ let append_segment xs x =
 let add_seg path seg =
   check_segment seg;
   let segments = append_segment path.segments seg in
-  unsafe_create segments
+  very_unsafe_create segments
 
 (* saving you 3 neurons *)
-let add_segs path segs = List.fold_left add_seg path segs
+let add_segs (path : t) segs = List.fold_left add_seg path segs
 
-let append_fpath path fpath =
+let append_fpath (path : t) fpath =
   match Fpath.segs fpath with
   | "" :: _ ->
       invalid_arg
@@ -133,21 +138,6 @@ let to_fpath ~root path =
 (* Project Builder *)
 (*****************************************************************************)
 
-(* TODO: delete *)
-(* A ppath should always be absolute! *)
-let is_absolute x =
-  match x.segments with
-  | "" :: _ -> true
-  | __else__ -> false
-
-(* TODO: delete *)
-let is_relative x = not (is_absolute x)
-
-(* TODO: delete *)
-let make_absolute x =
-  if is_relative x then { string = "/" ^ x.string; segments = "" :: x.segments }
-  else x
-
 let rec normalize (xs : string list) : string list =
   match xs with
   | ".." :: xs -> ".." :: normalize xs
@@ -162,24 +152,18 @@ let rec normalize (xs : string list) : string list =
         normalize (x :: res)
   | [] -> []
 
-let normalize_ppath x =
+let normalize_ppath (x : t) =
   match x.segments with
   | "" :: xs -> (
       match normalize xs with
       | ".." :: _ -> Error ("invalid git path: " ^ x.string)
-      | [] -> Ok (create [ ""; "" ])
-      | segments -> Ok (create ("" :: segments)))
-  (* TODO: delete, this should not happen anymore *)
-  | xs ->
-      let segments =
-        match normalize xs with
-        | [] -> [ "." ]
-        | xs -> xs
-      in
-      Ok (create segments)
+      | [] -> Ok (unsafe_create [ ""; "" ])
+      | segments -> Ok (unsafe_create ("" :: segments)))
+  | _ -> Error ("not an absolute git path: " ^ x.string)
 
-let of_fpath path =
-  Fpath.segs path |> create |> make_absolute |> normalize_ppath
+let of_relative_fpath rel_path =
+  let rel_segs = Fpath.segs rel_path in
+  "" :: rel_segs |> unsafe_create |> normalize_ppath
 
 (*
    Prepend "./" to relative paths so as to make "." a prefix.
@@ -206,6 +190,8 @@ let make_matchable_relative_path path =
      (./a, a/b) -> b
      (a, ./a/b) -> b
 
+   This returns a relative path.
+
    TODO: Move to File module?
 *)
 let remove_prefix root path =
@@ -221,13 +207,7 @@ let remove_prefix root path =
   let path = Fpath.to_dir_path path in
   (* now we can call this function to remove the root prefix from path *)
   match Fpath.rem_prefix root path with
-  | None ->
-      if
-        Fpath.equal root path
-        || Fpath.equal path (Fpath.v ".")
-        || Fpath.equal path (Fpath.v "./")
-      then Some (Fpath.v ".")
-      else None
+  | None -> if Fpath.equal root path then Some (Fpath.v ".") else None
   | Some rel_path ->
       (* remove the trailing slash if we added one *)
       let rel_path =
@@ -265,7 +245,7 @@ let in_project_unsafe ~(phys_root : Fpath.t) (path : Fpath.t) =
             Sys.argv: %s" !!path !!phys_root (Sys.getcwd ())
            (Rfpath.of_string_exn "." |> Rfpath.show)
            (Sys.argv |> Array.to_list |> String.concat " "))
-  | Some path -> path |> of_fpath
+  | Some rel_path -> of_relative_fpath rel_path
 
 let in_project ~(root : Rfpath.t) (path : Fpath.t) =
   in_project_unsafe ~phys_root:(root.rpath |> Rpath.to_fpath) path
@@ -273,7 +253,7 @@ let in_project ~(root : Rfpath.t) (path : Fpath.t) =
 let from_segments segs =
   match segs with
   | "" :: _ ->
-      let ppath = create segs in
+      let ppath = unsafe_create segs in
       normalize_ppath ppath
   | _ -> Error "segments do not represent an absolute path"
 
@@ -307,7 +287,7 @@ let () =
       test_str rewrite "/" "/";
       test_str rewrite "//" "//";
       test_str rewrite "" "";
-      test_str rewrite "a/" "a/";
+      test_str rewrite "/a/" "/a/";
 
       let norm input_str expected =
         let res =
@@ -326,24 +306,19 @@ let () =
                  (to_string res))
         | Error _ -> ()
       in
-      norm "a" "a";
-      norm "a/b" "a/b";
-      norm "ab/cd" "ab/cd";
+      norm "/a" "/a";
+      norm "/a/b" "/a/b";
+      norm "/ab/cd" "/ab/cd";
       norm "/" "/";
       norm "/a" "/a";
       norm "/a/b" "/a/b";
-      norm "" ".";
-      norm "." ".";
-      norm "." ".";
-      norm ".." "..";
+      norm "/." "/";
+      norm "/a/./" "/a/";
       norm_err "/..";
-      norm "a/../b" "b";
-      norm "a/.." ".";
-      norm "a/../.." "..";
+      norm "/a/../b" "/b";
+      norm "/a/.." "/";
       norm_err "/a/../..";
-      norm "a/b/../c/d/e/../.." "a/c";
       norm "/a/b/../c/d/e/../.." "/a/c";
-      norm "a/" "a/";
       norm "/a/" "/a/";
       norm "/a/b/" "/a/b/";
 

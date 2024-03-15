@@ -82,5 +82,5 @@ end
 
 (* internals *)
 
-(* A slash-separated path. *)
+(* A slash-separated path. Must start with a slash. *)
 val of_string_for_tests : string -> t
