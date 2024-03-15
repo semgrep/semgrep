@@ -55,10 +55,27 @@ let ongoing_meth = "semgrep/searchOngoing"
 (* Parameters *)
 (*****************************************************************************)
 
-module Request_params = struct
-  type t = { pattern : string; lang : Xlang.t option; fix : string option }
+let parse_globs ~kind (strs : Yojson.Safe.t list) =
+  strs
+  |> List_.map_filter (function
+       | `String s -> (
+           try
+             let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
+             Some (Glob.Match.compile ~source:loc (Glob.Parse.parse_string s))
+           with
+           | Glob.Lexer.Syntax_error _ -> None)
+       | _ -> None)
 
-  let of_jsonrpc_params params : t option =
+module Request_params = struct
+  type t = {
+    pattern : string;
+    lang : Xlang.t option;
+    fix : string option;
+    includes : Glob.Match.compiled_pattern list;
+    excludes : Glob.Match.compiled_pattern list;
+  }
+
+  let of_jsonrpc_params (params : Jsonrpc.Structured.t option) : t option =
     match params with
     | Some
         (`Assoc
@@ -66,6 +83,8 @@ module Request_params = struct
             ("pattern", `String pattern);
             ("language", lang);
             ("fix", fix_pattern);
+            ("includes", `List includes);
+            ("excludes", `List excludes);
           ]) ->
         let lang_opt =
           match lang with
@@ -77,7 +96,9 @@ module Request_params = struct
           | `String fix -> Some fix
           | _ -> None
         in
-        Some { pattern; lang = lang_opt; fix = fix_opt }
+        let includes = parse_globs ~kind:"includes" includes in
+        let excludes = parse_globs ~kind:"excludes" excludes in
+        Some { pattern; lang = lang_opt; fix = fix_opt; includes; excludes }
     | __else__ -> None
 
   let _of_jsonrpc_params_exn params : t =
@@ -107,16 +128,8 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   in
   (ast, skipped_tokens)
 
-let filter_by_gitignore (files : Fpath.t list)
-    (scanning_roots : Scanning_root.t list) : Fpath.t list =
+let filter_by_gitignore ~project_root (files : Fpath.t list) : Fpath.t list =
   (* Filter all files by gitignores *)
-  let project_root =
-    match
-      List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
-    with
-    | Error _ -> failwith "somehow unable to get project root from first root"
-    | Ok rfpath -> rfpath
-  in
   let gitignore_filter =
     Gitignore_filter.create ~project_root:(Rfpath.to_fpath project_root) ()
   in
@@ -133,7 +146,7 @@ let filter_by_gitignore (files : Fpath.t list)
 (* Information gathering *)
 (*****************************************************************************)
 
-let mk_env (server : RPC_server.t) params =
+let mk_env (server : RPC_server.t) (params : Request_params.t) =
   let scanning_roots =
     List_.map Scanning_root.of_fpath server.session.workspace_folders
   in
@@ -141,15 +154,75 @@ let mk_env (server : RPC_server.t) params =
     server.session.cached_workspace_targets |> Hashtbl.to_seq_values
     |> List.of_seq |> List.concat
   in
+  let project_root =
+    match
+      List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
+    with
+    | Error _ -> failwith "somehow unable to get project root from first root"
+    | Ok rfpath -> rfpath
+  in
   (* Filter all files by gitignores *)
   let filtered_files =
     (* Gitignore code. We hard-code it to be false for now.
        This adds 10s to startup time in `semgrep-app` on my machine.
        Gitignore is expensive! I don't know why.
     *)
-    if false then filter_by_gitignore files scanning_roots else files
+    if false then filter_by_gitignore ~project_root files else files
   in
-  { roots = scanning_roots; initial_files = filtered_files; params }
+  (* TODO: This has a bug!!!
+     Suppose we exclude `test.py` and are given `tests2/test.py`.
+     This code will not exclude properly, on the basis that `test.py`
+     does not match `tests2/test.py`.
+     Essentially, we may need to look at every suffix of the file to see
+     if it matches.
+  *)
+  let filtered_by_includes_excludes =
+    filtered_files
+    |> List.filter (fun file ->
+           (* Why must we do this?
+               The paths that we receive are absolute paths in the machine.
+               This means something like /Users/brandonspark/test/test.py.
+               When we match it against a blob, like `test.py`, obviously this
+               will not match, because of the giant absolute prefix.
+               We actually want the path _relative to the project root_, which is
+               `test.py` for the project `test`.
+               So we use `Fpath.rem_prefix` here, which emulates that functionality.
+           *)
+           match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
+           | None ->
+               Logs.debug (fun m ->
+                   m "file not in project: %s" (Fpath.to_string file));
+               false
+           | Some file_relative_to_root ->
+               let is_not_included =
+                 match params.includes with
+                 | [] -> false
+                 (* if there wasn't a single included which included you, you are excluded *)
+                 | _ ->
+                     not
+                       (List.exists
+                          (fun inc ->
+                            Glob.Match.run inc !!file_relative_to_root)
+                          params.includes)
+               in
+               let is_not_excluded =
+                 match params.excludes with
+                 | [] -> true
+                 (* if there wasn't a single excluded which excluded you, you are included *)
+                 | _ ->
+                     not
+                       (List.exists
+                          (fun exc ->
+                            Glob.Match.run exc !!file_relative_to_root)
+                          params.excludes)
+               in
+               (not is_not_included) && is_not_excluded)
+  in
+  {
+    roots = scanning_roots;
+    initial_files = filtered_by_includes_excludes;
+    params;
+  }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.
@@ -348,7 +421,8 @@ let rec search_single_target (server : RPC_server.t) =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let start_search (server : RPC_server.t) params =
+let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
+    =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
