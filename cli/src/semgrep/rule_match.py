@@ -461,7 +461,10 @@ class RuleMatch:
                 return False
             else:
                 return blocking
-        elif self.validation_state is not None:
+        elif (
+            self.validation_state is not None
+            and type(self.validation_state.value) is not out.NoValidator
+        ):
             return self.is_validation_state_blocking
 
         return blocking
