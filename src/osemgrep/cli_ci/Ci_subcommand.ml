@@ -341,7 +341,7 @@ let finding_is_blocking (m : OutJ.cli_match) =
           List.assoc_opt "dev.semgrep.validation_state.actions" xs,
           List.assoc_opt "dev.semgrep.actions" xs )
       with
-      | Some validation_state, Some (JSON.Object vs), Some (JSON.Array _actions)
+      | Some validation_state, Some (JSON.Object vs), _
         ->
           List.assoc_opt (validation_state_to_action validation_state) vs
           |> Option.map (JSON.equal (JSON.String "block"))
