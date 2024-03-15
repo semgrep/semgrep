@@ -41,6 +41,7 @@ let tests (caps : Cap.all_caps) =
       Unit_graph_code.tests;
       Unit_list_files.tests;
       Glob.Unit_glob.tests;
+      Unit_find_targets.tests;
       Unit_semgrepignore.tests;
       Unit_gitignore.tests;
       Unit_include_filter.tests;

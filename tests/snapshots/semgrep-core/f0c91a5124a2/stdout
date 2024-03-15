@@ -1,0 +1,19 @@
+Test name: with git > basic exclude
+--- Files added before 'git add' ---
+.gitignore
+a
+b
+Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
+[main (root-commit) d5d3ff0] Add files
+ 3 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 .gitignore
+ create mode 100644 a
+ create mode 100644 b
+--- '--exclude' patterns ---
+b
+--- Selected targets ---
+selected <TEMPORARY FILE PATH>.gitignore
+selected <TEMPORARY FILE PATH>a
+--- Skipped targets ---
+ignored <TEMPORARY FILE PATH>.git [Semgrep_output_v1_t.Semgrepignore_patterns_match]
+ignored <TEMPORARY FILE PATH>b [Semgrep_output_v1_t.Cli_exclude_flags_match]

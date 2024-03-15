@@ -31,4 +31,7 @@ let tests =
     test_include [ "/a" ] "/a/b" Not_ignored;
     test_include [ "/b" ] "/a/b" Ignored;
     test_include [ "b" ] "/a/b/c" Not_ignored;
+    test_include [ "c" ] "/a/b/c" Not_ignored;
+    test_include [ "included.*" ]
+      "/targets/exclude_include/included/included.js" Not_ignored;
   ]

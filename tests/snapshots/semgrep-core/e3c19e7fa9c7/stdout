@@ -1,0 +1,11 @@
+Test name: with git > basic test
+--- Files added before 'git add' ---
+.gitignore
+Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
+[main (root-commit) d3cc0ec] Add files
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 .gitignore
+--- Selected targets ---
+selected <TEMPORARY FILE PATH>.gitignore
+--- Skipped targets ---
+ignored <TEMPORARY FILE PATH>.git [Semgrep_output_v1_t.Semgrepignore_patterns_match]

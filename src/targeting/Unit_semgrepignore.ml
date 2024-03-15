@@ -15,7 +15,9 @@ let t = Testo.create
 (*
    In these tests, the file hierarchy must contain the
    .gitignore and .semgrepignore files but the target files are not
-   needed.
+   needed. Tests that check for the detection of target files are
+   in Unit_find_targets.ml.
+
    Similar to Unit_gitignore.test_filter, but using Semgrepignore.create
    and the includes/excludes extra parameters.
 *)
@@ -100,6 +102,8 @@ let tests =
              ("/b/a.ml", true);
              ("/b/a.c", false);
            ]);
+      t "deep includes"
+        (test_filter ~includes:[ "*.ml" ] [] [ ("/a/b/c.ml", true) ]);
       t "excludes"
         (test_filter ~excludes:[ "*.ml" ] []
            [

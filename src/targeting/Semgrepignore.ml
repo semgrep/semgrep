@@ -36,6 +36,8 @@
      plan)
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 type t = {
   include_filter : Include_filter.t option;
   gitignore_filter : Gitignore.filter;
@@ -148,6 +150,8 @@ let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
   { include_filter; gitignore_filter }
 
 let select t (git_path : Ppath.t) =
+  Logs.debug (fun m ->
+      m ~tags "Semgrepignore.select %s" (Ppath.to_string git_path));
   let status, sel_events =
     match t.include_filter with
     | None -> (Gitignore.Not_ignored, [])

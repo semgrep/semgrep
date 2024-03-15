@@ -36,7 +36,10 @@ let test_filter (files : F.t list) () =
       let filter = Gitignore_filter.create ~project_root:root () in
       files |> F.flatten
       |> List.iter (fun path ->
-             let path = Ppath.of_string_for_tests (Fpath.to_string path) in
+             assert (Fpath.is_rel path);
+             let path =
+               "/" ^ Fpath.to_string path |> Ppath.of_string_for_tests
+             in
              let status, selection_events =
                let selection_events = [] in
                (* Glob.Match.run is supposed to print detailed logs on which
