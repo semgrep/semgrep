@@ -1,0 +1,11 @@
+rules:
+  - id: replace-with-smiley
+    patterns:
+      - pattern: |
+          print('a')
+    fix: |
+      print('😊')
+    message: Unnecessary parameter which matches the default
+    languages:
+      - python
+    severity: WARNING
