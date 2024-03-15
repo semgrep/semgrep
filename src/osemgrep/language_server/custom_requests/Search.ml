@@ -108,7 +108,7 @@ let mk_params ~lang ~fix ~includes ~excludes pattern =
 module Request_params = struct
   (* coupling: you must change the `mk_params` function above if you change this type! *)
   type t = {
-    pattern : string;
+    patterns : (bool * string) list;
     lang : Xlang.t option;
     fix : string option;
     includes : Glob.Match.compiled_pattern list;
@@ -125,12 +125,22 @@ module Request_params = struct
     | Some
         (`Assoc
           [
-            ("pattern", `String pattern);
+            ("patterns", `List patterns);
             ("language", lang);
             ("fix", fix_pattern);
             ("includes", `List includes);
             ("excludes", `List excludes);
           ]) ->
+        let patterns =
+          List_.map_filter
+            (function
+              | `Assoc
+                  [ ("positive", `Bool positive); ("pattern", `String pattern) ]
+                ->
+                  Some (positive, pattern)
+              | _ -> None)
+            patterns
+        in
         let lang_opt =
           match lang with
           | `String lang -> Some (Xlang.of_string lang)
@@ -143,7 +153,7 @@ module Request_params = struct
         in
         let includes = parse_globs ~kind:"includes" includes in
         let excludes = parse_globs ~kind:"excludes" excludes in
-        Some { pattern; lang = lang_opt; fix = fix_opt; includes; excludes }
+        Some { patterns; lang = lang_opt; fix = fix_opt; includes; excludes }
     | __else__ -> None
 
   let _of_jsonrpc_params_exn params : t =
@@ -273,11 +283,11 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
   Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
-let get_relevant_rules ({ params = { pattern; fix; lang; _ }; _ } as env : env)
+let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
     : Rule.search_rule list =
   let rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list =
     let rules_and_origins =
-      Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
+      Rule_fetching.rules_from_patterns (patterns, lang_opt, fix)
     in
     let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
     let search_rules, _, _, _ = Rule.partition_rules rules in
