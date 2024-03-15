@@ -133,43 +133,41 @@ let tests =
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_valid
                       ~direct_action:"monitor" ~valid:"block" ~invalid:"monitor"
-                      ~error:"comment",
+                      ~error:"comment" (),
                     true );
                   ( "confirmed invalid should block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_invalid
                       ~direct_action:"monitor" ~valid:"monitor" ~invalid:"block"
-                      ~error:"comment",
+                      ~error:"comment" (),
                     true );
                   ( "validation error should block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Validation_error
                       ~direct_action:"monitor" ~valid:"monitor"
-                      ~invalid:"comment" ~error:"block",
+                      ~invalid:"comment" ~error:"block" (),
                     true );
                   ( "no validator (treated as valid) should block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`No_validator ~direct_action:"monitor"
-                      ~valid:"block" ~invalid:"monitor" ~error:"comment",
+                      ~valid:"block" ~invalid:"monitor" ~error:"comment" (),
                     true );
                   ( "direct action for validated finding should not block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_valid ~direct_action:"block"
-                      ~valid:"monitor" ~invalid:"monitor" ~error:"comment",
+                      ~valid:"monitor" ~invalid:"monitor" ~error:"comment" (),
                     false );
                   ( "no blocking action or state should not block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_valid
                       ~direct_action:"monitor" ~valid:"monitor"
-                      ~invalid:"monitor" ~error:"comment",
+                      ~invalid:"monitor" ~error:"comment" (),
                     false );
                 ]
               in
               List.iter
                 (fun (name, m, expected) ->
-                  Alcotest.(check bool)
-                    name expected
-                    (finding_is_blocking (m ())))
+                  Alcotest.(check bool) name expected (finding_is_blocking m))
                 test_cases);
         ];
     ]
