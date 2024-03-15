@@ -322,13 +322,11 @@ let get_rules_and_targets (env : env) =
 (* Output *)
 (*****************************************************************************)
 
-let go line begin_col end_col =
+let preview_of_line line ~col_range:(begin_col, end_col) =
   let before_col = Int.max 0 (begin_col - 8) in
   let before = String.sub line before_col (begin_col - before_col) in
   let inside = String.sub line begin_col (end_col - begin_col) in
-  let after =
-    String.sub line end_col (Int.min 8 (String.length line - end_col))
-  in
+  let after = Str.string_after line end_col in
   (before, inside, after)
 
 let json_of_matches (xtarget : Xtarget.t)
@@ -349,8 +347,13 @@ let json_of_matches (xtarget : Xtarget.t)
                  in
                  let before, inside, after =
                    if range.start.line = range.end_.line then
-                     go line range.start.character range.end_.character
-                   else go line range.start.character (String.length line)
+                     preview_of_line line
+                       ~col_range:(range.start.character, range.end_.character)
+                   else
+                     preview_of_line line
+                       ~col_range:
+                         ( range.start.character,
+                           String.length line - range.start.character )
                  in
                  let fix_json =
                    match m.autofix_edit with
