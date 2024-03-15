@@ -1,5 +1,6 @@
 # THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
 import os
+import sys
 import tempfile
 from itertools import chain
 from pathlib import Path
@@ -50,6 +51,50 @@ from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def has_color() -> bool:
+    """
+    Determine if color should be used in the output.
+    """
+    force_color = os.environ.get("SEMGREP_FORCE_COLOR") is not None
+    # See https://no-color.org/
+    no_color = (
+        os.environ.get("NO_COLOR") is not None
+        or os.environ.get("SEMGREP_FORCE_NO_COLOR") is not None
+    )
+    # Should not have both force color and no color set
+    # If both are set, force color should take precedence
+    if force_color and no_color:
+        return True
+    if no_color:
+        return False
+    return force_color or sys.stdout.isatty()
+
+
+def with_logo_color(text: str) -> str:
+    """
+    Wrap text with our brand color if color is enabled.
+    """
+    if has_color():
+        return click.style(text, fg=Colors.green.value)
+    return text
+
+
+def welcome() -> None:
+    """
+    Print a welcome message with the Semgrep logo.
+    """
+    logo = with_logo_color("○○○")
+    click.echo(
+        f"""
+┌──── {logo} ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+""",
+        err=True,
+    )
 
 
 class MetricsStateType(click.ParamType):
@@ -465,6 +510,14 @@ def scan(
     version: bool,
     x_ls: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
+    # Print the welcome message with the Semgrep logo,
+    # intending to so as quickly as possible to give a sense of
+    # a smooth startup experience.
+    if (pattern and lang) or quiet:
+        pass  # do not print welcome message
+    else:
+        welcome()
+
     if version:
         print(__VERSION__)
         if enable_version_check:

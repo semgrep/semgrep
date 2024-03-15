@@ -294,6 +294,12 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
 === stderr - plain
 
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+
+
 
 ┌─────────────┐
 │ Scan Status │
