@@ -248,21 +248,22 @@ let get_rules_and_targets (env : env) =
 (* Output *)
 (*****************************************************************************)
 
-let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
+let json_of_matches
+    (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
         let uri = !!path |> Uri.of_path |> Uri.to_string in
         let matches =
           matches
-          |> List_.map (fun (m : Pattern_match.t) ->
+          |> List_.map (fun (m : Core_result.processed_match) ->
                  let range_json =
-                   Range.yojson_of_t (Conv.range_of_toks m.range_loc)
+                   Range.yojson_of_t (Conv.range_of_toks m.pm.range_loc)
                  in
                  let fix_json =
-                   match m.rule_id.fix with
+                   match m.autofix_edit with
                    | None -> `Null
-                   | Some s -> `String s
+                   | Some edit -> `String edit.replacement_text
                  in
                  `Assoc [ ("range", range_json); ("fix", fix_json) ])
         in
@@ -326,10 +327,15 @@ let rec search_single_target (server : RPC_server.t) =
               let ({ Core_result.matches; _ } : _ Core_result.match_result) =
                 Match_search_mode.check_rule rule hook conf.xconf xtarget
               in
+              let matches_with_fixes =
+                matches
+                |> List_.map Core_result.mk_processed_match
+                |> Autofix.produce_autofixes
+              in
               match matches with
               | [] -> search_single_target server
               | _ ->
-                  let json = json_of_matches [ (path, matches) ] in
+                  let json = json_of_matches [ (path, matches_with_fixes) ] in
                   (json, server)
             with
             | Parsing_error.Syntax_error _ -> search_single_target server
