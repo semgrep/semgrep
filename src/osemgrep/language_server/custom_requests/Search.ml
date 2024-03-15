@@ -242,8 +242,8 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
   Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
-let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
-    Rule.search_rule list =
+let get_relevant_rules ({ params = { pattern; fix; lang; _ }; _ } as env : env)
+    : Rule.search_rule list =
   (* TODO: figure out why rules_from_rules_source_async hangs *)
   (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
   let search_rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list
@@ -257,7 +257,7 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   in
   let xlangs = get_relevant_xlangs env in
   let rules_with_relevant_xlang =
-    search_rules_of_langs None
+    search_rules_of_langs lang
     |> List.filter (fun (rule : Rule.search_rule) ->
            List.mem rule.target_analyzer xlangs)
   in
@@ -301,17 +301,8 @@ let get_rules_and_targets (env : env) =
     rules
     |> List_.map (fun (rule : Rule.search_rule) ->
            let xlang = rule.target_analyzer in
-           (* We have to look at all the initial files again when we do this.
-               TODO: Maybe could be better to infer languages from each file,
-               so we only have to look at each file once.
-           *)
-           let filtered_files : Fpath.t list =
-             env.initial_files
-             |> List.filter (fun target ->
-                    Filter_target.filter_target_for_xlang xlang target)
-           in
            ( rule,
-             filtered_files
+             env.initial_files
              |> List_.map (fun file ->
                     Xtarget.resolve parse_and_resolve_name
                       (Target.mk_regular xlang Product.all (File file))) ))
@@ -464,7 +455,14 @@ let rec search_single_target (server : RPC_server.t) =
               (rule :> Rule.rule)
               conf.xconf xtarget
           in
-          if is_relevant_rule then
+          let is_relevant_lang =
+            (* We have to look at all the initial files again when we do this.
+                TODO: Maybe could be better to infer languages from each file,
+                so we only have to look at each file once.
+            *)
+            Filter_target.filter_target_for_xlang rule.target_analyzer path
+          in
+          if is_relevant_rule && is_relevant_lang then
             try
               (* !!calling the engine!! *)
               let ({ Core_result.matches; _ } : _ Core_result.match_result) =
