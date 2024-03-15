@@ -149,7 +149,7 @@ RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.wh
 # We change container, bringing the 'semgrep-core' binary with us.
 
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
-FROM python:3.11.4-alpine AS semgrep-oss
+FROM python:3.11-alpine AS semgrep-oss
 
 WORKDIR /semgrep
 
@@ -158,6 +158,7 @@ WORKDIR /semgrep
 # See docker-library/python#761 for an example of such an issue in the past
 # where the time between the CVE was discovered and the package update was X days, but
 # the new base image was updated only after Y days.
+# See also https://docs.docker.com/develop/security-best-practices/
 RUN apk upgrade --no-cache && \
 # Here is why we need the apk packages below:
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
