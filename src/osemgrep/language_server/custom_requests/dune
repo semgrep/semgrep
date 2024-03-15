@@ -7,5 +7,6 @@
    osemgrep_language_server_server
    semgrep.osemgrep_cli_scan
    glob
+   semgrep_core
  )
 )
