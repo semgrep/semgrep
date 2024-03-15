@@ -124,7 +124,7 @@ end
 
 type env = {
   params : Request_params.t;
-  initial_files : Fpath.t list;
+  initial_files : (Fpath.t, (Xlang.t, Fpath.t list) Hashtbl.t) Hashtbl.t;
   roots : Scanning_root.t list;
 }
 
@@ -139,47 +139,26 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   in
   (ast, skipped_tokens)
 
-let filter_by_gitignore ~project_root (files : Fpath.t list) : Fpath.t list =
-  (* Filter all files by gitignores *)
-  let gitignore_filter =
-    Gitignore_filter.create ~project_root:(Rfpath.to_fpath project_root) ()
-  in
-  files
-  |> List.filter (fun file ->
-         match Ppath.in_project ~root:project_root file with
-         | Error _ -> failwith "err"
-         | Ok ppath -> (
-             match Gitignore_filter.select gitignore_filter [] ppath with
-             | Gitignore.Ignored, _ -> false
-             | _ -> true))
+(* let filter_by_gitignore ~project_root (files : Fpath.t list) : Fpath.t list =
+   (* Filter all files by gitignores *)
+   let gitignore_filter =
+     Gitignore_filter.create ~project_root:(Rfpath.to_fpath project_root) ()
+   in
+   files
+   |> List.filter (fun file ->
+          match Ppath.in_project ~root:project_root file with
+          | Error _ -> failwith "err"
+          | Ok ppath -> (
+              match Gitignore_filter.select gitignore_filter [] ppath with
+              | Gitignore.Ignored, _ -> false
+              | _ -> true)) *)
 
 (*****************************************************************************)
 (* Information gathering *)
 (*****************************************************************************)
 
-let mk_env (server : RPC_server.t) (params : Request_params.t) =
-  let scanning_roots =
-    List_.map Scanning_root.of_fpath server.session.workspace_folders
-  in
-  let files =
-    server.session.cached_workspace_targets |> Hashtbl.to_seq_values
-    |> List.of_seq |> List.concat
-  in
-  let project_root =
-    match
-      List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
-    with
-    | Error _ -> failwith "somehow unable to get project root from first root"
-    | Ok rfpath -> rfpath
-  in
-  (* Filter all files by gitignores *)
-  let filtered_files =
-    (* Gitignore code. We hard-code it to be false for now.
-       This adds 10s to startup time in `semgrep-app` on my machine.
-       Gitignore is expensive! I don't know why.
-    *)
-    if false then filter_by_gitignore ~project_root files else files
-  in
+let filter_by_includes_excludes project_root (params : Request_params.t)
+    (files : Fpath.t list) =
   (* TODO: This has a bug!!!
      Suppose we exclude `test.py` and are given `tests2/test.py`.
      This code will not exclude properly, on the basis that `test.py`
@@ -187,53 +166,81 @@ let mk_env (server : RPC_server.t) (params : Request_params.t) =
      Essentially, we may need to look at every suffix of the file to see
      if it matches.
   *)
-  let filtered_by_includes_excludes =
-    filtered_files
-    |> List.filter (fun file ->
-           (* Why must we do this?
-              The paths that we receive are absolute paths in the machine.
-              This means something like /Users/brandonspark/test/test.py.
-              When we match it against a blob, like `test.py`, obviously this
-              will not match, because of the giant absolute prefix.
-              We actually want the path _relative to the project root_, which is
-              `test.py` for the project `test`.
-              So we use `Fpath.rem_prefix` here, which emulates that functionality.
-           *)
-           match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
-           | None ->
-               Logs.debug (fun m ->
-                   m "file not in project: %s" (Fpath.to_string file));
-               false
-           | Some file_relative_to_root ->
-               let is_not_included =
-                 match params.includes with
-                 | [] -> false
-                 (* if there wasn't a single included which included you, you are excluded *)
-                 | _ ->
-                     not
-                       (List.exists
-                          (fun inc ->
-                            Glob.Match.run inc !!file_relative_to_root)
-                          params.includes)
-               in
-               let is_not_excluded =
-                 match params.excludes with
-                 | [] -> true
-                 (* if there wasn't a single excluded which excluded you, you are included *)
-                 | _ ->
-                     not
-                       (List.exists
-                          (fun exc ->
-                            Glob.Match.run exc !!file_relative_to_root)
-                          params.excludes)
-               in
-               (not is_not_included) && is_not_excluded)
+  files
+  |> List.filter (fun file ->
+         (* Why must we do this?
+            The paths that we receive are absolute paths in the machine.
+            This means something like /Users/brandonspark/test/test.py.
+            When we match it against a blob, like `test.py`, obviously this
+            will not match, because of the giant absolute prefix.
+            We actually want the path _relative to the project root_, which is
+            `test.py` for the project `test`.
+            So we use `Fpath.rem_prefix` here, which emulates that functionality.
+         *)
+         match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
+         | None ->
+             Logs.debug (fun m ->
+                 m "file not in project: %s" (Fpath.to_string file));
+             false
+         | Some file_relative_to_root ->
+             let is_not_included =
+               match params.includes with
+               | [] -> false
+               (* if there wasn't a single included which included you, you are excluded *)
+               | _ ->
+                   not
+                     (List.exists
+                        (fun inc -> Glob.Match.run inc !!file_relative_to_root)
+                        params.includes)
+             in
+             let is_not_excluded =
+               match params.excludes with
+               | [] -> true
+               (* if there wasn't a single excluded which excluded you, you are included *)
+               | _ ->
+                   not
+                     (List.exists
+                        (fun exc -> Glob.Match.run exc !!file_relative_to_root)
+                        params.excludes)
+             in
+             (not is_not_included) && is_not_excluded)
+
+let mk_env (server : RPC_server.t) (params : Request_params.t) =
+  let scanning_roots =
+    List_.map Scanning_root.of_fpath server.session.workspace_folders
   in
-  {
-    roots = scanning_roots;
-    initial_files = filtered_by_includes_excludes;
-    params;
-  }
+  (* let files =
+       server.session.cached_workspace_targets |> Hashtbl.to_seq_values
+       |> List.of_seq |> List.concat
+     in *)
+  (* Filter all files by gitignores *)
+  let workspace_tbl = Hashtbl.create 10 in
+  Hashtbl.iter
+    (fun root lang_hashtbl_original ->
+      let project_root =
+        match
+          List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
+        with
+        | Error _ ->
+            failwith "somehow unable to get project root from first root"
+        | Ok rfpath -> rfpath
+      in
+      let lang_hashtbl = Hashtbl.create 10 in
+      Hashtbl.add workspace_tbl root lang_hashtbl;
+      Hashtbl.iter
+        (fun lang files ->
+          Hashtbl.replace lang_hashtbl lang
+            (filter_by_includes_excludes project_root params files))
+        lang_hashtbl_original)
+    server.session.cached_workspace_targets_by_lang;
+  (* let filtered_files =
+       (* Gitignore code. We hard-code it to be false for now.
+          This adds 10s to startup time in `semgrep-app` on my machine.
+          Gitignore is expensive! I don't know why.
+       *)
+       if false then filter_by_gitignore ~project_root files else files
+     in *)
+  { roots = scanning_roots; initial_files = workspace_tbl; params }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.
@@ -244,12 +251,13 @@ let mk_env (server : RPC_server.t) (params : Request_params.t) =
 *)
 let get_relevant_xlangs (env : env) : Xlang.t list =
   let lang_set = Hashtbl.create 10 in
-  List.iter
-    (fun file ->
-      let file_langs = Lang.langs_of_filename file in
-      List.iter (fun lang -> Hashtbl.replace lang_set lang ()) file_langs)
+  Hashtbl.iter
+    (fun _ tbl ->
+      Hashtbl.to_seq_keys tbl
+      |> Seq.map (fun lang -> Hashtbl.replace lang_set lang ())
+      |> List.of_seq |> ignore)
     env.initial_files;
-  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
+  Hashtbl.to_seq_keys lang_set |> List.of_seq
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
@@ -312,7 +320,14 @@ let get_rules_and_targets (env : env) =
     |> List_.map (fun (rule : Rule.search_rule) ->
            let xlang = rule.target_analyzer in
            ( rule,
-             env.initial_files
+             Hashtbl.fold
+               (fun _root lang_hashtbl acc ->
+                 let files =
+                   Hashtbl.find_opt lang_hashtbl xlang
+                   |> Option.value ~default:[]
+                 in
+                 files @ acc)
+               env.initial_files []
              |> List_.map (fun file ->
                     Xtarget.resolve parse_and_resolve_name
                       (Target.mk_regular xlang Product.all (File file))) ))
@@ -508,8 +523,10 @@ let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
       Logs.debug (fun m -> m "no params received in semgrep/search");
       (None, server)
   | Some params ->
-      let env = mk_env server params in
-      let rules_and_targets = get_rules_and_targets env in
+      let env = Common.with_time (fun () -> mk_env server params) in
+      let rules_and_targets =
+        Common.with_time (fun () -> get_rules_and_targets env)
+      in
       let xconf =
         {
           Match_env.default_xconfig with

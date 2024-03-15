@@ -23,6 +23,9 @@ type t = {
   capabilities : ServerCapabilities.t;
   workspace_folders : Fpath.t list;
   cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t;
+  cached_workspace_targets_by_lang :
+    (Fpath.t, (Xlang.t, Fpath.t list) Hashtbl.t) Hashtbl.t;
+      [@opaque]
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   skipped_local_fingerprints : string list;

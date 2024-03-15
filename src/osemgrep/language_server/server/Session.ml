@@ -31,6 +31,9 @@ type t = {
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
   cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
+  cached_workspace_targets_by_lang :
+    (Fpath.t, (Xlang.t, Fpath.t list) Hashtbl.t) Hashtbl.t;
+      [@opaque]
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
@@ -59,6 +62,7 @@ let create caps capabilities =
     capabilities;
     workspace_folders = [];
     cached_workspace_targets = Hashtbl.create 10;
+    cached_workspace_targets_by_lang = Hashtbl.create 10;
     cached_scans = Hashtbl.create 10;
     cached_session;
     skipped_local_fingerprints = [];

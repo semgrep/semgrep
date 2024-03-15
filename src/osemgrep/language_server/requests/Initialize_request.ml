@@ -114,6 +114,35 @@ let initialize_server server
     }
   in
   Session.cache_workspace_targets server.session;
+  let add_to_lang_tbl file lang tbl =
+    match Hashtbl.find_opt tbl lang with
+    | None -> Hashtbl.add tbl lang [ file ]
+    | Some files -> Hashtbl.replace tbl lang (file :: files)
+  in
+  server.session.cached_workspace_targets
+  |> Hashtbl.iter (fun root targets ->
+         let lang_hashtbl =
+           match
+             Hashtbl.find_opt server.session.cached_workspace_targets_by_lang
+               root
+           with
+           | None ->
+               let tbl = Hashtbl.create 10 in
+               Hashtbl.add server.session.cached_workspace_targets_by_lang root
+                 tbl;
+               tbl
+           | Some lang_hashtbl -> lang_hashtbl
+         in
+         targets
+         |> List.iter (fun file ->
+                match Lang.langs_of_filename file with
+                | [] -> add_to_lang_tbl file Xlang.LRegex lang_hashtbl
+                | langs ->
+                    langs
+                    |> List.iter (fun lang ->
+                           add_to_lang_tbl file
+                             (Xlang.L (lang, []))
+                             lang_hashtbl)));
   Logs.debug (fun m ->
       m "Initialized server with session:\n%s" (Session.show server.session));
   server
