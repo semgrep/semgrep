@@ -25,6 +25,7 @@ from semgrep.constants import RuleScanSource
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Position
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -93,9 +94,11 @@ class RuleMatch:
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
-    ci_unique_key: Tuple = field(init=False, repr=False)
-    ordering_key: Tuple = field(init=False, repr=False)
-    match_based_key: Tuple = field(init=False, repr=False)
+    ci_unique_key: Tuple[str, str, str, int] = field(init=False, repr=False)
+    ordering_key: Tuple[str, Position, Position, str, str] = field(
+        init=False, repr=False
+    )
+    match_based_key: Tuple[str, Path, str] = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
     code_hash: str = field(init=False, repr=False)
@@ -222,7 +225,7 @@ class RuleMatch:
         return code
 
     @ci_unique_key.default
-    def get_ci_unique_key(self) -> Tuple:
+    def get_ci_unique_key(self) -> Tuple[str, str, str, int]:
         """
         A unique key designed with notification user experience in mind.
 
@@ -247,7 +250,9 @@ class RuleMatch:
             )
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
-    def get_path_changed_ci_unique_key(self, rename_dict: Dict[str, Path]) -> Tuple:
+    def get_path_changed_ci_unique_key(
+        self, rename_dict: Dict[str, Path]
+    ) -> Tuple[str, str, str, int]:
         """
         A unique key that accounts for filepath renames.
 
@@ -261,7 +266,7 @@ class RuleMatch:
         return (self.rule_id, renamed_path, self.syntactic_context, self.index)
 
     @ordering_key.default
-    def get_ordering_key(self) -> Tuple:
+    def get_ordering_key(self) -> Tuple[str, Position, Position, str, str]:
         """
         Used to sort findings in output.
 
@@ -272,7 +277,7 @@ class RuleMatch:
         when two findings match with different metavariables on the same code.
         """
         return (
-            self.git_blob if self.git_blob else self.path,
+            self.git_blob.value if self.git_blob else str(self.path),
             self.start,
             self.end,
             self.rule_id,
@@ -294,7 +299,7 @@ class RuleMatch:
         return str(binascii.hexlify(hash_bytes), "ascii")
 
     @match_based_key.default
-    def get_match_based_key(self) -> Tuple:
+    def get_match_based_key(self) -> Tuple[str, Path, str]:
         """
         A unique key with match based id's notion of uniqueness in mind.
 
@@ -528,6 +533,7 @@ class RuleMatch:
             # string instead of a ValidationState. Fix the monkey
             # patchable version if you want monkey patching to work.
             validation_state=self.match.extra.validation_state,
+            historical_info=self.match.extra.historical_info,
         )
 
         if self.extra.get("fixed_lines"):

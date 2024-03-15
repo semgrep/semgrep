@@ -488,7 +488,7 @@ local push_docker_job(repository_name) = {
   needs: [
     'build-test-docker',
   ],
-  uses: './.github/workflows/push-docker.yaml',
+  uses: './.github/workflows/push-docker.yml',
   'if': right_ref_and_right_event,
   secrets: 'inherit',
   with: {
@@ -503,7 +503,7 @@ local push_docker_nonroot_job(repository_name) = {
   needs: [
     'build-test-docker-nonroot',
   ],
-  uses: './.github/workflows/push-docker.yaml',
+  uses: './.github/workflows/push-docker.yml',
   'if': right_ref_and_right_event,
   secrets: 'inherit',
   with: {

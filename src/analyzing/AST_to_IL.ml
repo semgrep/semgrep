@@ -1475,9 +1475,17 @@ and mk_class_construction env obj origin_exp ty cons_id_info args :
 
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (eorig, tok) ->
-      if eorig.is_implicit_return then implicit_return env eorig tok
-      else expr_stmt env eorig tok
+  | G.ExprStmt (eorig, tok) -> (
+      match eorig with
+      | { is_implicit_return = true; _ } -> implicit_return env eorig tok
+      (* Python's yield statement functions similarly to a return
+         statement but with the added capability of saving the
+         function's state. While this analogy isn't entirely precise,
+         we currently treat it as a return statement for simplicity's
+         sake. *)
+      | { e = Yield (_, Some e, _); _ } when env.lang =*= Lang.Python ->
+          implicit_return env e tok
+      | _ -> expr_stmt env eorig tok)
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef

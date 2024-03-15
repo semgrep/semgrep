@@ -32,7 +32,10 @@ local util = import 'libs/util.libsonnet';
         { name: 'ruleset', value: 'p/default-v2' },
         { name: 'container_image_base', value: "${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'latest' || 'develop' }}" },
         { name: 'container_image_development', value: '${{ needs.setup-docker-tag.outputs.docker-tag }}' },
-        { name: 'timeout_in_minutes', value: '10' },
+        // up to 17 minutes because the reaper task that watches this timeout runs every 5 minutes.
+        { name: 'timeout_in_minutes', value: '12' },
+        // for PR comments
+        { name: 'issue_number', value: '${{ github.event.pull_request.number }}' },
       ],
     ),
   },

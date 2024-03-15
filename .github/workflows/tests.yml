@@ -149,7 +149,7 @@ jobs:
     needs:
       - build-test-docker-nonroot
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-test-nonroot
       dry-run: false
@@ -159,7 +159,7 @@ jobs:
     needs:
       - build-test-docker-nonroot
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-test-nonroot
       dry-run: false
@@ -169,7 +169,7 @@ jobs:
     needs:
       - build-test-docker-performance-tests
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-test-performance-tests
       dry-run: false
@@ -179,7 +179,7 @@ jobs:
     needs:
       - build-test-docker
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-test
       dry-run: false
@@ -189,7 +189,7 @@ jobs:
     needs:
       - build-test-docker
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
       artifact-name: image-test
       dry-run: false

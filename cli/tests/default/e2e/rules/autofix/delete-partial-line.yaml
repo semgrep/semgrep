@@ -1,0 +1,27 @@
+# This test is designed to test autofixes that remove text, both on entire lines
+# and on partial lines. The example here is a bit contrived so as to ensure that
+# the program after autofix application remains valid code.
+#
+# The purpose of this test is primarily to exercise the behavior of the code
+# that generates the `fixed_lines` part of the JSON result. It has different
+# behavior depending on whether part of a line or a whole line has been deleted.
+#
+# I (nmote) am not sure whether this difference in behavior is really desirable.
+# If you are reading this and want to change it to be more consistent, go ahead.
+# I'm just documenting the current behavior and making sure that we don't
+# accidentally make a potentially breaking change.
+rules:
+  - id: delete-default
+    patterns:
+      - pattern: |
+          foo($X)
+      - metavariable-pattern:
+          metavariable: $X
+          pattern: |
+            42
+      - focus-metavariable: $X
+    fix: ""
+    message: Unnecessary parameter which matches the default
+    languages:
+      - python
+    severity: WARNING

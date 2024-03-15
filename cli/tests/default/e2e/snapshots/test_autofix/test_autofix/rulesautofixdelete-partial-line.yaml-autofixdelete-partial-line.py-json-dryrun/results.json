@@ -1,0 +1,182 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/delete-partial-line.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.delete-default",
+      "end": {
+        "col": 7,
+        "line": 14,
+        "offset": 108
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "",
+        "fixed_lines": [
+          "foo()"
+        ],
+        "is_ignored": false,
+        "lines": "foo(42)",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "42",
+            "end": {
+              "col": 7,
+              "line": 14,
+              "offset": 108
+            },
+            "start": {
+              "col": 5,
+              "line": 14,
+              "offset": 106
+            }
+          }
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/delete-partial-line.py",
+      "start": {
+        "col": 5,
+        "line": 14,
+        "offset": 106
+      }
+    },
+    {
+      "check_id": "rules.autofix.delete-default",
+      "end": {
+        "col": 3,
+        "line": 16,
+        "offset": 117
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "",
+        "fixed_lines": [
+          ")"
+        ],
+        "is_ignored": false,
+        "lines": "42)",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "42",
+            "end": {
+              "col": 3,
+              "line": 16,
+              "offset": 117
+            },
+            "start": {
+              "col": 1,
+              "line": 16,
+              "offset": 115
+            }
+          }
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/delete-partial-line.py",
+      "start": {
+        "col": 1,
+        "line": 16,
+        "offset": 115
+      }
+    },
+    {
+      "check_id": "rules.autofix.delete-default",
+      "end": {
+        "col": 7,
+        "line": 17,
+        "offset": 125
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "",
+        "fixed_lines": [
+          "foo("
+        ],
+        "is_ignored": false,
+        "lines": "foo(42",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "42",
+            "end": {
+              "col": 7,
+              "line": 17,
+              "offset": 125
+            },
+            "start": {
+              "col": 5,
+              "line": 17,
+              "offset": 123
+            }
+          }
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/delete-partial-line.py",
+      "start": {
+        "col": 5,
+        "line": 17,
+        "offset": 123
+      }
+    },
+    {
+      "check_id": "rules.autofix.delete-default",
+      "end": {
+        "col": 3,
+        "line": 22,
+        "offset": 164
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "",
+        "is_ignored": false,
+        "lines": "42",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "42",
+            "end": {
+              "col": 3,
+              "line": 22,
+              "offset": 164
+            },
+            "start": {
+              "col": 1,
+              "line": 22,
+              "offset": 162
+            }
+          }
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/delete-partial-line.py",
+      "start": {
+        "col": 1,
+        "line": 22,
+        "offset": 162
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

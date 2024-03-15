@@ -21,13 +21,23 @@
    JS to build without requiring curl to be installed *)
 
 (*****************************************************************************)
-(* Code *)
+(* Types *)
 (*****************************************************************************)
 
+type span = int64 [@@deriving show]
+type user_data = Trace_core.user_data
+
+(*****************************************************************************)
+(* Code *)
+(*****************************************************************************)
 let with_span = Trace_core.with_span
 
-let add_data_to_span (_i : int64) (_data : (string * Trace_core.user_data) list)
+let add_data_to_span (_i : span) (_data : (string * Trace_core.user_data) list)
     =
+  ()
+
+let add_data_to_opt_span (_i : span option)
+    (_data : (string * Trace_core.user_data) list) =
   ()
 
 (*****************************************************************************)
@@ -35,4 +45,7 @@ let add_data_to_span (_i : int64) (_data : (string * Trace_core.user_data) list)
 (*****************************************************************************)
 
 let configure_tracing (_service_name : string) = ()
-let with_setup f = f ()
+
+let with_tracing (_fname : string)
+    (_data : (string * Trace_core.user_data) list) f =
+  f 0L

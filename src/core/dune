@@ -26,6 +26,7 @@
    glob
    lib_parsing
    ast_generic
+   tracing
 
    ; TODO ugly dependency to Ast_js.default_entity in Pattern.ml
    parser_javascript.ast

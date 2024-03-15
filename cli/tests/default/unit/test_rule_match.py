@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from subprocess import CompletedProcess
 from textwrap import dedent
 from typing import Union
 
@@ -114,6 +115,63 @@ def test_rule_match_sorting(mocker):
         sorted([line4, line3]) == [line3, line4]
     ), "after sorting, matches on earlier lines must go first"
     # fmt: on
+
+
+@pytest.mark.quick
+def test_rule_match_sorting_with_git_info(mocker):
+    git_blob_sha = "d7a45f0ee770d69753179824d1c828557ce19054"
+    file_content = dedent(
+        """
+        # first line
+        def foo():
+            5 == 5 # nosem
+        """
+    ).lstrip()
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = CompletedProcess(
+        args=[],
+        returncode=0,
+        stdout=file_content,
+        stderr="",
+    )
+    file = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule_id"),
+            path=out.Fpath("foo.py"),
+            start=out.Position(3, 1, 24),
+            end=out.Position(3, 15, 38),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+            ),
+        ),
+    )
+    git_obj = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule_id"),
+            path=out.Fpath("/tmp/fakepath.py"),
+            start=out.Position(4, 1, 36),
+            end=out.Position(4, 15, 50),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+                historical_info=out.HistoricalInfo(
+                    git_blob=out.Sha1(git_blob_sha),
+                    git_commit=out.Sha1("d7a45f0ee770d69753179824d1c828557ce19054"),
+                    git_commit_timestamp=out.Datetime("2024-03-07T20:11:35Z"),
+                ),
+            ),
+        ),
+    )
+    # Should not raise; the values should be comparable without typing issues.
+    [file, git_obj].sort()
 
 
 @pytest.mark.quick
@@ -383,6 +441,38 @@ def test_rule_match_to_app_finding(snapshot, mocker):
                 dependency_match=dependency_match,
             )
         },
+    )
+    app_finding = match.to_app_finding_format("0")
+    app_finding.commit_date = "1970-01-01T00:00:00"
+    app_finding_str = (
+        json.dumps(app_finding.to_json(), indent=2, sort_keys=True) + "\n"
+    )  # Needed because pre-commit always adds a newline, seems weird
+    snapshot.assert_match(app_finding_str, "results.json")
+
+
+@pytest.mark.quick
+def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
+    mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
+    match = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule.id"),
+            path=out.Fpath("foo.py"),
+            start=out.Position(0, 0, 0),
+            end=out.Position(0, 0, 0),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
+                historical_info=out.HistoricalInfo(
+                    git_blob=out.Sha1("a" * 40),
+                    git_commit=out.Sha1("b" * 40),
+                    git_commit_timestamp=out.Datetime("2020-12-09T16:09:53Z"),
+                ),
+            ),
+        ),
+        extra={},
     )
     app_finding = match.to_app_finding_format("0")
     app_finding.commit_date = "1970-01-01T00:00:00"
