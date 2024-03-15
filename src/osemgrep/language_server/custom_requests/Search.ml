@@ -320,7 +320,7 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
     else
       (* The picture looks like this:
          xxxxxoooooxxxxxoooooxxxxxoooooxxxxx
-                                      ^  ^
+                                      ^--^ match
                           ^ ideal_end
               ^ ideal_start
               |___________| ideal range
@@ -345,10 +345,12 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
          this index is right after the closest whitespace to ideal_end.
       *)
       | Some idx when idx > ideal_start -> (idx + 1, false)
-      (* If we didn't find a good starting point, let's just take the ideal
-         start.
+      (* This means our preview is currently on whitespace, let's skip ahead if possible.
       *)
-      | _ -> (first_non_whitespace_after line ideal_start, true)
+      | _ when String.get line ideal_start = ' ' ->
+          (first_non_whitespace_after line ideal_start, false)
+      (* if we're not on whitespace, we can't do better. Just cut the word in half. *)
+      | _ -> (ideal_start, true)
   in
   let before = String.sub line before_col (begin_col - before_col) in
   let inside = String.sub line begin_col (end_col - begin_col) in
