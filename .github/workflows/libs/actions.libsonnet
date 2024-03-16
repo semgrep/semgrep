@@ -47,6 +47,11 @@
           path: path,
           name: artifact_name,
         },
-
-  }
+  },
+  download_artifact_step(artifact_name): {
+      uses: 'actions/download-artifact@v3',
+      with: {
+        name: artifact_name,
+      },
+  },
 }

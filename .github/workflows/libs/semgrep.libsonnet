@@ -199,13 +199,13 @@ local containers = {
       },
     },
   // works well with actions.upload_artifact_step
-  make_binary_artifact_step(bin_path): {
-      name: 'Make artifact for %s' % bin_path,
+  make_artifact_step(path): {
+      name: 'Make artifact for %s' % path,
       run: |||
-          mkdir -p artifacts/bin
-          cp %s artifacts/bin/
+          mkdir artifacts
+          cp %s artifacts/
           tar czf artifacts.tgz artifacts
-        ||| % bin_path,
+        ||| % path,
   },
 
   // default one

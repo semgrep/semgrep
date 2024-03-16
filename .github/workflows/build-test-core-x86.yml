@@ -29,8 +29,8 @@ jobs:
         run: opam exec -- make core
       - name: Make artifact for bin/semgrep-core
         run: |
-          mkdir -p artifacts/bin
-          cp bin/semgrep-core artifacts/bin/
+          mkdir artifacts
+          cp bin/semgrep-core artifacts/
           tar czf artifacts.tgz artifacts
       - uses: actions/upload-artifact@v3
         with:
