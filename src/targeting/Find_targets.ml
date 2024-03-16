@@ -286,6 +286,9 @@ let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
 let git_list_files ~exclude_standard
     (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : project_roots) : Fppath_set.t option =
+  Logs.debug (fun m ->
+      m ~tags "Find_targets.git_list_files for project %s"
+        (Project.show project_roots.project));
   let project = project_roots.project in
   match project.kind with
   | Git_project ->
@@ -293,21 +296,43 @@ let git_list_files ~exclude_standard
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
                let project_root = Rfpath.to_rpath project.path in
+               let scanning_root_path =
+                 Ppath.to_fpath
+                   ~root:(Rpath.to_fpath project_root)
+                   sc_root.ppath
+               in
                Git_wrapper.ls_files_relative ~exclude_standard ~kinds:file_kinds
-                 ~project_root [ sc_root.fpath ]
-               |> List_.map (fun fpath ->
-                      let fpath_relative_to_scan_root =
-                        match Fpath.relativize ~root:sc_root.fpath fpath with
-                        | Some x -> x
-                        | None ->
-                            failwith
-                              "Impossible: git ls-files somehow not relative \
-                               to the scan root, even though we passed it as \
-                               an argument"
-                      in
+                 ~project_root [ scanning_root_path ]
+               |> List_.map (fun fpath_relative_to_project_root ->
+                      (*
+                 let fpath_relative_to_scan_root =
+                   Logs.debug (fun m ->
+                     m ~tags "Fpath.relativize ~root:%S %S"
+                       !!(sc_root.fpath) !!fpath_relative_to_project_root
+                   );
+                   match Fpath.relativize
+                           ~root:scanning_root_path
+                           fpath_relative_to_project_root
+                   with
+                   | Some x -> x
+                   | None ->
+                       failwith
+                         "Impossible: git ls-files somehow not relative \
+                          to the scan root, even though we passed it as \
+                          an argument"
+                 in
+*)
                       let ppath =
-                        Ppath.append_fpath sc_root.ppath
-                          fpath_relative_to_scan_root
+                        Ppath.of_relative_fpath fpath_relative_to_project_root
+                      in
+                      let fpath_relative_to_scan_root =
+                        Ppath.relativize sc_root.ppath ppath
+                      in
+                      (* Return a path that's the original scanning root
+                         appended with the target path that's relative to
+                         the scanning root. *)
+                      let fpath =
+                        Fpath.(sc_root.fpath // fpath_relative_to_scan_root)
                       in
                       ({ fpath; ppath } : Fppath.t)))
         |> Fppath_set.of_list)
@@ -508,6 +533,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
    4. Take the union of (2) and (3).
 *)
 let get_targets_for_project conf (project_roots : project_roots) =
+  Logs.debug (fun m -> m ~tags "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
   let git_tracked = git_list_tracked_files project_roots in

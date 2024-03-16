@@ -47,8 +47,11 @@ val in_project : root:Rfpath.t -> Fpath.t -> (t, string) result
 
    Example of use: from_segments ["";"a";"b";"..";"c"] should
    return a ppath whose final segments are ["";"a";"c"].
+
+   Raises Invalid_argument if the segments can't be normalized into a
+   valid ppath.
 *)
-val from_segments : string list -> (t, string) result
+val create : string list -> t
 
 (* Convert back to a system path. *)
 val to_fpath : root:Fpath.t -> t -> Fpath.t
@@ -64,15 +67,35 @@ val to_string : t -> string
  *)
 val segments : t -> string list
 
-(* Append a segment to a path. *)
+(* Append a segment to a path.
+   ".." and "." are not supported by this operation.
+   Raises Invalid_argument.
+*)
 val add_seg : t -> string -> t
 
-(* Append segments to a path. *)
+(* Append segments to a path.
+   ".." and "." are not supported by this operation.
+   Raises Invalid_argument. *)
 val add_segs : t -> string list -> t
 
 (* Append a relative fpath.
    Raises Invalid_argument if the fpath is absolute. *)
 val append_fpath : t -> Fpath.t -> t
+
+(* Create a ppath from a relative fpath.
+   Raises Invalid_argument if the input is not a relative path. *)
+val of_relative_fpath : Fpath.t -> t
+
+(* Express a ppath relatively to another. The result is relative fpath.
+   It can't be a ppath because ppaths can't be relative to one another.
+
+   For example, in string notation, 'relativize ~root:"/a/b" "/a/b/c/d"'
+   gives "c/d".
+
+   The 'root' must be a prefix of the other path. No '..' or '.' are
+   supported.
+*)
+val relativize : root:t -> t -> Fpath.t
 
 (* Imitate File.Operators in libs/commons/ *)
 module Operators : sig

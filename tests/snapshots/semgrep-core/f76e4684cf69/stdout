@@ -4,7 +4,7 @@ Test name: with git > basic include
 a
 b
 Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
-[main (root-commit) d5d3ff0] Add files
+[main (root-commit) <MASKED>] Add files
  3 files changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 .gitignore
  create mode 100644 a

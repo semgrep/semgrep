@@ -72,7 +72,6 @@ let test_find_targets ?includes ?(excludes = [])
         let conf =
           {
             Find_targets.default_conf with
-            project_root = Some (Filesystem (Rfpath.of_fpath_exn root));
             include_ = includes;
             exclude = excludes;
           }
@@ -99,7 +98,11 @@ let test_find_targets ?includes ?(excludes = [])
                  (Out.show_skip_reason x.reason)))
   in
   Testo.create name test_func ~category:[ category ] ~checked_output:Stdout
-    ~normalize:[ Testo.mask_temp_paths () ]
+    ~normalize:
+      [
+        Testo.mask_temp_paths ();
+        Testo.mask_line ~after:"(root-commit) " ~before:"]" ();
+      ]
 
 (* TODO: review the output of the tests 'with git' *)
 let tests_with_or_without_git ~with_git =

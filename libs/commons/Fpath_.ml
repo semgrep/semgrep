@@ -30,6 +30,14 @@ let of_strings strings = List_.map Fpath.v strings
 let to_strings paths = List_.map Fpath.to_string paths
 let ( !! ) = Fpath.to_string
 
+(* TODO: TEST *)
+let of_relative_segments segs =
+  match segs with
+  | "" :: _
+  | [] ->
+      invalid_arg ("Fpath_.of_relative_segments: " ^ String.concat "/" segs)
+  | seg :: segs -> List.fold_left Fpath.add_seg (Fpath.v seg) segs
+
 module Operators = struct
   let ( / ) = Fpath.( / )
   let ( // ) = Fpath.( // )

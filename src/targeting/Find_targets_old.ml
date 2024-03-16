@@ -274,13 +274,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
                         (* we're supposed to be working with clean paths by now *)
                         assert false
                   in
-                  let git_path =
-                    let segments = Fpath.segs rel_path in
-                    match Ppath.from_segments ("" :: segments) with
-                    | Ok x -> x
-                    (* or raise Impossible? *)
-                    | Error s -> failwith s
-                  in
+                  let git_path = Ppath.of_relative_fpath rel_path in
                   let status, selection_events =
                     Semgrepignore.select ign git_path
                   in
