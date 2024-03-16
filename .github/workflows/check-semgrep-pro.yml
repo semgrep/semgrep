@@ -77,14 +77,14 @@ jobs:
           make
       - name: Make artifact
         run: |
-          mkdir -p ocaml-build-artifacts/bin
-          cp ../semgrep-proprietary/bin/semgrep-core ocaml-build-artifacts/bin/
-          cp ../semgrep-proprietary/bin/semgrep-core-proprietary ocaml-build-artifacts/bin/
-          tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
+          mkdir artifacts
+          cp ../semgrep-proprietary/bin/semgrep-core artifacts/
+          cp ../semgrep-proprietary/bin/semgrep-core-proprietary artifacts/
+          tar czf artifacts.tgz artifacts/
       - uses: actions/upload-artifact@v3
         with:
-          name: pro-ocaml-build-artifacts-release
-          path: ocaml-build-artifacts.tgz
+          name: semgrep-core-pro-x86-artifact
+          path: artifacts.tgz
       - name: Test semgrep-pro
         run: |
           cd ../semgrep-proprietary
