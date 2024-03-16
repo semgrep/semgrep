@@ -1,6 +1,5 @@
-// This workflow builds and test semgrep-core. It also generates an
-// ocaml-build-artifacts.tgz file which is used in many other jobs
-// such as test-cli in tests.jsonnet or build-wheels-manylinux in
+// This workflow builds and test semgrep-core. It also generates an artifact
+// which is used in many other workflows such as tests.jsonnet or
 // build-test-manylinux-x86.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
@@ -8,19 +7,19 @@ local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // exported for other workflows
-local artifact_name = 'ocaml-build-artifacts-release';
+local artifact_name = 'semgrep-core-x86-artifact';
 
+// This container has opam already installed, as well as an opam switch
+// already created, and a big set of packages already installed. Thus,
+// the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
+// almost a noop.
+// TODO: switch to setup-ocaml@v2 + GHA cache
 local container = semgrep.containers.ocaml_alpine;
 
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
 local job =
-  // This container has opam already installed, as well as an opam switch
-  // already created, and a big set of packages already installed. Thus,
-  // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
-  // almost a noop.
-  // TODO: switch to setup-ocaml@v2 + GHA cache
   container.job
   {
     steps: [
@@ -44,15 +43,15 @@ local job =
       {
         name: 'Make artifact',
         run: |||
-          mkdir -p ocaml-build-artifacts/bin
-          cp bin/semgrep-core ocaml-build-artifacts/bin/
-          tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
+          mkdir -p artifacts/bin
+          cp bin/semgrep-core artifacts/bin/
+          tar czf artifacts.tgz artifacts
         |||,
       },
       {
         uses: 'actions/upload-artifact@v3',
         with: {
-          path: 'ocaml-build-artifacts.tgz',
+          path: 'artifacts.tgz',
           name: artifact_name,
         },
       },
