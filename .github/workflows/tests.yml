@@ -219,7 +219,7 @@ jobs:
         working-directory: cli
       - uses: actions/download-artifact@v3
         with:
-          name: pro-ocaml-build-artifacts-release
+          name: semgrep-core-pro-x86-artifact
       - name: Install pro artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
