@@ -40,21 +40,8 @@ local job =
         name: 'Build semgrep-core',
         run: 'opam exec -- make core',
       },
-      {
-        name: 'Make artifact',
-        run: |||
-          mkdir -p artifacts/bin
-          cp bin/semgrep-core artifacts/bin/
-          tar czf artifacts.tgz artifacts
-        |||,
-      },
-      {
-        uses: 'actions/upload-artifact@v3',
-        with: {
-          path: 'artifacts.tgz',
-          name: artifact_name,
-        },
-      },
+      semgrep.make_binary_artifact_step("bin/semgrep-core"),
+      actions.upload_artifact_step(artifact_name),
       {
         name: 'Test semgrep-core',
         run: 'opam exec -- make core-test',

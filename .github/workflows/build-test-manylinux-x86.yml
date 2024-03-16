@@ -16,7 +16,7 @@ jobs:
           update-alternatives --config python3
       - uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
+          name: semgrep-core-x86-artifact
       - run: |
           tar xf ocaml-build-artifacts.tgz
           cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
