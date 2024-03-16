@@ -18,8 +18,8 @@ jobs:
         with:
           name: semgrep-core-x86-artifact
       - run: |
-          tar xf ocaml-build-artifacts.tgz
-          cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
+          tar xf artifacts.tgz
+          cp artifacts/semgrep-core cli/src/semgrep/bin
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:

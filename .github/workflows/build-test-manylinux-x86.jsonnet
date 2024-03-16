@@ -28,16 +28,11 @@ local build_wheels_job = {
         update-alternatives --config python3
       |||
     },
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: artifact_name,
-      },
-    },
+    actions.download_artifact_step(artifact_name),
     {
       run: |||
-        tar xf ocaml-build-artifacts.tgz
-        cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
+        tar xf artifacts.tgz
+        cp artifacts/semgrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh
       |||,
     },
