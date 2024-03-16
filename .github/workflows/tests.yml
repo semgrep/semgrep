@@ -144,6 +144,9 @@ jobs:
   build-test-windows-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-windows-x86.yml
+  check-semgrep-pro:
+    secrets: inherit
+    uses: ./.github/workflows/check-semgrep-pro.yml
   push-docker-nonroot-returntocorp:
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     needs:
@@ -197,7 +200,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     needs:
-      - build-test-core-x86
+      - check-semgrep-pro
     permissions:
       contents: write
       pull-requests: write
@@ -211,16 +214,25 @@ jobs:
           cache: pipenv
           python-version: ${{ matrix.python }}
       - run: pip install pipenv==2022.6.7
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
+      - uses: actions/download-artifact@v3
+        with:
+          name: pro-ocaml-build-artifacts-release
+      - name: Install pro artifacts
+        run: |
+          tar xf ocaml-build-artifacts.tgz
+
+          # All binaries will be placed in cli/tmp-bin first
+          # before copying over to /usr/bin. This is so that
+          # we don't need to run semgrep with sudo.
+          mv ocaml-build-artifacts/bin cli/tmp-bin
+          cd cli
+          PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
+
+          # Later we copy these files to /usr/bin which requires sudo
+          sudo cp tmp-bin/* /usr/bin
       - name: Run pytest
         run: |
           # tests should simulate CI environment iff they need one
