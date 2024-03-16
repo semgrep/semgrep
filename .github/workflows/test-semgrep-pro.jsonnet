@@ -90,10 +90,10 @@ local test_semgrep_pro_job = {
     },
     {
       name: 'Run Semgrep Pro Engine!',
-      // old:  we used to also pass --entrypoint=bash, but bash is not anymore
-      // in the official docker image, and anyway there is no need for
-      // --entrypoint to override an entrypoint because the semgrep Dockerfiles
-      // does not define one.
+      // old: we used to also pass '--entrypoint=bash' below, but bash is not anymore
+      // in the semgrep docker image. Moreover, there was no need for --entrypoint,
+      // which is used to override an existing entrypoint, because the semgrep
+      // Dockerfile does not have an ENTRYPOINT.
       run: 'docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh',
     },
   ],

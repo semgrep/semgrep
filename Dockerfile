@@ -251,21 +251,25 @@ LABEL maintainer="support@semgrep.com"
 
 FROM semgrep-oss as semgrep-dev
 
-# Here we install various utilities useful in our CI jobs (e.g., our benchmark,
-# job) which need to use the latest semgrep docker image but also need a few
-# utilities called in some of our bash and python scripts/.
+# Here we install various utilities needed by some of our bash and python
+# scripts (in scripts/). Indeed, those scripts are run from CI jobs that
+# use the returntocorp/semgrep docker image as the container, because
+# they must test semgrep, but those scripts must also perform different
+# tasks that require utilities other than semgrep (e.g., compute parsing
+# statistics and then run 'jq' to filter the JSON).
 # alt:
 #  - we used to have an alternate semgrep-dev.Dockerfile container to use
 #    for our benchmarks, but it complicates things
-#  - we used then to install those utiliies as part of semgrep-oss. Indeed,
-#    the addition of those packages do not add much to the size of the docker
-#    image (<1%), but those utilities can have CVEs associated with them so
-#    simpler to put them in a separate semgrep docker image.
+#  - we used then to install those utilities as part of the semgrep-oss step.
+#    Indeed, the addition of those packages didn't add much to the size of
+#    the docker image (<1%), but those utilities can have CVEs associated
+#    with them so simpler to put them in a separate semgrep docker image
+#    to remove the attack surface of returntocorp/semgrep
 #
 # Here is why we need the apk packages below:
-# - bash: useful to debug the container
-# - jq: used in many of our scripts
-# - curl: use in our scripts?
+# - bash: many scripts are bash scripts
+# - jq: used to filter JSON parsing statistics
+# - curl: used to upload data? also for telemetry?
 RUN apk add --no-cache bash curl jq
 
 ###############################################################################
