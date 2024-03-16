@@ -142,6 +142,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 )
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
+@click.option("--historical-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
@@ -170,6 +171,7 @@ def ci(
     # TODO: Remove after October 2023. Left for a error message
     # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
+    historical_secrets: bool,
     internal_ci_scan_results: bool,
     code: bool,
     config: Optional[Tuple[str, ...]],
@@ -375,6 +377,10 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
+    if not run_secrets and historical_secrets:
+        logger.info("Cannot run historical secrets scan without secrets enabled.")
+        sys.exit(FATAL_EXIT_CODE)
+
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
@@ -501,7 +507,11 @@ def ci(
     # place we wouldn't need this seprarately. There are some benefits
     # (e.g., separate progress bar), but it would simplify output logic if we
     # simply had one "scan".
-    if run_secrets and scan_handler and scan_handler.historical_config.enabled:
+    run_historical_secrets_scan = (
+        run_secrets and scan_handler and scan_handler.historical_config.enabled
+    ) or historical_secrets
+
+    if run_historical_secrets_scan:
         try:
             console.print(Title("Secrets Historical Scan"))
 

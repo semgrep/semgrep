@@ -2249,3 +2249,30 @@ def test_ci_uuid(
     assert (
         found_uuid == expected_uuid
     ), f"Expected {expected_uuid} but found {found_uuid}"
+
+
+@pytest.mark.osemfail
+def test_fail_on_historical_scan_without_secrets(
+    run_semgrep: RunSemgrep,
+    snapshot,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--historical-secrets", "--no-suppress-errors"],
+        strict=False,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        assert_exit_code=2,
+        target_name=None,
+        use_click_runner=True,
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "output.txt",
+    )
