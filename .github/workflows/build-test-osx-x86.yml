@@ -54,7 +54,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: osx-x86-wheel
-      - run: unzip ./osx-x86-wheel/dist.zip
+      - run: unzip dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version

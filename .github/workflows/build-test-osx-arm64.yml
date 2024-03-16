@@ -90,7 +90,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: osx-arm64-wheel
-      - run: unzip ./osx-arm64-wheel/dist.zip
+      - run: unzip dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version

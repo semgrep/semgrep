@@ -110,7 +110,7 @@ local test_wheels_job = {
     setup_python_step,
     actions.download_artifact_step(wheel_name),
     {
-      run: 'unzip ./osx-arm64-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     {
       name: 'install package',

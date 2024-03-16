@@ -106,7 +106,7 @@ local test_wheels_job = {
   steps: [
     actions.download_artifact_step(wheel_name),
     {
-      run: 'unzip ./osx-x86-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     {
       name: 'install package',

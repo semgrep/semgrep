@@ -56,7 +56,7 @@ local test_wheels_job = {
   steps: [
     actions.download_artifact_step(wheel_name),
     {
-      run: 'unzip ./manylinux-x86-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     // *.whl is fine here because we're building one wheel with the "any"
     // platform compatibility tag
