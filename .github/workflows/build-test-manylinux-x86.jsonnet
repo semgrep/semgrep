@@ -54,12 +54,7 @@ local test_wheels_job = {
     'build-wheels',
   ],
   steps: [
-    {
-      uses: 'actions/download-artifact@v1',
-      with: {
-        name: wheel_name,
-      },
-    },
+    actions.download_artifact_step(wheel_name),
     {
       run: 'unzip ./manylinux-x86-wheel/dist.zip',
     },

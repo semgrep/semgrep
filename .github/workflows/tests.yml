@@ -18,8 +18,8 @@ jobs:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
@@ -46,8 +46,8 @@ jobs:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
@@ -222,12 +222,12 @@ jobs:
           name: semgrep-core-pro-x86-artifact
       - name: Install pro artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
+          tar xf artifacts.tgz
 
           # All binaries will be placed in cli/tmp-bin first
           # before copying over to /usr/bin. This is so that
           # we don't need to run semgrep with sudo.
-          mv ocaml-build-artifacts/bin cli/tmp-bin
+          mv artifacts cli/tmp-bin
           cd cli
           PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
 
@@ -340,8 +340,8 @@ jobs:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
       - name: Install semgrep
         run: |
           export PATH=/github/home/.local/bin:$PATH
