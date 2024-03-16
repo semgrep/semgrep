@@ -1,4 +1,4 @@
-// Factorize GHA Action plugins boilerplate.
+// Factorize GHA "actions" (=~ plugins) boilerplate.
 {
   // TODO: default to submodules=true, and a flexible with={}?
   // What about 'persist-credentials': false? needed? A few of
@@ -40,5 +40,18 @@
         username: '${{ secrets.DOCKER_USERNAME }}',
         password: '${{ secrets.DOCKER_PASSWORD }}',
      }
+  },
+  upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
+       uses: 'actions/upload-artifact@v3',
+       with: {
+          path: path,
+          name: artifact_name,
+        },
+  },
+  download_artifact_step(artifact_name): {
+      uses: 'actions/download-artifact@v3',
+      with: {
+        name: artifact_name,
+      },
   },
 }

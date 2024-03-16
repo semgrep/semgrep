@@ -8,8 +8,26 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // exported for other workflows
-local artifact_name = 'pro-ocaml-build-artifacts-release';
+local artifact_name = 'semgrep-core-pro-x86-artifact';
 
+// We're using our classic alpine-based container here. At some point
+// we were using setup-ocaml@v2, because we had trouble getting 'gh'
+// under our ocaml-layer based alpine, but this got fixed, and we
+// need now an alpine-based container to statically build
+// the semgrep-core-pro artifact which is used in other workflow and
+// we don't want those other workflow to have to install tree-sitter
+// runtime libraries, so simpler to build a static binary.
+//
+// alt: use setup-ocaml@v2, but need to be careful when moving around dirs
+//      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
+//      and opam can work only when run from this directory
+//      morever, we can't build a static binary which is annoying for the
+//      other workflow importing the exported semgrep-core-pro binary
+// alt: use our r2c ubuntu-ocaml but get 'git ls-files exit 128' error under
+//      GHA that I could not reproduce locally in docker or in circleCI
+//      Update 2024-03-05: this is likely a safe.directory setting.
+// alt: use circleCI but then even with a GH token and with gh I could not
+//      clone semgrep-pro
 local container = semgrep.containers.ocaml_alpine;
 
 // ----------------------------------------------------------------------------
@@ -17,21 +35,6 @@ local container = semgrep.containers.ocaml_alpine;
 // ----------------------------------------------------------------------------
 
 local job = container.job {
-  // The ocaml_alpine container we are using here has opam already
-  // installed, as well as an opam switch already created, and a big set of
-  // packages already installed. Thus, the
-  // 'make install-deps-ALPINE-for-semgrep-core' below is very fast and almost a
-  // noop. Better to still include the build anyway in case the container changes.
-  // As of now, we are unable to use setup-ocaml@v2 because it uses apt-get
-  // which is not available on alpine.
-  // alt: use our r2c ubuntu-ocaml but get 'git ls-files exit 128' error under
-  //      GHA that I could not reproduce locally in docker or in circleCI
-  //      Update 2024-03-05: this is likely a safe.directory setting.
-  // alt: use circleCI but then even with a GH token and with gh I could not
-  //      clone semgrep-pro
-  // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
-  //      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
-  //      and opam can work only when run from this directory
   steps: [
     {
       name: 'Install required alpine packages',
@@ -101,25 +104,17 @@ local job = container.job {
         make
       |||,
     },
-
+    // alt: use semgrep.make_artifact_step but here we store 2 binaries
     {
       name: 'Make artifact',
       run: |||
-        mkdir -p ocaml-build-artifacts/bin
-        cp ../semgrep-proprietary/bin/semgrep-core ocaml-build-artifacts/bin/
-        cp ../semgrep-proprietary/bin/semgrep-core-proprietary ocaml-build-artifacts/bin/
-        tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
+        mkdir artifacts
+        cp ../semgrep-proprietary/bin/semgrep-core artifacts/
+        cp ../semgrep-proprietary/bin/semgrep-core-proprietary artifacts/
+        tar czf artifacts.tgz artifacts/
       |||,
     },
-
-    {
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        path: 'ocaml-build-artifacts.tgz',
-        name: artifact_name,
-      },
-    },
-
+    actions.upload_artifact_step(artifact_name),
     {
       name: 'Test semgrep-pro',
       run: |||

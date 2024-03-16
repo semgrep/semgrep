@@ -198,6 +198,15 @@ local containers = {
         'aws-region': 'us-west-2',
       },
     },
+  // works well with actions.upload_artifact_step
+  make_artifact_step(path): {
+      name: 'Make artifact for %s' % path,
+      run: |||
+          mkdir artifacts
+          cp %s artifacts/
+          tar czf artifacts.tgz artifacts
+        ||| % path,
+  },
 
   // default one
   // coupling: with containers above

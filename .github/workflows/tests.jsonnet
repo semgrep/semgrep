@@ -207,35 +207,29 @@ local fetch_submodules_step = {
   run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
 };
 
-local download_x86_artifacts = {
-  uses: 'actions/download-artifact@v3',
-  with: {
-    name: core_x86.export.artifact_name,
-  },
-};
+local download_x86_artifacts =
+  actions.download_artifact_step(core_x86.export.artifact_name);
+
 local install_x86_artifacts = {
   name: 'Install artifacts',
   run: |||
-    tar xf ocaml-build-artifacts.tgz
-    sudo cp ocaml-build-artifacts/bin/* /usr/bin
+    tar xf artifacts.tgz
+    sudo cp artifacts/* /usr/bin
   |||,
 };
 
-local download_x86_pro_artifacts = {
-  uses: 'actions/download-artifact@v3',
-  with: {
-    name: core_pro_x86.export.artifact_name,
-  },
-};
+local download_x86_pro_artifacts =
+  actions.download_artifact_step(core_pro_x86.export.artifact_name);
+
 local install_x86_pro_artifacts = {
   name: 'Install pro artifacts',
   run: |||
-    tar xf ocaml-build-artifacts.tgz
+    tar xf artifacts.tgz
 
     # All binaries will be placed in cli/tmp-bin first
     # before copying over to /usr/bin. This is so that
     # we don't need to run semgrep with sudo.
-    mv ocaml-build-artifacts/bin cli/tmp-bin
+    mv artifacts cli/tmp-bin
     cd cli
     PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
 
