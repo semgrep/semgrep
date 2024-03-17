@@ -15,7 +15,7 @@ local core_x86 = import 'build-test-core-x86.jsonnet';
 local core_pro_x86 = import 'check-semgrep-pro.jsonnet';
 
 // intermediate image produced by build-push-action
-local docker_artifact_name = 'image-test';
+local docker_artifact_name = 'semgrep-docker-image-artifact';
 
 // TODO: change to 'semgrep/semgrep' at some point as the default
 local docker_repository_name = 'returntocorp/semgrep';
@@ -426,48 +426,44 @@ local trigger_semgrep_comparison_argo = {
 // Docker
 // ----------------------------------------------------------------------------
 
+// In the jobs below, we set certain docker "tags".
 // To make a comparison to git:
 // - docker image == git repository
 //   example: returntocorp/semgrep
-//
-// - docker tag == git ref
-//   example: :latest, :canary
-//
 // - docker digest == git commit
-//   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
-
+//   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3
+// - docker tag == git ref
+//   example: :latest, :canary, 1.2.3, pr-4434
+//
 // You can see those tags in use here:
 // https://hub.docker.com/r/returntocorp/semgrep/tags
 //
-// # tag image with full version (ex. "1.2.3")
-// type=semver,pattern={{version}}
-// # tag image with major.minor (ex. "1.2")
-// type=semver,pattern={{major}}.{{minor}}
-// # tag image with pr (ex. "pr-42", great for bisecting)
-// type=ref,event=pr
-// # ??? deleted those? useful?
-// type=ref,event=branch
-// type=sha,event=branch
-// # ???
-// type=edge
-
-local docker_tags = |||
-  type=semver,pattern={{version}}
-  type=semver,pattern={{major}}.{{minor}}
-  type=ref,event=pr
-  type=ref,event=branch
-  type=sha,event=branch
-  type=edge
-|||;
+// Example of docker tags:
+// - # tag image with full version (ex. "1.2.3")
+//   type=semver,pattern={{version}}
+// - # tag image with major.minor (ex. "1.2")
+//   type=semver,pattern={{major}}.{{minor}}
+// - # tag image with pr (ex. "pr-42", great for bisecting)
+//   type=ref,event=pr
+// - # tag image with branch (ex: "develop")
+//   type=ref,event=branch
+// - # tag image with commit (ex: "sha-ab324a")
+//   type=sha,event=branch
+// - # not sure we need this one
+//   type=edge
 
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
   with: {
     'docker-flavor': |||
-      latest=auto
-    |||,
-    'docker-tags': docker_tags,
+       latest=false
+     |||,
+    'docker-tags': |||
+       type=ref,event=pr
+       type=ref,event=branch
+       type=sha,event=branch
+     |||,
     'artifact-name': docker_artifact_name,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
@@ -477,8 +473,10 @@ local build_test_docker_job = {
   },
 };
 
-local build_test_docker_nonroot_job = {
-  // We want to run build-test-docker-nonroot *after* build-test-docker so
+// The Dockerfile contain different steps and can build different "targets"
+// (e.g., a "nonroot" variant of the official semgrep docker image)
+local build_test_docker_other_target_job(suffix, target) = {
+  // We want to run build-test-docker-other *after* build-test-docker so
   // that it reuses the warmed-up docker cache.
   needs: [
     'build-test-docker',
@@ -486,17 +484,20 @@ local build_test_docker_nonroot_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
   with: {
-    // nonroot suffix here! which will be added for each tags
+    // suffix here! which will be added for each tags
     'docker-flavor': |||
-      latest=auto
-      suffix=-nonroot,onlatest=true
-    |||,
-    'docker-tags': docker_tags,
-    'artifact-name': docker_artifact_name + '-nonroot',
+      latest=false
+      suffix=%s
+    ||| % suffix,
+    'docker-tags': |||
+       type=sha,event=branch
+       type=ref,event=pr
+      |||,
+    'artifact-name': docker_artifact_name + suffix,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
-    // see the Dockerfile, this is the name of the nonroot variant
-    target: 'nonroot',
+    // see the Dockerfile, this is the name of a variant
+    target: target,
     // TODO: why false here?
     'enable-tests': false,
   },
@@ -505,53 +506,15 @@ local build_test_docker_nonroot_job = {
 local right_ref_and_right_event =
   "github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))";
 
-local push_docker_job(repository_name) = {
-  needs: [
-    'build-test-docker',
-  ],
+local push_docker_job(artifact_name, repository_name) = {
   uses: './.github/workflows/push-docker.yml',
   'if': right_ref_and_right_event,
   secrets: 'inherit',
   with: {
-    'artifact-name': docker_artifact_name,
+    'artifact-name': artifact_name,
     'repository-name': repository_name,
     'dry-run': false,
   },
-};
-
-// TODO: factorize both functions
-local push_docker_nonroot_job(repository_name) = {
-  needs: [
-    'build-test-docker-nonroot',
-  ],
-  uses: './.github/workflows/push-docker.yml',
-  'if': right_ref_and_right_event,
-  secrets: 'inherit',
-  with: {
-    'artifact-name': docker_artifact_name + '-nonroot',
-    'repository-name': repository_name,
-    'dry-run': false,
-  },
-};
-
-local build_test_docker_performance_tests_job = build_test_docker_nonroot_job + {
-  with: super.with + {
-    'docker-flavor': |||
-      latest=auto
-      suffix=-performance-tests,onlatest=true
-    |||,
-    'artifact-name': 'image-test-performance-tests',
-    target: 'performance-tests',
-  },
-};
-
-local push_docker_performance_tests_job = push_docker_nonroot_job(docker_repository_name) + {
-  needs: [
-    'build-test-docker-performance-tests',
-  ],
-  with: super.with + {
-    'artifact-name': 'image-test-performance-tests',
-  }
 };
 
 // ----------------------------------------------------------------------------
@@ -576,7 +539,7 @@ local test_semgrep_pro_job = {
 // The Workflow
 // ----------------------------------------------------------------------------
 
-// ??
+// Do not run all the tests if you only modify the README.md or other docs
 local ignore_md = {
   'paths-ignore': [
     '**.md',
@@ -594,7 +557,8 @@ local ignore_md = {
       ],
     } + ignore_md,
   },
-  // These extra permissions are needed by some of the jobs, e.g. build-test-javascript.
+  // These extra permissions are needed by some of the jobs
+  // (e.g. build-test-javascript)
   permissions: gha.write_permissions,
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
@@ -607,14 +571,19 @@ local ignore_md = {
     'benchmarks-full': benchmarks_full_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
-    // requires build-test-docker
-    'push-docker-returntocorp': push_docker_job('returntocorp/semgrep'),
-    'push-docker-semgrep': push_docker_job('semgrep/semgrep'),
-    'build-test-docker-nonroot': build_test_docker_nonroot_job,
-    'push-docker-nonroot-returntocorp': push_docker_nonroot_job('returntocorp/semgrep'),
-    'push-docker-nonroot-semgrep': push_docker_nonroot_job('semgrep/semgrep'),
-    'build-test-docker-performance-tests': build_test_docker_performance_tests_job,
-    'push-docker-performance-tests': push_docker_performance_tests_job,
+    'push-docker-returntocorp':
+       push_docker_job(docker_artifact_name, 'returntocorp/semgrep') +
+       { needs: [ 'build-test-docker' ] },
+    'build-test-docker-nonroot':
+      build_test_docker_other_target_job("-nonroot", "nonroot"),
+    // No need to push those variant docker images. This is useful in
+    // release.jsonnet, but not so much here.
+    // old:
+    //  'push-docker-semgrep': push_docker_job(..., 'semgrep/semgrep') + { ... }
+    //  'push-docker-nonroot-returntocorp': ...
+    'build-test-docker-performance-tests':
+      build_test_docker_other_target_job("-performance-tests", "performance-tests"),
+    //'push-docker-performance-tests': ...
     // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
     // trigger argo workflows

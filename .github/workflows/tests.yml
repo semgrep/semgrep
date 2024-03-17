@@ -64,16 +64,13 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/build-test-docker.yaml
     with:
-      artifact-name: image-test
+      artifact-name: semgrep-docker-image-artifact
       docker-flavor: |
-        latest=auto
+        latest=false
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
         type=ref,event=pr
         type=ref,event=branch
         type=sha,event=branch
-        type=edge
       enable-tests: true
       file: Dockerfile
       repository-name: returntocorp/semgrep
@@ -84,17 +81,13 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/build-test-docker.yaml
     with:
-      artifact-name: image-test-nonroot
+      artifact-name: semgrep-docker-image-artifact-nonroot
       docker-flavor: |
-        latest=auto
-        suffix=-nonroot,onlatest=true
+        latest=false
+        suffix=-nonroot
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
         type=sha,event=branch
-        type=edge
+        type=ref,event=pr
       enable-tests: false
       file: Dockerfile
       repository-name: returntocorp/semgrep
@@ -105,17 +98,13 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/build-test-docker.yaml
     with:
-      artifact-name: image-test-performance-tests
+      artifact-name: semgrep-docker-image-artifact-performance-tests
       docker-flavor: |
-        latest=auto
-        suffix=-performance-tests,onlatest=true
+        latest=false
+        suffix=-performance-tests
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
         type=sha,event=branch
-        type=edge
+        type=ref,event=pr
       enable-tests: false
       file: Dockerfile
       repository-name: returntocorp/semgrep
@@ -147,36 +136,6 @@ jobs:
   check-semgrep-pro:
     secrets: inherit
     uses: ./.github/workflows/check-semgrep-pro.yml
-  push-docker-nonroot-returntocorp:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker-nonroot
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-test-nonroot
-      dry-run: false
-      repository-name: returntocorp/semgrep
-  push-docker-nonroot-semgrep:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker-nonroot
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-test-nonroot
-      dry-run: false
-      repository-name: semgrep/semgrep
-  push-docker-performance-tests:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker-performance-tests
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-test-performance-tests
-      dry-run: false
-      repository-name: returntocorp/semgrep
   push-docker-returntocorp:
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     needs:
@@ -184,19 +143,9 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/push-docker.yml
     with:
-      artifact-name: image-test
+      artifact-name: semgrep-docker-image-artifact
       dry-run: false
       repository-name: returntocorp/semgrep
-  push-docker-semgrep:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-test
-      dry-run: false
-      repository-name: semgrep/semgrep
   test-cli:
     name: test semgrep-cli
     needs:
@@ -420,7 +369,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/test-semgrep-pro.yml
     with:
-      artifact-name: image-test
+      artifact-name: semgrep-docker-image-artifact
       repository-name: returntocorp/semgrep
   trigger-semgrep-comparison-argo:
     if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
