@@ -431,14 +431,20 @@ class RuleMatch:
         if self.validation_state is None:
             return False
 
+        validation_state_type = type(self.validation_state.value)
+        if validation_state_type is out.NoValidator:
+            # If there is no validator, we should rely on original dev.semgrep.actions
+            return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
         action_map = {
             out.ConfirmedValid: "valid",
             out.ConfirmedInvalid: "invalid",
             out.ValidationError: "error",
-            out.NoValidator: "valid",  # Fallback to valid action for no validator
+            # NOTE(sal): this exists purely for the sake of the type checker
+            out.NoValidator: "valid",
         }
 
-        validation_state = action_map.get(type(self.validation_state.value), "valid")
+        validation_state: str = action_map.get(validation_state_type, "valid")
 
         return (
             self.metadata.get("dev.semgrep.validation_state.actions", {}).get(
@@ -461,10 +467,7 @@ class RuleMatch:
                 return False
             else:
                 return blocking
-        elif (
-            self.validation_state is not None
-            and type(self.validation_state.value) is not out.NoValidator
-        ):
+        elif self.validation_state is not None:
             return self.is_validation_state_blocking
 
         return blocking

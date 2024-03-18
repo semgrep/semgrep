@@ -598,7 +598,7 @@ def create_validator_rule_match(
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.NoValidator(),
             "block",
-            False,
+            True,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
@@ -616,7 +616,7 @@ def create_validator_rule_match(
             {"valid": "block", "invalid": "block", "error": "block"},
             out.NoValidator(),
             "monitor",
-            True,
+            False,
         ),
     ],
 )
