@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -690,8 +690,7 @@ and expr_kind =
   | RegexpTemplate of expr bracket (* // *) * string wrap option (* modifiers *)
   (* see also New(...) for other values *)
   | N of name
-  | IdSpecial of
-      special wrap (*e: [[AST_generic.expr]] other identifier cases *)
+  | IdSpecial of special wrap
   (* operators and function application *)
   | Call of expr * arguments
   (* 'type_' below is usually a TyN or TyArray (or TyExpr).
@@ -728,7 +727,7 @@ and expr_kind =
   (* less: could desugar in Assign, should be only binary_operator *)
   | AssignOp of expr * operator wrap * expr
   (* newvar:! newscope:? in OCaml yes but we miss the 'in' part here  *)
-  | LetPattern of pattern * expr (*e: [[AST_generic.expr]] other assign cases *)
+  | LetPattern of pattern * expr
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
