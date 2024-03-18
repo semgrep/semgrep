@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  * Iago Abal
  *
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,13 +16,11 @@
 open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
+module Eval = Eval_generic_partial
 
 let base_tag_strings = [ __MODULE__; "svalue" ]
 let tags = Logs_.create_tags base_tag_strings
 let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
-
-(* TODO: Remove duplication between the Generic-based and IL-based passes,
-   ideally we should have a single pass, the IL-based. *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,7 +36,7 @@ let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
  * constant propagation of literals.
  *
  * Partial evaluation for Generic is provided by core/ast/Normalize_generic.ml,
- * we may not need it when we annotate every expression with constant/svalue info.
+ * we may not need it when we annotate every expr with constant/svalue info.
  *
  * Right now we just propagate constants when we are sure* that it is a constant
  * because:
@@ -56,22 +54,14 @@ let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
  * - ver2: added second flow-sensitive constant propagation pass.
  * - ver3: do not assign constant values to labels; in x = E, x is just a label
  * (a "ref") and denotes a memory location rather than the value stored in it.
+ *
+ * TODO: Remove duplication between the Generic-based and IL-based passes,
+ * ideally we should have a single pass, the IL-based.
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type var = string * AST_generic.sid
-
-type env = {
-  lang : Lang.t option;
-  (* basic constant propagation of literals for semgrep *)
-  constants : (var, svalue) Hashtbl.t;
-  attributes : (var, G.attribute list) Hashtbl.t;
-}
-
-let default_env lang =
-  { lang; constants = Hashtbl.create 100; attributes = Hashtbl.create 100 }
 
 type lr_stats = {
   (* note that a VarDef defining the value will count as 1 *)
@@ -84,7 +74,7 @@ let default_lr_stats () = { lvalue = ref 0; rvalue = ref 0 }
 type class_stats = { mutable num_constructors : int }
 
 type stats = {
-  var_stats : (var, lr_stats) Hashtbl.t;
+  var_stats : (Eval.var, lr_stats) Hashtbl.t;
   class_stats : (string, class_stats) Hashtbl.t;
 }
 
@@ -95,8 +85,6 @@ let new_stats () =
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Tok.unsafe_fake_bracket
-let ( let* ) o f = Option.bind o f
 let ( let/ ) o f = Option.iter f o
 
 let is_private attr =
@@ -148,20 +136,10 @@ let no_cycles_in_sym_prop sid exp =
 (* Environment Helpers *)
 (*****************************************************************************)
 
-let is_lang env l2 =
-  match env.lang with
-  | None -> false
-  | Some l1 -> l1 = l2
-
-let is_js env =
-  match env.lang with
-  | None -> false
-  | Some lang -> Lang.is_js lang
-
 let is_class_field env = function
   | EnclosedVar (* OSS *)
   | GlobalName _ (* Pro *) ->
-      is_lang env Lang.Java
+      Eval.is_lang env Lang.Java
   | Global
   | LocalVar
   | Parameter
@@ -174,7 +152,7 @@ let is_class_field env = function
 
 let is_resolved_name _kind sid = not (SId.is_unsafe_default sid)
 
-let add_constant_env ident (sid, svalue) env =
+let add_constant_env ident (sid, svalue) (env : Eval.env) =
   match svalue with
   | Lit _
   | Cst _
@@ -183,18 +161,6 @@ let add_constant_env ident (sid, svalue) env =
           m ~tags "adding constant in env %s" (H.str_of_ident ident));
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
   | NotCst -> ()
-
-let find_id env id id_info =
-  match id_info with
-  | { id_resolved = { contents = Some (_kind, sid) }; _ } ->
-      let s = H.str_of_ident id in
-      Hashtbl.find_opt env.constants (s, sid)
-  | __else__ -> None
-
-let find_name env name =
-  match name with
-  | Id (id, id_info) -> find_id env id id_info
-  | IdQualified _ -> None
 
 let is_assigned_just_once stats var =
   let id_str, sid = var in
@@ -223,207 +189,9 @@ let has_just_one_constructor stats cstr =
       Logs.debug (fun m -> m ~tags "No stats for %s" cstr);
       false
 
-(*****************************************************************************)
-(* Partial evaluation *)
-(*****************************************************************************)
-(* See also Dataflow_svalue.ml, for the IL-based version.... At some point
- * we should remove the code below and rely only on Dataflow_svalue.ml.
- * For that we may need to add `e_svalue` to AST_generic.expr and fill it in
- * during constant-propagation.
- *)
-
-let fold_args1 f args =
-  match args with
-  | [] -> None
-  | a1 :: args -> List.fold_left f a1 args
-
-let find_type_args args =
-  args
-  |> List.find_map (function
-       | Some (Lit (Bool _)) -> Some Cbool
-       | Some (Lit (Int _)) -> Some Cint
-       | Some (Lit (String _)) -> Some Cstr
-       | Some (Cst ctype) -> Some ctype
-       | _arg -> None)
-
-let sign i = Int64.shift_right i (Sys.int_size - 1)
-
-let int_add n m =
-  let r = Int64.add n m in
-  if Int64.equal (sign n) (sign m) && sign r <> sign n then None (* overflow *)
-  else Some r
-
-let int_mult i1 i2 =
-  let overflow =
-    Int64_.(
-      i1 <> 0L && i2 <> 0L
-      && ((i1 < 0L && i2 = min_int) (* >max_int *)
-         || (i1 = min_int && i2 < 0L) (* >max_int *)
-         ||
-         if sign i1 * sign i2 = 1L then abs i1 > abs (max_int / i2)
-           (* >max_int *)
-         else abs i1 > abs (min_int / i2) (* <min_int *)))
-  in
-  if overflow then None else Some Int64_.(i1 * i2)
-
-let binop_int_cst op i1 i2 =
-  match (i1, i2) with
-  | Some (Lit (Int (Some n, _))), Some (Lit (Int (Some m, _))) ->
-      let* r = op n m in
-      Some (Lit (Int (Parsed_int.of_int64 r)))
-  | Some (Lit (Int _)), Some (Cst Cint)
-  | Some (Cst Cint), Some (Lit (Int _)) ->
-      Some (Cst Cint)
-  | _i1, _i2 -> None
-
-let binop_bool_cst op b1 b2 =
-  match (b1, b2) with
-  | Some (Lit (Bool (b1, t1))), Some (Lit (Bool (b2, _))) ->
-      Some (Lit (Bool (op b1 b2, t1)))
-  | Some (Lit (Bool _)), Some (Cst Cbool)
-  | Some (Cst Cbool), Some (Lit (Bool _)) ->
-      Some (Cst Cbool)
-  | _b1, _b2 -> None
-
-let concat_string_cst env s1 s2 =
-  match (s1, s2) with
-  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (String (_, (s2, _), _))) ->
-      Some (Lit (String (l, (s1 ^ s2, t1), r)))
-  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some i, _)))
-    when is_lang env Lang.Java || is_js env ->
-      (* implicit int-to-string conversion *)
-      Some (Lit (String (l, (s1 ^ Int64.to_string i, t1), r)))
-  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
-    when is_js env ->
-      (* implicit float-to-string conversion *)
-      let m_str =
-        (* JS: we parse all numbers as floats, and 1.0 is printed as "1" *)
-        if Float.is_integer m then string_of_int (int_of_float m)
-        else string_of_float m
-      in
-      Some (Lit (String (l, (s1 ^ m_str, t1), r)))
-  | Some (Lit (String _)), Some (Cst Cstr)
-  | Some (Cst Cstr), Some (Lit (String _))
-  | Some (Cst Cstr), Some (Cst Cstr) ->
-      Some (Cst Cstr)
-  | _b1, _b2 -> None
-
-let rec eval env x : svalue option =
-  match x.e with
-  | L x -> Some (Lit x)
-  | N (Id (_, { id_svalue = { contents = Some x }; _ }))
-  | DotAccess
-      ( { e = IdSpecial ((This | Self), _); _ },
-        _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
-      Some x
-  (* ugly: terraform specific. *)
-  | DotAccess
-      ( { e = N (Id ((("local" | "var"), _), _)); _ },
-        _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
-    when is_lang env Lang.Terraform ->
-      Some x
-  (* id_svalue is populated when used with the pro engine. *)
-  | DotAccess (_, _, FN (Id (_, { id_svalue = { contents = Some x }; _ }))) ->
-      Some x
-  | N (IdQualified { name_info = { id_svalue = { contents = Some x }; _ }; _ })
-    ->
-      Some x
-  (* ugly: dockerfile specific *)
-  | Call
-      ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
-        ( _,
-          [
-            Arg { e = N (Id (_, { id_svalue = { contents = Some x }; _ })); _ };
-          ],
-          _ ) )
-    when is_lang env Lang.Dockerfile ->
-      Some x
-  | Conditional (_e1, e2, e3) ->
-      let* v2 = eval env e2 in
-      let* v3 = eval env e3 in
-      Some (Dataflow_svalue.union v2 v3)
-  | Call
-      ( { e = IdSpecial (EncodedString str_kind, _); _ },
-        (_, [ Arg { e = L (String (_, (str, str_tok), _) as str_lit); _ } ], _)
-      ) -> (
-      match str_kind with
-      | "r" ->
-          let str = String.escaped str in
-          (* TODO? reuse l/r from the Call instead of using fb below? or
-           * from the String above?
-           *)
-          Some (Lit (String (fb (str, str_tok))))
-      | _else ->
-          (* THINK: is this good enough for "b" and "u"? *)
-          Some (Lit str_lit))
-  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
-      eval env e
-  | Call ({ e = IdSpecial special; _ }, args) -> eval_special env special args
-  | Call ({ e = N name; _ }, args) -> eval_call env name args
-  | Call (({ e = DotAccess (_, _, FN (Id _)); _ } as e), args) ->
-      let* name = H.name_of_dot_access e in
-      eval_call env name args
-  | N name -> find_name env name
-  | _ -> None
-
-and eval_args env args =
-  args |> Tok.unbracket
-  |> List_.map (function
-       | Arg e -> eval env e
-       | _ -> None)
-
-and eval_special env (special, _) args =
-  match (special, eval_args env args) with
-  (* booleans *)
-  | Op Not, [ Some (Lit (Bool (b, t))) ] -> Some (Lit (Bool (not b, t)))
-  | Op Or, args -> fold_args1 (binop_bool_cst ( || )) args
-  | Op And, args -> fold_args1 (binop_bool_cst ( && )) args
-  (* integers *)
-  | Op Plus, args when find_type_args args = Some Cint ->
-      fold_args1 (binop_int_cst int_add) args
-  | Op Mult, args when find_type_args args = Some Cint ->
-      fold_args1 (binop_int_cst int_mult) args
-  (* strings *)
-  | (Op (Plus | Concat) | ConcatString _), args
-    when find_type_args args = Some Cstr ->
-      fold_args1 (concat_string_cst env) args
-  | __else__ -> None
-
-and eval_call env name args =
-  (* Built-in knowledge, we know these functions return constants when
-   * given constant arguments. *)
-  let args = eval_args env args in
-  match (env.lang, name, args) with
-  | ( Some Lang.Php,
-      Id ((("escapeshellarg" | "htmlspecialchars_decode"), _), _),
-      [ Some (Lit (String _) | Cst Cstr) ] ) ->
-      Some (Cst Cstr)
-  | ( Some Lang.Java,
-      IdQualified
-        {
-          name_last = ("format", _), _;
-          name_middle =
-            Some
-              (QDots
-                ( [ (("String", _), _) ]
-                | [ (("java", _), _); (("lang", _), _); (("String", _), _) ] ));
-          _;
-        },
-      _args ) ->
-      if
-        args
-        |> List.for_all (function
-             | Some (Lit _ | Cst _) -> true
-             | _ -> false)
-      then Some (Cst Cstr)
-      else None
-  | _lang, _name, _args -> None
-
 let constant_propagation_and_evaluate_literal ?lang =
-  let env = default_env lang in
-  eval env
+  let env = Eval.default_env lang in
+  Eval.eval env
 
 (*****************************************************************************)
 (* Poor man''s const analysis *)
@@ -650,7 +418,7 @@ let add_special_constants env lang prog =
 
 type propagate_basic_visitor_funcs = {
   visit_definition :
-    env * Iter_with_context.context -> AST_generic.definition -> unit;
+    Eval.env * Iter_with_context.context -> AST_generic.definition -> unit;
 }
 
 let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref =
@@ -659,7 +427,7 @@ let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref =
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   Logs.debug (fun m -> m ~tags "Constant_propagation.propagate_basic program");
-  let env = default_env (Some lang) in
+  let (env : Eval.env) = Eval.default_env (Some lang) in
 
   (* right now this is used only for Terraform *)
   add_special_constants env lang prog;
@@ -673,7 +441,7 @@ let propagate_basic lang prog =
       inherit [_] Iter_with_context.iter_with_context as super
 
       (* the defs *)
-      method! visit_definition (env, ctx) x =
+      method! visit_definition ((env : Eval.env), ctx) x =
         match x with
         | ( {
               name =
@@ -714,12 +482,12 @@ let propagate_basic lang prog =
             if
               H.has_keyword_attr Const attrs
               || H.has_keyword_attr Final attrs
-              || (assigned_just_once && is_js env)
-              || assigned_just_once && is_lang env Lang.Java
+              || (assigned_just_once && Eval.is_js env)
+              || assigned_just_once && Eval.is_lang env Lang.Java
                  && List.exists is_private attrs
             then (
               id_flags := IdFlags.set_final !id_flags;
-              match (eval env e, e.e) with
+              match (Eval.eval env e, e.e) with
               (* When the name already has an svalue computed, just use
                * that. DeepSemgrep assigns svalues sometimes in its naming
                * phase. *)
@@ -748,14 +516,14 @@ let propagate_basic lang prog =
         | DotAccess
             ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           when not ctx.in_lvalue ->
-            let/ svalue = find_id env id id_info in
+            let/ svalue = Eval.find_id env id id_info in
             Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: dockerfile specific *)
         | Call
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not ctx.in_lvalue ->
-            let/ svalue = find_id env id id_info in
+            let/ svalue = Eval.find_id env id id_info in
             Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: terraform specific.
          * coupling: with eval() above
@@ -795,7 +563,7 @@ let propagate_basic lang prog =
               },
               _,
               rexp ) ->
-            let opt_svalue = eval env rexp in
+            let opt_svalue = Eval.eval env rexp in
             let is_private_class_field =
               match Hashtbl.find_opt env.attributes (fst id, sid) with
               | None -> false
@@ -812,11 +580,12 @@ let propagate_basic lang prog =
             if
               is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
               (* restricted to prevent unexpected const-prop FPs *)
-              && ((is_lang env Lang.Python || is_lang env Lang.Ruby
-                 || is_lang env Lang.Php || is_js env)
+              && ((Eval.is_lang env Lang.Python
+                  || Eval.is_lang env Lang.Ruby || Eval.is_lang env Lang.Php
+                  || Eval.is_js env)
                   && H.name_is_global kind
                  (* TODO: Add other Java-like OO languages, maybe Apex and C# ? *)
-                 || is_lang env Lang.Java && is_private_class_field
+                 || Eval.is_lang env Lang.Java && is_private_class_field
                     && (ctx.in_static_block || in_unique_constructor))
               && is_resolved_name kind sid
             then (
