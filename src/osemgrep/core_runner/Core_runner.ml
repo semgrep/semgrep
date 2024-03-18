@@ -114,11 +114,7 @@ let (hook_pro_core_run_for_osemgrep :
  * that are needed for the scan.
  *)
 let (hook_pro_git_remote_scan_setup :
-      (Find_targets.git_remote ->
-      core_run_for_osemgrep ->
-      core_run_for_osemgrep)
-      option
-      ref) =
+      (core_run_for_osemgrep -> core_run_for_osemgrep) option ref) =
   ref None
 
 (*************************************************************************)

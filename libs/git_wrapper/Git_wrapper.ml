@@ -184,17 +184,6 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
-let temporary_remote_checkout_path caps url =
-  let name =
-    match remote_repo_name url with
-    | Some name -> name
-    | None -> failwith "Could not get remote repo name"
-  in
-  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
-  let name = rand_prefix ^ "_" ^ name in
-  let tmp_dir = CapTmp.get_temp_dir_name caps#tmp in
-  Fpath.add_seg tmp_dir name
-
 let obj_type_of_string = function
   | "commit" -> Some Commit
   | "blob" -> Some Blob
