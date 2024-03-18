@@ -76,7 +76,6 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
    --------------------
 
    TODO You can also inspect the backend logs in cloudwatch, and Metabase?
-
 *)
 
 (*****************************************************************************)
@@ -335,24 +334,18 @@ let finding_is_blocking (m : OutJ.cli_match) =
   let metadata = JSON.from_yojson m.extra.metadata in
 
   match metadata with
-  | JSON.Object xs ->
-      let validation_state_should_block =
-        match
-          ( m.extra.validation_state,
-            List.assoc_opt "dev.semgrep.validation_state.actions" xs )
-        with
-        | Some validation_state, Some (JSON.Object vs) ->
-            List.assoc_opt (validation_state_to_action validation_state) vs
-            |> Option.map (JSON.equal (JSON.String "block"))
-            |> Option.value ~default:false
-        | _ -> false
-      in
-      let should_block =
-        match List.assoc_opt "dev.semgrep.actions" xs with
-        | Some (JSON.Array actions) -> contains_blocking actions
-        | _ -> false
-      in
-      validation_state_should_block || should_block
+  | JSON.Object xs -> (
+      match
+        ( m.extra.validation_state,
+          List.assoc_opt "dev.semgrep.validation_state.actions" xs,
+          List.assoc_opt "dev.semgrep.actions" xs )
+      with
+      | Some validation_state, Some (JSON.Object vs), _ ->
+          List.assoc_opt (validation_state_to_action validation_state) vs
+          |> Option.map (JSON.equal (JSON.String "block"))
+          |> Option.value ~default:false
+      | None, _, Some (JSON.Array actions) -> contains_blocking actions
+      | _ -> false)
   | _ -> false
 
 let rule_is_blocking (json : JSON.t) =
