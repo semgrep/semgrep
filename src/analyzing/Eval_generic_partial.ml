@@ -190,7 +190,7 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
   | Conditional (_e1, e2, e3) ->
       let* v2 = eval env e2 in
       let* v3 = eval env e3 in
-      Some (Dataflow_svalue.union v2 v3)
+      Some (Eval_il_partial.union v2 v3)
   | Call
       ( { e = IdSpecial (EncodedString str_kind, _); _ },
         (_, [ Arg { e = L (String (_, (str, str_tok), _) as str_lit); _ } ], _)
