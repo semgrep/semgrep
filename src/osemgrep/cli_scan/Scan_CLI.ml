@@ -792,7 +792,8 @@ let o_remote : string option Term.t =
       ~doc:
         {|Remote will quickly checkout and scan a remote git repository of
         the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
-        --pro Incompatible with --project-root|}
+        --pro Incompatible with --project-root. Note this requires an empty
+        CWD as this command will clone the repository into the CWD|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -899,7 +900,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
           Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
       | None, Some url when is_git_repo url ->
           (* CWD must be empty for this to work *)
-          let has_files = List_files.list (Fpath.v ".") <> [] in
+          let has_files = not (List_.null (List_files.list (Fpath.v "."))) in
           if has_files then
             Error.abort
               "Cannot use --remote with a git remote when the current \
