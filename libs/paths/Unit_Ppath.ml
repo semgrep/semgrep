@@ -6,25 +6,6 @@ open Printf
 
 let t = Testo.create
 
-let test_relativize () =
-  let relativize root_str path_str =
-    let root = Ppath.of_string_for_tests root_str in
-    let path = Ppath.of_string_for_tests path_str in
-    Ppath.relativize ~root path |> Fpath.to_string
-  in
-  let check root_str path_str expected_str =
-    printf "relativize root:%S %S -> %S\n" root_str path_str expected_str;
-    let res = relativize root_str path_str in
-    Alcotest.(check string) __LOC__ expected_str res
-  in
-  check "/" "/a" "a";
-  check "/" "/a/b" "a/b";
-  check "/" "/a/" "a/";
-  check "/a" "/a" ".";
-  check "/a" "/a/" ".";
-  check "/a/" "/a/" ".";
-  check "/a/" "/a" "."
-
 let test_conversions () =
   Testo.test "Ppath" (fun () ->
       let test_str f input expected_output =
@@ -112,6 +93,42 @@ let test_conversions () =
       test_in_project_fail "/a/b" "/b";
       test_in_project_fail "/a/b" "a")
 
+let test_relativize () =
+  let relativize root_str path_str =
+    let root = Ppath.of_string_for_tests root_str in
+    let path = Ppath.of_string_for_tests path_str in
+    Ppath.relativize ~root path |> Fpath.to_string
+  in
+  let check root_str path_str expected_str =
+    printf "relativize root:%S %S -> %S\n%!" root_str path_str expected_str;
+    let res = relativize root_str path_str in
+    Alcotest.(check string) __LOC__ expected_str res
+  in
+  check "/" "/a" "a";
+  check "/" "/a/b" "a/b";
+  check "/" "/a/" "a/";
+  check "/a" "/a" ".";
+  check "/a" "/a/" ".";
+  check "/a/" "/a/" ".";
+  check "/a/" "/a" "."
+
+let test_of_relative_fpath () =
+  let check path_str expected_ppath_str =
+    printf "of_relative_fpath %S -> %S\n%!" path_str expected_ppath_str;
+    let res =
+      path_str |> Fpath.v |> Ppath.of_relative_fpath |> Ppath.to_string
+    in
+    Alcotest.(check string) __LOC__ expected_ppath_str res
+  in
+  check "a" "/a";
+  check "a/b" "/a/b";
+  check "a/" "/a/";
+  check "." "/"
+
 let tests =
   Testo.categorize "Ppath"
-    [ t "relativize" test_relativize; t "conversions" test_conversions ]
+    [
+      t "conversions" test_conversions;
+      t "relativize" test_relativize;
+      t "of_relative_fpath" test_of_relative_fpath;
+    ]

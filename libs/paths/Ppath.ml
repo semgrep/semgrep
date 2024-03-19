@@ -114,19 +114,29 @@ let check_normalized_segments segments =
     | seg :: segs ->
         check_normalized_segment seg;
         iter segs
-    | [] -> invalid_arg "Ppath.create: ppath should have at least 2 segments"
+    | [] -> ()
   in
   match segments with
+  | []
+  | [ _ ] ->
+      invalid_arg
+        ("Ppath.create: ppath should have at least 2 segments: "
+       ^ String.concat "/" segments)
   | "" :: segs -> iter segs
   | _ ->
-      invalid_arg ("Ppath.create: relative path: " ^ String.concat "/" segments)
+      invalid_arg
+        ("Ppath.create: ppath must be absolute (start with '/'): "
+       ^ String.concat "/" segments)
 
 let unsafe_create segments = { string = String.concat "/" segments; segments }
 
 let create segments =
-  let segments = normalize_segments segments in
-  check_normalized_segments segments;
-  unsafe_create segments
+  let norm_segments = normalize_segments segments in
+  Printf.printf "normalize_segments %S -> %S\n%!"
+    (String.concat "|" segments)
+    (String.concat "|" norm_segments);
+  check_normalized_segments norm_segments;
+  unsafe_create norm_segments
 
 (*****************************************************************************)
 (* Append *)
@@ -265,7 +275,6 @@ let make_absolute path =
   else (* save a syscall *)
     path
 
-(* TODO: TEST *)
 let of_relative_fpath (fpath : Fpath.t) =
   if Fpath.is_rel fpath then create ("" :: Fpath.segs fpath)
   else invalid_arg ("Ppath.of_relative_fpath: " ^ Fpath.to_string fpath)
