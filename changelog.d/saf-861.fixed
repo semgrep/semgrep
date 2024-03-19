@@ -1,2 +1,0 @@
-The official semgrep docker image does not contain anymore the
-bash, jq, and curl utilities, to reduce its attack surface.
