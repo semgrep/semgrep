@@ -22,7 +22,9 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local job = {
-  'runs-on': 'ubuntu-latest',
+  // was ubuntu-latest but need a machine with lots of disk space to run the
+  // parsing stats as we clone many OSS repositories
+  'runs-on': 'ubuntu-latest-8-core',
   container: 'returntocorp/semgrep:develop',
   steps: [
     actions.checkout(),
