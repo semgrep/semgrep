@@ -901,9 +901,16 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
             neg
             |> List.fold_left
                  (fun (ranges, acc_expls) (tok, x) ->
-                   let ranges_neg, expl = evaluate_formula env opt_context x in
-                   let ranges =
-                     RM.difference_ranges env.xconf.config ranges ranges_neg
+                   let ranges, expl =
+                     match ranges with
+                     | [] -> ([], None)
+                     | ranges ->
+                         let ranges_neg, expl =
+                           evaluate_formula env opt_context x
+                         in
+                         ( RM.difference_ranges env.xconf.config ranges
+                             ranges_neg,
+                           expl )
                    in
                    let expl =
                      if_explanations env ranges [ expl ] (OutJ.Negation, tok)
