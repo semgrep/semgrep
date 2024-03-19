@@ -19,8 +19,8 @@ jobs:
           --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
           --header 'content-type: application/json' \
           --data '{
-            "commit_sha": "pb1",
-            "workflow_url": "pb2"
+            "commit_sha": "Actually the cron parsing stats failed",
+            "workflow_url": "https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml "
           }'
 name: cron-parsing-stats
 on:

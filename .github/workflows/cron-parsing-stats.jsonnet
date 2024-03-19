@@ -61,7 +61,7 @@ local job = {
     job: job,
     //TODO: abusing the nightly notif because the other do not work
     'notify-failure': semgrep.slack.notify_failure_nightly_job(
-        'pb1', 'pb2') +
+        'Actually the cron parsing stats failed', 'https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml ') +
       { needs: ['job'] },
   },
 }
