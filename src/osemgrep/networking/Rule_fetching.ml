@@ -67,7 +67,8 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
     else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
   in
   (* LATER: we should use Fpath.normalize first, but pysemgrep
-   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * doesn't as shown by
+     tests/default/e2e/test_check.py::test_basic_rule__relative
    * so we reproduce the same behavior, leading sometimes to some
    * weird rule id like "rules....rules.test" when passing
    * rules/../rules/test.yaml to --config.
@@ -157,7 +158,7 @@ let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
    *)
   AST_generic_to_jsonnet.program gen
 
-let mk_import_callback (caps : < Cap.network ; .. >) base str =
+let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
       (* On the fly conversion from yaml to jsonnet. We can do
@@ -205,7 +206,7 @@ let mk_import_callback (caps : < Cap.network ; .. >) base str =
               * header mimetype when downloading the URL to decide how to
               * convert it further?
               *)
-             UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+             CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
 [@@profiling]
@@ -336,7 +337,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
       | _failure -> (ext, content)
     else (ext, content)
   in
-  UTmp.with_tmp_file ~str:content ~ext (fun file ->
+  CapTmp.with_tmp_file caps#tmp ~str:content ~ext (fun file ->
       load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
   |> Lwt.return
 
@@ -385,7 +386,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       let%lwt content =
         fetch_content_from_registry_url_async ~token_opt caps url
       in
-      UTmp.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+      CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition_result Fun.id
       |> Lwt.return
@@ -399,11 +400,12 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
                   token")
         | Some token -> token
       in
-      let caps = Auth.cap_token_and_network token caps in
-      let uri = Semgrep_App.url_for_policy caps in
+      let caps' = Auth.cap_token_and_network token caps in
+      let uri = Semgrep_App.url_for_policy caps' in
+      let caps'' = Auth.cap_token_and_network_and_tmp token caps in
       let%lwt rules_and_errors =
-        load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry caps
-          uri
+        load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry
+          caps'' uri
       in
       Metrics_.g.is_using_app <- true;
       [ rules_and_errors ] |> Result_.partition_result Fun.id |> Lwt.return
@@ -500,7 +502,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
                ( Common.spf
                    "invalid configuration file found (%d configs were invalid)"
                    (List.length errors),
-                 Some Exit_code.missing_config ));
+                 Some (Exit_code.missing_config ~__LOC__) ));
         (* NOTE: We should default to config auto if no config was passed in an earlier step,
            but if we reach this step without a config, we emit the error below.
         *)
@@ -510,7 +512,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
                ( "No config given. Run with `--config auto` or see \
                   https://semgrep.dev/docs/running-rules/ for instructions on \
                   running with a specific config",
-                 Some Exit_code.missing_config ));
+                 Some (Exit_code.missing_config ~__LOC__) ));
 
         Lwt.return (rules_and_origins, errors)
     (* better: '-e foo -l regex' was not handled in pysemgrep
@@ -527,7 +529,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
       (Error.Semgrep_error
          ( Common.spf "Ran with --strict and got %s while loading configs"
              (String_.unit_str (List.length errors) "error"),
-           Some Exit_code.missing_config ));
+           Some (Exit_code.missing_config ~__LOC__) ));
 
   (* errors should be empty here, because patterns cannot yet return errors *)
   Lwt.return rules_and_origins

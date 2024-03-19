@@ -53,6 +53,7 @@ let initialize_server server
     in
     { res with do_hover; pro_intrafile }
   in
+  (* Semgrep scanning roots *)
   let workspace_folders =
     match (workspaceFolders, rootUri) with
     | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders

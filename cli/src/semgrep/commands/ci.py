@@ -142,6 +142,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 )
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
+@click.option("--historical-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
@@ -170,11 +171,13 @@ def ci(
     # TODO: Remove after October 2023. Left for a error message
     # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
+    historical_secrets: bool,
     internal_ci_scan_results: bool,
     code: bool,
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
+    disable_interfile_diff_scan_flag: bool,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -342,10 +345,9 @@ def ci(
                 )
                 progress_bar.update(products_task, completed=100)
 
-            if (
-                scan_handler.rules == '{"rules":[]}'
-                and scan_handler.enabled_products == ["sast"]
-            ):
+            if scan_handler.rules == '{"rules":[]}' and set(
+                scan_handler.enabled_products
+            ).issubset({"sast", "secrets"}):
                 console.print(
                     f"No rules configured. Visit {state.env.semgrep_url}/orgs/-/policies to configure rules to scan your code.\n"
                 )
@@ -362,8 +364,8 @@ def ci(
 
     # Enable beta features
     if scan_handler and scan_handler.generic_slow_rollout:
-        # slow rollout for pro diff scan
-        diff_depth = 2
+        # Add options for slow rollout here
+        pass
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
@@ -376,13 +378,17 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
+    if not run_secrets and historical_secrets:
+        logger.info("Cannot run historical secrets scan without secrets enabled.")
+        sys.exit(FATAL_EXIT_CODE)
+
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=diff_depth >= 0,
+        enable_pro_diff_scan=not disable_interfile_diff_scan_flag,
         supply_chain_only=supply_chain_only,
     )
 
@@ -412,11 +418,54 @@ def ci(
         else:
             run_install_semgrep_pro()
 
+    # Base arguments for actually running the scan. This is done here so we can
+    # re-use this in the event we need to perform a second scan. Currently the
+    # only case for this is a separate "historical" scan, where we scan the git
+    # history for secrets. This must be split since the targeting logic for the
+    # historical scans is entirely in pro, but otherwise here is still
+    # performed by the python. Once osemgrep is complete we need only combine
+    # the two target lists and perform one scan.
+    run_scan_args = {
+        "engine_type": engine_type,
+        "run_secrets": run_secrets,
+        "disable_secrets_validation": disable_secrets_validation_flag,
+        "output_handler": output_handler,
+        "target": [os.curdir],  # semgrep ci only scans cwd
+        "pattern": None,
+        "lang": None,
+        "configs": config,
+        "no_rewrite_rule_ids": (not rewrite_rule_ids),
+        "dump_command_for_core": dump_command_for_core,
+        "jobs": jobs,
+        "include": include,
+        "exclude": exclude,
+        "exclude_rule": exclude_rule,
+        "max_target_bytes": max_target_bytes,
+        "autofix": scan_handler.autofix if scan_handler else False,
+        "dryrun": True,
+        # Always true, as we want to always report all findings, even
+        # ignored ones, to the backend
+        "disable_nosem": True,
+        "no_git_ignore": (not use_git_ignore),
+        "timeout": timeout,
+        "max_memory": max_memory,
+        "interfile_timeout": interfile_timeout,
+        "trace": trace,
+        "timeout_threshold": timeout_threshold,
+        "skip_unknown_extensions": (not scan_unknown_extensions),
+        "allow_untrusted_validators": allow_untrusted_validators,
+        "optimizations": optimizations,
+        "baseline_commit": metadata.merge_base_ref,
+        "baseline_commit_is_mergebase": True,
+        "diff_depth": diff_depth,
+        "dump_contributions": True,
+    }
+
     try:
         excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
 
         assert exclude is not None  # exclude is default empty tuple
-        exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
+        run_scan_args["exclude"] = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
 
@@ -441,41 +490,7 @@ def ci(
             contributions,
             _executed_rule_count,
             _missed_rule_count,
-        ) = semgrep.run_scan.run_scan(
-            engine_type=engine_type,
-            run_secrets=run_secrets,
-            disable_secrets_validation=disable_secrets_validation_flag,
-            output_handler=output_handler,
-            target=[os.curdir],  # semgrep ci only scans cwd
-            pattern=None,
-            lang=None,
-            configs=config,
-            no_rewrite_rule_ids=(not rewrite_rule_ids),
-            dump_command_for_core=dump_command_for_core,
-            jobs=jobs,
-            include=include,
-            exclude=exclude,
-            exclude_rule=exclude_rule,
-            max_target_bytes=max_target_bytes,
-            autofix=scan_handler.autofix if scan_handler else False,
-            dryrun=True,
-            # Always true, as we want to always report all findings, even
-            # ignored ones, to the backend
-            disable_nosem=True,
-            no_git_ignore=(not use_git_ignore),
-            timeout=timeout,
-            max_memory=max_memory,
-            interfile_timeout=interfile_timeout,
-            trace=trace,
-            timeout_threshold=timeout_threshold,
-            skip_unknown_extensions=(not scan_unknown_extensions),
-            allow_untrusted_validators=allow_untrusted_validators,
-            optimizations=optimizations,
-            baseline_commit=metadata.merge_base_ref,
-            baseline_commit_is_mergebase=True,
-            diff_depth=diff_depth,
-            dump_contributions=True,
-        )
+        ) = semgrep.run_scan.run_scan(**run_scan_args)
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
         output_handler.output({}, all_targets=set(), filtered_rules=[])
@@ -487,6 +502,65 @@ def ci(
         if scan_handler:
             scan_handler.report_failure(exit_code)
         sys.exit(exit_code)
+
+    # Run a separate scan for historical. This is due to the split in how the
+    # file targeting works. If file targeting could all be handled in the same
+    # place we wouldn't need this seprarately. There are some benefits
+    # (e.g., separate progress bar), but it would simplify output logic if we
+    # simply had one "scan".
+    run_historical_secrets_scan = (
+        run_secrets and scan_handler and scan_handler.historical_config.enabled
+    ) or historical_secrets
+
+    if run_historical_secrets_scan:
+        try:
+            console.print(Title("Secrets Historical Scan"))
+
+            (
+                historical_filtered_matches_by_rule,
+                historical_semgrep_errors,
+                # Don't care about historically renamed targets
+                # Seems like this is just ignored by app anyway.
+                _historical_renamed_targets,
+                # Only used in metrics; too noisy for now.
+                _historical_ignore_log,
+                historical_filtered_rules,
+                # For metrics; not yet sent.
+                _historical_profiler,
+                # Wrapper for some extra info; not currently sent for
+                # historical scans.
+                _historical_output_extra,
+                # Severity filtering should be the same, since the same
+                # settings have been passed. So we can just use the "normal"
+                # shown_severities.
+                _historical_shown_severities,
+                # Not relevant for secrets.
+                _historical_dependencies,
+                _historical_dependency_parser_errors,
+                # Usage limits currently only consider last 30 days.
+                _historical_contributions,
+                _executed_rule_count,
+                _missed_rule_count,
+            ) = semgrep.run_scan.run_scan(
+                **run_scan_args,
+                historical_secrets=True,
+            )
+
+            for key, value in historical_filtered_matches_by_rule.items():
+                filtered_matches_by_rule[key].extend(value)
+
+            semgrep_errors.extend(historical_semgrep_errors)
+            filtered_rules.extend(historical_filtered_rules)
+
+        except SemgrepError as e:
+            # We know the non-historical scan completed successfully (since
+            # otherwise the program would exit), so we can just inform the
+            # user of the issue here.
+            output_handler.handle_semgrep_errors([e])
+            logger.info(
+                f"Encountered error when running rules for historical scan: {e}"
+            )
+            logger.info(f"Finalizing non-historical results")
 
     total_time = time.time() - start
 

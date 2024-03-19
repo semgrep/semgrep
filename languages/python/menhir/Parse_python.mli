@@ -31,7 +31,7 @@ val parse_fuzzy:
 *)
 
 (* to help write test code *)
-val program_of_string : string -> AST_python.program
+val program_of_string : < Cap.tmp > -> string -> AST_python.program
 
 (* internal *)
 val tokens :

@@ -44,7 +44,8 @@ type t = {
   rule_source : rule_source option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
-  roots : Fpath.t list;
+  (* Scanning roots. They are mutually exclusive with target_source! *)
+  roots : Scanning_root.t list;
   output_format : output_format;
   match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
@@ -71,6 +72,8 @@ type t = {
   action : string;
   (* Other *)
   version : string;
+  (* To add data to our opentelemetry top span, which makes it easier to filter *)
+  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 
@@ -128,4 +131,5 @@ let default =
     action = "";
     (* Other *)
     version = "";
+    top_level_span = None;
   }

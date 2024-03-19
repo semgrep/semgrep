@@ -63,9 +63,27 @@ type 'a loc = {
  * We use 'deriving hash' for formula because of the
  * Match_tainting_mode.Formula_tbl formula cache.
  *)
-type formula =
+type formula = {
+  f : formula_kind;
+  (* metavariable-xyz:'s *)
+  conditions : (tok * metavar_cond) list;
+  (* focus-metavariable:'s *)
+  focus : focus_mv_list list;
+}
+
+and formula_kind =
   | P of Xpattern.t (* a leaf pattern *)
-  | And of tok * conjunction
+  (* The conjunction must contain at least
+     * one positive "term" (unless it's inside a CondNestedFormula, in which
+     * case there is not such a restriction).
+     * See also split_and().
+     * CAVEAT: This is not required in the metavariable-pattern case, such as
+       metavariable-pattern:
+         metavariable: $MVAR
+         patterns:
+         - pattern-not: "foo"
+  *)
+  | And of tok * formula list
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -90,20 +108,6 @@ type formula =
   *)
   | Anywhere of tok * formula
 
-(* The conjunction must contain at least
- * one positive "term" (unless it's inside a CondNestedFormula, in which
- * case there is not such a restriction).
- * See also split_and().
- *)
-and conjunction = {
-  (* pattern-inside:'s and pattern:'s *)
-  conjuncts : formula list;
-  (* metavariable-xyz:'s *)
-  conditions : (tok * metavar_cond) list;
-  (* focus-metavariable:'s *)
-  focus : focus_mv_list list;
-}
-
 and metavar_cond =
   | CondEval of AST_generic.expr (* see Eval_generic.ml *)
   (* todo: at some point we should remove CondRegexp and have just
@@ -119,7 +123,8 @@ and metavar_cond =
       MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondType of
       MV.mvar
-      * Xlang.t option (* when the type expression is in different lang *)
+      * Xlang.t option
+      (* when the type expression is in different lang *)
       * string list (* raw input string saved for regenerating rule yaml *)
       * AST_generic.type_ list
     (* LATER: could parse lazily, like the patterns *)
@@ -314,9 +319,9 @@ let get_sink_requires { sink_requires; _ } =
 (* Check if a formula has "focus" (i.e., `focus-metavariable` in syntax 1.0)
  *
  * See 'taint_sink', field 'sink_has_focus'. *)
-let is_formula_with_focus formula =
+let is_formula_with_focus (formula : formula) =
   match formula with
-  | And (_, { conjuncts = _; conditions = _; focus = _ :: _ }) -> true
+  | { focus = _ :: _; _ } -> true
   | __else__ -> false
 
 (*****************************************************************************)
@@ -854,20 +859,21 @@ let () = Printexc.register_printer opt_string_of_exn
    That way, pattern leaves underneath an Inside/Anywhere will properly be
    paired with a true boolean.
 *)
-let visit_new_formula f formula =
+let visit_new_formula func formula =
   let bref = ref false in
-  let rec visit_new_formula f formula =
-    match formula with
-    | P p -> f p ~inside:!bref
+  let rec visit_new_formula func formula =
+    match formula.f with
+    | P p -> func p ~inside:!bref
     | Anywhere (_, formula)
     | Inside (_, formula) ->
-        Common.save_excursion bref true (fun () -> visit_new_formula f formula)
-    | Not (_, x) -> visit_new_formula f x
+        Common.save_excursion bref true (fun () ->
+            visit_new_formula func formula)
+    | Not (_, x) -> visit_new_formula func x
     | Or (_, xs)
-    | And (_, { conjuncts = xs; _ }) ->
-        xs |> List.iter (visit_new_formula f)
+    | And (_, xs) ->
+        xs |> List.iter (visit_new_formula func)
   in
-  visit_new_formula f formula
+  visit_new_formula func formula
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
@@ -913,6 +919,11 @@ let xpatterns_of_rule rule =
   List.iter (visit_new_formula visit) formulae;
   !xpat_store
 
+let mk_formula ?(focus = []) ?(conditions = []) kind =
+  { f = kind; focus; conditions }
+
+let f kind = mk_formula kind
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
@@ -930,7 +941,7 @@ let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
   |> Either_.partition_either (fun e ->
-         match e with
+         match e.f with
          (* positives *)
          | P _
          | And _
@@ -949,11 +960,10 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
     id = (Rule_ID.of_string "-e", fk);
-    mode = `Search (P xpat);
+    mode = `Search (f (P xpat));
     min_version = None;
     max_version = None;
-    (* alt: could put xpat.pstr for the message *)
-    message = "";
+    message = fst xpat.pstr;
     severity = `Error;
     target_selector;
     target_analyzer;

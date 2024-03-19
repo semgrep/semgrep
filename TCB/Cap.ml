@@ -114,6 +114,7 @@ module Process = struct
   type exit = cap
   type pid = cap
   type kill = cap
+  type chdir = cap
   type fork = cap
   type thread = cap
   type domain = cap
@@ -197,11 +198,12 @@ type signal = < signal : Process.signal >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
+type chdir = < chdir : Process.chdir >
 type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; exit >
+type process_single = < signal ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -223,7 +225,7 @@ type all_caps =
   ; network
   ; misc >
 
-type no_cap = unit (* better than [type no_cap = cap] :) *)
+type no_caps = < >
 
 let powerbox : all_caps =
   object
@@ -252,6 +254,7 @@ let powerbox : all_caps =
     method env = ()
     method pid = ()
     method kill = ()
+    method chdir = ()
     method signal = ()
     method fork = ()
     method exit = ()
@@ -274,6 +277,11 @@ let powerbox : all_caps =
 let network_caps_UNSAFE () =
   object
     method network = ()
+  end
+
+let tmp_caps_UNSAFE () =
+  object
+    method tmp = ()
   end
 
 (**************************************************************************)

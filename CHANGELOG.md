@@ -6,6 +6,73 @@
 
 <!-- insertion point -->
 
+## [1.66.0](https://github.com/returntocorp/semgrep/releases/tag/v1.66.0) - 2024-03-19
+
+
+### Added
+
+
+- Added information about interfile pre-processing to --max-memory help. (gh-9932)
+- We've implemented basic support for the `yield` keyword in Python. The Pro
+  engine now detects taint findings from taint sources returned by the yield
+  keyword. (saf-281)
+
+
+### Changed
+
+
+- osemgrep --remote will no longer clone into a tmp folder, but instead the CWD (cdx-remote)
+- [IMPORTANT] Inter-file differential scanning is now enabled for all Pro users.
+
+  Inter-file differential scanning is now enabled for all Pro users. While it may
+  take longer than intra-file differential scanning, which is the current default
+  for pro users, it offers deeper analysis of dataflow paths compared to
+  intra-file differential scanning. Additionally, it is significantly faster
+  than non-differential inter-file scanning, with scan times reduced to
+  approximately 1/10 of the non-differential inter-file scan. Users who
+  enable the pro engine and engage in differential PR scans on GitHub or
+  GitLab may experience the impact of this update. If needed, users can
+  revert to the previous intra-file differential scan behavior by configuring
+  the `--no-interfile-diff-scan` command-line option. (saf-268)
+
+
+### Fixed
+
+
+- The official semgrep docker image does not contain anymore the
+  bash, jq, and curl utilities, to reduce its attack surface. (saf-861)
+
+
+## [1.65.0](https://github.com/returntocorp/semgrep/releases/tag/v1.65.0) - 2024-03-11
+
+
+### Changed
+
+
+- Removed the extract-mode rules experimental feature. (extract_mode)
+
+
+## [1.64.0](https://github.com/returntocorp/semgrep/releases/tag/v1.64.0) - 2024-03-07
+
+
+### Changed
+
+
+- Removed the AST caching experimental feature (--experimental --ast-caching
+  in osemgrep and -parsing_cache_dir in semgrep-core). (ast_caching)
+- Removed the Registry caching experimental feature (--experimental --registry-caching)
+  in osemgrep. (registry_caching)
+
+
+### Fixed
+
+
+- Clean any credentials from project URL before using it, to prevent leakage. (saf-876)
+- `ci`: Updated logic for informational message printed when no rules are sent to
+  correctly display when secrets is enabled (in additional to
+  when code is). (scrt-455)
+
+
 ## [1.63.0](https://github.com/returntocorp/semgrep/releases/tag/v1.63.0) - 2024-02-27
 
 

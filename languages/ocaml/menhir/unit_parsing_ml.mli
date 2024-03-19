@@ -1,2 +1,2 @@
 (* Test suite for this folder. *)
-val tests : Testo.test list
+val tests : < Cap.tmp > -> Testo.test list

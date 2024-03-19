@@ -9,7 +9,7 @@ let t = Testo.create
 (* ran from the root of the semgrep repository *)
 let tests_path = "tests"
 
-let tests =
+let tests (caps : < Cap.tmp >) =
   Testo.categorize "parsing_ml"
     [
       t "regression files" (fun () ->
@@ -28,8 +28,8 @@ let tests =
        * sub-sub expressions inside parenthesis).
        *)
       t "visitor" (fun () ->
-          UTmp.with_tmp_file ~ext:".ml" ~str:"open Foo1\nmodule A = Foo2\n"
-            (fun file ->
+          CapTmp.with_tmp_file caps#tmp ~ext:".ml"
+            ~str:"open Foo1\nmodule A = Foo2\n" (fun file ->
               let _ast = Parse_ml.parse_program file in
               let _cnt = ref 0 in
               (* TODO use Visitor_AST of ml_to_generic

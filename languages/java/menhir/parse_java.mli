@@ -5,7 +5,9 @@ val parse : Fpath.t -> (Ast_java.program, Parser_java.token) Parsing_result.t
 val parse_program : Fpath.t -> Ast_java.program
 
 val parse_string :
-  string -> (Ast_java.program, Parser_java.token) Parsing_result.t
+  < Cap.tmp > ->
+  string ->
+  (Ast_java.program, Parser_java.token) Parsing_result.t
 
 (* for sgrep *)
 val any_of_string : string -> Ast_java.any

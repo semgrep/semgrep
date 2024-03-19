@@ -16,6 +16,11 @@ let string_of_offset offset =
   | Dot a -> ident_str_of_name a
   | Index _ -> "[...]"
 
+let string_of_offset_list offset =
+  if offset <> [] then
+    "." ^ String.concat "." (List_.map string_of_offset offset)
+  else ""
+
 let string_of_lval { base; rev_offset } =
   string_of_base base
   ^

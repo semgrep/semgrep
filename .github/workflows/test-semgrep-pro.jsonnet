@@ -1,4 +1,9 @@
-// ???
+// Workflow to check whether changes in the PR are not breaking
+// the interaction with the semgrep-core-proprietary binary in 'develop'
+// in the semgrep-proprietary repository.
+//
+// TODO? now that the semgrep-core-proprietary is part of the semgrep docker
+// image, do we still need this check?
 
 local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
@@ -11,12 +16,12 @@ local inputs = {
   inputs: {
     'artifact-name': {
       type: 'string',
-      description: 'Name (key) to use when uploading the docker image tarball as a artifact',
+      description: 'Name of the docker image tarball',
       required: true,
     },
     'repository-name': {
       type: 'string',
-      description: 'The repository/name of the docker image to push, e.g., returntocorp/semgrep',
+      description: 'The repository/name of the docker image',
       required: true,
     },
   },
@@ -65,7 +70,6 @@ local test_semgrep_pro_job = {
       uses: 'docker/setup-buildx-action@v2',
     },
     {
-      name: 'Download artifact',
       uses: 'actions/download-artifact@v3',
       with: {
         name: '${{ inputs.artifact-name }}-arch-amd64',
@@ -81,16 +85,18 @@ local test_semgrep_pro_job = {
        session_name='semgrep-deploy'
      ),
     // This is the `develop` binary, so this is truly the most recent version
-    // of `semgrep-proprietary` from that repository's `develop` branch.
-    // We test with this so that we know whether any changes we make on this PR
-    // are breaking with the `develop` branch of `pro`.
+    // of `semgrep-core-proprietary` from that repository's `develop` branch.
     {
       name: 'Download Semgrep Pro `develop` binary',
       run: 'aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary',
     },
     {
       name: 'Run Semgrep Pro Engine!',
-      run: 'docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh',
+      // old: we used to also pass '--entrypoint=bash' below, but bash is not
+      // anymore in the semgrep docker image. Moreover, there was no need
+      // for --entrypoint, which is used to override an existing entrypoint,
+      // because the semgrep Dockerfile does not have an ENTRYPOINT.
+      run: 'docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh',
     },
   ],
 };

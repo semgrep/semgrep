@@ -1,0 +1,100 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/utf-8.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.replace-with-smiley",
+      "end": {
+        "col": 11,
+        "line": 12,
+        "offset": 442
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "print('\ud83d\ude0a')",
+        "fixed_lines": [
+          "print('\ud83d\ude0a')"
+        ],
+        "is_ignored": false,
+        "lines": "print('a')",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/utf-8.py",
+      "start": {
+        "col": 1,
+        "line": 12,
+        "offset": 432
+      }
+    },
+    {
+      "check_id": "rules.autofix.replace-with-smiley",
+      "end": {
+        "col": 23,
+        "line": 16,
+        "offset": 595
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "print('\ud83d\ude0a')",
+        "fixed_lines": [
+          "y = '\ud83d\ude0a'; print('\ud83d\ude0a'); print('a')"
+        ],
+        "is_ignored": false,
+        "lines": "y = '\ud83d\ude0a'; print('a'); print('a')",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/utf-8.py",
+      "start": {
+        "col": 13,
+        "line": 16,
+        "offset": 585
+      }
+    },
+    {
+      "check_id": "rules.autofix.replace-with-smiley",
+      "end": {
+        "col": 35,
+        "line": 16,
+        "offset": 607
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "print('\ud83d\ude0a')",
+        "fixed_lines": [
+          "y = '\ud83d\ude0a'; print('a'); print('\ud83d\ude0a')"
+        ],
+        "is_ignored": false,
+        "lines": "y = '\ud83d\ude0a'; print('a'); print('a')",
+        "message": "Unnecessary parameter which matches the default",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/autofix/utf-8.py",
+      "start": {
+        "col": 25,
+        "line": 16,
+        "offset": 597
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

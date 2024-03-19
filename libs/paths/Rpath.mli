@@ -1,4 +1,5 @@
-(* Real paths.
+(* "Real paths" - Absolute physical filesystem paths as returned
+   by 'Unix.realpath'.
 
    Here is some terminology:
    - relative path: a path relative to a directory
@@ -26,7 +27,7 @@
    error messages, findings, etc. that contain paths derived from
    what was passed on the command line, or Ppath.t if users want
    findings relative to the root of their project (and not real paths like
-   /home/pad/my/long/project/foo/bar).
+   /home/pad/my/long/project/foo/bar). Rfpath.t encapsulates both.
 
    The name of the module imitates Fpath.ml, and Ppath.ml, but use Rpath.ml
    for Real path.
@@ -42,17 +43,42 @@
    `of_string`, and in particular, ensures that they all must be
    validated by `realpath()`.
 *)
-type t = private Rpath of Fpath.t [@@deriving show, eq]
+type t = private Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 
-(* only way to build a Rpath *)
-val of_fpath : Fpath.t -> t
-val of_string : string -> t
+(*
+   Resolve a path into physical path i.e. a path that's free of symbolic links.
+   This requires the path to exist!
+
+   'Error msg' is returned if the physical path can't be determined.
+   This is the case if the file doesn't exist at all, its resolution
+   leads a broken symlink, or insufficient permissions.
+*)
+val of_fpath : Fpath.t -> (t, string) Result.t
+val of_string : string -> (t, string) Result.t
+
+(* For tests only. This raises an unspecified exception if the path can't
+   be resolved. *)
+val of_fpath_exn : Fpath.t -> t
+val of_string_exn : string -> t
 
 (* converters *)
 val to_fpath : t -> Fpath.t
-
-(* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
 val to_string : t -> string
 
-(* <=> to_string (of_string s) *)
-val canonical : string -> string
+(* <=> to_fpath (of_fpath s) *)
+val canonical_exn : Fpath.t -> Fpath.t
+
+(*
+   Get the current working directory from the system.
+   It raises an exception with a slightly better error message than
+   'Sys.getcwd' or 'Unix.getcwd' if the current working directory
+   no longer exists or is inaccessible for some other reason.
+*)
+val getcwd : unit -> t
+
+(*
+   Return a realpath's parent (without having to consult the filesystem).
+   Unlike Fpath.parent, this returns None if the path has no parent rather
+   than returning itself.
+*)
+val parent : t -> t option

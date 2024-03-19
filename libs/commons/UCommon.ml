@@ -114,5 +114,6 @@ let main_boilerplate f =
                     raise (UUnix.Unix_error (e, fm, argm))))
           (fun () ->
             !before_exit |> List.iter (fun f -> f ());
+            (* nosemgrep: forbid-tmp *)
             UTmp.erase_temp_files ()))
 (* let _ = if not !Sys.interactive then (main ()) *)

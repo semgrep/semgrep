@@ -17,7 +17,6 @@ jobs:
         run: brew test semgrep --HEAD
   notify-failure:
     if: failure()
-    name: Notify of Failure
     needs:
       - brew-build
       - release-dry-run
@@ -37,7 +36,7 @@ jobs:
     with:
       dry-run: true
 name: nightly
-"on":
+on:
   schedule:
     - cron: 26 9 * * *
   workflow_dispatch: null

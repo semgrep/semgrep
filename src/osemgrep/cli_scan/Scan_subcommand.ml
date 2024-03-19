@@ -35,7 +35,16 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 (* TODO: probably far more needed at some point *)
-type caps = < Cap.stdout ; Cap.network >
+type caps =
+  < Cap.stdout
+  ; (* mainly to access the registry *)
+    Cap.network
+  ; (* TODO: we should get rid of that *)
+    Cap.tmp
+  ; (* this is for Git_remote for semgrep query console and also for
+     * differential scans as we use Git_wrapper.run_with_worktree.
+     *)
+    Cap.chdir >
 
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
@@ -71,16 +80,35 @@ let setup_profiling (conf : Scan_CLI.conf) =
  *)
 let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
   match List.rev errors with
-  | [] -> Exit_code.ok
+  | [] -> Exit_code.ok ~__LOC__
   (* TODO? why do we look at the last error? What about the other errors? *)
   | x :: _ -> (
-      (* alt: raise a Semgrep_error that would be catched by CLI_Common
+      (* alt: raise a Semgrep_error that would be caught by CLI_Common
        * wrapper instead of returning an exit code directly? *)
       match () with
       | _ when x.severity =*= `Error ->
-          Cli_json_output.exit_code_of_error_type x.error_type
-      | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
-      | _else_ -> Exit_code.ok)
+          let exit_code =
+            Cli_json_output.exit_code_of_error_type x.error_type
+          in
+          Logs.info (fun m ->
+              m
+                "Exiting semgrep scan due to error of severity level=Error: %s \
+                 -> exit code %i"
+                (Semgrep_output_v1_j.string_of_error_type x.error_type)
+                (Exit_code.to_int exit_code));
+          exit_code
+      | _ when strict ->
+          let exit_code =
+            Cli_json_output.exit_code_of_error_type x.error_type
+          in
+          Logs.info (fun m ->
+              m
+                "Exiting semgrep scan due to error in strict mode: %s -> exit \
+                 code %i"
+                (Semgrep_output_v1_j.string_of_error_type x.error_type)
+                (Exit_code.to_int exit_code));
+          exit_code
+      | _ -> Exit_code.ok ~__LOC__)
 
 (*****************************************************************************)
 (* Incremental display *)
@@ -105,14 +133,14 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       (* OK, because we don't need the postprocessing to report the matches. *)
       |> List_.map Core_result.mk_processed_match
       |> Either_.partition_either Core_json_output.match_to_match
-      |> fst
+      |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
+    let fixes_env = Autofix.make_fixed_lines_env () in
     core_matches
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
-            ~dryrun:conf.output_conf.dryrun hrules)
-    |> Cli_json_output.dedup_and_sort
+            ~dryrun:conf.output_conf.dryrun fixes_env hrules)
   in
   let cli_matches =
     cli_matches
@@ -267,16 +295,18 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
     xmap []
 
 (* Select and execute the scan func based on the configured engine settings.
- * Yet another mk_scan_func adapter. TODO: can we simplify?
- *)
-let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
+   Yet another mk_scan_func adapter. TODO: can we simplify?
+*)
+let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
+    file_match_results_hook errors targets
     ?(diff_config = Differential_scan_config.WholeScan) rules () =
-  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.engine_type with
     | OSS ->
-        Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+        Core_runner.mk_core_run_for_osemgrep
+          (Core_scan.scan_with_exn_handler caps)
     | PRO _ -> (
-        match !Core_runner.hook_pro_scan_func_for_osemgrep with
+        match !Core_runner.hook_pro_core_run_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
              * instructions should be *)
@@ -286,11 +316,11 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
                acquire a different binary."
         | Some pro_scan_func ->
             let roots = conf.target_roots in
-            pro_scan_func roots ~diff_config conf.engine_type)
+            pro_scan_func ~roots ~diff_config conf.engine_type)
   in
-  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
+  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.targeting_conf.project_root with
-    | Some (Find_targets.Git_remote git_remote) -> (
+    | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
         | None ->
             failwith
@@ -298,12 +328,11 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
                the pro engine, but do not have the pro engine. You may need to \
                acquire a different binary."
         | Some pro_git_remote_scan_setup ->
-            pro_git_remote_scan_setup git_remote scan_func_for_osemgrep)
-    | _ -> scan_func_for_osemgrep
+            pro_git_remote_scan_setup core_run_for_osemgrep)
+    | _ -> core_run_for_osemgrep
   in
-  scan_func_for_osemgrep
-    ~respect_git_ignore:conf.targeting_conf.respect_gitignore
-    ~file_match_results_hook conf.core_runner_conf rules errors targets
+  core_run_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
+    conf.targeting_conf rules errors targets
 
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
     rules_source =
@@ -317,7 +346,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
       ~strict
-      (caps :> < Cap.network >)
+      (caps :> < Cap.network ; Cap.tmp >)
       rules_source
   in
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
@@ -343,7 +372,7 @@ let trim_core_match_fix (r : OutJ.core_match) =
    baseline commit scan. Matches are considered identical if the
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
-let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
+let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
     (head : Core_result.t)
     (renamed : (string (* filename *) * string (* filename *)) list) =
   let extract_sig renamed (m : Pattern_match.t) =
@@ -364,7 +393,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (rule_id, path, syntactic_ctx)
   in
   let sigs = Hashtbl.create 10 in
-  Git_wrapper.run_with_worktree ~commit (fun () ->
+  Git_wrapper.run_with_worktree caps ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
           pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
@@ -403,9 +432,10 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
    the files and rules linked with matches from the head checkout
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
-let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
-    (profiler : Profiler.t) (result_or_exn : Core_result.result_or_exn)
-    (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
+let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
+    (conf : Scan_CLI.conf) (profiler : Profiler.t)
+    (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
+    (commit : string) (status : Git_wrapper.status)
     (core :
       Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
@@ -437,7 +467,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         in
         let baseline_result =
           Profiler.record profiler ~name:"baseline_core_time" (fun () ->
-              Git_wrapper.run_with_worktree ~commit (fun () ->
+              Git_wrapper.run_with_worktree caps ~commit (fun () ->
                   let prepare_targets paths =
                     paths |> SS.of_list |> add_renamed |> remove_added
                     |> SS.to_seq
@@ -486,14 +516,20 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         match baseline_result with
         | Error _exn -> baseline_result
         | Ok baseline_r ->
-            Ok (remove_matches_in_baseline commit baseline_r r status.renamed)
+            Ok
+              (remove_matches_in_baseline caps commit baseline_r r
+                 status.renamed)
       else Ok r
 
 (*****************************************************************************)
 (* Conduct the scan *)
+(* What scan? It takes the list as target files as argument! Call it a scan
+   only if takes scanning roots as argument (a mix of folders and regular
+   files).
+*)
 (*****************************************************************************)
-let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
-    (profiler : Profiler.t)
+let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+    (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
     (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
@@ -529,7 +565,7 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
      - tolerate different output between pysemgrep and osemgrep
        for tests that we would mark as such.
   *)
-  if List_.null rules then Error Exit_code.missing_config
+  if List_.null rules then Error (Exit_code.missing_config ~__LOC__)
   else
     (* step 1: last touch on rules *)
     let filtered_rules =
@@ -580,9 +616,16 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
                  incremental_json_printer) )
       | { output_conf; _ } -> (output_conf.output_format, None)
     in
-    let scan_func = mk_scan_func conf file_match_results_hook errors in
+    (* TODO: What is this wrapping for? It makes things really hard to
+       follow. *)
+    let scan_func =
+      mk_scan_func (caps :> < Cap.tmp >) conf file_match_results_hook errors
+    in
     (* step 3': call the engine! *)
     let exn_and_matches =
+      (* TODO: this long code block should not be here!
+         Please create and use a function with a descriptive name and
+         arguments. *)
       match conf.targeting_conf.baseline_commit with
       | None ->
           Profiler.record profiler ~name:"core_time"
@@ -611,8 +654,10 @@ let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
                    (Differential_scan_config.Depth (diff_targets, diff_depth))
                  filtered_rules)
           in
-          scan_baseline_and_remove_duplicates conf profiler head_scan_result
-            filtered_rules commit status scan_func
+          scan_baseline_and_remove_duplicates
+            (caps :> < Cap.chdir ; Cap.tmp >)
+            conf profiler head_scan_result filtered_rules commit status
+            scan_func
     in
     let (res : Core_runner.result) =
       let res = Core_runner.create_core_result filtered_rules exn_and_matches in
@@ -821,25 +866,17 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~strict:conf.core_runner_conf.strict
-      (caps :> < Cap.network >)
+      (caps :> < Cap.network ; Cap.tmp >)
       conf.rules_source
   in
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
-  (* Change dir if project_root is a git_remote
-   * note: sorry cooper, we gotta do this because
-   * git sparse-checkout doesn't like absolute paths
-   *)
-  (match conf.targeting_conf.project_root with
-  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
-      Sys.chdir (Fpath.to_string checkout_path)
-  | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files
-      (caps :> < Cap.stdout >)
+      (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       conf profiler rules_and_origins targets_and_skipped
   in
   match res with
@@ -848,7 +885,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step4: exit with the right exit code *)
       (* final result for the shell *)
       if conf.error_on_findings && not (List_.null cli_output.results) then
-        Exit_code.findings
+        Exit_code.findings ~__LOC__
       else
         exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
 
@@ -904,18 +941,18 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.version ->
       Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
       Test_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.validate)
   | _ when conf.show <> None ->
       Show_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots
@@ -931,5 +968,5 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Scan_CLI.parse_argv argv in
+  let conf = Scan_CLI.parse_argv (caps :> < Cap.tmp >) argv in
   run_conf caps conf

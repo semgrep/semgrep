@@ -50,7 +50,9 @@ let tests (caps : Cap.all_caps) =
       Unit_memory_limit.tests;
       Unit_tok.tests;
       Unit_Rpath.tests;
+      Unit_git_wrapper.tests;
       Unit_ugly_print_AST.tests;
+      Unit_autofix.tests;
       Unit_autofix_printer.tests;
       Unit_synthesizer.tests;
       Unit_synthesizer_targets.tests;
@@ -64,19 +66,20 @@ let tests (caps : Cap.all_caps) =
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
       Unit_jsonnet.tests ();
-      Unit_metachecking.tests ();
+      Unit_metachecking.tests (caps :> < Cap.tmp >);
       (* OSemgrep tests *)
-      Unit_LS.tests (caps :> < Cap.random ; Cap.network >);
+      Unit_LS.tests (caps :> < Cap.random ; Cap.network ; Cap.tmp >);
       Unit_Login.tests caps;
-      Unit_Fetching.tests (caps :> < Cap.network >);
+      Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
-      Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
+      Test_publish_subcommand.tests
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Osemgrep_tests.tests (caps :> CLI.caps);
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests (caps :> < Cap.random ; Cap.network >);
+      Test_LS_e2e.tests (caps :> < Cap.random ; Cap.network ; Cap.tmp >);
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
@@ -96,7 +99,12 @@ let tests (caps : Cap.all_caps) =
    to allow what we want without this workaround.
 *)
 let tests_with_delayed_error caps =
-  try tests caps with
+  try
+    Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
+    let tests = tests caps in
+    Printf.printf "Done gathering tests.\n%!";
+    tests
+  with
   | e ->
       let exn = Exception.catch e in
       [
@@ -125,7 +133,6 @@ let main (caps : Cap.all_caps) : unit =
            one of its submodules."
   in
   Testutil_files.with_chdir repo_root (fun () ->
-      print_endline ("Running tests from directory: " ^ Sys.getcwd ());
       Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
       Parsing_init.init ();
       Data_init.init ();

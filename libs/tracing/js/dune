@@ -6,4 +6,7 @@
    trace
  )
  (implements tracing)
+  (preprocess (pps
+      ppx_deriving.show
+   ))
 )

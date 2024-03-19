@@ -105,26 +105,6 @@ module Legacy = struct
     output_string chan s;
     close_out chan
 
-  let fullpath file =
-    if not (USys.file_exists file) then
-      failwith (spf "fullpath: file (or directory) %s does not exist" file);
-    let dir, base =
-      if USys.is_directory file then (file, None)
-      else (Filename.dirname file, Some (Filename.basename file))
-    in
-    (* save *)
-    let old = USys.getcwd () in
-
-    USys.chdir dir;
-    let here = USys.getcwd () in
-
-    (* restore *)
-    USys.chdir old;
-
-    match base with
-    | None -> here
-    | Some x -> Filename.concat here x
-
   (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
   let (with_open_outfile :
         string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
@@ -184,8 +164,6 @@ end
 (*****************************************************************************)
 (* Using Fpath.t *)
 (*****************************************************************************)
-
-let fullpath file = Legacy.fullpath !!file |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
   xs |> Fpath_.to_strings |> Legacy.files_of_dirs_or_files_no_vcs_nofilter

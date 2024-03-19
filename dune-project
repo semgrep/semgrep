@@ -479,7 +479,7 @@ For more information see https://semgrep.dev
     ; tracing
     trace
     ppx_trace
-    (opentelemetry (>= 0.6))
+    (opentelemetry (>= 0.8))
     opentelemetry-client-ocurl
     ambient-context-lwt
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
@@ -495,10 +495,10 @@ For more information see https://semgrep.dev
     lwt_ppx
     (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
     ; jsoo
-    (js_of_ocaml (= 5.4.0))
-    (js_of_ocaml-compiler (= 5.4.0))
-    (js_of_ocaml-ppx (= 5.4.0))
-    (js_of_ocaml-lwt (= 5.4.0))
+    (js_of_ocaml (= 5.5.2))
+    (js_of_ocaml-compiler (= 5.5.2))
+    (js_of_ocaml-ppx (= 5.5.2))
+    (js_of_ocaml-lwt (= 5.5.2))
     ctypes_stubs_js
     integers_stubs_js
   )

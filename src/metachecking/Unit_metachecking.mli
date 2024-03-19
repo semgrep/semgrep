@@ -1,1 +1,1 @@
-val tests : unit -> Testo.test list
+val tests : < Cap.tmp > -> Testo.test list

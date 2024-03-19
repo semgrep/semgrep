@@ -22,7 +22,7 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
          in
          UCommon.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting (lang : Lang.t) (file : Fpath.t) options config def =
+let test_tainting (lang : Lang.t) (_file : Fpath.t) options config def =
   UCommon.pr2 "\nDataflow";
   UCommon.pr2 "--------";
   let flow, mapping =
@@ -31,21 +31,7 @@ let test_tainting (lang : Lang.t) (file : Fpath.t) options config def =
       (Dataflow_tainting.mk_empty_java_props_cache ())
       def
   in
-  let taint_to_str taint =
-    let show_taint t =
-      match t.Taint.orig with
-      | Taint.Src src ->
-          let tok1, tok2 = (fst (Taint.pm_of_trace src.call_trace)).range_loc in
-          let r = Range.range_of_token_locations tok1 tok2 in
-          Range.content_at_range file r
-      | Taint.Arg arg -> Taint._show_arg arg
-      | Taint.Control -> "<control>"
-    in
-    taint |> Taint.Taint_set.elements |> List_.map show_taint
-    |> String.concat ", "
-    |> fun str -> "{ " ^ str ^ " }"
-  in
-  DataflowX.display_mapping flow mapping (Taint_lval_env.to_string taint_to_str)
+  DataflowX.display_mapping flow mapping Taint_lval_env.to_string
 
 let test_dfg_tainting rules_file file =
   let rules_file = Fpath.v rules_file in

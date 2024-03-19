@@ -26,12 +26,13 @@ jobs:
     steps:
       - run: |
           curl --request POST \
-                --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-                --header 'content-type: application/json' \
-                --data '{
-                  "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-                  "docker_tag": ${{ needs.get-inputs.outputs.docker_tag }},
-                  "message": "The PR in `returntocorp/e2e` that had the failure was "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}""
+              --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
+              --header 'content-type: application/json' \
+              --data '{
+                "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
+                "docker_tag": ${{ needs.get-inputs.outputs.docker_tag }},
+                "message": "The PR in `returntocorp/e2e` that had the failure was "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}""
+               }'
   semgrep-ci:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
@@ -168,7 +169,7 @@ jobs:
         name: Wait for checks to complete
         run: gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
 name: test-e2e-semgrep-ci
-"on":
+on:
   schedule:
     - cron: 43 20 * * *
   workflow_dispatch:

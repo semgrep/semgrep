@@ -96,8 +96,8 @@ let parse_program file =
 (* Sub parsers *)
 (*****************************************************************************)
 
-let (program_of_string : string -> Ast_go.program) =
- fun s -> UTmp.with_tmp_file ~str:s ~ext:"go" parse_program
+let program_of_string (caps : < Cap.tmp >) (s : string) : Ast_go.program =
+  CapTmp.with_tmp_file caps#tmp ~str:s ~ext:"go" parse_program
 
 (* for sgrep/spatch *)
 let any_of_string s =

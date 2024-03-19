@@ -30,6 +30,7 @@ module Process : sig
   type exit
   type pid
   type kill
+  type chdir
 
   (* See also the separate Exec.t *)
   type fork
@@ -119,11 +120,12 @@ type signal = < signal : Process.signal >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
+type chdir = < chdir : Process.chdir >
 type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; exit >
+type process_single = < signal ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -150,13 +152,14 @@ type all_caps =
  *)
 
 (* pure computation, just cpu/ram *)
-type no_cap
+type no_caps = < >
 
 (**************************************************************************)
 (* Temporary unsafe caps to help migration *)
 (**************************************************************************)
 (* !!DO NOT USE!! *)
-val network_caps_UNSAFE : unit -> < network : Network.t >
+val network_caps_UNSAFE : unit -> < network >
+val tmp_caps_UNSAFE : unit -> < tmp >
 
 (**************************************************************************)
 (* Entry point *)

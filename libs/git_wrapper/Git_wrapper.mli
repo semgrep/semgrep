@@ -4,18 +4,15 @@
 
 exception Error of string
 
-val remote_repo_name : string -> string option
-(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
-
-val temporary_remote_checkout_path : string -> Fpath.t
-(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"] will return
-    [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid remote repo name *)
-
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
- * raise an Error otherwise
+ * raise an Error exn otherwise.
  *)
-val git_check_output : Cap.Exec.t -> Cmd.args -> string
+val git_check_output : < Cap.exec > -> Cmd.args -> string
+
+type sha = SHA of string [@@unboxed] [@@deriving show, eq, ord, sexp]
+
+val head : < Cap.exec > -> ?cwd:Fpath.t -> unit -> sha
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,
@@ -47,6 +44,25 @@ val ls_files :
   Fpath.t list ->
   Fpath.t list
 
+(*
+   This is identical to the 'ls_files' but works even if the current directory
+   is outside the git project.
+
+   The result is a list of file paths that are specified relative to the
+   current directory (unless it's not possible like on Windows if the
+   project is on another volume than the current directory; in that case,
+   we return absolute paths).
+
+   The behavior is unspecified if 'project_root' is not the root of a git
+   project.
+*)
+val ls_files_relative :
+  ?exclude_standard:bool ->
+  ?kinds:ls_files_kind list ->
+  project_root:Rpath.t ->
+  Fpath.t list ->
+  Fpath.t list
+
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string
 
@@ -67,7 +83,11 @@ val get_merge_base : string -> string
    don't need to git stash anything, or expect a clean working tree.
 *)
 val run_with_worktree :
-  commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
+  < Cap.chdir ; Cap.tmp > ->
+  commit:string ->
+  ?branch:string option ->
+  (unit -> 'a) ->
+  'a
 
 type status = {
   added : string list;
@@ -77,17 +97,6 @@ type status = {
   renamed : (string * string) list;
 }
 [@@deriving show]
-
-type sha [@@deriving show, eq, ord, sexp]
-type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-
-(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
-type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
-[@@deriving show]
-
-type batch_check_extra = { size : int } [@@deriving show]
-type batch_extra = { contents : string } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
 
 (* git status *)
 val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
@@ -171,6 +180,16 @@ val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
     the commits since the specified time.
  *)
 
+type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+
+(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
+type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+[@@deriving show]
+
+type batch_check_extra = { size : int } [@@deriving show]
+type batch_extra = { contents : string } [@@deriving show]
+type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
+
 val cat_file_batch_check_all_objects :
   ?cwd:Fpath.t -> unit -> batch_check_extra obj list option
 (** [cat_file_batch_all_objects ()] will run [git log
@@ -194,6 +213,7 @@ val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
 
 val batch_cat_file_blob :
   ?cwd:Fpath.t ->
+  < Cap.tmp > ->
   sha list ->
   ((batch_extra obj, string) result Seq.t, string) result
 (** [batch_cat_file_blob blobs] will run [git cat-file --batch] for each blob
@@ -238,3 +258,17 @@ val ls_tree :
    specified to be true (it is false by default) then the `-r` option is passed
    and git will recurse into subtrees.
  *)
+
+val remote_repo_name : string -> string option
+(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
+
+(*****************************************************************************)
+(* For testing *)
+(*****************************************************************************)
+
+(*
+   Create a temporary git repo for testing purposes, cd into it,
+   call a function, tear down the repo, and restore the original cwd.
+   This is an extension of Testutil_files.
+*)
+val with_git_repo : Testutil_files.t list -> (unit -> 'a) -> 'a

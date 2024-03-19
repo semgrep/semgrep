@@ -13,10 +13,9 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__; "autofix" ]
 let ( let/ ) = Result.bind
 
 (*****************************************************************************)
@@ -94,8 +93,12 @@ let parse_pattern lang pattern =
       let e = Exception.catch e in
       Error e
 
+(* TODO: should not rely on tmp file, have Parse_target accept a
+ * more flexible origin/source
+ *)
 let parse_target lang text =
   (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
+  (* nosemgrep: forbid-tmp *)
   UTmp.with_tmp_file ~str:text ~ext:"check" (fun file ->
       try Ok (Parse_target.just_parse_with_lang lang file) with
       | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
@@ -148,6 +151,7 @@ let transform_fix lang ast =
 
 (* Check whether the proposed fix results in syntactically valid code *)
 let validate_fix lang target_contents edit =
+  Logs.debug (fun m -> m ~tags "validate fix %s" (Textedit.show edit));
   let fail err =
     Error
       (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s"
@@ -244,7 +248,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
 
       let edit =
         {
-          Textedit.path = !!(pm.path.internal_path_to_content);
+          Textedit.path = pm.path.internal_path_to_content;
           start;
           end_;
           replacement_text = text;
@@ -282,12 +286,7 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
   in
   let edit =
     Textedit.
-      {
-        path = !!(pm.path.internal_path_to_content);
-        start;
-        end_;
-        replacement_text;
-      }
+      { path = pm.path.internal_path_to_content; start; end_; replacement_text }
   in
   edit
 
@@ -336,12 +335,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
   in
   let edit =
     Textedit.
-      {
-        path = !!(pm.path.internal_path_to_content);
-        start;
-        end_;
-        replacement_text;
-      }
+      { path = pm.path.internal_path_to_content; start; end_; replacement_text }
   in
   edit
 
@@ -375,9 +369,10 @@ let produce_autofixes (matches : Core_result.processed_match list) =
       { m with autofix_edit = render_fix m.pm })
     matches
 
-let apply_fixes_to_file edits ~file =
-  let file_text = UFile.Legacy.read_file file in
-  match Textedit.apply_edits_to_text file_text edits with
+(* This is used for testing only. This is why it raises an exception. *)
+let apply_fixes_to_file_exn path edits =
+  let file_text = UFile.read_file path in
+  match Textedit.apply_edits_to_text path file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->
       failwith
@@ -386,14 +381,22 @@ let apply_fixes_to_file edits ~file =
              .replacement_text)
 
 let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
-  (* TODO: *)
-  let modified_files, _failed_fixes = Textedit.apply_edits ~dryrun edits in
+  let modified_files, failed_fixes = Textedit.apply_edits ~dryrun edits in
 
-  if modified_files <> [] then
-    Logs.info (fun m ->
-        m "successfully modified %s."
-          (String_.unit_str (List.length modified_files) "file(s)"))
-  else Logs.info (fun m -> m "no files modified.")
+  (match modified_files with
+  | _ :: _ ->
+      Logs.info (fun m ->
+          m ~tags "%smodified %s."
+            (match failed_fixes with
+            | [] -> "successfully "
+            | _ -> "")
+            (String_.unit_str (List.length modified_files) "file(s)"))
+  | [] -> Logs.info (fun m -> m "no files modified."));
+  match failed_fixes with
+  | [] -> ()
+  | _ ->
+      Logs.warn (fun m ->
+          m ~tags "failed to apply %i fix(es)." (List.length failed_fixes))
 
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
   matches
@@ -401,7 +404,47 @@ let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
          let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in
-         Some
-           Textedit.
-             { path = Fpath.to_string m.path; start; end_; replacement_text })
+         Some Textedit.{ path = m.path; start; end_; replacement_text })
   |> apply_fixes ?dryrun
+
+(* Mapping of file path to a list of ranges affected by previous autofixes. *)
+type fixed_lines_env = (Fpath.t, (int * int) list) Hashtbl.t
+
+let make_fixed_lines_env () = Hashtbl.create 13
+
+let make_fixed_lines_of_string env file_contents (edit : Textedit.t) =
+  let previous_edits =
+    match Hashtbl.find_opt env edit.path with
+    | Some xs -> xs
+    | None -> []
+  in
+  let fix_overlaps =
+    (* O(n). But realistically the list will probably be short. We're reading
+     * the whole file contents in anyway each time, too. *)
+    List.exists
+      (fun (st, en) -> st < edit.end_ && en > edit.start)
+      previous_edits
+  in
+  if fix_overlaps then None
+  else
+    (* First, apply the edit *)
+    let updated_contents = Textedit.apply_edit_to_text file_contents edit in
+    (* Now, compute the range in the updated string that was affected by the
+     * edit. *)
+    let start = edit.start in
+    let end_ = start + String.length edit.replacement_text in
+    (* Then, get the lines in the updated string that were affected by the edit.
+     * *)
+    let lines = String_.lines_of_range (start, end_) updated_contents in
+    (* Record that we did this edit, so that subsequent overlapping edits can be
+     * omitted. *)
+    Hashtbl.replace env edit.path ((edit.start, edit.end_) :: previous_edits);
+    match lines with
+    (* If we are deleting whole line(s) only, we omit fixed_lines. This is odd
+     * behavior, but it matches pysemgrep and is exercised by e2e tests. *)
+    | [ "" ] -> None
+    | _ -> Some lines
+
+let make_fixed_lines env (edit : Textedit.t) =
+  let file_contents = UFile.read_file edit.path in
+  make_fixed_lines_of_string env file_contents edit

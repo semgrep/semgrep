@@ -1,0 +1,15 @@
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 6 Code rules:
+  Scanning 1 file with 6 python rules.
+successfully modified 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 6 rules on 1 file: 6 findings.

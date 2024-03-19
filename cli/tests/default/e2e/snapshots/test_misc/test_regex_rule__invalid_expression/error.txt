@@ -1,0 +1,17 @@
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 24 files tracked by git with 1 Code rule:
+  Scanning 11 files.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
+
+Ran 1 rule on 11 files: 0 findings.

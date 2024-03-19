@@ -7,53 +7,63 @@ local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+// exported for other workflows
+local artifact_name = 'semgrep-core-pro-x86-artifact';
+
+// We're using our classic alpine-based container here. At some point
+// we were using setup-ocaml@v2, because we had trouble getting 'gh'
+// under our ocaml-layer based alpine, but this got fixed, and we
+// need now an alpine-based container to statically build
+// the semgrep-core-pro artifact which is used in other workflow and
+// we don't want those other workflow to have to install tree-sitter
+// runtime libraries, so simpler to build a static binary.
+//
+// alt: use setup-ocaml@v2, but need to be careful when moving around dirs
+//      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
+//      and opam can work only when run from this directory
+//      morever, we can't build a static binary which is annoying for the
+//      other workflow importing the exported semgrep-core-pro binary
+// alt: use our r2c ubuntu-ocaml but get 'git ls-files exit 128' error under
+//      GHA that I could not reproduce locally in docker or in circleCI
+//      Update 2024-03-05: this is likely a safe.directory setting.
+// alt: use circleCI but then even with a GH token and with gh I could not
+//      clone semgrep-pro
+local container = semgrep.containers.ocaml_alpine;
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
 
-local job = {
-  'runs-on': 'ubuntu-latest',
-  // Switching to Ubuntu here because Alpine does not provide easily 'gh'
-  // which is needed to checkout semgrep-pro from semgrep GHA.
-  // alt: use our r2c alpine-ocaml and procedure to download gh binary tarball
-  // alt: use our r2c ubuntu-ocaml but get 'git ls-files exit 128' error under
-  //      GHA that I could not reproduce locally in docker or in circleCI
-  // alt: use circleCI but then even with a GH token and with gh I could not
-  //      clone semgrep-pro
-  // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
-  //      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
-  //      and opam can work only when run from this directory
-  steps: semgrep.github_bot.get_token_steps + [
-    actions.checkout_with_submodules(),
-    // this must be done after the checkout as opam installs itself
-    // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
+local job = container.job {
+  steps: [
     {
-      name: 'Setup OCaml and opam',
-      uses: 'ocaml/setup-ocaml@v2',
-      with: {
-        'ocaml-compiler': semgrep.opam_switch,
-      },
+      name: 'Install required alpine packages',
+      run: |||
+        # Needed by github bot to parse json results from github's endpoint.
+        apk add jq
+        # Needed for gh commands.
+        apk add github-cli
+        # Needed for large files in semgrep-proprietary.
+        apk add git-lfs
+      |||,
     },
+  ] + semgrep.github_bot.get_token_steps + [
+    gha.speedy_checkout_step,
+    actions.checkout_with_submodules(),
+    gha.git_safedir,
     semgrep.cache_opam.step(
-      key=semgrep.opam_switch + '-_opam-' + "${{ hashFiles('semgrep.opam') }}",
-      path="_opam",
-    ),
-    // alt: call 'sudo make install-deps-UBUNTU-for-semgrep-core'
-    // but looks like opam and setup-ocaml@ can automatically install
-    // depext dependencies.
+      key=container.opam_switch + "-${{hashFiles('semgrep.opam')}}"),
     {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
+        make install-deps-ALPINE-for-semgrep-core
         make install-deps-for-semgrep-core
         make install-deps
       |||,
     },
-    // Let's use gh and our github_bot token to access a private repo
     {
-      run: 'sudo apt-get install gh',
-    },
-    {
+      # Needed for access to private repo.
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
@@ -76,22 +86,12 @@ local job = {
         ln -s ../semgrep
       |||,
     },
-    // setup-ocaml@ installs opam in a local folder per project,
-    // not in a global ~/.opam/, so here we reuse the same _opam
-    // in the semgrep-pro otherwise opam commands would fail
-    // with 'no opam switch set'
-    {
-      name: 'Ugly hack for setup-ocaml',
-      run: |||
-        cd ../semgrep-proprietary
-        ln -s ../semgrep/_opam
-      |||,
-    },
     {
       name: 'Install semgrep-pro dependencies',
       run: |||
         cd ../semgrep-proprietary
         eval $(opam env)
+        make install-deps-ALPINE
         make install-deps
       |||,
     },
@@ -104,7 +104,17 @@ local job = {
         make
       |||,
     },
-
+    // alt: use semgrep.make_artifact_step but here we store 2 binaries
+    {
+      name: 'Make artifact',
+      run: |||
+        mkdir artifacts
+        cp ../semgrep-proprietary/bin/semgrep-core artifacts/
+        cp ../semgrep-proprietary/bin/semgrep-core-proprietary artifacts/
+        tar czf artifacts.tgz artifacts/
+      |||,
+    },
+    actions.upload_artifact_step(artifact_name),
     {
       name: 'Test semgrep-pro',
       run: |||
@@ -148,8 +158,14 @@ local job = {
 
 {
   name: 'check-semgrep-pro',
-  on: gha.on_classic,
+  // on_classic so that it's triggered on PRs
+  // on_dispatch_or_call so its artifacts can be used by another workflow
+  on: gha.on_classic + gha.on_dispatch_or_call,
   jobs: {
     job: job,
+  },
+  // to be reused by other workflows
+  export:: {
+    artifact_name: artifact_name,
   },
 }
