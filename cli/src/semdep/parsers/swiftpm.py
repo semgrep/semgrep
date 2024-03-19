@@ -130,14 +130,18 @@ def parse_swiftpm_v2(
         if package is None:
             continue
         package_name = package.as_str().lower()
+        repository_url = fields.get("location")
 
         state = fields.get("state")
         if state is None:
             continue
 
-        version = state.as_dict().get("version")
+        state_dict = state.as_dict()
+        version = state_dict.get("version")
         if version is None:
             continue
+
+        revision = state_dict.get("revision")
 
         result.append(
             FoundDependency(
@@ -147,6 +151,8 @@ def parse_swiftpm_v2(
                 allowed_hashes={},
                 transitivity=transitivity(direct_deps, [package_name]),
                 line_number=version.line_number,
+                git_ref=revision.as_str() if revision else None,
+                resolved_url=repository_url.as_str() if repository_url else None,
             )
         )
 
@@ -171,13 +177,18 @@ def parse_swiftpm_v1(
             continue
 
         package_name = package.as_str().lower()
+        repository_url = fields.get("repositoryURL")
+
         state = fields.get("state")
         if state is None:
             continue
 
-        version = state.as_dict().get("version")
+        state_dict = state.as_dict()
+        version = state_dict.get("version")
         if version is None:
             continue
+
+        revision = state_dict.get("revision")
 
         result.append(
             FoundDependency(
@@ -187,6 +198,8 @@ def parse_swiftpm_v1(
                 allowed_hashes={},
                 transitivity=transitivity(direct_deps, [package_name]),
                 line_number=version.line_number,
+                git_ref=revision.as_str() if revision else None,
+                resolved_url=repository_url.as_str() if repository_url else None,
             )
         )
 
