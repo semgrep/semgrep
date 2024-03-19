@@ -48,7 +48,7 @@
         "fingerprint": "0x42",
         "fix": "print('\ud83d\ude0a')",
         "fixed_lines": [
-          "y = '\ud83d\ude0a'; priprint('\ud83d\ude0a')rint('a')"
+          "y = '\ud83d\ude0a'; print('\ud83d\ude0a'); print('a')"
         ],
         "is_ignored": false,
         "lines": "y = '\ud83d\ude0a'; print('a'); print('a')",
@@ -77,7 +77,7 @@
         "fingerprint": "0x42",
         "fix": "print('\ud83d\ude0a')",
         "fixed_lines": [
-          "y = '\ud83d\ude0a'; print('a'); priprint('\ud83d\ude0a')"
+          "y = '\ud83d\ude0a'; print('a'); print('\ud83d\ude0a')"
         ],
         "is_ignored": false,
         "lines": "y = '\ud83d\ude0a'; print('a'); print('a')",
