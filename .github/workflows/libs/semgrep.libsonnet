@@ -232,6 +232,7 @@ local slack = {
   },
 
   // this will post on Slack on #team-semgrep-core
+  // TODO: this channel is archived so need update NOTIFICATIONS_URL
   curl_notify_start_release(version, message): |||
       curl --request POST \
        --url  ${{ secrets.NOTIFICATIONS_URL }} \

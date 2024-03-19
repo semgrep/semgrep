@@ -16,12 +16,12 @@ jobs:
     steps:
       - run: |
           curl --request POST \
-           --url  ${{ secrets.NOTIFICATIONS_URL }} \
-           --header 'content-type: application/json' \
-           --data '{
-             "version": "ver",
-             "message": "mesg"
-           }'
+              --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
+              --header 'content-type: application/json' \
+              --data '{
+                "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
+                "docker_tag": arg1,
+                "message": "mesg2"
 name: cron-parsing-stats
 on:
   schedule:
