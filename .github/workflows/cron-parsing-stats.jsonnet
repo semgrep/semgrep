@@ -59,7 +59,7 @@ local job = {
   },
   jobs: {
     job: job,
-    'notify-failure': semgrep.slack.notify_failure_nightly_job +
+    'notify-failure': semgrep.slack.notify_failure_start_release_job('ver','mesg') +
       { needs: ['job'] },
   },
 }

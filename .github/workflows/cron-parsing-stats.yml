@@ -16,12 +16,12 @@ jobs:
     steps:
       - run: |
           curl --request POST \
-          --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "commit_sha": "${{ github.sha }}",
-            "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
-          }'
+           --url  ${{ secrets.NOTIFICATIONS_URL }} \
+           --header 'content-type: application/json' \
+           --data '{
+             "version": "ver",
+             "message": "mesg"
+           }'
 name: cron-parsing-stats
 on:
   schedule:
