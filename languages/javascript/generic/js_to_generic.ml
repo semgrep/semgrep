@@ -674,7 +674,7 @@ and field_classic
       let fkind, tok = def.G.fkind in
       let fkind =
         match fkind with
-        | G.Function -> G.Method
+        | G.Function -> G.Method None
         | x -> x
       in
       ( { ent with G.attrs = ent.G.attrs @ more_attrs },

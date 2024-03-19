@@ -98,6 +98,18 @@ let fake tok s = Tok.fake_tok tok s
 let unsafe_fake s = Tok.unsafe_fake_tok s
 let fb = Tok.unsafe_fake_bracket
 
+let has_staticmethod_decorator attrs =
+  attrs
+  |> List.exists (function
+       | G.NamedAttr (_, G.Id (("staticmethod", _), _), _) -> true
+       | _ -> false)
+
+let python_instance_method_kind =
+  G.Method
+    (Some { G.has_reciever_parameter = true; G.method_is_static = false })
+
+let python_static_method_kind = G.Method (Some G.default_static_method_kind)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -560,18 +572,20 @@ and fieldstmt x =
 and stmt_aux env x =
   match x with
   | FunctionDef (t, v1, v2, v3, v4, v5) ->
+      let env' = { env with context = InFunctionOrMethod } in
+      let v1 = name env' v1
+      and v2 = parameters env' v2
+      and v3 = option (type_ env') v3
+      and v4 = list_stmt1 env' v4
+      and v5 = list (decorator env') v5 in
+      let ent = G.basic_entity v1 ~attrs:v5 in
       let fkind =
         match env.context with
-        | InClass -> G.Method
+        | InClass when has_staticmethod_decorator v5 ->
+            python_static_method_kind
+        | InClass -> python_instance_method_kind
         | _ -> G.Function
       in
-      let env = { env with context = InFunctionOrMethod } in
-      let v1 = name env v1
-      and v2 = parameters env v2
-      and v3 = option (type_ env) v3
-      and v4 = list_stmt1 env v4
-      and v5 = list (decorator env) v5 in
-      let ent = G.basic_entity v1 ~attrs:v5 in
       let def =
         {
           G.fparams = fb v2;

@@ -770,7 +770,7 @@ and definition def =
           G.fparams = fb params;
           frettype = None;
           fbody = G.FBStmt body;
-          fkind = (G.Method, t);
+          fkind = (G.Method None, t);
         }
       in
       match kind with

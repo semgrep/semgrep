@@ -432,7 +432,7 @@ sgrep_spatch_pattern:
       *)
      Partial (PartialDef (mk_def (Some $4,
       FuncDef
-       { f_kind = (Method, $5)
+       { f_kind = (Method None, $5)
        ; f_params = $5, $6, $7
        ; f_body = Block (fb $5 [])
        ; f_rettype = $8
@@ -457,7 +457,7 @@ sgrep_spatch_pattern:
      let sig_ = (None, ($5, $6, $7), $8) in
      let static = attr_opt Static $2 in
      let async = attr_opt Async $3 in
-     let fun_ = mk_Fun ~attrs:($1 @ static @ async) (Method, $5) sig_ ($9, $10, $11) in
+     let fun_ = mk_Fun ~attrs:($1 @ static @ async) (Method None, $5) sig_ ($9, $10, $11) in
      Property (mk_Field (PN $4) (Some fun_))
    }
 
@@ -470,7 +470,7 @@ sgrep_spatch_pattern:
     "{" function_body "}" EOF
    {
      let sig_ = (None, ($2, $3, $4), $5) in
-     let fun_ = mk_Fun (Method, $2) sig_ ($6, $7, $8) in
+     let fun_ = mk_Fun (Method None, $2) sig_ ($6, $7, $8) in
      Property (mk_Field (PN $1) (Some fun_));
    }
 
@@ -872,7 +872,7 @@ method_definition:
         (match $2 with None -> [] | Some t -> [KeywordAttr (Async, t)]) @
         (match $3 with None -> [] | Some x -> [KeywordAttr x])
       in
-      mk_Field $4 (Some (mk_Fun ~attrs (Method, $6) $5 ($6, $7, $8))) }
+      mk_Field $4 (Some (mk_Fun ~attrs (Method None, $6) $5 ($6, $7, $8))) }
 
 (* we used to enforce that T_GET had a call_signature with 0 param and
  * T_SET with 1 param, but not worth it (tree-sitter-js does not enforce it)

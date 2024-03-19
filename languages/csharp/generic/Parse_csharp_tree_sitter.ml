@@ -1916,7 +1916,8 @@ and statement (env : env) (x : CST.statement) =
       let def =
         G.FuncDef
           {
-            fkind = (G.Method, tok);
+            (* TODO determine if this is a static function *)
+            fkind = (G.Method None, tok);
             fparams = v6;
             frettype = Some v3;
             fbody = v8;
@@ -3016,7 +3017,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       let def =
         G.FuncDef
-          { fkind = (G.Method, tok); fparams = v4; frettype = None; fbody }
+          { fkind = (G.Method None, tok); fparams = v4; frettype = None; fbody }
       in
       let ctor = KeywordAttr (Ctor, tok) in
       let attrs = (ctor :: v1) @ v2 in
@@ -3053,7 +3054,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let def =
         G.FuncDef
           {
-            fkind = (G.Method, v5);
+            fkind = (G.Method None, v5);
             fparams = v8;
             frettype = Some v7;
             fbody = v9;
@@ -3074,7 +3075,12 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let name = ("Finalize", v3) in
       let def =
         G.FuncDef
-          { fkind = (G.Method, v3); fparams = v5; frettype = None; fbody = v6 }
+          {
+            fkind = (G.Method None, v3);
+            fparams = v5;
+            frettype = None;
+            fbody = v6;
+          }
       in
       let dtor = KeywordAttr (Dtor, v3) in
       let ent = basic_entity name ~attrs:((dtor :: v1) @ v2) in
@@ -3111,7 +3117,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                      let funcdef =
                        FuncDef
                          {
-                           fkind = (Method, itok);
+                           fkind = (Method None, itok);
                            fparams = fb [ valparam ];
                            frettype = None;
                            fbody;
@@ -3164,7 +3170,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        let funcdef =
                          FuncDef
                            {
-                             fkind = (Method, itok);
+                             fkind = (Method None, itok);
                              fparams = (lbra, params, rbra);
                              frettype = Some v3;
                              fbody;
@@ -3186,7 +3192,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        let funcdef =
                          FuncDef
                            {
-                             fkind = (Method, itok);
+                             fkind = (Method None, itok);
                              fparams = (lbra, params @ [ valparam ], rbra);
                              frettype = None;
                              fbody;
@@ -3232,7 +3238,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let def =
         G.FuncDef
           {
-            fkind = (G.Method, tok);
+            fkind = (G.Method None, tok);
             fparams = v7;
             frettype = Some v3;
             fbody = v9;
@@ -3266,7 +3272,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let def =
         G.FuncDef
           {
-            fkind = (G.Method, v5);
+            fkind = (G.Method None, v5);
             fparams = v8;
             frettype = Some v3;
             fbody = v9;
@@ -3308,7 +3314,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                   let funcdef =
                     FuncDef
                       {
-                        fkind = (Method, itok);
+                        fkind = (Method None, itok);
                         fparams =
                           fb
                             (if has_params then

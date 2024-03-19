@@ -1073,7 +1073,7 @@ and v_function_definition
 
 and v_function_kind = function
   | LambdaArrow -> G.Arrow
-  | Def -> G.Method
+  | Def -> G.Method None
 
 and v_fbody body : G.function_body =
   match body with
