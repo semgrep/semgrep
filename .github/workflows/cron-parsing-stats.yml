@@ -20,8 +20,9 @@ jobs:
               --header 'content-type: application/json' \
               --data '{
                 "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-                "docker_tag": arg1,
+                "docker_tag": null,
                 "message": "mesg2"
+               }'
 name: cron-parsing-stats
 on:
   schedule:

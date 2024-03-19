@@ -219,6 +219,7 @@ local slack = {
           "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
           "docker_tag": %s,
           "message": "%s"
+         }'
    ||| % [docker_tag, message],
 
  notify_failure_e2e_semgrep_ci_job(docker_tag, message): {

@@ -32,6 +32,7 @@ jobs:
                 "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
                 "docker_tag": ${{ needs.get-inputs.outputs.docker_tag }},
                 "message": "The PR in `returntocorp/e2e` that had the failure was "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}""
+               }'
   semgrep-ci:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}

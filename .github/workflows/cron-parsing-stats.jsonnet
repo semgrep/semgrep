@@ -59,7 +59,8 @@ local job = {
   },
   jobs: {
     job: job,
-    'notify-failure': semgrep.slack.notify_failure_e2e_semgrep_ci_job('arg1','mesg2') +
+    'notify-failure': semgrep.slack.notify_failure_e2e_semgrep_ci_job(
+        'null', 'mesg2') +
       { needs: ['job'] },
   },
 }
