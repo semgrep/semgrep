@@ -13,4 +13,4 @@ print('😊')
 
 # And this one is here at the beginning of a line to throw off columns later in
 # the line if we are computing them incorrectly.
-y = '😊'; priprint('😊')riprint('😊')
+y = '😊'; print('😊'); print('😊')

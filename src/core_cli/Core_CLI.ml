@@ -611,6 +611,12 @@ let options caps actions =
             UCommon.pr2 version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
+      ( "-rpc",
+        Arg.Unit
+          (fun () ->
+            RPC.main caps;
+            Core_exit_code.(exit_semgrep caps#exit Success)),
+        " don't use this unless you already know" );
     ]
 
 (*****************************************************************************)
