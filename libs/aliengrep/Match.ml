@@ -46,6 +46,6 @@ let convert_match (pat : Pat_compile.t) target_str
   { match_loc; captures }
 
 let search (pat : Pat_compile.t) target_str : match_ list =
-  Pcre_.exec_all_noerr ~rex:pat.pcre target_str
+  Legacy_regex.exec_all_noerr ~rex:pat.pcre target_str
   |> Array.to_list
   |> List_.map (convert_match pat target_str)

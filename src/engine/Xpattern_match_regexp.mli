@@ -5,11 +5,11 @@ val regexp_matcher :
   ?base_offset:int ->
   (* str *) string ->
   Fpath.t ->
-  Regexp_engine.t ->
+  Regex.t ->
   ((Tok.location * Tok.location) * (string * Metavariable.mvalue) list) list
 
 val matches_of_regexs :
-  (Regexp_engine.t * Xpattern.pattern_id * string) list ->
+  (Regex.t * Xpattern.pattern_id * string) list ->
   string Lazy.t ->
   Fpath.t ->
   Origin.t ->
