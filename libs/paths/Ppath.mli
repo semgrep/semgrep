@@ -107,3 +107,6 @@ end
 
 (* A slash-separated path. Must start with a slash. *)
 val of_string_for_tests : string -> t
+
+val in_project_unsafe_for_tests :
+  phys_root:Fpath.t -> Fpath.t -> (t, string) result

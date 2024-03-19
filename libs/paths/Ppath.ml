@@ -177,7 +177,6 @@ let to_fpath ~root path =
       Fpath.normalize
   | _ -> assert false
 
-(* TODO: TEST *)
 let relativize ~root:orig_root orig_ppath =
   let rec aux root ppath =
     match (root, ppath) with
@@ -275,7 +274,7 @@ let of_relative_fpath (fpath : Fpath.t) =
    This assumes the input paths are normalized. We use this
    in tests to avoid having to create actual files.
 *)
-let in_project_unsafe ~(phys_root : Fpath.t) (path : Fpath.t) =
+let in_project_unsafe_for_tests ~(phys_root : Fpath.t) (path : Fpath.t) =
   let abs_path = make_absolute path in
   match remove_prefix phys_root abs_path with
   | None ->
@@ -290,95 +289,10 @@ let in_project_unsafe ~(phys_root : Fpath.t) (path : Fpath.t) =
   | Some rel_path -> Ok (of_relative_fpath rel_path)
 
 let in_project ~(root : Rfpath.t) (path : Fpath.t) =
-  in_project_unsafe ~phys_root:(root.rpath |> Rpath.to_fpath) path
+  in_project_unsafe_for_tests ~phys_root:(root.rpath |> Rpath.to_fpath) path
 
 (*****************************************************************************)
 (* Tests helpers *)
 (*****************************************************************************)
 
 let of_string_for_tests string = create (String.split_on_char '/' string)
-
-(*****************************************************************************)
-(* Inline tests *)
-(*****************************************************************************)
-
-let () =
-  let open Printf in
-  Testo.test "Ppath" (fun () ->
-      let test_str f input expected_output =
-        Alcotest.(check string) __LOC__ expected_output (f input)
-      in
-      let rewrite str = to_string (of_string_for_tests str) in
-      test_str rewrite "/" "/";
-      test_str rewrite "//" "//";
-      test_str rewrite "" "";
-      test_str rewrite "/a/" "/a/";
-
-      let norm input_str expected =
-        let res = input_str |> of_string_for_tests |> to_string in
-        printf "test ppath normalization: %s -> %s\n%!" input_str res;
-        Alcotest.(check string) __LOC__ expected res
-      in
-      let norm_err str =
-        match of_string_for_tests str with
-        | exception Invalid_argument _ -> ()
-        | res ->
-            Alcotest.fail
-              (sprintf "an error was expected but we got: %s -> %s\n" str
-                 (to_string res))
-      in
-      norm "/a" "/a";
-      norm "/a/b" "/a/b";
-      norm "/ab/cd" "/ab/cd";
-      norm "/" "/";
-      norm "/a" "/a";
-      norm "/a/b" "/a/b";
-      norm "/." "/";
-      norm "/a/./" "/a/";
-      norm_err "/..";
-      norm "/a/../b" "/b";
-      norm "/a/.." "/";
-      norm_err "/a/../..";
-      norm "/a/b/../c/d/e/../.." "/a/c";
-      norm "/a/" "/a/";
-      norm "/a/b/" "/a/b/";
-
-      let test_add_seg a b ab =
-        Alcotest.(check string)
-          __LOC__ ab
-          (add_seg (of_string_for_tests a) b |> to_string)
-      in
-      test_add_seg "/" "a" "/a";
-      test_add_seg "/a" "b" "/a/b";
-      test_add_seg "/a/" "c" "/a/c";
-
-      let mk_abs path_str = Fpath.(v "/fake/cwd" // v path_str) in
-      let test_in_project_ok root path expected =
-        match in_project_unsafe ~phys_root:(mk_abs root) (mk_abs path) with
-        | Ok res -> Alcotest.(check string) __LOC__ expected (to_string res)
-        | Error msg -> Alcotest.fail msg
-      in
-      let test_in_project_fail root path =
-        match in_project_unsafe ~phys_root:(Fpath.v root) (Fpath.v path) with
-        | Ok res -> Alcotest.fail (to_string res)
-        | Error _ -> ()
-      in
-      test_in_project_ok "/a" "/a/b" "/b";
-      test_in_project_ok "/a" "/a" "/";
-      test_in_project_ok "/a" "/a/b/c" "/b/c";
-      test_in_project_ok "/a" "/a/b/c/d" "/b/c/d";
-      test_in_project_ok "/a/b" "/a/b/c/d" "/c/d";
-      test_in_project_ok "/a/" "/a/b" "/b";
-      test_in_project_ok "/a" "/a/b/" "/b/";
-      test_in_project_ok "/a/b" "/a/b/c/.." "/";
-      test_in_project_ok "/a/b" "/a/b/c/../" "/";
-      test_in_project_ok "/a/b" "/a/b/./c/." "/c/";
-      test_in_project_ok "a/b" "a/b/c" "/c";
-      test_in_project_ok "." "a/b" "/a/b";
-      test_in_project_ok "a" "./a/b" "/b";
-      test_in_project_ok "." "." "/";
-      test_in_project_ok "a/b" "a/b" "/";
-      test_in_project_ok "/a/b" "/a/b" "/";
-      test_in_project_fail "/a/b" "/a";
-      test_in_project_fail "/a/b" "/b";
-      test_in_project_fail "/a/b" "a")

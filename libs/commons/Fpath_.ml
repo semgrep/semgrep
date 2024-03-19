@@ -30,7 +30,6 @@ let of_strings strings = List_.map Fpath.v strings
 let to_strings paths = List_.map Fpath.to_string paths
 let ( !! ) = Fpath.to_string
 
-(* TODO: TEST *)
 let of_relative_segments segs =
   match segs with
   | "" :: _

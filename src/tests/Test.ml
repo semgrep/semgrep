@@ -51,6 +51,7 @@ let tests (caps : Cap.all_caps) =
       Unit_guess_lang.tests;
       Unit_memory_limit.tests;
       Unit_tok.tests;
+      Unit_Ppath.tests;
       Unit_Rpath.tests;
       Unit_git_wrapper.tests;
       Unit_ugly_print_AST.tests;
