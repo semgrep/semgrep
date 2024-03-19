@@ -15,6 +15,7 @@
 // * * * * *
 
 local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The job
@@ -58,5 +59,9 @@ local job = {
   },
   jobs: {
     job: job,
+    //TODO: abusing the nightly notif because the other do not work
+    'notify-failure': semgrep.slack.notify_failure_nightly_job(
+        'Actually the cron parsing stats failed', 'https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml ') +
+      { needs: ['job'] },
   },
 }

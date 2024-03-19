@@ -211,7 +211,7 @@ local park_pypi_packages_job = {
       uses: 'pypa/gh-action-pypi-publish@release/v1',
       with: {
         user: '__token__',
-        password: '${{ secrets.pypi_upload_token }}',
+        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
         packages_dir: 'cli/dist/',
       },
@@ -222,7 +222,7 @@ local park_pypi_packages_job = {
       with: {
         repository_url: 'https://test.pypi.org/legacy/',
         user: '__token__',
-        password: '${{ secrets.test_pypi_upload_token }}',
+        password: '${{ secrets.TEST_PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
         packages_dir: 'cli/dist/',
       },
@@ -263,7 +263,7 @@ local upload_wheels_job = {
       uses: 'pypa/gh-action-pypi-publish@release/v1',
       with: {
         user: '__token__',
-        password: '${{ secrets.pypi_upload_token }}',
+        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
       },
     } + unless_dry_run,

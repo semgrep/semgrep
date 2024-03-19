@@ -23,21 +23,6 @@ local docker_tag = "${{ needs.get-inputs.outputs.docker_tag }}";
 local pr_number = '"${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"';
 
 // ----------------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------------
-// This will post on Slack on #???
-// TODO: factorize with start-release.jsonnet and other workflows using Slack
-local curl_notify(message) = |||
-  curl --request POST \
-        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-        --header 'content-type: application/json' \
-        --data '{
-          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-          "docker_tag": %s,
-          "message": "%s"
- ||| % [docker_tag, message];
-
-// ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
 local docker_tag_input = {
@@ -290,36 +275,6 @@ local wait_for_checks_job = {
 };
 
 // ----------------------------------------------------------------------------
-// Failure notification
-// ----------------------------------------------------------------------------
-//TODO: use instead the more direct:
-//        if: failure()
-//        uses: slackapi/slack-github-action@v1.23.0
-//        with:
-//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
-//          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-//        env:
-//           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
-
-local notify_failure_job = {
-  needs: [
-    'semgrep-ci',
-    'semgrep-ci-on-pr',
-    'semgrep-ci-fail-open',
-    'semgrep-ci-fail-open-blocking-findings',
-    'wait-for-checks',
-    'get-inputs',
-  ],
-  'runs-on': 'ubuntu-20.04',
-  'if': 'failure()',
-  steps: [
-    {
-      run: curl_notify("The PR in `returntocorp/e2e` that had the failure was %s" % pr_number),
-    },
-  ],
-};
-
-// ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
 {
@@ -341,6 +296,17 @@ local notify_failure_job = {
     // the two jobs below work together
     'semgrep-ci-on-pr': semgrep_ci_on_pr_job,
     'wait-for-checks': wait_for_checks_job,
-    'notify-failure': notify_failure_job,
+    'notify-failure':
+       semgrep.slack.notify_failure_e2e_semgrep_ci_job
+        (docker_tag,
+        "The PR in `returntocorp/e2e` that had the failure was %s" % pr_number)
+       + { needs: [
+          'semgrep-ci',
+          'semgrep-ci-on-pr',
+          'semgrep-ci-fail-open',
+          'semgrep-ci-fail-open-blocking-findings',
+          'wait-for-checks',
+          'get-inputs',
+          ] },
   },
 }

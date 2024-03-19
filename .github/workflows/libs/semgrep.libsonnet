@@ -176,6 +176,87 @@ local containers = {
 };
 
 // ----------------------------------------------------------------------------
+// Slack helpers
+// ----------------------------------------------------------------------------
+
+//TODO: use instead the more direct:
+//        if: failure()
+//        uses: slackapi/slack-github-action@v1.23.0
+//        with:
+//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
+//          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+//        env:
+//           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
+// (but this need R2C_SLACK_TOKEN which was not added to the public semgrep repo)
+
+local slack = {
+  // This will post on Slack on #logs-semgrep-release
+  curl_notify_nightly_homebrew(commit, url): |||
+        curl --request POST \
+        --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
+        --header 'content-type: application/json' \
+        --data '{
+          "commit_sha": "%s",
+          "workflow_url": "%s"
+        }'
+   ||| %  [ commit, url],
+ notify_failure_nightly_job(commit, url): {
+  'runs-on': 'ubuntu-20.04',
+  'if': 'failure()',
+  steps: [
+    {
+      run: slack.curl_notify_nightly_homebrew(commit, url),
+    },
+   ],
+  },
+
+  // This will post on Slack on #???
+  // TODO: change the target, I have no idea where those notifications go
+  curl_notify_e2e_semgrep_ci(docker_tag, message): |||
+    curl --request POST \
+        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
+        --header 'content-type: application/json' \
+        --data '{
+          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
+          "docker_tag": %s,
+          "message": "%s"
+         }'
+   ||| % [docker_tag, message],
+
+ notify_failure_e2e_semgrep_ci_job(docker_tag, message): {
+  'runs-on': 'ubuntu-20.04',
+  'if': 'failure()',
+  steps: [
+    {
+      run: slack.curl_notify_e2e_semgrep_ci(docker_tag, message),
+    },
+   ],
+  },
+
+  // this will post on Slack on #team-semgrep-core
+  // TODO: this channel is archived so need update NOTIFICATIONS_URL
+  curl_notify_start_release(version, message): |||
+      curl --request POST \
+       --url  ${{ secrets.NOTIFICATIONS_URL }} \
+       --header 'content-type: application/json' \
+       --data '{
+         "version": "%s",
+         "message": "%s"
+       }'
+    ||| % [version, message],
+
+  notify_failure_start_release_job(version, message): {
+   'runs-on': 'ubuntu-20.04',
+   'if': 'failure()',
+    steps: [
+      {
+        run: slack.curl_notify_start_release(version, message),
+      },
+     ],
+    },
+};
+
+// ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
 
@@ -215,4 +296,5 @@ local containers = {
   containers: containers,
   github_bot: github_bot,
   cache_opam: cache_opam,
+  slack: slack,
 }
