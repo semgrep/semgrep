@@ -40,9 +40,18 @@ let default_skip_libs =
     "cohttp.lwt.client";
     "cohttp.lwt.io";
     "conduit_lwt_server";
-    "mirage-crypto-rng.lwt";
-    "mirage-crypto-rng-lwt";
-    "mirage-crypto-rng.unix";
+    "dns*";
+    (* There's like a dozen of these, I'm not adding them all -austin *)
+    "git*";
+    "happy-eyeballs*";
+    "awa.*";
+    "paf*";
+    "thin";
+    "find-common";
+    "smart_flow";
+    "mimic";
+    "pck";
+    "mirage-crypto-rng*";
     "handshake";
     "tls.config";
     "tls.tracing";
@@ -304,7 +313,13 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   Logs.Src.list ()
   |> List.iter (fun src ->
          match Logs.Src.name src with
-         | x when List.mem x skip_libs -> Logs.Src.set_level src None
+         | x
+           when List.exists
+                  (fun lib ->
+                    let re = Re.Pcre.regexp lib in
+                    Re.execp re x)
+                  skip_libs ->
+             Logs.Src.set_level src None
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))

@@ -51,3 +51,5 @@ val hashset_to_list : 'a hashset -> 'a list
 val push : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v -> unit
 val peek_opt : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v option
 val get_stack : ('k, 'v list ref) Hashtbl.t -> 'k -> 'v list
+val find_some_opt : ('k, 'v) Hashtbl.t -> ('v -> 'a option) -> 'k -> 'a option
+val find_some : ('k, 'v) Hashtbl.t -> ('v -> 'a) -> 'k -> 'a

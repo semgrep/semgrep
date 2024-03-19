@@ -39,19 +39,18 @@ type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 
 (** [tempfile_of_git_blob sha] is the path to a newly created temporary file
     which contains the contents of the git blob object identified by [sha] *)
-let tempfile_of_git_blob sha =
-  let contents = Git_wrapper.cat_file_blob sha |> Result.get_ok in
+let tempfile_of_git_blob blob =
+  (* TODO write contents. Assuming they've been written before  *)
   (* TODO: use CapTmp, but that requires to change lots of callers *)
   (* nosemgrep: forbid-tmp *)
-  let file = UTmp.new_temp_file "git-blob" ([%show: Git_wrapper.sha] sha) in
-  UFile.write_file file contents;
+  let file = UTmp.new_temp_file "git-blob" (OGit_wrapper.Hash.to_hex blob) in
   file
 
 let path_of_origin (origin : Origin.t) : path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
-  | GitBlob { sha; _ } ->
-      { origin; internal_path_to_content = tempfile_of_git_blob sha }
+  | GitBlob { blob; _ } ->
+      { origin; internal_path_to_content = tempfile_of_git_blob blob }
 
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
