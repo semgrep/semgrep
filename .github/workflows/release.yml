@@ -134,14 +134,14 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages_dir: cli/dist/
-          password: ${{ secrets.pypi_upload_token }}
+          password: ${{ secrets.PYPI_UPLOAD_TOKEN }}
           skip_existing: true
           user: __token__
       - name: Publish to test Pypi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages_dir: cli/dist/
-          password: ${{ secrets.test_pypi_upload_token }}
+          password: ${{ secrets.TEST_PYPI_UPLOAD_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
           skip_existing: true
           user: __token__
@@ -216,7 +216,7 @@ jobs:
         name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.pypi_upload_token }}
+          password: ${{ secrets.PYPI_UPLOAD_TOKEN }}
           skip_existing: true
           user: __token__
   wait-for-build-test:

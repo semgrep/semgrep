@@ -15,6 +15,7 @@
 // * * * * *
 
 local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The job
@@ -58,5 +59,7 @@ local job = {
   },
   jobs: {
     job: job,
+    'notify-failure': semgrep.slack.notify_failure_nightly_job +
+      { needs: ['job'] },
   },
 }
