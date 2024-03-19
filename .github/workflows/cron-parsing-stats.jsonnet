@@ -26,6 +26,13 @@ local job = {
   container: 'returntocorp/semgrep:develop',
   steps: [
     actions.checkout(),
+    // The packages below used to be part of the returntocorp/semgrep docker
+    // image but got removed to reduce its attack surface, so we need
+    // to install them now
+    {
+      name: 'Install dependencies',
+      run: 'apk add bash jq curl',
+    },
     {
       // Run parsing stats and publish them to the semgrep dashboard.
       run: |||
