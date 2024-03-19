@@ -59,8 +59,9 @@ local job = {
   },
   jobs: {
     job: job,
-    'notify-failure': semgrep.slack.notify_failure_e2e_semgrep_ci_job(
-        'null', 'mesg2') +
+    //TODO: abusing the nightly notif because the other do not work
+    'notify-failure': semgrep.slack.notify_failure_nightly_job(
+        'pb1', 'pb2') +
       { needs: ['job'] },
   },
 }

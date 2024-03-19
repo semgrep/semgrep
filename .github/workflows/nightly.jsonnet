@@ -27,7 +27,9 @@ local release_homebrew = import 'release-homebrew.jsonnet';
         'dry-run': true,
       },
     },
-    'notify-failure': semgrep.slack.notify_failure_nightly_job +
-      { needs: ['brew-build', 'release-dry-run'] },
+    'notify-failure': semgrep.slack.notify_failure_nightly_job(
+      "${{ github.sha }}",
+      "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+      ) + { needs: ['brew-build', 'release-dry-run'] },
   },
 }

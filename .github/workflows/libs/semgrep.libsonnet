@@ -191,26 +191,27 @@ local containers = {
 
 local slack = {
   // This will post on Slack on #logs-semgrep-release
-  curl_notify_nightly_homebrew(): |||
+  curl_notify_nightly_homebrew(commit, url): |||
         curl --request POST \
         --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
         --header 'content-type: application/json' \
         --data '{
-          "commit_sha": "${{ github.sha }}",
-          "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+          "commit_sha": "%s",
+          "workflow_url": "%s"
         }'
-   |||,
- notify_failure_nightly_job: {
+   ||| %  [ commit, url],
+ notify_failure_nightly_job(commit, url): {
   'runs-on': 'ubuntu-20.04',
   'if': 'failure()',
   steps: [
     {
-      run: slack.curl_notify_nightly_homebrew(),
+      run: slack.curl_notify_nightly_homebrew(commit, url),
     },
    ],
   },
 
   // This will post on Slack on #???
+  // TODO: change the target, I have no idea where those notifications go
   curl_notify_e2e_semgrep_ci(docker_tag, message): |||
     curl --request POST \
         --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
