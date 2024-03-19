@@ -106,3 +106,6 @@
 [submodule "libs/testo"]
 	path = libs/testo
 	url = https://github.com/semgrep/testo.git
+[submodule "libs/pcre2"]
+	path = libs/pcre2
+	url = https://github.com/semgrep/pcre2-ocaml
