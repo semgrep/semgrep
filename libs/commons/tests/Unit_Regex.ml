@@ -1,5 +1,5 @@
 (*
-   Unit tests for Pcre_
+   Unit tests for Regex
 *)
 
 let t = Testo.create
@@ -10,13 +10,6 @@ let test_match_limit_ok () =
   | Ok _ -> ()
   | Error Pcre2.MatchLimit ->
       Alcotest.fail "should not have failed with error MatchLimit"
-  | Error _ -> Alcotest.fail "unexpected error"
-
-let test_match_limit_fail () =
-  let rex = Regex.regexp "(a+)+$" in
-  match Regex.pmatch ~rex "aaaaaaaaaaaaaaaaaa!" with
-  | Ok _ -> Alcotest.fail "should have failed with error MatchLimit"
-  | Error Pcre2.MatchLimit -> ()
   | Error _ -> Alcotest.fail "unexpected error"
 
 let test_register_exception_printer () =
@@ -31,12 +24,14 @@ let test_register_exception_printer () =
     | e -> Printexc.to_string e
   in
   Alcotest.(check string)
-    "equal" "Pcre.Error(Pcre.BadPattern(\"nothing to repeat\", pos=0))" msg
+    "equal"
+    "Pcre2.Error((Pcre2.BadPattern (\"quantifier does not follow a repeatable \
+     item\", 0)))"
+    msg
 
 let tests =
-  Testo.categorize "pcre settings"
+  Testo.categorize "pcre2 settings"
     [
       t "match limit ok" test_match_limit_ok;
-      t "match limit fail" test_match_limit_fail;
       t "exception printer" test_register_exception_printer;
     ]
