@@ -254,6 +254,7 @@ local test_cli_job = {
   ],
   permissions: {
     contents: 'write',
+    // ???
     'pull-requests': 'write',
   },
   strategy: {
@@ -453,7 +454,7 @@ local trigger_semgrep_comparison_argo = {
 //   type=edge
 
 local build_test_docker_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
     'docker-flavor': |||
@@ -481,7 +482,7 @@ local build_test_docker_other_target_job(suffix, target) = {
   needs: [
     'build-test-docker',
   ],
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
     // suffix here! which will be added for each tags
