@@ -68,8 +68,18 @@ let parse_globs ~kind (strs : Yojson.Safe.t list) =
        | _ -> None)
 
 module Request_params = struct
-  type t = {
+  (* A pattern with an associated positivity to it. *)
+  type signed_pattern = {
+    (* This `positive` field should be `true` if this pattern is meant to
+       be part of a `pattern`, and `false` if it is meant to be part of a
+       `pattern-not`.
+    *)
+    positive : bool;
     pattern : string;
+  }
+
+  type t = {
+    patterns : signed_pattern list;
     lang : Xlang.t option;
     fix : string option;
     includes : Glob.Match.compiled_pattern list;
@@ -81,12 +91,22 @@ module Request_params = struct
     | Some
         (`Assoc
           [
-            ("pattern", `String pattern);
+            ("patterns", `List patterns);
             ("language", lang);
             ("fix", fix_pattern);
             ("includes", `List includes);
             ("excludes", `List excludes);
           ]) ->
+        let patterns =
+          List_.map_filter
+            (function
+              | `Assoc
+                  [ ("positive", `Bool positive); ("pattern", `String pattern) ]
+                ->
+                  Some { positive; pattern }
+              | _ -> None)
+            patterns
+        in
         let lang_opt =
           match lang with
           | `String lang -> Some (Xlang.of_string lang)
@@ -99,7 +119,7 @@ module Request_params = struct
         in
         let includes = parse_globs ~kind:"includes" includes in
         let excludes = parse_globs ~kind:"excludes" excludes in
-        Some { pattern; lang = lang_opt; fix = fix_opt; includes; excludes }
+        Some { patterns; lang = lang_opt; fix = fix_opt; includes; excludes }
     | __else__ -> None
 
   let _of_jsonrpc_params_exn params : t =
@@ -242,26 +262,66 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
   Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
-let get_relevant_rules ({ params = { pattern; fix; lang; _ }; _ } as env : env)
+let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
     : Rule.search_rule list =
-  (* TODO: figure out why rules_from_rules_source_async hangs *)
-  (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
-  let search_rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list
-      =
-    let rules_and_origins =
-      Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
+  (* Get all the possible xpatterns and associated languages for each
+     pattern
+     This is a map from pattern -> valid langs for that pattern
+  *)
+  let langs_of_patterns =
+    List_.map
+      (fun { Request_params.positive = _; pattern } ->
+        Rule_fetching.langs_of_pattern (pattern, lang))
+      patterns
+  in
+  (* We want languages which are part of the languages known to the workspace,
+     and which also may parse properly in each language.
+     Note that we haven't yet enforced that _every_ pattern parses in this
+     language, so a valid xlang might be one which only one pattern successfully
+     parses in.
+  *)
+  let valid_xlangs =
+    match langs_of_patterns with
+    | [] -> failwith "no patterns given to /semgrep/search"
+    | xlangs :: _ ->
+        let relevant_xlangs = get_relevant_xlangs env in
+        List.filter (fun xlang -> List.mem xlang relevant_xlangs) xlangs
+  in
+  (* Returns Some if we every pattern is parseable in `xlang` *)
+  let process_lang xlang : Rule.search_rule option =
+    (* Get all valid lang -> patterns pairings, for valid languages
+        which are valid for all patterns
+    *)
+    let valid_for_all_xpats : bool =
+      List.for_all
+        (fun xlangs ->
+          List.exists (fun xlang' -> Xlang.equal xlang xlang') xlangs)
+        langs_of_patterns
     in
-    let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
-    let search_rules, _, _, _ = Rule.partition_rules rules in
-    search_rules
+    if valid_for_all_xpats then
+      let formula =
+        let of_signed_pattern
+            ({ positive; pattern } : Request_params.signed_pattern) =
+          let xpat = Parse_rule.parse_fake_xpattern xlang pattern in
+          if positive then Rule.f (Rule.P xpat)
+          else Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat)))
+        in
+        match patterns with
+        | [ signed_pat ] -> of_signed_pattern signed_pat
+        | _ ->
+            Rule.And
+              (Tok.unsafe_fake_tok "", List_.map of_signed_pattern patterns)
+            |> Rule.f
+      in
+      match Rule.rule_of_formula ~fix xlang formula with
+      | { mode = `Search f; _ } as r ->
+          (* repack here so we get the right search_rule type *)
+          Some { r with mode = `Search f }
+      | _ -> None
+    else None
   in
-  let xlangs = get_relevant_xlangs env in
-  let rules_with_relevant_xlang =
-    search_rules_of_langs lang
-    |> List.filter (fun (rule : Rule.search_rule) ->
-           List.mem rule.target_analyzer xlangs)
-  in
-  match rules_with_relevant_xlang with
+  let search_rules = List_.map_filter process_lang valid_xlangs in
+  match search_rules with
   (* Unfortunately, almost everything parses as YAML, because you can specify
      no quotes and it will be interpreted as a YAML string
      So if we are getting a pattern which only parses as YAML, it's probably
@@ -270,7 +330,7 @@ let get_relevant_rules ({ params = { pattern; fix; lang; _ }; _ } as env : env)
   | []
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
-      search_rules_of_langs (Some Xlang.LRegex)
+      process_lang Xlang.LRegex |> Option.to_list
   | other ->
       let has_python3 =
         List.exists

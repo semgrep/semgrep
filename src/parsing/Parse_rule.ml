@@ -1086,6 +1086,10 @@ let parse_xpattern xlang (str, tok) =
   in
   Parse_rule_formula.parse_rule_xpattern env (str, tok)
 
+let parse_fake_xpattern xlang str =
+  let fk = Tok.unsafe_fake_tok "" in
+  parse_xpattern xlang (str, fk)
+
 (*****************************************************************************)
 (* Useful for tests *)
 (*****************************************************************************)

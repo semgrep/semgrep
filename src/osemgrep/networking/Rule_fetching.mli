@@ -43,8 +43,7 @@ and origin =
 val partition_rules_and_errors :
   rules_and_origin list -> Rule.rules * Rule.invalid_rule_error list
 
-val rules_from_pattern :
-  string * Xlang.t option * string option -> rules_and_origin list
+val langs_of_pattern : string * Xlang.t option -> Xlang.t list
 
 (* [rules_from_rules_source] returns rules from --config or -e.
  * If [rewrite_rule_ids] is true, it will add the path of the config
