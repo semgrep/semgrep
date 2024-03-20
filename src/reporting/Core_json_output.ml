@@ -400,8 +400,8 @@ let unsafe_match_to_match
         match paths with
         | [] -> (x.path.internal_path_to_content (* no better path *), None)
         | (commit, path) :: _ ->
-            let git_commit = OGit_wrapper.commit_digest commit in
-            let timestamp, offset = (OGit_wrapper.commit_author commit).date in
+            let git_commit = Git_wrapper.commit_digest commit in
+            let timestamp, offset = (Git_wrapper.commit_author commit).date in
             let offset =
               Option.value offset
                 ~default:{ sign = `Plus; hours = 0; minutes = 0 }

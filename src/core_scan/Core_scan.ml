@@ -242,7 +242,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details =
                      Some
                        (spf "Issue creating a target from git blob %s"
-                          (OGit_wrapper.Hash.to_hex blob));
+                          (Git_wrapper.Hash.to_hex blob));
                    rule_id = None;
                  })
 

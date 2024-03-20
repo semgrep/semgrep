@@ -18,15 +18,15 @@
 type t =
   | File of Fpath.t
   | GitBlob of {
-      blob : OGit_wrapper.hash;
-      paths : (OGit_wrapper.commit * Fpath.t) list;
+      blob : Git_wrapper.hash;
+      paths : (Git_wrapper.commit * Fpath.t) list;
     }
 [@@deriving show, eq, ord]
 
 let to_string (s : t) =
   match s with
   | File path -> Fpath.to_string path
-  | GitBlob { blob; _ } -> blob |> OGit_wrapper.hex_of_hash
+  | GitBlob { blob; _ } -> blob |> Git_wrapper.hex_of_hash
 
 let to_string_opt ?(unspecified = "unknown") (s : t option) =
   match s with

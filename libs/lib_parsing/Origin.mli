@@ -70,10 +70,10 @@ type t =
   (* TODO: Evaluate futher using Ppath.t instead of Fpath.t, since it documents
      we want this to be a relative path from the project root. *)
   | GitBlob of {
-      blob : OGit_wrapper.hash;
-          (** The sha of the {e blob}  of a blob. Used for git operations and to
+      blob : Git_wrapper.hash;
+          (** The sha of the {e blob}. Used for git operations and to
               identify the object. *)
-      paths : (OGit_wrapper.commit * Fpath.t) list;
+      paths : (Git_wrapper.commit * Fpath.t) list;
           (** The paths corresponding to this blob for whichever commits are of
               interest. This is stored since it is not efficient to calculate
               given only the blob's sha, and requires additional information

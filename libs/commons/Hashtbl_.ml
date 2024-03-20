@@ -70,13 +70,3 @@ let peek_opt (tbl : ('k, 'v list ref) Hashtbl.t) (key : 'k) : 'v option =
 let get_stack tbl key =
   try !(Hashtbl.find tbl key) with
   | Not_found -> []
-
-let find_some_opt tbl (f : 'v -> 'a option) key =
-  match Hashtbl.find_opt tbl key with
-  | Some v -> f v
-  | None -> None
-
-let find_some tbl (f : 'v -> 'a) key =
-  match Hashtbl.find_opt tbl key with
-  | Some v -> f v
-  | None -> raise Not_found
