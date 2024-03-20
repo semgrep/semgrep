@@ -49,6 +49,7 @@ const entrypoint = async () => {
     console.log("Running tests");
     const wasm = await SemgrepEngine();
     globalThis.LibPcreModule = wasm;
+    globalThis.LibPcre2Module = wasm;
     const {
       init,
       getMountpoints,
