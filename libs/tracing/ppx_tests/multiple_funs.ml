@@ -6,3 +6,4 @@ let top a b =
   add_one a + b
 
 let just_add a b = a + b
+let label a b = a + b [@@trace "example function name"]
