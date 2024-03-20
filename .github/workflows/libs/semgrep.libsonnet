@@ -254,6 +254,26 @@ local slack = {
       },
      ],
     },
+  // This will post on Slack on #semgrep-cli-release from a
+  // 'gha-notification' user
+  curl_notify(message): |||
+      curl --request POST \
+       --url  ${{ secrets.NOTIFICATIONS_URL }} \
+       --header 'content-type: application/json' \
+       --data '{
+         "message": "%s"
+       }'
+    ||| % message,
+
+  notify_failure_job(message): {
+   'runs-on': 'ubuntu-20.04',
+   'if': 'failure()',
+    steps: [
+      {
+        run: slack.curl_notify(message),
+      },
+     ],
+    },
 };
 
 // ----------------------------------------------------------------------------
