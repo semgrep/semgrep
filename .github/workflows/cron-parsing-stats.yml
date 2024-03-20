@@ -29,7 +29,7 @@ jobs:
            --url  ${{ secrets.NOTIFICATIONS_URL }} \
            --header 'content-type: application/json' \
            --data '{
-             "message": "The cron parsing stats failed. See https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml"
+             "text": "The cron parsing stats failed. See https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml"
            }'
 name: cron-parsing-stats
 on:

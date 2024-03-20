@@ -255,13 +255,16 @@ local slack = {
      ],
     },
   // This will post on Slack on #semgrep-cli-release from a
-  // 'gha-notification' user
+  // 'gha-notification' user.
+  // The actual URL secret is stored in 1password in our Engineering vault
+  // (look for slack webhook) and configured to post to
+  // #semgrep-cli-release in ???
   curl_notify(message): |||
       curl --request POST \
        --url  ${{ secrets.NOTIFICATIONS_URL }} \
        --header 'content-type: application/json' \
        --data '{
-         "message": "%s"
+         "text": "%s"
        }'
     ||| % message,
 
