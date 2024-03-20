@@ -369,7 +369,7 @@ BREW_DEPS=pkg-config pcre pcre2 gmp libev curl coreutils gettext
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?
-WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libcurl
+WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libpcre2-8 conf-libcurl
 
 # -------------------------------------------------
 # Alpine
