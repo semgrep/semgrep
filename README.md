@@ -58,11 +58,11 @@ Semgrep analyzes code locally on your computer or in your build environment: **b
 
 **Semgrep Code** supports 30+ languages, including:
 
-Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTML · Go · Java · JavaScript · JSX · JSON · Julia · Jsonnet · Kotlin · Lisp · Lua · OCaml · PHP · Python · R · Ruby · Rust · Scala · Scheme · Solidity · Swift · Terraform · TypeScript · TSX · YAML · XML · Generic (ERB, Jinja, etc.)
+Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTML · Go · Java · JavaScript · JSX · JSON · Julia · Jsonnet · Kotlin · Lisp · Lua · OCaml · PHP · Python · R · Ruby · Rust · Scala · Scheme · Solidity · Swift · Terraform · TypeScript · TSX · YAML · XML · Generic (ERB, Jinja, etc.)
 
-**Semgrep Supply Chain** supports 8 languages across 15 package managers, including:
+**Semgrep Supply Chain** supports 12 languages across 15 package managers, including:
 
-C# (NuGet) · Go (Go modules, `go mod`) · Java (Gradle, Maven)· Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · PHP (Composer)
+C# (NuGet) · Dart (Pub) · Go (Go modules, `go mod`) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
 
 For more information, see [Supported languages](https://semgrep.dev/docs/supported-languages/).
 
