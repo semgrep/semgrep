@@ -63,12 +63,20 @@ type lockfile = {
 (** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
     augmented version with the contents of the lockfile. *)
 
+(** A scan mode that tells us whether we need to do both Intra-file
+    and Inter-file scans or just an Inter-file scan. When performing
+    an inter-file differential scan, we don't have to run an
+    inter-file scan for the file being analyzed as a dependency of the
+    actually changed files. *)
+type scan_mode = All | InterOnly [@@deriving show]
+
 type regular = {
   path : path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
   products : Semgrep_output_v1_t.product list;
       (** The products which should scan this target. This is used for
           selecting the relevant set of rules. *)
+  mode : scan_mode;
   lockfile : lockfile option;
       (** Optional lockfile associated with this target.
 
