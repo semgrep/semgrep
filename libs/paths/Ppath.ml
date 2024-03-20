@@ -67,6 +67,14 @@ let to_string x = x.string
 
 let segments x = x.segments
 
+(* Return the list of segments of a ppath without the leading slash. *)
+let get_relative_segments (ppath : t) =
+  match ppath.segments with
+  | [] -> assert false
+  | [ "" ] -> assert false
+  | "" :: segs -> segs
+  | _ -> assert false
+
 (*****************************************************************************)
 (* Builder helpers (not exposed in Ppath.mli) *)
 (*****************************************************************************)
@@ -188,9 +196,11 @@ let relativize ~root:orig_root orig_ppath =
   let rec aux root ppath =
     match (root, ppath) with
     | [ "" ], [ "" ] -> Fpath.v "."
-    | [], [ "" ] -> (* no trailing slash is necessary *) Fpath.v "."
-    | [], segs -> Fpath_.of_relative_segments segs
     | [ "" ], [] -> (* tolerate "/foo/" vs "/foo" *) Fpath.v "."
+    | [ "" ], segs -> Fpath_.of_relative_segments segs
+    | [], [] -> Fpath.v "."
+    | [], [ "" ] -> (* prefer "." over "./" *) Fpath.v "."
+    | [], segs -> Fpath_.of_relative_segments segs
     | _ :: _, [] ->
         invalid_arg
           (spf "Ppath.relativize: %S is shorter than %S" orig_root.string
@@ -202,7 +212,7 @@ let relativize ~root:orig_root orig_ppath =
             (spf "Ppath.relativize: %S is not a prefix of %S" orig_root.string
                orig_ppath.string)
   in
-  aux orig_root.segments orig_ppath.segments
+  aux (get_relative_segments orig_root) (get_relative_segments orig_ppath)
 
 (*****************************************************************************)
 (* Project Builder *)

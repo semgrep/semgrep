@@ -110,7 +110,8 @@ let test_relativize () =
   check "/a" "/a" ".";
   check "/a" "/a/" ".";
   check "/a/" "/a/" ".";
-  check "/a/" "/a" "."
+  check "/a/" "/a" ".";
+  check "/" "/.gitignore" ".gitignore"
 
 let test_of_relative_fpath () =
   let check path_str expected_ppath_str =
