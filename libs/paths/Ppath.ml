@@ -132,9 +132,6 @@ let unsafe_create segments = { string = String.concat "/" segments; segments }
 
 let create segments =
   let norm_segments = normalize_segments segments in
-  Printf.printf "normalize_segments %S -> %S\n%!"
-    (String.concat "|" segments)
-    (String.concat "|" norm_segments);
   check_normalized_segments norm_segments;
   unsafe_create norm_segments
 
