@@ -319,11 +319,13 @@ let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
 let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
 
 let mask_time =
-  Testo.mask_pcre_pattern ~mask:"<MASKED TIMESTAMP>"
+  Testo.mask_pcre_pattern
+    ~replace:(fun _ -> "<MASKED TIMESTAMP>")
     {|\[([0-9]{2}\.[0-9]{2})\]|}
 
 let mask_log_lines =
-  Testo.mask_pcre_pattern ~mask:"<MASKED LOG LINE>"
+  Testo.mask_pcre_pattern
+    ~replace:(fun _ -> "<MASKED LOG LINE>")
     {|\[[0-9]{2}\.[0-9]{2}\][^\n]*|}
 
 let list to_string xs =
