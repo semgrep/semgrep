@@ -254,6 +254,7 @@ local test_cli_job = {
   ],
   permissions: {
     contents: 'write',
+    // ???
     'pull-requests': 'write',
   },
   strategy: {

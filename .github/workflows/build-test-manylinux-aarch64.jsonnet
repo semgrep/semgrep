@@ -10,10 +10,7 @@ local wheel_name = 'manylinux-aarch64-wheel';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // TODO? why we suddenly need that?
-  permissions: {
-    contents: 'read',
-    'id-token': 'write',
-  },
+  permissions: gha.read_permissions,
   steps: [
     {
       uses: 'docker/setup-qemu-action@v3',

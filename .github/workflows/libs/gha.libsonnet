@@ -31,6 +31,11 @@
     // gh release commands.
     contents: 'write',
   },
+  read_permissions: {
+    'id-token': 'write',
+    // This is not the default??
+    contents: 'read',
+  },
 
   // Git helpers
 
