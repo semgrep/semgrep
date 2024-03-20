@@ -14,6 +14,5 @@ a
 --- Selected targets ---
 selected <TEMPORARY FILE PATH>a
 --- Skipped targets ---
-ignored <TEMPORARY FILE PATH>.git [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
-ignored <TEMPORARY FILE PATH>.gitignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
 ignored <TEMPORARY FILE PATH>b [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
+ignored <TEMPORARY FILE PATH>.gitignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]

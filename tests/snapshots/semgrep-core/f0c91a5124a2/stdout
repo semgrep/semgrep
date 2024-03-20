@@ -15,5 +15,4 @@ b
 selected <TEMPORARY FILE PATH>.gitignore
 selected <TEMPORARY FILE PATH>a
 --- Skipped targets ---
-ignored <TEMPORARY FILE PATH>.git [Semgrep_output_v1_t.Semgrepignore_patterns_match]
 ignored <TEMPORARY FILE PATH>b [Semgrep_output_v1_t.Cli_exclude_flags_match]

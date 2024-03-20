@@ -4,7 +4,7 @@ Test name: with git > basic gitignore
 a
 b
 Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
-[main (root-commit) 5ad6995] Add files
+[main (root-commit) <MASKED>] Add files
  2 files changed, 1 insertion(+)
  create mode 100644 .gitignore
  create mode 100644 a
@@ -12,5 +12,3 @@ Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
 selected <TEMPORARY FILE PATH>.gitignore
 selected <TEMPORARY FILE PATH>a
 --- Skipped targets ---
-ignored <TEMPORARY FILE PATH>.git [Semgrep_output_v1_t.Semgrepignore_patterns_match]
-ignored <TEMPORARY FILE PATH>b [Semgrep_output_v1_t.Semgrepignore_patterns_match]
