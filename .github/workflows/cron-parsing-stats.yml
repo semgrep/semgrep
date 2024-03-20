@@ -2,12 +2,22 @@
 jobs:
   job:
     container: returntocorp/semgrep:develop
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-16-core
     steps:
       - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: apk add bash jq curl
       - run: |
           cd stats/parsing-stats
           ./run-all --upload
+      - uses: actions/upload-artifact@v3
+        with:
+          name: logs
+          path: stats/parsing-stats/logs
+      - uses: actions/upload-artifact@v3
+        with:
+          name: results
+          path: stats/parsing-stats/results.txt
   notify-failure:
     if: failure()
     needs:
