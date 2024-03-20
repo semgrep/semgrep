@@ -2,18 +2,6 @@
 // https://dashboard.semgrep.dev/metrics and also at
 // https://metabase.corp.r2c.dev/collection/59-semgrep
 
-// cron table memento below
-// (src: https://dev.to/anshuman_bhardwaj/free-cron-jobs-with-github-actions-31d6)
-// ┌────────── minute (0 - 59)
-// │ ┌────────── hour (0 - 23)
-// │ │ ┌────────── day of the month (1 - 31)
-// │ │ │ ┌────────── month (1 - 12)
-// │ │ │ │ ┌────────── day of the week (0 - 6)
-// │ │ │ │ │
-// │ │ │ │ │
-// │ │ │ │ │
-// * * * * *
-
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -22,9 +10,9 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local job = {
-  // was ubuntu-latest but need a machine with lots of disk space to run the
+  // was 'ubuntu-latest' but we need a machine with lots of disk space to run the
   // parsing stats as we clone many OSS repositories
-  'runs-on': 'ubuntu-latest-8-core',
+  'runs-on': 'ubuntu-latest-16-core',
   container: 'returntocorp/semgrep:develop',
   steps: [
     actions.checkout(),
@@ -42,13 +30,10 @@ local job = {
             ./run-all --upload
       |||,
     },
+    actions.upload_artifact_step("logs", "stats/parsing-stats/logs"),
+    actions.upload_artifact_step("results", "stats/parsing-stats/results.txt"),
   ],
 };
-//          no_output_timeout: 60m
-//      - store_artifacts:
-//          path: stats/parsing-stats/logs
-//      - store_artifacts:
-//          path: stats/parsing-stats/results.txt
 
 // ----------------------------------------------------------------------------
 // The Workflow
@@ -61,6 +46,18 @@ local job = {
     workflow_dispatch: null,
     schedule: [
       {
+        // cron table memento below
+        // (src: https://dev.to/anshuman_bhardwaj/free-cron-jobs-with-github-actions-31d6)
+        // ┌────────── minute (0 - 59)
+        // │ ┌────────── hour (0 - 23)
+        // │ │ ┌────────── day of the month (1 - 31)
+        // │ │ │ ┌────────── month (1 - 12)
+        // │ │ │ │ ┌────────── day of the week (0 - 6)
+        // │ │ │ │ │
+        // │ │ │ │ │
+        // │ │ │ │ │
+        // * * * * *
+
         // every day at 7:26
         cron: '26 7 * * *',
       },
