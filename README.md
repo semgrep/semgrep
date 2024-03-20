@@ -193,6 +193,7 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
+- [Licensing Semgrep](https://semgrep.dev/docs/licensing/)
 
 ### Upgrading
 
