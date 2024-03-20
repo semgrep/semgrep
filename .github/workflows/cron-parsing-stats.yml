@@ -12,11 +12,11 @@ jobs:
           ./run-all --upload
       - uses: actions/upload-artifact@v3
         with:
-          name: logs
+          name: logs.log
           path: stats/parsing-stats/logs
       - uses: actions/upload-artifact@v3
         with:
-          name: results
+          name: results.txt
           path: stats/parsing-stats/results.txt
   notify-failure:
     if: failure()
@@ -26,12 +26,11 @@ jobs:
     steps:
       - run: |
           curl --request POST \
-          --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
-          --header 'content-type: application/json' \
-          --data '{
-            "commit_sha": "Actually the cron parsing stats failed",
-            "workflow_url": "https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml "
-          }'
+           --url  ${{ secrets.NOTIFICATIONS_URL }} \
+           --header 'content-type: application/json' \
+           --data '{
+             "text": "The cron parsing stats failed. See https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml"
+           }'
 name: cron-parsing-stats
 on:
   schedule:

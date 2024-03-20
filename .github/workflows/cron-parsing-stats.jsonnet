@@ -11,14 +11,15 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 local job = {
   // was 'ubuntu-latest' but we need a machine with lots of disk space to run the
-  // parsing stats as we clone many OSS repositories
+  // parsing stats as we clone many OSS repositories in './run-all ...' below
   'runs-on': 'ubuntu-latest-16-core',
+  // we need semgrep-core in 'stats/parsing-stats/run-lang' called from run-all
   container: 'returntocorp/semgrep:develop',
   steps: [
     actions.checkout(),
-    // The packages below used to be part of the returntocorp/semgrep docker
-    // image but got removed to reduce its attack surface, so we need
-    // to install them now
+    // The packages below, which are needed by './run-all', used to be part of
+    // the returntocorp/semgrep docker image but got removed to reduce its
+    // attack surface, so we need to install them now.
     {
       name: 'Install dependencies',
       run: 'apk add bash jq curl',
@@ -26,12 +27,12 @@ local job = {
     {
       // Run parsing stats and publish them to the semgrep dashboard.
       run: |||
-            cd stats/parsing-stats
-            ./run-all --upload
+         cd stats/parsing-stats
+         ./run-all --upload
       |||,
     },
-    actions.upload_artifact_step("logs", "stats/parsing-stats/logs"),
-    actions.upload_artifact_step("results", "stats/parsing-stats/results.txt"),
+    actions.upload_artifact_step("logs.log", "stats/parsing-stats/logs"),
+    actions.upload_artifact_step("results.txt", "stats/parsing-stats/results.txt"),
   ],
 };
 
@@ -65,9 +66,8 @@ local job = {
   },
   jobs: {
     job: job,
-    //TODO: abusing the nightly notif because the other do not work
-    'notify-failure': semgrep.slack.notify_failure_nightly_job(
-        'Actually the cron parsing stats failed', 'https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml ') +
+    'notify-failure': semgrep.slack.notify_failure_job(
+        'The cron parsing stats failed. See https://github.com/semgrep/semgrep/actions/workflows/cron-parsing-stats.yml') +
       { needs: ['job'] },
   },
 }

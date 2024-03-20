@@ -190,67 +190,26 @@ local containers = {
 // (but this need R2C_SLACK_TOKEN which was not added to the public semgrep repo)
 
 local slack = {
-  // This will post on Slack on #logs-semgrep-release
-  curl_notify_nightly_homebrew(commit, url): |||
-        curl --request POST \
-        --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
-        --header 'content-type: application/json' \
-        --data '{
-          "commit_sha": "%s",
-          "workflow_url": "%s"
-        }'
-   ||| %  [ commit, url],
- notify_failure_nightly_job(commit, url): {
-  'runs-on': 'ubuntu-20.04',
-  'if': 'failure()',
-  steps: [
-    {
-      run: slack.curl_notify_nightly_homebrew(commit, url),
-    },
-   ],
-  },
-
-  // This will post on Slack on #???
-  // TODO: change the target, I have no idea where those notifications go
-  curl_notify_e2e_semgrep_ci(docker_tag, message): |||
-    curl --request POST \
-        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-        --header 'content-type: application/json' \
-        --data '{
-          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-          "docker_tag": %s,
-          "message": "%s"
-         }'
-   ||| % [docker_tag, message],
-
- notify_failure_e2e_semgrep_ci_job(docker_tag, message): {
-  'runs-on': 'ubuntu-20.04',
-  'if': 'failure()',
-  steps: [
-    {
-      run: slack.curl_notify_e2e_semgrep_ci(docker_tag, message),
-    },
-   ],
-  },
-
-  // this will post on Slack on #team-semgrep-core
-  // TODO: this channel is archived so need update NOTIFICATIONS_URL
-  curl_notify_start_release(version, message): |||
+  // This will post on Slack on the #semgrep-cli-release channel from a
+  // 'gha-notification' user.
+  // The actual URL secret is stored in 1password in our Engineering vault
+  // (look for "slack webhook") and configured by #team-techops to post to
+  // #semgrep-cli-release somewhere we have not access to.
+  curl_notify(message): |||
       curl --request POST \
        --url  ${{ secrets.NOTIFICATIONS_URL }} \
        --header 'content-type: application/json' \
        --data '{
-         "version": "%s",
-         "message": "%s"
+         "text": "%s"
        }'
-    ||| % [version, message],
+    ||| % message,
 
-  notify_failure_start_release_job(version, message): {
+  notify_failure_job(message): {
    'runs-on': 'ubuntu-20.04',
    'if': 'failure()',
     steps: [
       {
-        run: slack.curl_notify_start_release(version, message),
+        run: slack.curl_notify(message),
       },
      ],
     },
@@ -272,28 +231,19 @@ local slack = {
       name: 'Configure AWS credentials for %s' % role,
       uses: 'aws-actions/configure-aws-credentials@v4',
       with: {
-        // This seems to be semgrep specific magic number
+        // This seems to be a semgrep specific magic number
         'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
         'role-duration-seconds': 900,
         'role-session-name': session_name,
         'aws-region': 'us-west-2',
       },
     },
-  // works well with actions.upload_artifact_step
-  make_artifact_step(path): {
-      name: 'Make artifact for %s' % path,
-      run: |||
-          mkdir artifacts
-          cp %s artifacts/
-          tar czf artifacts.tgz artifacts
-        ||| % path,
-  },
 
   // default one
   // coupling: with containers above
   opam_switch: '4.14.0',
-
   containers: containers,
+
   github_bot: github_bot,
   cache_opam: cache_opam,
   slack: slack,
