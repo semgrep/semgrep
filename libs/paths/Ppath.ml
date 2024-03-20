@@ -109,18 +109,22 @@ let check_normalized_segment str =
     invalid_arg ("Ppath.create: path segment may not contain a slash: " ^ str)
   else
     match str with
-    | ""
     | "."
     | ".." ->
         invalid_arg ("Ppath.create: unsupported path segment: " ^ str)
     | _ -> ()
+
+let check_nonempty_normalized_segment str =
+  match str with
+  | "" -> invalid_arg "Ppath.create: misplaced empty segment"
+  | _ -> check_normalized_segment str
 
 let check_normalized_segments segments =
   let rec iter segs =
     match segs with
     | [ "" ] (* trailing slash *) -> ()
     | seg :: segs ->
-        check_normalized_segment seg;
+        check_nonempty_normalized_segment seg;
         iter segs
     | [] -> ()
   in
@@ -147,26 +151,11 @@ let create segments =
 (* Append *)
 (*****************************************************************************)
 
-let append_segment xs x =
-  let rec loop xs =
-    match xs with
-    | [] -> [ x ]
-    | [ "" ] -> (* ignore trailing slash that's not a leading slash *) [ x ]
-    | x :: xs -> x :: loop xs
-  in
-  match xs with
-  | "" :: xs -> "" :: loop xs
-  (* TODO: this case should not happen anymore now *)
-  | xs -> loop xs
-
 (* use same terminology as in Fpath *)
-let add_seg path seg =
-  check_normalized_segment seg;
-  let segments = append_segment path.segments seg in
-  unsafe_create segments
+let add_seg path seg = create (path.segments @ [ seg ])
 
 (* saving you 3 neurons *)
-let add_segs (path : t) segs = List.fold_left add_seg path segs
+let add_segs (path : t) segs = create (path.segments @ segs)
 
 let append_fpath (path : t) fpath =
   match Fpath.segs fpath with
