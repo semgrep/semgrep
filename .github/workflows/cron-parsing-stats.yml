@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies
-        run: apk add jq curl
+        run: apk add bash jq curl
       - run: |
           cd stats/parsing-stats
           ./run-all --upload

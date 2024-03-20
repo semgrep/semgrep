@@ -22,7 +22,7 @@ local job = {
     // attack surface, so we need to install them now.
     {
       name: 'Install dependencies',
-      run: 'apk add jq curl',
+      run: 'apk add bash jq curl',
     },
     {
       // Run parsing stats and publish them to the semgrep dashboard.
