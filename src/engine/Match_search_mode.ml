@@ -126,8 +126,7 @@ let partition_xpatterns xs =
          | XP.Sem (x, _lang) -> Stack_.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Stack_.push (x, pid, str) spacegrep
          | XP.Aliengrep x -> Stack_.push (x, pid, str) aliengrep
-         | XP.Regexp x ->
-             Stack_.push (Regexp_engine.pcre_compile x, pid, str) regexp);
+         | XP.Regexp x -> Stack_.push (Regex.pcre_compile x, pid, str) regexp);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !aliengrep, List.rev !regexp)
 
 let group_matches_per_pattern_id (xs : Pattern_match.t list) :

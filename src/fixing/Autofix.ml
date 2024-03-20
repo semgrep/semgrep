@@ -292,7 +292,7 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
 
 let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
     (pm : Pattern_match.t) =
-  let rex = Pcre_.regexp regexp in
+  let rex = Regex.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
     Range.content_at_range pm.path.internal_path_to_content
@@ -309,7 +309,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
      '\1', we will try to replace it instead with '$1', etc.
   *)
   let replaced_replacement =
-    let capture_group_rex = Pcre_.regexp capture_group_regex in
+    let capture_group_rex = Regex.regexp capture_group_regex in
     (* Confusingly, this $1 in the template is separate from the literal
        capture group it is replacing. It is simply a dollar sign in front of
        the capture group's number, which is captured in the `capture_group_regex`
@@ -317,15 +317,15 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
        This lets us essentially capture everything matched by \<num> with
        $<num>.
     *)
-    Pcre_.replace ~rex:capture_group_rex ~template:"$$1" replacement
+    Regex.replace ~rex:capture_group_rex ~template:"$$1" replacement
   in
   let replacement_text =
     match count with
-    | None -> Pcre_.replace ~rex ~template:replaced_replacement content
+    | None -> Regex.replace ~rex ~template:replaced_replacement content
     | Some count ->
         Common2.foldn
           (fun content _i ->
-            Pcre_.replace_first ~rex ~template:replaced_replacement content)
+            Regex.replace_first ~rex ~template:replaced_replacement content)
           content count
     (* TODO: We could align text here, but the problem is that we need the
        start column of the area being replaced.

@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module G = AST_generic
 module MV = Metavariable
 module J = JSON
@@ -229,9 +230,96 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
      * alt: let s = value_to_string v in
      * to convert anything in a string before using regexps on it
   *)
-  let regexp = Regexp_engine.pcre_compile_with_flags ~flags:[ `ANCHORED ] re in
+  let regexp = Legacy_regex.regexp ~flags:[ `ANCHORED ] re in
   let matches =
-    Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
+    (* TODO: just Xpattern_match_regexp.regexp_matcher but with Legacy_regex *)
+    let subs = Legacy_regex.exec_all_noerr ~rex:regexp str in
+    subs |> Array.to_list
+    |> List_.map (fun sub ->
+           (* Below, we add `base_offset` to any instance of `bytepos`, because
+              the `bytepos` we obtain is only within the range of the string
+              being searched, which may itself be offset from a larger file.
+
+              By maintaining this base offset, we can accurately recreate the
+              original line/col, at minimum cost.
+           *)
+           let matched_str = Pcre.get_substring sub 0 in
+           let bytepos, _ = Pcre.get_substring_ofs sub 0 in
+           let bytepos = bytepos + base_offset in
+           let str = matched_str in
+           let line, column =
+             Xpattern_matcher.line_col_of_charpos file bytepos
+           in
+           let pos = Pos.make ~file:!!file ~line ~column bytepos in
+           let loc1 = { Tok.str; pos } in
+
+           let bytepos = bytepos + String.length str in
+           let str = "" in
+           let line, column =
+             Xpattern_matcher.line_col_of_charpos file bytepos
+           in
+           let pos = Pos.make ~file:!!file ~line ~column bytepos in
+           let loc2 = { Tok.str; pos } in
+
+           (* the names of all capture groups within the regexp *)
+           let names = Pcre.names regexp.regexp |> Array.to_list in
+           (* return regexp bound group $1 $2 etc *)
+           let n = Pcre.num_of_subs sub in
+           (* TODO: remove when we kill numeric capture groups *)
+           let numbers_env =
+             match n with
+             | 1 -> []
+             | _ when n <= 0 -> raise Impossible
+             | n ->
+                 List_.enum 1 (n - 1)
+                 |> List_.map_filter (fun n ->
+                        try
+                          let bytepos, _ = Pcre.get_substring_ofs sub n in
+                          let str = Pcre.get_substring sub n in
+                          let line, column =
+                            Xpattern_matcher.line_col_of_charpos file bytepos
+                          in
+                          let pos =
+                            Pos.make ~file:!!file ~line ~column bytepos
+                          in
+                          let loc = { Tok.str; pos } in
+                          let t = Tok.tok_of_loc loc in
+                          Some (spf "$%d" n, MV.Text (str, t, t))
+                        with
+                        | Not_found ->
+                            Logs.debug (fun m ->
+                                m ~tags "not found %d substring of %s in %s" n
+                                  regexp.pattern matched_str);
+                            None)
+           in
+           let names_env =
+             names
+             |> List_.map_filter (fun name ->
+                    try
+                      (* TODO: make exception-free versions of the missing
+                         functions in SPcre. *)
+                      let bytepos, _ =
+                        Pcre.get_named_substring_ofs regexp.regexp name sub
+                      in
+                      let bytepos = bytepos + base_offset in
+                      let str =
+                        Pcre.get_named_substring regexp.regexp name sub
+                      in
+                      let line, column =
+                        Xpattern_matcher.line_col_of_charpos file bytepos
+                      in
+                      let pos = Pos.make ~file:!!file ~line ~column bytepos in
+                      let loc = { Tok.str; pos } in
+                      let t = Tok.tok_of_loc loc in
+                      Some (spf "$%s" name, MV.Text (str, t, t))
+                    with
+                    | Not_found ->
+                        Logs.debug (fun m ->
+                            m ~tags "not found %s substring of %s in %s" name
+                              regexp.pattern matched_str);
+                        None)
+           in
+           ((loc1, loc2), names_env @ numbers_env))
   in
   matches
 

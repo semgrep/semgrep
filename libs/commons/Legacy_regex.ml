@@ -187,3 +187,5 @@ let get_named_substring_and_ofs rex name substrings =
   | Not_found -> Ok None
   | Invalid_argument msg ->
       Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)
+
+let quote = Pcre.quote

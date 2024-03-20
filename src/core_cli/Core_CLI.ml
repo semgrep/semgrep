@@ -655,7 +655,8 @@ let register_unix_exn_printers () =
 let register_exception_printers () =
   register_stdlib_exn_printers ();
   register_unix_exn_printers ();
-  Pcre_.register_exception_printer ()
+  Regex.register_exception_printer ();
+  Legacy_regex.register_exception_printer ()
 
 (*****************************************************************************)
 (* Main entry point *)
