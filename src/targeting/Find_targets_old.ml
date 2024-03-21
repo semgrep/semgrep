@@ -112,7 +112,7 @@ let group_roots_by_project conf (paths : Scanning_root.t list) =
              Git_project.find_any_project_root ?force_root
                (Scanning_root.to_fpath path)
            in
-           ((kind, root), Ppath.to_fpath (Rfpath.to_fpath root) git_path))
+           ((kind, root), Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths

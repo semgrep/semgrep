@@ -37,25 +37,14 @@ type t = {
      - no segment may contain a "/".
    *)
   segments : string list;
-  (* String.concat "/" segments
-   * TODO: get rid of it? just compute it dynamically?
-   *)
-  string : string;
 }
 
 (* old: was of_string_for_tests "/" *)
-let root = { string = "/"; segments = [ ""; "" ] }
+let root = { segments = [ ""; "" ] }
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
-
-(* Useful to debug, to use in error messages, or when passing the ppath
- * to a regexp matcher (e.g., Glob.Match.run()).
- * However, you should prefer to_fpath() most of the time, and then
- * Fpath.to_string() if needed.
- *)
-let to_string x = x.string
 
 (* TODO: make a rel_segments function so the caller does not have to do
    let rel_segments =
@@ -140,7 +129,7 @@ let check_normalized_segments segments =
         ("Ppath.create: ppath must be absolute (start with '/'): "
        ^ String.concat "/" segments)
 
-let unsafe_create segments = { string = String.concat "/" segments; segments }
+let unsafe_create segments = { segments }
 
 let create segments =
   let norm_segments = normalize_segments segments in
@@ -172,14 +161,27 @@ end
 (* Export *)
 (*****************************************************************************)
 
-let to_fpath ~root path =
+let to_fpath ?root path =
   match path.segments with
-  | "" :: segments ->
+  | "" :: (seg :: other_segments as segments) ->
+      let root, segments =
+        match (root, seg) with
+        | None, "" -> (* '/' -> '.' *) (Fpath.v ".", [])
+        | Some root, "" when Fpath.is_current_dir root ->
+            (* '.' + '/' -> '.' *)
+            (Fpath.v ".", [])
+        | None, seg -> (Fpath.v seg, other_segments)
+        | Some root, seg when Fpath.is_current_dir root ->
+            (* If the project root is "." and the ppath is "/a",
+               produce "a" rather than "./a".
+               However, if the project root is "./b", then produce "./b/a". *)
+            (Fpath.v seg, other_segments)
+        | Some root, _ -> (root, segments)
+      in
       List.fold_left Fpath.add_seg root segments
-      |> (* remove leading "./" typically occuring when the project root
-            is "." *)
-      Fpath.normalize
   | _ -> assert false
+
+let to_string path = to_fpath path |> Fpath.to_string
 
 let relativize ~root:orig_root orig_ppath =
   let rec aux root ppath =
@@ -192,14 +194,14 @@ let relativize ~root:orig_root orig_ppath =
     | [], segs -> Fpath_.of_relative_segments segs
     | _ :: _, [] ->
         invalid_arg
-          (spf "Ppath.relativize: %S is shorter than %S" orig_root.string
-             orig_ppath.string)
+          (spf "Ppath.relativize: %S is shorter than %S" (to_string orig_root)
+             (to_string orig_ppath))
     | x :: xs, y :: ys ->
         if x = y then aux xs ys
         else
           invalid_arg
-            (spf "Ppath.relativize: %S is not a prefix of %S" orig_root.string
-               orig_ppath.string)
+            (spf "Ppath.relativize: %S is not a prefix of %S"
+               (to_string orig_root) (to_string orig_ppath))
   in
   aux (get_relative_segments orig_root) (get_relative_segments orig_ppath)
 

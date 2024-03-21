@@ -18,7 +18,7 @@ let load t dir_path =
   | Some res -> res
   | None ->
       let anchor = anchor_of_git_path dir_path in
-      let path = Ppath.to_fpath t.project_root dir_path in
+      let path = Ppath.to_fpath ~root:t.project_root dir_path in
       let patterns =
         List.fold_left
           (fun acc (source_kind, name) ->

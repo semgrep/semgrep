@@ -53,8 +53,11 @@ val in_project : root:Rfpath.t -> Fpath.t -> (t, string) result
 *)
 val create : string list -> t
 
-(* Convert back to a system path. *)
-val to_fpath : root:Fpath.t -> t -> Fpath.t
+(*
+   Convert back to a system path.
+   If no root is given, a relative path is returned.
+*)
+val to_fpath : ?root:Fpath.t -> t -> Fpath.t
 
 (* /, useful as a folding starting point *)
 val root : t
