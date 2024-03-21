@@ -2,5 +2,5 @@ Test name: without git > basic test
 --- Files not added to git ---
 .gitignore
 --- Selected targets ---
-selected <TEMPORARY FILE PATH>.gitignore
+selected <TMP>/<MASKED>/.gitignore
 --- Skipped targets ---

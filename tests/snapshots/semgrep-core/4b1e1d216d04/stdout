@@ -3,14 +3,14 @@ Test name: with git > basic semgrepignore
 .semgrepignore
 a
 b
-Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  3 files changed, 1 insertion(+)
  create mode 100644 .semgrepignore
  create mode 100644 a
  create mode 100644 b
 --- Selected targets ---
-selected <TEMPORARY FILE PATH>.semgrepignore
-selected <TEMPORARY FILE PATH>a
+selected <TMP>/<MASKED>/.semgrepignore
+selected <TMP>/<MASKED>/a
 --- Skipped targets ---
-ignored <TEMPORARY FILE PATH>b [Semgrep_output_v1_t.Semgrepignore_patterns_match]
+ignored <TMP>/<MASKED>/b [Semgrep_output_v1_t.Semgrepignore_patterns_match]

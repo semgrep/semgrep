@@ -3,12 +3,12 @@ Test name: with git > basic gitignore
 .gitignore
 a
 b
-Initialized empty Git repository in <TEMPORARY FILE PATH>.git/
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  2 files changed, 1 insertion(+)
  create mode 100644 .gitignore
  create mode 100644 a
 --- Selected targets ---
-selected <TEMPORARY FILE PATH>.gitignore
-selected <TEMPORARY FILE PATH>a
+selected <TMP>/<MASKED>/.gitignore
+selected <TMP>/<MASKED>/a
 --- Skipped targets ---
