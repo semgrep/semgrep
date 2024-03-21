@@ -20,8 +20,10 @@ val hook_transfer_of_assume :
   ref
 
 val is_symbolic_expr : AST_generic.expr -> bool
+(*
 val eq : AST_generic.svalue -> AST_generic.svalue -> bool
 val union : AST_generic.svalue -> AST_generic.svalue -> AST_generic.svalue
+*)
 
 val fixpoint : Lang.t -> IL.name list -> IL.cfg -> mapping
 (** Flow-sensitive constant-propagation.

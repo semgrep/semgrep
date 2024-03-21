@@ -320,7 +320,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
   in
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.targeting_conf.project_root with
-    | Some (Find_targets.Git_remote git_remote) -> (
+    | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
         | None ->
             failwith
@@ -328,7 +328,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
                the pro engine, but do not have the pro engine. You may need to \
                acquire a different binary."
         | Some pro_git_remote_scan_setup ->
-            pro_git_remote_scan_setup git_remote core_run_for_osemgrep)
+            pro_git_remote_scan_setup core_run_for_osemgrep)
     | _ -> core_run_for_osemgrep
   in
   core_run_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
@@ -873,17 +873,6 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
-  (* Change dir if project_root is a git_remote
-     note: sorry cooper, we gotta do this because
-     git sparse-checkout doesn't like absolute paths. - anonymous
-     Please try harder to not use chdir as it invalidates all relative paths.
-     'git -C dir' should work, no? - Martin
-  *)
-  (match conf.targeting_conf.project_root with
-  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
-      Logs.debug (fun m -> m ~tags "chdir %s" (Rfpath.show checkout_path));
-      CapSys.chdir caps#chdir (Rpath.to_string checkout_path.rpath)
-  | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files

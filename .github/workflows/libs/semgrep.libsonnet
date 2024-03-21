@@ -176,6 +176,46 @@ local containers = {
 };
 
 // ----------------------------------------------------------------------------
+// Slack helpers
+// ----------------------------------------------------------------------------
+
+//TODO: use instead the more direct:
+//        if: failure()
+//        uses: slackapi/slack-github-action@v1.23.0
+//        with:
+//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
+//          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+//        env:
+//           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
+// (but this need R2C_SLACK_TOKEN which was not added to the public semgrep repo)
+
+local slack = {
+  // This will post on Slack on the #semgrep-cli-release channel from a
+  // 'gha-notification' user.
+  // The actual URL secret is stored in 1password in our Engineering vault
+  // (look for "slack webhook") and configured by #team-techops to post to
+  // #semgrep-cli-release somewhere we have not access to.
+  curl_notify(message): |||
+      curl --request POST \
+       --url  ${{ secrets.NOTIFICATIONS_URL }} \
+       --header 'content-type: application/json' \
+       --data '{
+         "text": "%s"
+       }'
+    ||| % message,
+
+  notify_failure_job(message): {
+   'runs-on': 'ubuntu-20.04',
+   'if': 'failure()',
+    steps: [
+      {
+        run: slack.curl_notify(message),
+      },
+     ],
+    },
+};
+
+// ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
 
@@ -191,7 +231,7 @@ local containers = {
       name: 'Configure AWS credentials for %s' % role,
       uses: 'aws-actions/configure-aws-credentials@v4',
       with: {
-        // This seems to be semgrep specific magic number
+        // This seems to be a semgrep specific magic number
         'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
         'role-duration-seconds': 900,
         'role-session-name': session_name,
@@ -202,8 +242,9 @@ local containers = {
   // default one
   // coupling: with containers above
   opam_switch: '4.14.0',
-
   containers: containers,
+
   github_bot: github_bot,
   cache_opam: cache_opam,
+  slack: slack,
 }

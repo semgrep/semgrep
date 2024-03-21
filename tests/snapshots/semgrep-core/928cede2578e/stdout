@@ -3,12 +3,12 @@
 dir/ignore-me
 dir/ignore-me-not
 --- Filtered files ---
-Selection events for path /.gitignore:
-SEL /.gitignore
-Selection events for path /dir/ignore-me:
-ignored at <TEMPORARY FILE PATH>.gitignore, line 1: dir/*
-IGN /dir/ignore-me
-Selection events for path /dir/ignore-me-not:
-ignored at <TEMPORARY FILE PATH>.gitignore, line 1: dir/*
-de-ignored at <TEMPORARY FILE PATH>.gitignore, line 2: !dir/ignore-me-not
-SEL /dir/ignore-me-not
+Selection events for path .gitignore:
+SEL .gitignore
+Selection events for path dir/ignore-me:
+ignored at <TMP>/<MASKED>/.gitignore, line 1: dir/*
+IGN dir/ignore-me
+Selection events for path dir/ignore-me-not:
+ignored at <TMP>/<MASKED>/.gitignore, line 1: dir/*
+de-ignored at <TMP>/<MASKED>/.gitignore, line 2: !dir/ignore-me-not
+SEL dir/ignore-me-not

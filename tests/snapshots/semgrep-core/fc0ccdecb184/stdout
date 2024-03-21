@@ -3,10 +3,10 @@
 hello.c
 hello.ml
 --- Filtered files ---
-Selection events for path /.gitignore:
-SEL /.gitignore
-Selection events for path /hello.c:
-ignored at <TEMPORARY FILE PATH>.gitignore, line 1: *.c
-IGN /hello.c
-Selection events for path /hello.ml:
-SEL /hello.ml
+Selection events for path .gitignore:
+SEL .gitignore
+Selection events for path hello.c:
+ignored at <TMP>/<MASKED>/.gitignore, line 1: *.c
+IGN hello.c
+Selection events for path hello.ml:
+SEL hello.ml

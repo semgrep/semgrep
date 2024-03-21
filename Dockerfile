@@ -144,12 +144,12 @@ COPY scripts/ ./scripts/
 RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
 ###############################################################################
-# Step3: Build the final docker image with Python wrapper and semgrep-core bin
+# Step3: Combine the Python wrapper (pysemgrep) and semgrep-core bin
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
-FROM python:3.11.4-alpine AS semgrep-oss
+FROM python:3.11-alpine AS semgrep-oss
 
 WORKDIR /semgrep
 
@@ -158,19 +158,13 @@ WORKDIR /semgrep
 # See docker-library/python#761 for an example of such an issue in the past
 # where the time between the CVE was discovered and the package update was X days, but
 # the new base image was updated only after Y days.
+# See also https://docs.docker.com/develop/security-best-practices/
 RUN apk upgrade --no-cache && \
 # Here is why we need the apk packages below:
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those submodules
-# - bash, curl, jq: various utilities useful in CI jobs (e.g., our benchmark jobs,
-#   which needs to use the latest semgrep docker image, also need a few utilities called
-#   in some of our bash and python scripts/)
-#   alt: we used to have an alternate semgrep-dev.Dockerfile container to use
-#   for our benchmarks, but it complicates things and the addition of those
-#   packages do not add much to the size of the docker image (<1%).
     apk add --no-cache --virtual=.run-deps\
-    git git-lfs openssh\
-    bash curl jq
+    git git-lfs openssh
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
@@ -228,16 +222,15 @@ RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
 RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
 
-# In case of problems, if you need to debug the docker image, run 'docker build .',
-# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
-# to interactively explore the docker image.
-CMD ["semgrep", "--help"]
-LABEL maintainer="support@semgrep.com"
-
-# Why not having an `ENTRYPOINT ["semgrep"]` so that people can simply run
-# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help` instead
-# of `docker run ... returntocorp/semgrep semgrep --help`? (It's even worse
-# now that we switched company name with `... semgrep/semgrep semgrep --help`).
+# Note that we just use CMD below, but not ENTRYPOINT. Why not having also
+#   ENTRYPOINT ["semgrep"] ?
+# so that people can simply run
+# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help` instead of
+# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --help`?
+# (It's even worse now that we switched company name with
+# `docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep --help`, we now
+# have three semgrep, hmmm).
+#
 # This is mainly to play well with CI providers like Gitlab. Indeed,
 # gitlab CI sets up all CI jobs by first running other commands in the
 # container; setting an ENTRYPOINT would break those commands and cause jobs
@@ -245,6 +238,39 @@ LABEL maintainer="support@semgrep.com"
 # image's entrypoint in a .gitlab-ci.yml.
 # => Simpler to not have any ENTRYPOINT, even it means forcing the user
 # to repeat multiple times semgrep in the docker command line.
+#
+# In case of problems, if you need to debug the docker image, run 'docker build .',
+# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
+# to interactively explore the docker image.
+CMD ["semgrep", "--help"]
+LABEL maintainer="support@semgrep.com"
+
+###############################################################################
+# optional: developer variant
+###############################################################################
+
+FROM semgrep-oss as semgrep-dev
+
+# Here we install various utilities needed by some of our bash and python
+# scripts (in scripts/). Indeed, those scripts are run from CI jobs that
+# use the returntocorp/semgrep docker image as the container, because
+# they must test semgrep, but those scripts must also perform different
+# tasks that require utilities other than semgrep (e.g., compute parsing
+# statistics and then run 'jq' to filter the JSON).
+# alt:
+#  - we used to have an alternate semgrep-dev.Dockerfile container to use
+#    for our benchmarks, but it complicates things
+#  - we used then to install those utilities as part of the semgrep-oss step.
+#    Indeed, the addition of those packages didn't add much to the size of
+#    the docker image (<1%), but those utilities can have CVEs associated
+#    with them so simpler to put them in a separate semgrep docker image
+#    to remove the attack surface of returntocorp/semgrep
+#
+# Here is why we need the apk packages below:
+# - bash: many scripts are bash scripts
+# - jq: used to filter JSON parsing statistics
+# - curl: used to upload data? also for telemetry?
+RUN apk add --no-cache bash curl jq
 
 ###############################################################################
 # Step4: install semgrep-pro
@@ -264,7 +290,7 @@ RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secret
 RUN rm -rf /root/.semgrep
 
 ###############################################################################
-# Step5: (optional) nonroot variant
+# optional: nonroot variant
 ###############################################################################
 
 # Additional build stage that sets a non-root user.
@@ -290,7 +316,7 @@ ENV PATH="$PATH:/home/semgrep/bin"
 USER semgrep
 
 ###############################################################################
-# Step6: (optional) performance testing
+# optional: performance testing
 ###############################################################################
 
 # Build target that exposes the performance benchmark tests in perf/ for

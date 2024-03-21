@@ -67,7 +67,7 @@ end
          and have the exclusions apply only to the files that aren't tracked.
 *)
 
-type git_remote = { url : Uri.t; checkout_path : Rfpath.t } [@@deriving show]
+type git_remote = { url : Uri.t } [@@deriving show]
 
 type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
 [@@deriving show]
@@ -104,6 +104,12 @@ type project_roots = {
   (* scanning roots that belong to the project *)
   scanning_roots : Fppath.t list;
 }
+
+type force_root = (Project.kind * Rfpath.t) option
+
+(*************************************************************************)
+(* Defaults *)
+(*************************************************************************)
 
 let default_conf : conf =
   {
@@ -373,6 +379,19 @@ let git_list_untracked_files (project_roots : project_roots) :
 (* Grouping *)
 (*************************************************************************)
 
+let scanning_root_by_project (force_root : force_root)
+    (scanning_root : Scanning_root.t) : Project.t * Fppath.t =
+  let kind, { Git_project.project_root; inproject_path = scanning_root_ppath } =
+    Git_project.find_any_project_root ?force_root
+      (Scanning_root.to_fpath scanning_root)
+  in
+  ( ({ kind; path = project_root } : Project.t),
+    ({
+       fpath = Scanning_root.to_fpath scanning_root;
+       ppath = scanning_root_ppath;
+     }
+      : Fppath.t) )
+
 (*
    Identify the project root for each scanning root and group them
    by project root. If the project_root is specified, then we use that.
@@ -398,11 +417,6 @@ let group_scanning_roots_by_project (conf : conf)
         (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root =
     match conf.project_root with
-    | Some (Git_remote { checkout_path; _ }) ->
-        Some (Project.Git_project, checkout_path)
-    | None ->
-        (* Usual case when scanning the local file system *)
-        None
     | Some (Filesystem proj_root) ->
         (* This is when --project-root is specified on the command line.
            It doesn't use 'git ls-files' to list files. This is required
@@ -410,29 +424,18 @@ let group_scanning_roots_by_project (conf : conf)
            why it's like this.
            TODO: make tests work without requiring --project-root? *)
         Some (Project.Gitignore_project, proj_root)
+    | Some (Git_remote _)
+    | None ->
+        (* Usual case when scanning the local file system *)
+        None
   in
   scanning_roots
-  |> List_.map (fun (scanning_root : Scanning_root.t) ->
-         let ( kind,
-               {
-                 Git_project.project_root;
-                 inproject_path = scanning_root_ppath;
-               } ) =
-           Git_project.find_any_project_root ?force_root
-             (Scanning_root.to_fpath scanning_root)
-         in
-         ( ({ kind; path = project_root } : Project.t),
-           ({
-              fpath = Scanning_root.to_fpath scanning_root;
-              ppath = scanning_root_ppath;
-            }
-             : Fppath.t) ))
+  |> List_.map (scanning_root_by_project force_root)
   (* Using a realpath (physical path) in Project.t ensures we group
      correctly even if the scanning_roots went through different symlink paths.
   *)
-  |> Assoc.group_by fst
-  |> List_.map (fun (project, xs) ->
-         { project; scanning_roots = xs |> List_.map snd })
+  |> Assoc.group_assoc_bykey_eff
+  |> List_.map (fun (project, scanning_roots) -> { project; scanning_roots })
 
 (*************************************************************************)
 (* Work on a single project *)
@@ -557,17 +560,17 @@ let get_targets_for_project conf (project_roots : project_roots) =
 (* for semgrep query console *)
 let clone_if_remote_project_root conf =
   match conf.project_root with
-  | Some (Git_remote { url; checkout_path }) ->
-      let checkout_path = Rfpath.to_fpath checkout_path in
+  | Some (Git_remote { url }) ->
+      let cwd = Fpath.v (Unix.getcwd ()) in
       Logs.debug (fun m ->
-          m ~tags "Sparse cloning %a into %a" Uri.pp url Fpath.pp checkout_path);
-      (match Git_wrapper.sparse_shallow_filtered_checkout url checkout_path with
+          m ~tags "Sparse cloning %a into CWD: %a" Uri.pp url Fpath.pp cwd);
+      (match Git_wrapper.sparse_shallow_filtered_checkout url (Fpath.v ".") with
       | Ok () -> ()
       | Error msg ->
           failwith
             (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
-               !!checkout_path msg));
-      Git_wrapper.checkout ~cwd:checkout_path ();
+               (Fpath.to_string cwd) msg));
+      Git_wrapper.checkout ();
       Logs.debug (fun m -> m ~tags "Sparse cloning done")
   | Some (Filesystem _)
   | None ->

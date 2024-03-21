@@ -68,21 +68,8 @@ local build_core_job = {
       name: 'Compile semgrep',
       run: 'opam exec -- make core',
     },
-    {
-      name: 'Make artifact',
-      run: |||
-        mkdir artifacts
-        cp ./bin/semgrep-core artifacts/
-        tar czf artifacts.tgz artifacts
-      |||,
-    },
-    {
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        path: 'artifacts.tgz',
-        name: artifact_name,
-      },
-    },
+    actions.make_artifact_step("./bin/semgrep-core"),
+    actions.upload_artifact_step(artifact_name),
   ],
 };
 
@@ -93,12 +80,7 @@ local build_wheels_job = {
   ],
   steps: [
     actions.checkout_with_submodules(),
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: artifact_name,
-      },
-    },
+    actions.download_artifact_step(artifact_name),
     {
       run: |||
         tar xvfz artifacts.tgz
@@ -122,14 +104,9 @@ local test_wheels_job = {
     'build-wheels',
   ],
   steps: [
+    actions.download_artifact_step(wheel_name),
     {
-      uses: 'actions/download-artifact@v1',
-      with: {
-        name: wheel_name,
-      },
-    },
-    {
-      run: 'unzip ./osx-x86-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     {
       name: 'install package',

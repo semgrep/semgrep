@@ -1,5 +1,9 @@
-// Factorize GHA Action plugins boilerplate.
+// Factorize GHA "actions" (=~ plugins) boilerplate.
 {
+  // ---------------------------------------------------------
+  // Checkout
+  // ---------------------------------------------------------
+
   // TODO: default to submodules=true, and a flexible with={}?
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
@@ -15,6 +19,10 @@
         submodules: true,
       },
     },
+
+  // ---------------------------------------------------------
+  // Python stuff
+  // ---------------------------------------------------------
 
   // TODO: maybe simplify callers now that has default version to 3.11
   setup_python_step: function(version='3.11') {
@@ -32,6 +40,10 @@
     run: 'pip install pipenv==2022.6.7',
   },
 
+  // ---------------------------------------------------------
+  // Docker
+  // ---------------------------------------------------------
+
   // alt: run: docker-login -u USER -p PASS
   // alt: run a .github/docker-login
   docker_login_step: {
@@ -40,5 +52,32 @@
         username: '${{ secrets.DOCKER_USERNAME }}',
         password: '${{ secrets.DOCKER_PASSWORD }}',
      }
+  },
+
+  // ---------------------------------------------------------
+  // Artifact management
+  // ---------------------------------------------------------
+
+  // works with upload_artifact_step() below by relying on an artifacts.tgz
+  make_artifact_step(path): {
+      name: 'Make artifact for %s' % path,
+      run: |||
+          mkdir artifacts
+          cp %s artifacts/
+          tar czf artifacts.tgz artifacts
+        ||| % path,
+  },
+  upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
+       uses: 'actions/upload-artifact@v3',
+       with: {
+          path: path,
+          name: artifact_name,
+        },
+  },
+  download_artifact_step(artifact_name): {
+      uses: 'actions/download-artifact@v3',
+      with: {
+        name: artifact_name,
+      },
   },
 }
