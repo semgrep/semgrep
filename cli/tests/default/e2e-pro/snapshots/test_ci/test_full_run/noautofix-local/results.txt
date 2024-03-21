@@ -81,6 +81,11 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_REPO_URL="git@github.com:example
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: f9a5c39
+  Installed at /Users/emma/workspace/semgrep/cli/src/semgrep/bin/semgrep-core-proprietary
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘

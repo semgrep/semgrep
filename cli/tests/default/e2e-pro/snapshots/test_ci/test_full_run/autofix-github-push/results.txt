@@ -21,6 +21,11 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: f9a5c39
+  Installed at /Users/emma/workspace/semgrep/cli/src/semgrep/bin/semgrep-core-proprietary
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
