@@ -114,37 +114,7 @@ RUN eval "$(opam env)" &&\
     /src/semgrep/_build/default/src/main/Main.exe -version
 
 ###############################################################################
-# Step2: Build the semgrep Python wheel
-###############################################################################
-# This is an intermediary stage used for building Python wheels. Semgrep users
-# don't need to use this.
-FROM python:3.11-alpine AS semgrep-wheel
-
-WORKDIR /semgrep
-
-# Install some deps (build-base because ruamel.yaml has native code)
-#
-# libffi-dev is needed for installing Python dependencies in
-# scripts/build-wheels.sh on arm64
-RUN apk add --no-cache build-base zip bash libffi-dev
-
-# Copy in the CLI
-COPY cli ./cli
-
-# Copy in semgrep-core executable
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
-
-# Copy in scripts folder
-COPY scripts/ ./scripts/
-
-# Build the source distribution and binary wheel, validate that the wheel
-# installs correctly. We're only checking the musllinux wheel because this is
-# an Alpine container. It shouldnt be a problem because the content of the
-# wheels are identical.
-RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
-
-###############################################################################
-# Step3: Combine the Python wrapper (pysemgrep) and semgrep-core bin
+# Step2: Combine the Python wrapper (pysemgrep) and semgrep-core binary
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
@@ -208,7 +178,7 @@ WORKDIR /src
 
 # Better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
-# Note though that the actual USER directive is done in Step 4.
+# Note though that the actual USER directive is done in Step 3.
 RUN adduser -D -u 1000 -h /home/semgrep semgrep \
     && chown semgrep /src
 
@@ -246,7 +216,51 @@ CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
 ###############################################################################
-# optional: developer variant
+# Step3: install semgrep-pro
+###############################################################################
+# This step is valid only when run from Github Actions.
+# See .github/workflows/build-test-docker.jsonnet and release.jsonnet
+
+#coupling: the 'semgrep-cli' name is used in release.jsonnet
+FROM semgrep-oss AS semgrep-cli
+
+# A semgrep docker image with semgrep-pro already included in the image,
+# to save time in CI as one does not need to wait 2min each time to
+# download it.
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug
+
+# Clear out any detritus from the pro install
+RUN rm -rf /root/.semgrep
+
+###############################################################################
+# optional: nonroot variant
+###############################################################################
+
+# Additional build stage that sets a non-root user.
+# We can't make this the default in the semgrep-cli stage above because of
+# permissions errors on the mounted volume when using instructions for running
+# semgrep with docker:
+# `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
+#coupling: the 'nonroot' name is used in release.jsonnet
+FROM semgrep-cli AS nonroot
+
+# We need to move the core binary out of the protected /usr/local/bin dir so
+# the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
+# alt: we could also do this work directly in the root docker image.
+# TODO? now that we install semgrep-pro in step4, do we still need that?
+RUN rm /usr/local/bin/osemgrep && \
+    mkdir /home/semgrep/bin && \
+    mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
+    ln -s semgrep-core /home/semgrep/bin/osemgrep && \
+    chown semgrep:semgrep /home/semgrep/bin
+
+# Update PATH with new core binary location
+ENV PATH="$PATH:/home/semgrep/bin"
+
+USER semgrep
+
+###############################################################################
+# Other target: developer variant
 ###############################################################################
 
 FROM semgrep-oss as semgrep-dev
@@ -273,54 +287,43 @@ FROM semgrep-oss as semgrep-dev
 RUN apk add --no-cache bash curl jq
 
 ###############################################################################
-# Step4: install semgrep-pro
+# Other target: Build the semgrep Python wheel
 ###############################################################################
-# This step is valid only when run from Github Actions.
-# See .github/workflows/build-test-docker.yaml
+# This is an intermediary stage used for building Python wheels. Semgrep users
+# don't need to use this.
+#coupling: 'semgrep-wheel' is used in build-test-manylinux-aarch64.jsonnet
+FROM python:3.11-alpine AS semgrep-wheel
 
-#coupling: the 'semgrep-cli' name is used in release.jsonnet
-FROM semgrep-oss AS semgrep-cli
+WORKDIR /semgrep
 
-# A semgrep docker image with semgrep-pro already included in the image,
-# to save time in CI as one does not need to wait 2min each time to
-# download it.
-RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug
+# Install some deps (build-base because ruamel.yaml has native code)
+#
+# libffi-dev is needed for installing Python dependencies in
+# scripts/build-wheels.sh on arm64
+RUN apk add --no-cache build-base zip bash libffi-dev
 
-# Clear out any detritus from the pro install
-RUN rm -rf /root/.semgrep
+# Copy in the CLI
+COPY cli ./cli
 
-###############################################################################
-# optional: nonroot variant
-###############################################################################
+# Copy in semgrep-core executable
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
 
-# Additional build stage that sets a non-root user.
-# We can't make this the default in the semgrep-cli stage above because of
-# permissions errors on the mounted volume when using instructions for running
-# semgrep with docker:
-# `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
-FROM semgrep-cli AS nonroot
+# Copy in scripts folder
+COPY scripts/ ./scripts/
 
-# We need to move the core binary out of the protected /usr/local/bin dir so
-# the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
-# alt: we could also do this work directly in the root docker image.
-# TODO? now that we install semgrep-pro in step4, do we still need that?
-RUN rm /usr/local/bin/osemgrep && \
-    mkdir /home/semgrep/bin && \
-    mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
-    ln -s semgrep-core /home/semgrep/bin/osemgrep && \
-    chown semgrep:semgrep /home/semgrep/bin
-
-# Update PATH with new core binary location
-ENV PATH="$PATH:/home/semgrep/bin"
-
-USER semgrep
+# Build the source distribution and binary wheel, validate that the wheel
+# installs correctly. We're only checking the musllinux wheel because this is
+# an Alpine container. It shouldnt be a problem because the content of the
+# wheels are identical.
+RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
 ###############################################################################
-# optional: performance testing
+# Other target: performance testing
 ###############################################################################
 
 # Build target that exposes the performance benchmark tests in perf/ for
 # use in running performance benchmarks from a test build container, e.g., on PRs
+#coupling: the 'performance-tests' name is used in tests.jsonnet
 FROM semgrep-cli AS performance-tests
 
 COPY perf /semgrep/perf
