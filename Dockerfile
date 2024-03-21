@@ -135,19 +135,21 @@ RUN apk upgrade --no-cache && \
 #
 # history: we used to install here various utilities (e.g., jq, curl) needed by
 # some of our bash (and python) scripts under scripts/. Indeed, those scripts are
-# run from CI jobs using the returntocorp/semgrep docker image as the container,
-# because they must test semgrep. Those scripts must also perform different
+# run from CI jobs using the returntocorp/semgrep docker image as the container
+# because they rely on semgrep(-core). Those scripts must also perform different
 # tasks that require utilities other than semgrep (e.g., compute parsing
 # statistics and then run 'jq' to filter the JSON). It was convenient to add
 # them to the docker image, especially because the addition of those packages
 # didn't add much to the size of the docker image (<1%). However, those utilities
-# can have CVEs associated, so better to not install them,
+# can have CVEs associated, so better to not install them.
 # alt:
 #  - we used to have an alternate semgrep-dev.Dockerfile container to use
 #    for our benchmarks, but it complicates things
-#  - just install those utilities in the workflow (see for example
-#    cron-parsing-stats.jsonnet).
-# See also https://docs.docker.com/develop/security-best-practices/
+#
+# If you need more utilities, just install them in the workflow instead
+# (see for example cron-parsing-stats.jsonnet).
+#
+# See https://docs.docker.com/develop/security-best-practices/ for more info.
 #
 # Here is why we need the apk packages below:
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
