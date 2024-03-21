@@ -91,16 +91,12 @@ let get_persistent_bindings revert_loc r nested_matches =
          let readjusted_mvars =
            nested_match.RM.mvars
            |> List_.map_filter (fun (mvar, mval) ->
-                  match
+                  let mval =
                     mval |> MV.mvalue_to_any |> reverting_visitor
                     |> MV.mvalue_of_any
-                  with
-                  | None ->
-                      Logs.err (fun m ->
-                          m ~tags "Failed to convert mvar %s to and from any"
-                            mvar);
-                      None
-                  | Some mval -> Some (mvar, mval))
+                  in
+
+                  Some (mvar, mval))
          in
          { nested_match with RM.mvars = readjusted_mvars })
   |> List_.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)

@@ -69,6 +69,8 @@ type formula = {
   conditions : (tok * metavar_cond) list;
   (* focus-metavariable:'s *)
   focus : focus_mv_list list;
+  (* as:'s *)
+  as_ : string option;
 }
 
 and formula_kind =
@@ -920,7 +922,7 @@ let xpatterns_of_rule rule =
   !xpat_store
 
 let mk_formula ?(focus = []) ?(conditions = []) kind =
-  { f = kind; focus; conditions }
+  { f = kind; focus; conditions; as_ = None }
 
 let f kind = mk_formula kind
 

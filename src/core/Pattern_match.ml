@@ -93,6 +93,13 @@ type t = {
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
+  (* Why is this here?
+     When we allow pattern matches to be embedded into metavariables, we want
+     to be able to assign a faithful mvalue to the new metavariable.
+     This means that we must be able to retrieve the matched AST node from the
+     match itself.
+  *)
+  ast_node : AST_generic.any option;
   (* less: do we need to be lazy? *)
   tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)

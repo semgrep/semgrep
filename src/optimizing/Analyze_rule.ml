@@ -128,7 +128,7 @@ let option_map f xs =
 
 (* less: move the Not to leaves, applying DeMorgan, and then filter them? *)
 let rec (remove_not : Rule.formula -> Rule.formula option) =
- fun ({ f; conditions; focus } as formula) ->
+ fun ({ f; conditions; focus; as_ = _ } as formula) ->
   let reconstruct f = R.mk_formula ~conditions ~focus f in
   match f with
   | R.And (t, xs) ->

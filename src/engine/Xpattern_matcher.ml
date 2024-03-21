@@ -90,6 +90,7 @@ let (matches_of_matcher :
                                   origin;
                                 };
                               range_loc = (loc1, loc2);
+                              ast_node = None;
                               env;
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];

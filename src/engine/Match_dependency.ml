@@ -91,6 +91,8 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                (* TODO: should be pro if the pro engine is used in the match *)
                engine_of_match = `OSS;
                range_loc = dep.Dependency.loc;
+               (* TODO? *)
+               ast_node = None;
                tokens = lazy dep.Dependency.toks;
                env = [];
                taint_trace = None;

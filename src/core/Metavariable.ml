@@ -84,6 +84,7 @@ type mvalue =
       string
       * (* token without enclosing quotes *) AST_generic.tok
       * (* original token *) AST_generic.tok
+  | Any of AST_generic.any
 [@@deriving show, eq]
 
 (* we sometimes need to convert to an any to be able to use
@@ -110,25 +111,26 @@ let mvalue_to_any = function
   | P x -> G.P x
   | Text (s, info, _) ->
       G.E (G.L (G.String (Tok.unsafe_fake_bracket (s, info))) |> G.e)
+  | Any any -> any
 
 (* coupling: this function should be an inverse to the function above! *)
-let mvalue_of_any = function
-  | G.E { e = G.N (Id (id, idinfo)); _ } -> Some (Id (id, Some idinfo))
+let mvalue_of_any any =
+  match any with
+  | G.E { e = G.N (Id (id, idinfo)); _ } -> Id (id, Some idinfo)
   | E { e = RawExpr x; _ }
   | Raw x ->
-      Some (Raw x)
-  | E { e = L (String (_, (s, info), _)); _ } ->
-      Some (Text (s, info, G.fake ""))
-  | E e -> Some (E e)
-  | S s -> Some (S s)
-  | Name x -> Some (N x)
-  | XmlAt x -> Some (XmlAt x)
-  | Ss x -> Some (Ss x)
-  | Args x -> Some (Args x)
-  | Params x -> Some (Params x)
-  | Xmls x -> Some (Xmls x)
-  | T x -> Some (T x)
-  | P x -> Some (P x)
+      Raw x
+  | E { e = L (String (_, (s, info), _)); _ } -> Text (s, info, G.fake "")
+  | E e -> E e
+  | S s -> S s
+  | Name x -> N x
+  | XmlAt x -> XmlAt x
+  | Ss x -> Ss x
+  | Args x -> Args x
+  | Params x -> Params x
+  | Xmls x -> Xmls x
+  | T x -> T x
+  | P x -> P x
   | At _
   | Fld _
   | Flds _
@@ -154,7 +156,7 @@ let mvalue_of_any = function
   | Di _
   | Lbli _
   | Anys _ ->
-      None
+      Any any
 
 let location_aware_equal_mvalue mval1 mval2 =
   let ranges_equal =
@@ -189,7 +191,9 @@ let program_of_mvalue : mvalue -> G.program option =
   | T _
   | P _
   | XmlAt _
-  | Text _ ->
+  | Text _
+  (* `Any` should not be `Ss` or other variants which could be turned into a program *)
+  | Any _ ->
       Logs.debug (fun m ->
           m ~tags "program_of_mvalue: not handled '%s'" (show_mvalue mval));
       None
