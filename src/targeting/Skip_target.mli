@@ -5,3 +5,6 @@ val exclude_big_files :
 (* Detecting and filtering minified files (for Javascript) *)
 val exclude_minified_files :
   Fpath.t list -> Fpath.t list * Semgrep_output_v1_t.skipped_target list
+
+val exclude_minified_targets :
+  Target.t list -> Target.t list * Semgrep_output_v1_t.skipped_target list

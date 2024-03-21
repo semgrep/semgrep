@@ -1,4 +1,14 @@
 (*****************************************************************************)
+(* Skipping files *)
+(*****************************************************************************)
+
+(** A file can only be considered "minified" if its size is at least
+ * [minified_MIN_SIZE]. This prevents that small text files containing
+ * cryptographic keys or tokens, which are relevant for Secrets rules,
+ * end up being skipped. *)
+let minified_MIN_SIZE = 50_000
+
+(*****************************************************************************)
 (* Const/sym ("svalue") propagation *)
 (*****************************************************************************)
 
