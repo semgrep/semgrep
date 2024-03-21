@@ -500,6 +500,8 @@ class Target:
         """
         Recursively go through a directory and return list of all files with
         default file extension of language
+
+        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         if not self.path.is_dir() and self.path.is_file():
             return frozenset([self.path])
@@ -742,6 +744,8 @@ class TargetManager:
         it is also filtered out
 
         Note also filters out any directory and descendants of `.git`
+
+        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         all_files = self.get_all_files(ignore_baseline_handler)
 
@@ -851,6 +855,8 @@ class TargetManager:
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
+
+        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         return self.get_files_for_language(
             ecosystem, product, ignore_baseline_handler
@@ -865,6 +871,8 @@ class TargetManager:
 
         If lockfile not in self.get_lockfiles(ecosystem) then return None
         this would happen if the lockfile is ignored by a .semgrepignore or --exclude
+
+        ignore_baseline_handler: if True, will pass the value downstream and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         candidates = self.get_lockfiles(
             ecosystem, ignore_baseline_handler=ignore_baseline_handler
