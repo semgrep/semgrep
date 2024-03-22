@@ -38,8 +38,11 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  *  - be more consistent and requires an Fpath instead
  *    of relying sometimes on cwd.
  *)
-module Store = Git_unix.Store
-module Hash = Store.Hash
+(* Standard git uses sha1 *)
+
+module type Store = Git.S with type hash = Digestif.SHA1.t
+
+module Hash = Git.Hash.Make (Digestif.SHA1)
 module Value = Git.Value.Make (Hash)
 module Commit = Git.Commit.Make (Hash)
 module Tree = Git.Tree.Make (Hash)
@@ -67,11 +70,12 @@ type status = {
  *)
 let git : Cmd.name = Cmd.Name "git"
 
-type object_table = (Value.hash, Value.t) Hashtbl.t
 type hash = Hash.t [@@deriving show, eq, ord]
+type value = Value.t [@@deriving show, eq, ord]
 type commit = Commit.t [@@deriving show, eq, ord]
 type blob = Blob.t [@@deriving show, eq, ord]
 type author = User.t [@@deriving show, eq, ord]
+type object_table = (hash, value) Hashtbl.t
 
 type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 [@@deriving show]
@@ -191,11 +195,6 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
-let objects_of_store (store : Store.t) : object_table Lwt.t =
-  Logs.debug (fun m -> m ~tags "reading objects");
-  let%lwt contents = Store.contents store in
-  Lwt.return (contents |> List.to_seq |> Hashtbl.of_seq)
-
 let tree_of_commit (objects : object_table) commit =
   commit |> Commit.tree |> Hashtbl.find_opt objects |> fun obj ->
   match obj with
@@ -254,21 +253,7 @@ let blobs_by_commit objects commits =
 (* Entry points *)
 (*****************************************************************************)
 
-let load_store ?(path = Fpath.v (Sys.getcwd ())) () = Store.v path
-
-let load_store_exn ?(path = Fpath.v (Sys.getcwd ())) () =
-  match%lwt load_store ~path () with
-  | Ok store -> Lwt.return store
-  | Error (`Reference_not_found _) ->
-      failwith "Reference not found. Are you in a git repository?"
-  | Error (`Not_found _) -> failwith "Not found. Are you in a git repository?"
-  | Error (`Msg msg) -> failwith msg
-  | _ -> failwith "Unknown error"
-
-let commit_blobs_by_date store =
-  Logs.debug (fun m -> m ~tags "loading objects from store");
-  let%lwt objects = objects_of_store store in
-  Logs.debug (fun m -> m ~tags "loaded objects");
+let commit_blobs_by_date objects =
   Logs.debug (fun m -> m ~tags "getting commits");
   let commits =
     objects |> Hashtbl.to_seq |> List.of_seq
@@ -285,7 +270,7 @@ let commit_blobs_by_date store =
   Logs.debug (fun m -> m ~tags "sorted commits");
   let blobs_by_commit = blobs_by_commit objects commits_by_date in
   Logs.debug (fun m -> m ~tags "got blobs by commit");
-  Lwt.return blobs_by_commit
+  blobs_by_commit
 
 let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in

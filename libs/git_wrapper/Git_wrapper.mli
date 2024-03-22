@@ -176,13 +176,12 @@ val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
     the commits since the specified time.
  *)
 
-module Store = Git_unix.Store
-module Hash = Store.Hash
-
-type hash = Hash.t [@@deriving show, eq, ord]
-type commit = Git.Commit.Make(Hash).t [@@deriving show, eq, ord]
+type hash = Digestif.SHA1.t [@@deriving show, eq, ord]
+type value = hash Git.Value.t [@@deriving show, eq, ord]
+type commit = hash Git.Commit.t [@@deriving show, eq, ord]
 type author = Git.User.t [@@deriving show, eq, ord]
-type blob = Git.Blob.Make(Hash).t [@@deriving show, eq, ord]
+type blob = Git.Blob.t [@@deriving show, eq, ord]
+type object_table = (hash, value) Hashtbl.t
 
 type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 [@@deriving show]
@@ -202,15 +201,7 @@ val string_of_blob : blob -> string
 val hex_of_hash : hash -> string
 (** [hex_of_hash hash] is the hexadecimal representation of the hash*)
 
-val load_store : ?path:Fpath.t -> unit -> (Store.t, Store.error) result Lwt.t
-(** [load_store ?path ()] is the representation of the git repository at [path] or the current directory if
-    [path] is not provided*)
-
-val load_store_exn : ?path:Fpath.t -> unit -> Store.t Lwt.t
-(** [load_store_exn ?path ()] is the representation of the git repository at [path] or the current directory if
-    [path] is not provided. It raises an error if the repository is not found*)
-
-val commit_blobs_by_date : Store.t -> (commit * blob_with_extra list) list Lwt.t
+val commit_blobs_by_date : object_table -> (commit * blob_with_extra list) list
 (** [commit_blobs_by_date store] is the list of commits and the blobs they reference, ordered by date, newest first*)
 
 val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
