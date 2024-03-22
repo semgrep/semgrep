@@ -105,16 +105,7 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
    that folder which add filters to the existing filters found earlier.
 *)
 let select t sel_events (full_git_path : Ppath.t) =
-  let rel_segments =
-    match Ppath.segments full_git_path with
-    (* Remove empty line segment *)
-    | "" :: xs -> xs
-    | "/" :: _ ->
-        failwith
-          (Printf.sprintf "Gitignore: full_git_path %s not relative"
-             Ppath.(to_string full_git_path))
-    | xs -> xs
-  in
+  let rel_segments = Ppath.relative_segments full_git_path in
   (* higher levels (command-line)
      and middle levels (gitignore files discovered along the way) *)
   let sel_events =

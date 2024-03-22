@@ -37,9 +37,7 @@ let test_filter (files : F.t list) () =
       files |> F.flatten
       |> List.iter (fun path ->
              assert (Fpath.is_rel path);
-             let path =
-               "/" ^ Fpath.to_string path |> Ppath.of_string_for_tests
-             in
+             let path = Ppath.of_relative_fpath path in
              let status, selection_events =
                let selection_events = [] in
                (* Glob.Match.run is supposed to print detailed logs on which
@@ -47,11 +45,14 @@ let test_filter (files : F.t list) () =
                   log level. *)
                Gitignore_filter.select filter selection_events path
              in
-             printf "Selection events for path %s:\n" (Ppath.to_string path);
+             printf "Selection events for path %s:\n"
+               (Ppath.to_string_for_tests path);
              print_string (Gitignore.show_selection_events selection_events);
              match status with
-             | Not_ignored -> printf "SEL %s\n" (Ppath.to_string path)
-             | Ignored -> printf "IGN %s\n" (Ppath.to_string path)))
+             | Not_ignored ->
+                 printf "SEL ppath %s\n" (Ppath.to_string_for_tests path)
+             | Ignored ->
+                 printf "IGN ppath %s\n" (Ppath.to_string_for_tests path)))
 
 (*****************************************************************************)
 (* The tests *)

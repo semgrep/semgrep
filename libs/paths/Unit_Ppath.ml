@@ -11,14 +11,18 @@ let test_conversions () =
       let test_str f input expected_output =
         Alcotest.(check string) __LOC__ expected_output (f input)
       in
-      let rewrite str = Ppath.to_string (Ppath.of_string_for_tests str) in
+      let rewrite str =
+        Ppath.to_string_for_tests (Ppath.of_string_for_tests str)
+      in
       test_str rewrite "/" "/";
       test_str rewrite "//" "//";
       test_str rewrite "" "";
       test_str rewrite "/a/" "/a/";
 
       let norm input_str expected =
-        let res = input_str |> Ppath.of_string_for_tests |> Ppath.to_string in
+        let res =
+          input_str |> Ppath.of_string_for_tests |> Ppath.to_string_for_tests
+        in
         printf "test ppath normalization: %s -> %s\n%!" input_str res;
         Alcotest.(check string) __LOC__ expected res
       in
@@ -28,7 +32,7 @@ let test_conversions () =
         | res ->
             Alcotest.fail
               (sprintf "an error was expected but we got: %s -> %s\n" str
-                 (Ppath.to_string res))
+                 (Ppath.to_string_for_tests res))
       in
       norm "/a" "/a";
       norm "/a/b" "/a/b";
@@ -49,7 +53,8 @@ let test_conversions () =
       let test_add_seg a b ab =
         Alcotest.(check string)
           __LOC__ ab
-          (Ppath.add_seg (Ppath.of_string_for_tests a) b |> Ppath.to_string)
+          (Ppath.add_seg (Ppath.of_string_for_tests a) b
+          |> Ppath.to_string_for_tests)
       in
       test_add_seg "/" "a" "/a";
       test_add_seg "/a" "b" "/a/b";
@@ -62,7 +67,9 @@ let test_conversions () =
             (mk_abs path)
         with
         | Ok res ->
-            Alcotest.(check string) __LOC__ expected (Ppath.to_string res)
+            Alcotest.(check string)
+              __LOC__ expected
+              (Ppath.to_string_for_tests res)
         | Error msg -> Alcotest.fail msg
       in
       let test_in_project_fail root path =
@@ -70,7 +77,7 @@ let test_conversions () =
           Ppath.in_project_unsafe_for_tests ~phys_root:(Fpath.v root)
             (Fpath.v path)
         with
-        | Ok res -> Alcotest.fail (Ppath.to_string res)
+        | Ok res -> Alcotest.fail (Ppath.to_string_for_tests res)
         | Error _ -> ()
       in
       test_in_project_ok "/a" "/a/b" "/b";
@@ -117,7 +124,8 @@ let test_of_relative_fpath () =
   let check path_str expected_ppath_str =
     printf "of_relative_fpath %S -> %S\n%!" path_str expected_ppath_str;
     let res =
-      path_str |> Fpath.v |> Ppath.of_relative_fpath |> Ppath.to_string
+      path_str |> Fpath.v |> Ppath.of_relative_fpath
+      |> Ppath.to_string_for_tests
     in
     Alcotest.(check string) __LOC__ expected_ppath_str res
   in

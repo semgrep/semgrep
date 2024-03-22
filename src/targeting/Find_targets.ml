@@ -243,7 +243,7 @@ let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
   let rec aux (dir : Fppath.t) =
     Logs.debug (fun m ->
         m ~tags "listing dir %s (ppath = %s)" !!(dir.fpath)
-          (Ppath.to_string dir.ppath));
+          (Ppath.to_string_for_tests dir.ppath));
     (* TODO? should we sort them first? *)
     let entries = List_files.read_dir_entries dir.fpath in
     entries
@@ -338,7 +338,8 @@ let git_list_files ~exclude_standard
                          appended with the target path that's relative to
                          the scanning root. *)
                       let fpath =
-                        Fpath.(sc_root.fpath // fpath_relative_to_scan_root)
+                        Fpath_.append_no_dot sc_root.fpath
+                          fpath_relative_to_scan_root
                       in
                       ({ fpath; ppath } : Fppath.t)))
         |> Fppath_set.of_list)

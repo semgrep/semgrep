@@ -94,8 +94,8 @@ let rec find_first func xs =
 *)
 let select t (full_git_path : Ppath.t) =
   Logs.debug (fun m ->
-      m ~tags "Include_filter.select %s %s" (show t)
-        (Ppath.to_string full_git_path));
+      m ~tags "Include_filter.select %s ppath:%s" (show t)
+        (Ppath.to_string_for_tests full_git_path));
   let rec scan_segments matcher parent_path segments =
     (* add a segment to the path and check if it's selected *)
     match segments with
@@ -103,7 +103,7 @@ let select t (full_git_path : Ppath.t) =
     | segment :: segments -> (
         (* check whether partial path should be gitignored *)
         let file_path = parent_path / segment in
-        if Glob.Match.run matcher (Ppath.to_string file_path) then
+        if Glob.Match.run matcher (Ppath.to_string_fast file_path) then
           Some (Glob.Match.source matcher)
         else
           match segments with
@@ -113,7 +113,7 @@ let select t (full_git_path : Ppath.t) =
           | _ :: _ ->
               (* add trailing slash to match directory-only patterns *)
               let dir_path = file_path / "" in
-              if Glob.Match.run matcher (Ppath.to_string dir_path) then
+              if Glob.Match.run matcher (Ppath.to_string_fast dir_path) then
                 Some (Glob.Match.source matcher)
               else scan_segments matcher file_path segments)
   in

@@ -151,7 +151,8 @@ let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
 
 let select t (git_path : Ppath.t) =
   Logs.debug (fun m ->
-      m ~tags "Semgrepignore.select %s" (Ppath.to_string git_path));
+      m ~tags "Semgrepignore.select ppath %s"
+        (Ppath.to_string_for_tests git_path));
   let status, sel_events =
     match t.include_filter with
     | None -> (Gitignore.Not_ignored, [])

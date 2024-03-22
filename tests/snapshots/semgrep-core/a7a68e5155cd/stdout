@@ -4,7 +4,7 @@ Test name: without git > basic gitignore
 a
 b
 --- Selected targets ---
-selected <TEMPORARY FILE PATH>.gitignore
-selected <TEMPORARY FILE PATH>a
+selected <TMP>/<MASKED>/.gitignore
+selected <TMP>/<MASKED>/a
+selected <TMP>/<MASKED>/b
 --- Skipped targets ---
-ignored <TEMPORARY FILE PATH>b [Semgrep_output_v1_t.Semgrepignore_patterns_match]

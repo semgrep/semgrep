@@ -41,22 +41,28 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       |> List.iter (fun (path, should_be_selected) ->
              let path = Ppath.of_string_for_tests path in
              let status, selection_events = Semgrepignore.select filter path in
-             printf "Selection events for path %s:\n" (Ppath.to_string path);
+             printf "Selection events for ppath %s:\n"
+               (Ppath.to_string_for_tests path);
              print_string (Gitignore.show_selection_events selection_events);
              if should_be_selected then (
                match status with
                | Not_ignored ->
-                   printf "[OK] %s: not ignored\n" (Ppath.to_string path)
+                   printf "[OK] ppath %s: not ignored\n"
+                     (Ppath.to_string_for_tests path)
                | Ignored ->
-                   printf "[FAIL] %s: ignored\n" (Ppath.to_string path);
+                   printf "[FAIL] ppath %s: ignored\n"
+                     (Ppath.to_string_for_tests path);
                    error := true)
              else
                match status with
                | Not_ignored ->
-                   printf "[FAIL] %s: not ignored\n" (Ppath.to_string path);
+                   printf "[FAIL] ppath %s: not ignored\n"
+                     (Ppath.to_string_for_tests path);
                    error := true
-               | Ignored -> printf "[OK] %s: ignored\n" (Ppath.to_string path));
-      assert (not !error))
+               | Ignored ->
+                   printf "[OK] ppath %s: ignored\n"
+                     (Ppath.to_string_for_tests path));
+      if !error then Alcotest.fail "there were some unexpected results")
 
 (*****************************************************************************)
 (* The tests *)

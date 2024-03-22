@@ -59,16 +59,25 @@ val create : string list -> t
 *)
 val to_fpath : ?root:Fpath.t -> t -> Fpath.t
 
+(* Convert to the string-based representation for regexp-matching purposes.
+   The resulting path uses '/' as a separator and starts with a '/'.
+   Do not use function this for other purposes regexp matching.
+   - for testing and logging, use 'to_string_for_tests';
+   - for conversion to system paths, use 'to_fpath'.
+*)
+val to_string_fast : t -> string
+
 (* /, useful as a folding starting point *)
 val root : t
-
-(* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
-val to_string : t -> string
 
 (* The first element returned will always be "", because ppaths are always
  * absolute paths
  *)
 val segments : t -> string list
+
+(* Same as 'segments' but remove the leading empty segment corresponding
+   to the leading '/'. *)
+val relative_segments : t -> string list
 
 (* Append a segment to a path.
    ".." and "." are not supported by this operation.
@@ -110,6 +119,13 @@ end
 
 (* A slash-separated path. Must start with a slash. *)
 val of_string_for_tests : string -> t
+
+(* Produce a path that starts with '/', matching the internal
+   representation.
+   Outside of tests, use 'to_fpath' to produce an absolute or a relative
+   path in the file system.
+*)
+val to_string_for_tests : t -> string
 
 val in_project_unsafe_for_tests :
   phys_root:Fpath.t -> Fpath.t -> (t, string) result

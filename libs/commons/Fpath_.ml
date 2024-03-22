@@ -37,6 +37,8 @@ let of_relative_segments segs =
       invalid_arg ("Fpath_.of_relative_segments: " ^ String.concat "/" segs)
   | seg :: segs -> List.fold_left Fpath.add_seg (Fpath.v seg) segs
 
+let append_no_dot a b = if Fpath.is_current_dir a then b else Fpath.append a b
+
 module Operators = struct
   let ( / ) = Fpath.( / )
   let ( // ) = Fpath.( // )

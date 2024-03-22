@@ -37,14 +37,23 @@ type t = {
      - no segment may contain a "/".
    *)
   segments : string list;
+  (* The string representation of the ppath as used for matching file paths
+     with gitignore and semgrepignore implementation.
+     This path uses '/' as a separator regardless of the platform
+     and starts with one. *)
+  string : string;
 }
 
-(* old: was of_string_for_tests "/" *)
-let root = { segments = [ ""; "" ] }
+let string_of_segments segments = String.concat "/" segments
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
+
+(* Fast access to the string representation is needed when matching a ppath
+   against many gitignore or semgrepignore patterns because they use regexps
+   on the string rather than working on string segments individually. *)
+let to_string_fast path = path.string
 
 (* TODO: make a rel_segments function so the caller does not have to do
    let rel_segments =
@@ -57,7 +66,7 @@ let root = { segments = [ ""; "" ] }
 let segments x = x.segments
 
 (* Return the list of segments of a ppath without the leading slash. *)
-let get_relative_segments (ppath : t) =
+let relative_segments (ppath : t) =
   match ppath.segments with
   | [] -> assert false
   | [ "" ] -> assert false
@@ -129,12 +138,14 @@ let check_normalized_segments segments =
         ("Ppath.create: ppath must be absolute (start with '/'): "
        ^ String.concat "/" segments)
 
-let unsafe_create segments = { segments }
+let unsafe_create segments = { segments; string = string_of_segments segments }
 
 let create segments =
   let norm_segments = normalize_segments segments in
   check_normalized_segments norm_segments;
   unsafe_create norm_segments
+
+let root = create [ ""; "" ]
 
 (*****************************************************************************)
 (* Append *)
@@ -181,7 +192,17 @@ let to_fpath ?root path =
       List.fold_left Fpath.add_seg root segments
   | _ -> assert false
 
-let to_string path = to_fpath path |> Fpath.to_string
+(*
+   Represent Ppaths as strings using '/' as the separator regardless
+   of the platform. These are not valid file system paths in general.
+   They may be used only in tests and in internal assertions
+   (assert or invalid_arg).
+*)
+let of_string_for_tests string = create (String.split_on_char '/' string)
+
+(* Show the ppath in string form. Doesn't need to be fast.
+   We use a different name to distinguish use cases more clearly. *)
+let to_string_for_tests = to_string_fast
 
 let relativize ~root:orig_root orig_ppath =
   let rec aux root ppath =
@@ -194,16 +215,18 @@ let relativize ~root:orig_root orig_ppath =
     | [], segs -> Fpath_.of_relative_segments segs
     | _ :: _, [] ->
         invalid_arg
-          (spf "Ppath.relativize: %S is shorter than %S" (to_string orig_root)
-             (to_string orig_ppath))
+          (spf "Ppath.relativize: %S is shorter than %S"
+             (to_string_for_tests orig_root)
+             (to_string_for_tests orig_ppath))
     | x :: xs, y :: ys ->
         if x = y then aux xs ys
         else
           invalid_arg
             (spf "Ppath.relativize: %S is not a prefix of %S"
-               (to_string orig_root) (to_string orig_ppath))
+               (to_string_for_tests orig_root)
+               (to_string_for_tests orig_ppath))
   in
-  aux (get_relative_segments orig_root) (get_relative_segments orig_ppath)
+  aux (relative_segments orig_root) (relative_segments orig_ppath)
 
 (*****************************************************************************)
 (* Project Builder *)
@@ -297,9 +320,3 @@ let in_project_unsafe_for_tests ~(phys_root : Fpath.t) (path : Fpath.t) =
 
 let in_project ~(root : Rfpath.t) (path : Fpath.t) =
   in_project_unsafe_for_tests ~phys_root:(root.rpath |> Rpath.to_fpath) path
-
-(*****************************************************************************)
-(* Tests helpers *)
-(*****************************************************************************)
-
-let of_string_for_tests string = create (String.split_on_char '/' string)

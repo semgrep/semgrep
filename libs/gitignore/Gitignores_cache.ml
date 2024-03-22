@@ -13,7 +13,7 @@ let anchor_of_git_path git_path =
 
 let load t dir_path =
   let tbl = t.cache in
-  let key = Ppath.to_string dir_path in
+  let key = Ppath.to_string_fast dir_path in
   match Hashtbl.find_opt tbl key with
   | Some res -> res
   | None ->
