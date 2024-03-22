@@ -58,7 +58,7 @@ local snapshot_update_pr_steps = [
     'if': failure_and_right_event,
     uses: 'EndBug/add-and-commit@v9',
     with: {
-      add: 'cli/tests/default/e2e-pro/snapshots',
+      add: 'cli/tests/default/*/snapshots',
       default_author: 'github_actions',
       message: 'Update pytest snapshots',
       new_branch: 'snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}',
