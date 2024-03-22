@@ -143,7 +143,8 @@ type was_scanned = Scanned of Fpath.t | Not_scanned
 
    Remember that a target handler runs in another process (via Parmap).
 *)
-type target_handler = Target.t -> RP.matches_single_file * was_scanned
+type target_handler =
+  Target.t -> RP.matches_single_file * OutJ.skipped_target list * was_scanned
 
 (*****************************************************************************)
 (* Helpers *)
@@ -597,11 +598,15 @@ let handle_target_with_trace handle_target t =
 *)
 let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     (handle_target : target_handler) (targets : Target.t list) :
-    Core_profiling.file_profiling RP.match_result list * Fpath.t list =
+    Core_profiling.file_profiling RP.match_result list
+    * OutJ.skipped_target list
+    * Fpath.t list =
   (* The path in match_and_path_list is None when the file was not scanned *)
   let (match_and_path_list
-        : (Core_profiling.file_profiling RP.match_result * Fpath.t option) list)
-      =
+        : (Core_profiling.file_profiling RP.match_result
+          * OutJ.skipped_target list
+          * Fpath.t option)
+          list) =
     targets
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
@@ -609,7 +614,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
            Logs.info (fun m ->
                m "Analyzing %s (contents in %s)" (Origin.to_string origin)
                  !!internal_path);
-           let (res, was_scanned), run_time =
+           let (res, skipped, was_scanned), run_time =
              Common.with_time (fun () ->
                  try
                    (* this is used to generate warnings in the logs
@@ -634,7 +639,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         *
                         * old: timeout_function file config.timeout ...
                         *)
-                       let res, was_scanned =
+                       let res, skipped, was_scanned =
                          handle_target_with_trace handle_target target
                        in
 
@@ -650,7 +655,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                            m ~tags "done with %s (contents in %s)"
                              (Origin.to_string origin) !!internal_path);
 
-                       (res, was_scanned))
+                       (res, skipped, was_scanned))
                  with
                  (* note that Semgrep_error_code.exn_to_error already handles
                   * Timeout and would generate a TimeoutError code for it,
@@ -701,6 +706,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      in
                      ( Core_result.mk_match_result [] errors
                          (Core_profiling.empty_partial_profiling internal_path),
+                       [],
                        Scanned internal_path )
                      (* converted in Main_timeout in timeout_function() *)
                      (* FIXME:
@@ -738,6 +744,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      in
                      ( Core_result.mk_match_result [] errors
                          (Core_profiling.empty_partial_profiling internal_path),
+                       [],
                        Scanned internal_path ))
            in
            let scanned_path =
@@ -745,9 +752,10 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
              | Scanned target -> Some target
              | Not_scanned -> None
            in
-           (Core_result.add_run_time run_time res, scanned_path))
+           (Core_result.add_run_time run_time res, skipped, scanned_path))
   in
-  let matches, opt_paths = List.split match_and_path_list in
+  let matches, skipped, opt_paths = Common2.unzip3 match_and_path_list in
+  let skipped = List_.flatten skipped in
   let scanned =
     opt_paths |> List_.map_filter Fun.id
     (* It's necessary to remove duplicates because extracted targets are
@@ -755,7 +763,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
        extracted targets for a single file. Might as well sort too *)
     |> List.sort_uniq Fpath.compare
   in
-  (matches, scanned)
+  (matches, skipped, scanned)
 
 (*****************************************************************************)
 (* File targeting and rule filtering *)
@@ -905,8 +913,8 @@ let select_applicable_rules_for_origin paths (origin : Origin.t) =
    or something even better to reduce the time spent on each target in
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
-let select_applicable_rules_for_target ~analyzer ~products ~origin
-    ~respect_rule_paths rules =
+let select_applicable_rules_for_target ~analyzer ~products ~path
+    ~respect_rule_paths rules : R.rule list * OutJ.skipped_target list =
   let rules =
     select_applicable_rules_for_analyzer ~analyzer rules
     |> List.filter (fun r ->
@@ -914,16 +922,34 @@ let select_applicable_rules_for_target ~analyzer ~products ~origin
              (Semgrep_output_v1_j.equal_product r.Rule.product)
              products)
   in
-  if respect_rule_paths then
-    rules
-    |> List.filter (fun (r : R.rule) ->
-           (* Honor per-rule include/exclude.
-              * Note that this also done in pysemgrep, but we need to do it
-              * again here for osemgrep which use a different file targeting
-              * strategy.
-           *)
-           select_applicable_rules_for_origin r.paths origin)
-  else rules
+  let rules =
+    if respect_rule_paths then
+      rules
+      |> List.filter (fun (r : R.rule) ->
+             (* Honor per-rule include/exclude.
+                * Note that this also done in pysemgrep, but we need to do it
+                * again here for osemgrep which use a different file targeting
+                * strategy.
+             *)
+             select_applicable_rules_for_origin r.paths path.Target.origin)
+    else rules
+  in
+  (* If the file is "large and machine-optimized" (e.g. minified files or
+   * auto-generated lexers/parsers), some rules may prefer to skip it. *)
+  let rules, skipped =
+    match Skip_target.is_minified path.internal_path_to_content with
+    | Ok _ -> (rules, [])
+    | Error skipped ->
+        rules
+        |> List.partition_map (fun rule ->
+               match rule.R.options with
+               | Some options when options.skip_large_machine_optimized_files ->
+                   Right { skipped with rule_id = Some (fst rule.id) }
+               | Some _
+               | None ->
+                   Left rule)
+  in
+  (rules, skipped)
 
 let select_applicable_supply_chain_rules ~lockfile_kind ~respect_rule_paths
     ~origin rules =
@@ -962,14 +988,16 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
         | _ -> Scanned internal_path_to_content
       in
       (* TODO: run all the right hooks *)
-      (RP.collate_rule_results internal_path_to_content dep_matches, was_scanned)
+      ( RP.collate_rule_results internal_path_to_content dep_matches,
+        [],
+        was_scanned )
   | Regular target ->
-      let origin = target.path.origin in
-      let file = target.path.internal_path_to_content in
+      let path = target.path in
+      let file = path.internal_path_to_content in
       let analyzer = target.analyzer in
       let products = target.products in
-      let applicable_rules =
-        select_applicable_rules_for_target ~analyzer ~products ~origin
+      let applicable_rules, skipped =
+        select_applicable_rules_for_target ~analyzer ~products ~path
           ~respect_rule_paths:config.respect_rule_paths valid_rules
       in
       let was_scanned =
@@ -1038,7 +1066,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       config.file_match_results_hook
       |> Option.iter (fun hook -> hook file matches);
       print_cli_progress config;
-      (matches, was_scanned)
+      (matches, skipped, was_scanned)
 
 (* This is the main function used by pysemgrep right now.
  * This is also now called from osemgrep.
@@ -1085,11 +1113,12 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   Logs.info (fun m ->
       m ~tags "processing %d files, skipping %d files" num_targets
         num_skipped_targets);
-  let file_results, scanned_targets =
+  let file_results, per_rule_skipped, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (mk_target_handler config valid_rules prefilter_cache_opt match_hook)
   in
+  let skipped = per_rule_skipped @ skipped in
   (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile finding in that lockfile *)
   let scanned_target_table =
     (* provide fast access to paths that were scanned by at least one rule;

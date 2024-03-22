@@ -34,6 +34,11 @@
 
 (* !!Do not rename the fields because they can be referenced in rules!! *)
 type t = {
+  (* EXPERIMENTAL:
+     Skip minified and machine-generated files.
+     (Eventually it should be on by default.) *)
+  ~skip_large_machine_optimized_files <ocaml default="false"> : bool;
+
   ~constant_propagation <ocaml default="true"> : bool;
   (* symbolic_propagation requires constant_propagation to have effect *)
   ~symbolic_propagation <ocaml default="false"> : bool;
