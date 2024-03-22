@@ -81,11 +81,6 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
-  ENGINE
-  Using Semgrep Pro Version: f9a5c39
-  Installed at /Users/emma/workspace/semgrep/cli/src/semgrep/bin/semgrep-core-proprietary
-
-
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘

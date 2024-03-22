@@ -81,11 +81,6 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
-  ENGINE
-  Using Semgrep Pro Version: f9a5c39
-  Installed at /Users/emma/workspace/semgrep/cli/src/semgrep/bin/semgrep-core-proprietary
-
-
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
