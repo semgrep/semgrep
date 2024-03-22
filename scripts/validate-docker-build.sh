@@ -82,3 +82,11 @@ echo " -> OK"
 echo "Bash should be in the docker image"
 docker run "${docker_args[@]}" "$image" bash --version
 echo " -> OK"
+
+echo "Jq should be in the docker image"
+docker run "${docker_args[@]}" "$image" jq --version
+echo " -> OK"
+
+echo "Curl should be in the docker image"
+docker run "${docker_args[@]}" "$image" curl --version
+echo " -> OK"
