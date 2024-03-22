@@ -329,7 +329,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         hidden=True,
     ),
-    optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
+    optgroup.option(
+        "--allow-custom-validators",
+        "allow_untrusted_validators",
+        is_flag=True,
+        hidden=True,
+    ),
 ]
 
 
@@ -410,7 +415,7 @@ def scan_options(func: Callable) -> Callable:
     help="Contact support@semgrep.com for more informationon this.",
 )
 @click.option(
-    "--historical-secrets-targets",
+    "--historical-secrets",
     "historical_secrets",
     is_flag=True,
 )

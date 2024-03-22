@@ -533,8 +533,8 @@ let o_no_secrets_validation : bool Term.t =
 let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
-      [ "allow-untrusted-validators" ]
-      ~doc:{|Run postprocessors from untrusted sources.|}
+      [ "allow-custom-validators" ]
+      ~doc:{|Run postprocessors from custom rules.|}
   in
   Arg.value (Arg.flag info)
 
