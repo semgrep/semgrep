@@ -697,11 +697,12 @@ and map_module_declaration (env : env) (x : CST.module_declaration) :
 
 and map_const_declaration (env : env) (x : CST.const_declaration) : G.definition
     =
-  let attributes, _, name, _, ttype, _, value, sc = x in
+  let attributes, tconst, name, _, ttype, _, value, sc = x in
+  let tconst = token env tconst in
   let name : G.entity =
     {
       name = G.EN (H2.name_of_id (map_name env name));
-      attrs = map_attributes env attributes;
+      attrs = map_attributes env attributes @ [ KeywordAttr (Const, tconst) ];
       tparams = None;
     }
   in

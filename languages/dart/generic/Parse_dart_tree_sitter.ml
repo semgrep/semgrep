@@ -1,6 +1,6 @@
 (* Brandon Wu
  *
- * Copyright (c) 2022 R2C
+ * Copyright (c) 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -1087,7 +1087,7 @@ and map_for_loop_parts (env : env) (x : CST.for_loop_parts) : for_header =
                         (map_anon_arg_rep_COMMA_arg_eb223b2 env x)
                   | None -> []
                 in
-                let _v2 = map_semicolon env v2 in
+                let _sc = map_semicolon env v2 in
                 v1)
         | None -> []
       in
@@ -1096,7 +1096,7 @@ and map_for_loop_parts (env : env) (x : CST.for_loop_parts) : for_header =
         | Some x -> Some [ map_expression env x ]
         | None -> None
       in
-      let _v3 = map_semicolon env v3 in
+      let _sc = map_semicolon env v3 in
       let v4 =
         match v4 with
         | Some x -> Some (map_anon_arg_rep_COMMA_arg_eb223b2 env x)
@@ -1157,7 +1157,7 @@ and map_function_body (env : env) (x : CST.function_body) :
       in
       let _v2 = (* "=>" *) token env v2 in
       let v3 = map_expression env v3 in
-      let _v4 = map_semicolon env v4 in
+      let _sc = map_semicolon env v4 in
       (v1, FBExpr v3)
   | `Opt_choice_async_blk (v1, v2) ->
       let v1 =
@@ -1462,13 +1462,15 @@ and map_literal (env : env) (x : CST.literal) =
 and map_local_variable_declaration (env : env)
     ((v1, v2) : CST.local_variable_declaration) : G.stmt list =
   let v1 = map_initialized_variable_definition env v1 in
-  let _v2 = map_semicolon env v2 in
+  (* TODO: call H2.add_semicolon_to_last_var_def_and_convert_to_stmts *)
+  let _sc = map_semicolon env v2 in
   v1
 
 and map_local_variable_declaration_unwrapped (env : env)
     ((v1, v2) : CST.local_variable_declaration) :
     (G.entity * G.variable_definition) list =
   let v1 = map_initialized_variable_definition_unwrapped env v1 in
+  (* TODO: call H2.add_semicolon_to_last_var_def_and_convert_to_stmts *)
   let _v2 = map_semicolon env v2 in
   v1
 
@@ -2009,7 +2011,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
       let v2 = map_statement_as_stmt env v2 in
       let _v3 = (* "while" *) token env v3 in
       let v4 = map_parenthesized_expression env v4 in
-      let _v5 = map_semicolon env v5 in
+      let _sc = map_semicolon env v5 in
       [ DoWhile (v1, v2, v4) |> G.s ]
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = (* "switch" *) token env v1 in
@@ -2090,8 +2092,8 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
   | `Exp_stmt x -> [ map_expression_statement env x ]
   | `Assert_stmt (v1, v2) ->
       let tok, args = map_assertion env v1 in
-      let v2 = (* ";" *) token env v2 in
-      [ Assert (tok, args, v2) |> G.s ]
+      let sc = (* ";" *) map_semicolon env v2 in
+      [ Assert (tok, args, sc) |> G.s ]
 
 and map_strict_formal_parameter_list (env : env)
     (x : CST.strict_formal_parameter_list) : parameters =
@@ -2674,7 +2676,7 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
       let tparams = Option.map (map_type_parameters env) v3 in
       let _v4 = (* "=" *) token env v4 in
       let v5 = map_function_type env v5 in
-      let _v6 = (* ";" *) token env v6 in
+      let _sc = (* ";" *) map_semicolon env v6 in
       DefStmt
         ({ name = EN v2; attrs; tparams }, TypeDef { tbody = AliasType v5 })
       |> G.s
@@ -2694,7 +2696,7 @@ let map_type_alias ~attrs (env : env) (x : CST.type_alias) : stmt =
       in
       let v3 = map_type_name_name env v3 in
       let tparams, (_, params, _) = map_formal_parameter_part env v4 in
-      let _v5 = (* ";" *) token env v5 in
+      let _sc = (* ";" *) map_semicolon env v5 in
       let ty = TyFun (params, ret_ty) |> G.t in
       DefStmt
         ({ name = EN v3; attrs; tparams }, TypeDef { tbody = AliasType ty })
@@ -3127,7 +3129,7 @@ let map_import_specification (env : env) (x : CST.import_specification) =
       let _v4 = (* "as" *) token env v4 in
       let v5 = (* pattern [a-zA-Z_$][\w$]* *) str env v5 in
       let _v6 = List.map (map_combinator env) v6 in
-      let _v7 = map_semicolon env v7 in
+      let _sc = map_semicolon env v7 in
       (* For the same reason as above, we prefer the "ImportAs"
          interpretation, in which case the combinators are not relevant.
       *)
@@ -3495,7 +3497,7 @@ let map_class_member_definition ~attrs (env : env)
   match x with
   | `Decl__semi (v1, v2) ->
       let v1 = map_declaration_as_stmt env v1 in
-      let _v2 = map_semicolon env v2 in
+      let _sc = map_semicolon env v2 in
       G.F v1
   | `Meth_sign_func_body (v1, v2) ->
       let v1 = map_method_signature env v1 in
@@ -3516,7 +3518,7 @@ let map_extension_body (env : env) ((v1, v2, v3) : CST.extension_body) :
               | None -> []
             in
             let v2 = map_declaration_ ~attrs env v2 in
-            let _v3 = map_semicolon env v3 in
+            let _sc = map_semicolon env v3 in
             v2
         | `Opt_meta_meth_sign_func_body (v1, v2, v3) ->
             let attrs =
@@ -3552,7 +3554,7 @@ let map_import_or_export (env : env) (x : CST.import_or_export) : stmt =
         let v2 = (* "export" *) str env v2 in
         let v3 = map_configurable_uri env v3 in
         let v4 = List.concat_map (map_combinator env) v4 in
-        let _v5 = map_semicolon env v5 in
+        let _sc = map_semicolon env v5 in
         let d =
           OtherDirective (v2, G.Modn v3 :: List_.map (fun x -> G.I x) v4) |> G.d
         in
@@ -3707,7 +3709,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
         map_function_signature ~attrs env v2
           ((Function, fake "function"), FBStmt (Block (fb []) |> G.s))
       in
-      let _v3 = map_semicolon env v3 in
+      let _sc = map_semicolon env v3 in
       [ v2 ]
   | `Opt_exte_buil_getter_sign_semi (v1, v2, v3) ->
       let attrs =
@@ -3719,7 +3721,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       let v2 =
         map_getter_signature ~attrs env v2 (FBStmt (Block (fb []) |> G.s))
       in
-      let _v3 = map_semicolon env v3 in
+      let _sc = map_semicolon env v3 in
       [ v2 ]
   | `Opt_exte_buil_setter_sign_semi (v1, v2, v3) ->
       let attrs =
@@ -3731,7 +3733,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       let v2 =
         map_setter_signature ~attrs env v2 (FBStmt (Block (fb []) |> G.s))
       in
-      let _v3 = map_semicolon env v3 in
+      let _sc = map_semicolon env v3 in
       [ v2 ]
   | `Func_sign_func_body x -> [ map_lambda_expression ~attrs env x ]
   | `Getter_sign_func_body (v1, v2) ->
@@ -3754,7 +3756,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       in
       let v3 = map_static_final_declaration_list env v3 in
       (* TODO: inject it at least in the last decl in v3? *)
-      let _v4 = map_semicolon env v4 in
+      let _sc = map_semicolon env v4 in
       v3
       |> List_.map (fun (id, expr) ->
              G.DefStmt
