@@ -61,7 +61,8 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     # Put this case first because otherwise mypy requires a type annotation on
     # the empty list
     if application_result is not None:
-        modified_files, fixed_lines = application_result.value
+        modified_files = application_result.modified_file_count
+        fixed_lines = application_result.fixed_lines
     else:
         logger.error(f"Fix application over RPC was unsuccessful")
         modified_files = 0

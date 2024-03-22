@@ -40,8 +40,8 @@ let handle_autofix dryrun edits =
 
 let handle_call : function_call -> (function_return, string) result = function
   | `CallApplyFixes { dryrun; edits } ->
-      let modified_files, fixed_lines = handle_autofix dryrun edits in
-      Ok (`RetApplyFixes (modified_files, fixed_lines))
+      let modified_file_count, fixed_lines = handle_autofix dryrun edits in
+      Ok (`RetApplyFixes { modified_file_count; fixed_lines })
 
 let read_packet chan =
   let* size_str =
