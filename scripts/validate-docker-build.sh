@@ -78,3 +78,7 @@ echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
 result=$(docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X')
 echo "${result}" | grep -q "1 == 1"
 echo " -> OK"
+
+echo "Bash should be in the docker image"
+docker run "${docker_args[@]}" "$image" bash --version
+echo " -> OK"
