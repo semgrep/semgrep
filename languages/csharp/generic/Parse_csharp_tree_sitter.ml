@@ -691,7 +691,8 @@ and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) :
   in
   let decls = v2 :: v3 in
   List_.map
-    (fun (ent, vardef) -> (ent, { vinit = vardef.vinit; vtype = v1 }))
+    (fun (ent, vardef) ->
+      (ent, { vinit = vardef.vinit; vtype = v1; vtok = G.no_sc }))
     decls
 
 and interpolation_alignment_clause (env : env)
@@ -887,7 +888,7 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
     | _ -> v3
   in
   let ent = basic_entity v1 in
-  let vardef = { vinit; vtype = None } in
+  let vardef = { vinit; vtype = None; vtok = G.no_sc } in
   (ent, vardef)
 
 and with_initializer_expression (env : env)
@@ -1897,6 +1898,7 @@ and statement (env : env) (x : CST.statement) =
       let _V1TODO = Option.map (token env) v1 (* "await" *) in
       let _V2TODO = Option.map (token env) v2 (* "using" *) in
       let v3 = List_.map (modifier env) v3 in
+      (* TODO: inject back the semicolon in the vtok in the last decl in v4 *)
       let v4 = variable_declaration env v4 in
       let _v5 = token env v5 (* ";" *) in
       var_def_stmt v4 v3
@@ -2616,7 +2618,7 @@ and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
   match v1 with
   | Some t ->
       let ent = basic_entity v2 in
-      let vardef = { vinit = None; vtype = Some t } in
+      let vardef = { vinit = None; vtype = Some t; vtok = G.no_sc } in
       let st = DefStmt (ent, VarDef vardef) |> G.s in
       G.stmt_to_expr st
   | None -> N (Id (v2, empty_id_info ())) |> G.e
@@ -3085,8 +3087,8 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v3 = unhandled_keywordattr (str env v3) (* "event" *) in
       let v4 = type_pattern env v4 in
       let _v5TODO = Option.map (explicit_interface_specifier env) v5 in
-      let v6 = identifier env v6 (* identifier *) in
-      let fname, _ftok = v6 in
+      let id = identifier env v6 (* identifier *) in
+      let fname, _ftok = id in
       let v7 =
         match v7 with
         | `Acce_list x ->
@@ -3125,8 +3127,8 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let tok = token env tok (* ";" *) in
             fb [ todo_stmt env tok ]
       in
-      let ent = basic_entity v6 ~attrs:(v1 @ v1 @ [ v3 ]) in
-      let vardef = { vinit = None; vtype = Some v4 } in
+      let ent = basic_entity id ~attrs:(v1 @ v1 @ [ v3 ]) in
+      let vardef = { vinit = None; vtype = Some v4; vtok = G.no_sc } in
       let open_br, funcs, close_br = v7 in
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)
       |> G.s
@@ -3135,6 +3137,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v2 = List_.map (modifier env) v2 in
       let v3 = unhandled_keywordattr (str env v3) (* "event" *) in
       let v4 = variable_declaration env v4 in
+      (* TODO: inject the semicolon in the last declaration in v4 *)
       let _v5 = token env v5 (* ";" *) in
       var_def_stmt v4 ((v3 :: v1) @ v2)
   | `Field_decl (v1, v2, v3, v4) ->
@@ -3353,7 +3356,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             ((arrow, [ func ], v2), None)
       in
       let ent = basic_entity v5 ~attrs:(v1 @ v2) in
-      let vardef = { vinit; vtype = Some v3 } in
+      let vardef = { vinit; vtype = Some v3; vtok = G.no_sc } in
       let open_br, funcs, close_br = accessors in
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)
       |> G.s

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -575,7 +575,7 @@ and catches v = list catch v
 and var_with_init { f_var; f_init } =
   let ent, t = var f_var in
   let init = option init f_init in
-  (ent, { G.vinit = init; vtype = t })
+  (ent, { G.vinit = init; vtype = t; vtok = G.no_sc })
 
 and init = function
   | ExprInit v1 ->
@@ -791,7 +791,7 @@ let any = function
       G.T v1
   | AVar v1 ->
       let ent, t = var v1 in
-      G.Def (ent, G.VarDef { G.vtype = t; vinit = None })
+      G.Def (ent, G.VarDef { G.vtype = t; vinit = None; vtok = G.no_sc })
   | AInit v1 ->
       let v1 = init v1 in
       G.E v1

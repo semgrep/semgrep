@@ -1425,6 +1425,7 @@ and map_decl env x : G.stmt list =
 
 and map_vars_decl env (v1, v2) : G.definition list =
   let v1 = map_of_list (map_onedecl env) v1 |> List.flatten
+  (* TODO: inject back the sc in the last decl in v1 in vtok *)
   and _v2 = map_sc env v2 in
   v1
 
@@ -1474,7 +1475,7 @@ and map_onedecl env x : G.definition list =
       let pat = G.PatTyped (pat, v1) in
       let ent = { G.name = G.EPattern pat; attrs = []; tparams = None } in
       (* TODO? use v1 for vtype? *)
-      let def = G.VarDef { G.vinit = Some v3; vtype = None } in
+      let def = G.VarDef { G.vinit = Some v3; vtype = None; vtok = G.no_sc } in
       [ (ent, def) ]
   | BitField (v1, v2, v3, v4) ->
       let v1 = map_of_option (map_ident env) v1
@@ -1499,7 +1500,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
     let ent = map_entity env ent in
     let v_v_type = map_type_ env v_v_type in
     let v_v_init = map_of_option (map_init env) v_v_init in
-    (ent, { G.vtype = Some v_v_type; vinit = v_v_init })
+    (ent, { G.vtype = Some v_v_type; vinit = v_v_init; vtok = G.no_sc })
   in
   let fun_def_as_var_def_with_ctor () =
     match (v_v_init, v_v_type) with
@@ -1522,7 +1523,10 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
         if List.length params <> List.length args then None
         else
           let v_v_init = map_init env (ObjInit (Args (p1, args, p2))) in
-          Some (ent, { G.vtype = Some v_v_type; vinit = Some v_v_init })
+          Some
+            ( ent,
+              { G.vtype = Some v_v_type; vinit = Some v_v_init; vtok = G.no_sc }
+            )
     | _ -> None
   in
   let var_def_with_ctor_as_fun_def () =
@@ -1558,7 +1562,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
                     ft_requires = None;
                   } )
           in
-          Some (ent, { G.vtype = Some v_v_type; vinit = None })
+          Some (ent, { G.vtype = Some v_v_type; vinit = None; vtok = G.no_sc })
     | _ -> None
   in
   let result =

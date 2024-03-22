@@ -326,7 +326,7 @@ let env_decl pairs =
     pairs
     |> List_.map (function
          | Label_semgrep_ellipsis tok ->
-             G.ExprStmt (G.Ellipsis tok |> G.e, Tok.unsafe_sc) |> G.s
+             G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s
          | Label_pair (_loc, key, _eq, value) -> (
              match key with
              | Var_ident v
@@ -334,7 +334,11 @@ let env_decl pairs =
                  let entity = G.basic_entity v in
                  let vardef =
                    G.VarDef
-                     { vinit = Some (docker_string_expr value); vtype = None }
+                     {
+                       vinit = Some (docker_string_expr value);
+                       vtype = None;
+                       vtok = G.no_sc;
+                     }
                  in
                  G.DefStmt (entity, vardef) |> G.s))
   in

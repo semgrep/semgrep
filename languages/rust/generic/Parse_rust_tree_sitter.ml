@@ -1216,11 +1216,11 @@ and map_const_block (env : env) ((v1, v2) : CST.const_block) : G.expr =
 and map_const_item (env : env) outer_attrs
     ((_v0TODO, v1, v2, v3, v4, v5, v6) : CST.const_item) : G.stmt =
   (* TODO v0 optional visibility modif *)
-  let const = token env v1 (* "const" *) in
-  let attrs = G.KeywordAttr (G.Const, const) :: outer_attrs in
-  let ident = ident env v2 in
+  let tconst = token env v1 (* "const" *) in
+  let attrs = G.KeywordAttr (G.Const, tconst) :: outer_attrs in
+  let id = ident env v2 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  let _colon = token env v3 (* ":" *) in
+  let _tcolon = token env v3 (* ":" *) in
   let type_ = map_type_ env v4 in
   let init =
     Option.map
@@ -1230,14 +1230,10 @@ and map_const_item (env : env) outer_attrs
         expr)
       v5
   in
-  let _semicolon = token env v6 (* ";" *) in
-  let var_def = { G.vinit = init; G.vtype = Some type_ } in
+  let sc = token env v6 (* ";" *) in
+  let var_def = { G.vinit = init; G.vtype = Some type_; vtok = Some sc } in
   let ent =
-    {
-      G.name = G.EN (G.Id (ident, G.empty_id_info ()));
-      G.attrs;
-      G.tparams = None;
-    }
+    { G.name = G.EN (G.Id (id, G.empty_id_info ())); G.attrs; G.tparams = None }
   in
   G.DefStmt (ent, G.VarDef var_def) |> G.s
 
@@ -1777,7 +1773,7 @@ and map_field_declaration (env : env) (x : CST.field_declaration) : G.field =
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let _colon = token env v3 (* ":" *) in
       let ty = map_type_ env v4 in
-      let var_def = { G.vinit = None; G.vtype = Some ty } in
+      let var_def = { G.vinit = None; G.vtype = Some ty; vtok = G.no_sc } in
       let ent =
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));
@@ -2315,7 +2311,7 @@ and map_declaration_list env (v1, v2, v3) : G.stmt list G.bracket =
 
 and map_ordered_field (_env : env) _outer_attrsTODO
     (_attrsTODO : G.attribute list) (type_ : G.type_) (index : int) : G.field =
-  let var_def = { G.vinit = None; G.vtype = Some type_ } in
+  let var_def = { G.vinit = None; G.vtype = Some type_; vtok = G.no_sc } in
   let ent =
     {
       G.name = G.EDynamic (G.L (G.Int (Parsed_int.of_int index)) |> G.e);
@@ -3208,8 +3204,8 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
             ()
         | None -> ()
       in
-      let _semicolon = token env v7 (* ";" *) in
-      let var_def = { G.vinit = expr; G.vtype = type_ } in
+      let sc = token env v7 (* ";" *) in
+      let var_def = { G.vinit = expr; G.vtype = type_; vtok = Some sc } in
       let ent =
         {
           (* Patterns are difficult to convert to expressions, so wrap it *)
@@ -3561,8 +3557,8 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
             expr)
           v7
       in
-      let _semicolon = token env v8 (* ";" *) in
-      let var_def = { G.vinit = init; G.vtype = Some type_ } in
+      let sc = token env v8 (* ";" *) in
+      let var_def = { G.vinit = init; G.vtype = Some type_; vtok = Some sc } in
       let ent =
         {
           G.name = G.EN (G.Id (ident, G.empty_id_info ()));

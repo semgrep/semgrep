@@ -30,7 +30,7 @@ let fb = Tok.unsafe_fake_bracket
 let map_argument (arg : argument) : G.definition =
   let id, _teq, e = arg in
   let ent = G.basic_entity id in
-  let def = { G.vinit = Some e; vtype = None } in
+  let def = { G.vinit = Some e; vtype = None; vtok = G.no_sc } in
   (ent, G.VarDef def)
 
 (* We convert to a field, to be similar to Parse_terraform_xxx.map_object,

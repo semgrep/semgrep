@@ -150,3 +150,8 @@ val fix_token_locations_any :
 
 val fix_token_locations_program :
   (Tok.location -> Tok.location) -> AST_generic.program -> AST_generic.program
+
+val add_semicolon_to_last_var_def_and_convert_to_stmts :
+  AST_generic.sc ->
+  (AST_generic.entity * AST_generic.variable_definition) list ->
+  AST_generic.stmt list
