@@ -396,7 +396,7 @@ let unsafe_match_to_match
         else (path, None)
     (* TODO(cooper): if we can have a uri or something more general than a
      * file path here then we can stop doing this hack. *)
-    | GitBlob { blob; paths } -> (
+    | GitBlob { sha; paths } -> (
         match paths with
         | [] -> (x.path.internal_path_to_content (* no better path *), None)
         | (commit, path) :: _ ->
@@ -410,10 +410,10 @@ let unsafe_match_to_match
               Some
                 ({
                    git_commit;
-                   git_blob = Some blob;
+                   git_blob = Some sha;
                    git_commit_timestamp =
-                     ATD_string_wrap.Datetime.of_unix_int_time timestamp
-                       offset.sign offset.hours offset.minutes;
+                     Datetime_.of_unix_int_time timestamp offset.sign
+                       offset.hours offset.minutes;
                  }
                   : OutJ.historical_info) ))
   in

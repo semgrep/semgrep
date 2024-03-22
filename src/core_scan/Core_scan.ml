@@ -234,7 +234,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details = Some "File does not exist";
                    rule_id = None;
                  }
-           | GitBlob { blob; _ } ->
+           | GitBlob { sha; _ } ->
                Right
                  {
                    Semgrep_output_v1_t.path = Target.internal_path target;
@@ -242,7 +242,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details =
                      Some
                        (spf "Issue creating a target from git blob %s"
-                          (Git_wrapper.Hash.to_hex blob));
+                          (Git_wrapper.Hash.to_hex sha));
                    rule_id = None;
                  })
 

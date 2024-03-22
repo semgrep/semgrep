@@ -50,8 +50,8 @@ let tempfile_of_git_blob sha =
 let path_of_origin (origin : Origin.t) : path =
   match origin with
   | File file -> { origin; internal_path_to_content = file }
-  | GitBlob { blob; _ } ->
-      { origin; internal_path_to_content = tempfile_of_git_blob blob }
+  | GitBlob { sha; _ } ->
+      { origin; internal_path_to_content = tempfile_of_git_blob sha }
 
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
