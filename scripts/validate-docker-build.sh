@@ -79,6 +79,7 @@ result=$(docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgre
 echo "${result}" | grep -q "1 == 1"
 echo " -> OK"
 
+#TODO: learn how to write for loops in bash :)
 echo "Bash should be in the docker image"
 docker run "${docker_args[@]}" "$image" bash --version
 echo " -> OK"
