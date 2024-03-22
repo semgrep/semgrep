@@ -55,6 +55,8 @@ depends: [
   "uuidm"
   "timedesc" {>= "2.0.0"}
   "lsp" {= "1.15.1-5.0"}
+  "git"
+  "git-unix"
   "trace"
   "ppx_trace"
   "opentelemetry" {>= "0.8"}

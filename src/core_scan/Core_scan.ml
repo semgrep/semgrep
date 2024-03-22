@@ -242,7 +242,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details =
                      Some
                        (spf "Issue creating a target from git blob %s"
-                          (Git_wrapper.show_sha sha));
+                          (Digestif.SHA1.to_hex sha));
                    rule_id = None;
                  })
 
