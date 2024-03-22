@@ -133,20 +133,22 @@ RUN apk upgrade --no-cache && \
 # Try to limit to the minimum the number of packages to install; this reduces
 # the attack surface.
 #
-# history: we used to install here various utilities (e.g., jq, curl) needed by
-# some of our bash (and python) scripts under scripts/. Indeed, those scripts are
-# run from CI jobs using the returntocorp/semgrep docker image as the container
-# because they rely on semgrep(-core). Those scripts must also perform different
+# history: we used to install here various utilities needed by some of our
+# scripts under scripts/. Indeed, those scripts are run from CI jobs using the
+# returntocorp/semgrep docker image as the container because they rely on semgrep
+# or semgrep-core. Those scripts must also perform different
 # tasks that require utilities other than semgrep (e.g., compute parsing
-# statistics and then run 'jq' to filter the JSON). It was convenient to add
+# statistics and then run 'jq' to filter the JSON). It is convenient to add
 # them to the docker image, especially because the addition of those packages
-# didn't add much to the size of the docker image (<1%). However, those utilities
-# can have CVEs associated, so better to not install them.
+# does not add much to the size of the docker image (<1%). However, those utilities
+# can have CVEs associated with them. However, some users are already relying on
+# those utilities in their own CI workflows so we must strike a balance between
+# reducing the attack surface and not breaking existing workflows.
 # alt:
 #  - we used to have an alternate semgrep-dev.Dockerfile container to use
 #    for our benchmarks, but it complicates things
 #
-# If you need more utilities, just install them in the workflow instead
+# If you need more utilities, it is better to install them in the workflow instead
 # (see for example cron-parsing-stats.jsonnet).
 #
 # See https://docs.docker.com/develop/security-best-practices/ for more info.
@@ -155,7 +157,11 @@ RUN apk upgrade --no-cache && \
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those
 #   submodules
-	git git-lfs openssh
+# - bash: many users customize their call to semgrep via bash script
+# - jq: useful to process the JSON output of semgrep
+# - curl: useful to connect to some webhooks
+	git git-lfs openssh \
+	bash jq curl
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
@@ -196,6 +202,10 @@ ENV SEMGREP_IN_DOCKER=1 \
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
 # (see https://semgrep.dev/docs/getting-started/ ), hence this WORKDIR directive
 WORKDIR /src
+
+# We don't need the python source anymore; 'pip install /semgrep' above
+# installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
+RUN rm -rf /semgrep
 
 # It is better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
