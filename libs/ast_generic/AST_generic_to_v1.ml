@@ -1167,7 +1167,7 @@ and map_parameter_classic
     pinfo = v_pinfo;
   }
 
-and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
+and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype; vtok = _sc } =
   let v_vtype = map_of_option map_type_ v_vtype in
   let v_vinit = map_of_option map_expr v_vinit in
   { B.vinit = v_vinit; vtype = v_vtype }

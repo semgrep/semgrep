@@ -355,7 +355,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
                          attrs = [];
                          tparams = None;
                        },
-                       VarDef { vinit = Some v; vtype = None } );
+                       VarDef { vinit = Some v; vtype = None; vtok = _ } );
                  _;
                } ->
                Some (("local." ^ str, tk), v)
@@ -386,7 +386,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
                          attrs = [];
                          tparams = None;
                        },
-                       VarDef { vinit = Some v; vtype = None } );
+                       VarDef { vinit = Some v; vtype = None; vtok = _ } );
                  _;
                } ->
                let str, tk = id in

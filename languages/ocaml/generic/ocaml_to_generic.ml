@@ -51,12 +51,15 @@ let mk_var_or_func tlet params tret body =
   | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E { e = G.Lambda def; _ } ]) ->
       G.FuncDef def
   | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
-      G.VarDef { G.vinit = Some e; vtype = tret }
+      G.VarDef { G.vinit = Some e; vtype = tret; vtok = G.no_sc }
   (* this is useful only for Ellipsis and DeepEllipsis for now, but
    * it could handle more later.
    *)
-  | [], G.ExprStmt (x, _sc) -> G.VarDef { G.vinit = Some x; vtype = tret }
-  | [], _st -> G.VarDef { G.vinit = Some (G.stmt_to_expr body); vtype = tret }
+  | [], G.ExprStmt (x, sc) ->
+      G.VarDef { G.vinit = Some x; vtype = tret; vtok = Some sc }
+  | [], _st ->
+      G.VarDef
+        { G.vinit = Some (G.stmt_to_expr body); vtype = tret; vtok = G.no_sc }
   | _ :: _, _body ->
       G.FuncDef
         {
@@ -177,7 +180,7 @@ and stmt e : G.stmt =
       and v4 = expr v4
       and v5 = stmt v5 in
       let ent = G.basic_entity v1 in
-      let var = { G.vinit = Some v2; vtype = None } in
+      let var = { G.vinit = Some v2; vtype = None; vtok = G.no_sc } in
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       let next =
         G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1L, tok)) |> G.e) |> G.e
@@ -335,7 +338,10 @@ and expr e =
                | _ ->
                    let n = name v1 in
                    let ent = { G.name = G.EN n; attrs = []; tparams = None } in
-                   let def = G.VarDef { G.vinit = Some v2; vtype = None } in
+                   let def =
+                     G.VarDef
+                       { G.vinit = Some v2; vtype = None; vtok = G.no_sc }
+                   in
                    G.fld (ent, def)))
           v2
       in
@@ -570,7 +576,7 @@ and class_field (fld : class_field) : G.field =
       let ent = G.basic_entity id in
       let vinit = option expr inst_expr in
       let vtype = option type_ inst_type in
-      let def = G.{ vinit; vtype } in
+      let def = G.{ vinit; vtype; vtok = G.no_sc } in
       G.fld (ent, G.VarDef def)
   | CfldTodo todok ->
       let st = G.OtherStmt (G.OS_Todo, [ G.TodoK todok ]) |> G.s in
@@ -610,16 +616,21 @@ and type_def_kind = function
   | RecordType v1 ->
       let v1 =
         bracket
-          (list (fun (v1, v2, v3) ->
-               let v1 = ident v1 and v2 = type_ v2 and v3 = option tok v3 in
+          (list (fun (id, ty, mut_opt) ->
+               let id = ident id
+               and ty = type_ ty
+               and mut_opt = option tok mut_opt in
                let ent =
-                 G.basic_entity v1
+                 G.basic_entity id
                    ~attrs:
-                     (match v3 with
+                     (match mut_opt with
                      | Some tok -> [ G.attr G.Mutable tok ]
                      | None -> [])
                in
-               G.fld (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })))
+               G.fld
+                 ( ent,
+                   G.FieldDefColon
+                     { G.vinit = None; vtype = Some ty; vtok = G.no_sc } )))
           v1
       in
       G.AndType v1

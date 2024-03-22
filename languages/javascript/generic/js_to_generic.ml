@@ -533,7 +533,7 @@ and definition (ent, def) =
       let ty = option type_ ty in
       let v3 = option expr x_init in
       ( { ent with G.attrs = v2 :: ent.G.attrs },
-        G.VarDef { G.vinit = v3; G.vtype = ty } )
+        G.VarDef { G.vinit = v3; vtype = ty; vtok = G.no_sc } )
   | FuncDef def ->
       let def, more_attrs = fun_ def in
       ({ ent with G.attrs = ent.G.attrs @ more_attrs }, G.FuncDef def)
@@ -552,7 +552,7 @@ and var_of_var
   let ent = G.basic_entity v1 ~attrs:(v2 :: attrs) in
   let v3 = option expr x_init in
   let v_type = option type_ v_type in
-  (ent, { G.vinit = v3; vtype = v_type })
+  (ent, { G.vinit = v3; vtype = v_type; vtok = G.no_sc })
 
 and var_kind (x, tok) =
   match x with
@@ -681,7 +681,7 @@ and field_classic
         G.FuncDef { def with G.fkind = (fkind, tok) } )
   | _ ->
       let v3 = option expr v3 in
-      (ent, G.VarDef { G.vinit = v3; vtype = vt })
+      (ent, G.VarDef { G.vinit = v3; vtype = vt; vtok = G.no_sc })
 
 and property x =
   match x with

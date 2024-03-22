@@ -13,7 +13,7 @@
  *
  * Extended by Yoann Padioleau to support more recent versions of Java.
  * Copyright (C) 2011 Facebook
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2024 Semgrep Inc.
  *)
 
 (*****************************************************************************)
@@ -320,6 +320,8 @@ and entity = {
 (* variable (local var, parameter) declaration *)
 (* ------------------------------------------------------------------------- *)
 and var_definition = entity
+
+(* TODO: add semicolon *)
 and vars = var_definition list
 
 (* less: could be merged with var *)
