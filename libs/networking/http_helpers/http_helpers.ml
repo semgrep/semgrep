@@ -49,22 +49,48 @@ let set_client_ref v = if not !in_mock_context then client_ref := Some v
  * compiling/linking a package OCaml requires a choice of a virtual module
  * implementation, and it can't defer to the thing that's using the package.
  *)
+
 module Make (Lwt_platform : sig
   val run : 'a Lwt.t -> 'a
 end) =
 struct
-  let rec get_async ?(headers = []) caps url =
-    Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
-    (* This checks to make sure a client has been set *)
-    (* Instead of defaulting to a client, as that can cause *)
-    (* Hard to debug build and runtime issues *)
+  (* Respect the proxy!*)
+  (* Cohttp doesn't https://github.com/mirage/ocaml-cohttp/issues/459 *)
+  (* https://github.com/0install/0install/blob/6c0f5c51bc099370a367102e48723a42cd352b3b/ocaml/zeroinstall/http.cohttp.ml#L232-L256 *)
+  let get_proxy uri =
+    let proxy_uri_env =
+      match Uri.scheme uri with
+      | Some "http" -> Some "HTTP_PROXY"
+      | Some "https" -> Some "HTTPS_PROXY"
+      | _ -> None
+    in
+    let proxy_uri = Option.bind proxy_uri_env Sys.getenv_opt in
+    match proxy_uri with
+    | Some proxy_uri -> Uri.of_string proxy_uri
+    | None -> uri
+
+  let call_client ?(body = `Empty) ?(headers = []) ?(chunked = false) meth url =
     let module Client =
       (val match !client_ref with
            | Some client -> client
            | None -> failwith "HTTP client not initialized")
     in
     let headers = Header.of_list headers in
-    let%lwt response, orig_body = Client.get ~headers url in
+    let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
+    let stream_req = Lwt_stream.of_list [ (req, body) ] in
+    let url = get_proxy url in
+    let%lwt responses_stream = Client.callv url stream_req in
+    let%lwt repsonses = Lwt_stream.to_list responses_stream in
+    match repsonses with
+    | [ (response, body) ] -> Lwt.return (response, body)
+    | _ -> failwith "Somehow got multiple responses from a single request"
+
+  let rec get_async ?(headers = []) caps url =
+    Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
+    (* This checks to make sure a client has been set *)
+    (* Instead of defaulting to a client, as that can cause *)
+    (* Hard to debug build and runtime issues *)
+    let%lwt response, orig_body = call_client ~headers `GET url in
     let%lwt body = Cohttp_lwt.Body.to_string orig_body in
     let code = response |> Response.status |> Code.code_of_status in
     match code with
@@ -97,15 +123,10 @@ struct
   let post_async ~body ?(headers = [ ("content-type", "application/json") ])
       ?(chunked = false) _caps url =
     Logs.debug (fun m -> m "POST on %s" (Uri.to_string url));
-    (* See comment above *)
-    let module Client =
-      (val match !client_ref with
-           | Some client -> client
-           | None -> failwith "HTTP client not initialized")
-    in
-    let headers = Header.of_list headers in
     let%lwt response, body =
-      Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) ~chunked url
+      call_client
+        ~body:(Cohttp_lwt.Body.of_string body)
+        ~headers ~chunked `POST url
     in
     let%lwt body = Cohttp_lwt.Body.to_string body in
     let code = response |> Response.status |> Code.code_of_status in
