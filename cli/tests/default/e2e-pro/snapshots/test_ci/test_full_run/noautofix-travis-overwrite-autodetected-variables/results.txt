@@ -81,6 +81,11 @@ CI="true" TRAVIS="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
