@@ -59,15 +59,7 @@ let just_parse_with_lang lang file =
         inserted_tokens = [];
         stat = Parsing_stat.default_stat !!file;
       }
-  (* Menhir and Tree-sitter *)
-  | Lang.C ->
-      run file
-        [
-          (* this internally uses the CST for C++ *)
-          Pfff (throw_tokens Parse_c.parse);
-          TreeSitter Parse_c_tree_sitter.parse;
-        ]
-        C_to_generic.program
+  | Lang.C
   | Lang.Cpp ->
       run file
         [

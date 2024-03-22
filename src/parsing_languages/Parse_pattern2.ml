@@ -37,19 +37,6 @@ let parse_pattern print_errors options lang str =
   | Lang.Scala ->
       let any = Parse_scala.any_of_string str in
       Scala_to_generic.any any
-  (* Use menhir and tree-sitter *)
-  | Lang.C ->
-      let any =
-        str
-        |> run_pattern ~print_errors
-             [
-               (* this internally uses `Parse_cpp` *)
-               PfffPat (fun x -> Parse_c.any_of_string x);
-               (* this internally uses `Parse_cpp_tree_sitter` *)
-               TreeSitterPat Parse_c_tree_sitter.parse_pattern;
-             ]
-      in
-      C_to_generic.any any
   | Lang.Go ->
       let any = Parse_go.any_of_string str in
       Go_to_generic.any any
@@ -79,6 +66,7 @@ let parse_pattern print_errors options lang str =
 
       Python_to_generic.any any
   (* Use menhir and tree-sitter *)
+  | Lang.C
   | Lang.Cpp ->
       let any =
         str
