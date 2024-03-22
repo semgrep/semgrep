@@ -22,7 +22,7 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://go.semgrep.dev/slack">
-    <img src="https://img.shields.io/badge/slack-2.5k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-3.5k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/semgrep/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
@@ -56,23 +56,15 @@ Semgrep analyzes code locally on your computer or in your build environment: **b
 
 ### Language support
 
-Semgrep Code supports 30+ languages.
+**Semgrep Code** supports 30+ languages, including:
 
-| Category     | Languages                                                                                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA           | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX                                                                         |
-| Beta         | Kotlin · Rust                                                                                                                                                                 |
-| Experimental | Bash · C · C++ · Clojure · Dart · Dockerfile · Elixir · HTML · Julia · Jsonnet · Lisp · Lua · OCaml · R · Scheme · Solidity · Swift · YAML · XML · Generic (ERB, Jinja, etc.) |
+Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTML · Go · Java · JavaScript · JSX · JSON · Julia · Jsonnet · Kotlin · Lisp · Lua · OCaml · PHP · Python · R · Ruby · Rust · Scala · Scheme · Solidity · Swift · Terraform · TypeScript · TSX · YAML · XML · Generic (ERB, Jinja, etc.)
 
-Semgrep Supply Chain supports 8 languages across 15 package managers.
+**Semgrep Supply Chain** supports 12 languages across 15 package managers, including:
 
-| Category       | Languages                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA             | Go (Go modules, `go mod`) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Java (Gradle, Maven) |
-| Beta           | C# (NuGet)                                                                                                                                                            |
-| Lock file-only | Rust (Cargo) · PHP (Composer)                                                                                                                                         |
+C# (NuGet) · Dart (Pub) · Go (Go modules, `go mod`) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
 
-For more information, visit our [supported languages](https://semgrep.dev/docs/supported-languages/) page.
+For more information, see [Supported languages](https://semgrep.dev/docs/supported-languages/).
 
 ### Getting started 🚀
 
@@ -201,6 +193,7 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
+- [Licensing Semgrep](https://semgrep.dev/docs/licensing/)
 
 ### Upgrading
 

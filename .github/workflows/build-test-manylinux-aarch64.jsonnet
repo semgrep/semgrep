@@ -1,19 +1,20 @@
-// Build aarch64 Python wheels using qemu?
+// Build aarch64 Python wheels (ab)using our multi-arch docker build
+
 local gha = import "libs/gha.libsonnet";
+local semgrep = import "libs/semgrep.libsonnet";
+
+local wheel_name = 'manylinux-aarch64-wheel';
 
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local wheel_name = 'manylinux-aarch64-wheel';
 
 // TODO? why not separate in build_wheels and test_wheels like for the other?
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // TODO? why we suddenly need that?
-  permissions: {
-    contents: 'read',
-    'id-token': 'write',
-  },
+  permissions: gha.read_permissions,
+  // TODO? factorize more with build-test-docker.jsonnet?
   steps: [
     {
       uses: 'docker/setup-qemu-action@v3',
@@ -29,8 +30,7 @@ local build_wheels_job = {
       id: 'build-semgrep-wheel',
       uses: 'depot/build-push-action@v1.9.0',
       with: {
-        // ???
-        project: 'fhmxj6w9z8',
+        project: semgrep.depot_project_id,
         platforms: 'linux/arm64',
         outputs: 'type=docker,dest=/tmp/image.tar',
         target: 'semgrep-wheel',
@@ -74,7 +74,6 @@ local build_wheels_job = {
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
 {
   name: 'build-test-manylinux-aarch64',
   on: gha.on_dispatch_or_call,

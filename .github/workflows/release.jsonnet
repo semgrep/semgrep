@@ -91,7 +91,7 @@ local dry_run = "${{ inputs.dry-run || false }}";
 // ----------------------------------------------------------------------------
 
 local build_test_docker_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
     // don't add a "latest" tag (we'll promote "canary" to "latest" after
@@ -122,7 +122,7 @@ local build_test_docker_job = {
 };
 
 local build_test_docker_nonroot_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   needs: [
     // We want to run build-test-docker-nonroot *after* build-test-docker
@@ -211,7 +211,7 @@ local park_pypi_packages_job = {
       uses: 'pypa/gh-action-pypi-publish@release/v1',
       with: {
         user: '__token__',
-        password: '${{ secrets.pypi_upload_token }}',
+        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
         packages_dir: 'cli/dist/',
       },
@@ -222,7 +222,7 @@ local park_pypi_packages_job = {
       with: {
         repository_url: 'https://test.pypi.org/legacy/',
         user: '__token__',
-        password: '${{ secrets.test_pypi_upload_token }}',
+        password: '${{ secrets.TEST_PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
         packages_dir: 'cli/dist/',
       },
@@ -263,7 +263,7 @@ local upload_wheels_job = {
       uses: 'pypa/gh-action-pypi-publish@release/v1',
       with: {
         user: '__token__',
-        password: '${{ secrets.pypi_upload_token }}',
+        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
       },
     } + unless_dry_run,

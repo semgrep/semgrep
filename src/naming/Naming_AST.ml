@@ -552,7 +552,7 @@ let resolve lang prog =
                           );
                       _;
                     };
-                vtype = _;
+                _;
               } )
           when lang =*= Lang.Js || lang =*= Lang.Ts ->
             let sid = SId.mk () in
@@ -585,7 +585,7 @@ let resolve lang prog =
                             } );
                       _;
                     };
-                vtype = _;
+                _;
               } )
           when id_str = special_multivardef_pattern
                && (lang =*= Lang.Js || lang =*= Lang.Ts) ->
@@ -622,8 +622,9 @@ let resolve lang prog =
         (* In Rust, the left-hand side (lhs) of the let variable definition is
          * parsed as a pattern.
          * TODO handle more cases than just the simple identifier pattern. *)
-        | { name = EPattern (PatId (id, id_info)); _ }, VarDef { vinit; vtype }
-        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
+        | ( { name = EPattern (PatId (id, id_info)); _ },
+            VarDef { vinit; vtype; vtok = _ } )
+        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype; vtok = _ }
         (* note that some languages such as Python do not have VarDef
          * construct
          * todo? should add those somewhere instead of in_lvalue detection? *)

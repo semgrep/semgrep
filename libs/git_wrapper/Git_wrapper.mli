@@ -226,11 +226,6 @@ val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
 val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
 
-val temporary_remote_checkout_path : < Cap.tmp > -> string -> Fpath.t
-(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"]
-    will return [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid
-    remote repo name *)
-
 (*****************************************************************************)
 (* For testing *)
 (*****************************************************************************)

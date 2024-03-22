@@ -1,7 +1,7 @@
 (* Colleen Dai
  * Yoann Padioleau
  *
- * Copyright (c) 2021, 2022 R2C
+ * Copyright (c) 2021, 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -76,21 +76,18 @@ let equality_operator (env : env) (x : CST.equality_operator) =
   | `BANGEQEQ tok -> (NotPhysEq, token env tok) (* "!==" *)
   | `EQEQ tok -> (Eq, token env tok) (* "==" *)
   | `EQEQEQ tok -> (PhysEq, token env tok)
-
 (* "===" *)
 
 let anon_choice_val_2833752 (env : env) (x : CST.anon_choice_val_2833752) =
   match x with
   | `Val tok -> (Const, token env tok) (* "val" *)
   | `Var tok -> (Mutable, token env tok)
-
 (* "var" *)
 
 let platform_modifier (env : env) (x : CST.platform_modifier) =
   match x with
   | `Expect tok -> G.unhandled_keywordattr (str env tok) (* "expect" *)
   | `Actual tok -> G.unhandled_keywordattr (str env tok)
-
 (* "actual" *)
 
 let real_literal (env : env) (tok : CST.real_literal) =
@@ -104,7 +101,6 @@ let comparison_operator (env : env) (x : CST.comparison_operator) =
   | `GT tok -> (Gt, token env tok) (* ">" *)
   | `LTEQ tok -> (LtE, token env tok) (* "<=" *)
   | `GTEQ tok -> (GtE, token env tok)
-
 (* ">=" *)
 
 let assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
@@ -114,7 +110,6 @@ let assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   | `STAREQ tok -> (Mult, token env tok) (* "*=" *)
   | `SLASHEQ tok -> (Div, token env tok) (* "/=" *)
   | `PERCEQ tok -> (Mod, token env tok)
-
 (* "%=" *)
 
 let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
@@ -122,7 +117,6 @@ let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
   | `Abst tok -> KeywordAttr (Abstract, token env tok) (* "abstract" *)
   | `Final tok -> KeywordAttr (Final, token env tok) (* "final" *)
   | `Open tok -> G.unhandled_keywordattr (str env tok)
-
 (* "open" *)
 
 let postfix_unary_operator (env : env) (x : CST.postfix_unary_operator) =
@@ -999,7 +993,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         | Some x -> type_constraints env x
         | None -> []
       in
-      let v7 =
+      let vinit =
         match v7 with
         | Some x -> (
             match x with
@@ -1010,7 +1004,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
             | `Prop_dele x -> property_delegate env x)
         | None -> None
       in
-      let _v8 =
+      let vtok =
         match v8 with
         | Some tok -> (* ";" *) Some (token env tok)
         | None -> None
@@ -1030,7 +1024,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
                 Some (Either.Right x)
             | None -> None)
       in
-      let vdef = { vinit = v7; vtype = typopt } in
+      let vdef = { vinit; vtype = typopt; vtok } in
       let ent = { name = entname; attrs = v2 :: v1; tparams = v3 } in
       (ent, VarDef vdef)
   | `Type_alias (v0, v1, v2, v3, v4, v5) ->

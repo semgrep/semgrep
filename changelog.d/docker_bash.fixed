@@ -1,0 +1,5 @@
+[IMPORTANT] we restored bash, jq, and curl in our semgrep docker image as some
+users were relying on it. We might remove them in the futur but in the
+mean time we restored the packages and if we remove them we will announce
+it more loudly. We will also create a new page giving more information
+about our policy for our docker images.

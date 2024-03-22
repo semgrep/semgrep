@@ -17,6 +17,9 @@ local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+// not exported for now to other workflows
+local artifact_name = 'semgrep-core-and-dependent-libs-w64-artifact';
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
@@ -116,27 +119,21 @@ local job = {
     {
       name: 'Package semgrep-core',
       run: |||
-        mkdir archive
-        cp _build/install/default/bin/semgrep-core.exe archive/
+        mkdir artifacts
+        cp _build/install/default/bin/semgrep-core.exe artifacts/
 
-        # TODO: somehow upgrade to the latest flexdll, which should allow us to statically link these libraries
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll archive/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll archive/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll archive/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll archive/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll archive/
+        # TODO: somehow upgrade to the latest flexdll, which should allow us
+        # to statically link these libraries
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
+        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
 
-        cd archive
-        tar czvf ocaml-build-artifacts.tgz *.exe *.dll
+        tar czvf artifacts.tgz artifacts
       |||,
     },
-    {
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        path: 'archive/ocaml-build-artifacts.tgz',
-        name: 'ocaml-build-artifacts-release-w64',
-      },
-    },
+    actions.upload_artifact_step(artifact_name),
   ],
 };
 

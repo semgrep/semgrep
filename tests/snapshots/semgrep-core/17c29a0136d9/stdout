@@ -1,4 +1,4 @@
-Initialized empty Git repository in <TEMPORARY FILE PATH><HEX>/.git/
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add all the files
  2 files changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 a/b/target
@@ -6,9 +6,9 @@ Initialized empty Git repository in <TEMPORARY FILE PATH><HEX>/.git/
 Input files:
 a/b/target
 x/y/z
-project root: <TEMPORARY FILE PATH><HEX>
-cwd: <TEMPORARY FILE PATH>
-scanning root: <TEMPORARY FILE PATH><HEX>
+project root: <TMP>/<MASKED>
+cwd: <TMP>
+scanning root: <TMP>/<MASKED>
 file list:
   test-<HEX>/a/b/target
   test-<HEX>/x/y/z

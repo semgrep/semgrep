@@ -269,6 +269,12 @@ let o_diff_depth : int Term.t =
   in
   Arg.value (Arg.opt Arg.int default.targeting_conf.diff_depth info)
 
+let o_no_interfile_diff_scan : bool Term.t =
+  let info =
+    Arg.info [ "no-interfile-diff-scan" ] ~doc:{|Disables interfile diff scan.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Performance and memory options *)
 (* ------------------------------------------------------------------ *)
@@ -289,9 +295,10 @@ let o_max_memory_mb : int Term.t =
   let info =
     Arg.info [ "max-memory" ]
       ~doc:
-        {|Maximum system memory to use running a rule on a single file in MiB.
-If set to 0 will not have memory limit. Defaults to 0. For CI scans
-that use the Pro Engine, it defaults to 5000 MiB.
+        {|Maximum system memory in MiB to use during the interfile pre-processing
+phase, or when running a rule on a single file. If set to 0, will
+not have memory limit. Defaults to 0. For CI scans that use the Pro Engine,
+defaults to 5000 MiB.
 |}
   in
   Arg.value (Arg.opt Arg.int default info)
@@ -792,7 +799,8 @@ let o_remote : string option Term.t =
       ~doc:
         {|Remote will quickly checkout and scan a remote git repository of
         the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
-        --pro Incompatible with --project-root|}
+        --pro Incompatible with --project-root. Note this requires an empty
+        CWD as this command will clone the repository into the CWD|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -870,17 +878,17 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators autofix baseline_commit common config
-      dataflow_traces diff_depth dryrun dump_ast dump_command_for_core
-      dump_engine_path emacs error exclude_ exclude_rule_ids force_color
-      gitlab_sast gitlab_secrets include_ incremental_output json junit_xml lang
-      ls matching_explanations max_chars_per_line max_lines_per_finding
-      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
-      nosem optimizations oss output pattern pro project_root pro_intrafile
-      pro_lang remote replacement respect_gitignore rewrite_rule_ids sarif
-      scan_unknown_extensions secrets severity show_supported_languages strict
-      target_roots test test_ignore_todo text time_flag timeout
-      _timeout_interfileTODO timeout_threshold trace validate version
-      version_check vim =
+      dataflow_traces diff_depth no_interfile_diff_scan dryrun dump_ast
+      dump_command_for_core dump_engine_path emacs error exclude_
+      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_
+      incremental_output json junit_xml lang ls matching_explanations
+      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
+      metrics num_jobs no_secrets_validation nosem optimizations oss output
+      pattern pro project_root pro_intrafile pro_lang remote replacement
+      respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo text time_flag timeout _timeout_interfileTODO
+      timeout_threshold trace validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
@@ -898,15 +906,14 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       | Some root, None ->
           Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
       | None, Some url when is_git_repo url ->
-          let checkout_path =
-            match !Semgrep_envvars.v.remote_clone_dir with
-            | Some dir -> Rfpath.of_fpath_exn dir
-            | None ->
-                Git_wrapper.temporary_remote_checkout_path caps url
-                |> Rfpath.of_fpath_exn
-          in
+          (* CWD must be empty for this to work *)
+          let has_files = not (List_.null (List_files.list (Fpath.v "."))) in
+          if has_files then
+            Error.abort
+              "Cannot use --remote with a git remote when the current \
+               directory is not empty";
           let url = Uri.of_string url in
-          Some (Find_targets.Git_remote { url; checkout_path })
+          Some (Find_targets.Git_remote { url })
       | None, Some _url ->
           Error.abort
             "Remote arg is not a valid git remote, expected something like \
@@ -978,6 +985,11 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         let analysis =
           Engine_type.(
             match () with
+            | _
+              when pro
+                   && Option.is_some baseline_commit
+                   && no_interfile_diff_scan ->
+                Interprocedural
             | _ when pro -> Interfile
             | _ when pro_intrafile -> Interprocedural
             | _ -> Intraprocedural)
@@ -1224,16 +1236,16 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
      * combine above! *)
     const combine $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_diff_depth
-    $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
-    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color
-    $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_incremental_output
-    $ o_json $ o_junit_xml $ o_lang $ o_ls $ o_matching_explanations
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
-    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
-    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_remote
-    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_no_interfile_diff_scan $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
+    $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
+    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include
+    $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
+    $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output
+    $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
+    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
+    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate

@@ -6,7 +6,12 @@ from semgrep.config_resolver import parse_config_string
 from semgrep.rule import Rule
 
 
-def create_validator_rule(validation_state_action: str) -> Rule:
+def create_validator_rule(
+    valid_action: str = "monitor",
+    invalid_action: str = "monitor",
+    error_action: str = "monitor",
+    action: str = "monitor",
+) -> Rule:
     config = parse_config_string(
         "testfile",
         dedent(
@@ -19,9 +24,11 @@ def create_validator_rule(validation_state_action: str) -> Rule:
           message: bad
           metadata:
             dev.semgrep.validation_state.actions:
-              valid: {validation_state_action}
-              invalid: comment
-              error: disabled
+              valid: {valid_action}
+              invalid: {invalid_action}
+              error: {error_action}
+            dev.semgrep.actions:
+              - {action}
           validators:
           - http:
               request:
@@ -88,7 +95,9 @@ def test_rule_full_hash_equivalency():
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize(("action", "expected"), [("block", True), ("monitor", False)])
-def test_validator_rule_is_blocking(action, expected):
-    rule = create_validator_rule(action)
+@pytest.mark.parametrize(
+    ("valid_action", "expected"), [("block", True), ("monitor", False)]
+)
+def test_validator_rule_is_blocking(valid_action, expected):
+    rule = create_validator_rule(valid_action=valid_action, action="block")
     assert rule.is_blocking == expected

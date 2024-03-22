@@ -14,6 +14,9 @@ let force_project_root ?(project_root : Rfpath.t option) (path : Fpath.t) =
     | None -> Rfpath.getcwd ()
     | Some x -> x
   in
+  Logs.debug (fun m ->
+      m "project_root=%s path=%s" (Rfpath.show project_root)
+        (Fpath.to_string path));
   match Ppath.in_project ~root:project_root path with
   | Ok inproject_path -> { project_root; inproject_path }
   | Error msg -> failwith msg

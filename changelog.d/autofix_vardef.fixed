@@ -1,0 +1,2 @@
+Autofix on variable definitions should now handle the semicolon
+in Rust, Cairo, Solidity, Dart.
