@@ -15,7 +15,6 @@ local wheel_name = 'manylinux-x86-wheel';
 
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  container: 'ubuntu:18.04',
   steps: [
     actions.checkout_with_submodules(),
     {
