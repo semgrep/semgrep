@@ -1,19 +1,21 @@
 // This workflow generates the manylinux-wheel for pypi.
+// It relies on https://github.com/pypa/manylinux which helps in
+// handling the many different Linux distributions out there for x86
+// (for arm64 see the build-test-manylinux-aarch64.jsonnet instead).
+
 local gha = import "libs/gha.libsonnet";
 local actions = import "libs/actions.libsonnet";
 local core_x86 = import "build-test-core-x86.jsonnet";
+
+local wheel_name = 'manylinux-x86-wheel';
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
-local artifact_name = core_x86.export.artifact_name;
-local wheel_name = 'manylinux-x86-wheel';
-
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  // pad: What is this sgrep-xxx image?
-  container: 'returntocorp/sgrep-build:ubuntu-18.04',
+  container: 'ubuntu:18.04',
   steps: [
     actions.checkout_with_submodules(),
     {
@@ -28,7 +30,7 @@ local build_wheels_job = {
         update-alternatives --config python3
       |||
     },
-    actions.download_artifact_step(artifact_name),
+    actions.download_artifact_step(core_x86.export.artifact_name),
     {
       run: |||
         tar xf artifacts.tgz
@@ -48,7 +50,12 @@ local build_wheels_job = {
 
 local test_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  // pad: what is that?
+  // https://quay.io/ below is a container registry, similar to hub.docker.com .
+  // It seems a bit more fragile so in case of problems check
+  // https://isdown.app/integrations/quay-io
+  // TODO: could we remove the dependency to yet another cloud service and
+  // use a more standard container? there is no pypa/manylinux2014_x86_64'
+  // on hub.docker.com?
   container: 'quay.io/pypa/manylinux2014_x86_64',
   needs: [
     'build-wheels',

@@ -1,4 +1,4 @@
-// Build aarch64 Python wheels (ab)using our multi-arch docker build
+// Build aarch64 Python wheels (ab)using our multi-arch docker build.
 
 local gha = import "libs/gha.libsonnet";
 local semgrep = import "libs/semgrep.libsonnet";
