@@ -2,81 +2,123 @@ import pytest
 
 from semgrep.app.scans import ScanHandler
 from semgrep.engine import EngineType as ET
+from semgrep.error import SemgrepError
 from semgrep.meta import GitMeta
 
 
 @pytest.mark.quick
+@pytest.mark.parametrize("is_supply_chain_only", [True, False])
+@pytest.mark.parametrize("is_secrets_scan", [True, False])
 @pytest.mark.parametrize(
-    ("is_cloud_flag_on", "is_ci_scan_full", "enable_pro_diff", "requested", "expected"),
+    "engine_flag", [None, ET.OSS, ET.PRO_LANG, ET.PRO_INTRAFILE, ET.PRO_INTERFILE]
+)
+@pytest.mark.parametrize(
+    (
+        "logged_in",
+        "is_interfile_flag_on",
+        "is_ci_scan_full",
+        "interfile_diff_scan_enabled",
+        "expected_default",
+    ),
     [
+        # Invariants that we assume to be upheld:
+        # - not logged_in -> is_interfile_flag_on is None, is_ci_scan_full is None
+        # - is_interfile_flag_on is None -> is_ci_scan_full is None
         # semgrep scan
-        (False, None, False, None, ET.OSS),
-        (False, None, False, ET.OSS, ET.OSS),
-        (False, None, False, ET.PRO_LANG, ET.PRO_LANG),
-        (False, None, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (False, None, False, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
+        (False, None, None, False, ET.OSS),
+        (False, None, None, True, ET.OSS),
+        (True, None, None, False, ET.OSS),
+        (True, None, None, True, ET.OSS),
+        # semgrep ci, not logged in
+        (False, None, False, False, ET.OSS),
+        (False, None, False, True, ET.OSS),
+        (False, None, True, False, ET.OSS),
+        (False, None, True, True, ET.OSS),
         # semgrep ci with toggle on, full scan
-        (True, True, False, None, ET.PRO_INTERFILE),
-        (True, True, False, ET.OSS, ET.OSS),
-        (True, True, False, ET.PRO_LANG, ET.PRO_LANG),
-        (True, True, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (True, True, False, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
-        # semgrep ci with toggle on, diff scan
-        (True, False, False, None, ET.PRO_INTRAFILE),
-        (True, False, False, ET.OSS, ET.OSS),
-        (True, False, False, ET.PRO_LANG, ET.PRO_LANG),
-        (True, False, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (True, False, False, ET.PRO_INTERFILE, ET.PRO_INTRAFILE),
-        (True, False, True, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
+        (True, True, None, False, ET.PRO_INTERFILE),
+        (True, True, None, True, ET.PRO_INTERFILE),
+        (True, True, True, False, ET.PRO_INTERFILE),
+        (True, True, True, True, ET.PRO_INTERFILE),
         # semgrep ci with toggle off, full scan
-        (False, True, False, None, ET.PRO_INTRAFILE),
-        (False, True, False, ET.OSS, ET.OSS),
-        (False, True, False, ET.PRO_LANG, ET.PRO_LANG),
-        (False, True, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (False, True, False, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
+        (True, False, None, False, ET.PRO_INTRAFILE),
+        (True, False, None, True, ET.PRO_INTRAFILE),
+        (True, False, True, False, ET.PRO_INTRAFILE),
+        (True, False, True, True, ET.PRO_INTRAFILE),
+        # semgrep ci with toggle on, diff scan
+        (True, True, False, False, ET.PRO_INTRAFILE),
+        (True, True, False, True, ET.PRO_INTERFILE),
         # semgrep ci with toggle off, diff scan
-        (False, False, False, None, ET.PRO_INTRAFILE),
-        (False, False, False, ET.OSS, ET.OSS),
-        (False, False, False, ET.PRO_LANG, ET.PRO_LANG),
-        (False, False, False, ET.PRO_INTRAFILE, ET.PRO_INTRAFILE),
-        (False, False, False, ET.PRO_INTERFILE, ET.PRO_INTRAFILE),
-        (False, False, True, ET.PRO_INTERFILE, ET.PRO_INTERFILE),
+        (True, False, False, False, ET.PRO_INTRAFILE),
+        (True, False, False, True, ET.PRO_INTRAFILE),
     ],
 )
 def test_decide_engine_type(
-    mocker, is_cloud_flag_on, is_ci_scan_full, enable_pro_diff, requested, expected
+    mocker,
+    logged_in,
+    is_interfile_flag_on,
+    is_ci_scan_full,
+    interfile_diff_scan_enabled,
+    is_supply_chain_only,
+    is_secrets_scan,
+    engine_flag,
+    expected_default,
 ):
     scan_handler = None
     git_meta = None
 
-    if is_ci_scan_full is not None:  # None means we're in `semgrep scan`
+    if is_interfile_flag_on is not None:  # None means we're in `semgrep scan`
         scan_handler = mocker.Mock(spec=ScanHandler)
-        scan_handler.deepsemgrep = is_cloud_flag_on
+        scan_handler.deepsemgrep = is_interfile_flag_on
 
+    if is_ci_scan_full is not None:  # None means there was no metadata
         git_meta = mocker.Mock(spec=GitMeta)
         git_meta.is_full_scan = is_ci_scan_full
 
-    assert (
-        ET.decide_engine_type(
-            requested_engine=requested,
-            scan_handler=scan_handler,
-            git_meta=git_meta,
-            enable_pro_diff_scan=enable_pro_diff,
+    args = [
+        logged_in,
+        engine_flag,
+        is_secrets_scan,
+        interfile_diff_scan_enabled,
+        scan_handler,
+        git_meta,
+        is_supply_chain_only,
+    ]
+    if is_secrets_scan and engine_flag is ET.OSS:
+        pytest.raises(SemgrepError, ET.decide_engine_type, *args)
+    else:
+        diff_scan_override = not (
+            (is_ci_scan_full is None or is_ci_scan_full) or interfile_diff_scan_enabled
         )
-        == expected
-    )
+        assert ET.decide_engine_type(*args) == expected_engine_type(
+            is_supply_chain_only,
+            is_secrets_scan,
+            diff_scan_override,
+            engine_flag,
+            expected_default,
+        )
 
-    # Expect engine to be non-interfile/intrafile pro
-    expected_supply_chain_only_engine = (
-        expected if expected == ET.OSS else ET.PRO_INTRAFILE
-    )
-    assert (
-        ET.decide_engine_type(
-            requested_engine=requested,
-            scan_handler=scan_handler,
-            git_meta=git_meta,
-            enable_pro_diff_scan=enable_pro_diff,
-            supply_chain_only=True,
-        )
-        == expected_supply_chain_only_engine
-    )
+
+def expected_engine_type(
+    is_supply_chain_only,
+    is_secrets_scan,
+    diff_scan_override,
+    engine_flag,
+    expected_default,
+):
+    if engine_flag is None:
+        expected = expected_default
+    else:
+        expected = engine_flag
+
+    # Overrides
+    if is_secrets_scan:
+        expected = ET.PRO_INTRAFILE if expected is ET.OSS else expected
+        print(expected)
+
+    if is_supply_chain_only:
+        expected = ET.PRO_INTRAFILE if expected is ET.PRO_INTERFILE else expected
+
+    if diff_scan_override and expected is ET.PRO_INTERFILE:
+        expected = ET.PRO_INTRAFILE
+
+    return expected

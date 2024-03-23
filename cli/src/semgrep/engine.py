@@ -33,49 +33,54 @@ class EngineType(Enum):
     @classmethod
     def decide_engine_type(
         cls,
-        requested_engine: Optional["EngineType"] = None,
+        logged_in: bool = False,
+        engine_flag: Optional["EngineType"] = None,
+        run_secrets: bool = False,
+        interfile_diff_scan_enabled: bool = False,
+        # ci-only args
         scan_handler: Optional[ScanHandler] = None,
         git_meta: Optional[GitMeta] = None,
-        run_secrets: bool = False,
-        enable_pro_diff_scan: bool = False,
         supply_chain_only: bool = False,
     ) -> "EngineType":
         """Select which Semgrep engine type to use if none is explicitly requested.
 
         Considers settings from Semgrep Cloud Platform and version control state.
         """
-        # Change default to pro-engine intrafile if secrets was requested.
-        # Secrets is built into pro-engine, but any pro-setting should work.
-        if (
-            not (scan_handler and scan_handler.deepsemgrep)
-            and requested_engine is None
-            and run_secrets
-        ):
-            requested_engine = cls.PRO_INTRAFILE
-        elif run_secrets and requested_engine is cls.OSS:
-            # Should be impossible if the CLI gates impossible arguement combinations.
-            raise SemgrepError("Semgrep Secrets is not part of the open source engine")
+        interfile_is_requested_via_app = scan_handler and scan_handler.deepsemgrep
 
-        if git_meta and scan_handler:
-            if scan_handler.deepsemgrep and requested_engine is None:
+        requested_engine = engine_flag
+        if engine_flag is None:
+            if interfile_is_requested_via_app:
                 requested_engine = cls.PRO_INTERFILE
-
-            if (
-                requested_engine == cls.PRO_INTERFILE
-                and not git_meta.is_full_scan
-                and not enable_pro_diff_scan
-            ):
+            elif run_secrets:
                 requested_engine = cls.PRO_INTRAFILE
 
-        # Using PRO_INTRAFILE engine since PRO_INTERFILE defaults to -j 1
-        # note if using OSS, then will keep using OSS
-        if requested_engine == cls.PRO_INTERFILE and supply_chain_only:
-            logger.info(
-                "Running only supply chain rules so running without extra interfile analysis"
-            )
-            return cls.PRO_INTRAFILE
+        if run_secrets and engine_flag is cls.OSS:
+            # Should be impossible if the CLI gates impossible argument combinations.
+            # TODO Can we delete this check?
+            raise SemgrepError("Semgrep Secrets is not part of the open source engine")
 
-        return requested_engine or (cls.PRO_INTRAFILE if scan_handler else cls.OSS)
+        diff_scan = git_meta and not git_meta.is_full_scan
+        if (
+            diff_scan
+            and not interfile_diff_scan_enabled
+            and requested_engine is cls.PRO_INTERFILE
+        ):
+            requested_engine = cls.PRO_INTRAFILE
+
+        # Hack: Turn off the PRO_INTERFILE engine when only supply chain is requested
+        # This is necessary because PRO_INTERFILE defaults to `-j 1`
+        if supply_chain_only and requested_engine is cls.PRO_INTERFILE:
+            requested_engine = cls.PRO_INTRAFILE
+
+        # TODO: should we fail here if logged_in is false and requested_engine is not cls.OSS?
+
+        # `logged_in and ci_scan_handler` is redundant because `ci_scan_handler` requires
+        # being logged in, but let's check this defensively
+        is_logged_in_ci_scan = logged_in and scan_handler
+        return requested_engine or (
+            cls.PRO_INTRAFILE if is_logged_in_ci_scan else cls.OSS
+        )
 
     def get_pro_version(self) -> str:
         binary_path = self.get_binary_path()
