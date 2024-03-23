@@ -1,7 +1,24 @@
 // This workflow generates the manylinux-wheel for pypi.
-// It relies on https://github.com/pypa/manylinux which helps in
+//
+// We rely on https://github.com/pypa/manylinux which helps in
 // handling the many different Linux distributions out there for x86
 // (for arm64 see the build-test-manylinux-aarch64.jsonnet instead).
+// From the manylinux website:
+//
+//   Building manylinux-compatible wheels is not trivial; as a general
+//   rule, binaries built on one Linux distro will only work on other
+//   Linux distros that are the same age or newer. Therefore, if we want
+//   to make binaries that run on most Linux distros, we have to use an
+//   old enough distro.
+//   Rather than forcing you to install an old distro yourself, install
+//   Python, etc., we provide Docker images where we've done the work
+//   for you. The images are uploaded to quay.io and are tagged for
+//   repeatable builds.
+//
+// quay.io is a container registry, similar to hub.docker.com .
+// It seems a bit more fragile so in case of problems check
+// https://isdown.app/integrations/quay-io
+// We use it because the manylinux project is using it.
 
 local gha = import "libs/gha.libsonnet";
 local actions = import "libs/actions.libsonnet";
@@ -15,6 +32,10 @@ local wheel_name = 'manylinux-x86-wheel';
 
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
+  // This is a 4 years old container, built from a 4 years old file
+  // https://github.com/semgrep/sgrep-build-docker/blob/master/Dockerfile
+  // TODO: switch to a standard container (use quay.io/manylinux_2014_x86_64 ?)
+  container: 'returntocorp/sgrep-build:ubuntu-18.04',
   steps: [
     actions.checkout_with_submodules(),
     {
@@ -49,12 +70,6 @@ local build_wheels_job = {
 
 local test_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  // https://quay.io/ below is a container registry, similar to hub.docker.com .
-  // It seems a bit more fragile so in case of problems check
-  // https://isdown.app/integrations/quay-io
-  // TODO: could we remove the dependency to yet another cloud service and
-  // use a more standard container? there is no pypa/manylinux2014_x86_64'
-  // on hub.docker.com?
   container: 'quay.io/pypa/manylinux2014_x86_64',
   needs: [
     'build-wheels',
