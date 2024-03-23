@@ -21,9 +21,14 @@ from semgrep.meta import GitMeta
         "expected_default",
     ),
     [
-        # Invariants that we assume to be upheld:
+        # These combinations define the expected engine for Code scans when no
+        # engine is explicitly requested via a CLI argument. Requesting the engine
+        # in the CLI or running Secrets or Supply Chain may change the engine used.
+        #
+        # We assume some invariants and thus don't test them:
         # - not logged_in -> is_interfile_flag_on is None, is_ci_scan_full is None
         # - is_interfile_flag_on is None -> is_ci_scan_full is None
+        #
         # semgrep scan
         (False, None, None, False, ET.OSS),
         (False, None, None, True, ET.OSS),
@@ -113,7 +118,6 @@ def expected_engine_type(
     # Overrides
     if is_secrets_scan:
         expected = ET.PRO_INTRAFILE if expected is ET.OSS else expected
-        print(expected)
 
     if is_supply_chain_only:
         expected = ET.PRO_INTRAFILE if expected is ET.PRO_INTERFILE else expected
