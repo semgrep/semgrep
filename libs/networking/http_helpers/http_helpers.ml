@@ -19,11 +19,7 @@ open Cohttp
 (* Types *)
 (*****************************************************************************)
 
-type get_info = {
-  response : Cohttp.Response.t;
-  body : Cohttp_lwt.Body.t;
-  code : int;
-}
+type get_info = { response : Cohttp.Response.t; code : int }
 
 (*****************************************************************************)
 (* Globals *)
@@ -66,42 +62,67 @@ struct
     in
     let proxy_uri = Option.bind proxy_uri_env Sys.getenv_opt in
     match proxy_uri with
-    | Some proxy_uri -> Some (Uri.of_string proxy_uri)
+    | Some proxy_uri ->
+        Logs.debug (fun m -> m "Using proxy %s for request" proxy_uri);
+        Some (Uri.of_string proxy_uri)
     | None -> None
 
   (* Why this wrapper function? Client.call takes a uri, and some other things *)
   (* and then makes a Request.t with said uri and sends that request to the same uri *)
   (* By using Client.callv, we can make a request that has some uri, but then really *)
   (* send it to a different uri. This is used for proxying requests *)
-  let call_client ?(body = `Empty) ?(headers = []) ?(chunked = false) meth url =
+
+  let default_resp_handler (response, body) =
+    let%lwt body_str = Cohttp_lwt.Body.to_string body in
+    Lwt.return (response, body_str)
+
+  (* Why do we need a response_handler? From the cohttp docs: *)
+  (*
+    [response_body] is not buffered, but stays on the wire until
+        consumed. It must therefore be consumed in a timely manner.
+        Otherwise the connection would stay open and a file descriptor leak
+        may be caused. Following responses would get blocked.
+        Functions in the {!Body} module can be used to consume [response_body]. *)
+  (* So if we don't handle the body, we can leak file descriptors and accidentally keep the connection open *)
+  (* Let's just handle the body when making the request then, so we don't risk leaving this up*)
+  (* to a consumer of this library, who may or may not know about this requirement *)
+  let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
+      ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
     let module Client =
       (val match !client_ref with
            | Some client -> client
            | None -> failwith "HTTP client not initialized")
     in
+    (* Send the request to the proxy, not the original url, if it's set *)
     let headers = Header.of_list headers in
     let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
+    let req, url =
+      match get_proxy url with
+      | Some proxy_url ->
+          ({ req with Cohttp.Request.resource = Uri.to_string url }, proxy_url)
+      | None -> (req, url)
+    in
     let stream_req = Lwt_stream.of_list [ (req, body) ] in
-    (* Send the request to the proxy, not the original url, if it's set *)
-    let url = Option.value (get_proxy url) ~default:url in
     let%lwt responses_stream = Client.callv url stream_req in
     (* Assume that we only get one response back *)
-    let%lwt repsonses = Lwt_stream.to_list responses_stream in
+    (* MUST USE GET HERE *)
+    let%lwt repsonses =
+      responses_stream |> Lwt_stream.map_s resp_handler |> Lwt_stream.to_list
+    in
     match repsonses with
-    | [ (response, body) ] -> Lwt.return (response, body)
-    | _ -> failwith "Somehow got multiple responses from a single request"
+    | [ (response, response_body) ] -> Lwt.return (response, response_body)
+    | [] -> failwith "No responses from a single request"
+    | _ -> failwith "Multiple responses from a single request"
 
   let rec get_async ?(headers = []) caps url =
     Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
     (* This checks to make sure a client has been set *)
     (* Instead of defaulting to a client, as that can cause *)
     (* Hard to debug build and runtime issues *)
-    let%lwt response, orig_body = call_client ~headers `GET url in
-    let%lwt body = Cohttp_lwt.Body.to_string orig_body in
+    let%lwt response, body = call_client ~headers `GET url in
     let code = response |> Response.status |> Code.code_of_status in
     match code with
-    | _ when Code.is_success code ->
-        Lwt.return (Ok (body, { code; response; body = orig_body }))
+    | _ when Code.is_success code -> Lwt.return (Ok (body, { code; response }))
     (* Automatically resolve redirects, in this case a 307 Temporary Redirect.
        This is important for installing the Semgrep Pro Engine binary, which
        receives a temporary redirect at the proper endpoint.
@@ -113,18 +134,18 @@ struct
             let code_str = Code.string_of_status response.status in
             let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
             Logs.debug (fun m -> m "%s" err);
-            Lwt.return (Error (err, { code; response; body = orig_body }))
+            Lwt.return (Error (err, { code; response }))
         | Some url -> get_async caps (Uri.of_string url))
     | _ when Code.is_error code ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
         Logs.debug (fun m -> m "%s" err);
-        Lwt.return (Error (err, { code; response; body = orig_body }))
+        Lwt.return (Error (err, { code; response }))
     | _ ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP GET unexpected response: " ^ code_str ^ ":\n" ^ body in
         Logs.debug (fun m -> m "%s" err);
-        Lwt.return (Error (err, { code; response; body = orig_body }))
+        Lwt.return (Error (err, { code; response }))
 
   let post_async ~body ?(headers = [ ("content-type", "application/json") ])
       ?(chunked = false) _caps url =
@@ -134,7 +155,6 @@ struct
         ~body:(Cohttp_lwt.Body.of_string body)
         ~headers ~chunked `POST url
     in
-    let%lwt body = Cohttp_lwt.Body.to_string body in
     let code = response |> Response.status |> Code.code_of_status in
     match code with
     | _ when Code.is_success code -> Lwt.return (Ok body)
