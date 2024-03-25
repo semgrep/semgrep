@@ -66,9 +66,13 @@ struct
     in
     let proxy_uri = Option.bind proxy_uri_env Sys.getenv_opt in
     match proxy_uri with
-    | Some proxy_uri -> Uri.of_string proxy_uri
-    | None -> uri
+    | Some proxy_uri -> Some (Uri.of_string proxy_uri)
+    | None -> None
 
+  (* Why this wrapper function? Client.call takes a uri, and some other things *)
+  (* and then makes a Request.t with said uri and sends that request to the same uri *)
+  (* By using Client.callv, we can make a request that has some uri, but then really *)
+  (* send it to a different uri. This is used for proxying requests *)
   let call_client ?(body = `Empty) ?(headers = []) ?(chunked = false) meth url =
     let module Client =
       (val match !client_ref with
@@ -78,8 +82,10 @@ struct
     let headers = Header.of_list headers in
     let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
     let stream_req = Lwt_stream.of_list [ (req, body) ] in
-    let url = get_proxy url in
+    (* Send the request to the proxy, not the original url, if it's set *)
+    let url = Option.value (get_proxy url) ~default:url in
     let%lwt responses_stream = Client.callv url stream_req in
+    (* Assume that we only get one response back *)
     let%lwt repsonses = Lwt_stream.to_list responses_stream in
     match repsonses with
     | [ (response, body) ] -> Lwt.return (response, body)
