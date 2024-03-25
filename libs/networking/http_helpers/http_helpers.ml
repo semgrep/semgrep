@@ -103,6 +103,7 @@ struct
       | None -> (req, url)
     in
     let stream_req = Lwt_stream.of_list [ (req, body) ] in
+    (* callv is deprecated in 6.0.0 of cohttp, but that's not released yet as of this comment *)
     let%lwt responses_stream = Client.callv url stream_req in
     (* Assume that we only get one response back *)
     (* MUST USE GET HERE *)
