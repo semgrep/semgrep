@@ -201,9 +201,9 @@ local slack = {
        --url  ${{ secrets.NOTIFICATIONS_URL }} \
        --header 'content-type: application/json' \
        --data '{
-         "text": "%s"
+         "text": %s
        }'
-    ||| % message,
+    ||| % std.escapeStringJson(message),
 
   notify_failure_job(message): {
    'runs-on': 'ubuntu-20.04',

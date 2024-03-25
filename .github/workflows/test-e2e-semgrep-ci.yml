@@ -78,9 +78,9 @@ jobs:
         name: Run CI
         run: |
           if semgrep ci --suppress-errors; then
-             exit 0
-          else
              exit 2
+          else
+             exit 0
           fi
   semgrep-ci-on-pr:
     needs: get-inputs

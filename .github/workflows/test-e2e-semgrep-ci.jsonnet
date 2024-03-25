@@ -170,9 +170,9 @@ local semgrep_ci_fail_open_blocking_findings_job = {
       // Other tests ensure that error code >=2 are handled appropriately.
       run: |||
         if semgrep ci --suppress-errors; then
-           exit 0
-        else
            exit 2
+        else
+           exit 0
         fi
       |||,
     },
