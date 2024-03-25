@@ -68,12 +68,12 @@ def test_decide_engine_type(
     engine_flag,
     expected_default,
 ):
-    scan_handler = None
+    ci_scan_handler = None
     git_meta = None
 
     if is_interfile_flag_on is not None:  # None means we're in `semgrep scan`
-        scan_handler = mocker.Mock(spec=ScanHandler)
-        scan_handler.deepsemgrep = is_interfile_flag_on
+        ci_scan_handler = mocker.Mock(spec=ScanHandler)
+        ci_scan_handler.deepsemgrep = is_interfile_flag_on
 
     if is_ci_scan_full is not None:  # None means there was no metadata
         git_meta = mocker.Mock(spec=GitMeta)
@@ -84,7 +84,7 @@ def test_decide_engine_type(
         engine_flag,
         is_secrets_scan,
         interfile_diff_scan_enabled,
-        scan_handler,
+        ci_scan_handler,
         git_meta,
         is_supply_chain_only,
     ]

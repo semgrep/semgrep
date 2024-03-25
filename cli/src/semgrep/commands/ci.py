@@ -388,7 +388,7 @@ def ci(
         engine_flag=requested_engine,
         run_secrets=run_secrets,
         interfile_diff_scan_enabled=not disable_interfile_diff_scan_flag,
-        scan_handler=scan_handler,
+        ci_scan_handler=scan_handler,
         git_meta=metadata,
         supply_chain_only=supply_chain_only,
     )
