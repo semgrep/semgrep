@@ -16,7 +16,7 @@ from semgrep.meta import GitMeta
     (
         "logged_in",
         "is_interfile_flag_on",
-        "is_ci_scan_full",
+        "is_git_full_scan",
         "interfile_diff_scan_enabled",
         "expected_default",
     ),
@@ -25,9 +25,12 @@ from semgrep.meta import GitMeta
         # engine is explicitly requested via a CLI argument. Requesting the engine
         # in the CLI or running Secrets or Supply Chain may change the engine used.
         #
+        # `is_interfile_flag_on` is None for non-ci scans
+        # `is_git_full_scan` is None for scans without git metadata
+        #
         # We assume some invariants and thus don't test them:
-        # - not logged_in -> is_interfile_flag_on is None, is_ci_scan_full is None
-        # - is_interfile_flag_on is None -> is_ci_scan_full is None
+        # - not logged_in -> is_interfile_flag_on is None, is_git_full_scan is None
+        # - is_interfile_flag_on is None -> is_git_full_scan is None
         #
         # semgrep scan
         (False, None, None, False, ET.OSS),
@@ -61,7 +64,7 @@ def test_decide_engine_type(
     mocker,
     logged_in,
     is_interfile_flag_on,
-    is_ci_scan_full,
+    is_git_full_scan,
     interfile_diff_scan_enabled,
     is_supply_chain_only,
     is_secrets_scan,
@@ -75,9 +78,9 @@ def test_decide_engine_type(
         ci_scan_handler = mocker.Mock(spec=ScanHandler)
         ci_scan_handler.deepsemgrep = is_interfile_flag_on
 
-    if is_ci_scan_full is not None:  # None means there was no metadata
+    if is_git_full_scan is not None:  # None means there was no metadata
         git_meta = mocker.Mock(spec=GitMeta)
-        git_meta.is_full_scan = is_ci_scan_full
+        git_meta.is_full_scan = is_git_full_scan
 
     args = [
         logged_in,
@@ -92,7 +95,8 @@ def test_decide_engine_type(
         pytest.raises(SemgrepError, ET.decide_engine_type, *args)
     else:
         diff_scan_override = not (
-            (is_ci_scan_full is None or is_ci_scan_full) or interfile_diff_scan_enabled
+            (is_git_full_scan is None or is_git_full_scan)
+            or interfile_diff_scan_enabled
         )
         assert ET.decide_engine_type(*args) == expected_engine_type(
             is_supply_chain_only,
