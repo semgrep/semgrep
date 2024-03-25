@@ -493,12 +493,12 @@ and stmt_aux st =
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
-  | LocalVarList vs ->
-      List_.map
-        (fun v1 ->
-          let ent, v = var_with_init v1 in
-          G.DefStmt (ent, G.VarDef v) |> G.s)
-        vs
+  | LocalVarList (vs, sc) ->
+      vs
+      |> List_.map (fun v1 ->
+             let ent, v = var_with_init v1 in
+             (ent, v))
+      |> H.add_semicolon_to_last_var_def_and_convert_to_stmts sc
   | DeclStmt v1 -> [ decl v1 ]
   | DirectiveStmt v1 -> [ directive v1 ]
   | Assert (t, v1, v2) ->
