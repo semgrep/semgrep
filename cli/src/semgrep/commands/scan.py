@@ -487,6 +487,24 @@ def scan(
         # so the engine is properly chosen.
         run_secrets_flag = True
 
+    state = get_state()
+    state.metrics.configure(metrics)
+    state.terminal.configure(
+        verbose=verbose,
+        debug=debug,
+        quiet=quiet,
+        force_color=force_color,
+        output_format=output_format,
+    )
+
+    # Determine if we should actually run secrets validation. If the user has
+    # explicitly enabled secrets validation, but are not logged in we should
+    # not run secrets validation.
+    if run_secrets_flag and state.app_session.token is None:
+        logger.debug("Disabling secrets validation since user is not logged in.")
+        run_secrets_flag = False
+        allow_untrusted_validators = False
+
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
@@ -510,16 +528,6 @@ def scan(
 
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
-
-    state = get_state()
-    state.metrics.configure(metrics)
-    state.terminal.configure(
-        verbose=verbose,
-        debug=debug,
-        quiet=quiet,
-        force_color=force_color,
-        output_format=output_format,
-    )
 
     if include and exclude:
         logger.warning(
