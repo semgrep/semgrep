@@ -14,7 +14,6 @@
    ocolor
    ANSITerminal
    logs logs.fmt
-   easy_logging easy_logging_yojson
    alcotest
    testo
    timedesc
@@ -40,6 +39,7 @@
      ppx_hash
      ppx_sexp_conv
      ppx_inline_test
+     lwt_ppx
    )
  )
 )

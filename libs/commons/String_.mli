@@ -10,3 +10,34 @@ val search : term:string -> string -> int option
 val contains : term:string -> string -> bool
 val empty : string -> bool
 val split : sep:string (* regexp *) -> string -> string list
+
+(* Like 'String.sub', extract a substring from a string by specifying
+   the start index and the length of the substring.
+
+   This function won't raise out-of-range exceptions:
+   - Requesting a substring of negative length is the same as requesting an
+     empty substring.
+   - The result is the overlap between the string's range and the substring's
+     imaginary range.
+
+   For example, 'safe_sub "abc" (-1) 3' is '"ab"'.
+*)
+val safe_sub : string -> int -> int -> string
+
+(*
+   Print an escaped and quoted string, truncating it to show at most max_len
+   bytes. The length in bytes is printed if the string has to be truncated.
+   The default value for max_len is 200.
+   This function is intended for logs.
+*)
+val show : ?max_len:int -> string -> string
+
+(* Removes a trailing carriage return ('\r') from the given string. For use when
+ * reading an input line from an input stream or when splitting a string by the
+ * line feed character ('\n'). *)
+val trim_cr : string -> string
+
+(* Returns the entirety of all of the lines in the given string that are
+ * included in the given range. Strips trailing newline characters from each
+ * line. See unit tests for examples. *)
+val lines_of_range : int * int -> string -> string list

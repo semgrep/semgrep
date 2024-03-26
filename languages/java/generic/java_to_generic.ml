@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -493,12 +493,12 @@ and stmt_aux st =
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
-  | LocalVarList vs ->
-      List_.map
-        (fun v1 ->
-          let ent, v = var_with_init v1 in
-          G.DefStmt (ent, G.VarDef v) |> G.s)
-        vs
+  | LocalVarList (vs, sc) ->
+      vs
+      |> List_.map (fun v1 ->
+             let ent, v = var_with_init v1 in
+             (ent, v))
+      |> H.add_semicolon_to_last_var_def_and_convert_to_stmts sc
   | DeclStmt v1 -> [ decl v1 ]
   | DirectiveStmt v1 -> [ directive v1 ]
   | Assert (t, v1, v2) ->
@@ -575,7 +575,7 @@ and catches v = list catch v
 and var_with_init { f_var; f_init } =
   let ent, t = var f_var in
   let init = option init f_init in
-  (ent, { G.vinit = init; vtype = t })
+  (ent, { G.vinit = init; vtype = t; vtok = G.no_sc })
 
 and init = function
   | ExprInit v1 ->
@@ -669,7 +669,11 @@ and class_decl
     } =
   let v1 = ident cl_name in
   let v2, more_attrs = class_kind_and_more cl_kind in
-  let v3 = list type_parameter cl_tparams in
+  let v3 =
+    match cl_tparams with
+    | [] -> None
+    | xs -> Some (Tok.unsafe_fake_bracket (list type_parameter xs))
+  in
   let v4 = modifiers cl_mods in
   let v5 = option class_parent cl_extends in
   let v6 = list ref_type cl_impls in
@@ -787,7 +791,7 @@ let any = function
       G.T v1
   | AVar v1 ->
       let ent, t = var v1 in
-      G.Def (ent, G.VarDef { G.vtype = t; vinit = None })
+      G.Def (ent, G.VarDef { G.vtype = t; vinit = None; vtok = G.no_sc })
   | AInit v1 ->
       let v1 = init v1 in
       G.E v1

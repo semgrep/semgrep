@@ -10,11 +10,10 @@ type parsing_mode =
  *)
 val parse :
   ?parsing_mode:parsing_mode (* default mode is Python *) ->
-  string (* filename *) ->
+  Fpath.t ->
   (AST_python.program, Parser_python.token) Parsing_result.t
 
-val parse_program :
-  ?parsing_mode:parsing_mode -> string (* filename *) -> AST_python.program
+val parse_program : ?parsing_mode:parsing_mode -> Fpath.t -> AST_python.program
 
 (* other parsers *)
 
@@ -32,7 +31,7 @@ val parse_fuzzy:
 *)
 
 (* to help write test code *)
-val program_of_string : string -> AST_python.program
+val program_of_string : < Cap.tmp > -> string -> AST_python.program
 
 (* internal *)
 val tokens :

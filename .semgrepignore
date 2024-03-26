@@ -25,15 +25,19 @@
 # To ignore a file with a literal ':' character, escape it with
 # a backslash, e.g. "\:foo".
 
-/tests
 # Test data
-/cli/tests/e2e/targets/
-/cli/tests/e2e/snapshots/
+/tests
+/cli/tests/default/e2e/targets/
+/cli/tests/default/e2e/snapshots/
 /cli/tests/performance/targets/
+
+# has some constructs that AST_to_IL has trouble translating ('...' in target code)
+/cli/stubs/
+*.pyi
 
 # rules being tested for performance
 /perf/rules/
 /perf/r2c-rules/
 
-#TODO: fix, can't parse currently, weird
-/src/osemgrep/cli_scan/Cli_json_output.ml
+# fixpoint is sometimes timing out on this file
+/src/data/Entropy_data.ml

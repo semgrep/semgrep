@@ -1,13 +1,13 @@
 (* Build "commands" to be executed by CapExec.ml (or UCmd.ml) *)
 
 (* command name, e.g. "git" *)
-type name = Name of string
+type name = Name of string [@@deriving show]
 
 (* command arguments *)
-type args = string list
+type args = string list [@@deriving show]
 
 (* the whole command *)
-type t = name * args
+type t = name * args [@@deriving show]
 
 (* Cmd is a small wrapper around Bos.Cmd so we rely on Bos for
  * most operations

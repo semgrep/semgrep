@@ -24,7 +24,7 @@ type caps = < Cap.stdout ; Cap.network >
 let print_success_message display_name : unit =
   let message =
     Ocolor_format.asprintf {|%s Successfully logged in as @{<cyan>%s@}! |}
-      (Logs_.success_tag ()) display_name
+      (Std_msg.success_tag ()) display_name
   in
   Logs.app (fun m -> m "%s" message)
 
@@ -54,10 +54,10 @@ let save_token ?(display_name = None) token =
         | None -> deployment_config.display_name
       in
       print_success_message display_name;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
 
 let print_preamble () : unit =
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Login");
@@ -83,7 +83,7 @@ let start_interactive_flow () : Uuidm.t option =
       Ocolor_format.asprintf
         {|%s @{<cyan>`semgrep login`@} is meant to be run in an interactive terminal.
 You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
-        (Logs_.err_tag ())
+        (Std_msg.error_tag ())
     in
     Logs.err (fun m -> m "%s" msg);
     None)
@@ -121,12 +121,12 @@ let fetch_token caps session_id =
   with
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
   | Ok (_, display_name) ->
       Console_Spinner.erase_spinner ();
       print_did_save_token ();
       print_success_message display_name;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Main logic *)
@@ -153,7 +153,7 @@ let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
       | Some _ -> (
           let session_id = start_interactive_flow () in
           match session_id with
-          | None -> Exit_code.fatal
+          | None -> Exit_code.fatal ~__LOC__
           | Some session_id -> (
               Unix.sleepf 0.1;
               (* wait 100ms for the browser to open and then start showing the spinner *)
@@ -163,7 +163,7 @@ let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
               with
               | Error msg ->
                   Logs.err (fun m -> m "%s" msg);
-                  Exit_code.fatal
+                  Exit_code.fatal ~__LOC__
               | Ok (token, display_name) ->
                   Console_Spinner.erase_spinner ();
                   let caps = Auth.cap_token_and_network token caps in
@@ -173,8 +173,9 @@ let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
           m
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
-            (Logs_.err_tag ()));
-      Exit_code.fatal
+            (Std_msg.error_tag ()));
+      Exit_code.fatal ~__LOC__
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)

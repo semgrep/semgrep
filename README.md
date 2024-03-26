@@ -4,7 +4,7 @@
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="images/semgrep-logo-light.svg">
       <source media="(prefers-color-scheme: dark)" srcset="images/semgrep-logo-dark.svg">
-      <img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/>
+      <img src="https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/>
     </picture>
   </a>
 </p>
@@ -22,16 +22,19 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://go.semgrep.dev/slack">
-    <img src="https://img.shields.io/badge/slack-2.5k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-3.5k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
-  <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
+  <a href="https://github.com/semgrep/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
-  <a href="https://github.com/returntocorp/semgrep#readme">
-    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="Star Semgrep on GitHub" />
+  <a href="https://github.com/semgrep/semgrep#readme">
+    <img src="https://img.shields.io/github/stars/semgrep/semgrep?label=GitHub%20Stars&style=flat-square" alt="Star Semgrep on GitHub" />
+  </a>
+  <a href="https://hub.docker.com/r/semgrep/semgrep">
+    <img src="https://img.shields.io/docker/pulls/semgrep/semgrep.svg?style=flat-square" alt="Docker Pulls" />
   </a>
   <a href="https://hub.docker.com/r/returntocorp/semgrep">
-    <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls" />
+    <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls (Old)" />
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=semgrep">
     <img src="https://img.shields.io/twitter/follow/semgrep?label=Follow%20semgrep&style=social&color=blue" alt="Follow @semgrep on Twitter" />
@@ -42,34 +45,26 @@
 This repository contains the source code for Semgrep OSS (open-source software). Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time. Semgrep is a semantic grep for code: where `grep "2"` would only match the exact string _2_, Semgrep would [match `x = 1; y = x + 1` when searching for _2_](https://semgrep.dev/playground/s/5rKgj). And it does this in 30+ languages! Semgrep rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs: read more below.
 
 For companies who need SAST, SCA, and Secret scanning, we provide a product suite on top of Semgrep OSS that scans code and package dependencies for known issues, software vulnerabilities, and finds secrets with high accuracy:
-- [**Semgrep Code**](https://semgrep.dev/products/semgrep-code/) to find bugs & vulnerabilities using high-accuracy Pro rules in addition to the community rules
+- [**Semgrep Code**](https://semgrep.dev/products/semgrep-code/) to find bugs & vulnerabilities using the deeper, interfile-analysis enabled [Pro engine](https://semgrep.dev/products/pro-engine/) and high-accuracy Pro rules in addition to the community rules
 - [**Semgrep Supply Chain**](https://semgrep.dev/products/semgrep-supply-chain/) to find dependencies with known vulnerabilities function-level reachability analysis
 - [**Semgrep Secrets**](https://semgrep.dev/products/semgrep-secrets/) to find hard-coded credentials that shouldn't be checked into source code
 
 Semgrep analyzes code locally on your computer or in your build environment: **by default, code is never uploaded**. [Get started →.](#getting-started-)
 
 <a href="#option-1-getting-started-from-the-cli">
-<img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/></a>
+<img src="https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/></a>
 
 ### Language support
 
-Semgrep Code supports 30+ languages.
+**Semgrep Code** supports 30+ languages, including:
 
-| Category     | Languages                                                                                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA           | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX                                                                         |
-| Beta         | Kotlin · Rust                                                                                                                                                                 |
-| Experimental | Bash · C · C++ · Clojure · Dart · Dockerfile · Elixir · HTML · Julia · Jsonnet · Lisp · Lua · OCaml · R · Scheme · Solidity · Swift · YAML · XML · Generic (ERB, Jinja, etc.) |
+Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTML · Go · Java · JavaScript · JSX · JSON · Julia · Jsonnet · Kotlin · Lisp · Lua · OCaml · PHP · Python · R · Ruby · Rust · Scala · Scheme · Solidity · Swift · Terraform · TypeScript · TSX · YAML · XML · Generic (ERB, Jinja, etc.)
 
-Semgrep Supply Chain supports 8 languages across 15 package managers.
+**Semgrep Supply Chain** supports 12 languages across 15 package managers, including:
 
-| Category       | Languages                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA             | Go (Go modules, `go mod`) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Java (Gradle, Maven) |
-| Beta           | C# (NuGet)                                                                                                                                                            |
-| Lock file-only | Rust (Cargo) · PHP (Composer)                                                                                                                                         |
+C# (NuGet) · Dart (Pub) · Go (Go modules, `go mod`) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
 
-For more information, visit our [supported languages](https://semgrep.dev/docs/supported-languages/) page.
+For more information, see [Supported languages](https://semgrep.dev/docs/supported-languages/).
 
 ### Getting started 🚀
 
@@ -80,7 +75,7 @@ For new users, we recommend starting with the [Semgrep Cloud Platform](#option-1
 
 ### Option 1: Getting started from the Semgrep Cloud Platform (Recommended)
 
-<a href="https://go.semgrep.dev/login-ghrmgo"  target="_blank"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-main-image.jpg" alt="Semgrep platform image"/> </a>
+<a href="https://go.semgrep.dev/login-ghrmgo"  target="_blank"><img src="https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-main-image.jpg" alt="Semgrep platform image"/> </a>
 
 1.  Register on <a href="https://go.semgrep.dev/login-ghrmgo" target="_blank">semgrep.dev</a>
 
@@ -108,8 +103,8 @@ $ brew install semgrep
 $ python3 -m pip install semgrep
 
 # To try Semgrep without installation run via Docker
-$ docker run -it -v "${PWD}:/src" returntocorp/semgrep semgrep login
-$ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" returntocorp/semgrep semgrep ci
+$ docker run -it -v "${PWD}:/src" semgrep/semgrep semgrep login
+$ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci
 ```
 
 2.  Run `semgrep login` to create your account and login to Semgrep.
@@ -151,7 +146,7 @@ Semgrep rules look like the code you already write; no abstract syntax trees, re
 Run it online in Semgrep’s Playground by [clicking here](https://semgrep.dev/s/ievans:print-to-logger).
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
 </p>
 
 #### Examples
@@ -198,6 +193,7 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
+- [Licensing Semgrep](https://semgrep.dev/docs/licensing/)
 
 ### Upgrading
 
@@ -211,5 +207,5 @@ $ brew upgrade semgrep
 $ python3 -m pip install --upgrade semgrep
 
 # Using Docker
-$ docker pull returntocorp/semgrep:latest
+$ docker pull semgrep/semgrep:latest
 ```

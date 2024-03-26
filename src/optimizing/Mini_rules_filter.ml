@@ -25,14 +25,14 @@ module R = Mini_rule
  * in Semgrep.ml (instead of on mini-rule level in Semgrep_generic.ml).
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
-  let str = UCommon.read_file file in
+  let str = UFile.Legacy.read_file file in
   rules
   |> List.filter (fun rule ->
          let pat = rule.R.pattern in
@@ -58,6 +58,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
          in
 
          if not match_ then
-           logger#info "filtering rule %s" (Rule_ID.to_string rule.id);
+           Logs.debug (fun m ->
+               m ~tags "filtering out rule %s" (Rule_ID.to_string rule.id));
          match_)
 [@@profiling "Mini_rules_filter.filter"]

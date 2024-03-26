@@ -39,9 +39,7 @@ def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) 
     (Simple) print the statuses of enabled products to stdout when the user
     is given the product-focused CLI UX treatment.
     """
-    learn_more_url = with_color(
-        Colors.cyan, "https://semgrep.dev/products/cloud-platform/", underline=True
-    )
+    learn_more_url = with_color(Colors.cyan, "https://sg.run/cloud", underline=True)
     login_command = with_color(Colors.gray, "`semgrep login`")
     is_logged_in = auth.get_token() is not None
     all_enabled = True  # assume all enabled until we find a disabled product

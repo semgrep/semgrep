@@ -1,0 +1,17 @@
+(library
+ (public_name tracing.unix)
+ (name tracing_unix)
+ (libraries
+   unix
+   commons
+   trace
+   opentelemetry
+   opentelemetry.trace
+   opentelemetry-client-ocurl
+   ambient-context-lwt
+ )
+ (implements tracing)
+  (preprocess (pps
+      ppx_deriving.show
+   ))
+)

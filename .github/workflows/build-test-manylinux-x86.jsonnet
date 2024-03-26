@@ -1,18 +1,40 @@
 // This workflow generates the manylinux-wheel for pypi.
+//
+// We rely on https://github.com/pypa/manylinux which helps in
+// handling the many different Linux distributions out there for x86
+// (for arm64 see the build-test-manylinux-aarch64.jsonnet instead).
+// From the manylinux website:
+//
+//   Building manylinux-compatible wheels is not trivial; as a general
+//   rule, binaries built on one Linux distro will only work on other
+//   Linux distros that are the same age or newer. Therefore, if we want
+//   to make binaries that run on most Linux distros, we have to use an
+//   old enough distro.
+//   Rather than forcing you to install an old distro yourself, install
+//   Python, etc., we provide Docker images where we've done the work
+//   for you. The images are uploaded to quay.io and are tagged for
+//   repeatable builds.
+//
+// quay.io is a container registry, similar to hub.docker.com .
+// It seems a bit more fragile so in case of problems check
+// https://isdown.app/integrations/quay-io
+// We use it because the manylinux project is using it.
+
 local gha = import "libs/gha.libsonnet";
 local actions = import "libs/actions.libsonnet";
 local core_x86 = import "build-test-core-x86.jsonnet";
+
+local wheel_name = 'manylinux-x86-wheel';
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
-local artifact_name = core_x86.export.artifact_name;
-local wheel_name = 'manylinux-x86-wheel';
-
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  // pad: What is this sgrep-xxx image?
+  // This is a 4 years old container, built from a 4 years old file
+  // https://github.com/semgrep/sgrep-build-docker/blob/master/Dockerfile
+  // TODO: switch to a standard container (use quay.io/manylinux_2014_x86_64 ?)
   container: 'returntocorp/sgrep-build:ubuntu-18.04',
   steps: [
     actions.checkout_with_submodules(),
@@ -28,16 +50,11 @@ local build_wheels_job = {
         update-alternatives --config python3
       |||
     },
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: artifact_name,
-      },
-    },
+    actions.download_artifact_step(core_x86.export.artifact_name),
     {
       run: |||
-        tar xf ocaml-build-artifacts.tgz
-        cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
+        tar xf artifacts.tgz
+        cp artifacts/semgrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh
       |||,
     },
@@ -53,20 +70,14 @@ local build_wheels_job = {
 
 local test_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  // pad: what is that?
   container: 'quay.io/pypa/manylinux2014_x86_64',
   needs: [
     'build-wheels',
   ],
   steps: [
+    actions.download_artifact_step(wheel_name),
     {
-      uses: 'actions/download-artifact@v1',
-      with: {
-        name: wheel_name,
-      },
-    },
-    {
-      run: 'unzip ./manylinux-x86-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     // *.whl is fine here because we're building one wheel with the "any"
     // platform compatibility tag

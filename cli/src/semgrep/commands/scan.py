@@ -208,6 +208,12 @@ _scan_options: List[Callable] = [
         default=False,
     ),
     optgroup.option(
+        "--trace/--no-trace",
+        "trace",
+        is_flag=True,
+        default=False,
+    ),
+    optgroup.option(
         "--matching-explanations",
         is_flag=True,
         default=False,
@@ -317,7 +323,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         hidden=True,
     ),
-    optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
+    optgroup.option(
+        "--allow-custom-validators",
+        "allow_untrusted_validators",
+        is_flag=True,
+        hidden=True,
+    ),
 ]
 
 
@@ -397,6 +408,11 @@ def scan_options(func: Callable) -> Callable:
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
 )
+@click.option(
+    "--historical-secrets",
+    "historical_secrets",
+    is_flag=True,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -410,6 +426,7 @@ def scan(
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
     disable_secrets_validation_flag: bool,
+    historical_secrets: bool,
     dryrun: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
@@ -446,6 +463,7 @@ def scan(
     timeout: int,
     timeout_threshold: int,
     interfile_timeout: Optional[int],
+    trace: bool,
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -599,6 +617,7 @@ def scan(
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
+                            trace=trace,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
@@ -641,6 +660,7 @@ def scan(
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
                     disable_secrets_validation=disable_secrets_validation_flag,
+                    historical_secrets=historical_secrets,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
@@ -662,6 +682,7 @@ def scan(
                     max_memory=max_memory,
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
+                    trace=trace,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,

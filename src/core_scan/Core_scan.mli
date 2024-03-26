@@ -15,8 +15,8 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
  *)
-
-val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_or_exn
+val scan_with_exn_handler :
+  < Cap.tmp > -> Core_scan_config.t -> Core_result.result_or_exn
 
 (* As opposed to [scan_with_exn_handler()], [scan() ...] below may throw
  * an exception (for example in case of a fatal error).
@@ -35,6 +35,7 @@ val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_or_exn
  *)
 val scan :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
+  < Cap.tmp > ->
   Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
   Core_result.t
@@ -55,28 +56,18 @@ val print_match :
 (*****************************************************************************)
 
 val rules_from_rule_source :
-  Core_scan_config.t -> Rule.rules * Rule.invalid_rule_error list
+  < Cap.tmp > -> Core_scan_config.t -> Rule.rules * Rule.invalid_rule_error list
 (** Get the rules *)
 
 val targets_of_config :
+  < Cap.tmp > ->
   Core_scan_config.t ->
-  Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
+  Target.t list * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
   The rule ids argument is useful only when you don't use -target.
  *)
-
-val extracted_targets_of_config :
-  Core_scan_config.t ->
-  Rule.extract_rule list ->
-  Input_to_core_t.code_target list ->
-  Input_to_core_t.target list * Extract.adjusters
-(**
-   Generate a list of new targets, which are extracted with extract rules
-   from original targets. This returns also "adjusters" which are functions
-   to map back matches on extracted targets to matches on the original target.
-*)
 
 (* This is also used by semgrep-proprietary. It filters the rules that
    apply to a given target file for a given analyzer.
@@ -86,7 +77,7 @@ val extracted_targets_of_config :
 val select_applicable_rules_for_target :
   analyzer:Xlang.t ->
   products:Semgrep_output_v1_t.product list ->
-  path:Fpath.t ->
+  origin:Origin.t ->
   respect_rule_paths:bool ->
   Rule.t list ->
   Rule.t list
@@ -112,7 +103,7 @@ val print_cli_progress : Core_scan_config.t -> unit
 val errors_of_invalid_rule_errors :
   Rule.invalid_rule_error list -> Core_error.t list
 
-val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
+val replace_named_pipe_by_regular_file : < Cap.tmp > -> Fpath.t -> Fpath.t
 (* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
    Any file coming from the command line should go through this so as to
    allows easy manual testing.
@@ -125,17 +116,13 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-val xtarget_of_file :
-  parsing_cache_dir:Fpath.t option -> Xlang.t -> Fpath.t -> Xtarget.t
-
 (*
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-val sort_targets_by_decreasing_size :
-  Input_to_core_t.target list -> Input_to_core_t.target list
+val sort_targets_by_decreasing_size : Target.t list -> Target.t list
 
 val sort_code_targets_by_decreasing_size :
-  Input_to_core_t.code_target list -> Input_to_core_t.code_target list
+  Target.regular list -> Target.regular list
 
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences

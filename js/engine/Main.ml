@@ -17,7 +17,7 @@ let _ =
           Refer to js/engine/src/index.d.ts for more information.
         *)
        method writeFile filename content =
-         UCommon.write_file (Js.to_string filename) (Js.to_string content)
+         UFile.Legacy.write_file (Js.to_string filename) (Js.to_string content)
 
        method deleteFile filename = Sys.remove (Js.to_string filename)
 
@@ -48,15 +48,9 @@ let _ =
            in
            let targets =
              List.map
-               (fun f ->
-                 `CodeTarget
-                   Input_to_core_t.
-                     {
-                       path = f;
-                       analyzer = xlang;
-                       products = Product.all;
-                       lockfile_target = None;
-                     })
+               (fun f : Target.t ->
+                 Regular
+                   (Target.mk_regular xlang Product.all (File (Fpath.v f))))
                source_files
            in
            let default_config = Output.default in
@@ -70,7 +64,11 @@ let _ =
              }
            in
            let timed_rules = (rules_and_errors, 0.) in
-           let res = Core_scan.scan config timed_rules in
+           (* Core_scan.scan needs /tmp just to handle Git_remove rules_source,
+            * but this should not happen here, so it's ok to use tmp_caps_UNSAFE
+            *)
+           let caps = Cap.tmp_caps_UNSAFE () in
+           let res = Core_scan.scan caps config timed_rules in
            let res =
              Core_runner.create_core_result (fst rules_and_errors) (Ok res)
            in

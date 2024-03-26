@@ -125,8 +125,7 @@ type t = {
   mutable payload : Semgrep_metrics_t.payload;
 }
 
-let now () : Timedesc.t =
-  Timedesc.now ?tz_of_date_time:(Some Timedesc.Time_zone.utc) ()
+let now () : Timedesc.Timestamp.t = Timedesc.Timestamp.now ()
 
 let default_payload =
   {
@@ -240,6 +239,7 @@ let is_enabled () =
 let add_user_agent_tag (str : string) =
   let str =
     str
+    (* TODO: don't use JaneStreet Base until we agree to do so *)
     |> Base.String.chop_prefix_if_exists ~prefix:"("
     |> Base.String.chop_suffix_if_exists ~suffix:")"
     |> String.trim |> spf "(%s)"
@@ -394,10 +394,10 @@ let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
 let add_targets_stats (targets : Fpath.t Set_.t)
     (prof_opt : Core_profiling.t option) =
   let targets = Set_.elements targets in
-  let (hprof : (Fpath.t, Core_profiling.file_profiling) Hashtbl.t) =
+  let hprof : (Fpath.t, Core_profiling.file_profiling) Hashtbl.t =
     match prof_opt with
     | None -> Hashtbl.create 0
-    | Some prof ->
+    | Some (prof : Core_profiling.t) ->
         prof.file_times
         |> List_.map (fun ({ Core_profiling.file; _ } as file_prof) ->
                (file, file_prof))
@@ -409,15 +409,15 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     |> List_.map (fun path ->
            let runTime, parseTime, matchTime =
              match Hashtbl.find_opt hprof path with
-             | Some fprof ->
+             | Some (fprof : Core_profiling.file_profiling) ->
                  ( Some fprof.run_time,
                    Some
                      (fprof.rule_times
-                     |> List_.map (fun rt -> rt.Core_profiling.parse_time)
+                     |> List_.map (fun rt -> rt.Core_profiling.rule_parse_time)
                      |> Common2.sum_float),
                    Some
                      (fprof.rule_times
-                     |> List_.map (fun rt -> rt.Core_profiling.match_time)
+                     |> List_.map (fun rt -> rt.Core_profiling.rule_match_time)
                      |> Common2.sum_float) )
              | None -> (None, None, None)
            in

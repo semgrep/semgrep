@@ -67,3 +67,4 @@ end
 
 class python_printer : printer_t
 class jsts_printer : printer_t
+class ocaml_printer : printer_t

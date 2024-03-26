@@ -20,7 +20,7 @@ module J = JSON
 module FT = File_type
 module Resp = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -219,14 +219,13 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = List_.map UCommon.fullpath root_paths |> Fpath_.of_strings in
   let paths, _skipped_paths =
-    Find_targets_old.files_of_dirs_or_files (Some lang) paths
+    Find_targets_old.files_of_dirs_or_files (Some lang) root_paths
   in
   let stat_list = ref [] in
   paths |> Fpath_.to_strings
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
+         Logs.info (fun m -> m ~tags "processing %s" file);
          let stat =
            try
              (match lang with
@@ -288,9 +287,9 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
   | Lang.Ocaml ->
       let (ast : AST_ocaml.program) =
         if !Flag_semgrep.tree_sitter_only then
-          let res = Parse_ocaml_tree_sitter.parse !!file in
+          let res = Parse_ocaml_tree_sitter.parse file in
           res.program |> List_.optlist_to_list
-        else Parse_ml.parse_program !!file
+        else Parse_ml.parse_program file
       in
       let s = AST_ocaml.show_program ast in
       UCommon.pr2 s
@@ -343,23 +342,22 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
    *)
   Gc.set { (Gc.get ()) with Gc.space_overhead = 30 };
 
-  logger#info "running with a timeout of %f.1s" timeout_seconds;
-  logger#info "running with a memory limit of %d MiB" mem_limit_mb;
+  Logs.info (fun m -> m ~tags "running with a timeout of %f.1s" timeout_seconds);
+  Logs.info (fun m ->
+      m ~tags "running with a memory limit of %d MiB" mem_limit_mb);
 
-  let paths =
-    (* = absolute paths *)
-    List_.map UCommon.fullpath files_or_dirs |> Fpath_.of_strings
-  in
+  (* less: use realpath? *)
+  let paths = files_or_dirs in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stats =
-    paths |> Fpath_.to_strings
+    paths
     |> List.rev_map (fun file ->
            UCommon.pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
                 (Lang.to_capitalized_alnum lang)
-                file);
+                !!file);
            let stat =
              try
                match
@@ -372,16 +370,16 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                    let ast_stat = AST_stat.stat res.ast in
                    { res.Parsing_result2.stat with ast_stat = Some ast_stat }
                | None ->
-                   { (Parsing_stat.bad_stat file) with have_timeout = true }
+                   { (Parsing_stat.bad_stat !!file) with have_timeout = true }
              with
              | Time_limit.Timeout _ -> assert false
              | exn ->
-                 if verbose then print_exn file exn;
+                 if verbose then print_exn !!file exn;
                  (* bugfix: bad_stat() could actually triggering some
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
                  *)
-                 Parsing_stat.bad_stat file
+                 Parsing_stat.bad_stat !!file
            in
            if verbose && stat.PS.error_line_count > 0 then
              UCommon.pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
@@ -523,11 +521,10 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  List_.map
-    (fun dir ->
-      let name = dir in
-      parse_project ~verbose lang name [ dir ])
-    project_dirs
+  project_dirs
+  |> List_.map (fun dir ->
+         let name = dir in
+         parse_project ~verbose lang name [ Fpath.v dir ])
 
 let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects ~verbose lang project_dirs in
@@ -555,9 +552,9 @@ let diff_pfff_tree_sitter xs =
          in
          let s1 = AST_generic.show_program ast1 in
          let s2 = AST_generic.show_program ast2 in
-         Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-             Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
-                 let xs = Common2.unix_diff file1 file2 in
+         UTmp.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+             UTmp.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+                 let xs = Common2.unix_diff !!file1 !!file2 in
                  xs |> List.iter UCommon.pr2)))
 
 (*****************************************************************************)
@@ -565,13 +562,12 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
-  let roots = Fpath_.of_strings roots in
   let targets, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->
-         logger#info "processing %s" !!file;
+         Logs.info (fun m -> m ~tags "processing %s" !!file);
          let _r = Parse_rule.parse file in
          ());
-  logger#info "done test_parse_rules"
+  Logs.info (fun m -> m ~tags "done test_parse_rules")

@@ -81,6 +81,7 @@ val name_is_global : AST_generic.resolved_name_kind -> bool
 val parameter_to_catch_exn_opt :
   AST_generic.parameter -> AST_generic.catch_exn option
 
+val ctype_of_literal : AST_generic.literal -> AST_generic.const_type
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
 
 val has_keyword_attr :
@@ -149,3 +150,11 @@ val fix_token_locations_any :
 
 val fix_token_locations_program :
   (Tok.location -> Tok.location) -> AST_generic.program -> AST_generic.program
+
+val add_semicolon_to_last_var_def_and_convert_to_stmts :
+  AST_generic.sc ->
+  (AST_generic.entity * AST_generic.variable_definition) list ->
+  AST_generic.stmt list
+
+val add_semicolon_to_last_def_and_convert_to_stmts :
+  AST_generic.sc -> AST_generic.definition list -> AST_generic.stmt list

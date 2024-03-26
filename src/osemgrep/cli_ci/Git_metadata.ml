@@ -18,6 +18,7 @@ module XCmd = Cmdliner.Cmd
 
 type env = {
   _SEMGREP_REPO_NAME : string option;
+  _SEMGREP_REPO_DISPLAY_NAME : string option;
   _SEMGREP_REPO_URL : Uri.t option;
   _SEMGREP_COMMIT : Digestif.SHA1.t option;
   _SEMGREP_JOB_URL : Uri.t option;
@@ -39,6 +40,17 @@ let env : env Term.t =
     let env = XCmd.Env.info "SEMGREP_REPO_NAME" in
     Arg.(
       value & opt (some string) None & info [ "semgrep-repo-name" ] ~env ~doc)
+  in
+  let semgrep_repo_display_name =
+    let doc =
+      "The name the repository should be displayed as for this scan. Setting \
+       it allows users to scan individual repos in one monorepo separately."
+    in
+    let env = XCmd.Env.info "SEMGREP_REPO_DISPLAY_NAME" in
+    Arg.(
+      value
+      & opt (some string) None
+      & info [ " semgrep-repo-display-name" ] ~env ~doc)
   in
   let semgrep_repo_url =
     let doc = "The URL of the Git repository." in
@@ -79,10 +91,12 @@ let env : env Term.t =
     let env = XCmd.Env.info "SEMGREP_BRANCH" in
     Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
   in
-  let run _SEMGREP_REPO_NAME _SEMGREP_REPO_URL _SEMGREP_COMMIT _SEMGREP_JOB_URL
-      _SEMGREP_PR_ID _SEMGREP_PR_TITLE _SEMGREP_BRANCH =
+  let run _SEMGREP_REPO_NAME _SEMGREP_REPO_DISPLAY_NAME _SEMGREP_REPO_URL
+      _SEMGREP_COMMIT _SEMGREP_JOB_URL _SEMGREP_PR_ID _SEMGREP_PR_TITLE
+      _SEMGREP_BRANCH =
     {
       _SEMGREP_REPO_NAME;
+      _SEMGREP_REPO_DISPLAY_NAME;
       _SEMGREP_REPO_URL;
       _SEMGREP_COMMIT;
       _SEMGREP_JOB_URL;
@@ -92,30 +106,32 @@ let env : env Term.t =
     }
   in
   Term.(
-    const run $ semgrep_repo_name $ semgrep_repo_url $ semgrep_commit
-    $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title $ semgrep_branch)
+    const run $ semgrep_repo_name $ semgrep_repo_display_name $ semgrep_repo_url
+    $ semgrep_commit $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title
+    $ semgrep_branch)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
+class meta (caps : < Cap.exec >) ~scan_environment
+  ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title : string =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%B" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%B" ]
       in
       let commit_author_email : Emile.mailbox =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%ae" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%ae" ]
         |> Emile.of_string |> Result.get_ok
       in
       let commit_author_name : string =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%an" ]
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns strict ISO 8601 time as str of head commit *)
-      let commit_timestamp : Timedesc.t =
-        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%cI" ]
-        |> Timedesc.of_iso8601 |> Result.get_ok
+      let commit_timestamp : Timedesc.Timestamp.t =
+        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%cI" ]
+        |> Timedesc.Timestamp.of_iso8601 |> Result.get_ok
       in
       {
         semgrep_version = Version.version;
@@ -123,6 +139,7 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         repository = self#repo_name;
         (* OPTIONAL for semgrep backed *)
         repo_url = self#repo_url;
+        repo_display_name = Some self#repo_display_name;
         branch = self#branch;
         ci_job_url = self#ci_job_url;
         commit = self#commit_sha;
@@ -157,10 +174,14 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
       | Some repo_name -> repo_name
       | None ->
           let str =
-            Git_wrapper.git_check_output caps#exec
-              [ "rev-parse"; "--show-toplevel" ]
+            Git_wrapper.git_check_output caps [ "rev-parse"; "--show-toplevel" ]
           in
-          Fpath.basename (Fpath.v str)
+          Printf.sprintf "local_scan/%s" (Fpath.basename (Fpath.v str))
+
+    method repo_display_name =
+      match env._SEMGREP_REPO_DISPLAY_NAME with
+      | Some repo_display_name -> repo_display_name
+      | None -> self#repo_name
 
     method repo_url =
       match env._SEMGREP_REPO_URL with

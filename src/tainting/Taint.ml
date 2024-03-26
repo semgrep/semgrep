@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +19,9 @@ module R = Rule
 module LabelSet = Set.Make (String)
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (* NOTE "on compare functions":
  *
@@ -119,48 +121,62 @@ let rec pm_of_trace = function
 
 let trace_of_pm (pm, x) = PM (pm, x)
 
-let rec _show_call_trace show_thing = function
+let rec show_call_trace show_thing = function
   | PM (pm, x) ->
       let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
       let s = toks |> List_.map Tok.content_of_tok |> String.concat " " in
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
-      Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
+      Printf.sprintf "Call(... %s)" (show_call_trace show_thing trace)
 
 (*****************************************************************************)
 (* Taint arguments ("variables", kind of) *)
 (*****************************************************************************)
 
-type arg_pos = { name : string; index : int } [@@deriving show, ord]
+type arg = { name : string; index : int } [@@deriving show, ord]
+type base = BGlob of IL.name | BThis | BArg of arg [@@deriving show, ord]
 
-type arg_base = BGlob of IL.name | BThis | BArg of arg_pos
+type offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
 [@@deriving show, ord]
 
-type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
+type lval = { base : base; offset : offset list } [@@deriving show]
 
-let compare_arg { base = base1; offset = offset1 }
+let hook_offset_of_IL = ref None
+
+let compare_lval { base = base1; offset = offset1 }
     { base = base2; offset = offset2 } =
-  match compare_arg_base base1 base2 with
-  | 0 -> List.compare IL_helpers.compare_name offset1 offset2
+  match compare_base base1 base2 with
+  | 0 -> List.compare compare_offset offset1 offset2
   | other -> other
 
-let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
+let show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
 
-let _show_base base =
+let show_base base =
   match base with
   | BGlob name -> fst name.ident
   | BThis -> "this"
-  | BArg pos -> _show_pos pos
+  | BArg pos -> show_pos pos
 
-let _show_arg { base; offset = os } =
-  _show_base base
-  ^
-  if os <> [] then
-    let os_str =
-      os |> List_.map (fun n -> fst n.IL.ident) |> String.concat "."
-    in
-    "." ^ os_str
-  else ""
+let show_offset offset =
+  match offset with
+  | Ofld n -> "." ^ fst n.IL.ident
+  | Oint i -> Printf.sprintf "[%d]" i
+  | Ostr s -> Printf.sprintf "[%s]" s
+  | Oany -> "[*]"
+
+let show_lval { base; offset = os } =
+  show_base base
+  ^ if os <> [] then os |> List_.map show_offset |> String.concat "" else ""
+
+let offset_of_IL (o : IL.offset) =
+  match !hook_offset_of_IL with
+  | None -> (
+      match o.o with
+      | Dot n -> Ofld n
+      | Index _ ->
+          (* no index-sensitivity in OSS *)
+          Oany)
+  | Some offset_of_IL -> offset_of_IL o
 
 (*****************************************************************************)
 (* Taint *)
@@ -179,7 +195,7 @@ type source = {
 }
 [@@deriving show]
 
-and orig = Src of source | Arg of arg | Control [@@deriving show]
+and orig = Src of source | Var of lval | Control [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 let compare_precondition (_ts1, f1) (_ts2, f2) =
@@ -225,79 +241,80 @@ let compare_source
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with
   | Src p, Src q -> compare_source p q
-  | Arg a1, Arg a2 -> compare_arg a1 a2
+  | Var lv1, Var lv2 -> compare_lval lv1 lv2
   | Control, Control -> 0
-  | Src _, (Arg _ | Control) -> -1
-  | Arg _, Control -> -1
-  | Arg _, Src _ -> 1
-  | Control, (Arg _ | Src _) -> 1
+  | Src _, (Var _ | Control) -> -1
+  | Var _, Control -> -1
+  | Var _, Src _ -> 1
+  | Control, (Var _ | Src _) -> 1
 
 let compare_taint taint1 taint2 =
   (* THINK: Right now we disregard the trace because we just want to keep one
    * potential path. *)
   compare_orig taint1.orig taint2.orig
 
-let _show_taint_label taint =
-  match taint.orig with
-  | Src src -> src.label
-  | Arg arg -> _show_arg arg
-  | Control -> "<control>"
-
-let rec _show_precondition = function
+let rec show_precondition = function
   | R.PLabel str -> str
   | R.PBool b -> Bool.to_string b
-  | R.PNot p -> Printf.sprintf "not %s" (_show_precondition p)
+  | R.PNot p -> Printf.sprintf "not %s" (show_precondition p)
   | R.PAnd [ p1; p2 ] ->
-      Printf.sprintf "(%s and %s)" (_show_precondition p1)
-        (_show_precondition p2)
+      Printf.sprintf "(%s and %s)" (show_precondition p1) (show_precondition p2)
   | R.PAnd _ -> "(and ...)"
   | R.POr _ -> "(or ...)"
 
-let rec _show_source { call_trace; label; precondition } =
+let rec show_source { call_trace; label; precondition } =
   (* We want to show the actual label, not the originating label.
      This may change, for instance, if we have ever propagated this taint to
      a different label.
   *)
-  let rec depth acc = function
-    | PM _ -> acc
-    | Call (_, _, x) -> depth (acc + 1) x
-  in
   let pm, ts = pm_of_trace call_trace in
-  let tok1, tok2 = pm.range_loc in
-  let r = Range.range_of_token_locations tok1 tok2 in
-  let precondition_prefix = _show_taints_with_precondition precondition in
-  let str =
-    let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-    toks |> List_.map Tok.content_of_tok |> String.concat "_"
+  let matched_str =
+    let tok1, tok2 = pm.range_loc in
+    let r = Range.range_of_token_locations tok1 tok2 in
+    Range.content_at_range pm.path.internal_path_to_content r
   in
-  Printf.sprintf "<%s(%d,%d)%s#%s/%s|t:%d>" precondition_prefix r.start r.end_
-    str ts.label label (depth 0 call_trace)
+  let matched_line =
+    let loc1, _ = pm.Pattern_match.range_loc in
+    loc1.Tok.pos.line
+  in
+  let num_calls = length_of_call_trace call_trace in
+  let num_calls_str =
+    if num_calls =|= 0 then "" else Printf.sprintf "%d> " num_calls
+  in
+  let label_str =
+    if label = R.default_source_label then ""
+    else if label = ts.label then Printf.sprintf " :%s" label
+    else Printf.sprintf " :%s->%s" ts.label label
+  in
+  let precondition_str = show_taints_with_precondition precondition in
+  Printf.sprintf "[%s%s @l.%d%s%s]" num_calls_str matched_str matched_line
+    label_str precondition_str
 
-and _show_taints_with_precondition precondition =
+and show_taints_with_precondition precondition =
   match precondition with
   | None -> ""
   | Some (ts, pre) ->
-      Common.spf "PRE|%s|if %s|"
-        (List_.map _show_taint ts |> String.concat " + ")
-        (_show_precondition pre)
+      Common.spf "/PRE|%s|if %s/"
+        (List_.map show_taint ts |> String.concat " + ")
+        (show_precondition pre)
 
-and _show_taint taint =
+and show_taint taint =
   match taint.orig with
-  | Src src -> _show_source src
-  | Arg arg -> _show_arg arg
+  | Src src -> show_source src
+  | Var lval -> show_lval lval
   | Control -> "<control>"
 
-let _show_sink { rule_sink; _ } = rule_sink.R.sink_id
+let show_sink { rule_sink; _ } = rule_sink.R.sink_id
 
 type taint_to_sink_item = { taint : taint; sink_trace : unit call_trace }
 [@@deriving show]
 
-let _show_taint_to_sink_item { taint; sink_trace } =
-  Printf.sprintf "%s@{%s}" (_show_taint taint)
-    (_show_call_trace [%show: unit] sink_trace)
+let show_taint_to_sink_item { taint; sink_trace } =
+  Printf.sprintf "%s@{%s}" (show_taint taint)
+    (show_call_trace [%show: unit] sink_trace)
 
-let _show_taints_and_traces taints =
-  Common2.string_of_list _show_taint_to_sink_item taints
+let show_taints_and_traces taints =
+  Common2.string_of_list show_taint_to_sink_item taints
 
 let compare_taint_to_sink_item { taint = taint1; sink_trace = _ }
     { taint = taint2; sink_trace = _ } =
@@ -330,58 +347,57 @@ let compare_taints_to_sink
       | other -> other)
   | other -> other
 
-type finding =
+type result =
   | ToSink of taints_to_sink
   | ToReturn of taint list * G.tok
-  | ToArg of taint list * arg (* TODO: CleanArg ? *)
-[@@deriving show]
+  | ToLval of taint list * lval (* TODO: CleanArg ? *)
 
-let _show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
-  Common.spf "%s ~~~> %s" (_show_taints_and_traces taints) (_show_sink sink)
+let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
+  Common.spf "%s ~~~> %s" (show_taints_and_traces taints) (show_sink sink)
 
-let _show_finding = function
-  | ToSink x -> _show_taints_to_sink x
+let show_result = function
+  | ToSink x -> show_taints_to_sink x
   | ToReturn (taints, _) ->
-      Printf.sprintf "return (%s)" (Common2.string_of_list _show_taint taints)
-  | ToArg (taints, a2) ->
+      Printf.sprintf "return (%s)" (Common2.string_of_list show_taint taints)
+  | ToLval (taints, lval) ->
       Printf.sprintf "%s ----> %s"
-        (Common2.string_of_list _show_taint taints)
-        (_show_arg a2)
+        (Common2.string_of_list show_taint taints)
+        (show_lval lval)
 
-let compare_finding fi1 fi2 =
-  match (fi1, fi2) with
+let compare_result r1 r2 =
+  match (r1, r2) with
   | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
   | ToReturn (ts1, tok1), ToReturn (ts2, tok2) -> (
       match List.compare compare_taint ts1 ts2 with
       | 0 -> Tok.compare tok1 tok2
       | other -> other)
-  | ToArg (ts1, a1), ToArg (ts2, a2) -> (
+  | ToLval (ts1, lv1), ToLval (ts2, lv2) -> (
       match List.compare compare_taint ts1 ts2 with
-      | 0 -> compare_arg a1 a2
+      | 0 -> compare_lval lv1 lv2
       | other -> other)
-  | ToSink _, (ToReturn _ | ToArg _) -> -1
-  | ToReturn _, ToArg _ -> -1
+  | ToSink _, (ToReturn _ | ToLval _) -> -1
+  | ToReturn _, ToLval _ -> -1
   | ToReturn _, ToSink _ -> 1
-  | ToArg _, (ToSink _ | ToReturn _) -> 1
+  | ToLval _, (ToSink _ | ToReturn _) -> 1
 
-module Findings = Set.Make (struct
-  type t = finding
+module Results = Set.Make (struct
+  type t = result
 
-  let compare = compare_finding
+  let compare = compare_result
 end)
 
-module Findings_tbl = Hashtbl.Make (struct
-  type t = finding
+module Results_tbl = Hashtbl.Make (struct
+  type t = result
 
-  let equal fi1 fi2 = compare_finding fi1 fi2 =|= 0
+  let equal r1 r2 = compare_result r1 r2 =|= 0
   let hash = Hashtbl.hash
 end)
 
-type signature = Findings.t
+type signature = Results.t
 
-let _show_signature s =
-  s |> Findings.to_seq |> List.of_seq |> List_.map _show_finding
-  |> [%show: string list]
+let show_signature s =
+  s |> Results.to_seq |> List.of_seq |> List_.map show_result
+  |> String.concat " + "
 
 (*****************************************************************************)
 (* Taint sets *)
@@ -455,7 +471,7 @@ module Taint_set = struct
     (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
        * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
     match (taint1.orig, taint2.orig) with
-    | Arg _, Arg _
+    | Var _, Var _
     | Control, Control ->
         (* Polymorphic taint should only be intraprocedural so the call-trace is irrelevant. *)
         if List.length taint1.tokens < List.length taint2.tokens then taint1
@@ -507,8 +523,10 @@ module Taint_set = struct
           List.length taint1.tokens < List.length taint2.tokens
         then taint1
         else taint2
-    | (Src _ | Arg _ | Control), (Src _ | Arg _ | Control) ->
-        logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
+    | (Src _ | Var _ | Control), _ ->
+        Logs.debug (fun m ->
+            m ~tags:error
+              "Taint_set.pick_taint: Ooops, the impossible happened!");
         taint2
 
   let diff set1 set2 = Taints.diff set1 set2
@@ -532,7 +550,7 @@ end
 type taints = Taint_set.t
 
 let show_taints taints =
-  taints |> Taint_set.elements |> List_.map _show_taint |> String.concat ", "
+  taints |> Taint_set.elements |> List_.map show_taint |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"
 
 (*****************************************************************************)
@@ -611,7 +629,7 @@ and labels_in_taints taints =
   taints
   |> Taint_set.iter (fun taint ->
          match taint.orig with
-         | Arg _
+         | Var _
          | Control ->
              has_poly_taint := true
          | Src { label; precondition = None; _ } ->
@@ -654,7 +672,8 @@ let taints_satisfy_requires taints pre =
   | None ->
       (* If we set 'ignore_poly_taint' then we expect to be able to solve
        * the precondition! *)
-      logger#error "Could not solve taint label precondition";
+      Logs.debug (fun m ->
+          m ~tags:error "Could not solve taint label precondition");
       false
 
 let filter_relevant_taints requires taints =
@@ -664,14 +683,14 @@ let filter_relevant_taints requires taints =
   |> Taint_set.filter (fun t ->
          match t.orig with
          | Src src -> LabelSet.mem src.label labels
-         | Arg _
+         | Var _
          | Control ->
              true)
 
 (* Just a straightforward bottom-up map on preconditions. *)
 let rec map_preconditions f taint =
   match taint.orig with
-  | Arg _
+  | Var _
   | Control ->
       Some taint
   | Src { precondition = None; _ } -> Some taint

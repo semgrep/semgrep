@@ -98,8 +98,6 @@ a few other projects developed at r2c.
     (alcotest (>= "1.5.0"))
     (cmdliner (>= "1.1.1" ))
     (logs (>= "0.7.0" ))
-    (easy_logging (>= "0.8.1" ))
-    (easy_logging_yojson (>= "0.8.1" ))
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
     (pcre (>= "7.5.0" ))
@@ -439,6 +437,7 @@ For more information see https://semgrep.dev
     alcotest
     alcotest-js
     alcotest-lwt
+    calendar
     ; text and terminal formating
     fmt
     ocolor
@@ -448,19 +447,19 @@ For more information see https://semgrep.dev
     uucp
     uutf
     ; logging
-    (easy_logging ( = 0.8.1 ))
-    (easy_logging_yojson ( = 0.8.1 ))
     logs
     ; JSON/YAML/XML
     atdgen
     (yojson ( >= 2.0.0 ))
     yaml
     xmlm
+    (sarif ( >= 0.3.0 ))
     ; CLI
     cmdliner
     ; PPX
     ppxlib
     ppx_deriving
+    ppx_deriving_yojson
     ppx_hash
     ppx_inline_test
     (ppx_sexp_conv ( = v0.16.0))
@@ -475,10 +474,17 @@ For more information see https://semgrep.dev
     semver
     uri
     uuidm
-    trace
-    trace-tef ; will probably switch this out for a different backend
     (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
+    git
+    git-unix
+    ; tracing
+    trace
+    ppx_trace
+    (opentelemetry (>= 0.9))
+    opentelemetry-client-ocurl
+    ambient-context-lwt
+    (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
     ; web stuff
     uri
     cohttp-lwt-unix
@@ -491,10 +497,10 @@ For more information see https://semgrep.dev
     lwt_ppx
     (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
     ; jsoo
-    (js_of_ocaml (= 5.4.0))
-    (js_of_ocaml-compiler (= 5.4.0))
-    (js_of_ocaml-ppx (= 5.4.0))
-    (js_of_ocaml-lwt (= 5.4.0))
+    (js_of_ocaml (= 5.5.2))
+    (js_of_ocaml-compiler (= 5.5.2))
+    (js_of_ocaml-ppx (= 5.5.2))
+    (js_of_ocaml-lwt (= 5.5.2))
     ctypes_stubs_js
     integers_stubs_js
   )

@@ -29,7 +29,7 @@ let tests parse_program =
                  try
                    (* at least we can assert we don't thrown an exn or go
                       into infinite loops *)
-                   let ast = parse_program !!file in
+                   let ast = parse_program file in
                    let lang = Lang.lang_of_filename_exn file in
                    Naming_AST.resolve lang ast;
                    (* this used to loop forever if you were not handling correctly

@@ -50,16 +50,17 @@ let metachecker_checks_tests () =
                 E.compare_actual_to_expected_for_alcotest actual expected)))
 
 (* Test the entire `-test_check` path *)
-let metachecker_regression_tests () =
+let metachecker_regression_tests caps =
   [
     t "metachecker regression testing" (fun () ->
         let path = tests_path / "metachecks" in
-        Test_metachecking.test_rules ~unit_testing:true [ path ]);
+        Test_metachecking.test_rules ~unit_testing:true caps [ path ]);
   ]
 
 (*****************************************************************************)
 (* All tests *)
 (*****************************************************************************)
 
-let tests () =
-  List.flatten [ metachecker_checks_tests (); metachecker_regression_tests () ]
+let tests caps =
+  List.flatten
+    [ metachecker_checks_tests (); metachecker_regression_tests caps ]

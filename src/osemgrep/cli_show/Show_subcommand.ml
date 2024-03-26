@@ -20,7 +20,7 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -67,13 +67,15 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   | Version ->
       CapConsole.out stdout Version.version;
       (* TODO? opportunity to perform version-check? *)
-      Exit_code.ok
-  | Identity -> Whoami.print caps Whoami.Identity
-  | Deployment -> Whoami.print caps Whoami.Deployment
+      Exit_code.ok ~__LOC__
+  | Identity ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Identity
+  | Deployment ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
   | SupportedLanguages ->
       CapConsole.out stdout
         (spf "supported languages are: %s" Xlang.supported_xlangs);
-      Exit_code.ok (* dumpers *)
+      Exit_code.ok ~__LOC__ (* dumpers *)
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
@@ -83,18 +85,18 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
       CapConsole.out stdout s;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parsing_result2.ast; skipped_tokens = _; _ } =
-        Parse_target.just_parse_with_lang lang (Fpath.to_string file)
+        Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)
       UFormat.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
       CapConsole.out stdout s;
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
       let token_opt = settings.api_token in
@@ -103,8 +105,8 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       let rules_and_errors, errors =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
-          ~token_opt ~registry_caching:false
-          (caps :> < Cap.network >)
+          ~token_opt
+          (caps :> < Cap.network ; Cap.tmp >)
           config
       in
 
@@ -112,12 +114,12 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
         raise
           (Error.Semgrep_error
              ( Common.spf "invalid configuration string found: %s" config_str,
-               Some Exit_code.missing_config ));
+               Some (Exit_code.missing_config ~__LOC__) ));
 
       rules_and_errors
       |> List.iter (fun x ->
              CapConsole.out stdout (Rule_fetching.show_rules_and_origin x));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpRuleV2 file ->
       (* TODO: use validation ocaml code to enforce the
        * CHECK: in rule_schema_v2.atd.
@@ -127,7 +129,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
        *)
       let rules = Parse_rules_with_atd.parse_rules_v2 file in
       CapConsole.out stdout (Rule_schema_v2_t.show_rules rules);
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"

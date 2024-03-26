@@ -2,9 +2,9 @@
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id;
-  engine_kind : Engine_kind.t;
+  engine_of_match : Engine_kind.engine_of_finding;
   (* location info *)
-  file : Fpath.t;
+  path : Target.path;
   range_loc : Tok.location * Tok.location;
   tokens : Tok.t list Lazy.t;
   env : Metavariable.bindings;
@@ -37,6 +37,7 @@ and rule_id = {
   id : Rule_ID.t;
   (* extra info useful for Core_json_output *)
   message : string;
+  metadata : JSON.t option;
   fix : string option;
   fix_regexp : Rule.fix_regexp option;
   langs : Lang.t list;

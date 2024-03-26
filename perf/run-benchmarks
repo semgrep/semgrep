@@ -223,6 +223,7 @@ def run_semgrep(
     variant: SemgrepVariant,
     include_time: bool,
     hard_timeout: int = 0,
+    trace: bool = False,
 ) -> Tuple[float, dict]:
     args = []
     common_args = [
@@ -268,6 +269,8 @@ def run_semgrep(
         args.extend([variant.semgrep_extra])
     if include_time:
         args.extend(["--time"])
+    if trace:
+        args.extend(["--trace"])
 
     # Finally, add target
     if not docker:
@@ -421,6 +424,7 @@ def run_benchmarks(
     upload: bool,
     include_time: bool,
     clean: bool,
+    trace: bool,
     summary_file_path: str,
     findings_file_path: str,
     called_dir: str,
@@ -497,6 +501,7 @@ def run_benchmarks(
                         variant,
                         include_time,
                         hard_timeout,
+                        trace,
                     )
                 except subprocess.TimeoutExpired:
                     logger.warning(
@@ -661,6 +666,11 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--trace",
+        help="Run tracing on the benchmarks",
+        action="store_true",
+    )
+    parser.add_argument(
         "--output-time-per-rule-json",
         nargs="?",
         default=None,
@@ -691,6 +701,7 @@ def main() -> None:
             upload=args.upload,
             include_time=not args.no_time,
             clean=args.clean,
+            trace=args.trace,
             summary_file_path=args.save_to,
             findings_file_path=args.save_findings_to,
             called_dir=called_dir,

@@ -19,10 +19,6 @@ open IL
 (* Prelude *)
 (*****************************************************************************)
 
-let compare_name x y =
-  let ident_cmp = String.compare (fst x.ident) (fst y.ident) in
-  if ident_cmp <> 0 then ident_cmp else AST_generic.SId.compare x.sid y.sid
-
 let exp_of_arg arg =
   match arg with
   | Unnamed exp -> exp
@@ -140,29 +136,6 @@ let rlvals_of_node = function
   | NTodo _ ->
       []
 
-module LvalOrdered = struct
-  type t = lval
-
-  let compare lval1 lval2 =
-    (* Right now we only care about comparing lvals of the form `x.a_1. ... . a_n,
-       so it's OK if `Stdlib.compare` may not be the ideal comparison function for
-       the remaining cases. *)
-    match (lval1, lval2) with
-    | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
-        let name_cmp = compare_name x y in
-        if name_cmp <> 0 then name_cmp
-        else
-          List.compare
-            (fun offset1 offset2 ->
-              match (offset1.o, offset2.o) with
-              | Dot a, Dot b -> compare_name a b
-              | Index _, _
-              | _, Index _ ->
-                  Stdlib.compare offset1 offset2)
-            ro1 ro2
-    | _, _ -> Stdlib.compare lval1 lval2
-end
-
 let orig_of_node = function
   | Enter
   | Exit ->
@@ -180,3 +153,47 @@ let orig_of_node = function
   | NOther _
   | NTodo _ ->
       None
+
+module NameOrdered = struct
+  type t = name
+
+  let compare = IL.compare_name
+end
+
+module LvalOrdered = struct
+  type t = lval
+
+  let compare lval1 lval2 =
+    (* Right now we only care about comparing lvals of the form `x.a_1. ... . a_n,
+       so it's OK if `Stdlib.compare` may not be the ideal comparison function for
+       the remaining cases. *)
+    match (lval1, lval2) with
+    | { base = Var x; rev_offset = ro1 }, { base = Var y; rev_offset = ro2 } ->
+        let name_cmp = compare_name x y in
+        if name_cmp <> 0 then name_cmp
+        else
+          List.compare
+            (fun offset1 offset2 ->
+              match (offset1.o, offset2.o) with
+              | Dot a, Dot b -> compare_name a b
+              | Index { e = Operator ((G.Mult, _), []); _ }, Index _
+              | Index _, Index { e = Operator ((G.Mult, _), []); _ } ->
+                  (* This stands for an arbitrary index, like '[*]',
+                   * see 'Pro_taint_lval_env.lval_index_any' and
+                   * 'Pro_taint_lval_lva.normalize_rev_offset'.
+                   * Any index will be considered equals to '[*]'. *)
+                  0
+              | ( Index { e = Literal (Int (Some i1, _)); _ },
+                  Index { e = Literal (Int (Some i2, _)); _ } ) ->
+                  (* [n] *)
+                  Int64.compare i1 i2
+              | ( Index { e = Literal (String (_, (s1, _), _)); _ },
+                  Index { e = Literal (String (_, (s2, _), _)); _ } ) ->
+                  (* ["..."] *)
+                  String.compare s1 s2
+              | Index _, _
+              | _, Index _ ->
+                  Stdlib.compare offset1 offset2)
+            ro1 ro2
+    | _, _ -> Stdlib.compare lval1 lval2
+end

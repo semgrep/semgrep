@@ -374,7 +374,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         dataflow_trace=cli_match_extra.dataflow_trace,
         engine_kind=cli_match_extra.engine_kind
         if cli_match_extra.engine_kind
-        else out.EngineKind(out.OSS()),
+        else out.EngineOfFinding(out.OSS()),
         is_ignored=False,
     )
     return RuleMatch(
@@ -429,7 +429,7 @@ def run_join_rule(
     These are the conditions which must be satisfied for this rule to report results.
     All conditions must be satisfied.
 
-    See cli/tests/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml
+    See cli/tests/default/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml
     for an example.
     """
     join_contents = join_rule.get("join", {})

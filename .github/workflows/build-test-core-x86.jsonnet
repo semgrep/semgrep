@@ -1,6 +1,5 @@
-// This workflow builds and test semgrep-core. It also generates an
-// ocaml-build-artifacts.tgz file which is used in many other jobs
-// such as test-cli in tests.jsonnet or build-wheels-manylinux in
+// This workflow builds and test semgrep-core. It also generates an artifact
+// which is used in many other workflows such as tests.jsonnet or
 // build-test-manylinux-x86.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
@@ -8,27 +7,19 @@ local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // exported for other workflows
-local artifact_name = 'ocaml-build-artifacts-release';
+local artifact_name = 'semgrep-core-x86-artifact';
+
+// This container has opam already installed, as well as an opam switch
+// already created, and a big set of packages already installed. Thus,
+// the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
+// almost a noop.
+// TODO: switch to setup-ocaml@v2 + GHA cache
+local container = semgrep.containers.ocaml_alpine;
 
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run_test=true) =
-
-  local test_steps =
-    if run_test
-    then [{
-      name: 'Test semgrep-core',
-      run: 'opam exec -- make core-test',
-    }]
-    else [];
-
-  // This container has opam already installed, as well as an opam switch
-  // already created, and a big set of packages already installed. Thus,
-  // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
-  // almost a noop.
-  // TODO? now that we use cache_opam, maybe we need less those containers
-  // and could use a more regular opam container (or setup-ocaml@v2)
+local job =
   container.job
   {
     steps: [
@@ -49,22 +40,13 @@ local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run
         name: 'Build semgrep-core',
         run: 'opam exec -- make core',
       },
+      actions.make_artifact_step("bin/semgrep-core"),
+      actions.upload_artifact_step(artifact_name),
       {
-        name: 'Make artifact',
-        run: |||
-          mkdir -p ocaml-build-artifacts/bin
-          cp bin/semgrep-core ocaml-build-artifacts/bin/
-          tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
-        |||,
-      },
-      {
-        uses: 'actions/upload-artifact@v3',
-        with: {
-          path: 'ocaml-build-artifacts.tgz',
-          name: artifact,
-        },
-      },
-    ] + test_steps,
+        name: 'Test semgrep-core',
+        run: 'opam exec -- make core-test',
+      }
+    ]
   };
 
 // ----------------------------------------------------------------------------
@@ -76,12 +58,10 @@ local job(container=semgrep.containers.ocaml_alpine, artifact=artifact_name, run
   // TODO: just make this job a func so no need to use GHA inherit/call
   on: gha.on_dispatch_or_call,
   jobs: {
-    job: job(),
+    job: job,
   },
   // to be reused by other workflows
   export:: {
     artifact_name: artifact_name,
-    // used by build-test-core-x86-ocaml5.jsonnet
-    job: job,
   },
 }

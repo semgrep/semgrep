@@ -8,4 +8,6 @@ let tests =
       Unit_immutable_buffer.tests;
       Unit_Pcre_.tests;
       Unit_regexp_engine.tests;
+      Unit_String_.tests;
+      Unit_List_.tests;
     ]

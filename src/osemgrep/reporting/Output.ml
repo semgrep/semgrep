@@ -133,12 +133,12 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         ~max_lines_per_finding:conf.max_lines_per_finding
         ~color_output:conf.force_color Format.std_formatter cli_output
   (* matches have already been displayed in a file_match_results_hook *)
-  | TextIncremental -> ()
+  | Incremental -> ()
   | Sarif ->
       let sarif_json =
         Sarif_output.sarif_output is_logged_in hrules cli_output
       in
-      Out.put (Yojson.Basic.to_string sarif_json)
+      Out.put (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->
       let junit_xml = Junit_xml_output.junit_xml_output cli_output in
       Out.put junit_xml

@@ -6,7 +6,7 @@ dir/a
 Selection events for path .gitignore:
 SEL .gitignore
 Selection events for path a/b:
-ignored at <TEMPORARY FILE PATH>, line 1: a/
+ignored at <TMP>/<MASKED>/.gitignore, line 1: a/
 IGN a/b
 Selection events for path dir/a:
 SEL dir/a

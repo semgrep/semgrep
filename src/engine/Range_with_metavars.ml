@@ -34,19 +34,19 @@ let (match_result_to_range : Pattern_match.t -> t) =
   { r; mvars; origin = m; kind = Plain }
 
 let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
- fun r range ->
+ fun (r : Rule.t) range ->
   let m = range.origin in
   let rule_id = m.rule_id in
-  let langs = Xlang.to_langs r.Rule.target_analyzer in
+  let langs = Xlang.to_langs r.target_analyzer in
   (* adjust the rule id *)
   let rule_id : Pattern_match.rule_id =
     {
       rule_id with
-      id = fst r.Rule.id;
-      fix = r.Rule.fix;
+      id = fst r.id;
+      fix = r.fix;
       langs;
-      message =
-        r.Rule.message (* keep pattern_str which can be useful to debug *);
+      message = r.message (* keep pattern_str which can be useful to debug *);
+      metadata = r.metadata;
     }
   in
   (* Need env to be the result of evaluate_formula, which propagates metavariables *)
@@ -57,7 +57,7 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
 (* Set operations *)
 (*****************************************************************************)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 let included_in config rv1 rv2 =
   (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
@@ -121,8 +121,9 @@ let intersect_ranges config ~debug_matches xs ys =
     us |> Common2.map_flatten (fun u -> vs |> List_.map_filter (fun v -> p u v))
   in
   if debug_matches then
-    logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
-      (show_ranges ys);
+    Logs.debug (fun m ->
+        m ~tags "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
+          (show_ranges ys));
   merge left_merge xs ys
   (* TODO: just call merge once? *)
   @ merge (Fun.flip left_merge) xs ys

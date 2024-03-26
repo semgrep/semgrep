@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,8 +12,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
+open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -26,8 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 type 'a env = {
-  (* TODO: use Fpath.t *)
-  file : string; (* filename *)
+  file : Fpath.t;
   (* get the charpos (offset) in file given a line x col *)
   conv : int * int -> int;
   extra : 'a;
@@ -39,9 +40,9 @@ type 'a env = {
 
 (* mostly a copy-paste of Pos.full_charpos_to_pos_large *)
 let line_col_to_pos file =
-  let size = UFile.filesize (Fpath.v file) + 2 in
+  let size = UFile.filesize file + 2 in
   let h = Hashtbl.create size in
-  UCommon.with_open_infile file (fun chan ->
+  UFile.with_open_in file (fun chan ->
       let charpos = ref 0 in
       let line = ref 0 in
 
@@ -82,11 +83,10 @@ let token env (tok : Tree_sitter_run.Token.t) =
     | Not_found ->
         raise
           (Tok.NoTokenLocation
-             (Printf.sprintf
-                "Could not convert from location %d:%d in %s to a position" line
-                column file))
+             (spf "Could not convert from location %d:%d in %s to a position"
+                line column !!file))
   in
-  let pos = Pos.make ~line ~column ~file bytepos in
+  let pos = Pos.make ~line ~column ~file:!!file bytepos in
   let tok_loc = { Tok.str; pos } in
   Tok.tok_of_loc tok_loc
 
@@ -120,8 +120,9 @@ let wrap_parser tree_sitter_parser ast_mapper =
                res.errors
            in
            let error_str = String.concat "\n" error_strs in
-           logger#error "Partial errors returned by Tree-sitter parser\n%s"
-             error_str);
+           Logs.err (fun m ->
+               m ~tags "Partial errors returned by Tree-sitter parser\n%s"
+                 error_str));
         Some (ast_mapper cst)
     | None -> None
   in

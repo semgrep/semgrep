@@ -80,39 +80,6 @@ let name (c : OutT.cli_match) =
 (* Entry points *)
 (*****************************************************************************)
 
-let cli_unique_key (c : OutT.cli_match) =
-  (* type-wise this is a tuple of string * string * int * int * string * string option *)
-  (* # TODO: Once the fixed status work is stable, all findings should
-     # fetch the check ID from metadata. This fallback prevents breaking
-     # current scan results if an issue arises.
-     #
-     # TODO: Bring this back.
-     # This is necessary so we don't deduplicate taint findings which
-     # have different sources.
-     #
-     # self.match.extra.dataflow_trace.to_json_string
-     # if self.match.extra.dataflow_trace
-     # else None,
-     None,
-     # NOTE: previously, we considered self.match.extra.validation_state
-     # here, but since in some cases (e.g., with `anywhere`) we generate
-     # many matches in certain cases, we want to consider secrets
-     # matches unique under the above set of things, but with a priority
-     # associated with the validation state; i.e., a match with a
-     # confirmed valid state should replace all matches equal under the
-     # above key. We can't do that just by not considering validation
-     # state since we would pick one arbitrarily, and if we added it
-     # below then we would report _both_ valid and invalid (but we only
-     # want to report valid, if a valid one is present and unique per
-     # above fields). See also `should_report_instead`.
-  *)
-  ( name c,
-    Fpath.to_string c.path,
-    c.start.offset,
-    c.end_.offset,
-    c.extra.message,
-    None )
-
 let ci_unique_key ?(index = 0) (c : OutT.cli_match) =
   (* TODO the third element should be "syntactic_context", as defined in rule_match.py:
         # The code that matched, with whitespace and nosem comments removed.
@@ -193,14 +160,15 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let formulae = Rule.formula_of_mode mode in
   (* We need to do this as flattening and sorting does not always produce the
    * same result: [[a c] b] become "a c b" while [a c b] becomes "a b c". *)
-  let rec go = function
+  let rec go formula =
+    match formula.Rule.f with
     | Rule.P p -> fst p.pstr
     | Rule.Anywhere (_, formula)
     | Rule.Inside (_, formula)
     | Rule.Not (_, formula) ->
         go formula
     | Rule.Or (_, formulae)
-    | Rule.And (_, { Rule.conjuncts = formulae; _ }) ->
+    | Rule.And (_, formulae) ->
         let xs = List_.map go formulae in
         String.concat " " (List.sort String.compare xs)
   in

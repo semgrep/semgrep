@@ -5,7 +5,7 @@
 # - dogfood Semgrep by running it on each semgrep PRs.
 # - check that Semgrep can run in an alternate CI platform like Circle CI
 #   (and not just in Github Actions).
-# - have crons that update our parsing statistics as well as some benchmarks,
+# - have crons that update our benchmarks,
 #   which are then accessible at https://dashboard.semgrep.dev/metrics
 #   and also at https://metabase.corp.r2c.dev/collection/59-semgrep
 
@@ -45,7 +45,7 @@ jobs:
       - checkout
       # Dogfooding on the bleeding edge by using jsonnet, the new syntax, osemgrep!
       # coupling: see also 'make check'
-      - run: semgrep --experimental --config semgrep.jsonnet --error --verbose --exclude tests
+      - run: semgrep --experimental --config semgrep.jsonnet --error --strict --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
@@ -67,23 +67,6 @@ jobs:
           command: |
             cd perf
             ./run-benchmarks --upload || true
-
-  # Run parsing stats and publish them to the semgrep dashboard.
-  parsing-stats:
-    docker:
-      - image: returntocorp/semgrep:develop
-    steps:
-      - checkout
-      - run:
-          name: parsing stats
-          no_output_timeout: 60m
-          command: |
-            cd stats/parsing-stats
-            ./run-all --upload
-      - store_artifacts:
-          path: stats/parsing-stats/logs
-      - store_artifacts:
-          path: stats/parsing-stats/results.txt
 
   # Run autofix parsing stats and publish them to the semgrep dashboard.
   autofix-printing-stats:
@@ -161,17 +144,6 @@ workflows:
   #----------------------------------------
   # Crons
   #----------------------------------------
-  # cron table memento below
-  # (src: https://dev.to/anshuman_bhardwaj/free-cron-jobs-with-github-actions-31d6)
-  # ┌────────── minute (0 - 59)
-  # │ ┌────────── hour (0 - 23)
-  # │ │ ┌────────── day of the month (1 - 31)
-  # │ │ │ ┌────────── month (1 - 12)
-  # │ │ │ │ ┌────────── day of the week (0 - 6)
-  # │ │ │ │ │
-  # │ │ │ │ │
-  # │ │ │ │ │
-  # * * * * *
 
   # Daily semgrep benchmarks
   benchmarks:
@@ -185,21 +157,6 @@ workflows:
     triggers:
       - schedule:
           # Run at 00:00 every day, UTC.
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - develop
-
-  scheduled-parsing-stats:
-    jobs:
-      - parsing-stats:
-          filters:
-            branches:
-              only:
-                - develop
-    triggers:
-      - schedule:
           cron: "0 0 * * *"
           filters:
             branches:
@@ -235,32 +192,3 @@ workflows:
             branches:
               only:
                 - develop
-
-  #----------------------------------------
-  # Debugging workflows
-  #----------------------------------------
-  # This is for testing or for forcing a stats job. Requires pushing
-  # to a branch named 'parsing-stats'.
-  parsing-stats-on-commit:
-    jobs:
-      - parsing-stats:
-          filters:
-            branches:
-              only:
-                - parsing-stats
-
-  autofix-printing-stats-on-commit:
-    jobs:
-      - autofix-printing-stats:
-          filters:
-            branches:
-              only:
-                - autofix-printing-stats
-
-  pysemgrep-loc-stats-on-commit:
-    jobs:
-      - pysemgrep-loc-stats:
-          filters:
-            branches:
-              only:
-                - pysemgrep-loc-stats

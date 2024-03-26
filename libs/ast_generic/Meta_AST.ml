@@ -1095,7 +1095,9 @@ and vof_definition (v1, v2) =
 
 and vof_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let bnds = [] in
-  let arg = OCaml.vof_list vof_type_parameter v_tparams in
+  let arg =
+    OCaml.vof_option (vof_bracket (OCaml.vof_list vof_type_parameter)) v_tparams
+  in
   let bnd = ("tparams", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_list vof_attribute v_attrs in
@@ -1142,7 +1144,7 @@ and vof_definition_kind = function
       let v1 = vof_macro_definition v1 in
       OCaml.VSum ("MacroDef", [ v1 ])
   | Signature v1 ->
-      let v1 = vof_type_ v1 in
+      let v1 = vof_signature_definition v1 in
       OCaml.VSum ("Signature", [ v1 ])
   | UseOuterDecl v1 ->
       let v1 = vof_tok v1 in
@@ -1179,6 +1181,16 @@ and vof_macro_definition
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_list vof_ident v_macroparams in
   let bnd = ("macroparams", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
+and vof_signature_definition { sig_tok; sig_type } =
+  let bnds = [] in
+  let arg = vof_type_ sig_type in
+  let bnd = ("sig_type", arg) in
+  let bnds = bnd :: bnds in
+  let arg = vof_tok sig_tok in
+  let bnd = ("sig_tok", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
@@ -1312,8 +1324,11 @@ and vof_function_body = function
       OCaml.VSum ("FBDecl", [ v1 ])
   | FBNothing -> OCaml.VSum ("FBNothing", [])
 
-and vof_variable_definition { vinit = v_vinit; vtype = v_vtype } =
+and vof_variable_definition { vinit = v_vinit; vtype = v_vtype; vtok } =
   let bnds = [] in
+  let arg = OCaml.vof_option vof_tok vtok in
+  let bnd = ("vtok", arg) in
+  let bnds = bnd :: bnds in
   let arg = OCaml.vof_option vof_type_ v_vtype in
   let bnd = ("vtype", arg) in
   let bnds = bnd :: bnds in

@@ -18,3 +18,8 @@ type cap_token = < token : token >
 
 val cap_token_and_network :
   token -> < Cap.network ; .. > -> < cap_token ; Cap.network >
+
+val cap_token_and_network_and_tmp :
+  token ->
+  < Cap.network ; Cap.tmp ; .. > ->
+  < cap_token ; Cap.network ; Cap.tmp >

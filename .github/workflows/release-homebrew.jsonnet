@@ -1,12 +1,12 @@
-// Workflow to test/release Semgrep on Homebrew (https://brew.sh/).
+// Workflow to check whether Semgrep can still be built for Homebrew
+// (https://brew.sh/).
 //
 // Note that the Semgrep Homebrew "formula" is not stored in this repo but at
 // https://github.com/Homebrew/homebrew-core/blob/master/Formula/s/semgrep.rb
-// The main goal of this workflow is to modify semgrep.rb after a new release
-// and to open a PR to the homebrew-core repo with the modified semgrep.rb
-// (e.g., https://github.com/Homebrew/homebrew-core/pull/157891 for 1.54.1)
+// The main goal of this workflow is to just check whether the current
+// semgrep.rb is compatible with the current version of Semgrep.
 //
-// The jobs in this file are used from release.jsonnet and nightly.jsonnet,
+// The jobs in this file are used from nightly.jsonnet,
 // but it's also useful to have a separate workflow (this file) to trigger the
 // Homebrew release manually as we often get issues with Homebrew.
 //
@@ -51,11 +51,13 @@ local unless_dry_run = {
 };
 
 // ----------------------------------------------------------------------------
-// The release job
+// The (deprecated) release job
 // ----------------------------------------------------------------------------
 
-// This is also called from release.jsonnet.
-// Note that this job needs to run after Semgrep has been released on Pypi so
+// Note that this is *not* called anymore from release.jsonnet.
+// Updating semgrep.rb is now handled by Homebrew's folk directly using an
+// autobump mechanism. If you still want to run this job, note
+// that this job needs to run after Semgrep has been released on Pypi so
 // brew bump-formula-pr below can update Pypi dependency hashes in semgrep.rb
 // This job assumes the presence of a workflow with a 'inputs.dry-mode'
 local homebrew_core_pr_job(version) = {
@@ -82,7 +84,7 @@ local homebrew_core_pr_job(version) = {
         HOMEBREW_GITHUB_API_TOKEN: '${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}',
       },
       // this is run only in dry-mode
-      if: "${{ inputs.dry-run }}",
+      'if': "${{ inputs.dry-run }}",
       run: |||
         brew bump-formula-pr --force --no-audit --no-browse --write-only \
           --message="semgrep 99.99.99" \
@@ -118,7 +120,7 @@ local homebrew_core_pr_job(version) = {
         cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
         git status
         git diff
-	%s
+        %s
         gh auth setup-git
         git remote add r2c https://github.com/semgrep-release/homebrew-core.git
         git checkout -b bump-semgrep-%s

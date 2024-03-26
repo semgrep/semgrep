@@ -133,7 +133,9 @@ let get_expected_and_reported_lines result test_files =
   let ruleid_lines, ok_lines, todo_ok_lines, todo_ruleid_lines =
     List.fold_left
       (fun (ruleid_lines, ok_lines, todo_ok_lines, todo_ruleid_lines) test_file ->
-        let test_file_resolved = Rpath.of_fpath test_file |> Rpath.to_string in
+        let test_file_resolved =
+          Rpath.of_fpath_exn test_file |> Rpath.to_string
+        in
         let all_lines = UFile.cat test_file in
         snd
         @@ List.fold_left
@@ -202,7 +204,7 @@ let get_expected_and_reported_lines result test_files =
     result.Core_result.processed_matches
     |> List.fold_left
          (fun reported_lines { Core_result.pm = result; _ } ->
-           let path = Unix.realpath !!(result.Pattern_match.file)
+           let path = Unix.realpath !!(result.path.internal_path_to_content)
            and check_id = Rule_ID.to_string result.rule_id.id
            and start_line = (fst result.range_loc).pos.line in
            let path_map =
@@ -561,7 +563,8 @@ let _run_conf_TODO (conf : Test_CLI.conf) : Exit_code.t =
        for fixtest_file_results in fixtest_results_output.values()
      ) *)
   let exit_code =
-    if strict_error && any_failures then Exit_code.fatal else Exit_code.ok
+    if strict_error && any_failures then Exit_code.fatal ~__LOC__
+    else Exit_code.ok ~__LOC__
   in
 
   (* int(strict_error or any_failures or any_fixtest_failures) *)

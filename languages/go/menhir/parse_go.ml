@@ -13,6 +13,7 @@
  * license.txt for more details.
  *
  *)
+open Fpath_.Operators
 module Flag = Flag_parsing
 module TH = Token_helpers_go
 module Lexer = Lexer_go
@@ -47,7 +48,7 @@ let tokens input_source =
 (*****************************************************************************)
 let parse filename =
   (* this can throw Parse_info.Lexical_error *)
-  let toks_orig = tokens (Parsing_helpers.file filename) in
+  let toks_orig = tokens (Parsing_helpers.file !!filename) in
   let toks = List_.exclude TH.is_comment_or_space toks_orig in
   (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
   let toks = Parsing_hacks_go.fix_tokens toks in
@@ -66,7 +67,7 @@ let parse filename =
     {
       Parsing_result.ast = xs;
       tokens = toks_orig;
-      stat = Parsing_stat.correct_stat filename;
+      stat = Parsing_stat.correct_stat !!filename;
     }
   with
   | Parsing.Parse_error ->
@@ -76,14 +77,14 @@ let parse filename =
 
       if !Flag.show_parsing_error then (
         UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
-        let filelines = UFile.cat_array (Fpath.v filename) in
-        let checkpoint2 = UCommon.cat filename |> List.length in
+        let filelines = UFile.cat_array filename in
+        let checkpoint2 = UFile.cat filename |> List.length in
         let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       {
         Parsing_result.ast = [];
         tokens = toks_orig;
-        stat = Parsing_stat.bad_stat filename;
+        stat = Parsing_stat.bad_stat !!filename;
       }
 [@@profiling]
 
@@ -95,9 +96,8 @@ let parse_program file =
 (* Sub parsers *)
 (*****************************************************************************)
 
-let (program_of_string : string -> Ast_go.program) =
- fun s ->
-  Common2.with_tmp_file ~str:s ~ext:"go" (fun file -> parse_program file)
+let program_of_string (caps : < Cap.tmp >) (s : string) : Ast_go.program =
+  CapTmp.with_tmp_file caps#tmp ~str:s ~ext:"go" parse_program
 
 (* for sgrep/spatch *)
 let any_of_string s =

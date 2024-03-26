@@ -607,33 +607,33 @@ let top_func () =
         let ent =
           G.basic_entity v1 ~attrs:[ G.attr G.Const (fake (snd v1) "const") ]
         in
-        G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2 }) |> G.s
+        G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2; vtok = G.no_sc })
+        |> G.s
     | DVar (v1, v2, v3) ->
         let v1 = ident v1 and v2 = option type_ v2 and v3 = option expr v3 in
         let ent =
           G.basic_entity v1 ~attrs:[ G.attr G.Var (fake (snd v1) "var") ]
         in
-        G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2 }) |> G.s
+        G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2; vtok = G.no_sc })
+        |> G.s
     | DTypeAlias (v1, v2, v3) ->
         let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in
         let ent = G.basic_entity v1 in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
     | DTypeDef (v1, v2, v3) ->
         let id = ident v1 in
-        let tparams = option type_parameters v2 |> List_.optlist_to_list in
+        let tparams = option type_parameters v2 in
         let ty = type_ v3 in
         let ent = G.basic_entity id ~tparams in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
-  and type_parameters v : G.type_parameters =
-    let _, xs, _ = bracket (list type_parameter) v in
-    xs
+  and type_parameters v : G.type_parameters = bracket (list type_parameter) v
   and type_parameter v : G.type_parameter =
     let p = parameter_binding v in
     G.OtherTypeParam (("Param", G.fake ""), [ G.Pa p ])
   and top_decl = function
     | DFunc (v1, v2, (v3, v4)) ->
         let v1 = ident v1 in
-        let tparams = option type_parameters v2 |> List_.optlist_to_list in
+        let tparams = option type_parameters v2 in
         let ftok, params, ret = func_type v3 in
         let body = stmt v4 in
         let ent = G.basic_entity v1 ~tparams in

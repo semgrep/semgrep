@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021-2022 R2C
+ * Copyright (c) 2021-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,6 +14,7 @@
  *)
 open Common
 open Either_
+open Fpath_.Operators
 module CST = Tree_sitter_solidity.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
@@ -865,7 +866,7 @@ let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
         | None -> None
       in
       let ent = G.basic_entity id in
-      let vdef = { vinit = eopt; vtype = None } in
+      let vdef = { vinit = eopt; vtype = None; vtok = None } in
       (ent, VarDef vdef)
   | `Let_choice_yul_id_rep_COMMA_yul_id_opt_COMMA_opt_COLONEQ_yul_func_call
       (v1, v2, v3) ->
@@ -903,8 +904,8 @@ let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
           (lp, ids |> List_.map (fun id -> PatId (id, G.empty_id_info ())), rp)
         |> G.p
       in
-      let ent = { name = EPattern pat; attrs = []; tparams = [] } in
-      let def = { vinit = eopt; vtype = None } in
+      let ent = { name = EPattern pat; attrs = []; tparams = None } in
+      let def = { vinit = eopt; vtype = None; vtok = G.no_sc } in
       (ent, VarDef def)
 
 let map_yul_assignment_operator (env : env) (x : CST.yul_assignment_operator) =
@@ -1712,9 +1713,9 @@ let map_state_variable_declaration (env : env)
         Some v2
     | None -> None
   in
-  let _sc = (* ";" *) token env v5 in
+  let sc = (* ";" *) token env v5 in
   let ent = G.basic_entity ~attrs id in
-  let def = { vinit; vtype = Some ty } in
+  let def = { vinit; vtype = Some ty; vtok = Some sc } in
   (ent, VarDef def)
 
 let map_modifier_invocation (env : env) ((v1, v2) : CST.modifier_invocation) :
@@ -1963,14 +1964,14 @@ let map_variable_declaration_statement (env : env)
           | None -> None
         in
         let ent = G.basic_entity id ~attrs in
-        let vdef = { vinit; vtype = Some ty } in
+        let vdef = { vinit; vtype = Some ty; vtok = G.no_sc } in
         (ent, vdef)
     | `Var_decl_tuple_EQ_exp (v1, v2, v3) ->
         let pat = map_variable_declaration_tuple env v1 in
         let _teq = (* "=" *) token env v2 in
         let e = map_expression env v3 in
-        let ent = { name = EPattern pat; attrs = []; tparams = [] } in
-        let vdef = { vinit = Some e; vtype = None } in
+        let ent = { name = EPattern pat; attrs = []; tparams = None } in
+        let vdef = { vinit = Some e; vtype = None; vtok = G.no_sc } in
         (ent, vdef)
   in
   let _sc = (* ";" *) token env v2 in
@@ -2451,10 +2452,10 @@ let map_declaration (env : env) (x : CST.declaration) : definition =
       let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 in
       let _teq = (* "=" *) token env v4 in
       let e = map_expression env v5 in
-      let _sc = (* ";" *) token env v6 in
+      let sc = (* ";" *) token env v6 in
       let attr = G.attr Const tconst in
       let ent = G.basic_entity id ~attrs:[ attr ] in
-      let def = { vtype = Some ty; vinit = Some e } in
+      let def = { vtype = Some ty; vinit = Some e; vtok = Some sc } in
       (ent, VarDef def)
   | `User_defi_type_defi x -> map_user_defined_type_definition env x
   | `Error_decl x -> map_error_declaration env x
@@ -2495,7 +2496,7 @@ let map_source_file (env : env) (x : CST.source_file) : any =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_solidity.Parse.file file)
+    (fun () -> Tree_sitter_solidity.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_source_file env cst with
@@ -2508,6 +2509,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_solidity.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       map_source_file env cst)

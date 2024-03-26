@@ -6,7 +6,7 @@ hello.ml
 Selection events for path .gitignore:
 SEL .gitignore
 Selection events for path hello.c:
-ignored at <TEMPORARY FILE PATH>, line 1: *.c
+ignored at <TMP>/<MASKED>/.gitignore, line 1: *.c
 IGN hello.c
 Selection events for path hello.ml:
 SEL hello.ml

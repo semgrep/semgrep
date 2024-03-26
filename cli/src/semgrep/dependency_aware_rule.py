@@ -14,7 +14,7 @@ from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchSet
+from semgrep.rule_match import RuleMatches
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
@@ -74,7 +74,7 @@ def generate_unreachable_sca_findings(
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
     ecosystems = list(rule.ecosystems)
 
-    non_reachable_matches = RuleMatchSet(rule)
+    non_reachable_matches = RuleMatches(rule)
     for ecosystem in ecosystems:
         lockfile_paths = target_manager.get_lockfiles(ecosystem, SCA_PRODUCT)
 
@@ -110,7 +110,7 @@ def generate_unreachable_sca_findings(
                         # Output_from_core.atd so we can reuse out.MatchExtra
                         extra=out.CoreMatchExtra(
                             metavars=out.Metavars({}),
-                            engine_kind=out.EngineKind(out.OSS()),
+                            engine_kind=out.EngineOfFinding(out.OSS()),
                             is_ignored=False,
                         ),
                     ),

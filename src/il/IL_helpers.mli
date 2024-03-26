@@ -21,7 +21,14 @@ val lvar_of_instr_opt : IL.instr -> IL.name option
 val rlvals_of_node : IL.node_kind -> IL.lval list
 (** The lvalues that occur in the RHS of a node. *)
 
-val compare_name : IL.name -> IL.name -> int
+val orig_of_node : IL.node_kind -> IL.orig option
+
+(** Useful to instantiate data strutures like Map and Set. *)
+module NameOrdered : sig
+  type t = IL.name
+
+  val compare : t -> t -> int
+end
 
 (** Useful to instantiate data strutures like Map and Set. *)
 module LvalOrdered : sig
@@ -29,5 +36,3 @@ module LvalOrdered : sig
 
   val compare : t -> t -> int
 end
-
-val orig_of_node : IL.node_kind -> IL.orig option

@@ -17,7 +17,7 @@ open Fpath_.Operators
 module FT = File_type
 open Rule
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,7 +38,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let rec range_to_string (range : (Tok.location * Tok.location) option) =
   match range with
   | Some (start, end_) ->
-      UCommon.with_open_infile start.pos.file (fun chan ->
+      UFile.Legacy.with_open_infile start.pos.file (fun chan ->
           let extract_size = end_.pos.bytepos - start.pos.bytepos in
           seek_in chan start.pos.bytepos;
           really_input_string chan extract_size)
@@ -125,18 +125,20 @@ and translate_taint_sink
     {
       sink_id = _;
       sink_formula;
+      sink_exact;
       sink_requires;
       sink_at_exit;
-      sink_is_func_with_focus = _;
+      sink_has_focus = _;
     } : [> `O of (string * Yaml.value) list ] =
   let (`O sink_f) = translate_formula sink_formula in
+  let exact_obj = if sink_exact then [] else [ ("exact", `Bool false) ] in
   let at_exit_obj = if sink_at_exit then [ ("at-exit", `Bool true) ] else [] in
   let requires_obj =
     match sink_requires with
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
-  `O (List.concat [ sink_f; requires_obj; at_exit_obj ])
+  `O (List.concat [ sink_f; exact_obj; requires_obj; at_exit_obj ])
 
 and translate_taint_sanitizer
     {
@@ -226,41 +228,47 @@ and translate_taint_spec
        ])
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
-  match f with
-  | P { pat; pstr; _ } -> (
-      match pat with
-      | Sem (_, _)
-      | Spacegrep _
-      | Aliengrep _ ->
-          `O [ ("pattern", `String (fst pstr)) ]
-      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
-  | Anywhere (_, f) -> `O [ ("anywhere", (translate_formula f :> Yaml.value)) ]
-  | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
-  | And (_, { conjuncts; focus; conditions; _ }) ->
-      let mk_focus_obj (_, mv_list) =
-        match mv_list with
-        | [] ->
-            (* probably shouldn't happen... *)
-            []
-        | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
-        | mvs -> [ `O [ ("focus", `A (List_.map (fun x -> `String x) mvs)) ] ]
-      in
-      `O
-        (("all", `A (List_.map translate_formula conjuncts :> Yaml.value list))
-        ::
-        (if focus =*= [] && conditions =*= [] then []
-         else
-           [
-             ( "where",
-               `A
-                 (List_.map
-                    (fun (_, cond) -> translate_metavar_cond cond)
-                    conditions
-                 @ List.concat_map mk_focus_obj focus) );
-           ]))
-  | Or (_, fs) ->
-      `O [ ("any", `A (List_.map translate_formula fs :> Yaml.value list)) ]
-  | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]
+  let rec aux { f; focus; conditions } =
+    let mk_focus_obj (_, mv_list) =
+      match mv_list with
+      | [] ->
+          (* probably shouldn't happen... *)
+          []
+      | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
+      | mvs -> [ `O [ ("focus", `A (List_.map (fun x -> `String x) mvs)) ] ]
+    in
+    let where_obj =
+      match (focus, conditions) with
+      | [], [] -> []
+      | _ ->
+          [
+            ( "where",
+              `A
+                (List_.map
+                   (fun (_, cond) -> translate_metavar_cond cond)
+                   conditions
+                @ List.concat_map mk_focus_obj focus) );
+          ]
+    in
+    let (`O objs) = aux' f in
+    `O (objs @ where_obj)
+  and aux' kind =
+    match kind with
+    | P { pat; pstr; _ } -> (
+        match pat with
+        | Sem (_, _)
+        | Spacegrep _
+        | Aliengrep _ ->
+            `O [ ("pattern", `String (fst pstr)) ]
+        | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
+    | Inside (_, f) -> `O [ ("inside", (aux f :> Yaml.value)) ]
+    | Anywhere (_, f) -> `O [ ("anywhere", (aux f :> Yaml.value)) ]
+    | Not (_, f) -> `O [ ("not", (aux f :> Yaml.value)) ]
+    | And (_, conjuncts) ->
+        `O [ ("all", `A (List_.map aux conjuncts :> Yaml.value list)) ]
+    | Or (_, fs) -> `O [ ("any", `A (List_.map aux fs :> Yaml.value list)) ]
+  in
+  aux f
 
 let rec json_to_yaml json : Yaml.value =
   match json with
@@ -306,7 +314,7 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> List_.map (fun file ->
-           logger#info "processing %s" !!file;
+           Logs.debug (fun m -> m ~tags "translate_files: processing %s" !!file);
            let formulas =
              fparser file
              |> List_.map (fun rule ->
@@ -331,8 +339,11 @@ let translate_files fparser xs =
         | FT.Config FT.Yaml ->
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
         | _ ->
-            logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-            logger#info "trying to parse %s as YAML" !!file;
+            Logs.err (fun m ->
+                m ~tags
+                  "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying \
+                   to parse %s as YAML"
+                  !!file);
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
       in
       match rules with

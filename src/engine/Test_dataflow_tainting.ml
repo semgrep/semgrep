@@ -11,7 +11,7 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
 end)
 
-let pr2_ranges file rwms =
+let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
   rwms
   |> List.iter (fun rwm ->
          let code_text = Range.content_at_range file rwm.RM.r in
@@ -22,7 +22,7 @@ let pr2_ranges file rwms =
          in
          UCommon.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting lang file options config def =
+let test_tainting (lang : Lang.t) (_file : Fpath.t) options config def =
   UCommon.pr2 "\nDataflow";
   UCommon.pr2 "--------";
   let flow, mapping =
@@ -31,21 +31,7 @@ let test_tainting lang file options config def =
       (Dataflow_tainting.mk_empty_java_props_cache ())
       def
   in
-  let taint_to_str taint =
-    let show_taint t =
-      match t.Taint.orig with
-      | Taint.Src src ->
-          let tok1, tok2 = (fst (Taint.pm_of_trace src.call_trace)).range_loc in
-          let r = Range.range_of_token_locations tok1 tok2 in
-          Range.content_at_range file r
-      | Taint.Arg arg -> Taint._show_arg arg
-      | Taint.Control -> "<control>"
-    in
-    taint |> Taint.Taint_set.elements |> List_.map show_taint
-    |> String.concat ", "
-    |> fun str -> "{ " ^ str ^ " }"
-  in
-  DataflowX.display_mapping flow mapping (Taint_lval_env.to_string taint_to_str)
+  DataflowX.display_mapping flow mapping Taint_lval_env.to_string
 
 let test_dfg_tainting rules_file file =
   let rules_file = Fpath.v rules_file in
@@ -59,7 +45,7 @@ let test_dfg_tainting rules_file file =
              (Common.exn_to_s exn))
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang !!file with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
     | exn ->
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
@@ -90,19 +76,19 @@ let test_dfg_tainting rules_file file =
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
-  pr2_ranges !!file (debug_taint.sources |> List_.map fst);
+  pr2_ranges file (debug_taint.sources |> List_.map fst);
   UCommon.pr2 "\nSanitizers";
   UCommon.pr2 "----------";
-  pr2_ranges !!file debug_taint.sanitizers;
+  pr2_ranges file debug_taint.sanitizers;
   UCommon.pr2 "\nSinks";
   UCommon.pr2 "-----";
-  pr2_ranges !!file (debug_taint.sinks |> List_.map fst);
+  pr2_ranges file (debug_taint.sinks |> List_.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_function_definition env def =
-        test_tainting lang !!file xconf.config config def;
+        test_tainting lang file xconf.config config def;
         (* go into nested functions *)
         super#visit_function_definition env def
     end

@@ -293,7 +293,9 @@ class StreamingSemgrepCore:
                     contact us.
 
                        Error: semgrep-core exited with unexpected output
-                    """
+
+                       {self._stderr}
+                    """,
                 )
 
             if (
@@ -479,6 +481,7 @@ class CoreRunner:
         max_memory: int,
         timeout_threshold: int,
         interfile_timeout: int,
+        trace: bool,
         optimizations: str,
         allow_untrusted_validators: bool,
         respect_rule_paths: bool = True,
@@ -490,6 +493,7 @@ class CoreRunner:
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
+        self._trace = trace
         self._optimizations = optimizations
         self._allow_untrusted_validators = allow_untrusted_validators
         self._respect_rule_paths = respect_rule_paths
@@ -719,11 +723,14 @@ class CoreRunner:
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w+", suffix=".json")
         )
-        target_file = exit_stack.enter_context(
-            (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
-            if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w+")
-        )
+        # A historical scan does not create a targeting file since targeting is
+        # performed directly by core.
+        if not target_mode_config.is_historical_scan:
+            target_file = exit_stack.enter_context(
+                (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
+                if dump_command_for_core
+                else tempfile.NamedTemporaryFile("w+")
+            )
         if target_mode_config.is_pro_diff_scan:
             diff_target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
@@ -801,11 +808,14 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 )
 
             plan.record_metrics()
-            parsing_data.add_targets(plan)
-            target_file_contents = json.dumps(plan.to_json())
-            target_file.write(target_file_contents)
-            target_file.flush()
-            cmd.extend(["-targets", target_file.name])
+            if target_mode_config.is_historical_scan:
+                cmd.extend(["-historical", "-only_validated"])
+            else:
+                parsing_data.add_targets(plan)
+                target_file_contents = json.dumps(plan.to_json())
+                target_file.write(target_file_contents)
+                target_file.flush()
+                cmd.extend(["-targets", target_file.name])
 
             # adding limits
             cmd.extend(
@@ -828,12 +838,19 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             # Create a map to feed to semgrep-core as an alternative to
             # having it actually read the files.
             vfs_map: Dict[str, bytes] = {
-                target_file.name: target_file_contents.encode("UTF-8"),
                 rule_file.name: rule_file_contents.encode("UTF-8"),
+                **(
+                    {target_file.name: target_file_contents.encode("UTF-8")}
+                    if not target_mode_config.is_historical_scan
+                    else {}
+                ),
             }
 
             if self._optimizations != "none":
                 cmd.append("-fast")
+
+            if self._trace:
+                cmd.append("-trace")
 
             if run_secrets and not disable_secrets_validation:
                 cmd += ["-secrets"]
@@ -899,7 +916,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             runner = StreamingSemgrepCore(cmd, total=total, engine_type=engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
-
             # Process output
             output_json = self._extract_core_output(
                 rules,

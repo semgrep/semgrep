@@ -16,7 +16,7 @@ open Common
 open AST_generic
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -173,7 +173,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
         (* we skip the type parts in ds ... *)
         | Some (QDots ds) -> ds |> List_.map fst
         | Some (QExpr _) ->
-            logger#error "unexpected qualifier type";
+            Logs.err (fun m -> m ~tags "unexpected qualifier type");
             []
         | None -> []
       in
@@ -314,16 +314,21 @@ let vardef_to_assign (ent, def) =
   in
   Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
-let assign_to_vardef_opt ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
+(* TODO: pass also semicolon tok? not just the equal tok *)
+let assign_to_vardef_opt ((e1, _teq, e2) : G.expr * G.tok * G.expr) =
   match e1.G.e with
   | Cast (ty, _, e) ->
       let* name = expr_to_entity_name_opt e in
-      let ent = { name; attrs = []; tparams = [] } in
-      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s)
+      let ent = { name; attrs = []; tparams = None } in
+      Some
+        (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty; vtok = no_sc })
+        |> G.s)
   | _ ->
       let* name = expr_to_entity_name_opt e1 in
-      let ent = { name; attrs = []; tparams = [] } in
-      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s)
+      let ent = { name; attrs = []; tparams = None } in
+      Some
+        (DefStmt (ent, VarDef { vinit = Some e2; vtype = None; vtok = no_sc })
+        |> G.s)
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
@@ -371,6 +376,12 @@ let parameter_to_catch_exn_opt p =
   | ParamReceiver _
   | OtherParam _ ->
       None
+
+let ctype_of_literal = function
+  | G.Bool _ -> G.Cbool
+  | G.Int _ -> G.Cint
+  | G.String _ -> G.Cstr
+  | ___else___ -> G.Cany
 
 (*****************************************************************************)
 (* Abstract position and svalue for comparison *)
@@ -430,10 +441,11 @@ let ac_matching_nf op args =
   if is_associative_operator op then (
     try Some (nf args) with
     | Exit ->
-        logger#error
-          "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
-          (show_operator op)
-          (show_arguments (Tok.unsafe_fake_bracket args));
+        Logs.err (fun m ->
+            m ~tags
+              "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+              (show_operator op)
+              (show_arguments (Tok.unsafe_fake_bracket args)));
         None)
   else None
 
@@ -457,7 +469,7 @@ let set_e_range l r e =
       (* Probably not super useful to dump the whole expression, or to log the
        * fake tokens themselves. Perhaps this will be useful for debugging
        * isolated examples, though. *)
-      logger#debug "set_e_range failed: missing token location";
+      Logs.debug (fun m -> m ~tags "set_e_range failed: missing token location");
       ()
 
 class ['self] extract_info_visitor =
@@ -563,7 +575,8 @@ let set_e_range_with_anys anys e =
   match extract_ranges_with_anys anys with
   | Some (l, r) -> e.e_range <- Some (l, r)
   | None ->
-      logger#debug "set_e_range_with_anys failed: no locations found";
+      Logs.debug (fun m ->
+          m ~tags "set_e_range_with_anys failed: no locations found");
       ()
 
 let range_of_tokens_unsafe tokens =
@@ -707,3 +720,29 @@ let fix_token_locations_visitor =
  * an mli and allowing direct access to it. *)
 let fix_token_locations_any = fix_token_locations_visitor#visit_any
 let fix_token_locations_program = fix_token_locations_visitor#visit_program
+
+(*****************************************************************************)
+(* Add semicolons *)
+(*****************************************************************************)
+
+let add_semicolon_to_last_var_def_and_convert_to_stmts (sc : sc)
+    (xs : (entity * variable_definition) list) : stmt list =
+  let ys =
+    match List.rev xs with
+    (* Impossible in principle *)
+    | [] -> []
+    | (ent, vardef) :: xs -> (ent, { vardef with vtok = Some sc }) :: xs
+  in
+  ys |> List_.map (fun (ent, vardef) -> DefStmt (ent, VarDef vardef) |> G.s)
+
+let add_semicolon_to_last_def_and_convert_to_stmts (sc : sc)
+    (xs : definition list) : stmt list =
+  let ys =
+    match List.rev xs with
+    (* Impossible in principle *)
+    | [] -> []
+    | (ent, VarDef vardef) :: xs ->
+        (ent, VarDef { vardef with vtok = Some sc }) :: xs
+    | xs -> xs
+  in
+  ys |> List_.map (fun (ent, def) -> DefStmt (ent, def) |> G.s)

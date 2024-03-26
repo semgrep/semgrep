@@ -9,8 +9,8 @@ type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
-  (* can be a list of files or directories *)
-  target_roots : Fpath.t list;
+  (* can be a list of files or directories; symlinks ok *)
+  target_roots : Scanning_root.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
@@ -23,12 +23,13 @@ type conf = {
   (* file or URL (None means output to stdout) *)
   output : string option;
   output_conf : Output.conf;
+  (* osemgrep-only: *)
+  incremental_output : bool;
   (* text output config (TODO: make a separate type gathering all of them)
    * or add them under Output_format.Text
    *)
   (* Networking options *)
   metrics : Metrics_.config;
-  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
@@ -36,6 +37,7 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
+  trace : bool;
   ls : bool;
 }
 [@@deriving show]
@@ -50,15 +52,19 @@ val default : conf
 
    This function may raise an exn in case of an error parsing argv
    but this should be caught by CLI.safe_run.
+
+   TODO: ugly but need to pass Cap.tmp to support query console
+   Find_targets.Git_remove. Would be better to do that in
+   Scan_subcommand.ml instead after parsing the arguments.
 *)
-val parse_argv : string array -> conf
+val parse_argv : < Cap.tmp > -> string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
-val cmdline_term : allow_empty_config:bool -> conf Cmdliner.Term.t
+val cmdline_term :
+  < Cap.tmp > -> allow_empty_config:bool -> conf Cmdliner.Term.t
 
 (* exported because used by Interactive_CLI.ml too *)
 val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
 val o_include : string list Cmdliner.Term.t
 val o_exclude : string list Cmdliner.Term.t
-val o_ast_caching : bool Cmdliner.Term.t

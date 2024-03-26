@@ -13,7 +13,8 @@ module Flag = Flag_semgrep
 module E = Core_error
 module J = JSON
 
-let logger = Logging.get_logger [ __MODULE__ ]
+(* Tags to associate with individual log messages. Optional. *)
+let tags = Logs_.create_tags [ __MODULE__; "cli" ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -40,7 +41,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
-let log_config_file = ref Core_scan_config.default.log_config_file
 let log_to_file = ref None
 let nosem = ref Core_scan_config.default.nosem
 let strict = ref Core_scan_config.default.strict
@@ -59,6 +59,7 @@ let debug = ref Core_scan_config.default.debug
 (* try to continue processing files, even if one has a parse error with -e/f *)
 let error_recovery = ref Core_scan_config.default.error_recovery
 let profile = ref Core_scan_config.default.profile
+let trace = ref Core_scan_config.default.trace
 
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
@@ -108,9 +109,6 @@ let ncores = ref Core_scan_config.default.ncores
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
 (* ------------------------------------------------------------------------- *)
-(* see Flag_semgrep.ml *)
-let use_parsing_cache = ref Core_scan_config.default.parsing_cache_dir
-
 (* similar to filter_irrelevant_patterns, but use the whole rule to extract
  * the regexp *)
 let filter_irrelevant_rules =
@@ -142,7 +140,7 @@ let version = spf "semgrep-core version: %s" Version.version
  * This is why we call set_gc() only when max_memory_mb is unset.
  *)
 let set_gc () =
-  logger#info "Gc tuning";
+  Logs.debug (fun m -> m ~tags "Gc tuning");
   (*
   if !Flag.debug_gc
   then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
@@ -175,8 +173,8 @@ let dump_parsing_errors file (res : Parsing_result2.t) =
     |> String.concat "\n")
 
 (* works with -lang *)
-let dump_pattern (file : Fpath.t) =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
@@ -187,8 +185,8 @@ let dump_pattern (file : Fpath.t) =
       UCommon.pr s)
 [@@action]
 
-let dump_patterns_of_rule (file : Fpath.t) =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let rules = Parse_rule.parse file in
   let xpats = List.concat_map Rule.xpatterns_of_rule rules in
   List.iter
@@ -203,12 +201,15 @@ let dump_patterns_of_rule (file : Fpath.t) =
     xpats
 [@@action]
 
-let dump_ast ?(naming = false) caps lang file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_ast ?(naming = false) (caps : < Cap.exit ; Cap.tmp >)
+    (lang : Language.t) (file : Fpath.t) =
+  let file =
+    Core_scan.replace_named_pipe_by_regular_file (caps :> < Cap.tmp >) file
+  in
   E.try_with_print_exn_and_reraise !!file (fun () ->
       let res =
-        if naming then Parse_target.parse_and_resolve_name lang !!file
-        else Parse_target.just_parse_with_lang lang !!file
+        if naming then Parse_target.parse_and_resolve_name lang file
+        else Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr res.ast) in
       (* 80 columns is too little *)
@@ -231,12 +232,12 @@ let dump_ast ?(naming = false) caps lang file =
 
 let mk_config () =
   {
-    log_config_file = !log_config_file;
     log_to_file = !log_to_file;
     nosem = !nosem;
     strict = !strict;
     test = !test;
     debug = !debug;
+    trace = !trace;
     profile = !profile;
     report_time = !report_time;
     error_recovery = !error_recovery;
@@ -258,12 +259,12 @@ let mk_config () =
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
     ncores = !ncores;
-    parsing_cache_dir = !use_parsing_cache;
     target_source = !target_source;
     file_match_results_hook = None;
     action = !action;
     version = Version.version;
     roots = [] (* This will be set later in main () *);
+    top_level_span = None;
   }
 
 (*****************************************************************************)
@@ -275,16 +276,11 @@ let all_actions (caps : Cap.all_caps) () =
     (* possibly useful to the user *)
     ( "-show_ast_json",
       " <file> dump on stdout the generic AST of file in JSON",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.dump_v1_json );
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.dump_v1_json (caps :> < Cap.tmp >)) );
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
       Arg_.mk_action_1_conv Fpath.v Core_actions.generate_ast_json );
-    ( "-generate_ast_binary",
-      " <file> save in file.ast.binary the marshalled generic AST of file",
-      Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Core_actions.generate_ast_binary
-            (Xlang.lang_of_opt_xlang_exn !lang)
-            file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
       Arg_.mk_action_1_conv Fpath.v Core_actions.prefilter_of_rules );
@@ -298,15 +294,20 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_extensions",
       " print file extension to language mapping",
       Arg_.mk_action_0_arg Core_actions.dump_ext_of_lang );
-    ("-dump_pattern", " <file>", Arg_.mk_action_1_conv Fpath.v dump_pattern);
+    ( "-dump_pattern",
+      " <file>",
+      Arg_.mk_action_1_conv Fpath.v (dump_pattern (caps :> < Cap.tmp >)) );
     ( "-dump_patterns_of_rule",
       " <file>",
-      Arg_.mk_action_1_conv Fpath.v dump_patterns_of_rule );
+      Arg_.mk_action_1_conv Fpath.v
+        (dump_patterns_of_rule (caps :> < Cap.tmp >)) );
     ( "-dump_ast",
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (dump_ast ~naming:false caps (Xlang.lang_of_opt_xlang_exn !lang))
+          (dump_ast ~naming:false
+             (caps :> < Cap.exit ; Cap.tmp >)
+             (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_lang_ast",
       " <file>",
@@ -318,7 +319,9 @@ let all_actions (caps : Cap.all_caps) () =
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (dump_ast ~naming:true caps (Xlang.lang_of_opt_xlang_exn !lang))
+          (dump_ast ~naming:true
+             (caps :> < Cap.exit ; Cap.tmp >)
+             (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_il_all",
       " <file>",
@@ -326,33 +329,48 @@ let all_actions (caps : Cap.all_caps) () =
     ("-dump_il", " <file>", Arg_.mk_action_1_conv Fpath.v Core_actions.dump_il);
     ( "-dump_rule",
       " <file>",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.dump_rule );
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.dump_rule (caps :> < Cap.tmp >)) );
     ( "-dump_equivalences",
       " <file> (deprecated)",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.dump_equivalences );
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.dump_equivalences (caps :> < Cap.tmp >)) );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          let file = Core_scan.replace_named_pipe_by_regular_file file in
+          let file =
+            Core_scan.replace_named_pipe_by_regular_file
+              (caps :> < Cap.tmp >)
+              file
+          in
           Test_parsing.dump_tree_sitter_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          let file = Core_scan.replace_named_pipe_by_regular_file file in
+          let file =
+            Core_scan.replace_named_pipe_by_regular_file
+              (caps :> < Cap.tmp >)
+              file
+          in
           Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          let file = Core_scan.replace_named_pipe_by_regular_file file in
-          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
+          let file =
+            Core_scan.replace_named_pipe_by_regular_file
+              (caps :> < Cap.tmp >)
+              file
+          in
+          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
     );
     ( "-diff_pfff_tree_sitter",
       " <file>",
-      Arg_.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+      Arg_.mk_action_n_arg (fun xs ->
+          Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
     ( "-dump_contributions",
       " dump on stdout the commit contributions in JSON",
       Arg_.mk_action_0_arg Core_actions.dump_contributions );
@@ -377,23 +395,25 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_1_arg Experiments.stat_matches );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
-      Arg_.mk_action_1_arg Experiments.ebnf_to_menhir );
+      Arg_.mk_action_1_conv Fpath.v Experiments.ebnf_to_menhir );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
             (Xlang.lang_of_opt_xlang_exn !lang)
-            xs) );
+            (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.test_parse_tree_sitter
             (Xlang.lang_of_opt_xlang_exn !lang)
-            xs) );
+            (Fpath_.of_strings xs)) );
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.check_files mk_config Parse_rule.parse) );
+        (Check_rule.check_files
+           (caps :> < Cap.tmp >)
+           mk_config Parse_rule.parse) );
     ( "-translate_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
@@ -406,11 +426,14 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_conv Fpath.v (Core_actions.test_rules caps) );
     ( "-parse_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
+      Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );
     ( "-datalog_experiment",
       " <file> <dir>",
-      Arg_.mk_action_2_arg Datalog_experiment.gen_facts );
-    ("-postmortem", " <log file", Arg_.mk_action_1_arg Statistics_report.stat);
+      Arg_.mk_action_2_arg (fun a b ->
+          Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
+    ( "-postmortem",
+      " <log file",
+      Arg_.mk_action_1_conv Fpath.v Statistics_report.stat );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
@@ -430,7 +453,13 @@ let options caps actions =
       Arg.String (fun s -> pattern_file := Some (Fpath.v s)),
       " <file> use the file content as the pattern" );
     ( "-rules",
-      Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
+      Arg.String
+        (fun s ->
+          let path = Fpath.v s in
+          (*
+        Printf.eprintf "-rules:\n%s\n%!" (UFile.read_file path);
+*)
+          rule_source := Some (Rule_file path)),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
@@ -440,15 +469,18 @@ let options caps actions =
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> shortcut for -lang" );
     ( "-targets",
-      Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
+      Arg.String
+        (fun s ->
+          let path = Fpath.v s in
+          (*
+        Printf.eprintf "-targets:\n%s\n%!" (UFile.read_file path);
+*)
+          target_source := Some (Target_file path)),
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
-    ( "-use_parsing_cache",
-      Arg.String (fun s -> use_parsing_cache := Some (Fpath.v s)),
-      " <dir> store and use the parsed generic ASTs in dir" );
     ( "-max_target_bytes",
       Arg.Set_int Flag.max_target_bytes,
       " maximum size of a single target file, in bytes. This applies to \
@@ -524,9 +556,9 @@ let options caps actions =
        when running out of memory. This value should be less than the actual \
        memory available because the limit will be exceeded before it gets \
        detected. Try 5% less or 15000 if you have 16 GB." );
-    ( "-max_tainted_lvals",
-      Arg.Set_int Flag_semgrep.max_tainted_lvals,
-      "<int> maximum number of lvals to store. This is mostly for internal use \
+    ( "-max_tainted_vars",
+      Arg.Set_int Flag_semgrep.max_tainted_vars,
+      "<int> maximum number of vars to store. This is mostly for internal use \
        to make performance testing easier" );
     ( "-max_taint_set_size",
       Arg.Set_int Flag_semgrep.max_taint_set_size,
@@ -547,13 +579,11 @@ let options caps actions =
     ( "-matching_explanations",
       Arg.Set matching_explanations,
       " output intermediate matching explanations" );
-    ( "-log_config_file",
-      Arg.String (fun s -> log_config_file := Fpath.v s),
-      " <file> logging configuration file" );
     ( "-log_to_file",
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
+    ("-trace", Arg.Set trace, " output tracing information");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -568,7 +598,8 @@ let options caps actions =
             profile := true),
         " output profiling information" );
       ( "-keep_tmp_files",
-        Arg.Set UCommon.save_tmp_files,
+        (* nosemgrep: forbid-tmp *)
+        Arg.Set UTmp.save_tmp_files,
         " keep temporary generated files" );
     ]
   @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
@@ -580,6 +611,12 @@ let options caps actions =
             UCommon.pr2 version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
+      ( "-rpc",
+        Arg.Unit
+          (fun () ->
+            RPC.main caps;
+            Core_exit_code.(exit_semgrep caps#exit Success)),
+        " don't use this unless you already know" );
     ]
 
 (*****************************************************************************)
@@ -672,19 +709,20 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Core_profiling.mode := MDebug
-  else if config.report_time then Core_profiling.mode := MTime
-  else Core_profiling.mode := MNo_info;
-
-  Logging_.setup ~debug:config.debug ~log_config_file:config.log_config_file
-    ~log_to_file:config.log_to_file;
-
-  logger#info "Executed as: %s" (argv |> String.concat " ");
-  logger#info "Version: %s" version;
+  Core_profiling.profiling := config.debug || config.report_time;
+  Std_msg.setup ~highlight_setting:On ();
+  Logs_.setup_logging ?log_to_file:config.log_to_file
+    ?require_one_of_these_tags:None
+    ~level:
+      (* TODO: command-line option or env variable to choose the log level *)
+      (if config.debug then Some Debug else Some Info)
+    ();
+  Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
+  Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =
     if config.profile then (
-      logger#info "Profile mode On";
-      logger#info "disabling -j when in profiling mode";
+      Logs.info (fun m -> m ~tags "Profile mode On");
+      Logs.info (fun m -> m ~tags "disabling -j when in profiling mode");
       { config with ncores = 1 })
     else config
   in
@@ -717,8 +755,25 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let config = { config with roots = Fpath_.of_strings roots } in
-          Core_command.semgrep_core_dispatch caps config)
+          let config =
+            { config with roots = List_.map Scanning_root.of_string roots }
+          in
+
+          (* Set up tracing and run it for the duration of scanning. Note that this will
+             only trace `semgrep_core_dispatch` and the functions it calls.
+           * TODO when osemgrep is the default entry point, we will also be able to
+             instrument the pre- and post-scan code in the same way. *)
+          if config.trace then (
+            let trace_data =
+              Trace_data.get_top_level_data config.ncores config.version
+                (Trace_data.no_analysis_features ())
+            in
+            Tracing.configure_tracing "semgrep-oss";
+            Tracing.with_tracing "Core_command.semgrep_core_dispatch" trace_data
+              (fun sp ->
+                Core_command.semgrep_core_dispatch caps
+                  { config with top_level_span = Some sp }))
+          else Core_command.semgrep_core_dispatch caps config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

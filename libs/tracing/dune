@@ -1,15 +1,13 @@
+
 (library
  (public_name tracing)
  (wrapped false)
- (libraries
-   unix
-   commons
-   trace
-   trace-tef
- )
- (preprocess
-   (pps
-     ppx_tracing
-   )
- )
+  (libraries
+    trace
+  )
+ (virtual_modules tracing)
+ (default_implementation tracing.unix)
+  (preprocess (pps
+      ppx_deriving.show
+   ))
 )

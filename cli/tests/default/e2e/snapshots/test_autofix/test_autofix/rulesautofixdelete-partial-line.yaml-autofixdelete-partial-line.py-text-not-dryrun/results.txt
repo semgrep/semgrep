@@ -1,0 +1,22 @@
+
+
+┌─────────────────┐
+│ 4 Code Findings │
+└─────────────────┘
+
+    targets/autofix/delete-partial-line.py
+    ❯❱ rules.autofix.delete-default
+          Unnecessary parameter which matches the default
+
+           ▶▶┆ Autofix ▶ delete
+           14┆ foo(42)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ delete
+           16┆ 42)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ delete
+           17┆ foo(42
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ delete
+           22┆ 42
+

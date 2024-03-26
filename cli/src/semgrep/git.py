@@ -1,6 +1,8 @@
 import os
+import re
 import subprocess
 import tempfile
+import urllib
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
@@ -77,7 +79,8 @@ def get_project_url() -> Optional[str]:
     Returns the current git project's default remote URL, or None if not a git project / no remote
     """
     try:
-        return git_check_output(["git", "ls-remote", "--get-url"])
+        remote_url = git_check_output(["git", "ls-remote", "--get-url"])
+        return clean_project_url(remote_url)
     except Exception as e:
         logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
         try:
@@ -86,6 +89,16 @@ def get_project_url() -> Optional[str]:
         except Exception as e:
             logger.debug(f"Failed to get project url from .git/config: {e}")
             return None
+
+
+def clean_project_url(url: str) -> str:
+    """
+    Returns a clean version of a git project's URL, removing credentials if present
+    """
+    parts = urllib.parse.urlsplit(url)
+    clean_netloc = re.sub("^.*:.*@(.+)", r"\1", parts.netloc)
+    parts = parts._replace(netloc=clean_netloc)
+    return urllib.parse.urlunsplit(parts)
 
 
 def get_git_root_path() -> Path:
@@ -178,6 +191,8 @@ class BaselineHandler:
                 cmd = status_cmd
             else:
                 cmd = [*status_cmd, "--merge-base"]
+            # -- is a sentinel to avoid ambiguity between branch and file names
+            cmd += ["--"]
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
                 cmd,
@@ -192,6 +207,8 @@ class BaselineHandler:
                 logger.warn(
                     "git could not find a single branch-off point, so we will compare the baseline commit directly"
                 )
+                # -- is a sentinel to avoid ambiguity between branch and file names
+                status_cmd += ["--"]
                 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
                 raw_output = subprocess.run(
                     status_cmd,

@@ -1,0 +1,15 @@
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 2 Code rules:
+  Scanning 1 file with 2 <multilang> rules.
+successfully modified 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 2 rules on 1 file: 2 findings.

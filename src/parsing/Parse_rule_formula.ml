@@ -15,6 +15,7 @@
 open Common
 open Either_
 open Parse_rule_helpers
+module H = Parse_rule_helpers
 module XP = Xpattern
 module MV = Metavariable
 
@@ -261,14 +262,12 @@ let rewrite_metavar_comparison_strip cond =
   in
   visitor#visit_expr () cond
 
-(* TODO: Old stuff that we can't kill yet. *)
 let find_formula_old env (rule_dict : dict) : key * G.expr =
-  let find key_str = Hashtbl.find_opt rule_dict.h key_str in
   match
-    ( find "pattern",
-      find "pattern-either",
-      find "patterns",
-      find "pattern-regex" )
+    ( H.dict_take_opt rule_dict "pattern",
+      H.dict_take_opt rule_dict "pattern-either",
+      H.dict_take_opt rule_dict "patterns",
+      H.dict_take_opt rule_dict "pattern-regex" )
   with
   | None, None, None, None ->
       error env.id rule_dict.first_tok
@@ -306,7 +305,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let get_formula ?(allow_string = false) env x =
     match (parse_str_or_dict env x, x.G.e) with
     | Left (value, t), _ when allow_string ->
-        R.P (parse_rule_xpattern env (value, t))
+        R.P (parse_rule_xpattern env (value, t)) |> R.f
     | Left (s, _), _ ->
         error_at_expr env.id x
           (Common.spf
@@ -333,17 +332,21 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   in
   let s, t = key in
   match s with
-  | "pattern" -> R.P (get_pattern value)
-  | "pattern-not" -> R.Not (t, get_formula ~allow_string:true env value)
-  | "pattern-inside" -> R.Inside (t, get_formula ~allow_string:true env value)
+  | "pattern" -> R.P (get_pattern value) |> R.f
+  | "pattern-not" -> R.Not (t, get_formula ~allow_string:true env value) |> R.f
+  | "pattern-inside" ->
+      R.Inside (t, get_formula ~allow_string:true env value) |> R.f
   | "pattern-not-inside" ->
-      R.Not (t, R.Inside (t, get_formula ~allow_string:true env value))
-  | "semgrep-internal-pattern-anywhere" -> (
-      match parse_str_or_dict env value with
-      | Left _ -> R.Anywhere (t, R.P (get_pattern value))
+      R.Not (t, R.Inside (t, get_formula ~allow_string:true env value) |> R.f)
+      |> R.f
+  | "semgrep-internal-pattern-anywhere" ->
+      (match parse_str_or_dict env value with
+      | Left _ -> R.Anywhere (t, R.P (get_pattern value) |> R.f)
       | Right dict -> R.Anywhere (t, parse_formula_old_from_dict env dict))
+      |> R.f
   | "pattern-either" ->
       R.Or (t, parse_listi env key (get_nested_formula_in_list env) value)
+      |> R.f
   | "patterns" ->
       let parse_pattern i expr =
         match parse_str_or_dict env expr with
@@ -354,7 +357,6 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                   write `pattern: %s` instead?"
                  s)
         | Right dict -> (
-            let find key_str = Hashtbl.find_opt dict.h key_str in
             let process_extra extra =
               match extra with
               | MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
@@ -371,12 +373,12 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
               | MetavarAnalysis (mvar, kind) -> R.CondAnalysis (mvar, kind)
             in
             match
-              ( find "focus-metavariable",
-                find "metavariable-analysis",
-                find "metavariable-regex",
-                find "metavariable-type",
-                find "metavariable-pattern",
-                find "metavariable-comparison" )
+              ( H.dict_take_opt dict "focus-metavariable",
+                H.dict_take_opt dict "metavariable-analysis",
+                H.dict_take_opt dict "metavariable-regex",
+                H.dict_take_opt dict "metavariable-type",
+                H.dict_take_opt dict "metavariable-pattern",
+                H.dict_take_opt dict "metavariable-comparison" )
             with
             | None, None, None, None, None, None ->
                 Either_.Left3 (get_nested_formula_in_list env i expr)
@@ -404,15 +406,15 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       if pos =*= [] && not env.in_metavariable_pattern then
         Rule.raise_error (Some env.id)
           (InvalidRule (MissingPositiveTermInAnd, env.id, t));
-      R.And (t, { conjuncts; focus; conditions })
+      { f = R.And (t, conjuncts); focus; conditions }
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
-      R.P xpat
+      R.P xpat |> R.f
   | "pattern-not-regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
-      R.Not (t, R.P xpat)
+      R.Not (t, R.P xpat |> R.f) |> R.f
   | "focus-metavariable"
   | "metavariable-analysis"
   | "metavariable-regex"
@@ -553,7 +555,7 @@ let formula_keys =
   [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside"; "anywhere" ]
 
 let find_formula env (rule_dict : dict) : key * G.expr =
-  match List_.find_some_opt (Hashtbl.find_opt rule_dict.h) formula_keys with
+  match List_.find_some_opt (H.dict_take_opt rule_dict) formula_keys with
   | None ->
       error env.id rule_dict.first_tok
         ("Expected one of " ^ String.concat "," formula_keys ^ " to be present")
@@ -612,6 +614,7 @@ and parse_formula env (value : G.expr) : R.formula =
                      (s, env.target_analyzer, Common.exn_to_s exn, env.path),
                    env.id,
                    t )))
+      |> R.f
   (* If that doesn't work, it should be a key-value pairing.
    *)
   | Right dict -> (
@@ -701,12 +704,16 @@ and produce_constraint env dict tok indicator =
         | ___else___ -> (env, None)
       in
       let pat =
-        match List_.find_some_opt (Hashtbl.find_opt dict.h) formula_keys with
+        match List_.find_some_opt (H.dict_take_opt dict) formula_keys with
         | Some ps -> (
             let env' = { env' with in_metavariable_pattern = true } in
             let formula = parse_pair env' ps in
             match formula with
-            | R.P { pat = Xpattern.Regexp regexp; _ } ->
+            | {
+             f = R.P { pat = Xpattern.Regexp regexp; _ };
+             focus = [];
+             conditions = [];
+            } ->
                 (* TODO: always on by default *)
                 [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
             | _ -> [ Left (t, CondNestedFormula (metavar, opt_xlang, formula)) ]
@@ -737,8 +744,8 @@ and produce_constraint env dict tok indicator =
       in
       List.flatten [ pat; typ ]
 
-and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
-    =
+and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
+    R.formula =
   let env = { env with path = "where" :: env.path } in
   (* TODO: first token, or principal token? *)
   let parse_where_pair env (where_value : G.expr) =
@@ -753,38 +760,31 @@ and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
     |> List.flatten
     |> Either_.partition_either (fun x -> x)
   in
-  let tok, conditions, focus, conjuncts =
-    (* If the modified pattern is also an `And`, collect the conditions and focus
-        and fold them together.
-    *)
-    match formula with
-    | And (tok, { conjuncts; conditions = conditions2; focus = focus2 }) ->
-        (tok, conditions @ conditions2, focus @ focus2, conjuncts)
-    (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
-    *)
-    | _ -> (t1, conditions, focus, [ formula ])
-  in
-  R.And (tok, { conjuncts; conditions; focus })
+  {
+    formula with
+    conditions = formula.conditions @ conditions;
+    focus = formula.focus @ focus;
+  }
 
 and parse_pair env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
   let get_string_pattern str_e = parse_xpattern_expr env str_e in
   let s, t = key in
   match s with
-  | "pattern" -> R.P (get_string_pattern value)
-  | "not" -> R.Not (t, parse_formula env value)
-  | "inside" -> R.Inside (t, parse_formula env value)
-  | "anywhere" -> R.Anywhere (t, parse_formula env value)
+  | "pattern" -> R.P (get_string_pattern value) |> R.f
+  | "not" -> R.Not (t, parse_formula env value) |> R.f
+  | "inside" -> R.Inside (t, parse_formula env value) |> R.f
+  | "anywhere" -> R.Anywhere (t, parse_formula env value) |> R.f
   | "all" ->
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
         Rule.raise_error (Some env.id)
           (InvalidRule (MissingPositiveTermInAnd, env.id, t));
-      R.And (t, { conjuncts; focus = []; conditions = [] })
-  | "any" -> R.Or (t, parse_listi env key parse_formula value)
+      R.And (t, conjuncts) |> R.f
+  | "any" -> R.Or (t, parse_listi env key parse_formula value) |> R.f
   | "regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
-      R.P xpat
+      R.P xpat |> R.f
   | _ -> error_at_key env.id key (spf "unexpected key %s" (fst key))

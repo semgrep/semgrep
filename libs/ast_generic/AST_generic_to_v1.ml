@@ -999,7 +999,11 @@ and map_definition (v1, v2) =
   (v1, v2)
 
 and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
-  let v_tparams = map_of_list map_type_parameter v_tparams in
+  let v_tparams =
+    match v_tparams with
+    | None -> []
+    | Some (_, xs, _) -> map_of_list map_type_parameter xs
+  in
   let v_attrs = map_of_list map_attribute v_attrs in
   let v_name = map_entity_name v_name in
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }
@@ -1029,8 +1033,8 @@ and map_definition_kind = function
   | MacroDef v1 ->
       let v1 = map_macro_definition v1 in
       `MacroDef v1
-  | Signature v1 ->
-      let v1 = map_type_ v1 in
+  | Signature { sig_tok = _; sig_type } ->
+      let v1 = map_type_ sig_type in
       `Signature v1
   | UseOuterDecl v1 ->
       let v1 = map_tok v1 in
@@ -1163,7 +1167,7 @@ and map_parameter_classic
     pinfo = v_pinfo;
   }
 
-and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
+and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype; vtok = _sc } =
   let v_vtype = map_of_option map_type_ v_vtype in
   let v_vinit = map_of_option map_expr v_vinit in
   { B.vinit = v_vinit; vtype = v_vtype }

@@ -1,12 +1,12 @@
 type 'a env = {
-  file : string;
+  file : Fpath.t;
   (* get the charpos (offset) in file given a (line, col) pair *)
   conv : int * int -> int;
   extra : 'a;
 }
 
 (* to fill in conv *)
-val line_col_to_pos : string (* filename *) -> int * int -> int
+val line_col_to_pos : Fpath.t -> int * int -> int
 
 (* to fill in conv for pattern parsing *)
 val line_col_to_pos_pattern : string (* contents *) -> int * int -> int

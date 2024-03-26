@@ -1,0 +1,10 @@
+rules:
+  - id: swift-swiftpm-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: swiftpm
+      package: "swift-collections"
+      version: "< 2.0.6"
+    message: oh no
+    languages: [swift]
+    severity: WARNING

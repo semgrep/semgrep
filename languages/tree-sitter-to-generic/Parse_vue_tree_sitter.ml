@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module CST = Tree_sitter_vue.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
@@ -61,7 +62,8 @@ let str_if_wrong_content_temporary_fix ({ file; conv; _ } : env)
     let column = pos.Tree_sitter_run.Loc.column in
     try (conv (line, column), line, column) with
     | Not_found ->
-        failwith (spf "could not find line:%d x col:%d in %s" line column file)
+        failwith
+          (spf "could not find line:%d x col:%d in %s" line column !!file)
   in
   let charpos2 =
     let pos = loc.Tree_sitter_run.Loc.end_ in
@@ -70,13 +72,14 @@ let str_if_wrong_content_temporary_fix ({ file; conv; _ } : env)
     let column = pos.Tree_sitter_run.Loc.column in
     try conv (line, column) with
     | Not_found ->
-        failwith (spf "could not find line:%d x col:%d in %s" line column file)
+        failwith
+          (spf "could not find line:%d x col:%d in %s" line column !!file)
   in
   (* Range.t is inclusive, so we need -1 to remove the char at the pos *)
   let charpos2 = charpos2 - 1 in
   let r = { Range.start = bytepos; end_ = charpos2 } in
   let str = Range.content_at_range file r in
-  let pos = Pos.make ~file ~line ~column bytepos in
+  let pos = Pos.make ~file:!!file ~line ~column bytepos in
   let tok_loc = { Tok.str; pos } in
   (str, Tok.tok_of_loc tok_loc)
 
@@ -387,9 +390,10 @@ let map_component (env : env) (xs : CST.component) : stmt list =
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: move in Parse_tree_sitter_helpers.ml *)
+(* TODO: move in Parse_tree_sitter_helpers.ml and avoid using tmp file *)
 let parse_string_and_adjust_wrt_base content tbase fparse =
-  Common2.with_tmp_file ~str:content ~ext:"js" (fun file ->
+  (* nosemgrep: forbid-tmp *)
+  UTmp.with_tmp_file ~str:content ~ext:"js" (fun file ->
       let x = fparse file in
 
       let visitor =
@@ -403,9 +407,9 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
       in
       visitor#visit_program () x)
 
-let parse parse_js file =
+let parse parse_js (file : Fpath.t) =
   H.wrap_parser
-    (fun () -> Tree_sitter_vue.Parse.file file)
+    (fun () -> Tree_sitter_vue.Parse.file !!file)
     (fun cst ->
       let extra =
         {

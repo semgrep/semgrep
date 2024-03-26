@@ -30,6 +30,11 @@ class WholeScan:
 
 
 @frozen
+class HistoricalScan:
+    ()
+
+
+@frozen
 class DiffScan:
     ()
 
@@ -42,7 +47,7 @@ class ProDiffScan:
 
 @frozen
 class TargetModeConfig:
-    scan_type: Union[WholeScan, DiffScan, ProDiffScan] = field()
+    scan_type: Union[WholeScan, HistoricalScan, DiffScan, ProDiffScan] = field()
 
     @classmethod
     def pro_diff_scan(
@@ -55,8 +60,16 @@ class TargetModeConfig:
         return cls(WholeScan())
 
     @classmethod
+    def historical_scan(cls) -> "TargetModeConfig":
+        return cls(HistoricalScan())
+
+    @classmethod
     def diff_scan(cls) -> "TargetModeConfig":
         return cls(DiffScan())
+
+    @property
+    def is_historical_scan(self) -> bool:
+        return isinstance(self.scan_type, HistoricalScan)
 
     @property
     def is_pro_diff_scan(self) -> bool:

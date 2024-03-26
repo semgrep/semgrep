@@ -6,6 +6,8 @@ local osx_x86 = import 'build-test-osx-x86.jsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+local wheel_name = 'osx-arm64-wheel';
+
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -45,7 +47,6 @@ local setup_python_step =  {
 // alt: we could factorize more with build-test-osx-x86.jsonnet by making
 // the xxx_job functions, but let's copy paste a bit for now.
 local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
-local wheel_name = 'osx-arm64-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,
@@ -66,21 +67,8 @@ local build_core_job = {
       name: 'Compile semgrep',
       run: "opam exec -- make core",
     },
-    {
-      name: 'Make artifact',
-      run: |||
-        mkdir artifacts
-        cp ./bin/semgrep-core artifacts/
-        tar czf artifacts.tgz artifacts
-      |||,
-    },
-    {
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        path: 'artifacts.tgz',
-        name: artifact_name,
-      },
-    },
+    actions.make_artifact_step("./bin/semgrep-core"),
+    actions.upload_artifact_step(artifact_name),
   ],
 };
 
@@ -94,12 +82,7 @@ local build_wheels_job = {
     setup_python_step,
     // needed for ./script/build-wheels.sh below
     actions.checkout_with_submodules(),
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: artifact_name,
-      },
-    },
+    actions.download_artifact_step(artifact_name),
     // the --plat-name is macosx_11_0_arm64 here!
     {
       run: |||
@@ -126,14 +109,9 @@ local test_wheels_job = {
   steps: [
     setup_runner_step,
     setup_python_step,
+    actions.download_artifact_step(wheel_name),
     {
-      uses: 'actions/download-artifact@v1',
-      with: {
-        name: wheel_name,
-      },
-    },
-    {
-      run: 'unzip ./osx-arm64-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     {
       name: 'install package',

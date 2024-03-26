@@ -1,6 +1,5 @@
 (library
  (public_name tracing.ppx)
- (wrapped false)
  (name ppx_tracing)
  (kind ppx_deriver)
  (libraries

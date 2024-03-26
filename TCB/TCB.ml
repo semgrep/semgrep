@@ -16,6 +16,11 @@
  * to forbid access to the sensitive resource in Stdlib is to reuse the same
  * name but change the type and value to unit.
  *
+ * If you really need to use the sensitive functions/constants in Stdlib.ml,
+ * at least use the explicitely qualified UStdlib.xxx (e.g., UStdlib.exit),
+ * but if you can it is better to use the capability-aware variant in one of
+ * the CapXxx.ml file (e.g., CapStdlib.exit).
+ *
  * references:
  *  - https://en.wikipedia.org/wiki/Trusted_computing_base
  *
@@ -41,8 +46,7 @@ module Stdlib = struct end
 (*###########################################################################*)
 
 (* Stdlib.ml, which was called pervasive.ml for a long time, is [open]ed
- * implicitely in every file, so we must mask the dangerous functions
- * in it.
+ * implicitely in every file, so we must mask the dangerous functions in it.
  * I tried to keep the same order of the definitions than in Stdlib.mli
  * (and pervasive.ml) below so if new versions of OCaml introduce new
  * builtins, we can easily just go thouch each file in parallel and
@@ -334,6 +338,9 @@ let ( @ ) = ( @ )
  * See also for In: Scanf/Lexing/Parsing
  *)
 
+(* See the toplevel comment, but if you really need to use directly stdin,
+ * at least qualify it with UStdlib.stdin
+ *)
 let stdin = ()
 let stdout = ()
 let stderr = ()
@@ -1011,6 +1018,7 @@ module Format = struct
   let fprintf = Format.fprintf
   let sprintf = Format.sprintf
   let kfprintf = Format.kfprintf
+  let ikfprintf = Format.ikfprintf
 
   (* pp_xxx are safe *)
   let pp_print_int = Format.pp_print_int

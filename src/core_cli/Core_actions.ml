@@ -47,7 +47,7 @@ let json_of_v (v : OCaml.v) =
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
-  let ast = Parse_target.parse_program !!file in
+  let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
@@ -56,7 +56,7 @@ let dump_il_all file =
 
 let dump_il file =
   let module G = AST_generic in
-  let ast = Parse_target.parse_program !!file in
+  let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let report_func_def_with_name ent_opt fdef =
@@ -89,13 +89,13 @@ let dump_il file =
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
 
-let dump_v1_json file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_v1_json caps file =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise !!file (fun () ->
           let { Parsing_result2.ast; skipped_tokens; _ } =
-            Parse_target.parse_and_resolve_name lang !!file
+            Parse_target.parse_and_resolve_name lang file
           in
           let v1 = AST_generic_to_v1.program ast in
           let s = Ast_generic_v1_j.string_of_program v1 in
@@ -108,25 +108,13 @@ let dump_v1_json file =
 let generate_ast_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
-      let ast =
-        Parse_target.parse_and_resolve_name_warn_if_partial lang !!file
-      in
+      let ast = Parse_target.parse_and_resolve_name_warn_if_partial lang file in
       let v1 = AST_generic_to_v1.program ast in
       let s = Ast_generic_v1_j.string_of_program v1 in
       let file = !!file ^ ".ast.json" |> Fpath.v in
       UFile.write_file file s;
       UCommon.pr2 (spf "saved JSON output in %s" !!file)
   | [] -> failwith (spf "unsupported language for %s" !!file)
-[@@action]
-
-let generate_ast_binary lang file =
-  let final =
-    Parse_with_caching.ast_cached_value_of_file Version.version lang file
-  in
-  let file = Fpath.(file + Parse_with_caching.binary_suffix) in
-  assert (Parse_with_caching.is_binary_ast_filename file);
-  Common2.write_value final !!file;
-  UCommon.pr2 (spf "saved marshalled generic AST in %s" !!file)
 [@@action]
 
 let dump_ext_of_lang () =
@@ -143,14 +131,14 @@ let dump_ext_of_lang () =
        (String.concat "\n" lang_to_exts))
 [@@action]
 
-let dump_equivalences file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_equivalences (caps : < Cap.tmp >) file =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let xs = Parse_equivalences.parse file in
   UCommon.pr2_gen xs
 [@@action]
 
-let dump_rule file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_rule (caps : < Cap.tmp >) file =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> UCommon.pr (Rule.show r))
 [@@action]

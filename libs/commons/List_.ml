@@ -12,11 +12,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 
 (*****************************************************************************)
-(* Faster List.map *)
+(* Faster and stack-safe List.map *)
 (*****************************************************************************)
+
+open Eq.Operators
 
 (*
    Custom list type used to store intermediate lists, while minimizing
@@ -117,6 +118,26 @@ let rec fast_map rec_calls_remaining f l =
 let map f l = fast_map 1000 f l
 
 (*****************************************************************************)
+(* Additional iterators *)
+(*****************************************************************************)
+
+let iter_with_view_into_neighbor_elements
+    (f : prev:'a option -> cur:'a -> next:'a option -> unit) xs =
+  let rec loop ~prev xs =
+    match xs with
+    | x :: tail ->
+        let next =
+          match tail with
+          | [] -> None
+          | next :: _ -> Some next
+        in
+        f ~prev ~cur:x ~next;
+        loop ~prev:(Some x) tail
+    | [] -> ()
+  in
+  loop ~prev:None xs
+
+(*****************************************************************************)
 (* Faster List.map2 *)
 (*****************************************************************************)
 
@@ -201,12 +222,17 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
 let map2 f l1 l2 = fast_map2 1000 f l1 l2
 
 (*****************************************************************************)
-(* Other faster alternative to List.xxx functions *)
+(* Other safer alternatives to List.xxx functions *)
 (*****************************************************************************)
 
 (* Tail-recursive to prevent stack overflows. *)
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev
+
+let append a b = List.rev_append (List.rev a) b
+
+let fold_right func xs acc =
+  List.fold_left (fun acc x -> func x acc) acc (List.rev xs)
 
 (*****************************************************************************)
 (* Other list functions *)
@@ -221,6 +247,12 @@ let tl_exn errmsg xs =
   match xs with
   | [] -> failwith errmsg
   | _ :: tail -> tail
+
+let rec last_opt xs =
+  match xs with
+  | [] -> None
+  | [ x ] -> Some x
+  | _ :: tl -> last_opt tl
 
 let mapi f l = map2 f (List.init (List.length l) Fun.id) l
 
@@ -325,6 +357,11 @@ let optlist_to_list = function
 
 let sort xs = List.sort compare xs
 
+let sort_by_key (key : 'a -> 'b) (cmp : 'b -> 'b -> int) (xs : 'a list) =
+  map (fun x -> (key x, x)) xs
+  |> List.sort (fun (x, _) (y, _) -> cmp x y)
+  |> map snd
+
 (* maybe too slow? use an hash instead to first group, and then in
  * that group remove duplicates? *)
 let rec uniq_by eq xs =
@@ -355,3 +392,8 @@ let enum x n =
     if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
+
+(* for 'open List_.Operators' *)
+module Operators = struct
+  let ( @ ) = ( @ )
+end

@@ -18,7 +18,7 @@ open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -315,7 +315,7 @@ and expr (x : expr) =
       | SR_Special v ->
           G.Call (G.IdSpecial v |> G.e, bracket (List_.map G.arg) v2)
       | SR_Literal l ->
-          logger#info "Weird: literal in call position";
+          Logs.debug (fun m -> m ~tags "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
           G.Call (G.L l |> G.e, bracket (List_.map G.arg) v2)
       | SR_NeedArgs f -> f (Tok.unbracket v2)
@@ -533,7 +533,7 @@ and definition (ent, def) =
       let ty = option type_ ty in
       let v3 = option expr x_init in
       ( { ent with G.attrs = v2 :: ent.G.attrs },
-        G.VarDef { G.vinit = v3; G.vtype = ty } )
+        G.VarDef { G.vinit = v3; vtype = ty; vtok = G.no_sc } )
   | FuncDef def ->
       let def, more_attrs = fun_ def in
       ({ ent with G.attrs = ent.G.attrs @ more_attrs }, G.FuncDef def)
@@ -552,7 +552,7 @@ and var_of_var
   let ent = G.basic_entity v1 ~attrs:(v2 :: attrs) in
   let v3 = option expr x_init in
   let v_type = option type_ v_type in
-  (ent, { G.vinit = v3; vtype = v_type })
+  (ent, { G.vinit = v3; vtype = v_type; vtok = G.no_sc })
 
 and var_kind (x, tok) =
   match x with
@@ -666,7 +666,7 @@ and field_classic
   let ent =
     match v1 with
     | Left n -> G.basic_entity n ~attrs:v2
-    | Right e -> { G.name = G.EDynamic e; attrs = v2; tparams = [] }
+    | Right e -> { G.name = G.EDynamic e; attrs = v2; tparams = None }
   in
   match v3 with
   | Some (Fun (def, None)) ->
@@ -681,7 +681,7 @@ and field_classic
         G.FuncDef { def with G.fkind = (fkind, tok) } )
   | _ ->
       let v3 = option expr v3 in
-      (ent, G.VarDef { G.vinit = v3; vtype = vt })
+      (ent, G.VarDef { G.vinit = v3; vtype = vt; vtok = G.no_sc })
 
 and property x =
   match x with

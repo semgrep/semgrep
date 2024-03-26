@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +19,7 @@ open Ast_cpp
 open OCaml (* for the map_of_xxx *)
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* See Parse_cpp_tree_Sitter.recover_when_partial_error *)
 let recover_when_partial_error = ref true
@@ -64,8 +64,9 @@ let error t s = raise (Parsing_error.Other_error (s, t))
 let error_unless_partial_error _env t s =
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s
-      (Tok.stringpos_of_tok t)
+    Logs.err (fun m ->
+        m ~tags "error_unless_partial_error: %s, at %s" s
+          (Tok.stringpos_of_tok t))
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x
@@ -167,9 +168,7 @@ let map_bracket env _of_a (v1, v2, v3) =
   let v1 = map_tok env v1 and v2 = _of_a v2 and v3 = map_tok env v3 in
   (v1, v2, v3)
 
-let map_angle _env _of_a (_v1, v2, _v3) = _of_a v2
-
-let map_angle_keep env _of_a (v1, v2, v3) =
+let map_angle env _of_a (v1, v2, v3) =
   let v1 = map_tok env v1 and v2 = _of_a v2 and v3 = map_tok env v3 in
   (v1, v2, v3)
 
@@ -317,13 +316,13 @@ and map_typeC env x : G.type_ =
               {
                 G.name = OtherEntity (("AnonEnum", v1.enum_kind), []);
                 attrs = [];
-                tparams = [];
+                tparams = None;
               }
             in
             let t = G.OtherType (("AnonEnumName", v1.enum_kind), []) |> G.t in
             (ent, t)
         | Some n ->
-            let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+            let ent = { G.name = G.EN n; attrs = []; tparams = None } in
             let t =
               G.OtherType (("EnunName", v1.enum_kind), [ G.T (G.TyN n |> G.t) ])
               |> G.t
@@ -348,13 +347,13 @@ and map_typeC env x : G.type_ =
               {
                 G.name = OtherEntity (("AnonClass", tk), []);
                 attrs = [];
-                tparams = [];
+                tparams = None;
               }
             in
             let t = G.OtherType ((Tok.content_of_tok tk, tk), []) |> G.t in
             (ent, t)
         | Some n ->
-            let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+            let ent = { G.name = G.EN n; attrs = []; tparams = None } in
             let t =
               G.OtherType ((Tok.content_of_tok tk, tk), [ G.T (G.TyN n |> G.t) ])
               |> G.t
@@ -549,7 +548,7 @@ and map_expr env x : G.expr =
       G.OtherExpr (("TypeId", v1), [ any ]) |> G.e
   | CplusplusCast (v1, v2, v3) ->
       let optodo, t = map_wrap env (map_cast_operator env) v1
-      and langle, typ, _rangle = map_angle_keep env (map_type_ env) v2
+      and langle, typ, _rangle = map_angle env (map_type_ env) v2
       and _lpar, e, rpar = map_paren env (map_expr env) v3 in
       let ecall = G.OtherExpr ((optodo, t), []) |> G.e in
       G.Call (ecall, (langle, [ G.ArgType typ; G.Arg e ], rpar)) |> G.e
@@ -1183,9 +1182,12 @@ and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
   (v1, v2)
 
-and map_condition_initializer env x =
+and map_condition_initializer (env : env) (x : condition_initializer) :
+    G.any list =
   match x with
-  | InitVarsDecl x -> map_vars_decl env x |> List_.map (fun def -> G.Def def)
+  | InitVarsDecl x ->
+      let xs, _sc = map_vars_decl env x in
+      xs |> List_.map (fun def -> G.Def def)
   | InitExprStmt x ->
       let eopt, sc = map_expr_stmt env x in
       [ G.S (G.ExprStmt (expr_option sc eopt, sc) |> G.s) ]
@@ -1233,14 +1235,15 @@ and map_for_header env = function
       (* less: or ForEach? *)
       G.ForEach (G.PatTyped (pat, ty) |> G.p, v2, v4)
 
-and map_a_expr_or_vars env v =
+and map_a_expr_or_vars (env : env) (v : a_expr_or_vars) : G.for_var_or_expr list
+    =
   match v with
   | Left (Some e, _sc) ->
       let e = map_expr env e in
       [ ForInitExpr e ]
   | Left (None, _) -> []
   | Right xs ->
-      let xs = map_vars_decl env xs in
+      let xs, _sc = map_vars_decl env xs in
       xs
       |> List_.map (fun (ent, def) ->
              match def with
@@ -1318,15 +1321,15 @@ and map_declarations env (l, v, r) : G.stmt list bracket =
 and map_entity env { name = v_name; specs = v_specs } : G.entity =
   let v_specs = map_of_list (map_specifier env) v_specs in
   let v_name = map_name env v_name in
-  { G.name = G.EN v_name; attrs = v_specs; tparams = [] }
+  { G.name = G.EN v_name; attrs = v_specs; tparams = None }
 
 and map_decl env x : G.stmt list =
   match x with
   | DeclList v1 ->
-      let v1 = map_vars_decl env v1 in
+      let xs, sc = map_vars_decl env v1 in
       let defs = env.defs_toadd in
       env.defs_toadd <- [];
-      defs @ v1 |> List_.map (fun def -> G.DefStmt def |> G.s)
+      defs @ xs |> H.add_semicolon_to_last_def_and_convert_to_stmts sc
   | UsingDecl v1 ->
       let v1 = map_using env v1 in
       [ v1 ]
@@ -1362,7 +1365,8 @@ and map_decl env x : G.stmt list =
       and v4 = map_decl env v4 in
       v4
       |> List_.map
-           (map_def_in_stmt (fun (ent, def) -> ({ ent with tparams = v2 }, def)))
+           (map_def_in_stmt (fun (ent, def) ->
+                ({ ent with tparams = Some v2 }, def)))
   | TemplateInstanciation (v1, v2, v3) ->
       let _v1TODO = map_tok env v1
       and ent, vardef = map_var_decl env v2
@@ -1423,10 +1427,10 @@ and map_decl env x : G.stmt list =
       let v1 = map_todo_category env v1 in
       [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
 
-and map_vars_decl env (v1, v2) : G.definition list =
-  let v1 = map_of_list (map_onedecl env) v1 |> List.flatten
-  and _v2 = map_sc env v2 in
-  v1
+and map_vars_decl env (v1, v2) : G.definition list * G.sc =
+  let defs = map_of_list (map_onedecl env) v1 |> List.flatten in
+  let sc = map_sc env v2 in
+  (defs, sc)
 
 and map_asmbody env (v1, v2) : G.any list =
   let _v1 = map_of_list (map_wrap env map_of_string) v1
@@ -1472,9 +1476,9 @@ and map_onedecl env x : G.definition list =
       in
       (* TODO: the type is the type of all bindings or type of init? *)
       let pat = G.PatTyped (pat, v1) in
-      let ent = { G.name = G.EPattern pat; attrs = []; tparams = [] } in
+      let ent = { G.name = G.EPattern pat; attrs = []; tparams = None } in
       (* TODO? use v1 for vtype? *)
-      let def = G.VarDef { G.vinit = Some v3; vtype = None } in
+      let def = G.VarDef { G.vinit = Some v3; vtype = None; vtok = G.no_sc } in
       [ (ent, def) ]
   | BitField (v1, v2, v3, v4) ->
       let v1 = map_of_option (map_ident env) v1
@@ -1488,7 +1492,7 @@ and map_onedecl env x : G.definition list =
             {
               G.name = G.OtherEntity (("AnonBitField", v2), []);
               attrs = [];
-              tparams = [];
+              tparams = None;
             }
         | Some id -> G.basic_entity id
       in
@@ -1499,7 +1503,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
     let ent = map_entity env ent in
     let v_v_type = map_type_ env v_v_type in
     let v_v_init = map_of_option (map_init env) v_v_init in
-    (ent, { G.vtype = Some v_v_type; vinit = v_v_init })
+    (ent, { G.vtype = Some v_v_type; vinit = v_v_init; vtok = G.no_sc })
   in
   let fun_def_as_var_def_with_ctor () =
     match (v_v_init, v_v_type) with
@@ -1522,7 +1526,10 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
         if List.length params <> List.length args then None
         else
           let v_v_init = map_init env (ObjInit (Args (p1, args, p2))) in
-          Some (ent, { G.vtype = Some v_v_type; vinit = Some v_v_init })
+          Some
+            ( ent,
+              { G.vtype = Some v_v_type; vinit = Some v_v_init; vtok = G.no_sc }
+            )
     | _ -> None
   in
   let var_def_with_ctor_as_fun_def () =
@@ -1558,7 +1565,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
                     ft_requires = None;
                   } )
           in
-          Some (ent, { G.vtype = Some v_v_type; vinit = None })
+          Some (ent, { G.vtype = Some v_v_type; vinit = None; vtok = G.no_sc })
     | _ -> None
   in
   let result =
@@ -1913,12 +1920,12 @@ and map_template_parameter env x : G.type_parameter =
       | Some id -> G.OtherTypeParam (("TPVariadic", v2), [ G.I id ]))
   | TPNested (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_template_parameters env v2
+      and _, v2, _ = map_template_parameters env v2
       and v3 = map_template_parameter env v3 in
       G.OtherTypeParam
         (("TPNested", v1), v3 :: v2 |> List_.map (fun x -> G.Tp x))
 
-and map_template_parameters env v : G.type_parameter list =
+and map_template_parameters env v : G.type_parameters =
   map_angle env (map_of_list (map_template_parameter env)) v
 
 and map_specifier env x : G.attribute =

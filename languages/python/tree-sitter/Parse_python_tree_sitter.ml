@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Fpath_.Operators
 module CST = Tree_sitter_python.CST
 module H = Parse_tree_sitter_helpers
 open AST_python
@@ -1173,7 +1173,7 @@ let map_with_clause (env : env) (x : CST.with_clause) (twith : tok)
             v2)
           ws
       in
-      List.fold_right
+      List_.fold_right
         (fun wclause acc ->
           match acc with
           | None -> Some (With (twith, wclause, body))
@@ -1476,7 +1476,7 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
         | None -> None
       in
       let orelse =
-        List.fold_right
+        List_.fold_right
           (fun (tif, test, stmts) acc -> Some [ If (tif, test, stmts, acc) ])
           elseifs else_
       in
@@ -1655,7 +1655,7 @@ and map_suite (env : env) (x : CST.suite) : stmt list =
 
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_python.Parse.file file)
+    (fun () -> Tree_sitter_python.Parse.file !!file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_module_ env cst)
@@ -1666,7 +1666,7 @@ let parse_string ~file ~contents =
     (fun cst ->
       let env =
         {
-          H.file;
+          H.file = Fpath.v file;
           conv = (Pos.full_converters_str contents).linecol_to_bytepos_fun;
           extra = ();
         }
@@ -1678,6 +1678,6 @@ let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_python.Parse.string str)
     (fun cst ->
-      let file = "<pattern>" in
+      let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       Program (map_module_ env cst))

@@ -12,6 +12,8 @@
      timedesc
 
      commons
+     paths
+     git
   )
   (preprocess (pps
      ppx_deriving.show

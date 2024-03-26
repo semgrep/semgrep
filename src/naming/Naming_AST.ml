@@ -17,7 +17,7 @@ open AST_generic
 open Naming_utils
 module H = AST_generic_helpers
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* see error() below *)
 let error_report = false
@@ -329,7 +329,7 @@ let lookup_scope_opt ?(class_attr = false) (s, _) env =
 
 let error tok s =
   if error_report then raise (Parsing_error.Other_error (s, tok))
-  else logger#trace "%s at %s" s (Tok.stringpos_of_tok tok)
+  else Logs.debug (fun m -> m ~tags "%s at %s" s (Tok.stringpos_of_tok tok))
 
 (*****************************************************************************)
 (* Typing Helpers *)
@@ -489,7 +489,7 @@ let assign_implicitly_declares lang =
 (*****************************************************************************)
 
 let resolve lang prog =
-  logger#trace "Naming_AST.resolve program";
+  Logs.debug (fun m -> m ~tags "Naming_AST.resolve program");
   let env = default_env lang in
 
   (* coupling: we do similar things in Constant_propagation.ml so if you
@@ -552,7 +552,7 @@ let resolve lang prog =
                           );
                       _;
                     };
-                vtype = _;
+                _;
               } )
           when lang =*= Lang.Js || lang =*= Lang.Ts ->
             let sid = SId.mk () in
@@ -585,7 +585,7 @@ let resolve lang prog =
                             } );
                       _;
                     };
-                vtype = _;
+                _;
               } )
           when id_str = special_multivardef_pattern
                && (lang =*= Lang.Js || lang =*= Lang.Ts) ->
@@ -598,7 +598,7 @@ let resolve lang prog =
                           ( {
                               name = EN (Id (imported_id, _imported_id_info));
                               attrs = [];
-                              tparams = [];
+                              tparams = None;
                             },
                             FieldDefColon
                               {
@@ -622,8 +622,9 @@ let resolve lang prog =
         (* In Rust, the left-hand side (lhs) of the let variable definition is
          * parsed as a pattern.
          * TODO handle more cases than just the simple identifier pattern. *)
-        | { name = EPattern (PatId (id, id_info)); _ }, VarDef { vinit; vtype }
-        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
+        | ( { name = EPattern (PatId (id, id_info)); _ },
+            VarDef { vinit; vtype; vtok = _ } )
+        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype; vtok = _ }
         (* note that some languages such as Python do not have VarDef
          * construct
          * todo? should add those somewhere instead of in_lvalue detection? *)

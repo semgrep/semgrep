@@ -21,21 +21,19 @@ type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
    targets but doesn't have to put them in a file since we stay in the
    same process and we bypass the semgrep-core CLI.
 *)
-type target_source =
-  | Target_file of Fpath.t
-  | Targets of Input_to_core_t.targets
+type target_source = Target_file of Fpath.t | Targets of Target.t list
 [@@deriving show]
 
 (* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)
 type t = {
   (* Debugging/profiling/logging flags *)
-  log_config_file : Fpath.t;
   log_to_file : Fpath.t option;
   nosem : bool;
   strict : bool;
   test : bool;
   debug : bool;
   profile : bool;
+  trace : bool;
   report_time : bool;
   error_recovery : bool;
   profile_start : float;
@@ -46,7 +44,8 @@ type t = {
   rule_source : rule_source option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
-  roots : Fpath.t list;
+  (* Scanning roots. They are mutually exclusive with target_source! *)
+  roots : Scanning_root.t list;
   output_format : output_format;
   match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
@@ -60,7 +59,6 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  parsing_cache_dir : Fpath.t option;
   filter_irrelevant_rules : bool;
   (* Hook to display match results incrementally, after a file has been fully
    * processed. Note that this hook run in a child process of Parmap
@@ -74,6 +72,8 @@ type t = {
   action : string;
   (* Other *)
   version : string;
+  (* To add data to our opentelemetry top span, which makes it easier to filter *)
+  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 
@@ -91,13 +91,13 @@ type t = {
 let default =
   {
     (* Debugging/profiling/logging flags *)
-    log_config_file = Fpath.v "log_config.json";
     log_to_file = None;
     nosem = true;
     strict = false;
     test = false;
     debug = false;
     profile = false;
+    trace = false;
     report_time = false;
     error_recovery = false;
     profile_start = 0.;
@@ -122,7 +122,6 @@ let default =
     max_memory_mb = 0;
     max_match_per_file = 10_000;
     ncores = 1;
-    parsing_cache_dir = None;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     file_match_results_hook = None;
@@ -132,4 +131,5 @@ let default =
     action = "";
     (* Other *)
     version = "";
+    top_level_span = None;
   }

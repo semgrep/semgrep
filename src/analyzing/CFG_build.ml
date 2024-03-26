@@ -31,7 +31,10 @@ module G = AST_generic
  *    do any kind of cfg-based analysis on the IL rather than the generic AST.
  *)
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
+let _tags = Logs_.create_tags base_tag_strings
+let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
+let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (*****************************************************************************)
 (* Types *)
@@ -111,7 +114,9 @@ let resolve_gotos state =
   !(state.gotos)
   |> List.iter (fun (srci, label_key) ->
          match Hashtbl.find_opt state.labels label_key with
-         | None -> logger#warning "Could not resolve label: %s" (fst label_key)
+         | None ->
+             Logs.debug (fun m ->
+                 m ~tags:warning "Could not resolve label: %s" (fst label_key))
          | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
 
@@ -458,7 +463,8 @@ let build_cfg_of_unused_lambdas state previ nexti =
   |> Hashtbl.iter (fun name _ ->
          match Hashtbl.find_opt state.lambdas name with
          | None ->
-             logger#error "Cannot find the definition of a lambda";
+             Logs.debug (fun m ->
+                 m ~tags:error "Cannot find the definition of a lambda");
              ()
          | Some fdef -> cfg_lambda state previ nexti fdef);
   Hashtbl.clear state.unused_lambdas

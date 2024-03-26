@@ -1207,10 +1207,6 @@ let int64_of_string_c_octal_opt s =
     int64_of_string_opt ("0o" ^ s)
   else int64_of_string_opt s
 
-let int_of_string_opt s =
-  try Some (int_of_string s) with
-  | Failure _ -> None
-
 let int_of_string_c_octal_opt s =
   let open Common in
   if s =~ "^0\\([0-7]+\\)$" then
@@ -1772,20 +1768,6 @@ let normalize_path (file : string) : string =
   let xs' = aux [] xs in
   (if is_rel then "" else "/") ^ join "/" xs'
 
-(*
-let relative_to_absolute s =
-  if Filename.is_relative s
-  then
-    begin
-      let old = USys.getcwd () in
-      Sys.chdir s;
-      let current = USys.getcwd () in
-      Sys.chdir old;
-      s
-    end
-  else s
-*)
-
 let relative_to_absolute s =
   if s = "." then USys.getcwd ()
   else if Filename.is_relative s then USys.getcwd () ^ "/" ^ s
@@ -1808,7 +1790,7 @@ let grep_dash_v_str =
   "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
   ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
 
-let arg_symlink () = if !UCommon.follow_symlinks then " -L " else ""
+let arg_symlink () = if !UFile.follow_symlinks then " -L " else ""
 
 let files_of_dir_or_files_no_vcs ext xs =
   xs
@@ -2431,7 +2413,7 @@ let cat file =
 *)
 
 let cat_excerpts file lines =
-  UCommon.with_open_infile file (fun chan ->
+  UFile.Legacy.with_open_infile file (fun chan ->
       let lines = List.sort compare lines in
       let rec aux acc lines count =
         let b, l =
@@ -2589,7 +2571,7 @@ let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir = Str.matched_string pattern in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
-  let files = UCommon.dir_contents dir in
+  let files = UFile.Legacy.dir_contents dir in
   files |> List.filter (fun s -> Re.execp regex s)
 
 let sanity_check_files_and_adjust ext files =
@@ -2647,21 +2629,8 @@ let (with_open_outfile_append :
       res)
     (fun _e -> close_out chan)
 
-let tmp_file_cleanup_hooks = ref []
-
-let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
-  let tmpfile = UCommon.new_temp_file "tmp" ("." ^ ext) in
-  UCommon.write_file ~file:tmpfile str;
-  Common.finalize
-    (fun () -> f tmpfile)
-    (fun () ->
-      !tmp_file_cleanup_hooks |> List.iter (fun f -> f tmpfile);
-      UCommon.erase_this_temp_file tmpfile)
-
-let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
-
 let uncat xs file =
-  UCommon.with_open_outfile file (fun (pr, _chan) ->
+  UFile.Legacy.with_open_outfile file (fun (pr, _chan) ->
       xs
       |> List.iter (fun s ->
              pr s;
@@ -2715,7 +2684,7 @@ let rec zip_safe xs ys =
   | x :: xs, y :: ys -> (x, y) :: zip_safe xs ys
 
 let unzip zs =
-  List.fold_right (fun e (xs, ys) -> (fst e :: xs, snd e :: ys)) zs ([], [])
+  List_.fold_right (fun e (xs, ys) -> (fst e :: xs, snd e :: ys)) zs ([], [])
 
 (* Same as Common2.unzip or List.split but with triples. Tail-recursive. *)
 let unzip3 l =
@@ -2959,7 +2928,7 @@ let _ = assert_equal (head_middle_tail [ 1; 3 ]) (1, [], 3)
  *)
 
 (* let (++) = (@), could do that, but if load many times the common, then pb *)
-(* let (++) l1 l2 = List.fold_right (fun x acc -> x::acc) l1 l2 *)
+(* let (++) l1 l2 = List_.fold_right (fun x acc -> x::acc) l1 l2 *)
 
 let remove x xs =
   let newxs = List.filter (fun y -> y <> x) xs in
@@ -4872,9 +4841,6 @@ let cmdline_flags_devel () =
     ( "-debugger",
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
-    ( "-keep_tmp_files",
-      Arg.Set UCommon.save_tmp_files,
-      " keep temporary generated files" );
   ]
 
 let cmdline_flags_verbose () =
@@ -4889,7 +4855,6 @@ let cmdline_flags_other () =
   [
     ("-nocheck_stack", Arg.Clear _check_stack, " ");
     ("-batch_mode", Arg.Set _batch_mode, " no interactivity");
-    ("-keep_tmp_files", Arg.Set UCommon.save_tmp_files, " ");
   ]
 
 (* potentially other common options but not yet integrated:
@@ -4947,10 +4912,11 @@ module Infix = struct
   let ( ==~ ) = ( ==~ )
 end
 
-let with_pr2_to_string f =
-  let file = UCommon.new_temp_file "pr2" "out" in
-  redirect_stdout_stderr file f;
-  cat file
+let with_pr2_to_string caps f =
+  CapTmp.with_tmp_file caps ~str:"" ~ext:"out" (fun path ->
+      let file = Fpath.to_string path in
+      redirect_stdout_stderr file f;
+      cat file)
 
 (*---------------------------------------------------------------------------*)
 (* Directories part 2 *)

@@ -2,34 +2,53 @@
 (* Prelude *)
 (**************************************************************************)
 (* Capabilities implemented as simple abstract types and explicit
- * parameters ("Lambda the ultimate security tool").
+ * arguments/parameters, "Lambda the ultimate security tool".
  *
  * references:
  *  - https://en.wikipedia.org/wiki/Capability-based_security
  *  - "Computer Systems Security Session 6: Capabilities" accessible at
  *    https://www.youtube.com/watch?v=TQhmua7Z2cY
  *    by Zeldovich and Mickens, Fall 2014. Good introduction.
+ *  - https://roscidus.com/blog/blog/2023/04/26/lambda-capabilities/
  *
  * related work:
+ *  - https://en.wikipedia.org/wiki/E_(programming_language) which
+ *    itself led to Emily which was about adding capabilities in OCaml
+ *    https://www.hpl.hp.com/techreports/2006/HPL-2006-116.html
  *  - EIO capabilities for network, fs, io, etc.
- *    see especially Eio_unix.Stdenv.base, and also Thomas's blog post
- *    https://roscidus.com/blog/blog/2023/04/26/lambda-capabilities/
- *  - TODO Android's permissions? iphone permissions?
- *  - TODO lots of related work
+ *    see especially Eio_unix.Stdenv.base, (see the blog post above)
+ *  - Android's permissions, iphone permissions; every mobile OS is
+ *    using capabilities/permissions
+ *  - Capability-based version of the Rust standard library
+ *    https://github.com/bytecodealliance/cap-std
+ *    I actually defined independently almost the same list of capabilities
+ *    (tmp, random, fs, net) than they have
+ *  - deno (a nodejs fork) sandboxed environment
+ *  - TODO: "A Security Kernel Based on the Lambda-Calculus", Jonathan A. Rees,
+ *    https://dspace.mit.edu/handle/1721.1/5944
+ *  - TODO: "Effects, Capabilities, and Boxes"
+ *    https://dl.acm.org/doi/pdf/10.1145/3527320
+ *  - Effects as capabilities
+ *    https://dl.acm.org/doi/10.1145/3428194
+ *  - Effects in Scala
+ *    https://dotty.epfl.ch/docs/reference/experimental/canthrow.html
+ *  - ... lots of related work
  *
  * alt:
- *  - effect system, but not ready yet for OCaml
- *  - semgrep rules, but this would be more of a blacklist approach whereas
- *    here it is more a whitelist approach
+ *  - use an effect system, but not ready yet for OCaml
+ *  - use semgrep rules, but this would be more of a blacklist approach
+ *    whereas here it is more a whitelist approach
+ *    update: we actually combine Cap, TCB with now semgrep rules, see
+ *    the forbid_xxx.jsonnet rules in this directory.
  *
  * LATER:
  *  - exn (ability to thrown exn)
- *  - comparison
- *  - refs
+ *  - comparison? forbid polymorphic equal, forbid compare, force deriving
+ *  - refs? (and globals)
  *
- * Assumed capabilities:
- *  - use RAM (see Memory_limit.ml for some limits)
- *  - use CPU (see Time_limit.ml for some limits)
+ * Assumed (ambient) capabilities:
+ *  - The RAM (see Memory_limit.ml for some limits)
+ *  - The CPU (see Time_limit.ml for some limits)
  *)
 
 (**************************************************************************)
@@ -114,6 +133,7 @@ module Process = struct
   type exit = cap
   type pid = cap
   type kill = cap
+  type chdir = cap
   type fork = cap
   type thread = cap
   type domain = cap
@@ -152,12 +172,6 @@ end
  * references:
  *  - "How Emily Tamed the Caml"
  *     https://www.hpl.hp.com/techreports/2006/HPL-2006-116.html
- *  - "Lambda Capabilities"
- *     https://roscidus.com/blog/blog/2023/04/26/lambda-capabilities/
- *  - TODO: "A Security Kernel Based on the Lambda-Calculus", Jonathan A. Rees,
- *    https://dspace.mit.edu/handle/1721.1/5944
- *  - TODO: "Effects, Capabilities, and Boxes"
- *    https://dl.acm.org/doi/pdf/10.1145/3527320
  *
  * I was using plain records before, which was simple. However, objects,
  * which can be seen as extensible records, are nice because you can have
@@ -168,7 +182,7 @@ end
  * Objects are a bit to records what polymorphic variants are to variants,
  * that is [ taint | search ] allow to merge variants without introducing
  * an intermediate name. Polymorphic variants are extensible Sum types,
- * objects are extensible Product type!
+ * objects are extensible Product types!
  *)
 
 (* fs *)
@@ -197,11 +211,12 @@ type signal = < signal : Process.signal >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
+type chdir = < chdir : Process.chdir >
 type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; exit >
+type process_single = < signal ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -223,7 +238,7 @@ type all_caps =
   ; network
   ; misc >
 
-type no_cap = unit (* better than [type no_cap = cap] :) *)
+type no_caps = < >
 
 let powerbox : all_caps =
   object
@@ -252,6 +267,7 @@ let powerbox : all_caps =
     method env = ()
     method pid = ()
     method kill = ()
+    method chdir = ()
     method signal = ()
     method fork = ()
     method exit = ()
@@ -271,9 +287,16 @@ let powerbox : all_caps =
 (* Temporary unsafe caps to help migration *)
 (**************************************************************************)
 
+(* !!DO NOT USE!! *)
 let network_caps_UNSAFE () =
   object
     method network = ()
+  end
+
+(* !!DO NOT USE!! *)
+let tmp_caps_UNSAFE () =
+  object
+    method tmp = ()
   end
 
 (**************************************************************************)

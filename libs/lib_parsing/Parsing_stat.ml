@@ -15,7 +15,7 @@
  *)
 open Common
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -191,7 +191,7 @@ let print_regression_information ~ext xs newscore =
   let xs = Fpath_.to_strings xs in
   let dirname_opt =
     match xs with
-    | [ x ] when UFile.is_directory (Fpath.v x) -> Some (UCommon.fullpath x)
+    | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
     | _ -> None
   in
   (* nosemgrep *)
@@ -207,7 +207,7 @@ let print_regression_information ~ext xs newscore =
              Filename.concat score_path
                ("score_parsing__" ^ str ^ ext ^ ".marshalled")
            in
-           logger#debug "saving regression info in %s" file;
+           Logs.debug (fun m -> m ~tags "saving regression info in %s" file);
            Common2.regression_testing newscore file)
   else
     UCommon.pr2

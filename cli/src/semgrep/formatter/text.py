@@ -30,7 +30,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
-from semgrep.util import get_lines
+from semgrep.util import get_lines_from_file
 from semgrep.util import MASK_CHAR
 from semgrep.util import MASK_SHOW_PCT
 from semgrep.util import truncate
@@ -156,7 +156,7 @@ def format_lines(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
-    show_path: bool,
+    is_different_file: bool,
 ) -> Iterator[Text]:
     trimmed = 0
 
@@ -181,6 +181,15 @@ def format_lines(
     end_col -= indent_len
     for i, line in enumerate(dedented_lines):
         line = line.rstrip()
+        # Taint findings can span multiple files, so the line number reported by
+        # 'format_finding_line' below may not belong to the same file where the
+        # finding is reported! For the very first line, if 'is_different_file'
+        # is True, we print the file.
+        if i == 0 and is_different_file:
+            yield Text.from_ansi(
+                f" " * (BASE_INDENT + 1)
+                + f"{with_color(Colors.cyan, f'{path}', bold=False)}"
+            )
         # NOTE: need to consider length of line number when calculating max chars
         yield format_finding_line(
             line,
@@ -253,8 +262,11 @@ def match_to_lines(
     per_line_max_chars_limit: Optional[int],
 ) -> Iterator[Text]:
     path = Path(location.path.value)
-    is_same_file = path == ref_path
-    lines = get_lines(path, location.start.line, location.end.line)
+    # If 'is_different_file' is True, it means that we are going to print a
+    # bunch of lines that belong to a different file, so instruct 'format_lines'
+    # to print the name of that file too.
+    is_different_file = path != ref_path
+    lines = get_lines_from_file(path, location.start.line, location.end.line)
     yield from format_lines(
         path,
         location.start.line,
@@ -267,7 +279,7 @@ def match_to_lines(
         per_finding_max_lines_limit,
         per_line_max_chars_limit,
         False,
-        not is_same_file,
+        is_different_file,
     )
 
 
@@ -311,8 +323,10 @@ def call_trace_to_lines(
             for var in intermediate_vars:
                 loc = var.location
                 path = Path(loc.path.value)
-                lines = get_lines(Path(loc.path.value), loc.start.line, loc.end.line)
-                is_same_file = path == prev_path
+                lines = get_lines_from_file(
+                    Path(loc.path.value), loc.start.line, loc.end.line
+                )
+                is_different_file = path != prev_path
                 yield from format_lines(
                     Path(loc.path.value),
                     loc.start.line,
@@ -325,7 +339,7 @@ def call_trace_to_lines(
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                     False,
-                    not is_same_file,
+                    is_different_file,
                 )
                 prev_path = path
 
@@ -377,8 +391,8 @@ def dataflow_trace_to_lines(
             for var in intermediate_vars:
                 loc = var.location
                 path = Path(loc.path.value)
-                lines = get_lines(path, loc.start.line, loc.end.line)
-                is_same_file = path == prev_path
+                lines = get_lines_from_file(path, loc.start.line, loc.end.line)
+                is_different_file = path != prev_path
                 yield from format_lines(
                     path,
                     loc.start.line,
@@ -391,7 +405,7 @@ def dataflow_trace_to_lines(
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                     False,
-                    not is_same_file,
+                    is_different_file,
                 )
                 prev_path = path
 
@@ -593,7 +607,11 @@ def print_text_output(
     # Sort the findings according to RuleMatch.get_ordering_key()
     sorted_rule_matches = sorted(rule_matches)
     for rule_index, rule_match in enumerate(sorted_rule_matches):
-        current_file = rule_match.path
+        current_file = (
+            f"{rule_match.path}@{rule_match.git_commit.value}"
+            if rule_match.git_commit
+            else rule_match.path
+        )
         message = rule_match.message
         fix = rule_match.fix
         if "sca_info" in rule_match.extra and (rule_match.extra["sca_info"].reachable):
@@ -604,9 +622,9 @@ def print_text_output(
             if last_file is not None:
                 console.print()
             console.print(
-                f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}"
+                f"\n{with_color(Colors.cyan, f'  {current_file}', bold=False)}"
                 + (
-                    f"with lockfile {with_color(Colors.cyan, f'{lockfile}')}"
+                    f" with lockfile {with_color(Colors.cyan, f'{lockfile}')}"
                     if lockfile
                     else ""
                 )

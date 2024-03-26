@@ -48,12 +48,12 @@ let match_dependency_pattern (deps : Dependency.t list)
 
 (* Return the set of dependency/pattern pairs that matched *)
 let match_dependency_formula :
-    Lockfile_target.t ->
+    Lockfile_xtarget.t ->
     Rule.dependency_formula ->
     Pattern_match.dependency_match list =
- fun { lazy_lockfile_ast_and_errors; _ } ->
+ fun { lazy_dependencies; _ } ->
   List.concat_map (fun pat ->
-      match_dependency_pattern (Lazy.force lazy_lockfile_ast_and_errors) pat)
+      match_dependency_pattern (Lazy.force lazy_dependencies) pat)
 
 let match_dependencies lockfile_target rule =
   match rule.Rule.dependency_formula with
@@ -63,14 +63,13 @@ let match_dependencies lockfile_target rule =
 let match_all_dependencies lockfile_target =
   List_.map (fun rule -> (rule, match_dependencies lockfile_target rule))
 
-let check_rule rule target dependency_formula =
+let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
   let _, parse_time =
-    Common.with_time (fun () ->
-        Lazy.force target.Lockfile_target.lazy_lockfile_ast_and_errors)
+    Common.with_time (fun () -> Lazy.force xtarget.lazy_dependencies)
   in
   let matches, match_time =
     Common.with_time (fun () ->
-        match_dependency_formula target dependency_formula)
+        match_dependency_formula xtarget dependency_formula)
   in
   let matches =
     matches
@@ -81,15 +80,16 @@ let check_rule rule target dependency_formula =
                  {
                    id = fst rule.R.id;
                    message = rule.R.message;
+                   metadata = rule.R.metadata;
                    fix = rule.R.fix;
                    fix_regexp = rule.R.fix_regexp;
                    langs = Xlang.to_langs rule.R.target_analyzer;
                    (* TODO: What should this be? *)
                    pattern_string = "";
                  };
-               file = target.lockfile;
-               (* TODO: should be pro? Where is this supposed to be set? *)
-               engine_kind = `OSS;
+               path = xtarget.target.path;
+               (* TODO: should be pro if the pro engine is used in the match *)
+               engine_of_match = `OSS;
                range_loc = dep.Dependency.loc;
                tokens = lazy dep.Dependency.toks;
                env = [];
@@ -101,8 +101,12 @@ let check_rule rule target dependency_formula =
                dependency = Some (LockfileOnlyMatch (dep, pat));
              })
   in
-  Core_result.make_match_result matches Core_error.ErrorSet.empty
-    { Core_profiling.parse_time; match_time; rule_id = fst rule.R.id }
+  Core_result.mk_match_result matches Core_error.ErrorSet.empty
+    {
+      Core_profiling.rule_parse_time = parse_time;
+      rule_match_time = match_time;
+      rule_id = fst rule.R.id;
+    }
 
 let annotate_pattern_match dep_matches pm =
   match dep_matches with

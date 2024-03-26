@@ -14,12 +14,13 @@
  * license.txt for more details.
  *)
 open Common
+open Fpath_.Operators
 module Flag = Flag_parsing
 module Ast = Ast_js
 module TH = Token_helpers_js
 module PS = Parsing_stat
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -92,7 +93,8 @@ let put_back_lookahead_token_if_needed tr item_opt =
          * all the tokens (more risky now that we use ast_js.ml instead of
          * cst_js.ml)
          *)
-        logger#debug "putting back lookahead token %s" (Dumper.dump current);
+        Logs.debug (fun m ->
+            m ~tags "putting back lookahead token %s" (Dumper.dump current));
         tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
         tr.Parsing_helpers.passed <-
           List_.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
@@ -147,7 +149,8 @@ let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
   let info = TH.info_of_tok passed_offending in
   let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
-  logger#debug "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info);
+  Logs.debug (fun m ->
+      m ~tags "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info));
 
   let toks =
     List.rev passed_after
@@ -197,10 +200,10 @@ let tokens input_source =
 (* Main entry point *)
 (*****************************************************************************)
 
-let parse2 opt_timeout filename =
-  let stat = Parsing_stat.default_stat filename in
+let parse2 opt_timeout (filename : Fpath.t) =
+  let stat = Parsing_stat.default_stat !!filename in
 
-  let toks = tokens (Parsing_helpers.file filename) in
+  let toks = tokens (Parsing_helpers.file !!filename) in
   let toks = Parsing_hacks_js.fix_tokens toks in
   let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
@@ -260,14 +263,15 @@ let parse2 opt_timeout filename =
     (* EOF *)
     | Either.Left None -> []
     | Either.Left (Some x) ->
-        logger#ldebug
-          (lazy (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
+        Logs.debug (fun m ->
+            m ~tags "%s"
+              (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
 
         x :: aux tr
     | Either.Right err_tok ->
-        let max_line = UCommon.cat filename |> List.length in
+        let max_line = UFile.cat filename |> List.length in
         (if !Flag.show_parsing_error then
-           let filelines = UFile.cat_array (Fpath.v filename) in
+           let filelines = UFile.cat_array filename in
            let cur = tr.Parsing_helpers.current in
            let line_error = TH.line_of_tok cur in
            Parsing_helpers.print_bad line_error
@@ -289,7 +293,7 @@ let parse2 opt_timeout filename =
     | Some res -> res
     | None ->
         if !Flag.show_parsing_error then
-          UCommon.pr2 (spf "TIMEOUT on %s" filename);
+          UCommon.pr2 (spf "TIMEOUT on %s" !!filename);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         stat.PS.have_timeout <- true;
         []
@@ -303,16 +307,12 @@ let parse_program file =
   let res = parse file in
   res.Parsing_result.ast
 
-let parse_string (w : string) : Ast.a_program =
-  Common2.with_tmp_file ~str:w ~ext:"js" parse_program
+let program_of_string (caps : < Cap.tmp >) (w : string) : Ast.a_program =
+  CapTmp.with_tmp_file caps#tmp ~str:w ~ext:"js" parse_program
 
 (*****************************************************************************)
 (* Sub parsers *)
 (*****************************************************************************)
-
-let (program_of_string : string -> Ast_js.a_program) =
- fun s ->
-  Common2.with_tmp_file ~str:s ~ext:"js" (fun file -> parse_program file)
 
 let type_of_string s =
   let lexbuf = Lexing.from_string s in

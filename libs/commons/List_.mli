@@ -1,14 +1,46 @@
+(*
+   Extended module for list manipulation
+*)
+
+(*
+   Shadow the original, unsafe (@) by using 'open List_.Operators'.
+*)
+module Operators : sig
+  (* same as 'List_.append' defined below. *)
+  val ( @ ) : 'a list -> 'a list -> 'a list
+end
+
+(* Stack-safe implementation of List.append aka (@).
+   See also the Operators submodule which provides a safe (@). *)
+val append : 'a list -> 'a list -> 'a list
+
 (* Shortcut for xs =*= [].
  * It is not that shorter, but it avoids to use =*= which helps
  * to reduce the number of places to look for possible problems with =*=.
  *)
 val null : 'a list -> bool
 
+(* Stack-safe implementation of List.fold_right *)
+val fold_right : ('elt -> 'acc -> 'acc) -> 'elt list -> 'acc -> 'acc
+
 val map : ('a -> 'b) -> 'a list -> 'b list
 (** Same as [List.map] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from
     left to right like for [List.iter].
 *)
+
+(* Generic iteration over a list, with a view into the previous and the next
+   element.
+
+   This function isn't used very often but when it is, it's good to have it.
+   It's convenient for printing lists with special handling for the first and
+   last elements.
+
+   Another potential use is for collecting or printing intervals or
+   differences between successive elements.
+*)
+val iter_with_view_into_neighbor_elements :
+  (prev:'a option -> cur:'a -> next:'a option -> unit) -> 'a list -> unit
 
 (* List_.hd_exn msg []' will raise
    the exception 'Failure msg' which is only a slight improvement over
@@ -31,6 +63,9 @@ val hd_exn : string -> 'a list -> 'a
    empty list"' apply. *)
 val tl_exn : string -> 'a list -> 'a list
 
+val last_opt : 'a list -> 'a option
+(** Returns the last element of the list or none if the list is empty. *)
+
 val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
 (** Same as [List.map2] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from
@@ -51,6 +86,14 @@ val exclude : ('a -> bool) -> 'a list -> 'a list
 
 (* Sort in a polymorphic way. You should really use 'deriving ord' instead *)
 val sort : 'a list -> 'a list
+
+val sort_by_key : ('a -> 'b) -> ('b -> 'b -> int) -> 'a list -> 'a list
+(** [sort_by_key key cmp xs] is [xs] sorted (in ascending order) according to
+    the [cmp]-based order of [key] applied to each element.
+
+    [key] is applied only once per element.
+  *)
+
 val uniq_by : ('a -> 'a -> bool) -> 'a list -> 'a list
 
 (* options and lists *)

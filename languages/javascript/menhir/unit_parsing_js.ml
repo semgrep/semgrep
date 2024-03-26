@@ -9,7 +9,7 @@ let t = Testo.create
 (* ran from the root of the semgrep repository *)
 let tests_path = "tests"
 
-let tests =
+let tests caps =
   Testo.categorize "parsing_js"
     [
       t "regression files" (fun () ->
@@ -22,7 +22,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_js.parse_program file in
+                   let _ = Parse_js.parse_program (Fpath.v file) in
                    ()
                  with
                  | Parsing_error.Syntax_error _
@@ -38,7 +38,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_js.parse_program file in
+                   let _ = Parse_js.parse_program (Fpath.v file) in
                    ()
                  with
                  | Parsing_error.Syntax_error _
@@ -48,7 +48,7 @@ let tests =
           try
             Common.save_excursion Flag_parsing.show_parsing_error false
               (fun () ->
-                let _ = Parse_js.program_of_string "echo 1+" in
+                let _ = Parse_js.program_of_string caps "echo 1+" in
                 Alcotest.fail "it should have thrown a Parse_error exception")
           with
           | Parsing_error.Syntax_error _ -> ())

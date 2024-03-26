@@ -67,27 +67,25 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
 (* Xtarget helpers *)
 (*****************************************************************************)
 
-(* TODO: factorize with Core_scan.xtarget_of_file *)
 let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
-  let lazy_ast_and_errors =
-    lazy
-      (match xlang with
-      | L (lang, _) ->
-          let { Parsing_result2.ast; skipped_tokens; _ } =
-            Parse_target.parse_and_resolve_name lang !!target
-          in
-          (ast, skipped_tokens)
-      | LRegex
-      | LSpacegrep
-      | LAliengrep ->
-          assert false)
+  let xlang : Xlang.t =
+    match xlang with
+    (* Required to be able to factorize with Xtarget.resolve; it cannot handle
+       non-nil lists at least as of 2024-02-14. *)
+    | L (lang, _) -> L (lang, [])
+    (* would cause an issue if we asserted false here since it isn't lazy. *)
+    | LRegex
+    | LSpacegrep
+    | LAliengrep ->
+        xlang
   in
-  {
-    Xtarget.file = target;
-    xlang;
-    lazy_content = lazy (UFile.read_file target);
-    lazy_ast_and_errors;
-  }
+  let parser xlang file =
+    let { ast; skipped_tokens; _ } : Parsing_result2.t =
+      Parse_target.parse_and_resolve_name xlang file
+    in
+    (ast, skipped_tokens)
+  in
+  Xtarget.resolve parser (Target.mk_regular xlang Product.all (File target))
 
 (*****************************************************************************)
 (* target helpers *)
@@ -154,27 +152,23 @@ let check_can_marshall (rule_file : Fpath.t) (res : RP.matches_single_file) :
 
 let check_profiling (rule_file : Fpath.t) (target : Fpath.t)
     (res : RP.matches_single_file) : unit =
-  match res.extra with
-  | Debug _
-  | No_info ->
-      failwith
-        "Impossible; type of res should match Report.mode, which we force to \
-         be MTime"
-  | Time { profiling } ->
-      profiling.rule_times
+  match res.profiling with
+  | None -> failwith "Impossible; profiling should be on"
+  | Some profiling ->
+      profiling.p_rule_times
       |> List.iter (fun (rule_time : Core_profiling.rule_profiling) ->
-             if not (rule_time.match_time >= 0.) then
-               (* match_time could be 0.0 if the rule contains no pattern or if the
-                  rules are skipped. Otherwise it's positive.
+             if not (rule_time.rule_match_time >= 0.) then
+               (* match_time could be 0.0 if the rule contains no pattern or
+                  if the rules are skipped. Otherwise it's positive.
                *)
                failwith
                  (spf "invalid value for match time: %g (rule: %s, target: %s)"
-                    rule_time.match_time !!rule_file !!target);
-             if not (rule_time.parse_time >= 0.) then
+                    rule_time.rule_match_time !!rule_file !!target);
+             if not (rule_time.rule_parse_time >= 0.) then
                (* same for parse time *)
                failwith
                  (spf "invalid value for parse time: %g (rule: %s, target: %s)"
-                    rule_time.parse_time !!rule_file !!target))
+                    rule_time.rule_parse_time !!rule_file !!target))
 
 let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
     unit =
@@ -184,37 +178,6 @@ let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
       |> String.concat "-----\n"
     in
     failwith (spf "parsing error(s) on %s:\n%s" !!rule_file errors)
-
-(*****************************************************************************)
-(* Extract mode special handling *)
-(*****************************************************************************)
-
-let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
-    (rules : Rule.t list) (rule_file : Fpath.t) (xtarget : Xtarget.t) :
-    RP.matches_single_file list =
-  (* coupling: This is basically duplicated from Core_scan
-     TODO we should test extract mode through integration tests
-     rather than duplicating all this
-  *)
-  let (extracted_targets : Extract.extracted_target_and_adjuster list) =
-    Match_extract_mode.extract
-      ~match_hook:(fun _ _ -> ())
-      ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
-  in
-  let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
-  try
-    extracted_targets
-    |> List_.map
-         (fun Extract.{ extracted = Extracted file; analyzer = xlang; _ } ->
-           let xtarget = xtarget_of_file xlang file in
-           let xconf = Match_env.default_xconfig in
-           Match_rules.check
-             ~match_hook:(fun _ _ -> ())
-             ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-           |> Extract.adjust_location_extracted_targets_if_needed adjusters file)
-  with
-  | exn ->
-      failwith (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
 
 (*****************************************************************************)
 (* Main logic *)
@@ -269,10 +232,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         (* actual *)
         let xtarget = xtarget_of_file xlang target in
         let xconf = Match_env.default_xconfig in
-        let rules, extract_rules = Extract.partition_rules rules in
 
         E.g_errors := [];
-        Core_profiling.mode := MTime;
+        Core_profiling.profiling := true;
         let res =
           try
             (* !!!!let's go!!!! *)
@@ -286,14 +248,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         in
         check_can_marshall rule_file res;
         check_parse_errors rule_file res.errors;
-        let eres =
-          run_check_for_extract_rules extract_rules rules rule_file xtarget
-        in
 
-        res :: eres
-        |> List.iter (fun (res : Core_result.matches_single_file) ->
-               check_profiling rule_file target res;
-               res.matches |> List.iter Core_json_output.match_to_push_error);
+        check_profiling rule_file target res;
+        res.matches |> List.iter Core_json_output.match_to_push_error;
         let actual_errors = !E.g_errors in
         E.g_errors := [];
         actual_errors
@@ -325,7 +282,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
 
 let find_rule_files roots =
   roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
-  |> List.filter Parse_rule.is_valid_rule_filename
+  |> List.filter Rule_file.is_valid_rule_filename
 
 (*****************************************************************************)
 (* Entry point *)

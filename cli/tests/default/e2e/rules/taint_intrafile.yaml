@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    languages: [python]
+    severity: ERROR
+    message: Found
+    mode: taint
+    pattern-sources:
+      - pattern: |
+          "taint"
+    pattern-sinks:
+      - pattern: |
+          sink(...)
+    options:
+      interfile: true

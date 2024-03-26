@@ -6,7 +6,7 @@ module P = Pattern_match
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 let t = Testo.create
 
 (*****************************************************************************)
@@ -343,6 +343,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
       pattern;
       inside = false;
       message = "";
+      metadata = None;
       severity = `Error;
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
@@ -351,7 +352,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
     }
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_fail_if_partial lang !!file with
+    try Parse_target.parse_and_resolve_name_fail_if_partial lang file with
     | exn ->
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
@@ -359,7 +360,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let equiv = [] in
   Match_patterns.check ~hook
     (Rule_options.default_config, equiv)
-    [ rule ] (file, lang, ast)
+    [ rule ]
+    (file, File file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -477,12 +479,11 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
   let processed_matches =
     Autofix.produce_autofixes (List_.map Core_result.mk_processed_match matches)
   in
-  let file = Fpath.to_string file in
   let fixed_text =
     processed_matches
     |> List_.map_filter (fun (m : Core_result.processed_match) ->
            m.autofix_edit)
-    |> Autofix.apply_fixes_to_file ~file
+    |> Autofix.apply_fixes_to_file_exn file
   in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
@@ -639,31 +640,6 @@ let filter_irrelevant_rules_tests () =
      |> List_.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
-(* Extract tests *)
-(*****************************************************************************)
-
-let get_extract_source_lang file rules =
-  let _, _, erules, _ = R.partition_rules rules in
-  let erule_langs =
-    erules |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
-  in
-  match erule_langs with
-  | [] -> failwith (spf "no language for extract rule found in %s" !!file)
-  | [ x ] -> x
-  | xlang :: _ ->
-      UCommon.pr2
-        (spf
-           "too many languages from extract rules found in %s, picking the \
-            first one: %s"
-           !!file (Xlang.show xlang));
-      xlang
-
-let extract_tests () =
-  let path = tests_path / "extract" in
-  Testo.categorize "extract mode"
-    (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
-
-(*****************************************************************************)
 (* Tainting tests *)
 (*****************************************************************************)
 
@@ -676,7 +652,7 @@ let tainting_test lang rules_file file =
              (Common.exn_to_s exn))
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang !!file with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
     | exn ->
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
@@ -699,9 +675,9 @@ let tainting_test lang rules_file file =
   let matches =
     taint_rules
     |> List.concat_map (fun rule ->
-           let xtarget =
+           let xtarget : Xtarget.t =
              {
-               Xtarget.file;
+               path = { origin = File file; internal_path_to_content = file };
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);
@@ -942,7 +918,7 @@ let full_rule_semgrep_rules_regression_tests () =
                  Some (String.capitalize_ascii s)
              (* this skips the semgrep-rules/.github entries *)
              | _ ->
-                 logger#info "skipping %s" test.name;
+                 Logs.info (fun m -> m ~tags "skipping %s" test.name);
                  None
            in
            group_opt |> Option.map (fun groupname -> (groupname, test)))
@@ -978,7 +954,6 @@ let tests () =
       lang_autofix_tests ~polyglot_pattern_path;
       eval_regression_tests ();
       filter_irrelevant_rules_tests ();
-      extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_taint_maturity_tests ();

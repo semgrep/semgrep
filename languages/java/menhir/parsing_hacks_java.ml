@@ -20,7 +20,7 @@ module TH = Token_helpers_java
 module F = Ast_fuzzy
 module T = Parser_java
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -53,11 +53,12 @@ let fix_tokens_generics xs =
   let rec aux env xs =
     let depth_angle = env in
     if depth_angle < 0 then (
-      logger#error "depth_angle < 0, %d" depth_angle;
-      logger#error "%s"
-        (match xs with
-        | x :: _ -> Dumper.dump x
-        | [] -> "<can't get info from empty list>");
+      Logs.err (fun m -> m ~tags "depth_angle < 0, %d" depth_angle);
+      Logs.err (fun m ->
+          m ~tags "%s"
+            (match xs with
+            | x :: _ -> Dumper.dump x
+            | [] -> "<can't get info from empty list>"));
       (* alt: failwith "depth < 0" *)
       aux 0 xs)
     else
@@ -124,7 +125,8 @@ let fix_tokens_generics xs =
        * this code. But pb, see previous comment.
        *)
       | IDENTIFIER (s, ii1) :: LT ii2 :: xs when s =~ "^[A-Z]" ->
-          logger#info "retagging < at %s" (Tok.stringpos_of_tok ii2);
+          Logs.debug (fun m ->
+              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
           IDENTIFIER (s, ii1) :: LT_GENERIC ii2 :: aux (depth_angle + 1) xs
       | IDENTIFIER (s, ii1)
         :: TCommentSpace iispace
@@ -132,13 +134,15 @@ let fix_tokens_generics xs =
         :: IDENTIFIER (s3, ii3)
         :: xs
         when s =~ "^[A-Z]" && s3 =~ "^[A-Z]" ->
-          logger#info "retagging < at %s" (Tok.stringpos_of_tok ii2);
+          Logs.debug (fun m ->
+              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
           IDENTIFIER (s, ii1)
           :: TCommentSpace iispace :: LT_GENERIC ii2
           :: aux (depth_angle + 1) (IDENTIFIER (s3, ii3) :: xs)
       | IDENTIFIER (s, ii1) :: TCommentSpace iispace :: LT ii2 :: COND ii3 :: xs
         when s =~ "^[A-Z]" ->
-          logger#info "retagging < at %s" (Tok.stringpos_of_tok ii2);
+          Logs.debug (fun m ->
+              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
           IDENTIFIER (s, ii1)
           :: TCommentSpace iispace :: LT_GENERIC ii2
           :: aux (depth_angle + 1) (COND ii3 :: xs)
@@ -147,7 +151,8 @@ let fix_tokens_generics xs =
        * so at least the >> get transformed into > >.
        *)
       | DOT ii1 :: LT ii2 :: xs ->
-          logger#info "retagging < at %s" (Tok.stringpos_of_tok ii2);
+          Logs.debug (fun m ->
+              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
           DOT ii1 :: LT_GENERIC ii2 :: aux (depth_angle + 1) xs
       (* <T extends ...> bar().
        * could also check for public|static|... just before the <
@@ -234,15 +239,18 @@ let fix_tokens_fuzzy toks =
     toks
     |> List.map (function
          | T.LP info when Hashtbl.mem retag_lparen info ->
-             logger#info "retagging ( for lambda at %s"
-               (Tok.stringpos_of_tok info);
+             Logs.debug (fun m ->
+                 m ~tags "retagging ( for lambda at %s"
+                   (Tok.stringpos_of_tok info));
              T.LP_LAMBDA info
          | T.LP info when Hashtbl.mem retag_lparen_constructor info ->
-             logger#info "retagging ( for constructor at %s"
-               (Tok.stringpos_of_tok info);
+             Logs.debug (fun m ->
+                 m ~tags "retagging ( for constructor at %s"
+                   (Tok.stringpos_of_tok info));
              T.LP_PARAM info
          | T.DEFAULT info when Hashtbl.mem retag_default info ->
-             logger#info "retagging default at %s" (Tok.stringpos_of_tok info);
+             Logs.debug (fun m ->
+                 m ~tags "retagging default at %s" (Tok.stringpos_of_tok info));
              T.DEFAULT_COLON info
          | x -> x)
   with

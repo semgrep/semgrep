@@ -1,6 +1,6 @@
 (* Nat Mote
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,11 +12,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-open AST_generic
 open Common
+open AST_generic
 module MV = Metavariable
 module G = AST_generic
+
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -127,6 +128,29 @@ let replace metavar_tbl pattern_ast =
   in
   mapper#visit_any () pattern_ast
 
+(* TODO: note that the resulting regexp work only if metavar_tbl is not empty.
+ * Otherwise this will generate the .*\(\).* regexp which can match anything
+ * TODO: add unit test for this function.
+ * TODO: switch to PCRE so can use better way to build a regexp from
+ * subparts.
+ *)
+let mk_str_metavars_regexp metavar_tbl =
+  if Hashtbl.length metavar_tbl =|= 0 then
+    Logs.warn (fun m ->
+        m ~tags "no metavariables, mk_str_metavars_regexp should not be called");
+  lazy
+    ((* List of metavars that were bound in this match, quoted so that they
+        * can be used safely in a regex *)
+     let quoted_metavars =
+       Hashtbl.to_seq_keys metavar_tbl |> Seq.map Str.quote |> List.of_seq
+     in
+     (* One regex string that will match any of the metavars *)
+     let regex_body = String.concat "\\|" quoted_metavars in
+     (* Match any text before or after the metavars, since Str.string_match
+      * looks for the entire string to match, not just a substring like many
+      * other tools. *)
+     spf ".*\\(%s\\).*" regex_body)
+
 (* Check for remaining metavars in the fixed pattern AST. If there are any, that
  * indicates a failure to properly replace them in the previous step, and the
  * autofix attempt should be aborted.
@@ -140,20 +164,7 @@ let replace metavar_tbl pattern_ast =
  * *)
 let find_remaining_metavars metavar_tbl ast =
   let seen_metavars = ref [] in
-  let str_metavars_regexp =
-    lazy
-      ((* List of metavars that were bound in this match, quoted so that they
-        * can be used safely in a regex *)
-       let quoted_metavars =
-         Hashtbl.to_seq_keys metavar_tbl |> Seq.map Str.quote |> List.of_seq
-       in
-       (* One regex string that will match any of the metavars *)
-       let regex_body = String.concat "\\|" quoted_metavars in
-       (* Match any text before or after the metavars, since Str.string_match
-        * looks for the entire string to match, not just a substring like many
-        * other tools. *)
-       spf ".*\\(%s\\).*" regex_body)
-  in
+  let str_metavars_regexp = mk_str_metavars_regexp metavar_tbl in
   let visitor =
     object
       inherit [_] AST_generic.iter_no_id_info as super
@@ -194,13 +205,18 @@ let find_remaining_metavars metavar_tbl ast =
  *   metavar's continued presence in the tree after replacement has been
  *   attempted. In this case, this function should detect that and return None.
  * *)
-let replace_metavars metavars pattern_ast =
-  let metavar_tbl = Hashtbl_.hash_of_list metavars in
-  let res = replace metavar_tbl pattern_ast in
-  match find_remaining_metavars metavar_tbl res with
-  | [] -> Ok res
-  | remaining ->
-      Error
-        (spf
-           "Did not successfully replace metavariable(s) in the fix pattern: %s"
-           (String.concat ", " remaining))
+let replace_metavars (metavars : MV.bindings) (pattern_ast : AST_generic.any) :
+    (AST_generic.any, string) result =
+  if List_.null metavars then Ok pattern_ast
+  else
+    let metavar_tbl = Hashtbl_.hash_of_list metavars in
+    let res = replace metavar_tbl pattern_ast in
+    match find_remaining_metavars metavar_tbl res with
+    | [] -> Ok res
+    | remaining ->
+        UCommon.pr2_gen remaining;
+        Error
+          (spf
+             "Did not successfully replace metavariable(s) in the fix pattern: \
+              %s"
+             (String.concat ", " remaining))

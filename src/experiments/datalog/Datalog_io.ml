@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module D = Datalog_fact
 open Datalog_fact
 
@@ -49,7 +50,7 @@ let write_facts_for_doop facts dir =
   let groups = facts |> Assoc.group_assoc_bykey_eff in
   groups
   |> List.iter (fun (table, tuples) ->
-         let file = Filename.concat dir table ^ ".csv" in
-         UCommon.pr2 (spf "generating tuples for %s" file);
-         UCommon.with_open_outfile file (fun (mypr, _chan) ->
+         let file = dir / (table ^ ".csv") in
+         UCommon.pr2 (spf "generating tuples for %s" !!file);
+         UFile.with_open_out file (fun (mypr, _chan) ->
              tuples |> List.iter (fun tuple -> mypr (csv_of_tuple tuple))))

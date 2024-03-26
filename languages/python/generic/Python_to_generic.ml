@@ -552,8 +552,8 @@ and fieldstmt x =
    G.s = G.ExprStmt ({ e = G.Assign ({ e = G.N name; _ }, _teq, e); _ }, _sc);
    _;
   } ->
-      let vdef = { G.vinit = Some e; vtype = None } in
-      let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
+      let vdef = { G.vinit = Some e; vtype = None; vtok = G.no_sc } in
+      let ent = { G.name = G.EN name; attrs = []; tparams = None } in
       G.fld (ent, G.VarDef vdef)
   | _ -> G.F x
 
@@ -691,9 +691,11 @@ and stmt_aux env x =
            *)
           let to_vardef id idinfo topt =
             let ent =
-              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
+              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = None }
             in
-            let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
+            let var =
+              G.VarDef { G.vinit = Some v3; vtype = topt; vtok = G.no_sc }
+            in
             [ G.DefStmt (ent, var) |> G.s ]
           in
           let default_res = [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ] in
@@ -748,7 +750,7 @@ and stmt_aux env x =
       let id = name env id in
       let ty = type_ env ty in
       let ent = G.basic_entity id in
-      let def = G.VarDef { G.vtype = Some ty; vinit = None } in
+      let def = G.VarDef { G.vtype = Some ty; vinit = None; vtok = G.no_sc } in
       [ G.DefStmt (ent, def) |> G.s ]
   | Cast (e, tok, ty) ->
       [ G.exprstmt (G.Cast (type_ env ty, info tok, expr env e) |> G.e) ]
@@ -902,11 +904,16 @@ and decorator env (t, v1) =
     | _ -> (get_dotted_name v1 [], None)
   in
   match dotted_name with
-  | Some d_name ->
-      G.NamedAttr
-        ( t,
-          H.name_of_ids d_name,
-          Option.value ~default:(Tok.unsafe_fake_bracket []) args )
+  | Some d_name -> (
+      match (H.name_of_ids d_name, args) with
+      (* Use standard static keyword for staticmethod attribute. This
+         is used by other parts of the pro-engine to check if a method
+         is static. *)
+      | G.Id (("staticmethod", tok), _), (None | Some (_, [], _)) ->
+          G.attr G.Static tok
+      | name, args ->
+          G.NamedAttr
+            (t, name, Option.value ~default:(Tok.unsafe_fake_bracket []) args))
   | None ->
       let v1 = expr env v1 in
       G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])

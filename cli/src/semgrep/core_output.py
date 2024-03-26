@@ -15,18 +15,15 @@ from dataclasses import replace
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
-from semgrep.rule_match import CliUniqueKey
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match import RuleMatchSet
+from semgrep.rule_match import RuleMatches
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -100,77 +97,10 @@ def core_matches_to_rule_matches(
     """
     rule_table = {rule.id: rule for rule in rules}
 
-    def interpolate(
-        text: str,
-        metavariables: Dict[str, str],
-        propagated_values: Dict[str, str],
-        mask_metavariables: bool,
-    ) -> str:
-        """Interpolates a string with the metavariables contained in it, returning a new string"""
-        if mask_metavariables:
-            for metavariable in metavariables.keys():
-                metavariable_content = metavariables[metavariable]
-                show_until = int(len(metavariable_content) * util.MASK_SHOW_PCT)
-                masked_content = metavariable_content[:show_until] + util.MASK_CHAR * (
-                    len(metavariable_content) - show_until
-                )
-                metavariables[metavariable] = masked_content
-
-                metavariable_value = propagated_values[metavariable]
-                show_until = int(len(metavariable_content) * util.MASK_SHOW_PCT)
-                masked_value = metavariable_value[:show_until] + util.MASK_CHAR * (
-                    len(metavariable_content) - show_until
-                )
-                propagated_values[metavariable] = masked_value
-
-        # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
-        for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
-            text = text.replace(
-                "value(" + metavariable + ")", propagated_values[metavariable]
-            )
-            text = text.replace(metavariable, metavariables[metavariable])
-
-        return text
-
-    def read_metavariables(
-        match: out.CoreMatch,
-    ) -> Tuple[Dict[str, str], Dict[str, str]]:
-        matched_values = {}
-        propagated_values = {}
-
-        # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-        with open(match.path.value, errors="replace") as fd:
-            for metavariable, metavariable_data in match.extra.metavars.value.items():
-                # Offsets are start inclusive and end exclusive
-                start_offset = metavariable_data.start.offset
-                end_offset = metavariable_data.end.offset
-
-                matched_value = util.read_range(fd, start_offset, end_offset)
-
-                # Use propagated value
-                if metavariable_data.propagated_value:
-                    propagated_value = (
-                        metavariable_data.propagated_value.svalue_abstract_content
-                    )
-                else:
-                    propagated_value = matched_value
-
-                matched_values[metavariable] = matched_value
-                propagated_values[metavariable] = propagated_value
-
-        return matched_values, propagated_values
-
     def convert_to_rule_match(match: out.CoreMatch) -> RuleMatch:
         rule = rule_table[match.check_id.value]
-        matched_values, propagated_values = read_metavariables(match)
 
         message = match.extra.message if match.extra.message else rule.message
-        message = interpolate(
-            message,
-            matched_values,
-            propagated_values,
-            isinstance(rule.product.value, out.Secrets),
-        )
 
         metadata = rule.metadata
         if match.extra.metadata:
@@ -191,16 +121,12 @@ def core_matches_to_rule_matches(
             fix=fix,
         )
 
-    by_unique_key: Dict[CliUniqueKey, RuleMatch] = {}
+    # TODO: Dict[out.RuleId, RuleMatches]
+    # We used to deduplicate by `cli_unique_key` here, but now no longer need to,
+    # because it is deduplicated in semgrep-core as core_unique_key!
+    findings: Dict[Rule, RuleMatches] = {rule: RuleMatches(rule) for rule in rules}
     for match in res.results:
         rule_match = convert_to_rule_match(match)
-        curr = by_unique_key.setdefault(rule_match.cli_unique_key, rule_match)
-        if rule_match.should_report_instead(curr):
-            by_unique_key[rule_match.cli_unique_key] = rule_match
-
-    # TODO: Dict[out.RuleId, RuleMatchSet]
-    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
-    for rule_match in by_unique_key.values():
         rule = rule_table[rule_match.rule_id]
         findings[rule].add(rule_match)
 

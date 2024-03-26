@@ -24,22 +24,23 @@ depends: [
   "alcotest"
   "alcotest-js"
   "alcotest-lwt"
+  "calendar"
   "fmt"
   "ocolor"
   "ANSITerminal"
   "terminal_size"
   "uucp"
   "uutf"
-  "easy_logging" {= "0.8.1"}
-  "easy_logging_yojson" {= "0.8.1"}
   "logs"
   "atdgen"
   "yojson" {>= "2.0.0"}
   "yaml"
   "xmlm"
+  "sarif" {>= "0.3.0"}
   "cmdliner"
   "ppxlib"
   "ppx_deriving"
+  "ppx_deriving_yojson"
   "ppx_hash"
   "ppx_inline_test"
   "ppx_sexp_conv" {= "v0.16.0"}
@@ -52,10 +53,16 @@ depends: [
   "semver"
   "uri"
   "uuidm"
-  "trace"
-  "trace-tef"
   "timedesc" {>= "2.0.0"}
   "lsp" {= "1.15.1-5.0"}
+  "git"
+  "git-unix"
+  "trace"
+  "ppx_trace"
+  "opentelemetry" {>= "0.9"}
+  "opentelemetry-client-ocurl"
+  "ambient-context-lwt"
+  "conf-libcurl" {= "1"}
   "uri"
   "cohttp-lwt-unix"
   "cohttp-lwt-jsoo"
@@ -65,10 +72,10 @@ depends: [
   "lwt"
   "lwt_ppx"
   "conf-libev" {os != "win32"}
-  "js_of_ocaml" {= "5.4.0"}
-  "js_of_ocaml-compiler" {= "5.4.0"}
-  "js_of_ocaml-ppx" {= "5.4.0"}
-  "js_of_ocaml-lwt" {= "5.4.0"}
+  "js_of_ocaml" {= "5.5.2"}
+  "js_of_ocaml-compiler" {= "5.5.2"}
+  "js_of_ocaml-ppx" {= "5.5.2"}
+  "js_of_ocaml-lwt" {= "5.5.2"}
   "ctypes_stubs_js"
   "integers_stubs_js"
   "odoc" {with-doc}

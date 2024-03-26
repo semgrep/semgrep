@@ -72,15 +72,15 @@ type env = {
 
 (* Report errors during evaluation to the user rather than just logging them
  * as we did before. *)
-let error env msg =
+let error (env : env) msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = Tok.first_loc_of_file !!(env.xtarget.Xtarget.file) in
-  (* TODO: warning or error? MatchingError or ... ? *)
-  let err =
-    E.mk_error (Some (fst env.rule.Rule.id)) loc msg OutJ.MatchingError
+  let loc =
+    Tok.first_loc_of_file !!(env.xtarget.path.internal_path_to_content)
   in
+  (* TODO: warning or error? MatchingError or ... ? *)
+  let err = E.mk_error (Some (fst env.rule.id)) loc msg OutJ.MatchingError in
   env.errors := Core_error.ErrorSet.add err !(env.errors)
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
@@ -89,6 +89,7 @@ let fake_rule_id (id, str) =
     PM.id = Rule_ID.of_string (string_of_int id);
     pattern_string = str;
     message = "";
+    metadata = None;
     fix = None;
     fix_regexp = None;
     langs = [];

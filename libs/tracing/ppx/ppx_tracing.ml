@@ -30,6 +30,13 @@ open Ast_helper
  *   - The implementation uses Ast_traverse.map, so instead of redefining foo
  *     underneath to use tracing, it rewrites foo. Using Ast_traverse.maps means
  *     the annotation works for nested functions
+ *
+ * > Why does this exist when the maintainer of trace already has a ppx?
+ * We might want to add things specific to our codebase like a `trace_debug`
+ * option, which is much easier to do without having to go through the
+ * maintainer. Also, we have legacy ways of adding ppxses (`[@@profiling/trace]`)
+ * that we don't want to ask the maintainer to support because it's non-standard.
+ * Ultimately, supporting a ppx is not that hard.
  *)
 
 (*****************************************************************************)
@@ -152,4 +159,6 @@ let impl (xs : structure) : structure =
 (* Entry point *)
 (*****************************************************************************)
 
+(* TODO: add ~extensions so that `let%trace = ` is a possible transformation.
+   Copy https://github.com/c-cube/ocaml-trace/blob/main/src/ppx/ppx_trace.ml *)
 let () = Driver.register_transformation ~impl "ppx_tracing"

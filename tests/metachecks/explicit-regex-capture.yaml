@@ -1,0 +1,15 @@
+rules:
+  - id: explicit-regex-capture
+    languages:
+      - python
+    message: |
+       Using a metavariable-regex with a named capture group
+    patterns:
+      - pattern: |
+          $R = $VAL
+      - metavariable-regex:
+          metavariable: $VAL
+          regex: \"?(?<REGEX>\b([0-9a-f]{40})\b)
+      - focus-metavariable: $REGEX
+    severity: ERROR
+

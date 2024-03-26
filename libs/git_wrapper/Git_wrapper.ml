@@ -16,7 +16,7 @@ open Common
 open Sexplib.Std
 open Fpath_.Operators
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,15 +38,20 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *  - be more consistent and requires an Fpath instead
  *    of relying sometimes on cwd.
  *)
+(* Standard git uses sha1 *)
+
+module type Store = Git.S with type hash = Digestif.SHA1.t
+
+module Hash = Git.Hash.Make (Digestif.SHA1)
+module Value = Git.Value.Make (Hash)
+module Commit = Git.Commit.Make (Hash)
+module Tree = Git.Tree.Make (Hash)
+module Blob = Git.Blob.Make (Hash)
+module User = Git.User
 
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-
-(* TODO: could also do
- * [type git_cap] abstract type and then
- * let git_cap_of_exec _caps = unit
- *)
 
 type status = {
   added : string list;
@@ -57,19 +62,33 @@ type status = {
 }
 [@@deriving show]
 
+(* To make sure we don't call other commands!
+ * TODO: we could create a special git_cap capabilities instead of using
+ * Cap.exec. We could have
+ *   type git_cap
+ *   val git_cap_of_exec: Cap.exec -> git_cap
+ *)
 let git : Cmd.name = Cmd.Name "git"
 
-type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
+type hash = Hash.t [@@deriving show, eq, ord]
+type value = Value.t [@@deriving show, eq, ord]
+type commit = Commit.t [@@deriving show, eq, ord]
+type blob = Blob.t [@@deriving show, eq, ord]
+type author = User.t [@@deriving show, eq, ord]
+type object_table = (hash, value) Hashtbl.t
 
-type sha = (string[@printer fun fmt -> fprintf fmt "%s"])
-[@@deriving show, eq, ord, sexp]
-
-(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
-type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 [@@deriving show]
 
-type batch_check_extra = { size : int } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t } [@@deriving show]
+(*****************************************************************************)
+(* Reexports *)
+(*****************************************************************************)
+
+let commit_digest = Commit.digest
+let commit_author = Commit.author
+let hex_of_hash = Hash.to_hex
+let blob_digest = Blob.digest
+let string_of_blob = Blob.to_string
 
 (*****************************************************************************)
 (* Error management *)
@@ -176,21 +195,84 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
-let temporary_remote_checkout_path url =
-  let name =
-    match remote_repo_name url with
-    | Some name -> name
-    | None -> failwith "Could not get remote repo name"
-  in
-  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
-  let name = rand_prefix ^ "_" ^ name in
-  let tmp_dir = Fpath.v (Filename.get_temp_dir_name ()) in
-  Fpath.add_seg tmp_dir name
+let tree_of_commit (objects : object_table) commit =
+  commit |> Commit.tree |> Hashtbl.find_opt objects |> fun obj ->
+  match obj with
+  | Some (Git.Value.Tree tree) -> tree
+  | _ ->
+      failwith
+        "Not a tree! Shouldn't happen, as we read a tree from a commit from a \
+         store."
+
+let rec blobs_of_tree ?(path_prefix = "") (objects : object_table)
+    (tree : Tree.t) : blob_with_extra list =
+  tree |> Tree.to_list |> List.concat_map (blobs_of_entry ~path_prefix objects)
+
+and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
+    Tree.entry -> blob_with_extra list = function
+  | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash } ->
+      let blob =
+        hash |> Hashtbl.find_opt objects |> fun obj ->
+        match obj with
+        | Some (Git.Value.Blob blob) -> blob
+        | _ ->
+            failwith
+              "Not a blob! Shouldn't happen, as we read a blob from a tree \
+               from a store."
+      in
+      (* If youre on a 32bit machine trying to scan files with blobs > 2gb you deserve the error this could cause *)
+      let size = blob |> Blob.length |> Int64.to_int in
+      let path = Filename.concat path_prefix path_segment |> Fpath.v in
+      [ { blob; path; size } ]
+  | { perm = `Dir; name = path_segment; node = hash } ->
+      let tree =
+        hash |> Hashtbl.find_opt objects |> fun obj ->
+        match obj with
+        | Some (Git.Value.Tree tree) -> tree
+        | _ ->
+            failwith
+              "Not a tree! Shouldn't happen, as we read a tree from a tree \
+               from a store."
+      in
+      let path = Filename.concat path_prefix path_segment in
+      blobs_of_tree ~path_prefix:path objects tree
+  | { perm = `Link; _ }
+  | { perm = `Commit; _ } ->
+      []
+
+let blobs_by_commit objects commits =
+  commits
+  |> List_.map (fun commit ->
+         let tree = tree_of_commit objects commit in
+         (commit, tree))
+  |> List_.map (fun (commit, tree) ->
+         let blobs = blobs_of_tree objects tree in
+         (commit, blobs))
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let git_check_output _caps (args : Cmd.args) : string =
+let commit_blobs_by_date objects =
+  Logs.debug (fun m -> m ~tags "getting commits");
+  let commits =
+    objects |> Hashtbl.to_seq |> List.of_seq
+    |> List_.map_filter (fun (_, value) ->
+           match value with
+           | Git.Value.Commit commit -> Some commit
+           | _ -> None)
+  in
+  Logs.debug (fun m -> m ~tags "got commits");
+  Logs.debug (fun m -> m ~tags "sorting commits");
+  let commits_by_date =
+    commits |> List.sort Commit.compare_by_date |> List.rev
+  in
+  Logs.debug (fun m -> m ~tags "sorted commits");
+  let blobs_by_commit = blobs_by_commit objects commits_by_date in
+  Logs.debug (fun m -> m ~tags "got blobs by commit");
+  blobs_by_commit
+
+let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
@@ -230,13 +312,82 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
       @ flag "--exclude-standard" exclude_standard
       @ roots )
   in
-  Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files =
     match UCmd.lines_of_run ~trim:true cmd with
     | Ok (files, (_, `Exited 0)) -> files
     | _ -> raise (Error "Could not get files from git ls-files")
   in
   files |> Fpath_.of_strings
+
+let append_slash_to_dir_path path = Fpath.add_seg path ""
+
+(*
+   Make an absolute path relative to a root folder if possible.
+
+   This returns a relative path if possible, otherwise falls back to an
+   absolute path. It's possible to obtain a relative path if both paths
+   are relative (to the same implicit folder) or if they're both absolute
+   and share the same filesystem root ('/' on Unix or a volume name on
+   Windows).
+
+   TODO: move to Fpath_?
+*)
+let relativize_if_possible ~abs_cwd abs_path =
+  if not (Fpath.is_abs abs_cwd) then
+    invalid_arg
+      (spf
+         "Git_wrapper.relativize_if_possible: abs_cwd must be an absolute path \
+          but we received %s"
+         !!abs_cwd);
+  if not (Fpath.is_abs abs_path) then
+    invalid_arg
+      (spf
+         "Git_wrapper.relativize_if_possible: abs_path must be an absolute \
+          path but we received %s"
+         !!abs_path);
+  match Fpath.relativize ~root:(append_slash_to_dir_path abs_cwd) abs_path with
+  | Some rel_path -> rel_path
+  | None -> abs_path
+
+(*
+   List files relative to the current directory which may be outside of
+   a git project.
+
+   This is something git doesn't allow directly, so we need to perform
+   path conversions. The project root must be provided because it's somewhat
+   costly to obtain.
+*)
+let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
+    root_paths =
+  (* Both project_root and sys_cwd are absolute, physical paths *)
+  let project_root = Rpath.to_fpath project_root in
+  let sys_cwd = Sys.getcwd () |> Fpath.v in
+  let abs_root_paths =
+    root_paths
+    |> List_.map (fun path ->
+           (* git accepts absolute paths to scanning roots but not if they
+              contain relative segments
+              such as '..':
+                OK: /home/user/proj/src
+                Rejected: ../proj/src
+           *)
+           Fpath.(sys_cwd // path |> normalize))
+  in
+  (* List paths relative to the project root.
+
+     Git returns paths that are relative to 'cwd' which must be within the
+     project. The following should work even if 'project_root' is a subfolder
+     in the git project but we're not counting on it. *)
+  let proj_rel_paths =
+    ls_files ~cwd:project_root ?exclude_standard ?kinds abs_root_paths
+  in
+  let rel_paths =
+    proj_rel_paths
+    |> List_.map (fun proj_rel_path ->
+           relativize_if_possible ~abs_cwd:sys_cwd
+             (project_root // proj_rel_path))
+  in
+  rel_paths
 
 let get_project_root ?cwd () =
   let cmd = (git, cd cwd @ [ "rev-parse"; "--show-toplevel" ]) in
@@ -320,7 +471,8 @@ let get_merge_base commit =
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
   | _ -> raise (Error "Could not get merge base from git merge-base")
 
-let run_with_worktree ~commit ?(branch = None) f =
+let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?(branch = None)
+    f =
   let cwd = getcwd () |> Fpath.to_dir_path in
   let git_root = get_project_root_exn () |> Fpath.to_dir_path in
   let relative_path =
@@ -331,30 +483,32 @@ let run_with_worktree ~commit ?(branch = None) f =
   let rand_dir () =
     let uuid = Uuidm.v `V4 in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
-    let dir = Filename.concat (UFilename.get_temp_dir_name ()) dir_name in
-    UUnix.mkdir dir 0o777;
+    let dir = CapTmp.get_temp_dir_name caps#tmp / dir_name in
+    UUnix.mkdir !!dir 0o777;
     dir
   in
   let temp_dir = rand_dir () in
   let cmd : Cmd.t =
     match branch with
-    | None -> (git, [ "worktree"; "add"; temp_dir; commit ])
+    | None -> (git, [ "worktree"; "add"; !!temp_dir; commit ])
     | Some new_branch ->
-        (git, [ "worktree"; "add"; temp_dir; commit; "-b"; new_branch ])
+        (git, [ "worktree"; "add"; !!temp_dir; commit; "-b"; new_branch ])
   in
   match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) ->
       let work () =
-        Fpath.append (Fpath.v temp_dir) relative_path
-        |> Fpath.to_string |> UUnix.chdir;
+        Fpath.append temp_dir relative_path
+        |> Fpath.to_string |> CapSys.chdir caps#chdir;
         f ()
       in
       let cleanup () =
-        cwd |> Fpath.to_string |> UUnix.chdir;
-        let cmd = (git, [ "worktree"; "remove"; temp_dir ]) in
+        cwd |> Fpath.to_string |> CapSys.chdir caps#chdir;
+        let cmd = (git, [ "worktree"; "remove"; !!temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
-        | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
-        | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
+        | Ok (`Exited 0) ->
+            Logs.info (fun m -> m ~tags "Finished cleaning up git worktree")
+        | Ok _ ->
+            raise (Error ("Could not remove git worktree at " ^ !!temp_dir))
         | Error (`Msg e) -> raise (Error e)
       in
       Common.protect ~finally:cleanup work
@@ -405,8 +559,9 @@ let status ?cwd ?commit () =
   let renamed = ref [] in
   let rec parse = function
     | _ :: file :: tail when check_dir file && check_symlink file ->
-        logger#info "Skipping %s since it is a symlink to a directory: %s" file
-          (UUnix.realpath file);
+        Logs.info (fun m ->
+            m ~tags "Skipping %s since it is a symlink to a directory: %s" file
+              (UUnix.realpath file));
         parse tail
     | "A" :: file :: tail ->
         added := file :: !added;
@@ -431,10 +586,12 @@ let status ?cwd ?commit () =
     | "!" (* ignored *) :: _ :: tail -> parse tail
     | "?" (* untracked *) :: _ :: tail -> parse tail
     | unknown :: file :: tail ->
-        logger#warning "unknown type in git status: %s, %s" unknown file;
+        Logs.warn (fun m ->
+            m ~tags "unknown type in git status: %s, %s" unknown file);
         parse tail
     | [ remain ] ->
-        logger#warning "unknown data after parsing git status: %s" remain
+        Logs.warn (fun m ->
+            m ~tags "unknown data after parsing git status: %s" remain)
     | [] -> ()
   in
   parse stats;
@@ -529,13 +686,21 @@ let commit ?cwd msg =
   | Error (`Msg s) ->
       raise (Error (Common.spf "Error running git commit: %s" s))
 
+(* Remove credentials in URL if present (e.g. in GitLab CI) *)
+let clean_project_url (url : string) : Uri.t =
+  let uri = Uri.of_string url in
+  match (Uri.user uri, Uri.password uri) with
+  | Some _, Some _ -> Uri.with_userinfo uri None
+  | _ -> uri
+
 (* TODO: should return Uri.t option *)
 let get_project_url ?cwd () : string option =
   let cmd = (git, cd cwd @ [ "ls-remote"; "--get-url" ]) in
   match UCmd.string_of_run ~trim:true cmd with
-  | Ok (url, _) -> Some url
+  | Ok (url, _) -> Some (Uri.to_string (clean_project_url url))
   | Error _ ->
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
+
 (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
    when the domain is [".io"]?). We probably should handle that by a new
    environment variable. I just copied what [pysemgrep] does.
@@ -576,118 +741,18 @@ let get_git_logs ?cwd ?(since = None) () : string list =
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   List.filter (fun f -> not (String.trim f = "")) lines
 
-let cat_file_batch_check_all_objects ?cwd () =
-  let cmd =
-    ( git,
-      cd cwd
-      @ [
-          "cat-file";
-          "--batch-all-objects";
-          "--batch-check";
-          "--unordered" (* List in pack order instead of hash; faster. *);
-        ] )
-  in
-  let* objects =
-    match UCmd.lines_of_run ~trim:true cmd with
-    | Ok (s, (_, `Exited 0)) -> Some s
-    | _ -> None
-  in
-  let objects : batch_check_extra obj list =
-    List.filter_map
-      (fun obj ->
-        let parsed_obj =
-          match String.split_on_char ' ' obj with
-          | [ sha; "tag"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Tag; sha; extra = { size } }
-          | [ sha; "commit"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Commit; sha; extra = { size } }
-          | [ sha; "tree"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Tree; sha; extra = { size } }
-          | [ sha; "blob"; size ] ->
-              let* size = int_of_string_opt size in
-              Some { kind = Blob; sha; extra = { size } }
-          | _ -> None
-        in
-        if Option.is_none parsed_obj then
-          Logs.warn (fun m ->
-              m "Issue parsing git object: %s; this object will be ignored" obj);
-        parsed_obj)
-      objects
-  in
-  Some objects
-
-let cat_file_blob ?cwd sha =
-  let cmd = (git, cd cwd @ [ "cat-file"; "blob"; sha ]) in
+let cat_file_blob ?cwd (hash : hash) =
+  let cmd = (git, cd cwd @ [ "cat-file"; "blob"; Hash.to_hex hash ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> Ok s
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
 
-let object_size ?cwd sha =
-  let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
-  match UCmd.string_of_run ~trim:false cmd with
-  | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
-  | _ -> None
-
-let commit_timestamp ?cwd sha =
-  (* %cI - print datetime in strict ISO 8601 format *)
-  let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
-  match UCmd.string_of_run ~trim:false cmd with
-  | Ok (s, (_, `Exited 0)) ->
-      Timedesc.Timestamp.of_iso8601 s |> Result.to_option
-  | _ -> None
-
-let ls_tree ?cwd ?(recurse = false) sha : ls_tree_extra obj list option =
-  let cmd =
-    ( git,
-      cd cwd
-      @ ("ls-tree" :: (if recurse then [ "-r" ] else []))
-      @ [ "--full-tree"; "--format=%(objecttype) %(objectname) %(path)"; sha ]
-    )
-  in
-  let* objects =
-    match UCmd.lines_of_run ~trim:true cmd with
-    | Ok (s, (_, `Exited 0)) -> Some s
-    | _ -> None
-  in
-  let objects =
-    List.filter_map
-      (fun obj ->
-        let parsed_obj =
-          match String.split_on_char ' ' obj with
-          | [ "commit"; sha; path ] -> (
-              (* possible for submodules *)
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Commit; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "tree"; sha; path ] -> (
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tree; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "blob"; sha; path ] -> (
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Blob; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | [ "tag"; sha; path ] -> (
-              (* possible, but we probably don't care. *)
-              match Fpath.of_string path with
-              | Ok path -> Ok { kind = Tag; sha; extra = { path } }
-              | Error (`Msg s) -> Error s)
-          | _ -> Error "invalid syntax"
-        in
-        match parsed_obj with
-        | Ok obj -> Some obj
-        | Error s ->
-            Logs.warn (fun m ->
-                m
-                  "Issue parsing git object: %s -- %s; this object will be \
-                   ignored"
-                  obj s);
-            None)
-      objects
-  in
-  Some objects
+let with_git_repo (files : Testutil_files.t list) func =
+  Testutil_files.with_tempfiles_verbose files (fun path ->
+      Testutil_files.with_chdir path (fun () ->
+          init ();
+          add ~force:true [ Fpath.v "." ];
+          commit "Add all the files";
+          func ()))

@@ -1,17 +1,23 @@
 // The goals of this workflow are to check that:
 // - we can build semgrep-core and pysemgrep
 // - all our semgrep-core and pysemgrep (and osemgrep) tests are passing
-// - we can build a Docker image
+// - we can build a Docker image (for amd64 and arm64)
 // - we can build Linux and MacOS binaries and python "wheels" for pypi
+//   (also for amd64 and arm64)
 // - we don't have any perf regressions in our benchmarks
 
 local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
-// some jobs rely on artifacts produced by this workflow
+// some jobs rely on artifacts produced by these workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
+local core_pro_x86 = import 'check-semgrep-pro.jsonnet';
 
+// intermediate image produced by build-push-action
+local docker_artifact_name = 'semgrep-docker-image-artifact';
+
+// TODO: change to 'semgrep/semgrep' at some point as the default
 local docker_repository_name = 'returntocorp/semgrep';
 
 // ----------------------------------------------------------------------------
@@ -52,7 +58,7 @@ local snapshot_update_pr_steps = [
     'if': failure_and_right_event,
     uses: 'EndBug/add-and-commit@v9',
     with: {
-      add: 'cli/tests/e2e/snapshots',
+      add: 'cli/tests/default/e2e/snapshots',
       default_author: 'github_actions',
       message: 'Update pytest snapshots',
       new_branch: 'snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}',
@@ -201,17 +207,34 @@ local fetch_submodules_step = {
   run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
 };
 
-local download_x86_artifacts = {
-  uses: 'actions/download-artifact@v3',
-  with: {
-    name: core_x86.export.artifact_name,
-  },
-};
+local download_x86_artifacts =
+  actions.download_artifact_step(core_x86.export.artifact_name);
+
 local install_x86_artifacts = {
   name: 'Install artifacts',
   run: |||
-    tar xf ocaml-build-artifacts.tgz
-    sudo cp ocaml-build-artifacts/bin/* /usr/bin
+    tar xf artifacts.tgz
+    sudo cp artifacts/* /usr/bin
+  |||,
+};
+
+local download_x86_pro_artifacts =
+  actions.download_artifact_step(core_pro_x86.export.artifact_name);
+
+local install_x86_pro_artifacts = {
+  name: 'Install pro artifacts',
+  run: |||
+    tar xf artifacts.tgz
+
+    # All binaries will be placed in cli/tmp-bin first
+    # before copying over to /usr/bin. This is so that
+    # we don't need to run semgrep with sudo.
+    mv artifacts cli/tmp-bin
+    cd cli
+    PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
+
+    # Later we copy these files to /usr/bin which requires sudo
+    sudo cp tmp-bin/* /usr/bin
   |||,
 };
 
@@ -226,10 +249,12 @@ local test_cli_job = {
   name: 'test semgrep-cli',
   'runs-on': 'ubuntu-22.04',
   needs: [
-    'build-test-core-x86',
+    // Needed for semgrep-core and semgrep-core-proprietary binary artifacts.
+    'check-semgrep-pro',
   ],
   permissions: {
     contents: 'write',
+    // ???
     'pull-requests': 'write',
   },
   strategy: {
@@ -247,9 +272,11 @@ local test_cli_job = {
     fetch_submodules_step,
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
-    download_x86_artifacts,
-    install_x86_artifacts,
     install_python_deps,
+    download_x86_pro_artifacts,
+    // This step must be done after setting up python and pipenv,
+    // because it will configure the cli to use the pro binary.
+    install_x86_pro_artifacts,
     {
       name: 'Run pytest',
       'working-directory': 'cli',
@@ -260,7 +287,7 @@ local test_cli_job = {
         unset CI
         unset "${!GITHUB_@}"
 
-        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
+        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
       |||,
     },
   ] + snapshot_update_pr_steps,
@@ -388,6 +415,7 @@ local benchmarks_full_job = {
 };
 
 local trigger_semgrep_comparison_argo = {
+  'if': "${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}",
   secrets: 'inherit',
   needs: [
     'push-docker-returntocorp',
@@ -399,50 +427,45 @@ local trigger_semgrep_comparison_argo = {
 // Docker
 // ----------------------------------------------------------------------------
 
+// In the jobs below, we set certain docker "tags".
 // To make a comparison to git:
 // - docker image == git repository
 //   example: returntocorp/semgrep
-//
-// - docker tag == git ref
-//   example: :latest, :canary
-//
 // - docker digest == git commit
-//   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
-
+//   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3
+// - docker tag == git ref
+//   example: :latest, :canary, 1.2.3, pr-4434
+//
 // You can see those tags in use here:
 // https://hub.docker.com/r/returntocorp/semgrep/tags
 //
-// # tag image with full version (ex. "1.2.3")
-// type=semver,pattern={{version}}
-// # tag image with major.minor (ex. "1.2")
-// type=semver,pattern={{major}}.{{minor}}
-// # tag image with pr (ex. "pr-42", great for bisecting)
-// type=ref,event=pr
-// # ??? deleted those? useful?
-// type=ref,event=branch
-// type=sha,event=branch
-// # ???
-// type=edge
-
-local docker_tags = |||
-  type=semver,pattern={{version}}
-  type=semver,pattern={{major}}.{{minor}}
-  type=ref,event=pr
-  type=ref,event=branch
-  type=sha,event=branch
-  type=edge
-|||;
+// Example of docker tags:
+// - # tag image with full version (ex. "1.2.3")
+//   type=semver,pattern={{version}}
+// - # tag image with major.minor (ex. "1.2")
+//   type=semver,pattern={{major}}.{{minor}}
+// - # tag image with pr (ex. "pr-42", great for bisecting)
+//   type=ref,event=pr
+// - # tag image with branch (ex: "develop")
+//   type=ref,event=branch
+// - # tag image with commit (ex: "sha-ab324a")
+//   type=sha,event=branch
+// - # not sure we need this one
+//   type=edge
 
 local build_test_docker_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
     'docker-flavor': |||
-      latest=auto
-    |||,
-    'docker-tags': docker_tags,
-    // ??
-    'artifact-name': 'image-test',
+       latest=false
+     |||,
+    'docker-tags': |||
+       type=ref,event=pr
+       type=ref,event=branch
+       type=sha,event=branch
+     |||,
+    'artifact-name': docker_artifact_name,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name root variant
@@ -451,26 +474,31 @@ local build_test_docker_job = {
   },
 };
 
-local build_test_docker_nonroot_job = {
-  // We want to run build-test-docker-nonroot *after* build-test-docker so
+// The Dockerfile contain different steps and can build different "targets"
+// (e.g., a "nonroot" variant of the official semgrep docker image)
+local build_test_docker_other_target_job(suffix, target) = {
+  // We want to run build-test-docker-other *after* build-test-docker so
   // that it reuses the warmed-up docker cache.
   needs: [
     'build-test-docker',
   ],
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
-    // nonroot suffix here! which will be added for each tags
+    // suffix here! which will be added for each tags
     'docker-flavor': |||
-      latest=auto
-      suffix=-nonroot,onlatest=true
-    |||,
-    'docker-tags': docker_tags,
-    'artifact-name': 'image-test-nonroot',
+      latest=false
+      suffix=%s
+    ||| % suffix,
+    'docker-tags': |||
+       type=sha,event=branch
+       type=ref,event=pr
+      |||,
+    'artifact-name': docker_artifact_name + suffix,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
-    // see the Dockerfile, this is the name of the nonroot variant
-    target: 'nonroot',
+    // see the Dockerfile, this is the name of a variant
+    target: target,
     // TODO: why false here?
     'enable-tests': false,
   },
@@ -479,52 +507,15 @@ local build_test_docker_nonroot_job = {
 local right_ref_and_right_event =
   "github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))";
 
-local push_docker_job(repository_name) = {
-  needs: [
-    'build-test-docker',
-  ],
-  uses: './.github/workflows/push-docker.yaml',
+local push_docker_job(artifact_name, repository_name) = {
+  uses: './.github/workflows/push-docker.yml',
   'if': right_ref_and_right_event,
   secrets: 'inherit',
   with: {
-    'artifact-name': 'image-test',
+    'artifact-name': artifact_name,
     'repository-name': repository_name,
     'dry-run': false,
   },
-};
-
-local push_docker_nonroot_job(repository_name) = {
-  needs: [
-    'build-test-docker-nonroot',
-  ],
-  uses: './.github/workflows/push-docker.yaml',
-  'if': right_ref_and_right_event,
-  secrets: 'inherit',
-  with: {
-    'artifact-name': 'image-test-nonroot',
-    'repository-name': repository_name,
-    'dry-run': false,
-  },
-};
-
-local build_test_docker_performance_tests_job = build_test_docker_nonroot_job + {
-  with: super.with + {
-    'docker-flavor': |||
-      latest=auto
-      suffix=-performance-tests,onlatest=true
-    |||,
-    'artifact-name': 'image-test-performance-tests',
-    target: 'performance-tests',
-  },
-};
-
-local push_docker_performance_tests_job = push_docker_nonroot_job + {
-  needs: [
-    'build-test-docker-performance-tests',
-  ],
-  with: super.with + {
-    'artifact-name': 'image-test-performance-tests',
-  }
 };
 
 // ----------------------------------------------------------------------------
@@ -540,7 +531,7 @@ local test_semgrep_pro_job = {
   'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
   secrets: 'inherit',
   with: {
-    'artifact-name': 'image-test',
+    'artifact-name': docker_artifact_name,
     'repository-name': docker_repository_name,
   },
 };
@@ -549,7 +540,7 @@ local test_semgrep_pro_job = {
 // The Workflow
 // ----------------------------------------------------------------------------
 
-// ??
+// Do not run all the tests if you only modify the README.md or other docs
 local ignore_md = {
   'paths-ignore': [
     '**.md',
@@ -567,24 +558,33 @@ local ignore_md = {
       ],
     } + ignore_md,
   },
+  // These extra permissions are needed by some of the jobs
+  // (e.g. build-test-javascript)
+  permissions: gha.write_permissions,
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
-    // Pysemgrep tests, requires build-test-core-x86 job
+    // Pysemgrep tests that require check-semgrep-pro
     'test-cli': test_cli_job,
+    // Pysemgrep tests that require build-test-core-x86
     'test-qa': test_qa_job,
     'benchmarks-lite': benchmarks_lite_job,
     'benchmarks-full': benchmarks_full_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
-    // requires build-test-docker
-    'push-docker-returntocorp': push_docker_job('returntocorp/semgrep'),
-    'push-docker-semgrep': push_docker_job('semgrep/semgrep')
-    'build-test-docker-nonroot': build_test_docker_nonroot_job,
-    'push-docker-nonroot-returntocorp': push_docker_nonroot_job('returntocorp/semgrep'),
-    'push-docker-nonroot-semgrep': push_docker_nonroot_job('semgrep/semgrep'),
-    'build-test-docker-performance-tests': build_test_docker_performance_tests_job,
-    'push-docker-performance-tests': push_docker_performance_tests_job,
+    'push-docker-returntocorp':
+       push_docker_job(docker_artifact_name, 'returntocorp/semgrep') +
+       { needs: [ 'build-test-docker' ] },
+    'build-test-docker-nonroot':
+      build_test_docker_other_target_job("-nonroot", "nonroot"),
+    // No need to push those variant docker images. This is useful in
+    // release.jsonnet, but not so much here.
+    // old:
+    //  'push-docker-semgrep': push_docker_job(..., 'semgrep/semgrep') + { ... }
+    //  'push-docker-nonroot-returntocorp': ...
+    'build-test-docker-performance-tests':
+      build_test_docker_other_target_job("-performance-tests", "performance-tests"),
+    //'push-docker-performance-tests': ...
     // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
     // trigger argo workflows
@@ -592,6 +592,10 @@ local ignore_md = {
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
+      secrets: 'inherit',
+    },
+    'check-semgrep-pro': {
+      uses: './.github/workflows/check-semgrep-pro.yml',
       secrets: 'inherit',
     },
     'build-test-windows-x86': {
