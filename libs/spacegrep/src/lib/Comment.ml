@@ -26,15 +26,15 @@ let whiteout_ascii s =
 let replace_end_of_line_comment ~start src =
   (* match from first occurrence of 'start' in the line until the
      end of line or end of input *)
-  let rex = sprintf "%s[^\n]*\n?" (Pcre.quote start) |> Pcre_.regexp in
-  Pcre_.substitute ~rex ~subst:whiteout_ascii src
+  let rex = sprintf "%s[^\n]*\n?" (Pcre.quote start) |> Legacy_regex.regexp in
+  Legacy_regex.substitute ~rex ~subst:whiteout_ascii src
 
 let replace_multiline_comment ~start ~end_ src =
   let rex =
     sprintf "%s.*?%s" (Pcre.quote start) (Pcre.quote end_)
-    |> Pcre_.regexp ~flags:[ `DOTALL ]
+    |> Legacy_regex.regexp ~flags:[ `DOTALL ]
   in
-  Pcre_.substitute ~rex ~subst:whiteout_ascii src
+  Legacy_regex.substitute ~rex ~subst:whiteout_ascii src
 
 (* Apply comment filters from left to right *)
 let remove_comments_from_string style src =

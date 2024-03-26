@@ -424,14 +424,13 @@ let or_step2 (Or xs) =
     List_.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
-      | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
+      | Regexp re_str -> Regexp2_search (Regex.pcre_compile re_str)
       | MvarRegexp (_mvar, re_str, _const_prop) ->
           (* The original regexp is meant to apply on a substring.
               We rewrite them to remove end-of-string anchors if possible. *)
           let re =
             match
-              Regexp_engine.remove_end_of_string_assertions
-                (Regexp_engine.pcre_compile re_str)
+              Regex.remove_end_of_string_assertions (Regex.pcre_compile re_str)
             with
             | None -> raise GeneralPattern
             | Some re -> re
@@ -458,7 +457,7 @@ let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
              |> List_.map (function
                   | Idents xs -> `Pred (`Idents xs)
                   | Regexp2_search re ->
-                      let re_str = Regexp_engine.show re in
+                      let re_str = Regex.show re in
                       `Pred (`Regexp re_str))
            in
            match ys' with
@@ -563,11 +562,11 @@ let run_cnf_step2 cnf big_str =
                   (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under
                      Idents? *)
-                  let re = Regexp_engine.matching_exact_string id in
+                  let re = Regex.matching_exact_string id in
                   (* Note that in case of a PCRE error, we want to assume
                      that the rule is relevant, hence ~on_error:true! *)
-                  Regexp_engine.unanchored_match ~on_error:true re big_str)
-       | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
+                  Regex.unanchored_match ~on_error:true re big_str)
+       | Regexp2_search re -> Regex.unanchored_match re big_str)
 [@@profiling]
 
 (*****************************************************************************)

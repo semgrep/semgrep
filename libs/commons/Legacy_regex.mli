@@ -228,3 +228,5 @@ val get_named_substring_and_ofs :
   string ->
   Pcre.substrings ->
   ((string * (int * int)) option, string) Result.t
+
+val quote : string -> string

@@ -20,7 +20,7 @@ module MV = Metavariable
 let tags = Logs_.create_tags [ __MODULE__ ]
 
 let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
-  let subs = Pcre_.exec_all_noerr ~rex:regexp big_str in
+  let subs = Regex.exec_all_noerr ~rex:regexp big_str in
   subs |> Array.to_list
   |> List_.map (fun sub ->
          (* Below, we add `base_offset` to any instance of `bytepos`, because
@@ -30,8 +30,8 @@ let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
             By maintaining this base offset, we can accurately recreate the
             original line/col, at minimum cost.
          *)
-         let matched_str = Pcre.get_substring sub 0 in
-         let bytepos, _ = Pcre.get_substring_ofs sub 0 in
+         let matched_str = Pcre2.get_substring sub 0 in
+         let bytepos, _ = Pcre2.get_substring_ofs sub 0 in
          let bytepos = bytepos + base_offset in
          let str = matched_str in
          let line, column = line_col_of_charpos file bytepos in
@@ -45,9 +45,9 @@ let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
          let loc2 = { Tok.str; pos } in
 
          (* the names of all capture groups within the regexp *)
-         let names = Pcre.names regexp.regexp |> Array.to_list in
+         let names = Pcre2.names regexp.regexp |> Array.to_list in
          (* return regexp bound group $1 $2 etc *)
-         let n = Pcre.num_of_subs sub in
+         let n = Pcre2.num_of_subs sub in
          (* TODO: remove when we kill numeric capture groups *)
          let numbers_env =
            match n with
@@ -57,8 +57,8 @@ let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
                List_.enum 1 (n - 1)
                |> List_.map_filter (fun n ->
                       try
-                        let bytepos, _ = Pcre.get_substring_ofs sub n in
-                        let str = Pcre.get_substring sub n in
+                        let bytepos, _ = Pcre2.get_substring_ofs sub n in
+                        let str = Pcre2.get_substring sub n in
                         let line, column = line_col_of_charpos file bytepos in
                         let pos = Pos.make ~file:!!file ~line ~column bytepos in
                         let loc = { Tok.str; pos } in
@@ -78,10 +78,12 @@ let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t) regexp =
                     (* TODO: make exception-free versions of the missing
                        functions in SPcre. *)
                     let bytepos, _ =
-                      Pcre.get_named_substring_ofs regexp.regexp name sub
+                      Pcre2.get_named_substring_ofs regexp.regexp name sub
                     in
                     let bytepos = bytepos + base_offset in
-                    let str = Pcre.get_named_substring regexp.regexp name sub in
+                    let str =
+                      Pcre2.get_named_substring regexp.regexp name sub
+                    in
                     let line, column = line_col_of_charpos file bytepos in
                     let pos = Pos.make ~file:!!file ~line ~column bytepos in
                     let loc = { Tok.str; pos } in

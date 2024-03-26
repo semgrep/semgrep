@@ -9,8 +9,10 @@ export class MissingParserError extends Error {
 
 export const EngineFactory = async () => {
   const wasm = await SemgrepEngineWasm();
-  // libpcre regrettably must be global because semgrep eagerly compiles regexes
+  // libpcre and libpcre2 regrettably must be global because semgrep eagerly
+  // compiles regexes
   globalThis.LibPcreModule = wasm;
+  globalThis.LibPcre2Module = wasm;
   const {
     init,
     getMountpoints,

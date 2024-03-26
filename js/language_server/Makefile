@@ -37,7 +37,7 @@ node_modules/.package-lock.json: package-lock.json
 ../tree-sitter/dist/tree-sitter.o:
 	$(MAKE) -C ../tree-sitter dist/tree-sitter.o
 
-dist/language-server-wasm.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a ../tree-sitter/dist/tree-sitter.o $(LANGUAGES:%=../languages/%/dist/semgrep-parser.o)
+dist/language-server-wasm.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a ../libpcre2/dist/libpcre2-8.a ../tree-sitter/dist/tree-sitter.o $(LANGUAGES:%=../languages/%/dist/semgrep-parser.o)
 	mkdir -p dist
 	emcc \
 		-O3 \
@@ -46,7 +46,7 @@ dist/language-server-wasm.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.
 		-s INITIAL_MEMORY=64MB \
 		-s SINGLE_FILE=1 \
 		$(EMCC_DEFAULTS) \
-		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS),$(PCRE_EXPORTED_FUNCTIONS),$(TREESITTER_EXPORTED_FUNCTIONS),$(PARSER_EXPORTED_FUNCTIONS) \
+		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS),$(PCRE_EXPORTED_FUNCTIONS),$(PCRE2_EXPORTED_FUNCTIONS),$(TREESITTER_EXPORTED_FUNCTIONS),$(PARSER_EXPORTED_FUNCTIONS) \
 		-o $@
 
 .PHONY: dist/Main.bc.js

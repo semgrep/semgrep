@@ -84,19 +84,16 @@ let error_at_expr rule_id (e : G.expr) s =
 let pcre_error_to_string s exn =
   let message =
     match exn with
-    | Pcre.Partial -> "String only matched the pattern partially"
-    | BadPartial ->
-        "Pattern contains items that cannot be used together with partial \
-         matching."
+    | Pcre2.Partial -> "String only matched the pattern partially"
     | BadPattern (msg, pos) -> spf "%s at position %d" msg pos
-    | BadUTF8 -> "UTF8 string being matched is invalid"
-    | BadUTF8Offset ->
+    | BadUTF -> "UTF8 string being matched is invalid"
+    | BadUTFOffset ->
         "Gets raised when a UTF8 string being matched with offset is invalid."
     | MatchLimit ->
         "Maximum allowed number of match attempts with\n\
         \                      backtracking or recursion is reached during \
          matching."
-    | RecursionLimit -> "Recursion limit reached"
+    | DepthLimit -> "Recursion limit reached"
     | WorkspaceSize -> "Workspace array size reached"
     | InternalError msg -> spf "Internal error: %s" msg
   in
@@ -420,7 +417,7 @@ let parse_regexp env (s, t) =
                    mvar s));
     s
   with
-  | Pcre.Error exn ->
+  | Pcre2.Error exn ->
       Rule.raise_error (Some env.id)
         (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t))
 
