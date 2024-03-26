@@ -20,7 +20,7 @@ OBJS = \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml cron-parsing-stats.yml \
   check-semgrep-pro.yml check-semgrep-pro-version.yml test-semgrep-pro.yml \
-  push-docker.yml promote-canary-to-latest.yml \
+  build-test-docker.yml push-docker.yml promote-canary-to-latest.yml \
   start-release.yml release.yml release-homebrew.yml \
   trigger-semgrep-comparison-argo.yml
 

@@ -56,10 +56,7 @@ local setup_docker_tag_job = {
 
 local test_semgrep_pro_job = {
   'runs-on': 'ubuntu-22.04',
-  permissions: {
-    'id-token': 'write',
-    contents: 'read',
-  },
+  permissions: gha.read_permissions,
   needs: 'setup-docker-tag',
   env: {
     SEMGREP_APP_TOKEN: '${{ secrets.SEMGREP_APP_TOKEN }}',

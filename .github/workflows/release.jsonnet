@@ -91,7 +91,7 @@ local dry_run = "${{ inputs.dry-run || false }}";
 // ----------------------------------------------------------------------------
 
 local build_test_docker_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
     // don't add a "latest" tag (we'll promote "canary" to "latest" after
@@ -122,7 +122,7 @@ local build_test_docker_job = {
 };
 
 local build_test_docker_nonroot_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   needs: [
     // We want to run build-test-docker-nonroot *after* build-test-docker

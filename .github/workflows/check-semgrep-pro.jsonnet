@@ -104,7 +104,7 @@ local job = container.job {
         make
       |||,
     },
-    // alt: use semgrep.make_artifact_step but here we store 2 binaries
+    // alt: use actions.make_artifact_step but here we store 2 binaries
     {
       name: 'Make artifact',
       run: |||

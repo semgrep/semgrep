@@ -11,6 +11,6 @@
           using DefaultHttpClient a security hazard. Use SystemDefaultHttpClient instead, which supports
           TLS1.2.
 
-           ▶▶┆ Autofix ▶ HttpClient client = new SystemDefaultHttpClient()
+           ▶▶┆ Autofix ▶ HttpClient client = new SystemDefaultHttpClient();
            15┆ HttpClient client = new DefaultHttpClient();
 

@@ -5,7 +5,7 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yml
   build-test-docker:
     secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yaml
+    uses: ./.github/workflows/build-test-docker.yml
     with:
       artifact-name: image-release
       docker-flavor: latest=false
@@ -21,7 +21,7 @@ jobs:
     needs:
       - build-test-docker
     secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yaml
+    uses: ./.github/workflows/build-test-docker.yml
     with:
       artifact-name: image-release-nonroot
       docker-flavor: |

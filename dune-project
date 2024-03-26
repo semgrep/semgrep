@@ -476,6 +476,8 @@ For more information see https://semgrep.dev
     uuidm
     (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
+    git
+    git-unix
     ; tracing
     trace
     ppx_trace

@@ -6,6 +6,8 @@ local osx_x86 = import 'build-test-osx-x86.jsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+local wheel_name = 'osx-arm64-wheel';
+
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -45,7 +47,6 @@ local setup_python_step =  {
 // alt: we could factorize more with build-test-osx-x86.jsonnet by making
 // the xxx_job functions, but let's copy paste a bit for now.
 local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
-local wheel_name = 'osx-arm64-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,
@@ -66,7 +67,7 @@ local build_core_job = {
       name: 'Compile semgrep',
       run: "opam exec -- make core",
     },
-    semgrep.make_artifact_step("./bin/semgrep-core"),
+    actions.make_artifact_step("./bin/semgrep-core"),
     actions.upload_artifact_step(artifact_name),
   ],
 };

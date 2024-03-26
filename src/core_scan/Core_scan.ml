@@ -242,7 +242,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details =
                      Some
                        (spf "Issue creating a target from git blob %s"
-                          (Git_wrapper.show_sha sha));
+                          (Digestif.SHA1.to_hex sha));
                    rule_id = None;
                  })
 
@@ -571,6 +571,7 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
+[@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
@@ -1151,15 +1152,12 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 (* Entry point *)
 (*****************************************************************************)
 
-let time_and_trace_rules (caps : < Cap.tmp >) config =
-  (* TODO remove this wrapper function once we have a tracing ppx *)
-  Tracing.with_span ~__FILE__ ~__LINE__ "Core_scan.handle_target" (fun _sp ->
-      Common.with_time (fun () -> rules_from_rule_source caps config))
-
 let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    let timed_rules = time_and_trace_rules caps config in
+    let timed_rules =
+      Common.with_time (fun () -> rules_from_rule_source caps config)
+    in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and

@@ -101,6 +101,8 @@ def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         encoding=ENCODING,
     ) as proc:
         try:
+            # These need to be local variables because otherwise mypy doesn't
+            # trust the results of the None checks.
             proc_stdin = proc.stdin
             proc_stdout = proc.stdout
             if proc_stdin is None or proc_stdout is None:

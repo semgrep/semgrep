@@ -33,22 +33,32 @@ let now () : float = UUnix.gettimeofday ()
 (* unix time in seconds *)
 let time_program_start = now ()
 
+(* Some libraries will have multiple log sources i.e. lib.m1 and lib.m2 *)
+(* So we can use wildcards here to catch them all*)
 let default_skip_libs =
   [
     "ca-certs";
     "bos";
-    "cohttp.lwt.client";
-    "cohttp.lwt.io";
+    "cohttp.lwt.*";
     "conduit_lwt_server";
-    "mirage-crypto-rng.lwt";
-    "mirage-crypto-rng-lwt";
-    "mirage-crypto-rng.unix";
+    "dns*";
+    (* There's like a dozen of these, I'm not adding them all -austin *)
+    "git*";
+    "happy-eyeballs*";
+    "awa.*";
+    "paf*";
+    "thin";
+    "find-common";
+    "smart_flow";
+    "mimic";
+    "pck";
+    "mirage-crypto-rng*";
     "handshake";
-    "tls.config";
-    "tls.tracing";
+    "tls.*";
     "eio_linux";
     "x509";
   ]
+  |> List_.map Re.Pcre.regexp
 
 (*****************************************************************************)
 (* String tags *)
@@ -304,7 +314,8 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   Logs.Src.list ()
   |> List.iter (fun src ->
          match Logs.Src.name src with
-         | x when List.mem x skip_libs -> Logs.Src.set_level src None
+         | x when List.exists ((flip Re.execp) x) skip_libs ->
+             Logs.Src.set_level src None
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))
@@ -319,11 +330,13 @@ let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
 let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
 
 let mask_time =
-  Testo.mask_pcre_pattern ~mask:"<MASKED TIMESTAMP>"
+  Testo.mask_pcre_pattern
+    ~replace:(fun _ -> "<MASKED TIMESTAMP>")
     {|\[([0-9]{2}\.[0-9]{2})\]|}
 
 let mask_log_lines =
-  Testo.mask_pcre_pattern ~mask:"<MASKED LOG LINE>"
+  Testo.mask_pcre_pattern
+    ~replace:(fun _ -> "<MASKED LOG LINE>")
     {|\[[0-9]{2}\.[0-9]{2}\][^\n]*|}
 
 let list to_string xs =

@@ -13,7 +13,7 @@
  *
  * Extended by Yoann Padioleau to support more recent versions of Java.
  * Copyright (C) 2011 Facebook
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2024 Semgrep Inc.
  *)
 
 (*****************************************************************************)
@@ -50,6 +50,9 @@ type 'a list1 = 'a list (* really should be 'a * 'a list *) [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
 type 'a bracket = Tok.t * 'a * Tok.t [@@deriving show]
+
+(* semicolon ";" *)
+type sc = Tok.t [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Ident, qualifier *)
@@ -185,7 +188,7 @@ and expr =
   (* tree-sitter-only: not that ident can be the special "new" *)
   | MethodRef of expr_or_type * Tok.t (* :: *) * type_arguments option * ident
   (* the 'decls option' is for anon classes *)
-  | NewClass of Tok.t (* new *) * typ * arguments * decls bracket option
+  | NewClass of Tok.t (* new *) * typ * arguments * decl list bracket option
   (* see tests/java/parsing/NewQualified.java *)
   | NewQualifiedClass of
       expr
@@ -193,7 +196,7 @@ and expr =
       * Tok.t (* new *)
       * typ
       * arguments
-      * decls bracket option
+      * decl list bracket option
   (* the int counts the number of [], new Foo[][] => 2 *)
   | NewArray of Tok.t * typ * expr list * int * init option
     (* TODO: QualifiedNew *)
@@ -261,7 +264,7 @@ and stmt =
   | If of Tok.t * expr * stmt * stmt option
   | Switch of Tok.t * expr * (cases * stmts) list (* TODO bracket *)
   | While of Tok.t * expr * stmt
-  | Do of Tok.t * stmt * expr (* TODO * Tok.t (* ; *) *)
+  | Do of Tok.t * stmt * expr (* TODO * sc *)
   | For of Tok.t * for_control * stmt
   | Break of Tok.t * ident option
   | Continue of Tok.t * ident option
@@ -271,7 +274,7 @@ and stmt =
   | Try of Tok.t * resources option * stmt * catches * (Tok.t * stmt) option
   | Throw of Tok.t * expr
   (* decl as statement *)
-  | LocalVarList of var_with_init list
+  | LocalVarList of var_with_init list * sc
   (* in recent Java, used to be only LocalClass *)
   | DeclStmt of decl
   | DirectiveStmt of directive
@@ -320,7 +323,6 @@ and entity = {
 (* variable (local var, parameter) declaration *)
 (* ------------------------------------------------------------------------- *)
 and var_definition = entity
-and vars = var_definition list
 
 (* less: could be merged with var *)
 and var_with_init = { f_var : var_definition; f_init : init option }
@@ -374,14 +376,14 @@ and enum_decl = {
   en_body : enum_body;
 }
 
-and enum_body = enum_constant list * enum_body_decls
+and enum_body = enum_constant list * enum_body_decl list
 (* TODO bracket *)
 
 (* http://docs.oracle.com/javase/1.5.0/docs/guide/language/enums.html *)
 and enum_constant = ident * arguments option * class_body option
 
 (* Not all kind of decls. Restrictions are ?? *)
-and enum_body_decls = decls
+and enum_body_decl = decl
 
 (* ------------------------------------------------------------------------- *)
 (* Class/Interface *)
@@ -413,7 +415,7 @@ and class_kind =
   | Record
 
 (* Not all kind of decls. Restrictions are ?? *)
-and class_body = decls bracket
+and class_body = decl list bracket
 
 (*****************************************************************************)
 (* Declaration *)
@@ -432,8 +434,6 @@ and decl =
   (* sgrep-ext: allows ... inside interface, class declarations *)
   | DeclEllipsis of Tok.t
   | DeclMetavarEllipsis of ident
-
-and decls = decl list
 
 (*****************************************************************************)
 (* Directives *)

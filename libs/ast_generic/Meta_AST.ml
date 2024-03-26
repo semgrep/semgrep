@@ -1324,8 +1324,11 @@ and vof_function_body = function
       OCaml.VSum ("FBDecl", [ v1 ])
   | FBNothing -> OCaml.VSum ("FBNothing", [])
 
-and vof_variable_definition { vinit = v_vinit; vtype = v_vtype } =
+and vof_variable_definition { vinit = v_vinit; vtype = v_vtype; vtok } =
   let bnds = [] in
+  let arg = OCaml.vof_option vof_tok vtok in
+  let bnd = ("vtok", arg) in
+  let bnds = bnd :: bnds in
   let arg = OCaml.vof_option vof_type_ v_vtype in
   let bnd = ("vtype", arg) in
   let bnds = bnd :: bnds in

@@ -316,12 +316,6 @@ _scan_options: List[Callable] = [
         type=int,
         default=DEFAULT_DIFF_DEPTH,
     ),
-    optgroup.option(
-        "--no-interfile-diff-scan",
-        "disable_interfile_diff_scan_flag",
-        is_flag=True,
-        hidden=True,
-    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option(
         "--no-secrets-validation",
@@ -329,7 +323,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         hidden=True,
     ),
-    optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
+    optgroup.option(
+        "--allow-custom-validators",
+        "allow_untrusted_validators",
+        is_flag=True,
+        hidden=True,
+    ),
 ]
 
 
@@ -410,7 +409,7 @@ def scan_options(func: Callable) -> Callable:
     help="Contact support@semgrep.com for more informationon this.",
 )
 @click.option(
-    "--historical-secrets-targets",
+    "--historical-secrets",
     "historical_secrets",
     is_flag=True,
 )
@@ -423,7 +422,6 @@ def scan(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
-    disable_interfile_diff_scan_flag: bool,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
@@ -501,7 +499,7 @@ def scan(
         logged_in=state.app_session.token is not None,
         engine_flag=requested_engine,
         run_secrets=run_secrets_flag,
-        interfile_diff_scan_enabled=not disable_interfile_diff_scan_flag,
+        interfile_diff_scan_enabled=diff_depth >= 0,
     )
 
     # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
