@@ -46,7 +46,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 └────────────────┘
 
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python 3.11.8
+  versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
@@ -64,12 +64,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles   
+  Ecosystem   Rules   Files   Lockfiles
  ─────────────────────────────────────────
   Pypi            3       1   poetry.lock
 
 
-  Analysis   Rules 
+  Analysis   Rules
  ──────────────────
   Basic          2
   Unknown        1
@@ -94,88 +94,9 @@ CI scan completed successfully.
 === end of stderr - plain
 
 === stdout - color
-
-
-┌───────────────────────────────────┐
-│ 2 Reachable Supply Chain Findings │
-└───────────────────────────────────┘
-
-    poetry.lock
-   ❯❯❱ [1msupply-chain-parity-2[0m
-          found another dependency without a pattern
-
-           10┆ name = "mypy"
-
-   ❯❯❱ [1msupply-chain-parity-1[0m
-          found a dependency
-
-           18┆ name = "python-dateutil"
-
-
-┌────────────────────────────────────┐
-│ 1 Unreachable Supply Chain Finding │
-└────────────────────────────────────┘
-
-    poetry.lock
-   ❯❯❱ [1msupply-chain-reachable-1[0m
-          found a reachable vulnerability from a dependency
-
-           10┆ name = "mypy"
-
-
+<same as above: stdout - plain>
 === end of stdout - color
 
 === stderr - color
-
-
-┌────────────────┐
-│ Debugging Info │
-└────────────────┘
-
-  [4mSCAN ENVIRONMENT[0m
-  versions    - semgrep [1m<MASKED>[0m on python [1m3.11.8[0m
-  environment - running in environment [1mgit[0m, triggering event is [1munknown[0m
-
-  [4mCONNECTION[0m
-  Initializing scan (deployment=org_name, scan_id=12345)
-  Enabled products: [1mCode, Supply Chain[0m
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 4 files tracked by git with 0 Code rules, 3 Supply Chain rules:
-
-
-  [4mCODE RULES[0m
-  Nothing to scan.
-
-  [4mSUPPLY CHAIN RULES[0m
-
- [1m [0m[1mEcosystem[0m[1m [0m [1m [0m[1mRules[0m[1m [0m [1m [0m[1mFiles[0m[1m [0m [1m [0m[1mLockfiles  [0m[1m [0m
- ─────────────────────────────────────────
-  Pypi            3       1   poetry.lock
-
-
- [1m [0m[1mAnalysis[0m[1m [0m [1m [0m[1mRules[0m[1m [0m
- ──────────────────
-  Basic          2
-  Unknown        1
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 3 findings (2 blocking) from 3 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings?repo=local_scan/checkout_project_name&ref=some/branch-name
-    https://semgrep.dev/orgs/org_name/supply-chain
-  Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code (Test Reason)
-
+<same as above: stderr - plain>
 === end of stderr - color
