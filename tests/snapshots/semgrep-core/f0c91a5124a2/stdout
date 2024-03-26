@@ -12,7 +12,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 --- '--exclude' patterns ---
 b
 --- Selected targets ---
-selected <TMP>/<MASKED>/.gitignore
-selected <TMP>/<MASKED>/a
+selected .gitignore
+selected a
 --- Skipped targets ---
-ignored <TMP>/<MASKED>/b [Semgrep_output_v1_t.Cli_exclude_flags_match]
+ignored b [Semgrep_output_v1_t.Cli_exclude_flags_match]

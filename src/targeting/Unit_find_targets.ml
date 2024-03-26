@@ -104,7 +104,6 @@ let test_find_targets ?includes ?(excludes = [])
         Testo.mask_line ~after:"(root-commit) " ~before:"]" ();
       ]
 
-(* TODO: review the output of the tests 'with git' *)
 let tests_with_or_without_git ~with_git =
   [
     test_find_targets ~with_git "basic test" [ F.File (".gitignore", "") ];
@@ -120,6 +119,20 @@ let tests_with_or_without_git ~with_git =
     (* Select file 'a', not 'b' *)
     test_find_targets ~with_git ~includes:[ "a" ] "basic include"
       [ F.File (".gitignore", ""); F.file "a"; F.file "b" ];
+    (*
+       !!! Here is where things are getting weird. !!!
+    *)
+    (* Can't select file 'a' via --include when gitignoring its folder. *)
+    test_find_targets ~with_git ~includes:[ "a" ]
+      "gitignore file takes precedence over --include"
+      [ F.File (".gitignore", "dir\n"); F.dir "dir" [ F.file "a"; F.file "b" ] ];
+    (* Select file 'a' via --include despite semgrepignoring its folder. *)
+    test_find_targets ~with_git ~includes:[ "a" ]
+      "--include takes precedence over semgrepignore"
+      [
+        F.File (".semgrepignore", "dir\n");
+        F.dir "dir" [ F.file "a"; F.file "b" ];
+      ];
   ]
 
 let tests =

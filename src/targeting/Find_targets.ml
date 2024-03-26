@@ -298,50 +298,82 @@ let git_list_files ~exclude_standard
   let project = project_roots.project in
   match project.kind with
   | Git_project ->
+      let cwd = Fpath.v (Sys.getcwd ()) in
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
+               Logs.debug (fun m ->
+                   m ~tags "List git files for scanning root %S"
+                     !!(sc_root.fpath));
                let project_root = Rfpath.to_rpath project.path in
-               let scanning_root_path =
-                 Ppath.to_fpath
-                   ~root:(Rpath.to_fpath project_root)
-                   sc_root.ppath
-               in
-               Git_wrapper.ls_files_relative ~exclude_standard ~kinds:file_kinds
-                 ~project_root [ scanning_root_path ]
-               |> List_.map (fun fpath_relative_to_project_root ->
-                      (*
-                 let fpath_relative_to_scan_root =
-                   Logs.debug (fun m ->
-                     m ~tags "Fpath.relativize ~root:%S %S"
-                       !!(sc_root.fpath) !!fpath_relative_to_project_root
-                   );
-                   match Fpath.relativize
-                           ~root:scanning_root_path
-                           fpath_relative_to_project_root
-                   with
-                   | Some x -> x
+               (* The path prefix we want for all the target file paths
+                  that we return *)
+               let orig_scanning_root_path = sc_root.fpath in
+               (* Best effort to get a relative scanning root path
+                  (will fail in file systems with multiple roots) *)
+               let rel_scanning_root_path_or_absolute =
+                 if Fpath.is_rel orig_scanning_root_path then
+                   orig_scanning_root_path
+                 else
+                   match Fpath.relativize ~root:cwd orig_scanning_root_path with
+                   | Some rel_scanning_root -> rel_scanning_root
                    | None ->
-                       failwith
-                         "Impossible: git ls-files somehow not relative \
-                          to the scan root, even though we passed it as \
-                          an argument"
-                 in
-*)
-                      let ppath =
-                        Ppath.of_relative_fpath fpath_relative_to_project_root
+                       (* absolute, on another volume than cwd *)
+                       orig_scanning_root_path
+               in
+               (* We can't just cd into the scanning root to obtain paths
+                  relative to it because the scanning root may be a regular
+                  file. It could also be the root of the file system, so we
+                  also can't cd into its parent.
+                  This is why we stay in the same cwd and only later convert
+                  the resulting paths to be relative to the scanning root. *)
+               Git_wrapper.ls_files_relative ~exclude_standard ~kinds:file_kinds
+                 ~project_root
+                 [ orig_scanning_root_path ]
+               |> List_.map (fun target_relative_to_cwd_or_absolute ->
+                      (* Invariant: the target path is a descendant of the scanning
+                         root path (possibly the scanning root path itself) *)
+
+                      (* Obtain a path whose prefix is the scanning root
+                         if possible.
+                         If the scanning root is './proj/lib',
+                         then we want a result target path to be
+                         './proj/lib/../hello.c', not the equivalent
+                         'proj/hello.c'. *)
+                      let target_fpath =
+                        match
+                          Fpath.relativize
+                            ~root:rel_scanning_root_path_or_absolute
+                            target_relative_to_cwd_or_absolute
+                        with
+                        | Some target_relative_to_scan_root ->
+                            Fpath_.append_no_dot orig_scanning_root_path
+                              target_relative_to_scan_root
+                        | None -> target_relative_to_cwd_or_absolute
                       in
-                      let fpath_relative_to_scan_root =
-                        Ppath.relativize sc_root.ppath ppath
+                      (* Obtain a path relative to the project root *)
+                      let target_ppath =
+                        match
+                          Fpath.relativize
+                            ~root:(Rpath.to_fpath project_root)
+                            (cwd // target_relative_to_cwd_or_absolute)
+                        with
+                        | None ->
+                            Logs.err (fun m ->
+                                m ~tags
+                                  "Internal error: cannot obtain path relative \
+                                   to project root from project_root=%s, \
+                                   cwd=%S, path_relative_to_cwd=%S"
+                                  !!(Rpath.to_fpath project_root)
+                                  !!cwd
+                                  !!target_relative_to_cwd_or_absolute);
+                            assert false
+                        | Some fpath_relative_to_project_root ->
+                            Ppath.of_relative_fpath
+                              fpath_relative_to_project_root
                       in
-                      (* Return a path that's the original scanning root
-                         appended with the target path that's relative to
-                         the scanning root. *)
-                      let fpath =
-                        Fpath_.append_no_dot sc_root.fpath
-                          fpath_relative_to_scan_root
-                      in
-                      ({ fpath; ppath } : Fppath.t)))
+                      ({ fpath = target_fpath; ppath = target_ppath }
+                        : Fppath.t)))
         |> Fppath_set.of_list)
   | Gitignore_project
   | Other_project ->

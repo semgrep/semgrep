@@ -9,6 +9,6 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  create mode 100644 .gitignore
  create mode 100644 a
 --- Selected targets ---
-selected <TMP>/<MASKED>/.gitignore
-selected <TMP>/<MASKED>/a
+selected .gitignore
+selected a
 --- Skipped targets ---

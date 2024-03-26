@@ -6,5 +6,5 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  1 file changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 .gitignore
 --- Selected targets ---
-selected <TMP>/<MASKED>/.gitignore
+selected .gitignore
 --- Skipped targets ---
