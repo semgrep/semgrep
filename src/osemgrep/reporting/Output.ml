@@ -150,14 +150,11 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         Gitlab_output.secrets_output cli_output.results
       in
       Out.put (Yojson.Basic.to_string gitlab_secrets_json)
-  | Files_only ->
-      let files =
-        List.fold_left
-          (fun acc (m : OutJ.cli_match) ->
-            Common2.StringSet.add (Fpath.to_string m.path) acc)
-          Common2.StringSet.empty cli_output.results
-      in
-      Out.put (files |> Common2.StringSet.to_list |> String.concat "\n")
+  | Files_with_matches ->
+      cli_output.results
+      |> List_.map (fun (x : OutT.cli_match) -> !!(x.path))
+      |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
+      |> Out.put
 
 (*****************************************************************************)
 (* Entry points *)

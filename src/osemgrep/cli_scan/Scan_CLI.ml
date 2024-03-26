@@ -468,9 +468,10 @@ let o_incremental_output : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let o_files_only : bool Term.t =
+(* osemgrep-only: *)
+let o_files_with_matches : bool Term.t =
   let info =
-    Arg.info [ "files-only" ]
+    Arg.info [ "files-with-matches" ]
       ~doc:{|Output only the names of files containing matches|}
   in
   Arg.value (Arg.flag info)
@@ -880,7 +881,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators autofix baseline_commit common config
       dataflow_traces diff_depth dryrun dump_ast dump_command_for_core
-      dump_engine_path emacs error exclude_ exclude_rule_ids files_only
+      dump_engine_path emacs error exclude_ exclude_rule_ids files_with_matches
       force_color gitlab_sast gitlab_secrets include_ incremental_output json
       junit_xml lang ls matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
@@ -945,7 +946,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
           "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
       match () with
       | _ when text -> Output_format.Text
-      | _ when files_only -> Output_format.Files_only
+      | _ when files_with_matches -> Output_format.Files_with_matches
       | _ when json -> Output_format.Json
       | _ when emacs -> Output_format.Emacs
       | _ when vim -> Output_format.Vim
@@ -1234,7 +1235,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     const combine $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_diff_depth
     $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
-    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_files_only
+    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_files_with_matches
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include
     $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
     $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
