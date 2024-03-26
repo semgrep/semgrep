@@ -1,0 +1,1 @@
+osemgrep now respects HTTP_PROXY and HTTPS_PROXY when making network requests
