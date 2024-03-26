@@ -334,12 +334,15 @@ let git_list_files ~exclude_standard
                       (* Invariant: the target path is a descendant of the scanning
                          root path (possibly the scanning root path itself) *)
 
-                      (* Obtain a path whose prefix is the scanning root
+                      (* Obtain a path whose prefix is the original scanning root
                          if possible.
                          If the scanning root is './proj/lib',
                          then we want a result target path to be
                          './proj/lib/../hello.c', not the equivalent
-                         'proj/hello.c'. *)
+                         'proj/hello.c'.
+                         The only exception is if the scanning root is '.',
+                         in which case we don't produce './foo' but 'foo'.
+                      *)
                       let target_fpath =
                         match
                           Fpath.relativize
