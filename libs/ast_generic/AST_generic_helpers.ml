@@ -734,3 +734,15 @@ let add_semicolon_to_last_var_def_and_convert_to_stmts (sc : sc)
     | (ent, vardef) :: xs -> (ent, { vardef with vtok = Some sc }) :: xs
   in
   ys |> List_.map (fun (ent, vardef) -> DefStmt (ent, VarDef vardef) |> G.s)
+
+let add_semicolon_to_last_def_and_convert_to_stmts (sc : sc)
+    (xs : definition list) : stmt list =
+  let ys =
+    match List.rev xs with
+    (* Impossible in principle *)
+    | [] -> []
+    | (ent, VarDef vardef) :: xs ->
+        (ent, VarDef { vardef with vtok = Some sc }) :: xs
+    | xs -> xs
+  in
+  ys |> List_.map (fun (ent, def) -> DefStmt (ent, def) |> G.s)

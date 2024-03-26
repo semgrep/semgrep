@@ -1,6 +1,6 @@
 (* Sjoerd Langkemper
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -76,16 +76,16 @@ let type_parameters_with_constraints (tparams : type_parameters option)
       in
       Some (lt, tparams', gt)
 
-let var_def_stmt (decls : (entity * variable_definition) list)
-    (attrs : attribute list) =
+let var_def_stmt (attrs : attribute list)
+    (decls : (entity * variable_definition) list) (sc : Tok.t) : G.stmt =
   let stmts =
-    List_.map
-      (fun (ent, def) ->
-        let ent = { ent with attrs = ent.attrs @ attrs } in
-        DefStmt (ent, VarDef def) |> G.s)
-      decls
+    decls
+    |> List_.map (fun (ent, def) ->
+           let ent = { ent with attrs = ent.attrs @ attrs } in
+           (ent, def))
+    |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
   in
-  stmt1 stmts
+  G.stmt1 stmts
 
 (* TODO? integrate in AST_generic at some point? or extend
  * AST_generic.comprehension to support also the Group/Into/Join/OrderBy?
@@ -1897,11 +1897,10 @@ and statement (env : env) (x : CST.statement) =
   | `Local_decl_stmt (v1, v2, v3, v4, v5) ->
       let _V1TODO = Option.map (token env) v1 (* "await" *) in
       let _V2TODO = Option.map (token env) v2 (* "using" *) in
-      let v3 = List_.map (modifier env) v3 in
-      (* TODO: inject back the semicolon in the vtok in the last decl in v4 *)
-      let v4 = variable_declaration env v4 in
-      let _v5 = token env v5 (* ";" *) in
-      var_def_stmt v4 v3
+      let attrs = List_.map (modifier env) v3 in
+      let vardefs = variable_declaration env v4 in
+      let sc = token env v5 (* ";" *) in
+      var_def_stmt attrs vardefs sc
   | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List_.map (modifier env) v2 in
@@ -1971,8 +1970,11 @@ and statement (env : env) (x : CST.statement) =
       let v4 =
         match v4 with
         | `Var_decl x ->
-            let v4 = variable_declaration env x in
-            var_def_stmt v4 []
+            let vardefs = variable_declaration env x in
+            vardefs
+            |> List_.map (fun (ent, vardef) ->
+                   DefStmt (ent, VarDef vardef) |> G.s)
+            |> G.stmt1
         | `Exp x ->
             let expr = expression env x in
             ExprStmt (expr, sc) |> G.s
@@ -2179,7 +2181,7 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   in
   let v2 = List_.map (statement env) v2 in
   (* TODO: we convert list of statements to a block with fake brackets. Does this make sense? *)
-  CasesAndBody (v1, stmt1 v2)
+  CasesAndBody (v1, G.stmt1 v2)
 
 and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) :
     attribute list =
@@ -3136,16 +3138,17 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List_.map (modifier env) v2 in
       let v3 = unhandled_keywordattr (str env v3) (* "event" *) in
-      let v4 = variable_declaration env v4 in
-      (* TODO: inject the semicolon in the last declaration in v4 *)
-      let _v5 = token env v5 (* ";" *) in
-      var_def_stmt v4 ((v3 :: v1) @ v2)
+      let attrs = (v3 :: v1) @ v2 in
+      let vardefs = variable_declaration env v4 in
+      let sc = token env v5 (* ";" *) in
+      var_def_stmt attrs vardefs sc
   | `Field_decl (v1, v2, v3, v4) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List_.map (modifier env) v2 in
-      let v3 = variable_declaration env v3 in
-      let _v4 = token env v4 (* ";" *) in
-      var_def_stmt v3 (v1 @ v2)
+      let attrs = v1 @ v2 in
+      let vardefs = variable_declaration env v3 in
+      let sc = token env v4 (* ";" *) in
+      var_def_stmt attrs vardefs sc
   | `Inde_decl (v1, v2, v3, v4, v5, v6, v7) -> (
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List_.map (modifier env) v2 in
