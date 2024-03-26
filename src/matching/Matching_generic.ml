@@ -771,7 +771,9 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         (s, info)
       with
       | Not_found ->
-          Logs.err (fun m -> m ~tags "could not find %s in %s" s raw_str);
+          Logs.debug (fun m ->
+              m ~tags "could not find %s in %s" s
+                (String_.show ~max_len:100 raw_str));
           (* return original token ... better than failwith? *)
           (s, info))
 
