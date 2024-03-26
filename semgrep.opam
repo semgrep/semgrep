@@ -59,7 +59,7 @@ depends: [
   "git-unix"
   "trace"
   "ppx_trace"
-  "opentelemetry" {>= "0.8"}
+  "opentelemetry" {>= "0.9"}
   "opentelemetry-client-ocurl"
   "ambient-context-lwt"
   "conf-libcurl" {= "1"}
