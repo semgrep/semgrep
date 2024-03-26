@@ -177,7 +177,6 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
-    disable_interfile_diff_scan_flag: bool,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -364,8 +363,8 @@ def ci(
 
     # Enable beta features
     if scan_handler and scan_handler.generic_slow_rollout:
-        # Add options for slow rollout here
-        pass
+        # slow rollout for pro diff scan
+        diff_depth = 2
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
@@ -388,7 +387,7 @@ def ci(
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=not disable_interfile_diff_scan_flag,
+        enable_pro_diff_scan=diff_depth >= 0,
         supply_chain_only=supply_chain_only,
     )
 
