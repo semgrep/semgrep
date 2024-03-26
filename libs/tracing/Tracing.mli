@@ -27,6 +27,7 @@ type user_data = Trace_core.user_data
 (*****************************************************************************)
 
 val with_span :
+  ?level:Trace_core__.Level.t ->
   ?__FUNCTION__:string ->
   __FILE__:string ->
   __LINE__:int ->
