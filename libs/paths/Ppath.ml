@@ -256,11 +256,13 @@ let make_absolute path =
        our absolute form for `/var/` would prefer to be `/private/var`.
        So we turn our path into an rpath. *)
     match Rpath.of_fpath path with
-    | Ok path -> Rpath.to_fpath path
+    | Ok path ->
+        Rpath.to_fpath path
+        (* Only warn here, since we don't guarantee Ppath exists  *)
     | Error err ->
-        failwith
-          (Common.spf "Failed to make path %s absolute: %s"
-             (Fpath.to_string path) err)
+        Logs.warn (fun m ->
+            m "Failed to make path %s absolute: %s" (Fpath.to_string path) err);
+        path
 
 (*
    This assumes the input paths are normalized. We use this
