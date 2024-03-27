@@ -468,7 +468,7 @@ function pcre_names_stub(v_rex) {
                 PCRE_INFO_NAMECOUNT,
                 name_count_ptr
             );
-            if (ret != 0) pcre_raise_internal_error("pcre_names_stub: namecount");
+            if (ret != 0) pcre_raise_internal_error(`pcre_names_stub: namecount (ret=${ret})`);
 
             ret = libpcre._pcre_fullinfo(
                 regexp_ptr,
@@ -476,7 +476,7 @@ function pcre_names_stub(v_rex) {
                 PCRE_INFO_NAMEENTRYSIZE,
                 entry_size_ptr
             );
-            if (ret != 0) pcre_raise_internal_error("pcre_names_stub: nameentrysize");
+            if (ret != 0) pcre_raise_internal_error(`pcre_names_stub: nameentrysize (ret=${ret})`);
 
             ret = libpcre._pcre_fullinfo(
                 regexp_ptr,
@@ -484,7 +484,7 @@ function pcre_names_stub(v_rex) {
                 PCRE_INFO_NAMETABLE,
                 tbl_ptr_ptr
             );
-            if (ret != 0) pcre_raise_internal_error("pcre_names_stub: nametable");
+            if (ret != 0) pcre_raise_internal_error(`pcre_names_stub: nametable (ret=${ret})`);
 
             var result = [];
 
