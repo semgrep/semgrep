@@ -49,10 +49,12 @@ type whitespace_stat = {
 
 let whitespace_stat_of_string s =
   (* number of lines = number of LF characters + 1 *)
+  let sample_size = String.length s in
   let lines = ref 1 in
   let whitespace = ref 0 in
   let other = ref 0 in
-  for i = 0 to String.length s - 1 do
+  let start = if sample_size >= 4096 then 2048 else 0 in
+  for i = start to sample_size - 1 do
     match s.[i] with
     | ' '
     | '\t'
@@ -64,7 +66,6 @@ let whitespace_stat_of_string s =
     | __else__ -> incr other
   done;
   let total = !whitespace + !other in
-  let sample_size = String.length s in
   if total =|= 0 then { sample_size; ws_freq = 1.; line_freq = 1. }
   else
     let ws_freq = float !whitespace /. float total in
