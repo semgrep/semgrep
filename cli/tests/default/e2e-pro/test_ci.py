@@ -2167,7 +2167,7 @@ def test_pro_diff_slow_rollout(
     engine_flag_opt = ["--oss-only"] if oss_only else []
 
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"] + engine_flag_opt,
+        options=["ci", "--no-suppress-errors", *engine_flag_opt],
         target_name=None,
         strict=False,
         force_metrics_off=False,
