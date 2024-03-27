@@ -59,25 +59,28 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
 
 let tags = Logs_.create_tags [ __MODULE__ ]
 
+let bindings_compatible config mvars1 mvars2 =
+  mvars1
+  |> List.for_all (fun (mvar, mval1) ->
+         match List.assoc_opt mvar mvars2 with
+         | None -> true
+         (* Numeric capture group metavariables (of the form $1, $2, etc) may
+             be introduced implicitly via regular expressions that have
+             capture groups in them. The unification of these metavariables
+             can be dangerous, as it will prevent matches, when users may not
+             even know these metavariables exist. To be safe, let's assume
+             they always unify.
+
+             note: this does not affect named capture group metavariables
+             from <?xxx>, which will still be unified as normal
+         *)
+         | _ when Metavariable.is_metavar_for_capture_group mvar -> true
+         | Some mval2 ->
+             Matching_generic.equal_ast_bound_code config mval1 mval2)
+
 let included_in config rv1 rv2 =
   (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
-  && rv1.mvars
-     |> List.for_all (fun (mvar, mval1) ->
-            match List.assoc_opt mvar rv2.mvars with
-            | None -> true
-            (* Numeric capture group metavariables (of the form $1, $2, etc) may
-               be introduced implicitly via regular expressions that have
-               capture groups in them. The unification of these metavariables
-               can be dangerous, as it will prevent matches, when users may not
-               even know these metavariables exist. To be safe, let's assume
-               they always unify.
-
-               note: this does not affect named capture group metavariables
-               from <?xxx>, which will still be unified as normal
-            *)
-            | _ when Metavariable.is_metavar_for_capture_group mvar -> true
-            | Some mval2 ->
-                Matching_generic.equal_ast_bound_code config mval1 mval2)
+  && bindings_compatible config rv1.mvars rv2.mvars
 
 (* when we know x <= y, are the ranges also in the good Inside direction *)
 let inside_compatible x y =

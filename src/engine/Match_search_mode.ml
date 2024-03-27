@@ -598,21 +598,24 @@ let rec filter_ranges (env : env) (init_ranges : RM.t list)
         unified in the resulting match.
         Before, we would produce a new match per condition success, where each match had only the
         metavariables introduced by a single succeeding instance of the condition.
-
-        This works because `intersect_ranges` already can handle the multiplicity of unifying many
-        ranges, pair-wise.
-        Here, we simply take our ranges which we know already work, and play them against every
-        single new possibility of bindings that is possible.
-        We reuse the same original range because that will guarantee that the intersection works,
-        we only care about the metavariables unifying.
     *)
     List_.fold_right
       (fun cond_bindingss ranges ->
-        RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
-          ranges
-          (List_.map
-             (fun bindings -> { range with RM.mvars = bindings })
-             cond_bindingss))
+        (* This basically just multiplies each range by each condition's mvars
+           that it is compatible with.
+           It's very similar to the code for `intersect_ranges`, but won't produce
+           extraneous matches for each pair, going the other way.
+        *)
+        List.concat_map
+          (fun (r1 : RM.t) ->
+            List_.map_filter
+              (fun cond_bindings ->
+                if
+                  RM.bindings_compatible env.xconf.config r1.mvars cond_bindings
+                then Some { r1 with RM.mvars = cond_bindings @ r1.mvars }
+                else None)
+              cond_bindingss)
+          ranges)
       bindings_per_cond [ range ]
   in
   ( List.concat_map collapse_single_range_with_bindings ranges_and_bindings,
