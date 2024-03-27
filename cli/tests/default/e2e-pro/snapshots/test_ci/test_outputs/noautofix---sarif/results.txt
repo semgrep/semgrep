@@ -425,7 +425,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       ],
       "tool": {
         "driver": {
-          "name": "Semgrep OSS",
+          "name": "Semgrep PRO",
           "rules": [
             {
               "defaultConfiguration": {
@@ -561,6 +561,11 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
+
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
 
 ┌─────────────┐
 │ Scan Status │

@@ -81,6 +81,11 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   Initializing scan (deployment=org_name)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -746,7 +751,7 @@ Would have sent complete blob: {
                 "num_bytes": 366
             }
         },
-        "engine_requested": "OSS",
+        "engine_requested": "PRO_INTRAFILE",
         "findings_by_product": {
             "code": 16,
             "supply-chain": 1

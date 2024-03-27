@@ -493,10 +493,13 @@ def scan(
             "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
         )
 
+    state = get_state()
+
     engine_type = EngineType.decide_engine_type(
-        requested_engine=requested_engine,
+        logged_in=state.app_session.token is not None,
+        engine_flag=requested_engine,
         run_secrets=run_secrets_flag,
-        enable_pro_diff_scan=diff_depth >= 0,
+        interfile_diff_scan_enabled=diff_depth >= 0,
     )
 
     # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
@@ -511,7 +514,6 @@ def scan(
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
 
-    state = get_state()
     state.metrics.configure(metrics)
     state.terminal.configure(
         verbose=verbose,

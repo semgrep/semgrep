@@ -383,11 +383,12 @@ def ci(
 
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
-        requested_engine=requested_engine,
-        scan_handler=scan_handler,
-        git_meta=metadata,
+        logged_in=state.app_session.token is not None,
+        engine_flag=requested_engine,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=diff_depth >= 0,
+        interfile_diff_scan_enabled=diff_depth >= 0,
+        ci_scan_handler=scan_handler,
+        git_meta=metadata,
         supply_chain_only=supply_chain_only,
     )
 
