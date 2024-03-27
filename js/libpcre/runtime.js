@@ -83,6 +83,49 @@ var STRUCT_PCRE = {
   nullpad_ptr: 54,
 };
 
+//Provides: pcre_raise_error
+//Requires: caml_raise_with_arg, pcre_exc_Error
+function pcre_raise_error(v_arg) {
+    caml_raise_with_arg(pcre_exc_Error, v_arg);
+}
+
+//Provides: pcre_exc_Error mutable
+var pcre_exc_Error = undefined;
+
+//Provides: pcre_raise_partial
+//Requires: pcre_raise_error
+function pcre_raise_partial() {pcre_raise_error(0);}
+//Provides: pcre_raise_bad_partial
+//Requires: pcre_raise_error
+function pcre_raise_bad_partial() {pcre_raise_error(1);}
+//Provides: pcre_raise_bad_utf8
+//Requires: pcre_raise_error
+function pcre_raise_bad_utf8() {pcre_raise_error(2);}
+//Provides: pcre_raise_bad_utf8_offset
+//Requires: pcre_raise_error
+function pcre_raise_bad_utf8_offset() {pcre_raise_error(3);}
+//Provides: pcre_raise_match_limit
+//Requires: pcre_raise_error
+function pcre_raise_match_limit() {pcre_raise_error(4);}
+//Provides: pcre_raise_recursion_limit
+//Requires: pcre_raise_error
+function pcre_raise_recursion_limit() {pcre_raise_error(5);}
+//Provides: pcre_raise_workspace_size
+//Requires: pcre_raise_error
+function pcre_raise_workspace_size() {pcre_raise_error(6);}
+
+//Provides: pcre_raise_bad_pattern
+//Requires: auto_malloc, libpcre, pcre_raise_error
+function pcre_raise_bad_pattern(msg, pos) {
+    pcre_raise_error([0, msg, pos]);
+}
+
+//Provides: pcre_raise_internal_error
+//Requires: pcre_raise_error
+function pcre_raise_internal_error(msg) {
+    pcre_raise_error(msg);
+}
+
 //Provides: auto_malloc
 //Requires: libpcre
 function auto_malloc(sizes, func) {
@@ -96,9 +139,10 @@ function auto_malloc(sizes, func) {
   }
 }
 
-//Provides: pcre_ocaml_init const
+//Provides: pcre_ocaml_init
+//Requires: caml_named_value, pcre_exc_Error
 function pcre_ocaml_init() {
-  // noop
+  pcre_exc_Error = caml_named_value("Pcre.Error");
 }
 
 //Provides: pcre_version_stub const
@@ -167,13 +211,15 @@ function pcre_alloc_string(js_string) {
   var ptr;
   const array = libpcre.intArrayFromString(js_string);
   const length = array.length;
-  ptr = libpcre._malloc(length + 1);
+  // Note that length here is the length of the array, which already includes
+  // the null terminator.
+  ptr = libpcre._malloc(length);
   libpcre.writeArrayToMemory(array, ptr);
   return ptr;
 }
 
 //Provides: pcre_compile_stub_bc
-//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc, caml_jsstring_of_string
+//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc, caml_jsstring_of_string, pcre_raise_bad_pattern
 function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
   var v_pat = caml_jsstring_of_string(v_pat);
   const regexp_ptr = auto_malloc([4, 4], ([error_ptr_ptr, error_ofs_ptr]) => {
@@ -193,10 +239,10 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
       could not be compiled */
     if (ptr == NULL) {
       const errorString = libpcre.UTF8ToString(
-        libpcre.getValue(error_ptr_ptr, "i32")
+        libpcre.getValue(error_ptr_ptr, "i8*")
       );
-      throw new Error(
-        `${errorString} at offset ${libpcre.getValue(error_ofs_ptr, "i32")}`
+      pcre_raise_bad_pattern(
+        errorString, libpcre.getValue(error_ofs_ptr, "i32")
       );
     }
 
@@ -387,7 +433,7 @@ function pcre_exec_stub_bc(
 }
 
 //Provides: pcre_names_stub
-//Requires: libpcre, PCRE_INFO_NAMECOUNT, PCRE_INFO_NAMEENTRYSIZE, PCRE_INFO_NAMETABLE, caml_js_to_array, auto_malloc
+//Requires: libpcre, PCRE_INFO_NAMECOUNT, PCRE_INFO_NAMEENTRYSIZE, PCRE_INFO_NAMETABLE, caml_js_to_array, auto_malloc, pcre_raise_internal_error
 function pcre_names_stub(v_rex) {
   const { regexp_ptr, extra_ptr } = v_rex;
 
@@ -400,7 +446,7 @@ function pcre_names_stub(v_rex) {
         PCRE_INFO_NAMECOUNT,
         name_count_ptr
       );
-      if (ret != 0) throw new Error("pcre_names_stub: namecount");
+      if (ret != 0) pcre_raise_internal_error("pcre_names_stub: namecount");
 
       ret = libpcre._pcre_fullinfo(
         regexp_ptr,
@@ -408,7 +454,7 @@ function pcre_names_stub(v_rex) {
         PCRE_INFO_NAMEENTRYSIZE,
         entry_size_ptr
       );
-      if (ret != 0) throw new Error("pcre_names_stub: nameentrysize");
+      if (ret != 0) pcre_raise_internal_error("pcre_names_stub: nameentrysize");
 
       ret = libpcre._pcre_fullinfo(
         regexp_ptr,
@@ -416,7 +462,7 @@ function pcre_names_stub(v_rex) {
         PCRE_INFO_NAMETABLE,
         tbl_ptr_ptr
       );
-      if (ret != 0) throw new Error("pcre_names_stub: nametable");
+      if (ret != 0) pcre_raise_internal_error("pcre_names_stub: nametable");
 
       var result = [];
 
@@ -456,6 +502,7 @@ function pcre_get_stringnumber_stub_bc(v_rex, v_name) {
 (() => {
   if (globalThis.exposePcreStubsForTesting) {
     module.exports = {
+      pcre_ocaml_init,
       pcre_version_stub,
       pcre_config_utf8_stub,
       pcre_compile_stub_bc,
