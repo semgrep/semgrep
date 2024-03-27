@@ -1,2 +1,0 @@
-Autofix on variable definitions should now handle the semicolon
-in Java, C++, and C#.
