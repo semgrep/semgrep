@@ -942,12 +942,12 @@ let select_applicable_rules_for_target ~analyzer ~products ~path
     | Error skipped ->
         rules
         |> List.partition_map (fun rule ->
-               match rule.R.options with
-               | Some options when options.skip_large_machine_optimized_files ->
-                   Right { skipped with rule_id = Some (fst rule.id) }
-               | Some _
-               | None ->
-                   Left rule)
+               let options =
+                 Common.( ||| ) rule.R.options Rule_options.default_config
+               in
+               if options.skip_large_machine_optimized_files then
+                 Right { skipped with rule_id = Some (fst rule.id) }
+               else Left rule)
   in
   (rules, skipped)
 
