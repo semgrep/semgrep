@@ -402,16 +402,10 @@ def scan_options(func: Callable) -> Callable:
 # rely on their existence, or their output being stable
 @click.option("--dump-engine-path", is_flag=True, hidden=True)
 @click.option(
-    "--beta-testing-secrets-enabled",
-    "run_secrets_flag",
-    is_flag=True,
-    hidden=True,
-    help="Contact support@semgrep.com for more informationon this.",
-)
-@click.option(
     "--historical-secrets",
     "historical_secrets",
     is_flag=True,
+    hidden=True,
 )
 @scan_options
 @handle_command_errors
@@ -424,7 +418,6 @@ def scan(
     diff_depth: int,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
-    run_secrets_flag: bool,
     disable_secrets_validation_flag: bool,
     historical_secrets: bool,
     dryrun: bool,
@@ -478,6 +471,8 @@ def scan(
             version_check()
         return None
 
+    run_secrets = False
+
     # I wish there was an easy way to leverage the engine_params from the
     # new GET /api/cli/scans endpoint here but that info is not available
     # until we fetch the rules which happens further along when processing
@@ -485,17 +480,17 @@ def scan(
     if config and "secrets" in config:
         # If the user has specified --config secrets, we should enable secrets
         # so the engine is properly chosen.
-        run_secrets_flag = True
+        run_secrets = True
 
     # Handled error outside engine type for more actionable advice.
-    if run_secrets_flag and requested_engine is EngineType.OSS:
+    if run_secrets and requested_engine is EngineType.OSS:
         abort(
-            "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
+            "Cannot run secrets scan with OSS engine (--oss specified). Semgrep Secrets is a proprietary extension."
         )
 
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
-        run_secrets=run_secrets_flag,
+        run_secrets=run_secrets,
         enable_pro_diff_scan=diff_depth >= 0,
     )
 
@@ -658,7 +653,7 @@ def scan(
                     time_flag=time_flag,
                     matching_explanations=matching_explanations,
                     engine_type=engine_type,
-                    run_secrets=run_secrets_flag,
+                    run_secrets=run_secrets,
                     disable_secrets_validation=disable_secrets_validation_flag,
                     historical_secrets=historical_secrets,
                     output_handler=output_handler,

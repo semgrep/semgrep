@@ -507,17 +507,6 @@ let o_junit_xml : bool Term.t =
 (* Run Secrets Post Processors                                  *)
 (* ------------------------------------------------------------------ *)
 
-let o_secrets : bool Term.t =
-  let info =
-    Arg.info
-      [ "beta-testing-secrets-enabled" ]
-      ~doc:
-        {|Please use --secrets instead of --beta-testing-secrets.
-          Requires Semgrep Secrets, contact support@semgrep.com for more
-          information on this.|}
-  in
-  Arg.value (Arg.flag info)
-
 let o_no_secrets_validation : bool Term.t =
   let info =
     Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secret validation.|}
@@ -879,7 +868,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
       nosem optimizations oss output pattern pro project_root pro_intrafile
       pro_lang remote replacement respect_gitignore rewrite_rule_ids sarif
-      scan_unknown_extensions secrets severity show_supported_languages strict
+      scan_unknown_extensions severity show_supported_languages strict
       target_roots test test_ignore_todo text time_flag timeout
       _timeout_interfileTODO timeout_threshold trace validate version
       version_check vim =
@@ -961,11 +950,12 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       }
     in
 
+    let run_secrets = List.mem "secrets" config in
+
     let engine_type =
       (* This first bit just rules out mutually exclusive options. *)
-      if oss && secrets then
-        Error.abort
-          "Mutually exclusive options --oss/--beta-testing-secrets-enabled";
+      if oss && run_secrets then
+        Error.abort "Mutually exclusive options --oss/--secrets";
       if
         [ oss; pro_lang; pro_intrafile; pro ]
         |> List.filter Fun.id |> List.length > 1
@@ -985,7 +975,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         in
         let extra_languages = pro || pro_lang || pro_intrafile in
         let secrets_config =
-          if secrets && not no_secrets_validation then
+          if run_secrets && not no_secrets_validation then
             Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
           else None
         in
@@ -1234,11 +1224,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
     $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_remote
     $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
-    $ o_version $ o_version_check $ o_vim)
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ Test_CLI.o_test_ignore_todo $ o_text
+    $ o_time $ o_timeout $ o_timeout_interfile $ o_timeout_threshold $ o_trace
+    $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

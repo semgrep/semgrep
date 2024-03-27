@@ -1,0 +1,3 @@
+Changed several secrets related feature flags.
+* The `--beta-testing-secrets-enabled` option, deprecated for several months, is now removed. Use `--secrets` as its replacement.
+* The `--secrets` option removed from scan command. `--config secrets` is the way to run secrets with `semgrep scan`.
