@@ -57,6 +57,22 @@ let vars_to_pattern (l, xs, r) =
   PatTuple (l, ys, r)
 
 (*****************************************************************************)
+(* Constants *)
+(*****************************************************************************)
+
+(* The fake name @@@PARTIAL_CLASS_DECLARATION is used to distinguish
+ * 1) two valid class declarations in a row vs
+ * 2) a class declaration followed by a partial class declaration
+ *
+ * Valid kotlin programs cannot have class names that have @@@, so we will
+ * know that this did not come from the source code.
+ *
+ * We will use this fake name to detect partial class
+ * declarations in the function merge_class_declarations below.
+ *)
+let fake_name_for_partial_class_decl = "@@@PARTIAL_CLASS_DECLARATION"
+
+(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-kotlin/Boilerplate.ml *)
@@ -1885,14 +1901,8 @@ and statement (env : env) (x : CST.statement) : stmt =
         | None -> fb []
       in
       let ckind = (Class, fake "class") in
-      (* The fake name @@@PARTIAL_CLASS_DECLARATION is used to distinguish
-       * 1) two valid class declarations in a row vs
-       * 2) a class declaration followed by a partial class declaration
-       * Valid kotlin programs cannot have class names that have @@@.
-       * We will use @@@PARTIAL_CLASS_DECLARATION to detect partial class
-       * declarations in the function merge_class_declarations below.
-       *)
-      let fake_ident = ("@@@PARTIAL_CLASS_DECLARATION", fake "fake_tok") in
+      (* See Constants section above why we use fake_name_for_partial_class_decl. *)
+      let fake_ident = (fake_name_for_partial_class_decl, fake "fake_tok") in
       let ent = basic_entity fake_ident ~tparams in
       let cdef =
         { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
@@ -2305,33 +2315,42 @@ let merge_class_declarations (xs : stmt list) : stmt list =
      * is a partial class declaration.
      *
      * For the first class declaration, only the name, kind of class,
-     * and attributes will be populated because it will come from the
-     * code
-     *   @SomeAttribute class SomeClassName
+     * attributes, and type parameters will/may be populated because
+     * it will come from the code
+     *   @SomeAttribute class SomeClassName < TypeParam >
      * or
-     *   @SomeAttribute enum SomeClassName
+     *   @SomeAttribute enum SomeClassName < TypeParam >
      *
      * The rest is populated by the second part which is a partial
      * class declaration.
+     *
+     * We expect that each class declaration will have at most one
+     * corresponding partial class declaration that follows immediately.
+     *
+     * If we missed something and somehow this is not the case, we will
+     * let the partial class declaration remain in the Generic AST.
      *)
-    | {
-        s = DefStmt ({ name; attrs; tparams = None }, ClassDef { ckind; _ });
-        _;
-      }
+    | { s = DefStmt ({ name; attrs; tparams }, ClassDef { ckind; _ }); _ }
       :: {
            s =
              DefStmt
                ( {
-                   name = EN (Id (("@@@PARTIAL_CLASS_DECLARATION", _), _));
+                   name = EN (Id ((class_name, _), _));
                    attrs = [];
-                   tparams;
+                   tparams = new_tparams;
                  },
                  ClassDef
                    { ckind = _; cextends; cimplements; cmixins; cparams; cbody }
                );
            _;
          }
-      :: rest ->
+      :: rest
+      when class_name = fake_name_for_partial_class_decl ->
+        let tparams =
+          match tparams with
+          | Some _ -> tparams
+          | None -> new_tparams
+        in
         let ent = { name; attrs; tparams } in
         let cdef =
           ClassDef { ckind; cextends; cimplements; cmixins; cparams; cbody }
