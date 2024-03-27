@@ -183,14 +183,24 @@ let new_cli_ux =
       | _ -> true)
   | _ -> true
 
-let print_logo () : unit =
+(* NOTE: Due to differences in ANSI escape code formatting between pysemgrep and osemgrep,
+   we currently do this dumb conditional *)
+let print_logo (color : bool) : unit =
   let logo =
-    Ocolor_format.asprintf
-      {|
+    if color then
+      Ocolor_format.asprintf
+        {|
 ┌──── @{<green>○○○@} ────┐
 │ Semgrep CLI │
 └─────────────┘
 |}
+    else {|
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+|}
+    (* Yes, this extra newline is intentional :shaking-fist: *)
   in
   Logs.app (fun m -> m "%s" logo);
   ()
@@ -779,7 +789,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   Profiler.start profiler ~name:"total_time";
 
   (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
-  if new_cli_ux then print_logo ();
+  print_logo new_cli_ux;
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
    * but here we "configure" it (enable or disable it) based on CLI flags.

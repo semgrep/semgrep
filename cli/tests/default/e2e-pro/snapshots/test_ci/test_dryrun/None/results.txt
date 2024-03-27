@@ -129,9 +129,9 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abcf",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version1",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version1"
+                        "shortlink": "https://sg.run/abcd"
                     },
                     "src": "new-rule"
                 }
@@ -269,10 +269,10 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abce",
-                        "rule_name": "eqeq-four",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version1",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version1"
+                        "shortlink": "https://sg.run/abcd",
+                        "rule_name": "eqeq-four"
                     },
                     "src": "previous-scan"
                 }
@@ -307,9 +307,9 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abce",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version2",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version2"
+                        "shortlink": "https://sg.run/abcd"
                     },
                     "src": "new-version"
                 }
@@ -342,9 +342,9 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abcd",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version1",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version1"
+                        "shortlink": "https://sg.run/abcd"
                     },
                     "src": "unchanged"
                 }
@@ -529,10 +529,10 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abce",
-                        "rule_name": "eqeq-four",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version1",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version1"
+                        "shortlink": "https://sg.run/abcd",
+                        "rule_name": "eqeq-four"
                     },
                     "src": "previous-scan"
                 }
@@ -567,9 +567,9 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abce",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version2",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version2"
+                        "shortlink": "https://sg.run/abcd"
                     },
                     "src": "new-version"
                 }
@@ -602,9 +602,9 @@ Would have sent findings and ignores blob: {
                 "semgrep.dev": {
                     "rule": {
                         "rule_id": "abcd",
-                        "shortlink": "https://sg.run/abcd",
+                        "version_id": "version1",
                         "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "version_id": "version1"
+                        "shortlink": "https://sg.run/abcd"
                     },
                     "src": "unchanged"
                 }

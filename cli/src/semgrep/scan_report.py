@@ -331,16 +331,7 @@ def print_scan_status(
     if minimal_ux:
         return plans
 
-    if simple_ux:
-        logo = with_color(Colors.green, "○○○")
-        console.print(
-            f"""
-┌──── {logo} ────┐
-│ Semgrep CLI │
-└─────────────┘
-"""
-        )
-    else:
+    if legacy_ux:
         console.print(Title("Scan Status"))
 
     _print_scan_plan_header(

@@ -1,3 +1,9 @@
+
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad1.yaml:4
 [94m[22m[24m4  | [0m      - pattern-inside:
