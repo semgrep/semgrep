@@ -142,7 +142,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 )
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
-@click.option("--historical-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
