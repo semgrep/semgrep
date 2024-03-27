@@ -1835,30 +1835,80 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
 
 and statement (env : env) (x : CST.statement) : stmt =
   match x with
-  | `Decl x ->
-      let dec = declaration env x in
-      DefStmt dec |> G.s
-  | `Rep_choice_label_choice_assign (_v1, v2) ->
-      (*TODO let v1 =
-        List.map (fun x ->
-          (match x with
-          | `Label tok -> let t = token env tok in (* label *)
-              raise Todo
-          | `Anno x -> annotation env x
-          )
-        ) v1
-        in*)
-      let v2 =
-        match v2 with
-        | `Assign x ->
-            let e = assignment env x in
-            G.exprstmt e
-        | `Loop_stmt x -> loop_statement env x
-        | `Exp x ->
-            let v1 = expression env x in
-            G.exprstmt v1
+  | `Choice_decl y -> (
+      match y with
+      | `Decl d ->
+          let dec = declaration env d in
+          DefStmt dec |> G.s
+      | `Rep_choice_label_choice_assign (_v1, v2) ->
+          (*TODO let v1 =
+                List.map (fun x ->
+                (match x with
+                | `Label tok -> let t = token env tok in (* label *)
+                raise Todo
+                | `Anno x -> annotation env x
+                )
+                ) v1
+            in*)
+          let v2 =
+            match v2 with
+            | `Assign x ->
+                let e = assignment env x in
+                G.exprstmt e
+            | `Loop_stmt x -> loop_statement env x
+            | `Exp x ->
+                let v1 = expression env x in
+                G.exprstmt v1
+          in
+          v2)
+  | `Part_class_decl (v1, v2, v3, v4, v5, v6, v7) ->
+      (* v1 = type parameter
+         v2 = modifier option
+         v3 = "constructor"
+         v4 = class parameter
+         v5 = (":", delecator)
+         v6 = type constraints
+         v7 = class body
+      *)
+      let tparams =
+        match v1 with
+        | Some x -> Some (type_parameters env x)
+        | None -> None
       in
-      v2
+      let cparams = primary_constructor env (Some (v2, v3), v4) in
+      let cextends =
+        match v5 with
+        | Some (v1, v2) ->
+            let _v1 = token env v1 (* ":" *) in
+            let v2 = delegation_specifiers env v2 in
+            v2
+        | None -> []
+      in
+      let _type_constraints_TODO =
+        match v6 with
+        | Some x -> type_constraints env x
+        | None -> []
+      in
+      let cbody =
+        match v7 with
+        | Some x -> class_body env x
+        | None -> fb []
+      in
+      let ckind = (Class, fake "class") in
+      (* The fake name @PARTIAL_CLASS_DEFINITION is used to distinguish
+       * 1) two valid class definitions in a row vs
+       * 2) a class definition followed by a partial class definition
+       * Valid kotlin programs cannot have class names that have @.
+       * We will use @PARTIAL_CLASS_DEFINITION to detect partial class
+       * definitions in the function merge_class_definition below.
+       *)
+      let fake_ident = ("@PARTIAL_CLASS_DEFINITION", fake "fake_tok") in
+      let ent = basic_entity fake_ident ~tparams in
+      let cdef =
+        { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
+      in
+      let def = (ent, ClassDef cdef) in
+      DefStmt def |> G.s
 
 and statements (env : env) ((v1, v2, v3) : CST.statements) =
   let v1 = statement env v1 in
@@ -2258,6 +2308,51 @@ let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
   let _semi = semi env v5 in
   ()
 
+let merge_class_declarations (xs : stmt list) : stmt list =
+  let rec merge rev_acc (xs : stmt list) =
+    match xs with
+    (* Merge two consecutive class definitions, if the second one
+     * is a partial class definition.
+     *
+     * For the first class definition, only the name, kind of class,
+     * and attributes will be populated because it will come from the
+     * code
+     *   @SomeAttribute class SomeClassName
+     * or
+     *   @SomeAttribute enum SomeClassName
+     *
+     * The rest is populated by the second part which is a partial
+     * class definition.
+     *)
+    | {
+        s = DefStmt ({ name; attrs; tparams = None }, ClassDef { ckind; _ });
+        _;
+      }
+      :: {
+           s =
+             DefStmt
+               ( {
+                   name = EN (Id (("@PARTIAL_CLASS_DEFINITION", _), _));
+                   attrs = [];
+                   tparams;
+                 },
+                 ClassDef
+                   { ckind = _; cextends; cimplements; cmixins; cparams; cbody }
+               );
+           _;
+         }
+      :: rest ->
+        let ent = { name; attrs; tparams } in
+        let cdef =
+          ClassDef { ckind; cextends; cimplements; cmixins; cparams; cbody }
+        in
+        let stmt = DefStmt (ent, cdef) |> G.s in
+        merge (stmt :: rev_acc) rest
+    | x :: rest -> merge (x :: rev_acc) rest
+    | [] -> List.rev rev_acc
+  in
+  merge [] xs
+
 let source_file (env : env) (x : CST.source_file) : any =
   match x with
   | `Opt_sheb_line_rep_file_anno_opt_pack_header_rep_import_list_rep_stmt_semi
@@ -2282,8 +2377,9 @@ let source_file (env : env) (x : CST.source_file) : any =
             v1)
           v5
       in
+      let xs = merge_class_declarations v5 in
       let dirs = v3 @ v4 |> List_.map (fun d -> DirectiveStmt d |> G.s) in
-      Pr (dirs @ v5)
+      Pr (dirs @ xs)
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in
       E v2
