@@ -1,0 +1,20 @@
+rules:
+  - id: unify-condition-introduced-mvars
+    message: |
+      The only matches should be where "one" and "two"
+      are called such that their second and first arguments
+      are the same!
+    patterns:
+      - pattern: |
+          foo($A)
+      - metavariable-pattern:
+          metavariable: $A
+          pattern: |
+            one($B, $C)
+      - metavariable-pattern:
+          metavariable: $A
+          pattern: |
+            two($C, $D)
+    languages:
+      - python
+    severity: WARNING

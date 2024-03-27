@@ -631,7 +631,14 @@ and filter_single (env : env) (init_r : RM.t) (cond : R.metavar_cond) :
     MV.bindings list option =
   let file = env.xtarget.path.internal_path_to_content in
   let init_bindings = init_r.RM.mvars in
-  let map_bool b = if b then Some [] else None in
+  let map_bool b =
+    if b then
+      (* This is a list of an empty list. This is because we have 1 succeeding
+         instance, which introduces no metavariables.
+      *)
+      Some [ [] ]
+    else None
+  in
   match cond with
   | R.CondEval e ->
       let env =
@@ -695,7 +702,7 @@ and filter_single (env : env) (init_r : RM.t) (cond : R.metavar_cond) :
      * which may not always be a string. The regexp is really done on
      * the text representation of the metavar content.
   *)
-  | R.CondRegexp (mvar, re_str, const_prop) -> (
+  | R.CondRegexp (mvar, re_str, const_prop) ->
       let config = env.xconf.config in
       let env =
         if const_prop && config.constant_propagation then
@@ -704,15 +711,8 @@ and filter_single (env : env) (init_r : RM.t) (cond : R.metavar_cond) :
           Eval_generic.bindings_to_env_just_strings config ~file init_bindings
       in
       (* TODO: could return expl for nested matching! *)
-      match
-        Metavariable_regex.get_metavar_regex_capture_bindings env ~file init_r
-          (mvar, re_str)
-      with
-      | None -> None
-      (* The bindings we get back are solely the new capture group metavariables. We need
-         * to combine them with the metavariables from the original match.
-      *)
-      | Some capture_bindings -> Some capture_bindings)
+      Metavariable_regex.get_metavar_regex_capture_bindings env ~file init_r
+        (mvar, re_str)
   | R.CondAnalysis (mvar, CondEntropyV2) -> (
       match !hook_pro_entropy_analysis with
       (* TODO - nice UX handling of this - tell the user that they ran a rule in OSS w/o Pro hook and so their rule didn't do anything *)
