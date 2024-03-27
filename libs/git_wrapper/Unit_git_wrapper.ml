@@ -19,7 +19,7 @@ let mask_test_dirname =
   Testo.mask_pcre_pattern ~replace:(fun _ -> "<HEX>") "test-([a-f0-9]{1,8})"
 
 let normalize =
-  [ mask_temp_git_hash; Testo.mask_temp_paths (); mask_test_dirname ]
+  [ mask_temp_git_hash; Testutil.mask_temp_paths (); mask_test_dirname ]
 
 let t = Testo.create
 let capture = Testo.create ~checked_output:Stdout ~normalize
