@@ -2143,12 +2143,12 @@ def test_enabled_products(
         assert "No products are enabled for this organization" not in result.stderr
 
 
-@pytest.mark.parametrize("enable_deepsemgrep", [True, False])
+@pytest.mark.parametrize("oss_only", [False, True])
 @pytest.mark.osemfail
 def test_pro_diff_slow_rollout(
     run_semgrep: RunSemgrep,
     mocker,
-    enable_deepsemgrep,
+    oss_only,
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
@@ -2157,7 +2157,6 @@ def test_pro_diff_slow_rollout(
     Verify that generic_slow_rollout enables pro diff scan
     """
     mocker.patch.object(ScanHandler, "generic_slow_rollout", True)
-    mocker.patch.object(ScanHandler, "deepsemgrep", enable_deepsemgrep)
     mocker.patch.object(EngineType, "check_if_installed", return_value=True)
     mock_send = mocker.patch.object(Metrics, "add_diff_depth")
 
@@ -2165,8 +2164,10 @@ def test_pro_diff_slow_rollout(
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
+    engine_flag_opt = ["--oss-only"] if oss_only else []
+
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        options=["ci", "--no-suppress-errors"] + engine_flag_opt,
         target_name=None,
         strict=False,
         force_metrics_off=False,
@@ -2174,10 +2175,10 @@ def test_pro_diff_slow_rollout(
         env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,
     )
-    if enable_deepsemgrep:
-        mock_send.assert_called_once_with(2)
-    else:
+    if oss_only:
         mock_send.assert_not_called()
+    else:
+        mock_send.assert_called_once_with(2)
 
 
 @pytest.mark.parametrize(
