@@ -550,12 +550,7 @@ let _send_semgrep_refresh_rules info =
   send_custom_notification info ~meth:"semgrep/refreshRules"
 
 let send_semgrep_search info ?language pattern =
-  let lang =
-    match language with
-    | None -> `Null
-    | Some lang -> `String lang
-  in
-  let params = `Assoc [ ("pattern", `String pattern); ("language", lang) ] in
+  let params = Search.mk_params ~lang:language ~fix:None pattern in
   send_custom_request info ~meth:"semgrep/search" ~params
 
 let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =

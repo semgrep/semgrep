@@ -10,7 +10,25 @@ let meth = "semgrep/search"
 (* Parameters *)
 (*****************************************************************************)
 
+(* coupling: you must change this if you change the `Request_params.t` type! *)
+let mk_params ~lang ~fix pattern =
+  let lang =
+    match lang with
+    | None -> `Null
+    | Some lang -> `String (Xlang.to_string lang)
+  in
+  let fix =
+    match fix with
+    | None -> `Null
+    | Some fix -> `String fix
+  in
+  let params =
+    `Assoc [ ("pattern", `String pattern); ("language", lang); ("fix", fix) ]
+  in
+  params
+
 module Request_params = struct
+  (* coupling: you must change the `mk_params` function above if you change this type! *)
   type t = { pattern : string; lang : Xlang.t option; fix : string option }
 
   (* This schema means that it matters what order the arguments are in!
