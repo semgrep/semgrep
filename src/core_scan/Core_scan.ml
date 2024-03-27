@@ -937,7 +937,9 @@ let select_applicable_rules_for_target ~analyzer ~products ~path
   (* If the file is "large and machine-optimized" (e.g. minified files or
    * auto-generated lexers/parsers), some rules may prefer to skip it. *)
   let rules, skipped =
-    match Skip_target.is_minified path.internal_path_to_content with
+    match
+      Skip_target.is_large_machine_optimized path.internal_path_to_content
+    with
     | Ok _ -> (rules, [])
     | Error skipped ->
         rules

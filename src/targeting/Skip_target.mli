@@ -1,4 +1,4 @@
-val is_minified :
+val is_large_machine_optimized :
   Fpath.t -> (Fpath.t, Semgrep_output_v1_t.skipped_target) result
 
 (* This is using Flag_semgrep.max_target_bytes *)
