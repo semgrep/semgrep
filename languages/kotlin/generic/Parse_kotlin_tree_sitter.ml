@@ -1835,41 +1835,31 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
 
 and statement (env : env) (x : CST.statement) : stmt =
   match x with
-  | `Choice_decl y -> (
-      match y with
-      | `Decl d ->
-          let dec = declaration env d in
-          DefStmt dec |> G.s
-      | `Rep_choice_label_choice_assign (_v1, v2) ->
-          (*TODO let v1 =
-                List.map (fun x ->
-                (match x with
-                | `Label tok -> let t = token env tok in (* label *)
-                raise Todo
-                | `Anno x -> annotation env x
-                )
-                ) v1
-            in*)
-          let v2 =
-            match v2 with
-            | `Assign x ->
-                let e = assignment env x in
-                G.exprstmt e
-            | `Loop_stmt x -> loop_statement env x
-            | `Exp x ->
-                let v1 = expression env x in
-                G.exprstmt v1
-          in
-          v2)
+  | `Decl x ->
+      let dec = declaration env x in
+      DefStmt dec |> G.s
+  | `Rep_choice_label_choice_assign (_v1, v2) ->
+      (*TODO let v1 =
+        List.map (fun x ->
+        (match x with
+        | `Label tok -> let t = token env tok in (* label *)
+        raise Todo
+        | `Anno x -> annotation env x
+        )
+        ) v1
+        in*)
+      let v2 =
+        match v2 with
+        | `Assign x ->
+            let e = assignment env x in
+            G.exprstmt e
+        | `Loop_stmt x -> loop_statement env x
+        | `Exp x ->
+            let v1 = expression env x in
+            G.exprstmt v1
+      in
+      v2
   | `Part_class_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      (* v1 = type parameter
-         v2 = modifier option
-         v3 = "constructor"
-         v4 = class parameter
-         v5 = (":", delecator)
-         v6 = type constraints
-         v7 = class body
-      *)
       let tparams =
         match v1 with
         | Some x -> Some (type_parameters env x)
@@ -1895,14 +1885,14 @@ and statement (env : env) (x : CST.statement) : stmt =
         | None -> fb []
       in
       let ckind = (Class, fake "class") in
-      (* The fake name @PARTIAL_CLASS_DEFINITION is used to distinguish
+      (* The fake name @@@PARTIAL_CLASS_DEFINITION is used to distinguish
        * 1) two valid class definitions in a row vs
        * 2) a class definition followed by a partial class definition
-       * Valid kotlin programs cannot have class names that have @.
-       * We will use @PARTIAL_CLASS_DEFINITION to detect partial class
+       * Valid kotlin programs cannot have class names that have @@@.
+       * We will use @@@PARTIAL_CLASS_DEFINITION to detect partial class
        * definitions in the function merge_class_definition below.
        *)
-      let fake_ident = ("@PARTIAL_CLASS_DEFINITION", fake "fake_tok") in
+      let fake_ident = ("@@@PARTIAL_CLASS_DEFINITION", fake "fake_tok") in
       let ent = basic_entity fake_ident ~tparams in
       let cdef =
         { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
@@ -2332,7 +2322,7 @@ let merge_class_declarations (xs : stmt list) : stmt list =
            s =
              DefStmt
                ( {
-                   name = EN (Id (("@PARTIAL_CLASS_DEFINITION", _), _));
+                   name = EN (Id (("@@@PARTIAL_CLASS_DEFINITION", _), _));
                    attrs = [];
                    tparams;
                  },
