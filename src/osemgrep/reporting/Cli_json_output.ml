@@ -391,12 +391,7 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
    version;
    results = matches;
    errors;
-   paths =
-     {
-       skipped;
-       (* TODO? should be [] and None given Core_json_output.ml code *)
-       scanned = _;
-     };
+   paths = { skipped; scanned = _ };
    skipped_rules;
    explanations;
    interfile_languages_used;
