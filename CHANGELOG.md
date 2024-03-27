@@ -6,6 +6,30 @@
 
 <!-- insertion point -->
 
+## [1.66.2](https://github.com/returntocorp/semgrep/releases/tag/v1.66.2) - 2024-03-26
+
+
+### Added
+
+
+- osemgrep now respects HTTP_PROXY and HTTPS_PROXY when making network requests (cdx-253)
+
+
+### Changed
+
+
+- [IMPORTANT] The public rollout of inter-file differential scanning has been
+  temporarily reverted for further polishing of the feature. We will reintroduce
+  it in a later version. (saf-268)
+
+
+### Fixed
+
+
+- Autofix on variable definitions should now handle the semicolon
+  in Java, C++, and C#. (saf-928)
+
+
 ## [1.66.1](https://github.com/returntocorp/semgrep/releases/tag/v1.66.1) - 2024-03-25
 
 
