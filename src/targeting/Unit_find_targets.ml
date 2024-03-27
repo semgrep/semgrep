@@ -115,23 +115,36 @@ let tests_with_or_without_git ~with_git =
       [ F.File (".semgrepignore", "b\n"); F.file "a"; F.file "b" ];
     (* Select file 'a', not 'b' *)
     test_find_targets ~with_git ~excludes:[ "b" ] "basic exclude"
-      [ F.File (".gitignore", ""); F.file "a"; F.file "b" ];
+      [ F.file "a"; F.file "b" ];
     (* Select file 'a', not 'b' *)
     test_find_targets ~with_git ~includes:[ "a" ] "basic include"
-      [ F.File (".gitignore", ""); F.file "a"; F.file "b" ];
+      [ F.file "a"; F.file "b" ];
+    (* Select file 'a', not 'b' *)
+    test_find_targets ~with_git ~includes:[ "a" ] "deep include"
+      [ F.dir "dir" [ F.file "a"; F.file "b" ] ];
+    (* Select 'a' and 'c', not 'b'. *)
+    test_find_targets ~with_git "gitignore file is always consulted"
+      ~non_git_files:[ F.file "a"; F.file "b" ]
+      [ F.File (".gitignore", "b\n"); F.file "c" ];
     (*
-       !!! Here is where things are getting weird. !!!
+       Test that the '--include' filter takes place after all the other
+       filters.
     *)
     (* Can't select file 'a' via --include when gitignoring its folder. *)
     test_find_targets ~with_git ~includes:[ "a" ]
       "gitignore file takes precedence over --include"
-      [ F.File (".gitignore", "dir\n"); F.dir "dir" [ F.file "a"; F.file "b" ] ];
-    (* Select file 'a' via --include despite semgrepignoring its folder. *)
-    test_find_targets ~with_git ~includes:[ "a" ]
-      "--include takes precedence over semgrepignore"
+      [
+        F.File (".gitignore", "dir\n");
+        F.dir "dir" [ F.file "a"; F.file "b" ];
+        F.file "c";
+      ];
+    (* Can't select file 'a' via --include when semgrepignoring its folder. *)
+    test_find_targets ~with_git ~includes:[ "*.c" ]
+      "semgrepignore file takes precedence over --include"
       [
         F.File (".semgrepignore", "dir\n");
-        F.dir "dir" [ F.file "a"; F.file "b" ];
+        F.dir "dir" [ F.file "a.c"; F.file "b.c" ];
+        F.file "c.c";
       ];
   ]
 

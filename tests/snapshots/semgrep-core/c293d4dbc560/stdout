@@ -1,12 +1,10 @@
 Test name: without git > basic include
 --- Files not added to git ---
-.gitignore
 a
 b
 --- '--include' patterns ---
 a
 --- Selected targets ---
-selected <TMP>/<MASKED>/a
+selected a
 --- Skipped targets ---
-ignored <TMP>/<MASKED>/.gitignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
-ignored <TMP>/<MASKED>/b [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
+ignored b [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
