@@ -595,7 +595,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
          * but should we compute skipped and scanned here instead?
          *)
         skipped = None;
-        scanned = [];
+        scanned = res.scanned;
       };
     skipped_rules =
       res.skipped_rules
