@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -13,6 +12,7 @@ from semdep.parsers.util import comma
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
+from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import line
@@ -107,10 +107,6 @@ dependencies_block = (
 package_swift_parser = (
     any_char.until(regex(r"dependencies\s*:")) >> dependencies_block << any_char.many()
 )
-
-
-def filter_on_marked_lines(result: List[Any]) -> List[Tuple]:
-    return [x for x in result if isinstance(x, tuple)]
 
 
 def parse_swiftpm_v2(

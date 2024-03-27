@@ -2,309 +2,6 @@ import pytest
 
 from semdep.parsers import mix
 
-MIX_LOCK = """
-%{
-  "castore": {
-    :hex,
-    :castore,
-    "0.1.22",
-    "4127549e411bedd012ca3a308dede574f43819fe9394254ca55ab4895abfa1a2",
-    [:mix],
-    [],
-    "hexpm",
-    "c17576df47eb5aa1ee40cc4134316a99f5cad3e215d5c77b8dd3cfef12a22cac"
-  },
-  "cowboy": {
-    :hex,
-    :cowboy,
-    "2.10.0",
-    "ff9ffeff91dae4ae270dd975642997afe2a1179d94b1887863e43f681a203e26",
-    [:make, :rebar3],
-    [
-      {:cowlib, "2.12.1", [hex: :cowlib, repo: "hexpm", optional: false]},
-      {:ranch, "1.8.0", [hex: :ranch, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "3afdccb7183cc6f143cb14d3cf51fa00e53db9ec80cdcd525482f5e99bc41d6b"
-  },
-  "cowboy_telemetry": {
-    :hex,
-    :cowboy_telemetry,
-    "0.4.0",
-    "f239f68b588efa7707abce16a84d0d2acf3a0f50571f8bb7f56a15865aae820c",
-    [:rebar3],
-    [
-      {:cowboy, "~> 2.7", [hex: :cowboy, repo: "hexpm", optional: false]},
-      {:telemetry, "~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "7d98bac1ee4565d31b62d59f8823dfd8356a169e7fcbb83831b8a5397404c9de"
-  },
-  "cowlib": {
-    :hex,
-    :cowlib,
-    "2.12.1",
-    "a9fa9a625f1d2025fe6b462cb865881329b5caff8f1854d1cbc9f9533f00e1e1",
-    [:make, :rebar3],
-    [],
-    "hexpm",
-    "163b73f6367a7341b33c794c4e88e7dbfe6498ac42dcd69ef44c5bc5507c8db0"
-  },
-  "db_connection": {
-    :hex,
-    :db_connection,
-    "2.5.0",
-    "bb6d4f30d35ded97b29fe80d8bd6f928a1912ca1ff110831edcd238a1973652c",
-    [:mix],
-    [
-      {:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "c92d5ba26cd69ead1ff7582dbb860adeedfff39774105a4f1c92cbb654b55aa2"
-  },
-  "decimal": {
-    :hex,
-    :decimal,
-    "2.1.1",
-    "5611dca5d4b2c3dd497dec8f68751f1f1a54755e8ed2a966c2633cf885973ad6",
-    [:mix],
-    [],
-    "hexpm",
-    "53cfe5f497ed0e7771ae1a475575603d77425099ba5faef9394932b35020ffcc"
-  },
-  "earmark_parser": {
-    :hex,
-    :earmark_parser,
-    "1.4.39",
-    "424642f8335b05bb9eb611aa1564c148a8ee35c9c8a8bba6e129d51a3e3c6769",
-    [:mix],
-    [],
-    "hexpm",
-    "06553a88d1f1846da9ef066b87b57c6f605552cfbe40d20bd8d59cc6bde41944"
-  },
-  "ecto": {
-    :hex,
-    :ecto,
-    "3.10.1",
-    "c6757101880e90acc6125b095853176a02da8f1afe056f91f1f90b80c9389822",
-    [:mix],
-    [
-      {:decimal, "~> 1.6 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: false]},
-      {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]},
-      {:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "d2ac4255f1601bdf7ac74c0ed971102c6829dc158719b94bd30041bbad77f87a"
-  },
-  "ecto_sql": {
-    :hex,
-    :ecto_sql,
-    "3.10.1",
-    "6ea6b3036a0b0ca94c2a02613fd9f742614b5cfe494c41af2e6571bb034dd94c",
-    [:mix],
-    [
-      {:db_connection, "~> 2.5 or ~> 2.4.1", [hex: :db_connection, repo: "hexpm", optional: false]},
-      {:ecto, "~> 3.10.0", [hex: :ecto, repo: "hexpm", optional: false]},
-      {:myxql, "~> 0.6.0", [hex: :myxql, repo: "hexpm", optional: true]},
-      {:postgrex, "~> 0.16.0 or ~> 0.17.0 or ~> 1.0", [hex: :postgrex, repo: "hexpm", optional: true]},
-      {:tds, "~> 2.1.1 or ~> 2.2", [hex: :tds, repo: "hexpm", optional: true]},
-      {:telemetry, "~> 0.4.0 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "31f6787ec0a54110c9968b8c89a2c86071e5e03b674b2e3d63b7b1f8ebf67b0b"
-  },
-  "ex_doc": {
-    :hex,
-    :ex_doc,
-    "0.25.1",
-    "e442b3058cfb203d4de7d471fa4fbdb9b429ebe1e7b2db1e556f9f612e87bb20",
-    [:mix],
-    [
-      {:earmark_parser, "~> 1.4", [hex: :earmark_parser, repo: "hexpm", optional: false]},
-      {:html_entities, "~> 0.5", [hex: :html_entities, repo: "hexpm", optional: true]},
-      {:kronky, "~> 0.2", [hex: :kronky, repo: "hexpm", optional: true]},
-      {:nimble_parsec, "~> 0.6.0", [hex: :nimble_parsec, repo: "hexpm", optional: true]},
-      {:plug, "~> 1.7", [hex: :plug, repo: "hexpm", optional: false]},
-      {:poison, "~> 3.0", [hex: :poison, repo: "hexpm", optional: true]}
-    ],
-    "hexpm",
-    "3c5c180d2048040e867fb9c12b933f1509d9aa191eb44891b75194ff48d5e7f7"
-  },
-  "floki": {
-    :hex,
-    :floki,
-    "0.31.0",
-    "6f95dc2b1e3e2f1f4f8fb870651b8ae48ee055d3f8d45c8d714bdd3ff73c46f2",
-    [:mix],
-    [
-      {:html_entities, "~> 0.5.0", [hex: :html_entities, repo: "hexpm", optional: false]},
-      {:html_matcher, "~> 0.8.0", [hex: :html_matcher, repo: "hexpm", optional: false]},
-      {:nimble_parsec, "~> 0.6 or ~> 0.5.1", [hex: :nimble_parsec, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "e6f45b70d6d6605b04e29b4b1654c8e5b628e35b5001694fd6d97f43a080ac49"
-  },
-  "html_entities": {
-    :hex,
-    :html_entities,
-    "0.5.0",
-    "3c431401c5d1ed42a2e57e07be2d07113fb0d169e76b77c23413b272c7d360b2",
-    [:mix],
-    [],
-    "hexpm",
-    "971740f4d3d42d2e1ee6d3c97b2f476ac25b6a348db23de4d5e5f9ff1da43e5c"
-  },
-  "html_matcher": {
-    :hex,
-    :html_matcher,
-    "0.8.0",
-    "de6696d635764f3b8961cb99a25a1f9d90539f8185dc2b6f4bb01ad34a0f853e",
-    [:mix],
-    [
-      {:html_entities, "~> 0.4 or ~> 0.5.0", [hex: :html_entities, repo: "hexpm", optional: false]},
-      {:nimble_parsec, "~> 0.6", [hex: :nimble_parsec, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "12a1aa6e6b94b88de71abbbcf96b42d43dd6ff89a0e6a646b9c2c9debaaf35f0"
-  },
-  "jason": {
-    :hex,
-    :jason,
-    "1.2.2",
-    "a62eecc5d1fd64c03c5f96d7d8f2f7a40e4a0a9dcf711b46a1df45ef6b58e233",
-    [:mix],
-    [],
-    "hexpm",
-    "dfb6e579e4a1a8a25b687451aedd176a4774f55b1569bfb4401b4b1c36ee4c1f"
-  },
-  "kronky": {
-    :hex,
-    :kronky,
-    "0.2.1",
-    "27a1696dd6ac31775e7f8f61b225ef79a640e5e40f07a6e441c163e3d3cb7c5f",
-    [:mix],
-    [
-      {:poison, "~> 2.2", [hex: :poison, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "fc3e76d6cb13518085e0f956a219c4793272b98a5170b15d71ee2baf2b8ccdd8"
-  },
-  "myxql": {
-    :hex,
-    :myxql,
-    "0.6.0",
-    "f44c27bc9cb94a49798b90aa3d125b59c60e7e232e701d3f36de6d487dd421b1",
-    [:mix],
-    [],
-    "hexpm",
-    "dadeb4f6a198e19301f43b5bfb6e3e4b7b835f18947b8fe636e09ae9185dd3df"
-  },
-  "nimble_parsec": {
-    :hex,
-    :nimble_parsec,
-    "0.6.0",
-    "1b3b89a7b24ae153fca7ad1fb80181c51263fc4d158e9172d59354e93d7136de",
-    [:mix],
-    [],
-    "hexpm",
-    "2ac3e053456eb98c11d5dd22d3b90a9b56940d01300331e2923b75f702799b53"
-  },
-  "phoenix": {
-    :hex,
-    :phoenix,
-    "1.6.5",
-    "9e9a6de8b769a8e0b45aa7da529f1e58ababffad4cb03e121163dd08e3f6f5b5",
-    [:mix],
-    [
-      {:jason, "~> 1.0 or ~> 1.2", [hex: :jason, repo: "hexpm", optional: false]},
-      {:phoenix_html, "~> 3.0", [hex: :phoenix_html, repo: "hexpm", optional: false]},
-      {:phoenix_pubsub, "~> 2.0", [hex: :phoenix_pubsub, repo: "hexpm", optional: false]},
-      {:plug, "~> 1.0", [hex: :plug, repo: "hexpm", optional: false]},
-      {:telemetry, "~> 0.4", [hex: :telemetry, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "c9f78e27e3e8b64d8f3c3fa289feef41bf91e2b08e48c3750c8a16618b5d4f7a"
-  },
-  "phoenix_html": {
-    :hex,
-    :phoenix_html,
-    "3.0.0",
-    "f8c06f50e80f69d9442b91e50f0be45fc0c3c004beccfb59eae5cf7c68b12326",
-    [:mix],
-    [
-      {:jason, "~> 1.0 or ~> 1.2", [hex: :jason, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "57e50e4d0baf47c914f1212c6a5e7e95d420d15429fd21b574bbcc40f0b0ff06"
-  },
-  "phoenix_live_reload": {
-    :hex,
-    :phoenix_live_reload,
-    "1.4.0",
-    "fb4d574513b5651f67a04f97e76f44a73a30b83995bb57fa7291a6acfe3e2cc9",
-    [:mix],
-    [],
-    "hexpm",
-    "76c2dd748b3523908048a53ec31b6fbb95fe9dabbb8a3b0dc16ad0c1bf04e99c"
-  },
-  "phoenix_pubsub": {
-    :hex,
-    :phoenix_pubsub,
-    "2.1.0",
-    "78c46e48ff34997ac11480ff04d20d2f086e7b95d3cb1332b165ed3fb6b931e2",
-    [:mix],
-    [],
-    "hexpm",
-    "45514a5aeb324e70235a8b0489a7872bfb6daa2b8a32e58a5c6e2271e82f1b73"
-  },
-  "plug": {
-    :hex,
-    :plug,
-    "1.11.0",
-    "24e5823682af27015eb3fa3129d08eaffb86e2a5be7029157b9c0855a2251fb4",
-    [:mix],
-    [
-      {:mime, "~> 1.0", [hex: :mime, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "e0e7c331b3ae3af0112f4542e75b3fc54dbd8636241577989a54c27ab97f4c9b"
-  },
-  "plug_cowboy": {
-    :hex,
-    :plug_cowboy,
-    "2.7.0",
-    "a4d65ff9c114c70a4ab681db32a5b9e41dbfa30c02e86361e2f90be686afef92",
-    [:mix],
-    [
-      {:cowboy, "~> 2.0", [hex: :cowboy, repo: "hexpm", optional: false]},
-      {:plug, "~> 1.0", [hex: :plug, repo: "hexpm", optional: false]}
-    ],
-    "hexpm",
-    "cfc007e1a13a3351e97e36ab31126a44e68c6f417eac8f5a5d9b3e77e9c24bd4"
-  },
-  "poison": {
-    :hex,
-    :poison,
-    "4.0.2",
-    "3e12b7abfc7b54df5b8f3ae8b6d4f9da1fa3c606ebf47dc7331a750c018f04fd",
-    [:mix],
-    [],
-    "hexpm",
-    "2aa8f95fbfb66c1ac62349f63dbb04ac36353953ef4b24ec3e193b53b8ccfe09"
-  },
-  "telemetry": {
-    :hex,
-    :telemetry,
-    "0.4.3",
-    "7b05fbb4db5b32fc0f8aa5c4a2040348b4aa36687100fb8837b850e90cf60e06",
-    [:mix],
-    [],
-    "hexpm",
-    "f6b37a5d1c6c3e3d20497b03293be7f83b46f89a6f3987cc1f9262d299f1eaa7"
-  }
-}
-"""
-
 
 @pytest.mark.parametrize(
     "original, output",
@@ -368,7 +65,7 @@ def test_mix_options_block(original: str):
             "hexpm",
             "2aa8f95fbfb66c1ac62349f63dbb04ac36353953ef4b24ec3e193b53b8ccfe09"
         }""",
-            ("poison", "4.0.2"),
+            (4, ("poison", "4.0.2")),
         ),
         (
             """{
@@ -381,7 +78,7 @@ def test_mix_options_block(original: str):
             "hexpm",
             "f6b37a5d1c6c3e3d20497b03293be7f83b46f89a6f3987cc1f9262d299f1eaa7"
         }""",
-            ("telemetry", "0.4.3"),
+            (4, ("telemetry", "0.4.3")),
         ),
     ],
 )
@@ -427,7 +124,7 @@ def test_mix_package_key_value_block():
 """
 
     result = mix.package_key_value_block.parse_partial(original)
-    assert result[0] == ("websock_adapter", "0.5.5")
+    assert result[0] == (2, ("websock_adapter", "0.5.5"))
     assert not result[1]
 
 
@@ -441,7 +138,7 @@ def test_mix_many_package_blocks():
     """
 
     result = mix.many_package_blocks.parse_partial(original)
-    assert result[0] == [("acceptor_pool", "1.0.0"), ("bamboo", "2.3.0")]
+    assert result[0] == [(2, ("acceptor_pool", "1.0.0")), (3, ("bamboo", "2.3.0"))]
     assert not result[1]
 
 
@@ -462,13 +159,136 @@ def test_mix_lockfile_parser():
     """
     result = mix.lockfile_parser.parse_partial(full_lockfile)
     assert result[0] == [
-        ("bamboo_smtp", "4.2.2"),
-        ("bypass", "2.1.0"),
-        ("castore", "1.0.5"),
-        ("cloak", "1.1.2"),
-        ("combination", "0.0.3"),
-        ("cowboy", "2.10.0"),
-        ("cowboy_telemetry", "0.4.0"),
-        ("credo", "1.7.3"),
+        (2, ("bamboo_smtp", "4.2.2")),
+        (3, ("bypass", "2.1.0")),
+        (4, ("castore", "1.0.5")),
+        (5, ("cloak", "1.1.2")),
+        (6, ("combination", "0.0.3")),
+        (7, ("cowboy", "2.10.0")),
+        (8, ("cowboy_telemetry", "0.4.0")),
+        (9, ("credo", "1.7.3")),
+    ]
+    assert not result[1]
+
+
+@pytest.mark.parametrize(
+    "original, output",
+    [
+        ('{:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true}', "ehttpc"),
+        (
+            '{:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true}',
+            "rocksdb",
+        ),
+    ],
+)
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_manifest_package_parser(original, output):
+    result = mix.manifest_package.parse_partial(original)
+    assert result[0] == output
+    assert not result[1]
+
+
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_many_manifest_package_parser():
+    original = """
+    {:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true},
+    {:gproc, github: "emqx/gproc", tag: "0.9.0.1", override: true}
+    """
+
+    result = mix.many_manifest_packages.parse_partial(original)
+    assert result[0] == [(2, "ehttpc"), (3, "gproc")]
+    assert not result[1]
+
+
+@pytest.mark.parametrize(
+    "original",
+    ["defp deps(profile_info, version) do", "def deps (profile_info, version) do"],
+)
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_manifest_deps_declaration(original):
+    result = mix.manifest_deps_declaration.parse_partial(original)
+    assert not result[1]
+
+
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_manifest_deps():
+    original = """defp deps(profile_info, version) do
+        [
+          {:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true},
+          {:gproc, github: "emqx/gproc", tag: "0.9.0.1", override: true},
+          # some comment
+          {:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true},
+          {:grpc, github: "emqx/grpc-erl", tag: "0.6.12", override: true},
+          {:ecpool, github: "emqx/ecpool", tag: "0.5.7", override: true},
+          {:pbkdf2, github: "emqx/erlang-pbkdf2", tag: "2.0.4", override: true},
+          {:typerefl, github: "ieQu1/typerefl", tag: "0.9.1", override: true}
+        ]
+      end
+    """
+
+    result = mix.manifest_deps.parse_partial(original)
+    assert result[0] == [
+        (3, "ehttpc"),
+        (4, "gproc"),
+        "          # some comment",
+        (6, "rocksdb"),
+        (7, "grpc"),
+        (8, "ecpool"),
+        (9, "pbkdf2"),
+        (10, "typerefl"),
+    ]
+    assert not result[1]
+
+
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_manifest_parser():
+    full_deps = """
+        defmodule MyApp.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              name: "MyApp",
+              source_url: "https://github.com/myapp/myapp",
+              docs: docs(),
+              app: :myapp,
+              version: "1.1.1",
+              elixir: "~> 1.14",
+              deps: deps()
+            ]
+          end
+
+          defp deps do
+            [
+              {:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true},
+              {:gproc, github: "emqx/gproc", tag: "0.9.0.1", override: true},
+              {:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true},
+              {:grpc, github: "emqx/grpc-erl", tag: "0.6.12", override: true},
+              {:ecpool, github: "emqx/ecpool", tag: "0.5.7", override: true},
+              {:pbkdf2, github: "emqx/erlang-pbkdf2", tag: "2.0.4", override: true},
+              {:typerefl, github: "ieQu1/typerefl", tag: "0.9.1", override: true}
+            ]
+          end
+        end
+    """
+    result = mix.manifest_parser.parse_partial(full_deps)
+    assert result[0] == [
+        (19, "ehttpc"),
+        (20, "gproc"),
+        (21, "rocksdb"),
+        (22, "grpc"),
+        (23, "ecpool"),
+        (24, "pbkdf2"),
+        (25, "typerefl"),
     ]
     assert not result[1]

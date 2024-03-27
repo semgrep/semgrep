@@ -1,19 +1,39 @@
+from pathlib import Path
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
+
 from semdep.external.parsy import any_char
+from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import colon
 from semdep.parsers.util import comma
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import lbrace
 from semdep.parsers.util import lbrack
+from semdep.parsers.util import mark_line
+from semdep.parsers.util import new_lines
 from semdep.parsers.util import quoted_str
 from semdep.parsers.util import rbrace
 from semdep.parsers.util import rbrack
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
+from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semdep.parsers.util import whitespace
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Mix
+from semgrep.semgrep_interfaces.semgrep_output_v1 import MixLock
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 # :hex,
 atom = string(":") >> upto(",", consume_other=False)
 
+# Lockfile
 scm = atom
 package_block = atom
 
@@ -51,7 +71,7 @@ package_entry_value_block = (
         lambda package: (
             comma
             >> version_block.bind(
-                lambda version: success((package, version))
+                lambda version: mark_line(success((package, version)))
             )  # version
         )
     )
@@ -71,6 +91,7 @@ package_entry_value_block = (
     << comma.optional()
 )
 
+# "castore": {:hex,: castore, "1.0.5", "9eeebb394cc9a0f3ae56b813459f990abb0a3dedee1be6b27fdb50301930502f", [: mix], [], "hexpm", "8d7c597c3e4a64c395980882d4bca3cebb8d74197c590dc272cfd3b6a6310578"},
 package_key_value_block = whitespace >> quoted_str >> colon >> package_entry_value_block
 
 many_package_blocks = package_key_value_block.sep_by(whitespace)
@@ -78,3 +99,96 @@ many_package_blocks = package_key_value_block.sep_by(whitespace)
 lockfile_parser = (
     whitespace >> string("%") >> lbrace >> many_package_blocks << whitespace << rbrace
 )
+
+# Manifest
+
+# {:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true}
+manifest_package = (
+    whitespace
+    >> lbrace
+    >> atom
+    << any_char.until(rbrace << string(",").optional(), consume_other=True)
+)
+
+# {:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true},
+# {:gproc, github: "emqx/gproc", tag: "0.9.0.1", override: true},
+# {:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true},
+many_manifest_packages = whitespace >> (
+    mark_line(manifest_package) | upto("\n")
+).sep_by(new_lines)
+
+# defp deps do
+manifest_deps_declaration = regex("defp? +deps.*?do")
+
+# defp deps do
+#     [
+#       {:ehttpc, github: "emqx/ehttpc", tag: "0.4.13", override: true},
+#       {:gproc, github: "emqx/gproc", tag: "0.9.0.1", override: true},
+#       {:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true},
+#       {:grpc, github: "emqx/grpc-erl", tag: "0.6.12", override: true},
+#       {:ecpool, github: "emqx/ecpool", tag: "0.5.7", override: true},
+#       {:pbkdf2, github: "emqx/erlang-pbkdf2", tag: "2.0.4", override: true},
+#       {:typerefl, github: "ieQu1/typerefl", tag: "0.9.1", override: true}
+#     ]
+# end
+manifest_deps = (
+    whitespace
+    >> manifest_deps_declaration
+    >> whitespace
+    >> lbrack
+    >> many_manifest_packages
+    << whitespace
+    << rbrack
+    << string("end")
+    << whitespace
+)
+
+manifest_parser = (
+    any_char.until(manifest_deps_declaration) >> manifest_deps << any_char.many()
+)
+
+
+def _parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
+    result = set()
+    for _line_number, package in manifest:
+        result.add(package.lower())
+
+    return result
+
+
+def _build_found_dependencies(
+    direct_deps: Set[str], lockfile_deps: List[Tuple]
+) -> List[FoundDependency]:
+    result = []
+    for line_number, (package, version) in lockfile_deps:
+        result.append(
+            FoundDependency(
+                package=package,
+                version=version,
+                ecosystem=Ecosystem(Mix()),
+                allowed_hashes={},
+                transitivity=transitivity(direct_deps, [package]),
+                line_number=line_number,
+            )
+        )
+
+    return result
+
+
+def parse_mix(
+    lockfile_path: Path, manifest_path: Optional[Path]
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, lockfile_parser, ScaParserName(MixLock())),
+        DependencyFileToParse(manifest_path, manifest_parser, ScaParserName(MixLock()))
+        if manifest_path
+        else None,
+    )
+
+    if not parsed_lockfile or not parsed_manifest:
+        return [], errors
+
+    direct_deps = _parse_manifest_deps(filter_on_marked_lines(parsed_manifest))
+    found_deps = _build_found_dependencies(direct_deps, parsed_lockfile)
+
+    return found_deps, errors
