@@ -137,7 +137,7 @@ function pcre_raise_bad_pattern(msg, pos) {
 //Provides: pcre_raise_internal_error
 //Requires: pcre_raise_error
 function pcre_raise_internal_error(msg) {
-    pcre_raise_error(msg);
+    pcre_raise_error([1, msg]);
 }
 
 //Provides: auto_malloc
