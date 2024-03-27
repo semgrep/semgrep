@@ -606,7 +606,7 @@ let rec filter_ranges (env : env) (init_ranges : RM.t list)
         We reuse the same original range because that will guarantee that the intersection works,
         we only care about the metavariables unifying.
     *)
-    List.fold_right
+    List_.fold_right
       (fun cond_bindingss ranges ->
         RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
           ranges
