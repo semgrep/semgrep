@@ -1841,11 +1841,11 @@ and statement (env : env) (x : CST.statement) : stmt =
   | `Rep_choice_label_choice_assign (_v1, v2) ->
       (*TODO let v1 =
         List.map (fun x ->
-        (match x with
-        | `Label tok -> let t = token env tok in (* label *)
-        raise Todo
-        | `Anno x -> annotation env x
-        )
+          (match x with
+          | `Label tok -> let t = token env tok in (* label *)
+              raise Todo
+          | `Anno x -> annotation env x
+          )
         ) v1
         in*)
       let v2 =
@@ -1885,14 +1885,14 @@ and statement (env : env) (x : CST.statement) : stmt =
         | None -> fb []
       in
       let ckind = (Class, fake "class") in
-      (* The fake name @@@PARTIAL_CLASS_DEFINITION is used to distinguish
-       * 1) two valid class definitions in a row vs
-       * 2) a class definition followed by a partial class definition
+      (* The fake name @@@PARTIAL_CLASS_DECLARATION is used to distinguish
+       * 1) two valid class declarations in a row vs
+       * 2) a class declaration followed by a partial class declaration
        * Valid kotlin programs cannot have class names that have @@@.
-       * We will use @@@PARTIAL_CLASS_DEFINITION to detect partial class
-       * definitions in the function merge_class_definition below.
+       * We will use @@@PARTIAL_CLASS_DECLARATION to detect partial class
+       * declarations in the function merge_class_declarations below.
        *)
-      let fake_ident = ("@@@PARTIAL_CLASS_DEFINITION", fake "fake_tok") in
+      let fake_ident = ("@@@PARTIAL_CLASS_DECLARATION", fake "fake_tok") in
       let ent = basic_entity fake_ident ~tparams in
       let cdef =
         { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
@@ -2301,10 +2301,10 @@ let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
 let merge_class_declarations (xs : stmt list) : stmt list =
   let rec merge rev_acc (xs : stmt list) =
     match xs with
-    (* Merge two consecutive class definitions, if the second one
-     * is a partial class definition.
+    (* Merge two consecutive class declarations, if the second one
+     * is a partial class declaration.
      *
-     * For the first class definition, only the name, kind of class,
+     * For the first class declaration, only the name, kind of class,
      * and attributes will be populated because it will come from the
      * code
      *   @SomeAttribute class SomeClassName
@@ -2312,7 +2312,7 @@ let merge_class_declarations (xs : stmt list) : stmt list =
      *   @SomeAttribute enum SomeClassName
      *
      * The rest is populated by the second part which is a partial
-     * class definition.
+     * class declaration.
      *)
     | {
         s = DefStmt ({ name; attrs; tparams = None }, ClassDef { ckind; _ });
@@ -2322,7 +2322,7 @@ let merge_class_declarations (xs : stmt list) : stmt list =
            s =
              DefStmt
                ( {
-                   name = EN (Id (("@@@PARTIAL_CLASS_DEFINITION", _), _));
+                   name = EN (Id (("@@@PARTIAL_CLASS_DECLARATION", _), _));
                    attrs = [];
                    tparams;
                  },
