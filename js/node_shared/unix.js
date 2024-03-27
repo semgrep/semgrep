@@ -31,18 +31,18 @@ globalThis.pidToChildrenTable = new Map();
    are `caml_sys_open`, which is implemented by jsoo, and `unix_pipe`, which
    is implemented below.
    A problem is that we don't want to mess with file descriptors when implementing
-   `unix_pipe` or `unix_spawn` -- ideally, we could use Node's redirection logic
+   `caml_unix_pipe` or `caml_unix_spawn` -- ideally, we could use Node's redirection logic
    and simply read the data internally from JS, instead of writing out to a file
    explicitly.
-   As such, when we use `unix_pipe`, we want to generate "fake file descriptors",
-   which simply biject to `unix_spawn` calls, and can be used as keys to lookup
+   As such, when we use `caml_unix_pipe`, we want to generate "fake file descriptors",
+   which simply biject to `caml_unix_spawn` calls, and can be used as keys to lookup
    the output of those processes.
    By our types, these fake file descriptors must be integers, however, and they
    must contend with the fact that `caml_sys_open` will also generate file
    descriptors, by just increasing indices.
-   At the point of calling `unix_read`, we need to know whether we are holding a
+   At the point of calling `caml_unix_read`, we need to know whether we are holding a
    "real" file descriptor (from `caml_sys_open`), or a "fake" file descriptor
-   (from `unix_pipe`). To make sure there are no collisions, we are just going to
+   (from `caml_unix_pipe`). To make sure there are no collisions, we are just going to
    start our fake file descriptors at 20,000, and assume that any file descriptors
    numbered greater than that are fake.
 */
@@ -54,7 +54,7 @@ globalThis.fakeFdThreshold = 20000;
 globalThis.fdCount = globalThis.fakeFdThreshold;
 globalThis.fdTable = new Map();
 
-/* Some magic happens here, in conjunction with unix_pipe.
+/* Some magic happens here, in conjunction with caml_unix_pipe.
    Read "NOTE(fake-fds)" for more.
    The basic TL;DR is we generate fake file descriptors when piping or duping,
    which we then associate to the output of this process, using Node's inherent
@@ -62,8 +62,8 @@ globalThis.fdTable = new Map();
    Then, when reading from this "file descriptor", we just get the associated
    output.
  */
-//Provides: unix_spawn
-function unix_spawn(executable, args, optenv, usepath, redirect) {
+//Provides: caml_unix_spawn
+function caml_unix_spawn(executable, args, optenv, usepath, redirect) {
   // get rid of the mandatory tag and the first argument, which is the
   // executable path
   let argv = args.slice(2);
@@ -76,9 +76,9 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
    */
 
   // See "NOTE(fake-fds)"
-  // These redirects are given to `unix_spawn` by Bos via `Unix.create_process_gen`,
+  // These redirects are given to `caml_unix_spawn` by Bos via `Unix.create_process_gen`,
   // which gets them from Bos explicitly calling `pipe`.
-  // Via our convention in unix_pipe, these are not actually "real" file descriptors,
+  // Via our convention in caml_unix_pipe, these are not actually "real" file descriptors,
   // but fresh identifiers we will use to map to the output of the corresponding
   // child process.
   // As such, let's just use the `pipe` setting for the stdio of this child process.
@@ -105,7 +105,7 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
     switch (idx) {
       case -1:
         console.debug(
-          "unix_spawn: given optenv argument without '=' character"
+          "caml_unix_spawn: given optenv argument without '=' character"
         );
       default:
         const key = arg.slice(0, idx);
@@ -136,8 +136,8 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
   return child.pid;
 }
 
-//Provides: unix_waitpid
-function unix_waitpid(flags, pid_req) {
+//Provides: caml_unix_waitpid
+function caml_unix_waitpid(flags, pid_req) {
   // TODO: flags stuff is not implemented
   // TODO: WIFSTOPPED is not currently possible, because I don't know how to
   // tell if a Javascript process is stopped or killed
@@ -171,7 +171,7 @@ function unix_waitpid(flags, pid_req) {
   } else if (pid_req > 0) {
     let child = globalThis.pidToProcessTable.get(pid_req);
     if (!child) {
-      throw new Error(`unix_waitpid: no child at pid {pid_req}`);
+      throw new Error(`caml_unix_waitpid: no child at pid {pid_req}`);
     }
 
     // When reaping a parent, its children become orphaned, and
@@ -205,10 +205,10 @@ function unix_waitpid(flags, pid_req) {
   }
 }
 
-//Provides: unix_pipe
-function unix_pipe(cloexec, vunit) {
+//Provides: caml_unix_pipe
+function caml_unix_pipe(cloexec, vunit) {
   // See "NOTE(fake-fds)"
-  // The pipe we spawn here will eventually reach unix_spawn.
+  // The pipe we spawn here will eventually reach caml_unix_spawn.
   // We don't want to use a real file descriptor, bceause we're trying
   // to avoid them, in favor of Node's redirection ability, which will open
   // the corresponding file descriptors for us.
@@ -223,50 +223,50 @@ function unix_pipe(cloexec, vunit) {
   return [0, fd, fd];
 }
 
-//Provides: unix_set_close_on_exec
-function unix_set_close_on_exec(fd) {
+//Provides: caml_unix_set_close_on_exec
+function caml_unix_set_close_on_exec(fd) {
   return;
 }
 
-//Provides: unix_getcwd
+//Provides: caml_unix_getcwd
 //Requires: caml_sys_getcwd
-function unix_getcwd(vunit) {
+function caml_unix_getcwd(vunit) {
   return caml_sys_getcwd(vunit);
 }
 
-//Provides: unix_chdir
+//Provides: caml_unix_chdir
 //Requires: caml_sys_chdir
-function unix_chdir(path) {
+function caml_unix_chdir(path) {
   caml_sys_chdir(path);
 
   return;
 }
 
-//Provides: unix_clear_close_on_exec
-function unix_clear_close_on_exec(fd) {
+//Provides: caml_unix_clear_close_on_exec
+function caml_unix_clear_close_on_exec(fd) {
   return;
 }
 
-//Provides: unix_dup
-//Requires: unix_pipe
-function unix_dup(cloexec, fd) {
-  // We just use the same unix_pipe logic to generate a fresh fake
+//Provides: caml_unix_dup
+//Requires: caml_unix_pipe
+function caml_unix_dup(cloexec, fd) {
+  // We just use the same caml_unix_pipe logic to generate a fresh fake
   // file descriptor.
-  return unix_pipe(cloexec, fd);
+  return caml_unix_pipe(cloexec, fd);
 }
 
-//Provides: unix_close
-function unix_close(fd) {
+//Provides: caml_unix_close
+function caml_unix_close(fd) {
   return;
 }
 
-//Provides: unix_fork
-function unix_fork(vunit) {
+//Provides: caml_unix_fork
+function caml_unix_fork(vunit) {
   return;
 }
 
-//Provides: unix_setitimer
-function unix_setitimer(it, its) {
+//Provides: caml_unix_setitimer
+function caml_unix_setitimer(it, its) {
   // In our code, the result value is just ignored, so we can return the same one.
   // TODO: Theoretically this is supposed to do some SIGALRM stuff too, but
   // that is complicated, so let's leave it as a TODO.
@@ -274,8 +274,8 @@ function unix_setitimer(it, its) {
 }
 
 // TODO
-//Provides: unix_sleep
-function unix_sleep(duration) {
+//Provides: caml_unix_sleep
+function caml_unix_sleep(duration) {
   // You cannot actually sleep synchronously, so let's just leave this
   // as a TODO.
 
@@ -287,27 +287,27 @@ function unix_sleep(duration) {
 // so when this is released, we will just need to upgrade our jsoo version
 //Provides: caml_unix_lstat_64
 //Requires: caml_unix_lstat, caml_int64_of_int32
-//Alias: unix_lstat_64
+//Alias: caml_unix_lstat_64
 function caml_unix_lstat_64(name) {
   var r = caml_unix_lstat(name);
   r[9] = caml_int64_of_int32(r[9]);
   return r;
 }
 
-//Provides: unix_realpath
-function unix_realpath(path) {
+//Provides: caml_unix_realpath
+function caml_unix_realpath(path) {
   return globalThis.fs.realpathSync(path);
 }
 
-//Provides: unix_umask
-function unix_umask(newmask) {
+//Provides: caml_unix_umask
+function caml_unix_umask(newmask) {
   let oldmask = globalThis.process.umask(newmask);
   return oldmask;
 }
 
-//Provides: unix_write
+//Provides: caml_unix_write
 //Requires: caml_sys_fds
-function unix_write(fd, buf, ofs, len) {
+function caml_unix_write(fd, buf, ofs, len) {
   let file = caml_sys_fds[fd];
 
   // The reason why this gymnastics is needed, instead of just calling file.write
@@ -328,9 +328,9 @@ function unix_write(fd, buf, ofs, len) {
   return bufferSlice.length;
 }
 
-//Provides: unix_read
+//Provides: caml_unix_read
 //Requires: caml_sys_fds, caml_convert_bytes_to_array
-function unix_read(fd, buf, ofs, len) {
+function caml_unix_read(fd, buf, ofs, len) {
   // buf is of type `bytes` in OCaml, which in JSCaml is
   // represented by an MlBytes object
 
@@ -394,7 +394,7 @@ function unix_read(fd, buf, ofs, len) {
   }
 }
 
-//Provides: unix_rename
-function unix_rename(path1, path2) {
+//Provides: caml_unix_rename
+function caml_unix_rename(path1, path2) {
   globalThis.fs.renameSync(path1, path2);
 }
