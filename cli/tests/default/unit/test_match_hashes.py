@@ -9,7 +9,6 @@ from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatches
-from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -297,6 +296,7 @@ def test_same_code_hash_for_previous_scan_finding(mocker, foo_contents):
 
 
 # Same rule finding the same package at two different lines, the match_based_ids should be different
+@pytest.mark.quick
 def test_lockfile_only(mocker, lockfile_only_rule):
     lockfile_contents = dedent(
         """
@@ -308,7 +308,7 @@ def test_lockfile_only(mocker, lockfile_only_rule):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=lockfile_contents))
     match1 = get_lockfile_only_rule_match(start_line=1, end_line=1)
     match2 = get_lockfile_only_rule_match(start_line=2, end_line=2)
-    matches = RuleMatchSet(lockfile_only_rule)
+    matches = RuleMatches(lockfile_only_rule)
     matches.update([match1, match2])
     matches = list(sorted(matches))
     assert matches[0].match_based_id != matches[1].match_based_id
