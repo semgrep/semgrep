@@ -269,6 +269,11 @@ _scan_options: List[Callable] = [
         flag_value=OutputFormat.GITLAB_SECRETS,
     ),
     optgroup.option(
+        "--historical-secrets",
+        "historical_secrets",
+        is_flag=True,
+    ),
+    optgroup.option(
         "--junit-xml",
         "output_format",
         type=OutputFormat,
@@ -407,11 +412,6 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
-)
-@click.option(
-    "--historical-secrets",
-    "historical_secrets",
-    is_flag=True,
 )
 @scan_options
 @handle_command_errors
