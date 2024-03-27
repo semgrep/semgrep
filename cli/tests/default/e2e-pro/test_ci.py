@@ -34,6 +34,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
+from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
@@ -1448,7 +1449,35 @@ def test_outputs(
         "results.txt",
     )
 
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_sarif_output_with_dataflow_traces(
+    git_tmp_path_with_commit,
+    snapshot,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", "--dataflow-traces"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        output_format=OutputFormat.SARIF,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.sarif",
+    )
+    
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
 @pytest.mark.osemfail
 def test_nosem(
