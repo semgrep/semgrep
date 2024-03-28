@@ -7,14 +7,7 @@ type analysis_flavor = Intraprocedural | Interprocedural | Interfile
 [@@deriving show]
 
 type code_config = unit [@@deriving show]
-
-type secrets_config = {
-  (* Typically secrets will only run validators from semgrep.dev. The
-     allow_all_origins flag bypasses this security check. *)
-  allow_all_origins : bool;
-}
-[@@deriving show]
-
+type secrets_config = unit [@@deriving show]
 type supply_chain_config = unit [@@deriving show]
 
 type pro_config = {

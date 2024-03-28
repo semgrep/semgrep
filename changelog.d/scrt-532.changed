@@ -1,0 +1,3 @@
+secrets: changed the logic for when the validation component of a rule is
+permitted to be run. As part of this change, `--allow-custom-validators` is no
+longer necessary and has been removed.
