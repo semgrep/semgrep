@@ -246,8 +246,23 @@ let remove_prefix root path =
 *)
 let make_absolute path =
   if Fpath.is_rel path then Fpath.(v (Unix.getcwd ()) // path)
-  else (* save a syscall *)
-    path
+  else
+    (* Here, we must make a syscall, bceause we are making an unnormalized path absolute
+       so that we can compare it to a normalized path.
+       However, in the presence of symlinks, certain relationships like prefixes and
+       naive string operations do not work properly, because they are not cognizant of
+       how certain paths are actually related on the filesystem.
+       For instance, on Mac systems, `/var/` is actually the same as `/private/var`, so
+       our absolute form for `/var/` would prefer to be `/private/var`.
+       So we turn our path into an rpath. *)
+    match Rpath.of_fpath path with
+    | Ok path ->
+        Rpath.to_fpath path
+        (* Only warn here, since we don't guarantee Ppath exists  *)
+    | Error err ->
+        Logs.warn (fun m ->
+            m "Failed to make path %s absolute: %s" (Fpath.to_string path) err);
+        path
 
 (*
    This assumes the input paths are normalized. We use this
