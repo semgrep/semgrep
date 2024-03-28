@@ -1,0 +1,1 @@
+Fixed the match_based_ids of lockfile-only findings to differentiate between findings in cases where one rule produces multiple findings in one lockfile
