@@ -974,6 +974,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         max_chars_per_line;
         max_lines_per_finding;
         logging_level = common.logging_level;
+        dataflow_traces;
       }
     in
 
@@ -1022,6 +1023,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
                 supply_chain_config;
               }
     in
+
     let explicit_analyzer = Option.map Xlang.of_string lang in
     let rules_source =
       match (config, (pattern, explicit_analyzer, replacement)) with
