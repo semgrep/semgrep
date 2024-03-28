@@ -19,6 +19,7 @@ jobs:
       - name: Install semgrep dependencies
         run: |
           eval $(opam env)
+          make install-deps-UBUNTU-for-semgrep-core
           make install-deps-for-semgrep-core
       - name: Build semgrep
         run: |
