@@ -21,6 +21,9 @@ type ranges = t list [@@deriving show]
 val match_result_to_range : Pattern_match.t -> t
 val range_to_pattern_match_adjusted : Rule.rule -> t -> Pattern_match.t
 
+val bindings_compatible :
+  Rule_options.t -> Metavariable.bindings -> Metavariable.bindings -> bool
+
 (* Set functions *)
 
 val intersect_ranges :
