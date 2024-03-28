@@ -1476,7 +1476,7 @@ def test_sarif_output_with_dataflow_traces(
     )
     snapshot.assert_match(
         result.as_snapshot(),
-        "results.sarif",
+        "results.txt",
     )
 
 
