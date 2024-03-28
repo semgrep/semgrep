@@ -70,6 +70,11 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘

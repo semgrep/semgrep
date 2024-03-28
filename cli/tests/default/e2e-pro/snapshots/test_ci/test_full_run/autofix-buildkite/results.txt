@@ -81,6 +81,11 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
