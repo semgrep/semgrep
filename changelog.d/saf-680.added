@@ -1,0 +1,2 @@
+Added experimental rule option `skip_large_machine_optimized_files` to allow
+rules to skip and auto-generated files.

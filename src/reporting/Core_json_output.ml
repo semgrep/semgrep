@@ -591,11 +591,12 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
     errors = errs |> List_.map error_to_error;
     paths =
       {
-        (* TODO: those are set later in Cli_json_output.ml,
-         * but should we compute skipped and scanned here instead?
-         *)
-        skipped = None;
-        scanned = [];
+        skipped =
+          (if List_.null res.skipped_targets then None
+           else Some res.skipped_targets);
+        (* OSemgrep: scanned is re-computer later in Cli_json_output.ml.
+         * TODO: Someone should investigate and explain why is that needed. *)
+        scanned = res.scanned;
       };
     skipped_rules =
       res.skipped_rules

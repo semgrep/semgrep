@@ -77,10 +77,10 @@ val targets_of_config :
 val select_applicable_rules_for_target :
   analyzer:Xlang.t ->
   products:Semgrep_output_v1_t.product list ->
-  origin:Origin.t ->
+  path:Target.path ->
   respect_rule_paths:bool ->
   Rule.t list ->
-  Rule.t list
+  Rule.t list * Semgrep_output_v1_j.skipped_target list
 
 (* This is used only by semgrep-proprietary.
    Compare to select_applicable_rules_for_target which additionally can
