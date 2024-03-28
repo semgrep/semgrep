@@ -28,7 +28,7 @@ local job = {
       key=opam_switch + '-_opam-' + "${{ hashFiles('semgrep.opam') }}",
       path="_opam",
     ),
-    // alt: no 'make install-deps-UBUNTU-for-semgrep-core'
+    // alt: no 'sudo make install-deps-UBUNTU-for-semgrep-core'
     // possibly looks like opam and setup-ocaml@ can automatically install
     // depext dependencies, but ran into issues for git-unix with libev. Best if
     // we have install-deps-for-semgrep-core have the platform version in the
@@ -37,7 +37,7 @@ local job = {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
-        make install-deps-UBUNTU-for-semgrep-core
+        sudo make install-deps-UBUNTU-for-semgrep-core
         make install-deps-for-semgrep-core
       |||,
     },
