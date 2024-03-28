@@ -36,6 +36,22 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
            27┆ sink(d2)
 
 
+          Taint comes from:
+
+           26┆ d2 = danger
+
+
+          Taint flows through these intermediate variables:
+
+           26┆ d2 = danger
+
+
+                This is how taint reaches the sink:
+
+           27┆ sink(d2)
+
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
