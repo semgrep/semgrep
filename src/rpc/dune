@@ -20,6 +20,7 @@
     semgrep.parsing.tests ; Test_parsing.parsing_stats
     semgrep.analyzing.tests ; Test_analyze_generic.actions
     semgrep.data
+    semgrep.osemgrep_reporting
 
     ; experiments
     semgrep.synthesizing

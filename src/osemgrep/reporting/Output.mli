@@ -26,6 +26,14 @@ type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
 val default : conf
 
+val dispatch_output_format :
+  Output_format.t ->
+  conf ->
+  OutJ.cli_output ->
+  runtime_params ->
+  Rule.hrules ->
+  unit
+
 val preprocess_result : conf -> Core_runner.result -> OutJ.cli_output
 (** [preprocess_result conf result] preprocesses the result of a scan
   * according to the configuration [conf]. This handles
