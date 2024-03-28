@@ -14,7 +14,7 @@ val matches_of_formula :
   Match_env.xconfig ->
   Rule.rule ->
   Xtarget.t ->
-  Rule.formula ->
+  Formula_internal.formula ->
   Range_with_metavars.t option ->
   Core_profiling.rule_profiling Core_result.match_result
   * Range_with_metavars.ranges

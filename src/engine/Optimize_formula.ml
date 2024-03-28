@@ -1,0 +1,1 @@
+let optimize f = f
