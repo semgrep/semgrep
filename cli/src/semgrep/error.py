@@ -37,6 +37,7 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 # TOO_MANY_MATCHES_EXIT_CODE = 12
 INVALID_API_KEY_EXIT_CODE = 13
 SCAN_FAIL_EXIT_CODE = 14
+OSEMGREP_FORMAT_FAILURE_EXIT_CODE = 15
 
 default_level = out.ErrorSeverity(out.Error_())
 
@@ -431,6 +432,24 @@ class UnknownLanguageError(ErrorWithSpan):
 
     def type_(self) -> out.ErrorType:
         return out.ErrorType(out.UnknownLanguageError())
+
+
+@attr.s(frozen=True, eq=True)
+class OsemgrepFormatError(SemgrepError):
+    """
+    An error whenever osemgrep fails to format the output.
+
+    When osemgrep fails to format the output, this error should be added to the metrics.
+
+    We want to track this error to know when we can confidently remove
+    python output formatting code.
+    """
+
+    code = OSEMGREP_FORMAT_FAILURE_EXIT_CODE
+    level = out.ErrorSeverity(out.Error_())
+
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.OsemgrepFormatError())
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247

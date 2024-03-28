@@ -527,6 +527,14 @@ let o_junit_xml : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_use_osemgrep_format_output : bool Term.t =
+  let info =
+    Arg.info
+      [ "use-osemgrep-format-output" ]
+      ~doc:{|Output results using osemgrep.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
 (* ------------------------------------------------------------------ *)
@@ -914,7 +922,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold trace validate version version_check vim =
+      timeout_threshold trace _use_osemgrep_format_output validate version
+      version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
@@ -1270,8 +1279,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
-    $ o_version $ o_version_check $ o_vim)
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace
+    $ o_use_osemgrep_format_output $ o_validate $ o_version $ o_version_check
+    $ o_vim)
 
 let doc = "run semgrep rules on files"
 

@@ -412,6 +412,13 @@ def scan_options(func: Callable) -> Callable:
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
 )
+@optgroup.group("Osemgrep migration options")
+@optgroup.option(
+    "--use-osemgrep-format-output",
+    "use_osemgrep_format_output",
+    is_flag=True,
+    default=False,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -464,6 +471,7 @@ def scan(
     interfile_timeout: Optional[int],
     trace: bool,
     use_git_ignore: bool,
+    use_osemgrep_format_output: bool,
     validate: bool,
     verbose: bool,
     version: bool,
@@ -563,6 +571,7 @@ def scan(
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
+        use_osemgrep_format_output=use_osemgrep_format_output,
     )
 
     if test:
