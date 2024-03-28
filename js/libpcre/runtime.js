@@ -168,18 +168,18 @@ function pcre_version_stub() {
 //Provides: pcre_config_get_int
 //Requires: libpcre, auto_malloc
 function pcre_config_get_int(what) {
-    return auto_malloc([1], ([ptr]) => {
+    return auto_malloc([4], ([ptr]) => {
         libpcre._pcre_config(what, ptr);
-        return libpcre.getValue(ptr, "i8");
+        return libpcre.getValue(ptr, "i32");
     });
 }
 
 //Provides: pcre_config_get_long
 //Requires: libpcre, auto_malloc
 function pcre_config_get_long(what) {
-    return auto_malloc([2], ([ptr]) => {
+    return auto_malloc([4], ([ptr]) => {
         libpcre._pcre_config(what, ptr);
-        return libpcre.getValue(ptr, "i16");
+        return libpcre.getValue(ptr, "i32");
     });
 }
 
