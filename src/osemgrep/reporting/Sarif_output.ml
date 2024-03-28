@@ -360,8 +360,7 @@ let error_to_sarif_notification (e : OutT.cli_error) =
   in
   Sarif_v.create_notification ~message ~descriptor ~level ()
 
-let sarif_output hide_nudge _dataflow_traces engine_label hrules
-    (cli_output : OutT.cli_output) =
+let sarif_output hide_nudge engine_label hrules (cli_output : OutT.cli_output) =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in

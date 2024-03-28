@@ -1,6 +1,5 @@
 val sarif_output :
   bool ->
-  bool ->
   string ->
   Rule.hrules ->
   Semgrep_output_v1_t.cli_output ->

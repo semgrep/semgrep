@@ -30,7 +30,6 @@ type conf = {
   output_format : Output_format.t;
   max_chars_per_line : int;
   max_lines_per_finding : int;
-  dataflow_traces : bool;
 }
 [@@deriving show]
 
@@ -47,7 +46,6 @@ let default : conf =
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
-    dataflow_traces = false;
   }
 
 (*****************************************************************************)
@@ -153,8 +151,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         || not runtime_params.is_using_registry
       in
       let sarif_json =
-        Sarif_output.sarif_output hide_nudge conf.dataflow_traces engine_label
-          hrules cli_output
+        Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
       in
       Out.put (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->

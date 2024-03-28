@@ -14,7 +14,6 @@ type conf = {
   output_format : Output_format.t;
   max_chars_per_line : int;
   max_lines_per_finding : int;
-  dataflow_traces : bool;
 }
 [@@deriving show]
 
