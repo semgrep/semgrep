@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Tuple
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semdep.parsers import mix
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
@@ -306,9 +307,9 @@ def test_mix_manifest_parser():
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
 @pytest.mark.quick
-def test_full_mix_parsing():
-    manifest_path = Path("mix.exs")
-    lockfile_path = Path("mix.lock")
+def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
+    manifest_path = Path("targets/dependency_aware/mix/mix.exs")
+    lockfile_path = Path("targets/dependency_aware/mix/mix.lock")
 
     found_deps = mix.parse_mix(lockfile_path, manifest_path)
 
