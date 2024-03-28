@@ -36,6 +36,22 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
            27┆ sink(d2)
 
 
+          Taint comes from:
+
+           26┆ d2 = danger
+
+
+          Taint flows through these intermediate variables:
+
+           26┆ d2 = danger
+
+
+                This is how taint reaches the sink:
+
+           27┆ sink(d2)
+
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘

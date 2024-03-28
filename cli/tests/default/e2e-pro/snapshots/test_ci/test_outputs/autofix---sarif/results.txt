@@ -417,6 +417,94 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "ruleId": "eqeq-four"
         },
         {
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Untrusted dataflow from foo.py:26 to foo.py:27"
+              },
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Source: 'danger' @ 'foo.py:26'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "foo.py"
+                          },
+                          "region": {
+                            "endColumn": 16,
+                            "endLine": 26,
+                            "message": {
+                              "text": "Source: 'danger' @ 'foo.py:26'"
+                            },
+                            "snippet": {
+                              "text": "danger"
+                            },
+                            "startColumn": 10,
+                            "startLine": 26
+                          }
+                        }
+                      },
+                      "nestingLevel": 0
+                    },
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Propagator : 'd2' @ 'foo.py:26'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "foo.py"
+                          },
+                          "region": {
+                            "endColumn": 7,
+                            "endLine": 26,
+                            "message": {
+                              "text": "Propagator : 'd2' @ 'foo.py:26'"
+                            },
+                            "snippet": {
+                              "text": "d2"
+                            },
+                            "startColumn": 5,
+                            "startLine": 26
+                          }
+                        }
+                      },
+                      "nestingLevel": 0
+                    },
+                    {
+                      "location": {
+                        "message": {
+                          "text": "Sink: 'sink(d2)' @ 'foo.py:27'"
+                        },
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "foo.py"
+                          },
+                          "region": {
+                            "endColumn": 13,
+                            "endLine": 27,
+                            "message": {
+                              "text": "Sink: 'sink(d2)' @ 'foo.py:27'"
+                            },
+                            "snippet": {
+                              "text": "    sink(d2)"
+                            },
+                            "startColumn": 5,
+                            "startLine": 27
+                          }
+                        }
+                      },
+                      "nestingLevel": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
           "fingerprints": {
             "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
           },
