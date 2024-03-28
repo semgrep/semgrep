@@ -206,11 +206,7 @@ let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
     unit =
   let secrets_enabled =
     match engine with
-    | PRO
-        Engine_type.
-          { secrets_config = Some Engine_type.{ allow_all_origins = _; _ }; _ }
-      ->
-        true
+    | PRO Engine_type.{ secrets_config = Some _; _ } -> true
     | OSS
     | PRO Engine_type.{ secrets_config = None; _ } ->
         false

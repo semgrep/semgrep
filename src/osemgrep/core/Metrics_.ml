@@ -299,12 +299,9 @@ let add_engine_type (engine_type : Engine_type.t) =
               code_config;
           secrets_config =
             Option.map
-              (fun (conf : Engine_type.secrets_config) :
+              (fun (() : Engine_type.secrets_config) :
                    Semgrep_metrics_t.secrets_config ->
-                {
-                  permitted_origins =
-                    (if conf.allow_all_origins then `Any else `Semgrep);
-                })
+                { permitted_origins = `NoCommunity })
               secrets_config;
           supply_chain_config =
             Option.map
