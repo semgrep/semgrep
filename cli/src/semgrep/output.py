@@ -36,6 +36,7 @@ from semgrep.formatter.gitlab_sast import GitlabSastFormatter
 from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
+from semgrep.formatter.osemgrep_sarif import OsemgrepSarifFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
@@ -67,6 +68,7 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
 }
+
 
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
     {
@@ -125,6 +127,7 @@ class OutputSettings(NamedTuple):
     output_time: bool = False
     timeout_threshold: int = 0
     dataflow_traces: bool = False
+    use_osemgrep_format_output: bool = False
 
 
 class OutputHandler:
@@ -164,11 +167,28 @@ class OutputHandler:
         self.engine_type: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
-        formatter_type = FORMATTERS.get(self.settings.output_format)
-        if formatter_type is None:
-            raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
 
-        self.formatter = formatter_type()
+        formatter: Optional[BaseFormatter] = None
+        # If configured to use osemgrep to format the output, use the osemgrep formatter.
+        if self.settings.use_osemgrep_format_output:
+            if self.settings.output_format == OutputFormat.SARIF:
+                metrics = get_state().metrics
+                formatter = OsemgrepSarifFormatter(metrics)
+            else:
+                logger.warning(
+                    f"Osemgrep formatter for {self.settings.output_format} is not supported yet. "
+                    "Falling back to pysemgrep formatter."
+                )
+
+        # If the formatter is not yet supported, fallback to the pysemgrep formatter
+        if formatter is None:
+            formatter_type = FORMATTERS.get(self.settings.output_format)
+            if formatter_type is not None:
+                formatter = formatter_type()
+
+        if formatter is None:
+            raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
+        self.formatter = formatter
 
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
@@ -311,6 +331,7 @@ class OutputHandler:
         is_ci_invocation: bool = False,
         executed_rule_count: int = 0,
         missed_rule_count: int = 0,
+        use_osemgrep_format_output: bool = False,
     ) -> None:
         state = get_state()
         self.has_output = True

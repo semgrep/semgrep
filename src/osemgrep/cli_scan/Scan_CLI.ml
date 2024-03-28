@@ -541,6 +541,14 @@ let o_junit_xml : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_use_osemgrep_format_output : bool Term.t =
+  let info =
+    Arg.info
+      [ "use-osemgrep-format-output" ]
+      ~doc:{|Output results using osemgrep.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
 (* ------------------------------------------------------------------ *)
@@ -928,8 +936,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold trace trace_endpoint validate version version_check vim
-      =
+      timeout_threshold trace trace_endpoint _use_osemgrep_format_output
+      validate version version_check vim =
     let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed caps
         ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
@@ -1283,7 +1291,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
-    $ o_validate $ o_version $ o_version_check $ o_vim)
+    $ o_use_osemgrep_format_output $ o_validate $ o_version $ o_version_check
+    $ o_vim)
 
 let doc = "run semgrep rules on files"
 
