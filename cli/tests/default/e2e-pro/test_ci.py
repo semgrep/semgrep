@@ -1449,6 +1449,7 @@ def test_outputs(
         "results.txt",
     )
 
+
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_sarif_output_with_dataflow_traces(
@@ -1477,7 +1478,8 @@ def test_sarif_output_with_dataflow_traces(
         result.as_snapshot(),
         "results.sarif",
     )
-    
+
+
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
 @pytest.mark.osemfail
 def test_nosem(
