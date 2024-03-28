@@ -477,6 +477,10 @@ class RuleMatch:
         return self.match.extra.dataflow_trace
 
     @property
+    def engine_kind(self) -> Optional[out.EngineOfFinding]:
+        return self.match.extra.engine_kind
+
+    @property
     def exposure_type(self) -> Optional[str]:
         """
         Mimic the exposure categories on semgrep.dev for supply chain.
@@ -537,6 +541,7 @@ class RuleMatch:
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
             dataflow_trace=self.dataflow_trace,
+            engine_kind=self.engine_kind,
             # TODO: Currently bypassing extra because it stores a
             # string instead of a ValidationState. Fix the monkey
             # patchable version if you want monkey patching to work.

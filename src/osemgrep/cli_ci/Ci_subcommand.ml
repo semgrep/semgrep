@@ -445,6 +445,7 @@ let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
       message = m.extra.message;
       severity = severity_to_int m.extra.severity;
       index;
+      engine_kind = m.extra.engine_kind;
       commit_date = "";
       (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
       syntactic_id = "";
