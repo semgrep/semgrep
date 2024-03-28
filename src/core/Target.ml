@@ -27,10 +27,13 @@ type lockfile = {
 }
 [@@deriving show]
 
+type scan_mode = All | InterOnly [@@deriving show]
+
 type regular = {
   path : path;
   analyzer : Xlang.t;
   products : Semgrep_output_v1_t.product list;
+  mode : scan_mode;
   lockfile : lockfile option;
 }
 [@@deriving show]
@@ -54,7 +57,7 @@ let path_of_origin (origin : Origin.t) : path =
       { origin; internal_path_to_content = tempfile_of_git_blob sha }
 
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
-  { path = path_of_origin origin; analyzer; products; lockfile }
+  { path = path_of_origin origin; analyzer; products; mode = All; lockfile }
 
 let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
   { path = path_of_origin origin; kind; manifest }
