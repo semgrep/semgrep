@@ -5,6 +5,7 @@ val mk_params :
   lang:Xlang.t option -> fix:string option -> string -> Jsonrpc.Structured.t
 
 val on_request :
+  RPC_server.t ->
   (Rule.rules -> Semgrep_output_v1_t.cli_match list) ->
   Jsonrpc.Structured.t option ->
   Yojson.Safe.t option
