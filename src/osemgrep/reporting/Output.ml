@@ -30,8 +30,11 @@ type conf = {
   output_format : Output_format.t;
   max_chars_per_line : int;
   max_lines_per_finding : int;
+  dataflow_traces : bool;
 }
 [@@deriving show]
+
+type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
 let default : conf =
   {
@@ -44,7 +47,9 @@ let default : conf =
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
+    dataflow_traces = false;
   }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -58,7 +63,8 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) is_logged_in (hrules : Rule.hrules) =
+    (cli_output : OutJ.cli_output) (runtime_params : runtime_params)
+    (hrules : Rule.hrules) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -135,8 +141,20 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
   (* matches have already been displayed in a file_match_results_hook *)
   | Incremental -> ()
   | Sarif ->
+      let engine_label, is_pro =
+        match cli_output.OutT.engine_requested with
+        | Some `OSS
+        | None ->
+            ("OSS", false)
+        | Some `PRO -> ("PRO", true)
+      in
+      let hide_nudge =
+        runtime_params.is_logged_in || is_pro
+        || not runtime_params.is_using_registry
+      in
       let sarif_json =
-        Sarif_output.sarif_output is_logged_in hrules cli_output
+        Sarif_output.sarif_output hide_nudge conf.dataflow_traces engine_label
+          hrules cli_output
       in
       Out.put (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->
@@ -179,8 +197,9 @@ let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
  * output.output() all at once.
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : conf) (profiler : Profiler.t) ~is_logged_in
-    (res : Core_runner.result) : OutJ.cli_output =
+let output_result (conf : conf) (profiler : Profiler.t)
+    (runtime_params : runtime_params) (res : Core_runner.result) :
+    OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -189,7 +208,7 @@ let output_result (conf : conf) (profiler : Profiler.t) ~is_logged_in
   let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output is_logged_in
+  dispatch_output_format conf.output_format conf cli_output runtime_params
     res.hrules;
   cli_output
 [@@profiling]
