@@ -1,3 +1,0 @@
-`--historical-secrets` flag for running Semgrep Secrets regex rules on git
-history (requires Semgrep Secrets). This flag is not yet implemented for
-`--experimental`.
