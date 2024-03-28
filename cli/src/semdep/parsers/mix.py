@@ -1,15 +1,18 @@
 from pathlib import Path
+from typing import Any
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
 
 from semdep.external.parsy import any_char
+from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import colon
 from semdep.parsers.util import comma
+from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import lbrace
@@ -62,37 +65,63 @@ many_independency_blocks = inner_dependency_block.sep_by(comma)
 #     "hexpm",
 #     "98767a5d1c6c3e3d20497b03293be7f83b46f89a6f3987cc1f9262d299f1eaa7"
 #   }
-package_entry_value_block = (
-    whitespace
-    >> lbrace
-    >> atom  # scm
-    >> comma
-    >> atom.bind(  # package name
-        lambda package: (
-            comma
-            >> version_block.bind(
-                lambda version: mark_line(success((package, version)))
-            )  # version
-        )
+def package_entry_hex_value_block(package: str) -> Parser:
+    return (
+        whitespace
+        >> lbrace
+        >> atom
+        >> comma
+        >> atom
+        >> comma
+        >> version_block.bind(lambda version: mark_line(success((package, version))))
+        << comma
+        << quoted_str
+        << comma
+        << any_array
+        << comma
+        << lbrack
+        << many_independency_blocks
+        << rbrack
+        << comma
+        << quoted_str
+        << comma
+        << quoted_str
+        << rbrace
+        << comma.optional()
     )
-    << comma
-    << quoted_str  # hash
-    << comma
-    << any_array  # options
-    << comma
-    << lbrack
-    << many_independency_blocks  # dependencies
-    << rbrack
-    << comma
-    << quoted_str  # package manager
-    << comma
-    << quoted_str  # hash
-    << rbrace
-    << comma.optional()
-)
 
-# "castore": {:hex,: castore, "1.0.5", "9eeebb394cc9a0f3ae56b813459f990abb0a3dedee1be6b27fdb50301930502f", [: mix], [], "hexpm", "8d7c597c3e4a64c395980882d4bca3cebb8d74197c590dc272cfd3b6a6310578"},
-package_key_value_block = whitespace >> quoted_str >> colon >> package_entry_value_block
+
+# {:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]},
+def package_entry_git_value_block(package: str) -> Parser:
+    return (
+        whitespace
+        >> lbrace
+        >> atom
+        >> comma
+        >> quoted_str
+        >> comma
+        >> quoted_str
+        >> comma
+        >> lbrack
+        >> string("tag")
+        >> colon
+        >> version_block.bind(lambda version: mark_line(success((package, version))))
+        << rbrack
+        << rbrace
+        << comma.optional()
+    )
+
+
+# "castore": {:hex, :castore, "1.0.5", "9eeebb394cc9a0f3ae56b813459f990abb0a3dedee1be6b27fdb50301930502f", [: mix], [], "hexpm", "8d7c597c3e4a64c395980882d4bca3cebb8d74197c590dc272cfd3b6a6310578"},
+# "grpc": {:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]},
+package_key_value_block = whitespace >> quoted_str.bind(
+    lambda package: colon
+    >> (
+        package_entry_hex_value_block(package)
+        | package_entry_git_value_block(package)
+        | consume_line
+    )
+)
 
 many_package_blocks = package_key_value_block.sep_by(whitespace)
 
@@ -157,7 +186,7 @@ def _parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
 
 
 def _build_found_dependencies(
-    direct_deps: Set[str], lockfile_deps: List[Tuple]
+    direct_deps: Set[str], lockfile_deps: List[Any]
 ) -> List[FoundDependency]:
     result = []
     for line_number, (package, version) in lockfile_deps:
