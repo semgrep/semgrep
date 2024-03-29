@@ -74,6 +74,7 @@ and expr =
   | Ellipsis of tok
   | MetavarEllipsis of ident
   | TypedMetavar of type_ * ident
+  | DeepEllipsis of tok * expr * tok
 
 and aggregation = {
   expr : expr;

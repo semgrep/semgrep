@@ -654,6 +654,11 @@ and map_primary (env : env) (x : CST.primary) : expr =
   match x with
   | `Semg_ellips tok -> Ellipsis (token env tok)
   | `Semg_ellips_meta tok -> MetavarEllipsis (str env tok)
+  | `Semg_deep_exp (v1, v2, v3) ->
+      let v1 = (* "<..." *) token env v1 in
+      let v2 = map_exprorterm env v2 in
+      let v3 = (* "...>" *) token env v3 in
+      DeepEllipsis (v1, v2, v3)
   | `Call_or_unqual_agg_expr (v1, v2, v3) ->
       let v1 = map_aritylesspredicateexpr env v1 in
       let v2 =

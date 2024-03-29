@@ -274,6 +274,7 @@ and expr (x : expr) =
       let v1 = type_ v1 in
       let v3 = ident v3 in
       G.TypedMetavar (v3, unsafe_fake "", v1) |> G.e
+  | DeepEllipsis (v1, v2, v3) -> G.DeepEllipsis (v1, expr v2, v3) |> G.e
 
 and argument = function
   | Arg x -> G.Arg (expr x)
