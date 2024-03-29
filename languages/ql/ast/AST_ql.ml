@@ -64,7 +64,7 @@ and expr =
   | IfExp of expr (* test *) * expr (* body *) * expr (* orelse *)
   | BinOp of expr (* left *) * operator wrap (* op *) * expr (* right *)
   | UnaryOp of unaryop wrap (* op *) * expr (* operand *)
-  | Quantified of quantifier wrap * formula_body
+  | Quantified of quantifier wrap * formula_body bracket
   | Range of expr * tok (* .. *) * expr
   | Set of expr list bracket
   | ParenExpr of expr bracket

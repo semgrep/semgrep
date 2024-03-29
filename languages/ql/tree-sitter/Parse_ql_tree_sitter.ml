@@ -548,7 +548,7 @@ and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
       BinOp (v1, (Implies, v2), v3)
   | `Quan (v1, v2, v3, v4) ->
       let v1 = map_quantifier env v1 in
-      let _v2 = (* "(" *) token env v2 in
+      let v2 = (* "(" *) token env v2 in
       let v3 =
         match v3 with
         | `Opt_vard_rep_COMMA_vard_opt_BAR_expr_opt_BAR_expr (v1, v2) -> (
@@ -573,8 +573,8 @@ and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
             | None -> Declared (vardecls, None))
         | `Expr x -> Bare (map_exprorterm env x)
       in
-      let _v4 = (* ")" *) token env v4 in
-      Quantified (v1, v3)
+      let v4 = (* ")" *) token env v4 in
+      Quantified (v1, (v2, v3, v4))
 
 and map_full_aggregate_body (env : env) (x : CST.full_aggregate_body) =
   match x with

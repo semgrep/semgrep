@@ -220,7 +220,7 @@ and expr (x : expr) =
   | UnaryOp ((v1, tok), v2) ->
       let op = unaryop v1 and v2 = expr v2 in
       G.opcall (op, tok) [ v2 ]
-  | Quantified (quant, body) ->
+  | Quantified (quant, (l, body, r)) ->
       let body =
         match body with
         | Bare e -> [ G.Arg (expr e) ]
@@ -238,7 +238,7 @@ and expr (x : expr) =
             in
             vardecls_arg :: other_args
       in
-      G.Call (quantifier quant, fb body) |> G.e
+      G.Call (quantifier quant, (l, body, r)) |> G.e
   | Range (e1, tk, e2) -> G.opcall (Range, tk) [ expr e1; expr e2 ]
   | Set v1 ->
       let v1 = bracket (list expr) v1 in
