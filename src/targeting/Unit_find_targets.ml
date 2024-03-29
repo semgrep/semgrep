@@ -77,7 +77,8 @@ let test_find_targets ?includes ?(excludes = [])
           }
         in
         let targets, skipped_targets =
-          Find_targets.get_target_fpaths conf [ Scanning_root.of_fpath root ]
+          Find_targets.get_target_fpaths conf
+            [ Scanning_root.of_fpath (Fpath.v ".") ]
         in
         (match includes with
         | None -> ()

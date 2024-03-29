@@ -43,6 +43,7 @@ type t = {
      and starts with one. *)
   string : string;
 }
+[@@deriving show]
 
 let string_of_segments segments = String.concat "/" segments
 

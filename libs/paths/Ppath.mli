@@ -9,7 +9,7 @@
 *)
 
 (* All project paths are *absolute* and *normalized* *)
-type t
+type t [@@deriving show]
 
 (*
    Returns an absolute, normalized path relative to the project root.

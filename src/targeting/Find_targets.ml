@@ -230,6 +230,9 @@ let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
  *)
 let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
     Fppath.t list * Out.skipped_target list =
+  Logs.debug (fun m ->
+      m ~tags "scanning file system starting from root %s"
+        (Fppath.show scan_root));
   (* Imperative style! walk and collect.
      This is for the sake of readability so let's try to make this as
      readable as possible.
