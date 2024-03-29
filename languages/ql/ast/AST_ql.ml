@@ -236,7 +236,7 @@ and predicate_rhs =
   | PredicateExpr of expr option
   | PredicateAlias of qualified_info * Parsed_int.t
 
-and vardecl = type_ * ident
+and vardecl = VardeclInit of type_ * ident | VardeclEllipsis of tok
 and type_definition_element = ident * vardecl list * expr option
 
 (*****************************************************************************)

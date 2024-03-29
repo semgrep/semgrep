@@ -117,6 +117,7 @@ let map_aggid (env : env) (x : CST.aggid) =
   | `Sum tok -> str env tok
   | `Any tok -> str env tok
   | `Unique tok -> str env tok
+  | `Semg_meta tok -> str env tok
 
 let map_bool_ (env : env) (x : CST.bool_) =
   match x with
@@ -275,10 +276,13 @@ let map_predicatealiasbody (env : env) ((v1, v2, v3) : CST.predicatealiasbody) =
   let v3 = (* ";" *) token env v3 in
   v2
 
-let map_vardecl (env : env) ((v1, v2) : CST.vardecl) =
-  let v1 = map_typeexpr env v1 in
-  let v2 = map_varname env v2 in
-  (v1, v2)
+let map_vardecl (env : env) (x : CST.vardecl) =
+  match x with
+  | `Semg_ellips tok -> VardeclEllipsis ((* "..." *) token env tok)
+  | `Type_varn (v1, v2) ->
+      let v1 = map_typeexpr env v1 in
+      let v2 = map_varname env v2 in
+      VardeclInit (v1, v2)
 
 let map_moduleparam (env : env) ((v1, v2) : CST.moduleparam) :
     type_argument * ident =

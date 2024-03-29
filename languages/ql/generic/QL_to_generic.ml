@@ -87,10 +87,15 @@ and module_definition (_tok, id, _typarams, rhs) =
   in
   DefStmt (ent, ModuleDef { mbody = def }) |> G.s
 
-and param_of_vardecl (ty, id) =
-  let ty = type_ ty in
-  let id = ident id in
-  G.Param (G.param_of_id ~ptype:(Some ty) id)
+and param_of_vardecl = function
+  | VardeclInit (ty, id) ->
+      let ty = type_ ty in
+      let id = ident id in
+      G.Param (G.param_of_id ~ptype:(Some ty) id)
+  | VardeclEllipsis tok -> G.ParamEllipsis tok
+
+and params_any_of_vardecls vardecls =
+  G.Params (List_.map param_of_vardecl vardecls)
 
 and predicate_definition (v1, v2, v3, v4) =
   let v1 = option type_ v1 in
@@ -138,10 +143,6 @@ and quantifier (x, y) =
   | Forall -> G.N (H.name_of_id ("forall", y)) |> G.e
   | Exists -> G.N (H.name_of_id ("exists", y)) |> G.e
   | Forex -> G.N (H.name_of_id ("forex", y)) |> G.e
-
-and arg_of_vardecls vardecls =
-  let vardecls = List_.map (fun x -> G.S (stmt (VarDecl x))) vardecls in
-  G.OtherArg (("VarDecls", unsafe_fake ""), vardecls)
 
 and expr (x : expr) =
   match x with
@@ -194,7 +195,9 @@ and expr (x : expr) =
                  vardecls aren't _arguments_, they're _parameters_.
                  But, we don't really have constructs other than lambdas, functions, which
                  behave like this. So this is as close as we can get. *)
-              arg_of_vardecls vardecls;
+              G.OtherArg
+                ( ("AggregateVardecls", unsafe_fake ""),
+                  [ params_any_of_vardecls vardecls ] );
             ]
             @ formula
             @ [
@@ -222,7 +225,11 @@ and expr (x : expr) =
         match body with
         | Bare e -> [ G.Arg (expr e) ]
         | Declared (vardecls, es) ->
-            let vardecls_arg = arg_of_vardecls vardecls in
+            let vardecls_arg =
+              G.OtherArg
+                ( ("QuantifiedVardecls", unsafe_fake ""),
+                  [ params_any_of_vardecls vardecls ] )
+            in
             let other_args =
               match es with
               | None -> []
@@ -336,9 +343,7 @@ and select { from; where; select; sel_orderbys } =
   let from =
     match from with
     | None -> G.Anys []
-    | Some (_tk, vardecls) ->
-        G.Anys
-          (List_.map (fun vardecl -> G.Pa (param_of_vardecl vardecl)) vardecls)
+    | Some (_tk, vardecls) -> params_any_of_vardecls vardecls
   in
   let where =
     match where with
@@ -367,16 +372,20 @@ and select { from; where; select; sel_orderbys } =
   in
   G.OtherStmt (OS_Todo, [ from; where; select; orderbys ]) |> G.s
 
-and stmt = function
-  | ClassDef v1 -> class_definition v1
-  | ModuleDef v1 -> module_definition v1
-  | PredicateDef v1 -> predicate_definition v1
-  | VarDecl (v1, v2) ->
+and vardecl = function
+  | VardeclInit (v1, v2) ->
       let v1 = type_ v1 and v2 = ident v2 in
       G.DefStmt
         ( G.basic_entity v2,
           G.VarDef { vinit = None; vtype = Some v1; vtok = None } )
       |> G.s
+  | VardeclEllipsis tok -> G.exprstmt (G.Ellipsis tok |> G.e)
+
+and stmt = function
+  | ClassDef v1 -> class_definition v1
+  | ModuleDef v1 -> module_definition v1
+  | PredicateDef v1 -> predicate_definition v1
+  | VarDecl x -> vardecl x
   | NewType (_v1, v2, v3) ->
       (* This is really a spicy kind of OrType, but with the constraint that certain constructors
          must fulfill a predicate on its input values to exist.
@@ -402,9 +411,7 @@ and stmt = function
               | Some e -> [ G.E (expr e) ]
             in
             G.Anys
-              (G.I (ident id)
-               :: List_.map (fun x -> G.Pa (param_of_vardecl x)) vardecls
-              @ expr_opt))
+              ([ G.I (ident id); params_any_of_vardecls vardecls ] @ expr_opt))
           v3
       in
       G.DefStmt
