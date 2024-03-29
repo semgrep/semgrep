@@ -73,15 +73,19 @@ type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
 [@@deriving show]
 
 type conf = {
-  (* global exclude list, passed via semgrep --exclude *)
+  (* global exclude list, passed via semgrep '--exclude'. *)
   exclude : string list;
-  (* global include list, passed via semgrep --include
-   * [!] include_ = None is the opposite of Some [].
-   * If a list of include patterns is specified, a path must match
-   * at least of the patterns to be selected.
-   * (--require would be a better flag name, but both grep and ripgrep
-   * uses the --exclude and --include names).
-   *)
+  (* !!! '--include' is very different from '--exclude' !!!
+      The include filter is applied after after gitignore and
+      semgrepignore filters. It doesn't override them.
+
+     This field holds a list of patterns passed via 'semgrep --include'
+     [!] include_ = None is the opposite of Some [].
+     If a list of include patterns is specified, a path must match
+     at least of the patterns to be selected.
+     ('--require' might make a better flag name, but both grep and ripgrep
+      use the '--exclude' and '--include' names).
+  *)
   include_ : string list option;
   max_target_bytes : int;
   (* Whether or not follow what is specified in the .gitignore
@@ -165,49 +169,89 @@ type filter_result =
   | Skip of Out.skipped_target (* ignore this file and report it *)
   | Ignore_silently (* ignore and don't report this file *)
 
-let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
-  let { fpath; ppath } : Fppath.t = fppath in
-  let status, selection_events = Semgrepignore.select ign ppath in
+let apply_include_filter status selection_events include_filter ppath =
   match status with
-  | Ignored ->
-      Logs.debug (fun m ->
-          m ~tags "Ignoring path %s:\n%s" !!fpath
-            (Gitignore.show_selection_events selection_events));
-      let reason = get_reason_for_exclusion selection_events in
-      Skip
-        {
-          Out.path = fpath;
-          reason;
-          details =
-            Some "excluded by --include/--exclude, gitignore, or semgrepignore";
-          rule_id = None;
-        }
+  | Gitignore.Ignored -> (status, selection_events)
+  | Gitignore.Not_ignored -> (
+      match include_filter with
+      | None -> (status, selection_events)
+      | Some include_filter -> Include_filter.select include_filter ppath)
+
+let ignore_path selection_events fpath =
+  Logs.debug (fun m ->
+      m ~tags "Ignoring path %s:\n%s" !!fpath
+        (Gitignore.show_selection_events selection_events));
+  let reason = get_reason_for_exclusion selection_events in
+  Skip
+    {
+      Out.path = fpath;
+      reason;
+      details =
+        Some "excluded by --include/--exclude, gitignore, or semgrepignore";
+      rule_id = None;
+    }
+
+(*
+   Filter a path.
+   - Include filters apply only to the paths of regular files. They're applied
+     last, after the exclude/gitignore/semgrepignore filters.
+   - If you know that the path is a regular file, specify 'file_kind' so
+     as to avoid making a file system lookup.
+*)
+let filter_any_path ?file_kind (ign : Gitignore.filter)
+    (include_filter : Include_filter.t option) (fppath : Fppath.t) :
+    filter_result =
+  let { fpath; ppath } : Fppath.t = fppath in
+  let status, selection_events = Gitignore_filter.select ign ppath in
+  match status with
+  | Ignored -> ignore_path selection_events fpath
   | Not_ignored -> (
       (* TODO: check read permission? *)
-      match Unix.lstat !!fpath with
+      let file_kind =
+        match file_kind with
+        | Some x -> x
+        | None -> (Unix.lstat !!fpath).st_kind
+      in
+      match file_kind with
       (* skipping symlinks *)
-      | { Unix.st_kind = S_LNK; _ } -> Ignore_silently
-      | { Unix.st_kind = S_REG; _ } -> Keep
-      | { Unix.st_kind = S_DIR; _ } -> Dir
-      | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> Ignore_silently
+      | S_LNK -> Ignore_silently
+      | S_REG -> (
+          let status, selection_events =
+            apply_include_filter status selection_events include_filter ppath
+          in
+          match status with
+          | Ignored -> ignore_path selection_events fpath
+          | Not_ignored -> Keep)
+      | S_DIR -> Dir
+      | S_FIFO
+      | S_CHR
+      | S_BLK
+      | S_SOCK ->
+          Ignore_silently
       (* This is handled in the Core_scan_function already *)
       | exception Unix.Unix_error (ENOENT, _fun, _info) -> Keep
       (* ignore for now errors. TODO? return a skip? *)
       | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
 
+let filter_regular_file_path (ign : Gitignore.filter)
+    (include_filter : Include_filter.t option) (fppath : Fppath.t) :
+    filter_result =
+  filter_any_path ~file_kind:S_REG ign include_filter fppath
+
 (*
    Filter a pre-expanded list of target files, such as a list of files
    obtained with 'git ls-files'.
 *)
-let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
-    Fppath_set.t * Out.skipped_target list =
+let filter_regular_file_paths
+    ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
+    (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
   let add path = Stack_.push path selected_paths in
   let skip target = Stack_.push target skipped in
   target_files
   |> List.iter (fun fppath ->
-         match filter_path ign fppath with
+         match filter_regular_file_path ign include_filter fppath with
          | Keep -> add fppath
          | Dir ->
              (* shouldn't happen if we work on the output of 'git ls-files *) ()
@@ -228,7 +272,8 @@ let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
  *
  * pre: the scan_root must be a path to a directory
  *)
-let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
+let walk_skip_and_collect (ign : Gitignore.filter)
+    (include_filter : Include_filter.t option) (scan_root : Fppath.t) :
     Fppath.t list * Out.skipped_target list =
   Logs.debug (fun m ->
       m ~tags "scanning file system starting from root %s"
@@ -260,17 +305,10 @@ let walk_skip_and_collect (ign : Semgrepignore.t) (scan_root : Fppath.t) :
            in
            let ppath = Ppath.add_seg dir.ppath name in
            let fppath : Fppath.t = { fpath; ppath } in
-           match filter_path ign fppath with
+           match filter_any_path ign include_filter fppath with
            | Keep -> add fppath
            | Skip skipped -> skip skipped
-           | Dir ->
-               (* skipping submodules.
-                  TODO? should we add a skip_reason for it? pysemgrep
-                  though was using `git ls-files` which implicitly does
-                  not even consider submodule files, so those files/dirs
-                  were not mentioned in the skip list
-               *)
-               aux fppath
+           | Dir -> aux fppath
            | Ignore_silently -> ())
   in
   aux scan_root;
@@ -484,7 +522,8 @@ let group_scanning_roots_by_project (conf : conf)
    git project. Most of the logic is done at a project level, though.
 *)
 
-let setup_semgrepignore conf (project_roots : project_roots) : Semgrepignore.t =
+let setup_path_filters conf (project_roots : project_roots) :
+    Gitignore.filter * Include_filter.t option =
   let { project = { kind; path = project_root }; scanning_roots = _ } =
     project_roots
   in
@@ -512,19 +551,26 @@ let setup_semgrepignore conf (project_roots : project_roots) : Semgrepignore.t =
    * We would still need to intialize at the beginning with
    * the .gitignore of all the parents of the scan_root.
    *)
-  Semgrepignore.create ?include_patterns:conf.include_
-    ~cli_patterns:conf.exclude ~builtin_semgrepignore:Semgrep_scan_legacy
-    ~exclusion_mechanism
-    ~project_root:(Rfpath.to_fpath project_root)
-    ()
+  let semgrepignore_filter =
+    Semgrepignore.create ~cli_patterns:conf.exclude
+      ~builtin_semgrepignore:Semgrep_scan_legacy ~exclusion_mechanism
+      ~project_root:(Rfpath.to_fpath project_root)
+      ()
+  in
+  let include_filter =
+    Option.map
+      (Include_filter.create ~project_root:(Rfpath.to_fpath project_root))
+      conf.include_
+  in
+  (semgrepignore_filter, include_filter)
 
-(* Work from a list of  obtained with git *)
+(* Work from a list of target paths obtained with git *)
 let filter_targets conf project_roots (all_files : Fppath.t list) =
-  let ign = setup_semgrepignore conf project_roots in
-  filter_paths ign all_files
+  let ign = setup_path_filters conf project_roots in
+  filter_regular_file_paths ign all_files
 
 let get_targets_from_filesystem conf (project_roots : project_roots) =
-  let ign = setup_semgrepignore conf project_roots in
+  let ign, include_filter = setup_path_filters conf project_roots in
   List.fold_left
     (fun (selected, skipped) (scan_root : Fppath.t) ->
       (* better: Note that we use Unix.stat below, not Unix.lstat, so
@@ -539,7 +585,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
         match (Unix.stat !!(scan_root.fpath)).st_kind with
         (* TOPORT? make sure has right permissions (readable) *)
         | S_REG -> ([ scan_root ], [])
-        | S_DIR -> walk_skip_and_collect ign scan_root
+        | S_DIR -> walk_skip_and_collect ign include_filter scan_root
         | S_LNK ->
             (* already dereferenced by Unix.stat *)
             raise Impossible

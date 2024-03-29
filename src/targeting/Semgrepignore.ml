@@ -36,13 +36,6 @@
      plan)
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
-type t = {
-  include_filter : Include_filter.t option;
-  gitignore_filter : Gitignore.filter;
-}
-
 type builtin_semgrepignore = Empty | Semgrep_scan_legacy
 
 (*
@@ -95,11 +88,8 @@ let contents_of_builtin_semgrepignore = function
   | Empty -> ""
   | Semgrep_scan_legacy -> builtin_semgrepignore_for_semgrep_scan
 
-let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
-    ~exclusion_mechanism ~project_root () =
-  let include_filter =
-    Option.map (Include_filter.create ~project_root) include_patterns
-  in
+let create ?(cli_patterns = []) ~builtin_semgrepignore ~exclusion_mechanism
+    ~project_root () =
   let root_anchor = Glob.Pattern.root_pattern in
   let builtin_patterns =
     Parse_gitignore.from_string ~name:"built-in semgrepignore patterns"
@@ -147,19 +137,4 @@ let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
     Gitignore_filter.create ~higher_priority_levels ~gitignore_filenames
       ~project_root ()
   in
-  { include_filter; gitignore_filter }
-
-let select t (git_path : Ppath.t) =
-  Logs.debug (fun m ->
-      m ~tags "Semgrepignore.select ppath %s"
-        (Ppath.to_string_for_tests git_path));
-  let status, sel_events =
-    match t.include_filter with
-    | None -> (Gitignore.Not_ignored, [])
-    | Some include_filter -> Include_filter.select include_filter git_path
-  in
-  match status with
-  | Ignored -> (Gitignore.Ignored, sel_events)
-  | Not_ignored ->
-      Gitignore_filter.select t.gitignore_filter sel_events git_path
-[@@profiling]
+  gitignore_filter

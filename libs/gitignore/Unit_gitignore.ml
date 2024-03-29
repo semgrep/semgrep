@@ -39,11 +39,10 @@ let test_filter (files : F.t list) () =
              assert (Fpath.is_rel path);
              let path = Ppath.of_relative_fpath path in
              let status, selection_events =
-               let selection_events = [] in
                (* Glob.Match.run is supposed to print detailed logs on which
                   path is matched against which pattern. Requires Debug
                   log level. *)
-               Gitignore_filter.select filter selection_events path
+               Gitignore_filter.select filter path
              in
              printf "Selection events for path %s:\n"
                (Ppath.to_string_for_tests path);

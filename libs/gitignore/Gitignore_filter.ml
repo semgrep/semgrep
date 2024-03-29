@@ -104,7 +104,8 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
    Each time we descend into a folder, we read the .gitignore files in
    that folder which add filters to the existing filters found earlier.
 *)
-let select t sel_events (full_git_path : Ppath.t) =
+let select t (full_git_path : Ppath.t) =
+  let sel_events = [] in
   let rel_segments = Ppath.relative_segments full_git_path in
   (* higher levels (command-line)
      and middle levels (gitignore files discovered along the way) *)
