@@ -1,0 +1,13 @@
+(library
+ (public_name parser_ql.tree_sitter)
+ (name parser_ql_tree_sitter)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing lib_parsing_tree_sitter
+   parser_ql.ast
+   ast_generic; for fake_bracket
+   tree-sitter-lang.ql
+ )
+ (preprocess (pps ppx_deriving.show))
+)
