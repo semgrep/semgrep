@@ -463,7 +463,15 @@ def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineKind(
+                    out.PROREQUIRED(
+                        value=out.ProFeature(
+                            interproc_taint=True,
+                            interfile_taint=True,
+                            proprietary_language=False,
+                        )
+                    )
+                ),
                 is_ignored=False,
                 historical_info=out.HistoricalInfo(
                     git_blob=out.Sha1("a" * 40),
