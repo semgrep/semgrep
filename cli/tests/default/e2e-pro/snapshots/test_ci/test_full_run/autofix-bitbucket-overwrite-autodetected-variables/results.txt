@@ -36,6 +36,22 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_RE
            27┆ sink(d2)
 
 
+          Taint comes from:
+
+           26┆ d2 = danger
+
+
+          Taint flows through these intermediate variables:
+
+           26┆ d2 = danger
+
+
+                This is how taint reaches the sink:
+
+           27┆ sink(d2)
+
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
