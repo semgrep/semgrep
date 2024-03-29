@@ -433,7 +433,7 @@ and map_call_or_unqual_agg_body ~lhs (env : env)
         | None -> []
       in
       let v3 = (* ")" *) token env v3 in
-      Call (lhs, [], v2)
+      Call (lhs, [], (v1, v2, v3))
   | `Unqual_agg_body (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "(" *) token env v1 in
       let vardecls =
@@ -483,7 +483,7 @@ and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
       let v1 = (* "none" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
       let v3 = (* ")" *) token env v3 in
-      Call (IdSpecial (NoneId, v1), [], [])
+      Call (IdSpecial (NoneId, v1), [], (v2, [], v3))
   | `Prefix_cast (v1, v2, v3, v4) ->
       let _v1 = (* "(" *) token env v1 in
       let v2 = map_typeexpr env v2 in
@@ -523,7 +523,7 @@ and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
   | `Nega (v1, v2) ->
       let v1 = (* "not" *) token env v1 in
       let v2 = map_exprorterm env v2 in
-      Call (IdSpecial (Not, v1), [], [ Arg v2 ])
+      Call (IdSpecial (Not, v1), [], Tok.unsafe_fake_bracket [ Arg v2 ])
   | `If_term (v1, v2, v3, v4, v5, v6) ->
       let _v1 = (* "if" *) token env v1 in
       let v2 = map_exprorterm env v2 in
@@ -570,8 +570,8 @@ and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
                       Some right
                   | None -> None
                 in
-                Declared (vardecls, Some left, right)
-            | None -> Declared (vardecls, None, None))
+                Declared (vardecls, Some (left, right))
+            | None -> Declared (vardecls, None))
         | `Expr x -> Bare (map_exprorterm env x)
       in
       let _v4 = (* ")" *) token env v4 in
@@ -755,7 +755,7 @@ and map_primary (env : env) (x : CST.primary) : expr =
         | None -> None
       in
       let v4 = (* "]" *) token env v4 in
-      Set v2
+      Set (v1, v2, v4)
   | `Par_expr x -> map_par_expr env x
   | `Expr_anno (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = map_annotname env v1 in
@@ -871,7 +871,9 @@ let map_optbody (env : env) (x : CST.optbody) : expr option =
       let v8 = (* ")" *) token env v8 in
       Some
         (Call
-           (N (Id v2), List_.map (fun (x, y) -> (IdQualified x, Some y)) v4, v7))
+           ( N (Id v2),
+             List_.map (fun (x, y) -> (IdQualified x, Some y)) v4,
+             (v6, v7, v8) ))
 
 let map_datatypebranch (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.datatypebranch) :
@@ -970,7 +972,7 @@ let map_datatype (env : env) ((v1, v2, v3, v4) : CST.datatype) =
   let v2 = map_classname env v2 in
   let v3 = (* "=" *) token env v3 in
   let v4 = map_datatypebranches env v4 in
-  TypeDef (v1, v2, v4)
+  NewType (v1, v2, v4)
 
 let map_dataclass (env : env) ((v1, v2, v3) : CST.dataclass) : stmt =
   let tok = (* "class" *) token env v1 in
@@ -1016,13 +1018,13 @@ let map_dataclass (env : env) ((v1, v2, v3) : CST.dataclass) : stmt =
             let v1 = (* "{" *) token env v1 in
             let v2 = List.concat_map (map_classmember env) v2 in
             let v3 = (* "}" *) token env v3 in
-            v2
-        | `SEMI tok -> []
+            (v1, v2, v3)
+        | `SEMI tok -> Tok.unsafe_fake_bracket []
       in
-      ClassDef (ClassBody (tok, name, v1, v2, v3))
+      ClassDef (tok, name, ClassBody (v1, v2, v3))
   | `Type_e6aca0c x ->
       let type_ = map_typealiasbody env x in
-      ClassDef (ClassAlias type_)
+      ClassDef (tok, name, ClassAlias type_)
   | `Type_9cc1977 x -> map_typeunionbody ~tok ~name env x
 
 let rec map_module_ (env : env) ((v1, v2, v3, v4, v5) : CST.module_) =
@@ -1128,10 +1130,18 @@ let parse_string ~file ~contents =
       | Pr xs -> xs
       | _ -> failwith "not a program")
 
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_ql.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_ql.Parse.string expr_str
+
 (* Need return type to be "any"*)
 let parse_pattern str =
   H.wrap_parser
-    (fun () -> Tree_sitter_ql.Parse.string str)
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in

@@ -58,7 +58,7 @@ and expr =
   | L of literal
   | N of name
   | IdSpecial of special wrap
-  | Call of expr * type_arguments * argument list
+  | Call of expr * type_arguments * argument list bracket
   | Aggregation of aggregation
   | Cast of type_ * expr
   | IfExp of expr (* test *) * expr (* body *) * expr (* orelse *)
@@ -66,7 +66,7 @@ and expr =
   | UnaryOp of unaryop wrap (* op *) * expr (* operand *)
   | Quantified of quantifier wrap * formula_body
   | Range of expr * tok (* .. *) * expr
-  | Set of expr list
+  | Set of expr list bracket
   | ParenExpr of expr bracket
   | AnnotatedExpr of ident * ident * expr
   | DotAccess of expr * tok * dot_rhs
@@ -91,7 +91,13 @@ and dot_rhs =
 
 and formula_body =
   | Bare of expr
-  | Declared of vardecl list * expr option * expr option
+  (* This is silly but these two exprs are because you may have
+     | e, but only up to twice
+     e.g. forall(int x)
+          forall(int x | e)
+          forall(int x | e1 | e2)
+  *)
+  | Declared of vardecl list * (expr * expr option) option
 
 and literal =
   | Int of Parsed_int.t
@@ -193,7 +199,7 @@ and stmt =
   | ModuleDef of module_definition
   | PredicateDef of predicate_definition
   | VarDecl of vardecl
-  | TypeDef of tok (* 'newtype' *) * ident * type_definition_element list
+  | NewType of tok (* 'newtype' *) * ident * type_definition_element list
   | TypeUnion of ident * type_ list
   | ImportAs of tok * name (* name *) * ident option (* asname *)
   | Select of select
@@ -207,14 +213,13 @@ and select = {
 }
 
 and direction = Asc | Desc
+and class_definition = tok (* 'class' *) * ident (* name *) * class_rhs
 
-and class_definition =
+and class_rhs =
   | ClassBody of
-      tok (* 'class' *)
-      * ident (* name *)
-      * type_ list (* extends *)
+      type_ list (* extends *)
       * type_ list (* instances of *)
-      * stmt list
+      * stmt list bracket
   | ClassAlias of type_
 
 and module_definition =
