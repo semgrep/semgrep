@@ -4,7 +4,7 @@ Test name: without git > basic semgrepignore
 a
 b
 --- Selected targets ---
-selected <TMP>/<MASKED>/.semgrepignore
-selected <TMP>/<MASKED>/a
+selected .semgrepignore
+selected a
 --- Skipped targets ---
-ignored <TMP>/<MASKED>/b [Semgrep_output_v1_t.Semgrepignore_patterns_match]
+ignored b [Semgrep_output_v1_t.Semgrepignore_patterns_match]
