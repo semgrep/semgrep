@@ -107,7 +107,7 @@ and formula_body =
 and literal =
   | Int of Parsed_int.t
   | Float of float option wrap
-  | String of string wrap bracket
+  | String of string wrap
   | Bool of bool wrap
 
 and special =
