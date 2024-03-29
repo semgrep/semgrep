@@ -460,22 +460,17 @@ and map_call_or_unqual_agg_body ~lhs (env : env)
         {
           expr = lhs;
           rank_exprs = [];
-          vardecls;
-          formula;
-          as_exprs;
-          agg_orderbys = [];
+          body = (v1, { vardecls; formula; as_exprs; agg_orderbys = [] }, v6);
         }
 
-and map_expr_aggregate_body ~expr ~rank_exprs (env : env)
-    ((v1, v2) : CST.expr_aggregate_body) =
+and map_expr_aggregate_body (env : env) ((v1, v2) : CST.expr_aggregate_body) =
   let as_exprs = map_asexprs env v1 in
   let agg_orderbys =
     match v2 with
     | Some x -> map_orderbys env x
     | None -> []
   in
-  Aggregation
-    { expr; rank_exprs; vardecls = []; formula = None; as_exprs; agg_orderbys }
+  (as_exprs, agg_orderbys)
 
 and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
   match x with
@@ -577,8 +572,7 @@ and map_exprorterm (env : env) (x : CST.exprorterm) : expr =
       let _v4 = (* ")" *) token env v4 in
       Quantified (v1, v3)
 
-and map_full_aggregate_body ~expr ~rank_exprs (env : env)
-    (x : CST.full_aggregate_body) =
+and map_full_aggregate_body (env : env) (x : CST.full_aggregate_body) =
   match x with
   | `Opt_vard_rep_COMMA_vard_BAR_opt_expr_opt_BAR_asexprs_opt_orders
       (v1, v2, v3, v4) ->
@@ -606,18 +600,14 @@ and map_full_aggregate_body ~expr ~rank_exprs (env : env)
             (v2, v3)
         | None -> ([], [])
       in
-      Aggregation
-        { expr; rank_exprs; vardecls; formula; as_exprs; agg_orderbys }
+      { vardecls; formula; as_exprs; agg_orderbys }
   | `Vard_rep_COMMA_vard x ->
-      Aggregation
-        {
-          expr;
-          rank_exprs;
-          vardecls = map_anon_vard_rep_COMMA_vard_76ab5f3 env x;
-          formula = None;
-          as_exprs = [];
-          agg_orderbys = [];
-        }
+      {
+        vardecls = map_anon_vard_rep_COMMA_vard_76ab5f3 env x;
+        formula = None;
+        as_exprs = [];
+        agg_orderbys = [];
+      }
 
 and map_orderby (env : env) ((v1, v2) : CST.orderby) =
   let v1 = map_exprorterm env v1 in
@@ -704,27 +694,19 @@ and map_primary (env : env) (x : CST.primary) : expr =
         | None -> []
       in
       let v3 = (* "(" *) token env v3 in
-      let v4 =
+      let v5 = (* ")" *) token env v5 in
+      let body =
         match v4 with
         | Some x -> (
             match x with
-            | `Full_aggr_body x ->
-                map_full_aggregate_body ~expr:v1 ~rank_exprs:v2 env x
+            | `Full_aggr_body x -> map_full_aggregate_body env x
             | `Expr_aggr_body x ->
-                map_expr_aggregate_body ~expr:v1 ~rank_exprs:v2 env x)
+                let as_exprs, agg_orderbys = map_expr_aggregate_body env x in
+                { vardecls = []; formula = None; as_exprs; agg_orderbys })
         | None ->
-            Aggregation
-              {
-                expr = v1;
-                rank_exprs = v2;
-                vardecls = [];
-                formula = None;
-                as_exprs = [];
-                agg_orderbys = [];
-              }
+            { vardecls = []; formula = None; as_exprs = []; agg_orderbys = [] }
       in
-      let v5 = (* ")" *) token env v5 in
-      v4
+      Aggregation { expr = v1; rank_exprs = v2; body = (v3, body, v5) }
   | `Range (v1, v2, v3, v4, v5) ->
       let v1 = (* "[" *) token env v1 in
       let v2 = map_exprorterm env v2 in

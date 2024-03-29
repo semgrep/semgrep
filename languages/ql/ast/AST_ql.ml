@@ -78,6 +78,10 @@ and expr =
 and aggregation = {
   expr : expr;
   rank_exprs : expr list;
+  body : aggregation_body bracket;
+}
+
+and aggregation_body = {
   vardecls : vardecl list;
   formula : expr option;
   as_exprs : (expr * ident option) list;

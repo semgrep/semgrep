@@ -153,7 +153,11 @@ and expr (x : expr) =
       let v2 = bracket (list argument) v2 in
       G.Call (v1, v2) |> G.e
   | Aggregation
-      { expr = e; rank_exprs; vardecls; formula; as_exprs; agg_orderbys } ->
+      {
+        expr = e;
+        rank_exprs;
+        body = l, { vardecls; formula; as_exprs; agg_orderbys }, r;
+      } ->
       let rank_exprs = List_.map (fun x -> G.E (expr x)) rank_exprs in
       let formula =
         match formula with
@@ -181,22 +185,23 @@ and expr (x : expr) =
       in
       G.Call
         ( expr e,
-          fb
-            ([
-               G.OtherArg (("RankExprs", unsafe_fake ""), rank_exprs);
-               (* This is not _quite_ right.
-                  An aggregation is really an expression which is introducing a
-                  bunch of variables to range over, and returning a result. These
-                  vardecls aren't _arguments_, they're _parameters_.
-                  But, we don't really have constructs other than lambdas, functions, which
-                  behave like this. So this is as close as we can get. *)
-               arg_of_vardecls vardecls;
-             ]
+          ( l,
+            [
+              G.OtherArg (("RankExprs", unsafe_fake ""), rank_exprs);
+              (* This is not _quite_ right.
+                 An aggregation is really an expression which is introducing a
+                 bunch of variables to range over, and returning a result. These
+                 vardecls aren't _arguments_, they're _parameters_.
+                 But, we don't really have constructs other than lambdas, functions, which
+                 behave like this. So this is as close as we can get. *)
+              arg_of_vardecls vardecls;
+            ]
             @ formula
             @ [
                 G.OtherArg (("AsExprs", unsafe_fake ""), as_exprs);
                 G.OtherArg (("AggOrderBys", unsafe_fake ""), orderbys);
-              ]) )
+              ],
+            r ) )
       |> G.e
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
