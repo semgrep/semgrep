@@ -564,6 +564,7 @@ and shape_field_specifier (env : env) (x : CST.anon_choice_field_spec_0e0e023) =
           (* Note: This could never exist. Am I using the wrong type here? *)
           vinit = None;
           vtype = Some v4;
+          vtok = G.no_sc;
         }
       in
       G.DefStmt (ent, FieldDefColon def)
@@ -1025,7 +1026,7 @@ and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator)
     | None -> None
   in
   let ent = G.basic_entity v1 ~attrs in
-  let def : G.variable_definition = { vinit = v2; vtype } in
+  let def : G.variable_definition = { vinit = v2; vtype; vtok = G.no_sc } in
   G.DefStmt (ent, G.VarDef def) |> G.s
 
 and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
@@ -1040,7 +1041,8 @@ and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) attrs
   let v1 = const_declarator_id env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = expression env v3 in
-  G.DefStmt (G.basic_entity v1 ~attrs, VarDef { vinit = Some v3; vtype })
+  G.DefStmt
+    (G.basic_entity v1 ~attrs, VarDef { vinit = Some v3; vtype; vtok = G.no_sc })
 
 and declaration (env : env) (x : CST.declaration) =
   match x with
@@ -1681,6 +1683,7 @@ and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
       vtype = None;
       (* Do we want to represent that this must be a string? *)
       vinit = Some v3;
+      vtok = G.no_sc;
     }
   in
   G.DefStmt (v1, FieldDefColon def)
@@ -1995,7 +1998,7 @@ and property_declarator (env : env) ((v1, v2) : CST.property_declarator) attrs
     | None -> None
   in
   let ent = G.basic_entity v1 ~attrs in
-  let def : G.variable_definition = { vinit = v2; vtype } in
+  let def : G.variable_definition = { vinit = v2; vtype; vtok = G.no_sc } in
   G.DefStmt (ent, G.VarDef def) |> G.s
 
 and require_extends_clause (env : env)
@@ -2863,7 +2866,7 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
   (* Q: Something feels off here... Originally did VarDef with init...*)
   (* But then it had to be enum... So did TypeDef, but then went back... *)
   let ent = G.basic_entity v2 ~attrs:(attr_tok :: v4) in
-  let def = (ent, G.VarDef { vinit = v3; vtype = Some v1 }) in
+  let def = (ent, G.VarDef { vinit = v3; vtype = Some v1; vtok = G.no_sc }) in
   G.fld def
 
 and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =

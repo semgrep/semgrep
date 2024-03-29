@@ -476,10 +476,12 @@ For more information see https://semgrep.dev
     uuidm
     (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
+    git
+    git-unix
     ; tracing
     trace
     ppx_trace
-    (opentelemetry (>= 0.8))
+    (opentelemetry (>= 0.9))
     opentelemetry-client-ocurl
     ambient-context-lwt
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work

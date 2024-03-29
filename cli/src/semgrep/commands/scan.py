@@ -269,6 +269,11 @@ _scan_options: List[Callable] = [
         flag_value=OutputFormat.GITLAB_SECRETS,
     ),
     optgroup.option(
+        "--historical-secrets",
+        "historical_secrets",
+        is_flag=True,
+    ),
+    optgroup.option(
         "--junit-xml",
         "output_format",
         type=OutputFormat,
@@ -316,12 +321,6 @@ _scan_options: List[Callable] = [
         type=int,
         default=DEFAULT_DIFF_DEPTH,
     ),
-    optgroup.option(
-        "--no-interfile-diff-scan",
-        "disable_interfile_diff_scan_flag",
-        is_flag=True,
-        hidden=True,
-    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option(
         "--no-secrets-validation",
@@ -329,7 +328,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         hidden=True,
     ),
-    optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
+    optgroup.option(
+        "--allow-custom-validators",
+        "allow_untrusted_validators",
+        is_flag=True,
+        hidden=True,
+    ),
 ]
 
 
@@ -409,11 +413,6 @@ def scan_options(func: Callable) -> Callable:
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
 )
-@click.option(
-    "--historical-secrets-targets",
-    "historical_secrets",
-    is_flag=True,
-)
 @scan_options
 @handle_command_errors
 def scan(
@@ -423,7 +422,6 @@ def scan(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
-    disable_interfile_diff_scan_flag: bool,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
@@ -495,10 +493,13 @@ def scan(
             "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
         )
 
+    state = get_state()
+
     engine_type = EngineType.decide_engine_type(
-        requested_engine=requested_engine,
+        logged_in=state.app_session.token is not None,
+        engine_flag=requested_engine,
         run_secrets=run_secrets_flag,
-        enable_pro_diff_scan=not disable_interfile_diff_scan_flag,
+        interfile_diff_scan_enabled=diff_depth >= 0,
     )
 
     # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
@@ -513,7 +514,6 @@ def scan(
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
 
-    state = get_state()
     state.metrics.configure(metrics)
     state.terminal.configure(
         verbose=verbose,

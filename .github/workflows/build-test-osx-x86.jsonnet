@@ -6,6 +6,8 @@
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+local wheel_name = 'osx-x86-wheel';
+
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -48,7 +50,6 @@ local test_semgrep_steps = [
 // ----------------------------------------------------------------------------
 
 local artifact_name = 'semgrep-osx-${{ github.sha }}';
-local wheel_name = 'osx-x86-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,

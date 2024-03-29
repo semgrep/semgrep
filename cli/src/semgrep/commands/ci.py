@@ -142,7 +142,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 )
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
-@click.option("--historical-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
@@ -177,7 +176,6 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
-    disable_interfile_diff_scan_flag: bool,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -252,16 +250,6 @@ def ci(
         logger.info("Please use --secrets instead of --beta-testing-secrets")
         sys.exit(FATAL_EXIT_CODE)
 
-    output_settings = OutputSettings(
-        output_format=output_format,
-        output_destination=output,
-        verbose_errors=verbose,
-        timeout_threshold=timeout_threshold,
-        output_time=time_flag,
-        output_per_finding_max_lines_limit=max_lines_per_finding,
-        output_per_line_max_chars_limit=max_chars_per_line,
-    )
-    output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
@@ -364,8 +352,8 @@ def ci(
 
     # Enable beta features
     if scan_handler and scan_handler.generic_slow_rollout:
-        # Add options for slow rollout here
-        pass
+        # slow rollout for pro diff scan
+        diff_depth = 2
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
@@ -384,11 +372,12 @@ def ci(
 
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
-        requested_engine=requested_engine,
-        scan_handler=scan_handler,
-        git_meta=metadata,
+        logged_in=state.app_session.token is not None,
+        engine_flag=requested_engine,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=not disable_interfile_diff_scan_flag,
+        interfile_diff_scan_enabled=diff_depth >= 0,
+        ci_scan_handler=scan_handler,
+        git_meta=metadata,
         supply_chain_only=supply_chain_only,
     )
 
@@ -417,6 +406,18 @@ def ci(
             )
         else:
             run_install_semgrep_pro()
+
+    output_settings = OutputSettings(
+        output_format=output_format,
+        output_destination=output,
+        verbose_errors=verbose,
+        timeout_threshold=timeout_threshold,
+        output_time=time_flag,
+        output_per_finding_max_lines_limit=max_lines_per_finding,
+        output_per_line_max_chars_limit=max_chars_per_line,
+        dataflow_traces=dataflow_traces,
+    )
+    output_handler = OutputHandler(output_settings)
 
     # Base arguments for actually running the scan. This is done here so we can
     # re-use this in the event we need to perform a second scan. Currently the

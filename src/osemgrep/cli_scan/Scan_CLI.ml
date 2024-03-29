@@ -285,12 +285,6 @@ let o_diff_depth : int Term.t =
   in
   Arg.value (Arg.opt Arg.int default.targeting_conf.diff_depth info)
 
-let o_no_interfile_diff_scan : bool Term.t =
-  let info =
-    Arg.info [ "no-interfile-diff-scan" ] ~doc:{|Disables interfile diff scan.|}
-  in
-  Arg.value (Arg.flag info)
-
 (* ------------------------------------------------------------------ *)
 (* Performance and memory options *)
 (* ------------------------------------------------------------------ *)
@@ -490,6 +484,14 @@ let o_incremental_output : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+(* osemgrep-only: *)
+let o_files_with_matches : bool Term.t =
+  let info =
+    Arg.info [ "files-with-matches" ]
+      ~doc:{|Output only the names of files containing matches|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_emacs : bool Term.t =
   let info =
     Arg.info [ "emacs" ] ~doc:{|Output results in Emacs single-line format.|}
@@ -549,8 +551,15 @@ let o_no_secrets_validation : bool Term.t =
 let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
-      [ "allow-untrusted-validators" ]
-      ~doc:{|Run postprocessors from untrusted sources.|}
+      [ "allow-custom-validators" ]
+      ~doc:{|Run postprocessors from custom rules.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_historical_secrets : bool Term.t =
+  let info =
+    Arg.info [ "historical-secrets" ]
+      ~doc:{|Scans git history using Secrets rules.|}
   in
   Arg.value (Arg.flag info)
 
@@ -894,9 +903,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators autofix baseline_commit common config
-      dataflow_traces diff_depth no_interfile_diff_scan dryrun dump_ast
-      dump_command_for_core dump_engine_path emacs error exclude_
-      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_
+      dataflow_traces diff_depth dryrun dump_ast dump_command_for_core
+      dump_engine_path emacs error exclude_ exclude_rule_ids files_with_matches
+      force_color gitlab_sast gitlab_secrets _historical_secrets include_
       incremental_output json junit_xml lang ls matching_explanations
       max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
       metrics num_jobs no_secrets_validation nosem optimizations oss output
@@ -960,6 +969,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
           "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
       match () with
       | _ when text -> Output_format.Text
+      | _ when files_with_matches -> Output_format.Files_with_matches
       | _ when json -> Output_format.Json
       | _ when emacs -> Output_format.Emacs
       | _ when vim -> Output_format.Vim
@@ -1001,11 +1011,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         let analysis =
           Engine_type.(
             match () with
-            | _
-              when pro
-                   && Option.is_some baseline_commit
-                   && no_interfile_diff_scan ->
-                Interprocedural
             | _ when pro -> Interfile
             | _ when pro_intrafile -> Interprocedural
             | _ -> Intraprocedural)
@@ -1252,10 +1257,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
      * combine above! *)
     const combine $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_diff_depth
-    $ o_no_interfile_diff_scan $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
-    $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
-    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include
-    $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
+    $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
+    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_files_with_matches
+    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_historical_secrets
+    $ o_include $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
     $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
     $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output

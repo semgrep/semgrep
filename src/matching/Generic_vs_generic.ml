@@ -3161,9 +3161,11 @@ and m_parameter_classic a b =
 and m_variable_definition a b =
   match (a, b) with
   (* boilerplate *)
-  | { G.vinit = a1; vtype = a2 }, { B.vinit = b1; vtype = b2 } ->
-      (m_option m_expr) a1 b1 >>= fun () ->
-      (m_option_none_can_match_some m_type_) a2 b2
+  | ( { G.vinit = a1; vtype = a2; vtok = _a3 },
+      { B.vinit = b1; vtype = b2; vtok = _b3 } ) ->
+      let* () = (m_option m_expr) a1 b1 in
+      let* () = (m_option_none_can_match_some m_type_) a2 b2 in
+      return ()
 
 (* ------------------------------------------------------------------------- *)
 (* Field definition and use *)
@@ -3543,7 +3545,7 @@ and m_directive_vs_def a b =
                             _ ) );
                     _;
                   };
-              vtype = _;
+              _;
             } ) ) ->
         (* Match the pattern `import "foo"` against `const x = require("foo")` *)
         m_wrap m_string filea fileb
@@ -3575,7 +3577,7 @@ and m_directive_vs_def a b =
                           } );
                     _;
                   };
-              vtype = _;
+              _;
             } ) )
       when id_str = B.special_multivardef_pattern ->
         let* () = m_wrap m_string filea fileb in

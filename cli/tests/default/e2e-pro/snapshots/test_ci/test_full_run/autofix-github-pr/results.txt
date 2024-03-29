@@ -24,6 +24,11 @@ Using <MASKED> as the merge-base of <MASKED> and <MASKED>
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -69,6 +74,22 @@ Creating git worktree from '<MASKED>' to scan baseline.
           unsafe use of danger
 
            27┆ sink(d2)
+
+
+          Taint comes from:
+
+           26┆ d2 = danger
+
+
+          Taint flows through these intermediate variables:
+
+           26┆ d2 = danger
+
+
+                This is how taint reaches the sink:
+
+           27┆ sink(d2)
+
 
 
 ┌─────────────────────────────┐

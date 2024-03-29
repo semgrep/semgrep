@@ -36,6 +36,22 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
            27┆ sink(d2)
 
 
+          Taint comes from:
+
+           26┆ d2 = danger
+
+
+          Taint flows through these intermediate variables:
+
+           26┆ d2 = danger
+
+
+                This is how taint reaches the sink:
+
+           27┆ sink(d2)
+
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
@@ -80,6 +96,11 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   CONNECTION
   Initializing scan (deployment=org_name)
   Enabled products: Code, Supply Chain
+
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
 
 ┌─────────────┐
 │ Scan Status │
@@ -746,7 +767,7 @@ Would have sent complete blob: {
                 "num_bytes": 366
             }
         },
-        "engine_requested": "OSS",
+        "engine_requested": "PRO_INTRAFILE",
         "findings_by_product": {
             "code": 16,
             "supply-chain": 1

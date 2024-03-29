@@ -10,8 +10,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local job = {
-  // was 'ubuntu-latest' but we need a machine with lots of disk space to run the
-  // parsing stats as we clone many OSS repositories in './run-all ...' below
+  // was 'ubuntu-latest' but we need a machine with lots of disk space to run
+  // the parsing stats as we clone many OSS repos in './run-all ...' below
   'runs-on': 'ubuntu-latest-16-core',
   // we need semgrep-core in 'stats/parsing-stats/run-lang' called from run-all
   container: 'returntocorp/semgrep:develop',
@@ -20,6 +20,10 @@ local job = {
     // The packages below, which are needed by './run-all', used to be part of
     // the returntocorp/semgrep docker image but got removed to reduce its
     // attack surface, so we need to install them now.
+    // Here is why we need the apk packages below:
+    // - bash: run-all is a bash script
+    // - jq: used to filter JSON parsing statistics
+    // - curl: to upload data to our dashboard
     {
       name: 'Install dependencies',
       run: 'apk add bash jq curl',

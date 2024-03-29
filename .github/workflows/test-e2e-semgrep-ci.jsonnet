@@ -20,7 +20,7 @@ local docker_tag = "${{ needs.get-inputs.outputs.docker_tag }}";
 
 // This is computed by semgrep_ci_on_pr_job (example of value: "9543")
 // and can be referenced from other jobs
-local pr_number = '"${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"';
+local pr_number = "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}";
 
 // ----------------------------------------------------------------------------
 // Input

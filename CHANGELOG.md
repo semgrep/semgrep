@@ -6,6 +6,47 @@
 
 <!-- insertion point -->
 
+## [1.66.2](https://github.com/returntocorp/semgrep/releases/tag/v1.66.2) - 2024-03-26
+
+
+### Added
+
+
+- osemgrep now respects HTTP_PROXY and HTTPS_PROXY when making network requests (cdx-253)
+
+
+### Changed
+
+
+- [IMPORTANT] The public rollout of inter-file differential scanning has been
+  temporarily reverted for further polishing of the feature. We will reintroduce
+  it in a later version. (saf-268)
+
+
+### Fixed
+
+
+- Autofix on variable definitions should now handle the semicolon
+  in Java, C++, and C#. (saf-928)
+
+
+## [1.66.1](https://github.com/returntocorp/semgrep/releases/tag/v1.66.1) - 2024-03-25
+
+
+### Fixed
+
+
+- Autofix on variable definitions should now handle the semicolon
+  in Rust, Cairo, Solidity, Dart. (autofix_vardef)
+- [IMPORTANT] we restored bash, jq, and curl in our semgrep docker image as some
+  users were relying on it. We might remove them in the futur but in the
+  mean time we restored the packages and if we remove them we will announce
+  it more loudly. We also created a new page giving more information
+  about our policy for our docker images:
+  https://semgrep.dev/docs/semgrep-ci/packages-in-semgrep-docker/ (docker_bash)
+- Fixed autofix application on lines containing multi-byte characters. (multibyte)
+
+
 ## [1.66.0](https://github.com/returntocorp/semgrep/releases/tag/v1.66.0) - 2024-03-19
 
 

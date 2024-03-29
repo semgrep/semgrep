@@ -396,32 +396,24 @@ let unsafe_match_to_match
         else (path, None)
     (* TODO(cooper): if we can have a uri or something more general than a
      * file path here then we can stop doing this hack. *)
-    | GitBlob { sha = blob_sha; paths } -> (
+    | GitBlob { sha; paths } -> (
         match paths with
         | [] -> (x.path.internal_path_to_content (* no better path *), None)
-        | (commit_sha, path) :: _ ->
-            let git_blob =
-              Some (Digestif.SHA1.of_hex (Git_wrapper.show_sha blob_sha))
-            in
-            let git_commit =
-              Digestif.SHA1.of_hex (Git_wrapper.show_sha commit_sha)
+        | (commit, path) :: _ ->
+            let git_commit = Git_wrapper.commit_digest commit in
+            let timestamp, offset = (Git_wrapper.commit_author commit).date in
+            let offset =
+              Option.value offset
+                ~default:{ sign = `Plus; hours = 0; minutes = 0 }
             in
             ( path,
               Some
                 ({
                    git_commit;
-                   git_blob;
+                   git_blob = Some sha;
                    git_commit_timestamp =
-                     (* TODO: CACHE THIS *)
-                     (match Git_wrapper.commit_timestamp commit_sha with
-                     | Some x -> x
-                     | None ->
-                         Logs.warn (fun m ->
-                             m
-                               "Issue getting timestamp for commit %a. \
-                                Reporting current time."
-                               Git_wrapper.pp_sha commit_sha);
-                         Timedesc.Timestamp.now ());
+                     Datetime_.of_unix_int_time timestamp offset.sign
+                       offset.hours offset.minutes;
                  }
                   : OutJ.historical_info) ))
   in

@@ -552,7 +552,7 @@ and fieldstmt x =
    G.s = G.ExprStmt ({ e = G.Assign ({ e = G.N name; _ }, _teq, e); _ }, _sc);
    _;
   } ->
-      let vdef = { G.vinit = Some e; vtype = None } in
+      let vdef = { G.vinit = Some e; vtype = None; vtok = G.no_sc } in
       let ent = { G.name = G.EN name; attrs = []; tparams = None } in
       G.fld (ent, G.VarDef vdef)
   | _ -> G.F x
@@ -693,7 +693,9 @@ and stmt_aux env x =
             let ent =
               { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = None }
             in
-            let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
+            let var =
+              G.VarDef { G.vinit = Some v3; vtype = topt; vtok = G.no_sc }
+            in
             [ G.DefStmt (ent, var) |> G.s ]
           in
           let default_res = [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ] in
@@ -748,7 +750,7 @@ and stmt_aux env x =
       let id = name env id in
       let ty = type_ env ty in
       let ent = G.basic_entity id in
-      let def = G.VarDef { G.vtype = Some ty; vinit = None } in
+      let def = G.VarDef { G.vtype = Some ty; vinit = None; vtok = G.no_sc } in
       [ G.DefStmt (ent, def) |> G.s ]
   | Cast (e, tok, ty) ->
       [ G.exprstmt (G.Cast (type_ env ty, info tok, expr env e) |> G.e) ]

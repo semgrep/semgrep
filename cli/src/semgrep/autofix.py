@@ -25,6 +25,15 @@ def _match_to_edit(match: RuleMatch, fix: str) -> out.Edit:
 # - Report the number of modified files.
 # If dryrun is false:
 # - Mutate the matches to add the `fixed_lines` property.
+#
+# This uses an RPC mechanism to call out to `semgrep-core` separately from the
+# main call to `semgrep-core`. In https://github.com/semgrep/semgrep/pull/9229,
+# Brandon initially attempted to move autofix application into the main call to
+# `semgrep-core`. However, logic implemented in Python after that call relies on
+# the repository being in its original state. For example, we run a baseline
+# scan after the initial call to `semgrep-core`, which requires the repository
+# to be in a clean state. Therefore, we cannot currently absorb this
+# functionality into the main `semgrep-core` call.
 def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> None:
     # This is implemented in OCaml and called via RPC. There are two
     # complications with that:
@@ -52,7 +61,8 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     # Put this case first because otherwise mypy requires a type annotation on
     # the empty list
     if application_result is not None:
-        modified_files, fixed_lines = application_result.value
+        modified_files = application_result.modified_file_count
+        fixed_lines = application_result.fixed_lines
     else:
         logger.error(f"Fix application over RPC was unsuccessful")
         modified_files = 0
