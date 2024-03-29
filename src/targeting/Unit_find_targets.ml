@@ -123,22 +123,10 @@ let tests_with_or_without_git ~with_git =
     (* Select file 'a', not 'b' *)
     test_find_targets ~with_git ~includes:[ "a" ] "deep include"
       [ F.dir "dir" [ F.file "a"; F.file "b" ] ];
-    (* Select 'a' and 'c', not 'b'. *)
-    test_find_targets ~with_git "gitignore file is always consulted"
-      ~non_git_files:[ F.file "a"; F.file "b" ]
-      [ F.File (".gitignore", "b\n"); F.file "c" ];
     (*
        Test that the '--include' filter takes place after all the other
        filters.
     *)
-    (* Can't select file 'a' via --include when gitignoring its folder. *)
-    test_find_targets ~with_git ~includes:[ "a" ]
-      "gitignore file takes precedence over --include"
-      [
-        F.File (".gitignore", "dir\n");
-        F.dir "dir" [ F.file "a"; F.file "b" ];
-        F.file "c";
-      ];
     (* Can't select file 'a' via --include when semgrepignoring its folder. *)
     test_find_targets ~with_git ~includes:[ "*.c" ]
       "semgrepignore file takes precedence over --include"
@@ -149,7 +137,30 @@ let tests_with_or_without_git ~with_git =
       ];
   ]
 
+(*
+   '.gitignore' files are consulted only in git projects except
+   for the special kind of projects 'Gitignore_project' which is used
+   only in some tests.
+*)
+let tests_with_git_only =
+  let with_git = true in
+  [
+    (* Select 'a' and 'c', not 'b'. *)
+    test_find_targets ~with_git "gitignore file is always consulted"
+      ~non_git_files:[ F.file "a"; F.file "b" ]
+      [ F.File (".gitignore", "b\n"); F.file "c" ];
+    (* Can't select file 'a' via --include when gitignoring its folder. *)
+    test_find_targets ~with_git ~includes:[ "a" ]
+      "gitignore file takes precedence over --include"
+      [
+        F.File (".gitignore", "dir\n");
+        F.dir "dir" [ F.file "a"; F.file "b" ];
+        F.file "c";
+      ];
+  ]
+
 let tests =
   Testo.categorize "Find_targets"
     (tests_with_or_without_git ~with_git:true
+    @ tests_with_git_only
     @ tests_with_or_without_git ~with_git:false)
