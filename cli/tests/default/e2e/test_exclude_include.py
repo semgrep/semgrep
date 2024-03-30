@@ -3,8 +3,6 @@ import re
 import pytest
 from tests.fixtures import RunSemgrep
 
-from semgrep.constants import OutputFormat
-
 
 def idfn(options):
     return "-and-".join(flag.strip("-") for flag in options if flag.startswith("--"))
@@ -41,6 +39,8 @@ LS = ["--x-ls"]
         LS + ["--include", "excluded", "--include", "included"],
         LS + ["--include", "included.vue"],
         LS + ["--include", "included.vue", "--skip-unknown-extensions"],
+        LS + ["--exclude", "*.*"],
+        LS + ["--include", "*.*"],
     ],
     ids=idfn,
 )
@@ -53,33 +53,3 @@ def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
         assert_exit_code=None,
     )
     snapshot.assert_match(mask_ignored(stdout), "files.list")
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_exclude_include_verbose_sorted_1(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/eqeq.yaml",
-            options=["--exclude", "excluded.*", "--exclude", "included.*", "--verbose"],
-            output_format=OutputFormat.TEXT,
-            target_name="exclude_include",
-            assert_exit_code=None,
-        ).stderr,
-        "results.err",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_exclude_include_verbose_sorted_2(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/nosem.yaml",
-            options=["--exclude", "*.*", "--verbose"],
-            output_format=OutputFormat.TEXT,
-            target_name="basic",
-            assert_exit_code=None,
-        ).stderr,
-        "results.err",
-    )
