@@ -468,6 +468,7 @@ function pcre_names_stub(v_rex) {
                 PCRE_INFO_NAMECOUNT,
                 name_count_ptr
             );
+            console.log(regexp_ptr,extra_ptr,PCRE_INFO_NAMECOUNT,name_count_ptr)
             if (ret != 0) pcre_raise_internal_error(`pcre_names_stub: namecount (ret=${ret})`);
 
             ret = libpcre._pcre_fullinfo(
