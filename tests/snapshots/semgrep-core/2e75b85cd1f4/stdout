@@ -3,11 +3,11 @@
 a
 dir/a
 --- Filtered files ---
-Selection events for path .gitignore:
-SEL .gitignore
-Selection events for path a:
+Selection events for path /.gitignore:
+SEL ppath /.gitignore
+Selection events for path /a:
 ignored at <TMP>/<MASKED>/.gitignore, line 1: a
-IGN a
-Selection events for path dir/a:
+IGN ppath /a
+Selection events for path /dir/a:
 ignored at <TMP>/<MASKED>/.gitignore, line 1: a
-IGN dir/a
+IGN ppath /dir/a

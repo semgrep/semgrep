@@ -59,11 +59,11 @@ let o_debug : bool Term.t =
 let o_logging : Logs.level option Term.t =
   let combine debug quiet verbose =
     match (verbose, debug, quiet) with
-    | false, false, false -> Some Logs.Warning
-    | true, false, false -> Some Logs.Info
-    | false, true, false -> Some Logs.Debug
-    | false, false, true -> None
-    | _else_ ->
+    | false, false, false -> (* default *) Some Logs.Warning
+    | true, false, false -> (* --verbose *) Some Logs.Info
+    | false, true, false -> (* --debug *) Some Logs.Debug
+    | false, false, true -> (* --quiet *) None
+    | _ ->
         (* TOPORT: list the possibilities *)
         Error.abort "mutually exclusive options --quiet/--verbose/--debug"
   in

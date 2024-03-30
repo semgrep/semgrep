@@ -103,7 +103,7 @@ type filter = {
 }
 
 (* Final result of a gitignore filter (clearer than a bool) *)
-type status = Not_ignored | Ignored
+type status = Not_ignored | Ignored [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
