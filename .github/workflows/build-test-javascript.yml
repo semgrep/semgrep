@@ -65,7 +65,7 @@ jobs:
           path: _build/default/js
       - uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "21"
       - name: Build JS artifacts
         run: make -C js -j $(nproc) build
       - name: Test JS artifacts
