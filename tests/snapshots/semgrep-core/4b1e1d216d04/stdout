@@ -1,0 +1,16 @@
+Test name: with git > basic semgrepignore
+--- Files added before 'git add' ---
+.semgrepignore
+a
+b
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 3 files changed, 1 insertion(+)
+ create mode 100644 .semgrepignore
+ create mode 100644 a
+ create mode 100644 b
+--- Selected targets ---
+selected .semgrepignore
+selected a
+--- Skipped targets ---
+ignored b [Semgrep_output_v1_t.Semgrepignore_patterns_match]

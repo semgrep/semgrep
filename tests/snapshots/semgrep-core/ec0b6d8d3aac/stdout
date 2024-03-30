@@ -6,17 +6,17 @@ b/b/c
 b/c
 b/d
 --- Filtered files ---
-Selection events for path .gitignore:
-SEL .gitignore
-Selection events for path a/b:
+Selection events for path /.gitignore:
+SEL ppath /.gitignore
+Selection events for path /a/b:
 ignored at <TMP>/<MASKED>/.gitignore, line 1: /a
-IGN a/b
-Selection events for path b/a:
-SEL b/a
-Selection events for path b/b/c:
-SEL b/b/c
-Selection events for path b/c:
+IGN ppath /a/b
+Selection events for path /b/a:
+SEL ppath /b/a
+Selection events for path /b/b/c:
+SEL ppath /b/b/c
+Selection events for path /b/c:
 ignored at <TMP>/<MASKED>/.gitignore, line 2: b/c
-IGN b/c
-Selection events for path b/d:
-SEL b/d
+IGN ppath /b/c
+Selection events for path /b/d:
+SEL ppath /b/d

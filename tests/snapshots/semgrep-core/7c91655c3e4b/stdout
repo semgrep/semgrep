@@ -1,0 +1,14 @@
+Test name: with git > basic gitignore
+--- Files added before 'git add' ---
+.gitignore
+a
+b
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .gitignore
+ create mode 100644 a
+--- Selected targets ---
+selected .gitignore
+selected a
+--- Skipped targets ---
