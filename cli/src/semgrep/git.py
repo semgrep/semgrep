@@ -1,6 +1,4 @@
-from urllib.parse import urlsplit, urlunsplit
 import os
-import re
 import subprocess
 import tempfile
 import urllib
@@ -96,11 +94,11 @@ def clean_project_url(url: str) -> str:
     """
     Returns a clean version of a git project's URL, removing credentials if present
     """
-    scheme, netloc, url, query, fragment = urlsplit(url)
+    scheme, netloc, url, query, fragment = urllib.parse.urlsplit(url)
     netloc = netloc.split("@")[-1]
     parts = scheme, netloc, url, query, fragment
 
-    return urlunsplit(parts)
+    return urllib.parse.urlunsplit(parts)
 
 
 def get_git_root_path() -> Path:
