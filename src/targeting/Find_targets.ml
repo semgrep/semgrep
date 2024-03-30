@@ -676,7 +676,12 @@ let get_targets conf scanning_roots =
     List.fold_left Fppath_set.union Fppath_set.empty path_set_list
   in
   let paths = Fppath_set.elements path_set in
-  (paths, List.flatten skipped_paths_list)
+  let sorted_skipped_targets =
+    List.flatten skipped_paths_list
+    |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
+           Fpath.compare a.path b.path)
+  in
+  (paths, sorted_skipped_targets)
 [@@profiling]
 
 let get_target_fpaths conf scanning_roots =

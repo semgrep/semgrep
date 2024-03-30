@@ -16,6 +16,6 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 --- Selected targets ---
 selected c.c
 --- Skipped targets ---
-ignored dir/b.c [Semgrep_output_v1_t.Semgrepignore_patterns_match]
-ignored dir/a.c [Semgrep_output_v1_t.Semgrepignore_patterns_match]
 ignored .semgrepignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
+ignored dir/a.c [Semgrep_output_v1_t.Semgrepignore_patterns_match]
+ignored dir/b.c [Semgrep_output_v1_t.Semgrepignore_patterns_match]
