@@ -26,7 +26,7 @@ jobs:
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-          make build-semgrep-jsoo
+          make build-semgrep-jsoo-debug
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build-${{ github.sha }}
