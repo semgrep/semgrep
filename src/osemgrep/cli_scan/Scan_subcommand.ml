@@ -708,10 +708,18 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      let is_logged_in = Semgrep_login.is_logged_in () in
+      let runtime_params =
+        Output.
+          {
+            is_logged_in = Semgrep_login.is_logged_in ();
+            is_using_registry =
+              Metrics_.g.is_using_registry
+              || !Semgrep_envvars.v.mock_using_registry;
+          }
+      in
       Output.output_result
         { conf.output_conf with output_format }
-        profiler ~is_logged_in res
+        profiler runtime_params res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
