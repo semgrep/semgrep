@@ -33,7 +33,7 @@ let tags_of_lang (lang : Lang.t) =
     | Julia (* TODO: re-enable once we fix Julia build slowness *)
     | Ruby (* TODO: re-enable once we fix Ruby build slowness *)
     | Go (* TODO: re-enable this when we fix the jsoo int overflow bug *)
-    | Ql
+    | Ql (* TODO: Doesn't work in js for some reason *)
     | C (* TODO: investigate c_array_inits pattern parse error*) ->
         [ todo_js ]
     | _ -> []
