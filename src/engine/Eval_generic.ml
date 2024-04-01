@@ -520,13 +520,8 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
     bindings
     |> List_.map_filter (fun (mvar, mval) ->
            let try_bind_to_exp e =
-             UCommon.(pr2 (spf "try bind %s" ([%show: AST_generic.expr] e)));
              try
-               let res =
-                 eval { mvars = Hashtbl.create 0; constant_propagation; file } e
-               in
-               UCommon.(pr2 (spf "res is %s" ([%show: value] res)));
-               Some (mvar, res)
+               eval { mvars = Hashtbl.create 0; constant_propagation; file } e
              with
              | NotHandled _
              | NotInEnv _ ->
@@ -603,7 +598,6 @@ let eval_opt env e =
       None
 
 let eval_bool env e =
-  UCommon.(pr2 (spf "code %s" ([%show: AST_generic.expr] e)));
   let res = eval_opt env e in
   match res with
   | Some (Bool b) -> b
