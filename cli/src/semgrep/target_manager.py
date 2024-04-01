@@ -58,8 +58,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Mix
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
@@ -98,7 +98,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Nuget()): ["packages.lock.json"],
     Ecosystem(Pub()): ["pubspec.lock"],
     Ecosystem(SwiftPM()): ["Package.resolved"],
-    Ecosystem(Mix()): ["mix.lock"],
+    Ecosystem(Hex()): ["mix.lock"],
 }
 
 
@@ -824,7 +824,7 @@ class TargetManager:
             Ecosystem(Nuget()),
             Ecosystem(Pub()),
             Ecosystem(SwiftPM()),
-            Ecosystem(Mix()),
+            Ecosystem(Hex()),
         }
 
         return {
