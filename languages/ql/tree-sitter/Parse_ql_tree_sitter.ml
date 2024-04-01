@@ -346,7 +346,7 @@ let map_typeunionbody ~tok ~name (env : env)
     | None -> []
   in
   let v5 = (* ";" *) token env v5 in
-  TypeUnion (name, v2 :: v4)
+  TypeUnion (tok, name, v2 :: v4)
 
 let map_annotation (env : env) (x : CST.annotation) =
   match x with

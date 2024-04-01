@@ -205,7 +205,7 @@ and stmt =
   | PredicateDef of predicate_definition
   | VarDecl of vardecl
   | NewType of tok (* 'newtype' *) * ident * type_definition_element list
-  | TypeUnion of ident * type_ list
+  | TypeUnion of tok (* 'class' *) * ident * type_ list
   | ImportAs of tok * name (* name *) * ident option (* asname *)
   | Select of select
   | ExprStmt of expr (* value *)

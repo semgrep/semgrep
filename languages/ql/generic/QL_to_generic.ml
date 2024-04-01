@@ -43,8 +43,8 @@ let fb = Tok.unsafe_fake_bracket
 
 let info x = x
 
-let wrap _of_a (v1, v2) =
-  let v1 = _of_a v1 and v2 = info v2 in
+let wrap of_a (v1, v2) =
+  let v1 = of_a v1 and v2 = info v2 in
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
@@ -67,10 +67,9 @@ and type_argument (v1, pi_opt) =
   let v1 = TyN (name v1) |> G.t in
   match pi_opt with
   | None -> G.TA v1
-  | Some pi ->
+  | Some ((_, t) as pi) ->
       G.OtherTypeArg
-        ( ("TypeArgWithArity", unsafe_fake ""),
-          [ G.T v1; G.E (G.L (G.Int pi) |> G.e) ] )
+        (("TypeArgWithArity", t), [ G.T v1; G.E (G.L (G.Int pi) |> G.e) ])
 
 and type_arguments x = Tok.unsafe_fake_bracket (list type_argument x)
 and type_ x = G.TyN (name x) |> G.t
@@ -108,7 +107,7 @@ and predicate_definition (v1, v2, v3, v4) =
     | PredicateAlias (qual_info, pi) ->
         G.FBExpr
           (G.OtherExpr
-             ( ("PredicateAlias", unsafe_fake ""),
+             ( ("PredicateAlias", snd pi),
                [ G.Ta (type_argument (IdQualified qual_info, Some pi)) ] )
           |> G.e)
   in
@@ -387,7 +386,7 @@ and stmt = function
   | ModuleDef v1 -> module_definition v1
   | PredicateDef v1 -> predicate_definition v1
   | VarDecl x -> vardecl x
-  | NewType (_v1, v2, v3) ->
+  | NewType (v1, v2, v3) ->
       (* This is really a spicy kind of OrType, but with the constraint that certain constructors
          must fulfill a predicate on its input values to exist.
 
@@ -416,12 +415,9 @@ and stmt = function
           v3
       in
       G.DefStmt
-        ( ent,
-          G.TypeDef
-            { tbody = OtherTypeKind (("CodeQLOrType", unsafe_fake ""), elems) }
-        )
+        (ent, G.TypeDef { tbody = OtherTypeKind (("CodeQLOrType", v1), elems) })
       |> G.s
-  | TypeUnion (v1, v2) ->
+  | TypeUnion (tok, v1, v2) ->
       (* A "type union" essentially lets you define a subset of a pre-existing algebraic datatype,
          by selecting some of the existing constructors.
          OrType is again inconvenient here, so we Other out.
@@ -430,10 +426,8 @@ and stmt = function
       let elems = List_.map (fun x -> G.E (G.N (name_of_type_ x) |> G.e)) v2 in
       G.DefStmt
         ( ent,
-          G.TypeDef
-            {
-              tbody = OtherTypeKind (("CodeQLTypeUnion", unsafe_fake ""), elems);
-            } )
+          G.TypeDef { tbody = OtherTypeKind (("CodeQLTypeUnion", tok), elems) }
+        )
       |> G.s
   | ImportAs (v1, v2, v3) ->
       let alias =
