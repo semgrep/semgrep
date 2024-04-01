@@ -167,10 +167,7 @@ let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
 let send (info : info) packet : unit Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
-  | _ ->
-      let%lwt () = lwt_pause () in
-      let () = (snd info.in_stream) (Some packet) in
-      Lwt.return_unit
+  | _ -> Lwt.return ((snd info.in_stream) (Some packet))
 
 let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
