@@ -21,6 +21,7 @@ const languages = [
   "protobuf",
   "promql",
   "python",
+  "ql",
   "r",
   "rust",
   "scala",
