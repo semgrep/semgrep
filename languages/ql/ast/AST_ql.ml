@@ -31,8 +31,6 @@ type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
-
-(* round(), square[], curly{}, angle<> brackets *)
 type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
 
 (* ------------------------------------------------------------------------- *)
@@ -147,18 +145,6 @@ and operator =
 and argument =
   | Arg of expr (* this can be Ellipsis for sgrep *)
   | ArgUnderscore of tok
-(* tree-sitter-python: (and Python2) allows any expression for the key, but
- * the official Python 2 grammar says "ast.c makes sure it's a NAME" *)
-(* | ArgKwd of name (* arg *) * expr (* value *)
-  (* TODO? just use ExprStar, and move PowInline in expr too? and just
- * say in which context those constructs can actually appear
- * (e.g., only in arg, or dict/set)
- *)
-  | ArgStar of (* '*' *) tok * expr
-  | ArgPow of (* '**' *) tok * expr
-  (* TODO: merge with Tuple CompForIf, and actually there can be only 1
- * ArgComp in arguments *)
-  | ArgComp of expr * for_if list *)
 
 and type_argument = name * Parsed_int.t option
 and type_arguments = type_argument list
@@ -166,29 +152,6 @@ and type_arguments = type_argument list
 (* ------------------------------------------------------------------------- *)
 (* Parameters *)
 (* ------------------------------------------------------------------------- *)
-(* TODO: add bracket *)
-and parameters = parameter list
-
-and parameter =
-  (* param_pattern is usually just a name.
-   * TODO? merge with ParamDefault
-   *)
-  | Param of unit
-(* | ParamDefault of (name * type_ option) * expr (* default value *)
-  (* TODO: tree-sitter-python allows also a Subscript or Attribute instead
- * of just name, what is that?? *)
-  | ParamStar of tok (* '*' *) * (name * type_ option)
-  | ParamPow of tok (* '**' *) * (name * type_ option)
-  (* python3: single star delimiter to force keyword-only arguments after.
- * reference: https://www.python.org/dev/peps/pep-3102/ *)
-  | ParamSingleStar of tok
-  (* python3: single slash delimiter to force positional-only arg prior. *)
-  | ParamSlash of tok
-  (* sgrep-ext: *)
-  | ParamEllipsis of tok
- *)
-
-and param_pattern = PatternName of ident
 and type_parameters = (type_argument * ident) list
 
 (*****************************************************************************)
@@ -210,6 +173,14 @@ and stmt =
   | Select of select
   | ExprStmt of expr (* value *)
 
+(*****************************************************************************)
+(* Definitions *)
+(*****************************************************************************)
+and vardecl = VardeclInit of type_ * ident | VardeclEllipsis of tok
+
+(* ------------------------------------------------------------------------- *)
+(* Select *)
+(* ------------------------------------------------------------------------- *)
 and select = {
   from : (tok (* 'from' *) * vardecl list) option;
   where : expr option;
@@ -218,6 +189,10 @@ and select = {
 }
 
 and direction = Asc | Desc
+
+(* ------------------------------------------------------------------------- *)
+(* Class *)
+(* ------------------------------------------------------------------------- *)
 and class_definition = tok (* 'class' *) * ident (* name *) * class_rhs
 
 and class_rhs =
@@ -227,26 +202,24 @@ and class_rhs =
       * stmt list bracket
   | ClassAlias of type_
 
-and module_definition =
-  tok (* 'module' *) * ident * type_parameters * module_rhs
-
-and module_rhs = ModuleBody of stmt list | ModuleAlias of qualified_info
+(* ------------------------------------------------------------------------- *)
+(* Predicate *)
+(* ------------------------------------------------------------------------- *)
 and predicate_definition = type_ option * ident * vardecl list * predicate_rhs
 
 and predicate_rhs =
   | PredicateExpr of expr option
   | PredicateAlias of qualified_info * Parsed_int.t
 
-and vardecl = VardeclInit of type_ * ident | VardeclEllipsis of tok
 and type_definition_element = ident * vardecl list * expr option
-
-(*****************************************************************************)
-(* Definitions *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Module *)
 (*****************************************************************************)
+and module_definition =
+  tok (* 'module' *) * ident * type_parameters * module_rhs
+
+and module_rhs = ModuleBody of stmt list | ModuleAlias of qualified_info
 
 (*****************************************************************************)
 (* Toplevel *)
@@ -256,5 +229,6 @@ and program = stmt list [@@deriving show]
 (*****************************************************************************)
 (* Any *)
 (*****************************************************************************)
+
 (* This is mostly for semgrep to represent a pattern *)
 type any = Pr of program | E of expr [@@deriving show { with_path = false }]
