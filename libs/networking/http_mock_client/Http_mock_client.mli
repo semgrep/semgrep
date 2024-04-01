@@ -32,17 +32,14 @@ let with_foo_client =
    pack_tests "Foo Tests" tests
  *)
 
-type test_response = {
-  response : Cohttp_lwt.Response.t;
-  body : Cohttp_lwt.Body.t;
-}
+type test_response = { response : Cohttp.Response.t; body : Cohttp_lwt.Body.t }
 (** [test_response] is a response (headers and status), and a path to a file
   * which will make the body of the response. The file is simply read and it's
   * exact bytes are returned
   *)
 
 type make_response_fn =
-  Cohttp_lwt.Request.t -> Cohttp_lwt.Body.t -> test_response Lwt.t
+  Cohttp.Request.t -> Cohttp_lwt.Body.t -> test_response Lwt.t
 (** [make_response_fn requst body] takes in a request and its body, and
   * must return a response (see [basic_response]), and a path to a body
   * (see [test_response]).
@@ -73,7 +70,7 @@ val check_method : Cohttp.Code.meth -> Cohttp.Code.meth -> unit
   * Example: [check_method `GET request.meth]
   *)
 
-val check_header : Cohttp_lwt.Request.t -> string -> string -> unit
+val check_header : Cohttp.Request.t -> string -> string -> unit
 (** [check_header request header header_value] will use Alcotest to assert a request
   * was made with a certain header and value
   * Example: [check_header request "Authorization" "Bearer <token>"]
@@ -86,7 +83,7 @@ val check_headers : Cohttp.Header.t -> Cohttp.Header.t -> unit
   * compare equal.
   *)
 
-val get_header : Cohttp_lwt.Request.t -> string -> string option
+val get_header : Cohttp.Request.t -> string -> string option
 (** [get_header request header] will return the value of a header in a request
   * or None if the header is not present
   * Example: [get_header request "Authorization"]
