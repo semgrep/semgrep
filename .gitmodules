@@ -103,3 +103,6 @@
 [submodule "libs/testo"]
 	path = libs/testo
 	url = https://github.com/semgrep/testo.git
+[submodule "languages/ql/tree-sitter/semgrep-ql"]
+	path = languages/ql/tree-sitter/semgrep-ql
+	url = https://github.com/semgrep/semgrep-ql

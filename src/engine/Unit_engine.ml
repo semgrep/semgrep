@@ -77,6 +77,7 @@ let full_lang_info =
     (Lang.Clojure, "clojure", ".clj");
     (Lang.Xml, "xml", ".xml");
     (Lang.Dart, "dart", ".dart");
+    (Lang.Ql, "ql", ".ql");
   ]
 
 (*****************************************************************************)
