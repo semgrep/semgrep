@@ -521,7 +521,11 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
     |> List_.map_filter (fun (mvar, mval) ->
            let try_bind_to_exp e =
              try
-               eval { mvars = Hashtbl.create 0; constant_propagation; file } e
+               Some
+                 ( mvar,
+                   eval
+                     { mvars = Hashtbl.create 0; constant_propagation; file }
+                     e )
              with
              | NotHandled _
              | NotInEnv _ ->
