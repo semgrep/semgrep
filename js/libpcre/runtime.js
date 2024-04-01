@@ -263,11 +263,14 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
         return ptr;
     });
 
-    return {
+    // Splitting due to apparently jsoo compiler bug:
+    // <https://github.com/semgrep/semgrep/pull/9861#issuecomment-2027858585>
+    let regex = {
         regexp_ptr,
         extra_ptr: NULL,
         studied: 0,
     };
+    return regex;
 }
 
 //Provides: pcre_study_stub
