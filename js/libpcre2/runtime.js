@@ -450,7 +450,7 @@ function pcre2_pattern_info_stub(v_rex, what, where) {
 function make_intnat_info(size, name, option, v_rex) {
     pcre2_auto_malloc([size], ([ptr]) => {
         const ret = pcre2_pattern_info_stub(v_rex, option, ptr);
-        if (ret) {
+        if (ret != 0) {
             raise_internal_error(name);
         }
         return ptr;
