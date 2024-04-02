@@ -332,7 +332,6 @@ _scan_options: List[Callable] = [
         "--allow-untrusted-validators",
         "allow_untrusted_validators",
         is_flag=True,
-        hidden=True,
     ),
 ]
 
