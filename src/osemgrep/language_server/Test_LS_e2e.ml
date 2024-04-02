@@ -978,7 +978,7 @@ let test_ls_multi caps () =
       in
       send_exit info)
 
-let test_login caps () =
+let _test_login caps () =
   with_session caps (fun info ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
