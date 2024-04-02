@@ -29,7 +29,7 @@ from semdep.parsers.util import whitespace
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Mix
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
 from semgrep.semgrep_interfaces.semgrep_output_v1 import MixLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
@@ -194,7 +194,7 @@ def _build_found_dependencies(
             FoundDependency(
                 package=package,
                 version=version,
-                ecosystem=Ecosystem(Mix()),
+                ecosystem=Ecosystem(Hex()),
                 allowed_hashes={},
                 transitivity=transitivity(direct_deps, [package]),
                 line_number=line_number,

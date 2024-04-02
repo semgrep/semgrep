@@ -8,7 +8,7 @@ from semdep.parsers import mix
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Mix
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
@@ -318,7 +318,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="certifi",
                 version="2.12.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -329,7 +329,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="cowboy",
                 version="2.9.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -340,7 +340,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="cowlib",
                 version="2.8.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -351,7 +351,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ecpool",
                 version="0.5.7",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -362,7 +362,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ehttpc",
                 version="0.4.13",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -373,7 +373,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ex_aws",
                 version="2.5.3",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -384,7 +384,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ex_aws_lambda",
                 version="2.1.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -395,7 +395,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ex_aws_s3",
                 version="2.5.3",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -406,7 +406,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ex_aws_ses",
                 version="2.4.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -417,7 +417,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="gproc",
                 version="0.9.0.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -428,7 +428,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="grpc",
                 version="0.6.12",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -439,7 +439,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="gun",
                 version="1.3.7",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -450,7 +450,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="hackney",
                 version="1.20.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -461,7 +461,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="idna",
                 version="6.1.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -472,7 +472,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="jason",
                 version="1.4.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -483,7 +483,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="joken",
                 version="2.6.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -494,7 +494,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="jose",
                 version="1.11.6",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -505,7 +505,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="metrics",
                 version="1.0.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -516,7 +516,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="mime",
                 version="2.0.5",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -527,7 +527,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="mimerl",
                 version="1.2.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -538,7 +538,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="parse_trans",
                 version="3.4.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -549,7 +549,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="pbkdf2",
                 version="2.0.4",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -560,7 +560,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ranch",
                 version="1.8.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -571,7 +571,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="rocksdb",
                 version="1.8.0-emqx-2",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -582,7 +582,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="snabbkaffe",
                 version="1.0.7",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -593,7 +593,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="ssl_verify_fun",
                 version="1.1.7",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -604,7 +604,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="sweet_xml",
                 version="0.7.4",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
@@ -615,7 +615,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="telemetry",
                 version="1.2.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -626,7 +626,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="typerefl",
                 version="0.9.1",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -637,7 +637,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="unicode_util_compat",
                 version="0.7.0",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Transitive()),
                 resolved_url=None,
@@ -648,7 +648,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
             FoundDependency(
                 package="uuid",
                 version="1.1.8",
-                ecosystem=Ecosystem(value=Mix()),
+                ecosystem=Ecosystem(value=Hex()),
                 allowed_hashes={},
                 transitivity=Transitivity(value=Direct()),
                 resolved_url=None,
