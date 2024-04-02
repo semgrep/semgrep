@@ -535,8 +535,9 @@ let o_no_secrets_validation : bool Term.t =
 let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
-      [ "allow-custom-validators" ]
-      ~doc:{|Run postprocessors from custom rules.|}
+      [ "allow-untrusted-validators" ]
+      ~doc:
+        {|Allows running rules with validators from origins other than semgrep.dev. Avoid running rules from origins you don't trust.|}
   in
   Arg.value (Arg.flag info)
 
