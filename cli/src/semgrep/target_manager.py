@@ -58,8 +58,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Mix
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
@@ -98,7 +98,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Nuget()): ["packages.lock.json"],
     Ecosystem(Pub()): ["pubspec.lock"],
     Ecosystem(SwiftPM()): ["Package.resolved"],
-    Ecosystem(Mix()): ["mix.lock"],
+    Ecosystem(Hex()): ["mix.lock"],
 }
 
 
@@ -496,15 +496,21 @@ class Target:
         )
 
     @lru_cache(maxsize=None)
-    def files(self) -> FrozenSet[Path]:
+    def files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
         """
         Recursively go through a directory and return list of all files with
         default file extension of language
+
+        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         if not self.path.is_dir() and self.path.is_file():
             return frozenset([self.path])
 
         if self.baseline_handler is not None:
+            # Adding this conditional to scan all lockfiles for their dependencies, even in diff-aware scans
+            if ignore_baseline_handler:
+                return self.files_from_filesystem()
+
             try:
                 return self.files_from_git_diff()
             except (subprocess.CalledProcessError, FileNotFoundError):
@@ -718,12 +724,17 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_all_files(self) -> FrozenSet[Path]:
-        return frozenset(f for target in self.targets for f in target.files())
+    def get_all_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+        return frozenset(
+            f for target in self.targets for f in target.files(ignore_baseline_handler)
+        )
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
-        self, lang: Union[None, Language, Ecosystem], product: out.Product
+        self,
+        lang: Union[None, Language, Ecosystem],
+        product: out.Product,
+        ignore_baseline_handler: bool = False,
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
@@ -733,8 +744,10 @@ class TargetManager:
         it is also filtered out
 
         Note also filters out any directory and descendants of `.git`
+
+        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
-        all_files = self.get_all_files()
+        all_files = self.get_all_files(ignore_baseline_handler)
 
         if lang:
             files = self.filter_by_language(lang, candidates=all_files)
@@ -824,7 +837,7 @@ class TargetManager:
             Ecosystem(Nuget()),
             Ecosystem(Pub()),
             Ecosystem(SwiftPM()),
-            Ecosystem(Mix()),
+            Ecosystem(Hex()),
         }
 
         return {
@@ -833,24 +846,37 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_lockfiles(
-        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT
+        self,
+        ecosystem: Ecosystem,
+        product: out.Product = SCA_PRODUCT,
+        ignore_baseline_handler: bool = False,
     ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
-        """
-        return self.get_files_for_language(ecosystem, product).kept
 
-    def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
+        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
+        """
+        return self.get_files_for_language(
+            ecosystem, product, ignore_baseline_handler
+        ).kept
+
+    def find_single_lockfile(
+        self, p: Path, ecosystem: Ecosystem, ignore_baseline_handler: bool = False
+    ) -> Optional[Path]:
         """
         Find the nearest lockfile in a given ecosystem to P
         Searches only up the directory tree
 
         If lockfile not in self.get_lockfiles(ecosystem) then return None
         this would happen if the lockfile is ignored by a .semgrepignore or --exclude
+
+        ignore_baseline_handler: if True, will pass the value downstream and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
-        candidates = self.get_lockfiles(ecosystem)
+        candidates = self.get_lockfiles(
+            ecosystem, ignore_baseline_handler=ignore_baseline_handler
+        )
 
         for path in p.parents:
             for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:

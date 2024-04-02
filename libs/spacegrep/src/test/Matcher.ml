@@ -202,10 +202,23 @@ let matcher_corpus =
       Matches [ "1 2"; "2 3" ],
       "$A ... $B",
       "1 2 3" );
+    (* See also "overlapping matches with open end" *)
+    ( "overlapping matches with closed end",
+      Matches [ "a b" ],
+      "a ... b",
+      "a a b" );
     ("leading dots", Matches [ "a b" ], "... b", "a b c");
     ("match block start", Matches [ "a"; "b" ], "... $X", "a\n  b\n  c\nd\ne\n");
     ("match everything", Matches [ "a b c" ], "...", "a b c");
     ("case-sensitive", Matches [ "foo" ], "foo", "Foo or foo");
+  ]
+
+(*
+   Failing tests that need fixing.
+*)
+let matcher_corpus_todo =
+  [
+    ("overlapping matches with open end", Matches [ "a a b" ], "a ...", "a a b");
   ]
 
 let matcher_corpus_case_insensitive =
@@ -217,16 +230,21 @@ let matcher_corpus_same_line_ellipsis =
 let matcher_corpus_two_line_ellipsis =
   [ ("two-line ellipsis", Matches [ "a b\nc" ], "a ...", "x\ny a b\nc\nd") ]
 
-let create_matcher_suite param matcher_corpus =
+let create_matcher_suite ?expected_outcome param matcher_corpus =
   List_.map
     (fun (name, expectation, pat_str, doc_str) ->
-      Testo.create name (fun () ->
+      Testo.create ?expected_outcome name (fun () ->
           check_matching param pat_str doc_str expectation))
     matcher_corpus
 
 let matcher_suite =
   let param = Match.create_search_param () in
   create_matcher_suite param matcher_corpus
+
+let matcher_suite_todo =
+  let param = Match.create_search_param () in
+  create_matcher_suite ~expected_outcome:(Should_fail "bug or todo") param
+    matcher_corpus_todo
 
 let matcher_suite_case_insensitive =
   let param = Match.create_search_param ~case_sensitive:false () in
@@ -243,5 +261,5 @@ let matcher_suite_two_line_ellipsis =
 let test =
   Testo.categorize "Matcher"
     ([ t "pattern parser" test_pattern_parser ]
-    @ matcher_suite @ matcher_suite_case_insensitive
+    @ matcher_suite @ matcher_suite_todo @ matcher_suite_case_insensitive
     @ matcher_suite_same_line_ellipsis @ matcher_suite_two_line_ellipsis)

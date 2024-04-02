@@ -29,6 +29,8 @@ open Pattern
    and then execute it to match a path given as a string.
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -42,6 +44,8 @@ type loc = {
 
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
+
+let pp_loc fmt x = Format.pp_print_string fmt (show_loc x)
 
 type compiled_pattern = { source : loc; re : Pcre2_.t }
 
@@ -134,19 +138,24 @@ let compile ~source pat =
   { source; re }
 [@@profiling "Glob.Match.compile"]
 
-(* This is used during unit testing. *)
-let debug = ref false
-
 let run matcher path =
   let res = Pcre2_.pmatch_noerr ~rex:matcher.re path in
-  if !debug then
-    (* expensive string concatenation; may not be suitable for logger#debug *)
-    Printf.eprintf "** glob: %S  pcre: %s  path: %S  matches: %B\n%!"
-      matcher.source.line_contents matcher.re.pattern path res;
+  (* perf: this gets called a lot. The match-with is expected to make things
+     faster by creating a closure for the anonymous function only in debug
+     mode. *)
+  (match Logs.level () with
+  | Some Debug ->
+      Logs.debug (fun m ->
+          m ~tags "glob: %S  pcre: %s  path: %S  matches: %B"
+            matcher.source.line_contents matcher.re.pattern path res)
+  | _ -> ());
   res
 [@@profiling "Glob.Match.run"]
 
 let source matcher = matcher.source
 
-let show x =
+let show_compiled_pattern x =
   Printf.sprintf "pattern at %s:\n%s" (show_loc x.source) x.re.pattern
+
+let pp_compiled_pattern fmt x =
+  Format.pp_print_string fmt (show_compiled_pattern x)
