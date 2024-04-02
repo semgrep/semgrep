@@ -41,14 +41,17 @@ let tests (caps : Cap.all_caps) =
       Unit_graph_code.tests;
       Unit_list_files.tests;
       Glob.Unit_glob.tests;
+      Unit_find_targets.tests;
       Unit_semgrepignore.tests;
       Unit_gitignore.tests;
+      Unit_include_filter.tests;
       Unit_parsing.tests ();
       Unit_entropy.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
       Unit_memory_limit.tests;
       Unit_tok.tests;
+      Unit_Ppath.tests;
       Unit_Rpath.tests;
       Unit_git_wrapper.tests;
       Unit_ugly_print_AST.tests;

@@ -112,7 +112,7 @@ let group_roots_by_project conf (paths : Scanning_root.t list) =
              Git_project.find_any_project_root ?force_root
                (Scanning_root.to_fpath path)
            in
-           ((kind, root), Ppath.to_fpath (Rfpath.to_fpath root) git_path))
+           ((kind, root), Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths
@@ -255,11 +255,16 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
            | Other_project -> Only_semgrepignore
          in
          let ign =
-           Semgrepignore.create ?include_patterns:conf.include_
-             ~cli_patterns:conf.exclude ~builtin_semgrepignore:Empty
-             ~exclusion_mechanism
+           Semgrepignore.create ~cli_patterns:conf.exclude
+             ~builtin_semgrepignore:Empty ~exclusion_mechanism
              ~project_root:(Rfpath.to_fpath project_root)
              ()
+         in
+         let include_filter =
+           Option.map
+             (Include_filter.create
+                ~project_root:(Rfpath.to_fpath project_root))
+             conf.include_
          in
          let paths, skipped_paths1 =
            paths
@@ -274,15 +279,21 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
                         (* we're supposed to be working with clean paths by now *)
                         assert false
                   in
-                  let git_path =
-                    let segments = Fpath.segs rel_path in
-                    match Ppath.from_segments ("" :: segments) with
-                    | Ok x -> x
-                    (* or raise Impossible? *)
-                    | Error s -> failwith s
+                  let ppath = Ppath.of_relative_fpath rel_path in
+                  let status, selection_events =
+                    Gitignore_filter.select ign ppath
                   in
                   let status, selection_events =
-                    Semgrepignore.select ign git_path
+                    match status with
+                    | Gitignore.Ignored -> (status, selection_events)
+                    | Gitignore.Not_ignored -> (
+                        match include_filter with
+                        | None -> (status, selection_events)
+                        | Some include_filter ->
+                            let status, more_selection_events =
+                              Include_filter.select include_filter ppath
+                            in
+                            (status, more_selection_events @ selection_events))
                   in
                   match status with
                   | Not_ignored -> Left path
