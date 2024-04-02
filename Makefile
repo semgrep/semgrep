@@ -426,6 +426,12 @@ homebrew-setup:
 	# LIBRARY_PATH is set here so we build lwt w/libev
 	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
 
+# Install both the system dependencies and the OCaml dependencies needed
+.PHONY: homebrew-dev-setup
+homebrew-dev-setup:
+	$(MAKE) install-deps-MACOS-for-semgrep-core
+	$(MAKE) homebrew-setup
+
 # -------------------------------------------------
 # Arch Linux
 # -------------------------------------------------
@@ -443,6 +449,8 @@ install-deps-WINDOWS-for-semgrep-core:
 # Developer targets
 ###############################################################################
 
+UNAME_S := $(shell uname -s)
+
 # This is a best effort to install some external dependencies.
 # As a developer you should not run frequently 'make setup', only when
 # important dependencies change.
@@ -454,6 +462,10 @@ setup: semgrep.opam
 # Install optional development dependencies in addition to build dependencies.
 .PHONY: dev-setup
 dev-setup:
+	@if [ "$(UNAME_S)" = "Darwin" ]; then \
+        echo "!!!!!WARNING!!!!!"; \
+		echo "You are on macOS. You probably want to run 'make homebrew-dev-setup' instead. This make target won't install all the dependencies you need correctly."; \
+	fi
 	$(MAKE) setup
 	opam install -y --deps-only $(OPTIONAL_DEPS)
 
