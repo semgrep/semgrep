@@ -447,50 +447,50 @@ function pcre2_pattern_info_stub(v_rex, what, where) {
 
 //Provides: make_intnat_info
 //Requires: pcre2_auto_malloc, pcre2_pattern_info_stub, raise_internal_error
-function make_intnat_info(size, name, option, v_rex) {
+function make_intnat_info(size, ty, name, option, v_rex) {
     pcre2_auto_malloc([size], ([ptr]) => {
         const ret = pcre2_pattern_info_stub(v_rex, option, ptr);
         if (ret != 0) {
             raise_internal_error(name);
         }
-        return ptr;
+        return libpcre2.getValue(ptr, ty);
     })
 }
 
 //Provides: pcre2_size_stub_bc
 //Requires: libpcre2, make_intnat_info, PCRE2_INFO_SIZE
 function pcre2_size_stub_bc(v_rex) {
-    return libpcre2.getValue(make_intnat_info(4, "pcre2_size_stub_bc", PCRE2_INFO_SIZE, v_rex), "i32");
+    return make_intnat_info(4, "i32", "pcre2_size_stub_bc", PCRE2_INFO_SIZE, v_rex);
 }
 
 //Provides: pcre2_capturecount_stub_bc
 //Requires: libpcre2, make_intnat_info, PCRE2_INFO_CAPTURECOUNT
 function pcre2_capturecount_stub_bc(v_rex) {
-    return libpcre2.getValue(make_intnat_info(4, "pcre2_capturecount_stub_bc", PCRE2_INFO_CAPTURECOUNT, v_rex), "i32");
+    return make_intnat_info(4, "i32", "pcre2_capturecount_stub_bc", PCRE2_INFO_CAPTURECOUNT, v_rex);
 }
 
 //Provides: pcre2_backrefmax_stub_bc
 //Requires: libpcre2, make_intnat_info, PCRE2_INFO_BACKREFMAX
 function pcre2_backrefmax_stub_bc(v_rex) {
-    return libpcre2.getValue(make_intnat_info(4, "pcre2_backrefmax_stub_bc", PCRE2_INFO_BACKREFMAX, v_rex), "i32");
+    return make_intnat_info(4, "i32", "pcre2_backrefmax_stub_bc", PCRE2_INFO_BACKREFMAX, v_rex);
 }
 
 //Provides: pcre2_namecount_stub_bc
 //Requires: libpcre2, make_intnat_info, PCRE2_INFO_NAMECOUNT
 function pcre2_namecount_stub_bc(v_rex) {
-    return libpcre2.getValue(make_intnat_info(4, "pcre2_namecount_stub_bc", PCRE2_INFO_NAMECOUNT, v_rex), "i32");
+    return make_intnat_info(4, "i32", "pcre2_namecount_stub_bc", PCRE2_INFO_NAMECOUNT, v_rex);
 }
 
 //Provides: pcre2_nameentrysize_stub_bc
 //Requires: libpcre2, make_intnat_info, PCRE2_INFO_NAMEENTRYSIZE
 function pcre2_nameentrysize_stub_bc(v_rex) {
-    return libpcre2.getValue(make_intnat_info(4, "pcre2_nameentrysize_stub_bc", PCRE2_INFO_NAMEENTRYSIZE, v_rex), "i32");
+    return make_intnat_info(4, "i32", "pcre2_nameentrysize_stub_bc", PCRE2_INFO_NAMEENTRYSIZE, v_rex);
 }
 
 //Provides: pcre2_argoptions_stub
 //Requires: libpcre2, make_intnat_info, caml_int64_create_lo_hi, PCRE2_INFO_ARGOPTIONS
 function pcre2_argoptions_stub(v_rex) {
-    const val = libpcre2.getValue(make_intnat_info(4, "pcre2_argoptions_stub", PCRE2_INFO_ARGOPTIONS, v_rex), "i32");
+    const val = make_intnat_info(4, "i32", "pcre2_argoptions_stub", PCRE2_INFO_ARGOPTIONS, v_rex);
     return caml_int64_create_lo_hi(val, 0);
 }
 
