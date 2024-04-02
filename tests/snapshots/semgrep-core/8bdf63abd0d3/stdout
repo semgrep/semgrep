@@ -1,0 +1,10 @@
+Test name: without git > basic semgrepignore
+--- Files not added to git ---
+.semgrepignore
+a
+b
+--- Selected targets ---
+selected .semgrepignore
+selected a
+--- Skipped targets ---
+ignored b [Semgrep_output_v1_t.Semgrepignore_patterns_match]
