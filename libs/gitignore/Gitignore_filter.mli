@@ -29,6 +29,5 @@ val create :
 *)
 val select :
   Gitignore.filter ->
-  Gitignore.selection_event list ->
   Ppath.t ->
   Gitignore.status * Gitignore.selection_event list

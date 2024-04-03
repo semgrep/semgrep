@@ -104,8 +104,8 @@ let get_first_block ?(block_size = 4096) path =
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
-let shebang_re = lazy (Pcre_.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
-let split_cmd_re = lazy (Pcre_.regexp "[ \t]+")
+let shebang_re = lazy (Pcre2_.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
+let split_cmd_re = lazy (Pcre2_.regexp "[ \t]+")
 
 (*
    A shebang supports at most the name of the script and one argument:
@@ -131,11 +131,11 @@ let split_cmd_re = lazy (Pcre_.regexp "[ \t]+")
      "#!/usr/bin/env -S bash -e -u" -> ["/usr/bin/env"; "bash"; "-e"; "-u"]
 *)
 let parse_shebang_line s =
-  let matched = Pcre_.exec_noerr ~rex:(Lazy.force shebang_re) s in
+  let matched = Pcre2_.exec_noerr ~rex:(Lazy.force shebang_re) s in
   match matched with
   | None -> None
   | Some matched -> (
-      match Pcre.get_substrings matched with
+      match Pcre2.get_substrings matched with
       | [| _; arg0; "" |] -> Some [ arg0 ]
       | [| _; "/usr/bin/env" as arg0; arg1 |] -> (
           (* approximate emulation of 'env -S'; should work if the command
@@ -143,7 +143,7 @@ let parse_shebang_line s =
           match string_chop_prefix ~pref:"-S" arg1 with
           | Some packed_args ->
               let args =
-                Pcre_.split_noerr ~rex:(Lazy.force split_cmd_re)
+                Pcre2_.split_noerr ~rex:(Lazy.force split_cmd_re)
                   ~on_error:[ packed_args ] packed_args
                 |> List.filter (fun fragment -> fragment <> "")
               in
@@ -172,10 +172,10 @@ let uses_shebang_command_name cmd_names =
    In case of an error, the result is false.
  *)
 let regexp pat =
-  let rex = Pcre_.regexp pat in
+  let rex = Pcre2_.regexp pat in
   let f path =
     let s = get_first_block path in
-    Pcre_.pmatch_noerr ~rex s
+    Pcre2_.pmatch_noerr ~rex s
   in
   Test_path f
 
@@ -263,6 +263,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Python2
     | Python3
     | Python
+    | Ql
     | R
     | Ruby
     | Rust

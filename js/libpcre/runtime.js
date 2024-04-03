@@ -167,7 +167,7 @@ function pcre_alloc_string(js_string) {
   var ptr;
   const array = libpcre.intArrayFromString(js_string);
   const length = array.length;
-  ptr = libpcre._malloc(length + 1);
+  ptr = libpcre._malloc(length);
   libpcre.writeArrayToMemory(array, ptr);
   return ptr;
 }

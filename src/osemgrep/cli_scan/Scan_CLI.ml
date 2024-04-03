@@ -168,32 +168,48 @@ let o_version_check : bool Term.t =
 
 let o_exclude : string list Term.t =
   let info =
-    Arg.info [ "exclude" ]
+    Arg.info [ "exclude" ] ~docv:"PATTERN"
       ~doc:
-        {|Skip any file or directory that matches this pattern;
---exclude='*.py' will ignore the following: foo.py, src/foo.py, foo.py/bar.sh.
---exclude='tests' will ignore tests/foo.py as well as a/b/tests/c/foo.py.
-Can add multiple times. If present, any --include directives are ignored.
+        (*
+         Note that osemgrep also supports negated "de-ignore" patterns such
+         as used in '--exclude=tests --exclude=!tests/main.c' to
+         re-include tests/main.c.
+         We're a bit evasive about this for now since pysemgrep and osemgrep
+         differ in that respect.
+      *)
+        {|Skip any file or directory whose path that matches $(docv).
+'--exclude=*.py' will ignore the following: 'foo.py', 'src/foo.py',
+'foo.py/bar.sh'.
+'--exclude=tests' will ignore 'tests/foo.py' as well as 'a/b/tests/c/foo.py'.
+Multiple '--exclude' options may be specified.
+$(docv) is a glob-style pattern that uses the same syntax as gitignore
+and semgrepignore, which is documented at
+https://git-scm.com/docs/gitignore#_pattern_format
 |}
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
 let o_include : string list Term.t =
   let info =
-    Arg.info [ "include" ]
+    Arg.info [ "include" ] ~docv:"PATTERN"
       ~doc:
-        {|Filter files or directories by path. The argument is a
-glob-style pattern such as 'foo.*' that must match the path. This is
-an extra filter in addition to other applicable filters. For example,
+        {|Specify files or directories that should be scanned by semgrep,
+excluding other files.
+This filter is applied after these other filters: '--exclude' options,
+any filtering done by git (or other SCM), and filtering by '.semgrepignore'
+files. Multiple '--include' options can be specified. A file path is selected
+if it matches at least one of the include patterns.
+$(docv) is a glob-style pattern such as 'foo.*' that
+must match the path. For example,
 specifying the language with '-l javascript' might preselect files
-'src/foo.jsx' and 'lib/bar.js'.  Specifying one of '--include=src',
-'-- include=*.jsx', or '--include=src/foo.*' will restrict the
-selection to the single file 'src/foo.jsx'. A choice of multiple '--
-include' patterns can be specified. For example, '--include=foo.*
+'src/foo.jsx' and 'lib/bar.js'. Specifying one of '--include=src',
+'--include=*.jsx', or '--include=src/foo.*' will restrict the
+selection to the single file 'src/foo.jsx'. A choice of multiple
+'--include' patterns can be specified. For example, '--include=foo.*
 --include=bar.*' will select both 'src/foo.jsx' and
 'lib/bar.js'. Glob-style patterns follow the syntax supported by
-python, which is documented at
-https://docs.python.org/3/library/glob.html
+gitignore and semgrepignore, which is documented at
+https://git-scm.com/docs/gitignore#_pattern_format
 |}
   in
   Arg.value (Arg.opt_all Arg.string [] info)
@@ -535,8 +551,9 @@ let o_no_secrets_validation : bool Term.t =
 let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
-      [ "allow-custom-validators" ]
-      ~doc:{|Run postprocessors from custom rules.|}
+      [ "allow-untrusted-validators" ]
+      ~doc:
+        {|Allows running rules with validators from origins other than semgrep.dev. Avoid running rules from origins you don't trust.|}
   in
   Arg.value (Arg.flag info)
 

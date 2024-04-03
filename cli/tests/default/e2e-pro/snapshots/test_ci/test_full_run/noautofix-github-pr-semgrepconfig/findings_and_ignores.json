@@ -557,7 +557,9 @@
   ],
   "token": null,
   "searched_paths": [
-    "foo.py"
+    "foo.py",
+    "poetry.lock",
+    "yarn.lock"
   ],
   "renamed_paths": [],
   "rule_ids": [
