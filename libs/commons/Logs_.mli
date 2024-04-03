@@ -118,7 +118,7 @@ val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
    A function that masks the timestamps in log output so that we can compare
    logs from one run to another. To be used as:
 
-     Testo.create ~checked_output:Stderr ~mask_output:[Logs_.mask_time] ...
+     Testo.create ~checked_output:(Testo.stderr ()) ~mask_output:[Logs_.mask_time] ...
 
    This is crude. Beware false positives.
 *)
@@ -129,7 +129,7 @@ val mask_time : string -> string
    logs:
 
      Testo.create
-        ~checked_output:Stderr
+        ~checked_output:(Testo.stderr ())
         ~mask_output:[Logs_.mask_log_lines]
         ...
 
