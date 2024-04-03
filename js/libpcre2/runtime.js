@@ -448,13 +448,13 @@ function pcre2_pattern_info_stub(v_rex, what, where) {
 //Provides: make_intnat_info
 //Requires: pcre2_auto_malloc, pcre2_pattern_info_stub, raise_internal_error
 function make_intnat_info(size, ty, name, option, v_rex) {
-    pcre2_auto_malloc([size], ([ptr]) => {
+    return pcre2_auto_malloc([size], ([ptr]) => {
         const ret = pcre2_pattern_info_stub(v_rex, option, ptr);
         if (ret != 0) {
             raise_internal_error(name);
         }
         return libpcre2.getValue(ptr, ty);
-    })
+    });
 }
 
 //Provides: pcre2_size_stub_bc
