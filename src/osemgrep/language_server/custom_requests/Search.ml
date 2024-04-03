@@ -91,8 +91,6 @@ let get_relevant_xlangs (server : RPC_server.t) : Xlang.t list =
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules (params : Request_params.t) (server : RPC_server.t) :
     Rule.t list =
-  (* TODO: figure out why rules_from_rules_source_async hangs *)
-  (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
   let rules_and_origins =
     Rule_fetching.rules_from_pattern (params.pattern, params.lang, None)
   in
@@ -118,20 +116,6 @@ let get_relevant_rules (params : Request_params.t) (server : RPC_server.t) :
       in
       Rule_fetching.partition_rules_and_errors rules_and_origins |> fst
   | other -> other
-
-(*
-  let relevant_xtargets_for_lang (files: Fpath.t list) (xlang: Xlang.t) : Xtarget.t list =
-    let filtered_files: Fpath.t list =
-      files
-      |> List.filter (fun target ->
-          Filter_target.filter_target_for_xlang xlang target)
-    in
-    filtered_files
-    |> List_.map (fun (file) ->
-      Xtarget.resolve parse_and_resolve_name
-      (Target.mk_regular xlang Product.all (File file))
-    )
-   *)
 
 (*****************************************************************************)
 (* Entry point *)
