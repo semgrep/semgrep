@@ -6,35 +6,7 @@ set -eux
 # history: there used to be a separate osx-m1-release.sh script
 # that was mostly a copy of this file, but now the
 # build steps are identical so we just have one script.
-
-# Note that this script runs from a self-hosted CI runner which
-# does not reset the environment between each run, so you may
-# need to do more cleanup than usually necessary.
-
-brew install opam
-opam init --no-setup --bare
-#still needed?
-#brew update
-
-# Some CI runners have tree-sitter preinstalled which interfere with
-# out static linking plans below so better to remove it.
-# TODO: fix setup-m1-builder.sh instead?
-brew uninstall --force semgrep
-brew uninstall --force tree-sitter
-
-SWITCH_NAME="${1:-4.14.0}"
-
-#coupling: this should be the same version than in our Dockerfile
-if opam switch "${SWITCH_NAME}" ; then
-    # This happens because the self-hosted CI runners do not
-    # cleanup things between each run.
-    echo "Switch ${SWITCH_NAME} exists, continuing"
-else
-    echo "Switch ${SWITCH_NAME} doesn't yet exist, creating..."
-    opam switch create "${SWITCH_NAME}"
-    opam switch "${SWITCH_NAME}"
-fi
-eval "$(opam env)"
+# Was previously combined with osx-setup-opam-for-release.sh
 
 #pad:??? What was for? This was set only for the M1 build before
 # Needed so we don't make config w/ sudo
