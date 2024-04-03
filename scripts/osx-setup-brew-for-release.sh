@@ -8,6 +8,12 @@ set -eux
 # build steps are identical so we just have one script.
 # Was previously combined with osx-setup-opam-for-release.sh
 
+# Some CI runners have tree-sitter preinstalled which interfere with
+# out static linking plans below so better to remove it.
+# TODO: fix setup-m1-builder.sh instead?
+brew uninstall --force semgrep
+brew uninstall --force tree-sitter
+
 #pad:??? What was for? This was set only for the M1 build before
 # Needed so we don't make config w/ sudo
 export HOMEBREW_SYSTEM=1
