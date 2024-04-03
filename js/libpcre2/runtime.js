@@ -380,9 +380,11 @@ function cstring_of_jsstring(js_string) {
 }
 
 //Provides: pcre2_compile_stub_bc
-//Requires: libpcre2, caml_jsstring_of_string, cstring_of_jsstring, pcre2_auto_malloc, raise_bad_pattern, NULL
+//Requires: libpcre2, caml_jsstring_of_string, cstring_of_jsstring, pcre2_auto_malloc, raise_bad_pattern, NULL, caml_int64_to_int32
 function pcre2_compile_stub_bc(v_opt, v_tables, v_pat) {
     var v_pat = caml_jsstring_of_string(v_pat);
+    // This is a uint32_t in PCRE2. I have no idea why the bindings use a int64.
+    const opt = caml_int64_to_int32(v_opt);
     const regexp_ptr = pcre2_auto_malloc([4, 4, 4], ([error_code_ptr, error_pos_ptr, regex_size_ptr]) => {
         if (v_tables != NULL) {
             throw new Error("v_tables not supported");
@@ -392,7 +394,7 @@ function pcre2_compile_stub_bc(v_opt, v_tables, v_pat) {
         const regex = libpcre2._pcre2_compile_8(
             str,
             len,
-            v_opt,
+            opt,
             error_code_ptr,
             error_pos_ptr,
             NULL
@@ -446,7 +448,7 @@ function pcre2_pattern_info_stub(v_rex, what, where) {
 }
 
 //Provides: make_intnat_info
-//Requires: pcre2_auto_malloc, pcre2_pattern_info_stub, raise_internal_error
+//Requires: libpcre2, pcre2_auto_malloc, pcre2_pattern_info_stub, raise_internal_error
 function make_intnat_info(size, ty, name, option, v_rex) {
     return pcre2_auto_malloc([size], ([ptr]) => {
         const ret = pcre2_pattern_info_stub(v_rex, option, ptr);
@@ -584,7 +586,7 @@ function handle_pcre2_match_result(ovec_ptr, v_ovec, ovec_len, subj_start, ret) 
 }
 
 //Provides: pcre2_match_stub0
-//Requires: libpcre2, caml_invalid_argument, cstring_of_jsstring, handle_match_error, handle_pcre2_match_result, NULL
+//Requires: libpcre2, caml_invalid_argument, cstring_of_jsstring, handle_match_error, handle_pcre2_match_result, NULL, caml_int64_to_int32
 function pcre2_match_stub0(
     v_opt,
     v_rex,
@@ -604,6 +606,8 @@ function pcre2_match_stub0(
     var [v_subj_ptr, len] = cstring_of_jsstring(v_subj);
 
     var ovec_len = v_ovec.length - 1; // Wosize_val(v_ovec)
+
+    const opt = caml_int64_to_int32(v_opt);
 
     if (!(subj_start <= pos && pos <= len)) {
         caml_invalid_argument("Pcre2.pcre2_match_stub: illegal position");
@@ -625,7 +629,7 @@ function pcre2_match_stub0(
     if (!v_maybe_cof) {
         if (is_dfa) {
             ret = libpcre2._pcre2_dfa_match_8(
-                code, ocaml_subj_ptr, len, pos, v_opt, match_data,
+                code, ocaml_subj_ptr, len, pos, opt, match_data,
                 match_context, v_workspace_ptr,
                 v_workspace_ptr.length - 1 /* Wosize_val(v_workspace) */
             );
@@ -635,7 +639,7 @@ function pcre2_match_stub0(
                 ocaml_subj_ptr,
                 len,
                 pos,
-                v_opt,
+                opt,
                 match_data,
                 match_context
             );

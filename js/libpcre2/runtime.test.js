@@ -19,6 +19,8 @@ globalThis.caml_raise_with_arg = (error, arg) => {
     throw new Error(`caml raise: {tag: ${error}, arg: ${arg}}`);
 };
 
+globalThis.caml_int64_to_int32 = (x) => x;
+
 globalThis.caml_named_value = (name) => {
     switch (name) {
         case "Pcre2.Error":
