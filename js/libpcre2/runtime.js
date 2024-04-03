@@ -586,7 +586,7 @@ function handle_pcre2_match_result(ovec_ptr, v_ovec, ovec_len, subj_start, ret) 
 }
 
 //Provides: pcre2_match_stub0
-//Requires: libpcre2, caml_invalid_argument, cstring_of_jsstring, handle_match_error, handle_pcre2_match_result, NULL, caml_int64_to_int32
+//Requires: libpcre2, caml_invalid_argument, cstring_of_jsstring, handle_match_error, handle_pcre2_match_result, NULL, caml_int64_to_int32, caml_jsstring_of_string
 function pcre2_match_stub0(
     v_opt,
     v_rex,
@@ -603,7 +603,7 @@ function pcre2_match_stub0(
     var pos = v_pos;
     var subj_start = v_subj_start;
 
-    var [v_subj_ptr, len] = cstring_of_jsstring(v_subj);
+    var [v_subj_ptr, len] = cstring_of_jsstring(caml_jsstring_of_string(v_subj));
 
     var ovec_len = v_ovec.length - 1; // Wosize_val(v_ovec)
 
@@ -708,9 +708,9 @@ function pcre2_names_stub(v_rex) {
 }
 
 //Provides: pcre2_substring_number_from_name_stub_bc
-//Requires: libpcre2, caml_invalid_argument, cstring_of_jsstring, PCRE2_ERROR_NOSUBSTRING
+//Requires: libpcre2, caml_invalid_argument, cstring_of_jsstring, PCRE2_ERROR_NOSUBSTRING, caml_jsstring_of_string
 function pcre2_substring_number_from_name_stub_bc(v_rex, v_name) {
-    const [str, _] = cstring_of_jsstring(v_name);
+    const [str, _] = cstring_of_jsstring(caml_jsstring_of_string(v_name));
     const ret = libpcre2._pcre2_substring_number_from_name_8(v_rex.rex, str);
     libpcre2._free(str);
 
