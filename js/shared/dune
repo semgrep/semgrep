@@ -7,6 +7,7 @@
    libyaml_stubs_js
    integers_stubs_js
    libpcre_stubs_js
+   libpcre2_stubs_js
    yaml_ctypes_overrides
    semgrep.parsing
    semgrep.data

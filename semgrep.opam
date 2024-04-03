@@ -48,6 +48,7 @@ depends: [
   "visitors" {= "20210608"}
   "re"
   "pcre"
+  "pcre2" {>= "7.5.2"}
   "ocamlgraph"
   "parmap"
   "semver"

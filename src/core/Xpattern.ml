@@ -26,7 +26,7 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (* Types *)
 (*****************************************************************************)
 
-type compiled_regexp = Regexp_engine.t [@@deriving show, eq]
+type compiled_regexp = Pcre2_.t [@@deriving show, eq]
 type regexp_string = string [@@deriving show, eq, hash]
 (* see the NOTE "Regexp" below for the need to have this type *)
 
