@@ -513,7 +513,11 @@ def ci(
         run_secrets and scan_handler and scan_handler.historical_config.enabled
     ) or historical_secrets
 
-    if run_historical_secrets_scan:
+    if run_historical_secrets_scan and metadata.merge_base_ref:
+        logger.info(
+            f"Historical scanning was enabled, but is not yet supported on diff scans."
+        )
+    elif run_historical_secrets_scan:
         try:
             console.print(Title("Secrets Historical Scan"))
 
