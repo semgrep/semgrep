@@ -119,7 +119,8 @@ let tests caps : Testo.test list =
          |> List_.map (fun (test_name, test_func) ->
                 Testo.create
                   ~category:[ "target selection on real git repos"; repo_name ]
-                  ~checked_output:Stdout ~normalize test_name (fun () ->
+                  ~checked_output:(Testo.stdout ()) ~normalize test_name
+                  (fun () ->
                     Git_wrapper.with_git_repo repo_files (fun () ->
                         test_func caps))))
   |> List_.flatten

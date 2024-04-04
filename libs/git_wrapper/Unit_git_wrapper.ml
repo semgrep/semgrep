@@ -22,7 +22,7 @@ let normalize =
   [ mask_temp_git_hash; Testutil.mask_temp_paths (); mask_test_dirname ]
 
 let t = Testo.create
-let capture = Testo.create ~checked_output:Stdout ~normalize
+let capture = Testo.create ~checked_output:(Testo.stdout ()) ~normalize
 
 (*
    List repo files relative to 'cwd' which can be the root of the git repo,

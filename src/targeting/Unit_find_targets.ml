@@ -98,7 +98,8 @@ let test_find_targets ?includes ?(excludes = [])
                printf "ignored %s [%s]\n" !!(x.path)
                  (Out.show_skip_reason x.reason)))
   in
-  Testo.create name test_func ~category:[ category ] ~checked_output:Stdout
+  Testo.create name test_func ~category:[ category ]
+    ~checked_output:(Testo.stdout ())
     ~normalize:
       [
         Testo.mask_temp_paths ();
