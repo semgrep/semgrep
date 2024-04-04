@@ -390,8 +390,8 @@ let rec get_resolved_type lang (vinit, vtype) =
 
 let is_resolvable_name_ctx env lang =
   match top_context env with
-  | AtToplevel
-  | InFunction ->
+  | InFunction
+  | AtToplevel ->
       true
   | InClass -> (
       match lang with
