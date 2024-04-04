@@ -3,10 +3,6 @@ set -eux
 
 # Setup the environment under MacOS to build and release semgrep-core.
 
-# history: there used to be a separate osx-m1-release.sh script
-# that was mostly a copy of this file, but now the
-# build steps are identical so we just have one script.
-#
 # We separate out opam configuration because we have some scripts which rely
 # on building with opam before running the rest of MacOS setup. In particular,
 # to link pcre2, we need to install opam, build with it dynamically linked, 
