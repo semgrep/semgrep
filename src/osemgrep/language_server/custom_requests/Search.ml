@@ -15,7 +15,6 @@
 
 open Lsp
 open Lsp.Types
-open Fpath_.Operators
 module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
@@ -129,20 +128,18 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
-    Rule.search_rule list =
-  let search_rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list
-      =
+    Rule.rules =
+  let rules_of_langs (lang_opt : Xlang.t option) : Rule.rules =
     let rules_and_origins =
       Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
     in
     let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
-    let search_rules, _, _, _ = Rule.partition_rules rules in
-    search_rules
+    rules
   in
   let xlangs = get_relevant_xlangs env in
   let rules_with_relevant_xlang =
-    search_rules_of_langs None
-    |> List.filter (fun (rule : Rule.search_rule) ->
+    rules_of_langs None
+    |> List.filter (fun (rule : Rule.rule) ->
            List.mem rule.target_analyzer xlangs)
   in
   match rules_with_relevant_xlang with
@@ -154,12 +151,8 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   | []
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
-      search_rules_of_langs (Some Xlang.LRegex)
+      rules_of_langs (Some Xlang.LRegex)
   | other -> other
-
-(*****************************************************************************)
-(* Running Semgrep! *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -175,21 +168,34 @@ let on_request (server : RPC_server.t) params =
       let env = mk_env server params in
       let rules = get_relevant_rules env in
       (* !!calling the engine!! *)
+      let matches, _scanned =
+        let session =
+          {
+            server.session with
+            user_settings =
+              { server.session.user_settings with only_git_dirty = false };
+          }
+        in
+        Scan_helpers.run_semgrep ~targets:env.initial_files
+          { server with session } ~rules
+      in
       let matches_by_file =
-        Scan_helpers.run_core_search env.initial_files rules
+        matches
+        |> List_.map (fun (m : OutJ.cli_match) -> (Fpath.to_string m.path, m))
+        |> Common2.group_assoc_bykey_eff
       in
       let json =
         List_.map
           (fun (path, matches) ->
-            let uri = !!path |> Uri.of_path |> Uri.to_string in
+            let uri = path |> Uri.of_path |> Uri.to_string in
             let matches =
               matches
-              |> List_.map (fun (m : Pattern_match.t) ->
+              |> List_.map (fun (m : OutJ.cli_match) ->
                      let range_json =
-                       Range.yojson_of_t (Conv.range_of_toks m.range_loc)
+                       Range.yojson_of_t (Conv.range_of_cli_match m)
                      in
                      let fix_json =
-                       match m.rule_id.fix with
+                       match m.extra.fix with
                        | None -> `Null
                        | Some s -> `String s
                      in
