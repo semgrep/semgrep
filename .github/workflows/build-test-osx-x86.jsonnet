@@ -65,7 +65,7 @@ local build_core_job = {
       name: 'Install dependencies',
       run: |||
         ./scripts/osx-setup-opam-for-release.sh "%s"
-        ./scripts/osx-setup-brew-for-release.sh
+        ./scripts/osx-setup-post-opam-for-release.sh
       ||| % semgrep.opam_switch,
     },
     {
