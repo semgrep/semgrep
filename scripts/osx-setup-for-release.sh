@@ -22,6 +22,8 @@ opam init --no-setup --bare
 brew uninstall --force semgrep
 brew uninstall --force tree-sitter
 
+ls -l /usr/lib
+
 SWITCH_NAME="${1:-4.14.0}"
 
 #coupling: this should be the same version than in our Dockerfile
