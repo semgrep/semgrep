@@ -119,17 +119,6 @@ let login_url_regex =
   Pcre2_.pcre_compile {|https://semgrep.dev/login\?cli-token=.*"|}
 
 let prog_regex = Pcre2_.pcre_compile {|Pr([\s\S]*)|}
-
-(* Not setting this means that really nasty errors happen when an exception
-   is raised inside of an Lwt.async, when running the Alcotests.
-   As in, the tests will just exit with no error message at all.
-*)
-let () =
-  Lwt.async_exception_hook :=
-    fun exn ->
-      let err = Printexc.to_string exn in
-      Alcotest.fail err
-
 let timeout = 30.0
 (*****************************************************************************)
 (* Helpers *)
@@ -144,14 +133,6 @@ let open_and_write_default_content ?(mode = []) file =
   output_string oc default_content;
   close_out oc
 
-(* When running the JSCaml code, if we do an actual pause, the tests will
-   straight up exit, without giving any error messages or anything.
-   Further investigation seemed to show that pausing caused an issue with
-   how the promises resolve, such that the sleeping thread would stay
-   sleeping and the entire process would eventually exit.
-   So, when running in JSCaml, let's just not use pauses. *)
-let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
-
 let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
   let timeout_promise =
     let%lwt () = Lwt_platform.sleep timeout in
@@ -164,16 +145,17 @@ let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
 (* Core primitives *)
 (*****************************************************************************)
 
-let send (info : info) packet : unit Lwt.t =
+let send (info : info) packet : unit =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
-  | _ -> Lwt.return ((snd info.in_stream) (Some packet))
+  | _ ->
+      let push_func = snd info.in_stream in
+      push_func (Some packet)
 
 let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
-      let%lwt () = lwt_pause () in
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
       match server_msg with
       | Some packet -> Lwt.return packet
@@ -183,7 +165,7 @@ let receive (info : info) : Packet.t Lwt.t =
 (* Specific send/receive functions *)
 (*****************************************************************************)
 
-let send_request info request : unit Lwt.t =
+let send_request info request : unit =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
   let packet = Packet.Request (CR.to_jsonrpc_request request (`String id)) in
   send info packet
@@ -191,7 +173,7 @@ let send_request info request : unit Lwt.t =
 let send_custom_request ~meth ?params info =
   send_request info (CR.UnknownRequest { meth; params })
 
-let send_notification info (notification : Client_notification.t) : unit Lwt.t =
+let send_notification info (notification : Client_notification.t) : unit =
   let packet =
     Packet.Notification (Client_notification.to_jsonrpc notification)
   in
@@ -637,7 +619,7 @@ let assert_progress info message =
 
 let check_startup info folders (files : Fpath.t list) =
   (* initialize *)
-  let%lwt () = send_initialize info folders in
+  send_initialize info folders;
 
   let%lwt resp = receive_response info in
   assert_contains (Response.yojson_of_t resp) "capabilities";
@@ -648,9 +630,7 @@ let check_startup info folders (files : Fpath.t list) =
       files
   in
 
-  let%lwt () =
-    Lwt_list.iter_s (fun file -> send_did_open info file) scanned_files
-  in
+  List.iter (send_did_open info) scanned_files;
   let%lwt () =
     Lwt_list.iter_s
       (fun _ ->
@@ -659,7 +639,7 @@ let check_startup info folders (files : Fpath.t list) =
         Lwt.return_unit)
       scanned_files
   in
-  let%lwt () = send_initialized info in
+  send_initialized info;
   let%lwt () = assert_progress info "Refreshing Rules" in
 
   let%lwt () = assert_progress info "Scanning Open Documents" in
@@ -697,15 +677,22 @@ let check_startup info folders (files : Fpath.t list) =
 (*****************************************************************************)
 
 let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
+  (* Not setting this means that really nasty errors happen when an exception
+     is raised inside of an Lwt.async, when running the Alcotests.
+     As in, the tests will just exit with no error message at all.
+  *)
   (Lwt.async_exception_hook :=
      fun exn ->
        let err = Printexc.to_string exn in
+       let traceback = Printexc.get_backtrace () in
        Logs.err (fun m -> m "Got exception: %s" err);
-       Alcotest.fail err);
+       Logs.err (fun m -> m "Traceback:\n%s" traceback);
+       Alcotest.fail "Got exception in Lwt.async during tests");
   let info = create_info caps in
-  let server_promise = LanguageServer.start info.server in
-  let f_promise = f info in
-  Lwt.join [ f_promise; server_promise ]
+  let server_promise () = LanguageServer.start info.server in
+  (* Separate promise so we actually bubble up errors from this one *)
+  Lwt.async server_promise;
+  f info
 
 let test_ls_specs caps () =
   with_session caps (fun info ->
@@ -716,7 +703,7 @@ let test_ls_specs caps () =
         files
         |> Lwt_list.iter_s (fun file ->
                (* didOpen *)
-               let%lwt () = send_did_save info file in
+               send_did_save info file;
 
                (* add content *)
                let%lwt params =
@@ -737,7 +724,7 @@ let test_ls_specs caps () =
                open_and_write_default_content ~mode:[ Open_append ] file;
 
                (* didSave *)
-               let%lwt () = send_did_save info file in
+               send_did_save info file;
 
                let%lwt params =
                  receive_notification_params
@@ -759,10 +746,8 @@ let test_ls_specs caps () =
                let char_end = diagnostic.range.end_.character in
 
                (* get code actions *)
-               let%lwt () =
-                 send_code_action info ~path:file ~diagnostics:[ diagnostic ]
-                   ~line_start ~char_start ~line_end ~char_end
-               in
+               send_code_action info ~path:file ~diagnostics:[ diagnostic ]
+                 ~line_start ~char_start ~line_end ~char_end;
                let%lwt res =
                  receive_response_result CodeActionResult.t_of_yojson info
                in
@@ -784,11 +769,9 @@ let test_ls_specs caps () =
                in
 
                (* execute command *)
-               let%lwt () =
-                 send_execute_command ~command:command.command
-                   ~arguments:(Option.get command.arguments)
-                   info
-               in
+               send_execute_command ~command:command.command
+                 ~arguments:(Option.get command.arguments)
+                 info;
                let%lwt params =
                  receive_notification_params
                    PublishDiagnosticsParams.t_of_yojson info
@@ -810,8 +793,8 @@ let test_ls_specs caps () =
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
       (* Tests target caching *)
-      let%lwt () = send_did_add info added in
-      let%lwt () = send_did_open info added in
+      send_did_add info added;
+      send_did_open info added;
 
       let%lwt notif = receive_notification info in
       let%lwt () =
@@ -819,12 +802,13 @@ let test_ls_specs caps () =
           [ `String "eqeq-five"; `String "eqeq-five" ]
       in
 
-      let%lwt () = send_did_delete info added in
+      send_did_delete info added;
 
       let%lwt notif = receive_notification info in
       let%lwt () = check_diagnostics notif added [] in
 
-      send_exit info)
+      send_exit info;
+      Lwt.return_unit)
 
 let test_ls_ext caps () =
   with_session caps (fun info ->
@@ -833,7 +817,7 @@ let test_ls_ext caps () =
           let%lwt () = check_startup info [ root ] files in
 
           (* scan workspace *)
-          let%lwt () = send_semgrep_scan_workspace info in
+          send_semgrep_scan_workspace info;
           let%lwt () = assert_progress info "Scanning Workspace" in
 
           let scanned_files =
@@ -855,7 +839,7 @@ let test_ls_ext caps () =
           in
 
           (* scan workspace full *)
-          let%lwt () = send_semgrep_scan_workspace ~full:true info in
+          send_semgrep_scan_workspace ~full:true info;
 
           Logs.app (fun m -> m "Waiting for scan to finish 2");
           let%lwt notif = receive_notification info in
@@ -891,7 +875,7 @@ let test_ls_ext caps () =
           in
 
           (* search *)
-          let%lwt () = send_semgrep_search info "print(...)" in
+          send_semgrep_search info "print(...)";
           let%lwt resp = receive_response info in
           assert (
             YS.Util.(
@@ -902,7 +886,7 @@ let test_ls_ext caps () =
           let%lwt () =
             files
             |> Lwt_list.iter_s (fun file ->
-                   let%lwt () = send_hover info file ~character:1 ~line:0 in
+                   send_hover info file ~character:1 ~line:0;
                    let%lwt resp = receive_response info in
                    assert (resp.result |> Result.get_ok <> `Null);
                    (* just checking that "contents" exists *)
@@ -915,7 +899,7 @@ let test_ls_ext caps () =
           let%lwt () =
             files
             |> Lwt_list.iter_s (fun file ->
-                   let%lwt () = send_semgrep_show_ast info file in
+                   send_semgrep_show_ast info file;
                    let%lwt resp = receive_response info in
                    let resp =
                      resp.result |> Result.get_ok |> YS.Util.to_string
@@ -924,7 +908,8 @@ let test_ls_ext caps () =
                    Lwt.return_unit)
           in
 
-          send_exit info))
+          send_exit info;
+          Lwt.return_unit))
 
 let test_ls_multi caps () =
   with_session caps (fun info ->
@@ -942,7 +927,7 @@ let test_ls_multi caps () =
 
       let%lwt () = check_startup info workspace_folders files in
 
-      let%lwt () = send_did_change_folder info ~removed:[ workspace1_root ] in
+      send_did_change_folder info ~removed:[ workspace1_root ];
 
       let%lwt () = assert_progress info "Scanning Workspace" in
 
@@ -966,7 +951,7 @@ let test_ls_multi caps () =
                else check_diagnostics notif file [ `String "eqeq-five" ])
       in
 
-      let%lwt () = send_did_change_folder info ~added:[ workspace1_root ] in
+      send_did_change_folder info ~added:[ workspace1_root ];
 
       let%lwt () = assert_progress info "Scanning Workspace" in
 
@@ -976,7 +961,8 @@ let test_ls_multi caps () =
                let%lwt notif = receive_notification info in
                check_diagnostics notif file [ `String "eqeq-five" ])
       in
-      send_exit info)
+      send_exit info;
+      Lwt.return_unit)
 
 let _test_login caps () =
   with_session caps (fun info ->
@@ -989,11 +975,11 @@ let _test_login caps () =
       let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
-          let%lwt () = send_initialize info [] in
+          send_initialize info [];
           let%lwt resp = receive_response info in
           assert_contains (Response.yojson_of_t resp) "capabilities";
 
-          let%lwt () = send_custom_request ~meth:"semgrep/login" info in
+          send_custom_request ~meth:"semgrep/login" info;
           let%lwt msg = receive_response info in
 
           let url =
@@ -1002,13 +988,15 @@ let _test_login caps () =
 
           assert (Pcre2_.unanchored_match login_url_regex url);
           Semgrep_settings.save settings |> ignore;
-          send_exit info))
+          send_exit info;
+          Lwt.return_unit))
 
 let test_ls_no_folders caps () =
   with_session caps (fun info ->
       let%lwt () = check_startup info [] [] in
 
-      send_exit info)
+      send_exit info;
+      Lwt.return_unit)
 
 let test_ls_libev () =
   Lwt_platform.set_engine ();
