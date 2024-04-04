@@ -22,16 +22,7 @@ opam init --no-setup --bare
 brew uninstall --force semgrep
 brew uninstall --force tree-sitter
 
-ls -l /usr/lib
-
-brew install git
-
-ls -l /usr/lib
-
-brew install pcre2
-
-ls -l /usr/lib
-
+ls -l
 SWITCH_NAME="${1:-4.14.0}"
 
 #coupling: this should be the same version than in our Dockerfile
@@ -59,6 +50,7 @@ LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
+ls -l "$(brew --prefix)"/opt/pcre2/lib || true
 ls -l "$(brew --prefix)"/opt/gmp/lib || true
 ls -l "$(brew --prefix)"/opt/libev/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
