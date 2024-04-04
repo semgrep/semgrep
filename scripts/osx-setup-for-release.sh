@@ -24,6 +24,14 @@ brew uninstall --force tree-sitter
 
 ls -l /usr/lib
 
+brew install git
+
+ls -l /usr/lib
+
+brew install pcre2
+
+ls -l /usr/lib
+
 SWITCH_NAME="${1:-4.14.0}"
 
 #coupling: this should be the same version than in our Dockerfile
