@@ -1,3 +1,6 @@
+[@@@ocaml.deprecated
+"Pcre_ is deprecated in favour of Pcre2_. Pcre_ should only be used in \
+ existing generic mode code."]
 (*
    Wrappers for using the Pcre module safely with settings that make
    sense for semgrep such as automatically setting some flags and
@@ -228,3 +231,5 @@ val get_named_substring_and_ofs :
   string ->
   Pcre.substrings ->
   ((string * (int * int)) option, string) Result.t
+
+val quote : string -> string

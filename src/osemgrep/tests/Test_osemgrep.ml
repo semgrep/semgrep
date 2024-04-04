@@ -50,7 +50,7 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Testo.test =
-  Testo.create ~checked_output:Stderr __FUNCTION__
+  Testo.create ~checked_output:(Testo.stderr ()) __FUNCTION__
     ~normalize:[ Testo.mask_not_substrings [ "Saved access token" ] ]
     (TL.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token

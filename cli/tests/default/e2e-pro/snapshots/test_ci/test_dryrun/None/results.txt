@@ -218,7 +218,8 @@ Would have sent findings and ignores blob: {
                     ]
                 ]
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "supply-chain1",
@@ -265,7 +266,8 @@ Would have sent findings and ignores blob: {
                     },
                     "lockfile": "poetry.lock"
                 }
-            }
+            },
+            "engine_kind": "OSS"
         },
         {
             "check_id": "abceversion1",
@@ -301,7 +303,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-four",
@@ -338,7 +341,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-five",
@@ -373,7 +377,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052",
                 "pattern_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -398,7 +403,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "bbe58d6d77d6bcf2aba1a2ea780990cc922fab514445048b3bf5b50a7a7c0250",
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -423,7 +429,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "97c1aa56d43d22e7ec10a8ca99ceab7e02749262a4be0c51683dd353b3b1a868",
                 "pattern_hash": "06b2540894e5b13085b613a69a474505628594986504f246b7a521b99ce10bf2"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -448,7 +455,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241",
                 "pattern_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -473,7 +481,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -498,7 +507,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -523,7 +533,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         }
     ],
     "ignores": [
@@ -561,7 +572,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-four",
@@ -598,7 +610,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-five",
@@ -633,7 +646,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850",
                 "pattern_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -658,7 +672,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613",
                 "pattern_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -683,7 +698,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f",
                 "pattern_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         },
         {
             "check_id": "eqeq-bad",
@@ -708,7 +724,8 @@ Would have sent findings and ignores blob: {
                 "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
-            "validation_state": "NO_VALIDATOR"
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO"
         }
     ],
     "token": null,

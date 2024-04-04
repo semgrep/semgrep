@@ -329,10 +329,9 @@ _scan_options: List[Callable] = [
         hidden=True,
     ),
     optgroup.option(
-        "--allow-custom-validators",
+        "--allow-untrusted-validators",
         "allow_untrusted_validators",
         is_flag=True,
-        hidden=True,
     ),
 ]
 
