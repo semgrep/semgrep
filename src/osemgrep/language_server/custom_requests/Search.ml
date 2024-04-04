@@ -98,17 +98,6 @@ type env = {
 }
 
 (*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
-    AST_generic.program * Tok.location list =
-  let { Parsing_result2.ast; skipped_tokens; _ } =
-    Parse_target.parse_and_resolve_name lang fpath
-  in
-  (ast, skipped_tokens)
-
-(*****************************************************************************)
 (* Information gathering *)
 (*****************************************************************************)
 
@@ -172,45 +161,6 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
 (* Running Semgrep! *)
 (*****************************************************************************)
 
-let runner (env : env) rules =
-  (* Ideally we would just use this, but it seems to err.
-     I suspect that Find_targets.git_list_files is not quite correct.
-  *)
-  (* let _res = Find_targets.get_target_fpaths Scan_CLI.default.targeting_conf env.roots in *)
-  (* TODO: Streaming matches!! *)
-  let hook _file _pm = () in
-  rules
-  |> List.concat_map (fun (rule : Rule.search_rule) ->
-         let xlang = rule.target_analyzer in
-         (* We have to look at all the initial files again when we do this.
-            TODO: Maybe could be better to infer languages from each file,
-            so we only have to look at each file once.
-         *)
-         let filtered_files : Fpath.t list =
-           env.initial_files
-           |> List.filter (fun target ->
-                  Filter_target.filter_target_for_xlang xlang target)
-         in
-         filtered_files
-         |> List_.map (fun file ->
-                Xtarget.resolve parse_and_resolve_name
-                  (Target.mk_regular xlang Product.all (File file)))
-         |> List_.map_filter (fun xtarget ->
-                try
-                  (* !!calling the engine!! *)
-                  let ({ Core_result.matches; _ } : _ Core_result.match_result)
-                      =
-                    Match_search_mode.check_rule rule hook
-                      Match_env.default_xconfig xtarget
-                  in
-                  match (matches, xtarget.path.origin) with
-                  | [], _ -> None
-                  | _, File path -> Some (path, matches)
-                  (* This shouldn't happen. *)
-                  | _, GitBlob _ -> None
-                with
-                | Parsing_error.Syntax_error _ -> None))
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -225,7 +175,9 @@ let on_request (server : RPC_server.t) params =
       let env = mk_env server params in
       let rules = get_relevant_rules env in
       (* !!calling the engine!! *)
-      let matches_by_file = runner env rules in
+      let matches_by_file =
+        Scan_helpers.run_core_search env.initial_files rules
+      in
       let json =
         List_.map
           (fun (path, matches) ->
