@@ -6,7 +6,7 @@ set -eux
 
 # We separate out opam configuration because we have some scripts which rely
 # on building with opam before running the rest of MacOS setup. In particular,
-# to link pcre2, we need to install opam, build with it dynamically linked, 
+# to link pcre2, we need to install opam, build with it dynamically linked,
 # then remove it so it can be statically linked.
 
 brew install opam
