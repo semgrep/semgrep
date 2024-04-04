@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -eux
 
-# Setup the environment under MacOS to build and release semgrep-core.
+# Setup the opam environment under MacOS to build and release semgrep-core.
+# All other MacOS-related setup should be in `osx-setup-post-opam-for-release.sh`
 
 # We separate out opam configuration because we have some scripts which rely
 # on building with opam before running the rest of MacOS setup. In particular,
