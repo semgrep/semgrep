@@ -7,10 +7,10 @@ set -eux
 # that was mostly a copy of this file, but now the
 # build steps are identical so we just have one script.
 #
-# Previously this was a combined file with other code to handle forcing static
-# linkage, but this caused issues due to git's runtime dependency on pcre2.
-# Ideally we would have a better way of causing static linking than removing
-# potential runtime deps of other things in the build script.
+# We separate out opam configuration because we have some scripts which rely
+# on building with opam before running the rest of MacOS setup. In particular,
+# to link pcre2, we need to install opam, build with it dynamically linked, 
+# then remove it so it can be statically linked.
 
 brew install opam
 opam init --no-setup --bare
