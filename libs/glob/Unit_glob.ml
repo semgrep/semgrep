@@ -24,7 +24,8 @@ let test pattern path matches () =
      pattern info:\n\
      %s\n\
      %s\n"
-    pattern path matches res (Pattern.show pat) (Match.show compiled_pat);
+    pattern path matches res (Pattern.show pat)
+    (Match.show_compiled_pattern compiled_pat);
   Alcotest.(check bool) __LOC__ matches res
 
 (*****************************************************************************)

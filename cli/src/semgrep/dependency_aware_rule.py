@@ -1,3 +1,4 @@
+from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
@@ -5,6 +6,8 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import Tuple
+
+from attr import evolve
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
@@ -74,6 +77,7 @@ def generate_unreachable_sca_findings(
     ecosystems = list(rule.ecosystems)
 
     non_reachable_matches = []
+    match_based_keys: dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
         lockfile_paths = target_manager.get_lockfiles(ecosystem, SCA_PRODUCT)
 
@@ -122,6 +126,10 @@ def generate_unreachable_sca_findings(
                         )
                     },
                 )
+                match = evolve(
+                    match, match_based_index=match_based_keys[match.match_based_key]
+                )
+                match_based_keys[match.match_based_key] += 1
                 non_reachable_matches.append(match)
     return non_reachable_matches, dep_rule_errors
 
@@ -155,7 +163,7 @@ def generate_reachable_sca_findings(
         for match in matches:
             try:
                 lockfile_path = target_manager.find_single_lockfile(
-                    match.path, ecosystem
+                    match.path, ecosystem, ignore_baseline_handler=True
                 )
                 if lockfile_path is None:
                     continue

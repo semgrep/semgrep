@@ -1,0 +1,1 @@
+Fixed incorrect ecosystem being used for Elixir. Hex should be used instead of Mix.

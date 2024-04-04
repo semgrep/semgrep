@@ -15,12 +15,13 @@ let t = Testo.create
 (*
    In these tests, the file hierarchy must contain the
    .gitignore and .semgrepignore files but the target files are not
-   needed.
+   needed. Tests that check for the detection of target files are
+   in Unit_find_targets.ml.
+
    Similar to Unit_gitignore.test_filter, but using Semgrepignore.create
    and the includes/excludes extra parameters.
 *)
-let test_filter ?includes:include_patterns ?excludes:cli_patterns
-    (files : F.t list) selection () =
+let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
   F.with_tempdir ~chdir:true (fun root ->
       let files = F.sort files in
       printf "--- All files ---\n";
@@ -30,8 +31,7 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       assert (files2 = files);
       printf "--- Filtered files ---\n";
       let filter =
-        Semgrepignore.create ?include_patterns ?cli_patterns
-          ~builtin_semgrepignore:Empty
+        Semgrepignore.create ?cli_patterns ~builtin_semgrepignore:Empty
           ~exclusion_mechanism:Gitignore_and_semgrepignore ~project_root:root ()
       in
       let error = ref false in
@@ -39,25 +39,30 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       |> List.iter (fun (path, should_be_selected) ->
              let path = Ppath.of_string_for_tests path in
              let status, selection_events =
-               Common.save_excursion Glob.Match.debug true (fun () ->
-                   Semgrepignore.select filter path)
+               Gitignore_filter.select filter path
              in
-             printf "Selection events for path %s:\n" (Ppath.to_string path);
+             printf "Selection events for ppath %s:\n"
+               (Ppath.to_string_for_tests path);
              print_string (Gitignore.show_selection_events selection_events);
              if should_be_selected then (
                match status with
                | Not_ignored ->
-                   printf "[OK] %s: not ignored\n" (Ppath.to_string path)
+                   printf "[OK] ppath %s: not ignored\n"
+                     (Ppath.to_string_for_tests path)
                | Ignored ->
-                   printf "[FAIL] %s: ignored\n" (Ppath.to_string path);
+                   printf "[FAIL] ppath %s: ignored\n"
+                     (Ppath.to_string_for_tests path);
                    error := true)
              else
                match status with
                | Not_ignored ->
-                   printf "[FAIL] %s: not ignored\n" (Ppath.to_string path);
+                   printf "[FAIL] ppath %s: not ignored\n"
+                     (Ppath.to_string_for_tests path);
                    error := true
-               | Ignored -> printf "[OK] %s: ignored\n" (Ppath.to_string path));
-      assert (not !error))
+               | Ignored ->
+                   printf "[OK] ppath %s: ignored\n"
+                     (Ppath.to_string_for_tests path));
+      if !error then Alcotest.fail "there were some unexpected results")
 
 (*****************************************************************************)
 (* The tests *)
@@ -95,14 +100,6 @@ let tests =
              ("/dir/b", false);
              ("/dir/c", true);
            ]);
-      t "includes"
-        (test_filter ~includes:[ "*.ml" ] []
-           [
-             ("/a.ml", true);
-             ("/a.c", false);
-             ("/b/a.ml", true);
-             ("/b/a.c", false);
-           ]);
       t "excludes"
         (test_filter ~excludes:[ "*.ml" ] []
            [
@@ -110,27 +107,5 @@ let tests =
              ("/a.c", true);
              ("/b/a.ml", false);
              ("/b/a.c", true);
-           ]);
-      t "includes + excludes"
-        (test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ] []
-           [
-             ("/a.ml", false);
-             ("/a.c", false);
-             ("/src/a.ml", true);
-             ("/src/a.c", false);
-           ]);
-      t "includes + excludes + semgrepignore"
-        (test_filter ~includes:[ "/src" ] ~excludes:[ "*.c" ]
-           [
-             (* command-line level includes/excludes take precedence over
-                gitignore/semgrepignore files, so this is ignored. *)
-             File (".semgrepignore", "!b.*");
-           ]
-           [
-             ("/a.ml", false);
-             ("/a.c", false);
-             ("/src/a.ml", true);
-             ("/src/a.c", false);
-             ("/src/b.c", false);
            ]);
     ]

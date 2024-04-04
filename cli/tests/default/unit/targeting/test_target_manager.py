@@ -9,9 +9,13 @@ from typing import List
 import pytest
 
 from semgrep.error import FilesNotFoundError
+from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import SAST_PRODUCT
+from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
 
@@ -439,3 +443,102 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
     )
+
+
+@pytest.mark.kinda_slow
+def test_ignore_baseline_handler(monkeypatch, tmp_path):
+    """
+    Test verifies unchanged lockfiles are returned if ignore_baseline_handler=True,
+    and only changed lockfiles are returned if ignore_baseline_handler=False
+    """
+    monkeypatch.chdir(tmp_path)
+
+    # Initialize State
+    subprocess.check_call(["git", "init"])
+    subprocess.check_call(
+        ["git", "config", "user.email", "baselinehandlertest@semgrep.com"]
+    )
+    subprocess.check_call(["git", "config", "user.name", "Baseline TestHandler"])
+    subprocess.check_call(["git", "checkout", "-B", "main"])
+
+    targets: List[str] = []
+
+    # Create dir_a/poetry.lock, dir_b/poetry.lock and dir_c/poetry.lock
+    cwd = Path(".")
+    targets.append(str(cwd))
+    dir_a = Path("dir_a")
+    dir_a.mkdir()
+    dir_a_poetry = dir_a / "poetry.lock"
+    dir_a_poetry.touch()
+    dir_b = Path("dir_b")
+    dir_b.mkdir()
+    dir_b_poetry = dir_b / "poetry.lock"
+    dir_b_poetry.touch()
+
+    # Add and commit dir_a and dir_b
+    subprocess.check_call(["git", "add", "."])
+    subprocess.check_call(["git", "commit", "-m", "first"])
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    # Modify dir_b/poetry.lock and add dir_c/poetry.lock
+    dir_b_poetry.write_text("#comment")
+    dir_c = Path("dir_c")
+    dir_c.mkdir()
+    dir_c_poetry = dir_c / "poetry.lock"
+    dir_c_poetry.touch()
+
+    # Add and commit changes
+    subprocess.check_call(["git", "add", "."])
+    subprocess.check_call(["git", "commit", "-m", "second"])
+
+    # Set up TargetManager
+    baseline_handler = BaselineHandler(base_commit, True)
+    target_manager = TargetManager(
+        target_strings=frozenset(targets), baseline_handler=baseline_handler
+    )
+
+    # Call get_files_for_language with ignore_baseline_handler=False
+    # Should only return lockfiles in dir_b and dir_c as they were changed after base_commit
+    diff_files = target_manager.get_files_for_language(
+        Ecosystem(Pypi()), SCA_PRODUCT, False
+    ).kept
+    assert {str(dir_b_poetry), str(dir_c_poetry)} == {
+        str(path) for path in diff_files
+    }, "Should only include modified lockfiles"
+
+    # Call get_files_for_language with ignore_baseline_handler=True
+    # Should return all three lockfiles
+    all_files = target_manager.get_files_for_language(
+        Ecosystem(Pypi()), SCA_PRODUCT, True
+    ).kept
+    assert {str(dir_a_poetry), str(dir_b_poetry), str(dir_c_poetry)} == {
+        str(path) for path in all_files
+    }, "Should include unchanged lockfiles as well"
+
+    # Assert correct behaviour for finding single lockfile
+    assert (
+        target_manager.find_single_lockfile(dir_a_poetry, Ecosystem(Pypi()), False)
+        == None
+    ), "Should return None for unchanged lockfile"
+    assert (
+        target_manager.find_single_lockfile(dir_a_poetry, Ecosystem(Pypi()), True)
+        == dir_a_poetry
+    ), "Should return the unchanged lockfile since we are passing ignore_baseline_handler=True"
+    assert (
+        target_manager.find_single_lockfile(dir_b_poetry, Ecosystem(Pypi()), False)
+        == dir_b_poetry
+    ), "Should return the modified lockfile"
+    assert (
+        target_manager.find_single_lockfile(dir_b_poetry, Ecosystem(Pypi()), True)
+        == dir_b_poetry
+    ), "Should return the modified lockfile"
+    assert (
+        target_manager.find_single_lockfile(dir_c_poetry, Ecosystem(Pypi()), False)
+        == dir_c_poetry
+    ), "Should return the newly-added lockfile"
+    assert (
+        target_manager.find_single_lockfile(dir_c_poetry, Ecosystem(Pypi()), True)
+        == dir_c_poetry
+    ), "Should return the newly-added lockfile"

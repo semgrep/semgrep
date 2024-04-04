@@ -1,0 +1,15 @@
+Test name: with git > deep include
+--- Files added before 'git add' ---
+dir/a
+dir/b
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 dir/a
+ create mode 100644 dir/b
+--- '--include' patterns ---
+a
+--- Selected targets ---
+selected dir/a
+--- Skipped targets ---
+ignored dir/b [Semgrep_output_v1_t.Cli_include_flags_do_not_match]

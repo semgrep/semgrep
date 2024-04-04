@@ -303,7 +303,7 @@ let add_engine_type (engine_type : Engine_type.t) =
                    Semgrep_metrics_t.secrets_config ->
                 {
                   permitted_origins =
-                    (if conf.allow_all_origins then `Any else `Semgrep);
+                    (if conf.allow_all_origins then `Any else `NoCommunity);
                 })
               secrets_config;
           supply_chain_config =

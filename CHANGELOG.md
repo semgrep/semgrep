@@ -6,6 +6,71 @@
 
 <!-- insertion point -->
 
+## [1.67.0](https://github.com/returntocorp/semgrep/releases/tag/v1.67.0) - 2024-03-28
+
+
+### Added
+
+
+- `--historical-secrets` flag for running Semgrep Secrets regex rules on git
+  history (requires Semgrep Secrets). This flag is not yet implemented for
+  `--experimental`. (scrt-531)
+
+
+### Changed
+
+
+- Files with the `.phtml` extension are now treated as PHP files. (gh-10009)
+- [IMPORTANT] Logged in users running `semgrep ci` will now run the pro engine by default! All `semgrep ci` scans will run with our proprietary languages (Apex and Elixir), as well as cross-function taint within a single file, and other single file pro optimizations we have developed. This is equivalent to `semgrep ci --pro-intrafile`. Users will likely see improved results if they are running `semgrep ci` and did not already have additional configuration to enable pro analysis.
+
+  The current default engine does not include cross-file analysis. To scan with cross-file analysis, turn on the app toggle or pass in the flag `--pro`. We recommend this unless you have very large repos (talk to our support to get help enabling cross-file analysis on monorepos!)
+
+  To revert back to our OSS analysis, pass the flag `--oss-only` (or use `--pro-languages` to continue to receive our proprietary languages).
+
+  Reminder: because we release first to our canary image, this change will only immediately affect you if you are using `semgrep/semgrep:canary`. If you are using `semgrep/semgrep:latest`, it will affect you when we bump canary to latest. (saf-845)
+
+
+### Fixed
+
+
+- Fixed a parsing error in Kotlin when there's a newline between the class name and the primary constructor.
+
+  This could not parse before
+
+  ```
+  class C
+  constructor(arg:Int){}
+  ```
+
+  because of the newline between the class name and the constructor.
+
+  Now it's fixed. (saf-899)
+
+
+## [1.66.2](https://github.com/returntocorp/semgrep/releases/tag/v1.66.2) - 2024-03-26
+
+
+### Added
+
+
+- osemgrep now respects HTTP_PROXY and HTTPS_PROXY when making network requests (cdx-253)
+
+
+### Changed
+
+
+- [IMPORTANT] The public rollout of inter-file differential scanning has been
+  temporarily reverted for further polishing of the feature. We will reintroduce
+  it in a later version. (saf-268)
+
+
+### Fixed
+
+
+- Autofix on variable definitions should now handle the semicolon
+  in Java, C++, and C#. (saf-928)
+
+
 ## [1.66.1](https://github.com/returntocorp/semgrep/releases/tag/v1.66.1) - 2024-03-25
 
 
