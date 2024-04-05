@@ -116,9 +116,9 @@ if x == 4: # CI rule
 |}
 
 let login_url_regex =
-  Pcre2_.pcre_compile {|https://semgrep.dev/login\?cli-token=.*"|}
+  Regexp_engine.pcre_compile "https://semgrep.dev/login\\?cli-token=.*"
 
-let prog_regex = Pcre2_.pcre_compile {|Pr([\s\S]*)|}
+let prog_regex = Regexp_engine.pcre_compile "Pr([\\s\\S]*)"
 let timeout = 30.0
 (*****************************************************************************)
 (* Helpers *)
@@ -904,7 +904,7 @@ let test_ls_ext caps () =
                    let resp =
                      resp.result |> Result.get_ok |> YS.Util.to_string
                    in
-                   assert (Pcre2_.unanchored_match prog_regex resp);
+                   assert (Regexp_engine.unanchored_match prog_regex resp);
                    Lwt.return_unit)
           in
 
@@ -986,7 +986,7 @@ let _test_login caps () =
             YS.Util.(msg.result |> Result.get_ok |> member "url" |> to_string)
           in
 
-          assert (Pcre2_.unanchored_match login_url_regex url);
+          assert (Regexp_engine.unanchored_match login_url_regex url);
           Semgrep_settings.save settings |> ignore;
           send_exit info;
           Lwt.return_unit))
@@ -1015,12 +1015,9 @@ let promise_tests caps =
     Test_lwt.create "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
     Test_lwt.create "Test LS multi-workspaces" (test_ls_multi caps)
       ~tolerate_chdir:true;
-    (* Keep this test commented out while it is xfail.
-        Because logging in is side-effecting, if the test never completes, we
-        will stay log in, which can mangle some of the later tests.
-       Test_lwt.create "Test LS login" (test_login caps)
-       ~expected_outcome:
-         (Should_fail "TODO: currently failing in js tests in CI"); *)
+    Test_lwt.create "Test LS login" (test_login caps)
+      ~expected_outcome:
+        (Should_fail "TODO: currently failing in js tests in CI");
     Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
   ]
   |> List_.map (fun (test : _ Test.t) ->

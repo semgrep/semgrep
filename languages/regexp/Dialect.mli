@@ -4,7 +4,7 @@
 
      open Regexp.Conf
      let perl_xx = {
-       Pcre2_.Dialect.perl with
+       Regex.Dialect.perl with
        ignore_whitespace = true;
        ignore_whitespace_in_char_classes = true;
      }

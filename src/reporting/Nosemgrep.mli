@@ -1,6 +1,6 @@
 val rule_id_re_str : string
-val nosem_inline_re : Pcre2_.t
-val nosem_previous_line_re : Pcre2_.t
+val nosem_inline_re : Pcre_.t
+val nosem_previous_line_re : Pcre_.t
 
 (* produce the `is_ignored` fields for the processed match, without filtering
    them out

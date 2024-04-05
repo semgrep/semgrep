@@ -12,7 +12,6 @@
    semgrep.engine
    integers_stubs_js
    libpcre_stubs_js
-   libpcre2_stubs_js
    libyaml_stubs_js
    alcotest
    testo
