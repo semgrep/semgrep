@@ -15,10 +15,12 @@
 
 open Lsp
 open Lsp.Types
+open Fpath_.Operators
 module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
-let meth = "semgrep/search"
+let start_meth = "semgrep/search"
+let ongoing_meth = "semgrep/searchOngoing"
 
 (*****************************************************************************)
 (* Prelude *)
@@ -26,6 +28,27 @@ let meth = "semgrep/search"
 
 (* The main logic for the /semgrep/search LSP command, which is meant to be
    run on a manual search.
+
+   This is a _streaming_ search, meaning that we service partial results. In
+   particular, we choose to service results within the RPC_server loop as
+   _one file per request_.
+
+   As such, we have two different commands: /semgrep/search, and /semgrep/searchOngoing.
+   Our protocol with them are as follows:
+   - when starting a search, the LS receives /semgrep/search and stores some
+     information of what to do next in the `server` value
+   - the server then receives /semgrep/searchOngoing until either a new search
+     is started, or the search is finished.
+   - both searches will return the matches found in the next file in the queue
+
+   Effectively, think of `Search.ml` as a pinata, which is consistently hit by
+   /semgrep/search and /semgrep/searchOngoing until it runs out of files to
+   search.
+
+   TODO: Things that would be nice:
+   - AST caching
+   - Parallelism (Parmap or threads?)
+   - Moving work up to folder-open time rather than search-time
 *)
 
 (*****************************************************************************)
@@ -45,13 +68,24 @@ let mk_params ~lang ~fix pattern =
     | Some fix -> `String fix
   in
   let params =
-    `Assoc [ ("pattern", `String pattern); ("language", lang); ("fix", fix) ]
+    `Assoc
+      [
+        ("pattern", `String pattern);
+        ("language", lang);
+        ("fix", fix);
+        ("partialResultToken", `String "token");
+      ]
   in
   params
 
 module Request_params = struct
   (* coupling: you must change the `mk_params` function above if you change this type! *)
-  type t = { pattern : string; lang : Xlang.t option; fix : string option }
+  type t = {
+    pattern : string;
+    lang : Xlang.t option;
+    fix : string option;
+    token : string;
+  }
 
   (* This schema means that it matters what order the arguments are in!
      This is a little undesirable, but it's annoying to be truly
@@ -66,6 +100,7 @@ module Request_params = struct
             ("pattern", `String pattern);
             ("language", lang);
             ("fix", fix_pattern);
+            ("partialResultToken", token);
           ]) ->
         let lang_opt =
           match lang with
@@ -77,7 +112,12 @@ module Request_params = struct
           | `String fix -> Some fix
           | _ -> None
         in
-        Some { pattern; lang = lang_opt; fix = fix_opt }
+        let token =
+          match token with
+          | `String token -> token
+          | _ -> failwith "expected string token"
+        in
+        Some { pattern; lang = lang_opt; fix = fix_opt; token }
     | __else__ -> None
 
   let _of_jsonrpc_params_exn params : t =
@@ -155,53 +195,68 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   | other -> other
 
 (*****************************************************************************)
+(* Output *)
+(*****************************************************************************)
+
+let json_of_matches (file : Fpath.t) (matches : Core_result.matches_single_file)
+    : Yojson.Safe.t =
+  let uri = !!file |> Uri.of_path |> Uri.to_string in
+  let matches : Yojson.Safe.t list =
+    matches.matches
+    |> List_.map (fun (m : Pattern_match.t) ->
+           let range_json =
+             Range.yojson_of_t (Conv.range_of_toks m.range_loc)
+           in
+           let fix_json =
+             match m.rule_id.fix with
+             | None -> `Null
+             | Some s -> `String s
+           in
+           `Assoc [ ("range", range_json); ("fix", fix_json) ])
+  in
+  `Assoc [ ("uri", `String uri); ("matches", `List matches) ]
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+let file_match_results_hook ~token file
+    (matches : Core_result.matches_single_file) =
+  match matches.matches with
+  | [] -> ()
+  | _ ->
+      let json : Yojson.Safe.t =
+        `Assoc
+          [ ("token", `String token); ("value", json_of_matches file matches) ]
+      in
+      RPC_server.partial_progress ~method_:"$/progress"
+        ~params:(Jsonrpc.Structured.t_of_yojson json)
 
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let on_request (server : RPC_server.t) params =
+let start_search (server : RPC_server.t) params =
   match Request_params.of_jsonrpc_params params with
-  | None -> None
+  | None ->
+      UCommon.pr2 "no params received in semgrep/search";
+      ()
   | Some params ->
       let env = mk_env server params in
       let rules = get_relevant_rules env in
       (* !!calling the engine!! *)
-      let matches, _scanned =
-        let session =
-          {
-            server.session with
-            user_settings =
-              { server.session.user_settings with only_git_dirty = false };
-          }
-        in
-        Scan_helpers.run_semgrep ~targets:env.initial_files
-          { server with session } ~rules
+      let session =
+        {
+          server.session with
+          user_settings =
+            {
+              server.session.user_settings with
+              only_git_dirty = false;
+              jobs = 1;
+            };
+        }
       in
-      let matches_by_file =
-        matches
-        |> List_.map (fun (m : OutJ.cli_match) -> (Fpath.to_string m.path, m))
-        |> Common2.group_assoc_bykey_eff
-      in
-      let json =
-        List_.map
-          (fun (path, matches) ->
-            let uri = path |> Uri.of_path |> Uri.to_string in
-            let matches =
-              matches
-              |> List_.map (fun (m : OutJ.cli_match) ->
-                     let range_json =
-                       Range.yojson_of_t (Conv.range_of_cli_match m)
-                     in
-                     let fix_json =
-                       match m.extra.fix with
-                       | None -> `Null
-                       | Some s -> `String s
-                     in
-                     `Assoc [ ("range", range_json); ("fix", fix_json) ])
-            in
-            `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
-          matches_by_file
-      in
-      Some (`Assoc [ ("locations", `List json) ])
+      Scan_helpers.run_semgrep
+        ~file_match_results_hook:(file_match_results_hook ~token:params.token)
+        ~targets:env.initial_files { server with session } ~rules
+      |> ignore;
+      ()

@@ -66,6 +66,8 @@ val create_progress : string -> string -> Lsp.Types.ProgressToken.t
 val end_progress : Lsp.Types.ProgressToken.t -> unit
 (** [end_progress t token] ends a progress token. *)
 
+val partial_progress : method_:string -> params:Jsonrpc.Structured.t -> unit
+
 (** [Make] creates a server from a message handler. *)
 module Make (MessageHandler : sig
   val on_request : _ Lsp.Client_request.t -> t -> Jsonrpc.Json.t option * t

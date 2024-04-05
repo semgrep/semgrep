@@ -148,9 +148,6 @@ let request request =
 let notify notification =
   let module Io = (val !io_ref : LSIO) in
   let notification = SN.to_jsonrpc notification in
-  Logs.debug (fun m ->
-      m "Sending notification %s"
-        (Notification.yojson_of_t notification |> Yojson.Safe.pretty_to_string));
   let packet = Packet.Notification notification in
   let%lwt () = Io.write packet in
   Io.flush ()
@@ -166,6 +163,13 @@ let notify_show_message ~kind s =
       { ShowMessageParams.message = s; type_ = kind }
   in
   batch_notify [ notif ]
+
+let partial_progress ~method_ ~params =
+  let notif =
+    Server_notification.UnknownNotification
+      (Jsonrpc.Notification.create ~params ~method_ ())
+  in
+  Lwt.async (fun () -> notify notif)
 
 (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
 let create_progress title message =

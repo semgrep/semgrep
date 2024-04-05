@@ -1,11 +1,15 @@
-val meth : string
+val start_meth : string
 (** method to match on: semgrep/search *)
 
 val mk_params :
   lang:Xlang.t option -> fix:string option -> string -> Jsonrpc.Structured.t
 
-val on_request :
-  RPC_server.t -> Jsonrpc.Structured.t option -> Yojson.Safe.t option
-(** [on_request runner request] will run [runner] on the given pattern and optional
-    language params. If the request is None, we return None. Otherwise, we return
-    [Some (JSON response)] that contains the ranges of all matches *)
+val ongoing_meth : string
+(** method to match on: semgrep/searchOngoing *)
+
+val start_search : RPC_server.t -> Jsonrpc.Structured.t option -> unit
+(** [start_search server params] will cause a search to start with the given parameters,
+    storing the information of remaining rules/targets to search in the server session.
+    It will then return the matches in the first file with matches.
+    Will return `Assoc ["locations": `List []] when the search has concluded.
+  *)
