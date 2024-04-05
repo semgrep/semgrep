@@ -1015,9 +1015,12 @@ let promise_tests caps =
     Test_lwt.create "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
     Test_lwt.create "Test LS multi-workspaces" (test_ls_multi caps)
       ~tolerate_chdir:true;
-    Test_lwt.create "Test LS login" (test_login caps)
-      ~expected_outcome:
-        (Should_fail "TODO: currently failing in js tests in CI");
+    (* Keep this test commented out while it is xfail.
+        Because logging in is side-effecting, if the test never completes, we
+        will stay log in, which can mangle some of the later tests.
+       Test_lwt.create "Test LS login" (test_login caps)
+       ~expected_outcome:
+         (Should_fail "TODO: currently failing in js tests in CI"); *)
     Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
   ]
   |> List_.map (fun (test : _ Test.t) ->
