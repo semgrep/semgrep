@@ -532,6 +532,10 @@ let send_semgrep_search info ?language pattern =
   let params = Search.mk_params ~lang:language ~fix:None pattern in
   send_custom_request info ~meth:"semgrep/search" ~params
 
+let send_semgrep_search_ongoing info =
+  send_custom_request info ~meth:"semgrep/searchOngoing"
+    ~params:(Jsonrpc.Structured.t_of_yojson `Null)
+
 let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =
   let uri = Uri.of_path (Fpath.to_string path) |> Uri.yojson_of_t in
   let params = `Assoc [ ("uri", uri); ("named", `Bool named) ] in
@@ -675,6 +679,19 @@ let check_startup info folders (files : Fpath.t list) =
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
+
+let do_search info =
+  send_semgrep_search info "print(...)";
+  Lwt_seq.unfold_lwt
+    (fun () ->
+      let%lwt resp = receive_response info in
+      match
+        YS.Util.(resp.result |> Result.get_ok |> member "locations" |> to_list)
+      with
+      | [] -> Lwt.return None
+      | matches -> Lwt.return (Some (matches, ())))
+    ()
+  |> Lwt_seq.to_list
 
 let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
   (* Not setting this means that really nasty errors happen when an exception
@@ -875,12 +892,8 @@ let test_ls_ext caps () =
           in
 
           (* search *)
-          send_semgrep_search info "print(...)";
-          let%lwt resp = receive_response info in
-          assert (
-            YS.Util.(
-              resp.result |> Result.get_ok |> member "locations" |> to_list
-              |> List.length = 3));
+          let%lwt matches_of_files = do_search info in
+          assert (YS.Util.(List.concat matches_of_files |> List.length = 3));
 
           (* hover is on by default *)
           let%lwt () =
