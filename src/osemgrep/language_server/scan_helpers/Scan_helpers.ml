@@ -147,10 +147,17 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
 
 (* This function runs a search by hooking into Match_search_mode, which bypasses
    some of the CLI.
-   TODO: Reconsider using run_semgrep instead, now that we are no longer planning to
-   use the match hook.
+   We do this instead of using run_semgrep above. Why?
+   We want to support streaming searches. This means that we want a hook which
+   can activate on a certain granularity, in our case, the matches associated to
+   each file.
+   This is cool, because we have a file_match_results_hook. The problem is that
+   for some reason, when sending mass notifications from each invocation of the
+   file_match_results_hook, there is a massive delay (maybe about six seconds
+   on django) before the notifications are received by the extension.
+   In the interim, we will just continue to hook into core.
 *)
-let run_core_search (file : Fpath.t) rule =
+let run_core_search rule (file : Fpath.t) =
   let hook _file _pm = () in
   let xlang = rule.Rule.target_analyzer in
   (* We have to look at all the initial files again when we do this.
@@ -167,11 +174,7 @@ let run_core_search (file : Fpath.t) rule =
       let ({ Core_result.matches; _ } : _ Core_result.match_result) =
         Match_search_mode.check_rule rule hook Match_env.default_xconfig xtarget
       in
-      match (matches, xtarget.path.origin) with
-      | [], _ -> None
-      | _, File path -> Some matches
-      (* This shouldn't happen. *)
-      | _, GitBlob _ -> None
+      Some matches
     with
     | Parsing_error.Syntax_error _ -> None
   else None

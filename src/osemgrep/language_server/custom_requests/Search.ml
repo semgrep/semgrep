@@ -151,18 +151,19 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
-    Rule.rules =
-  let rules_of_langs (lang_opt : Xlang.t option) : Rule.rules =
+    Rule.search_rule list =
+  let rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list =
     let rules_and_origins =
       Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
     in
     let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
-    rules
+    let search_rules, _, _, _ = Rule.partition_rules rules in
+    search_rules
   in
   let xlangs = get_relevant_xlangs env in
   let rules_with_relevant_xlang =
     rules_of_langs None
-    |> List.filter (fun (rule : Rule.rule) ->
+    |> List.filter (fun (rule : Rule.search_rule) ->
            List.mem rule.target_analyzer xlangs)
   in
   match rules_with_relevant_xlang with
@@ -208,7 +209,7 @@ let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
 (* Running Semgrep! *)
 (*****************************************************************************)
 
-let rec next_rules_and_file (server : RPC_server.t) =
+let next_rules_and_file (server : RPC_server.t) =
   match server.session.search_config with
   | None
   | Some { files = []; _ } ->
@@ -223,8 +224,7 @@ let rec next_rules_and_file (server : RPC_server.t) =
       Some ((config.rules, file), { server with session = new_session })
 
 let rec search_single_target (server : RPC_server.t) =
-  let hook _file _pm = () in
-  match next_rule_and_file server with
+  match next_rules_and_file server with
   | None ->
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
@@ -232,14 +232,22 @@ let rec search_single_target (server : RPC_server.t) =
       ( json_of_matches [],
         { server with session = { server.session with search_config = None } }
       )
-  | Some ((rule, file), server) -> (
+  | Some ((rules, file), server) -> (
       try
-        (* !!calling the engine!! *)
-        let ({ Core_result.matches; _ } : _ Core_result.match_result) =
-          Scan_helpers.run_core_search rule file
+        let matches =
+          List.concat_map
+            (fun rule ->
+              (* !!calling the engine!! *)
+              match Scan_helpers.run_core_search rule file with
+              | None -> []
+              | Some matches -> matches)
+            rules
         in
-        let json = json_of_matches [ (file, matches) ] in
-        (json, server)
+        match matches with
+        | [] -> search_single_target server
+        | _ ->
+            let json = json_of_matches [ (file, matches) ] in
+            (json, server)
       with
       | Parsing_error.Syntax_error _ -> search_single_target server)
 
