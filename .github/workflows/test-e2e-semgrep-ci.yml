@@ -26,12 +26,11 @@ jobs:
     steps:
       - run: |
           curl --request POST \
-                --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-                --header 'content-type: application/json' \
-                --data '{
-                  "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-                  "docker_tag": ${{ needs.get-inputs.outputs.docker_tag }},
-                  "message": "The PR in `returntocorp/e2e` that had the failure was "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}""
+           --url  ${{ secrets.NOTIFICATIONS_URL }} \
+           --header 'content-type: application/json' \
+           --data '{
+             "text": "The End to end semgrep ci workflow failed with docker tag ${{ needs.get-inputs.outputs.docker_tag }}. The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info"
+           }'
   semgrep-ci:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
@@ -154,19 +153,19 @@ jobs:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Wait for checks to register
         run: |
-          LEN_CHECKS=$(gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R returntocorp/e2e view ${{ needs.semgrep-ci-on-pr.outputs.pr-number }} --json statusCheckRollup --jq '.statusCheckRollup | length');
           while [ ${LEN_CHECKS} = "0" ]; do
             echo "No checks available yet"
             sleep 30
-            LEN_CHECKS=$(gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R returntocorp/e2e view ${{ needs.semgrep-ci-on-pr.outputs.pr-number }} --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
           echo ${LEN_CHECKS}
-          gh pr -R returntocorp/e2e view "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --json statusCheckRollup
+          gh pr -R returntocorp/e2e view ${{ needs.semgrep-ci-on-pr.outputs.pr-number }} --json statusCheckRollup
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Wait for checks to complete
-        run: gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
+        run: gh pr -R returntocorp/e2e checks ${{ needs.semgrep-ci-on-pr.outputs.pr-number }} --interval 30 --watch
 name: test-e2e-semgrep-ci
 on:
   schedule:

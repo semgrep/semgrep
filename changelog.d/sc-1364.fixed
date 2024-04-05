@@ -1,0 +1,1 @@
+Fixed swiftpm parser to no longer limit the amount of found packages in manifest file.

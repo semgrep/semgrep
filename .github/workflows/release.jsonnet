@@ -1,20 +1,32 @@
+// Release workflow part 2 (part 1 is start-release.jsonnet).
+//
 // This workflow performs additional tasks on a PR when someone
-// (or start-release.jsonnet) pushes to a vXXX branch. Those tasks are to
-//  - push a new :canary docker image. We used to push to :latest, but it
-//    is safer to first push to :canary and a few days later to promote
-//    :canary to :latest (see promote-canary-to-latest.yml)
+// (or start-release.jsonnet) pushes to a vXXX branch. Those tasks are to:
+//
+//  - build and push a new :canary docker image. We used to push to :latest,
+//    but it is safer to first push to :canary and a few days later to promote
+//    the :canary image to :latest (see promote-canary-to-latest.jsonnet)
+//
 //  - create release artifacts on Github. We now just release the source
 //    of Semgrep in https://github.com/semgrep/semgrep/releases
 //    We used to release Linux and MacOS binaries, but we prefer now
 //    users to install Semgrep via Docker, Pypi, or Homebrew.
+//
 //  - prepare and upload to PyPi a new semgrep package
 //    see https://pypi.org/project/semgrep/
-//  - make a PR for Homebrew's semgrep formula to update to the latest semgrep
+//
+// We used to also automatically create a PR to Homebrew's repo to
+// update the Semgrep "formula" to link to the latest semgrep artifacts
+// (https://github.com/Homebrew/homebrew-core/blob/master/Formula/s/semgrep.rb)
+// As of January 2024, this is now handled instead by the Homebrew's folk with
+// an "autobump" mechanism. This is great because this part of the release was
+// failing very often because of frequent changes to Homebrew process.
+// Note that we still check in CI that the Semgrep "formula" can still be built,
+// but we do it in nightly.jsonnet, not during the release.
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
-local release_homebrew = import 'release-homebrew.jsonnet';
 
 // ----------------------------------------------------------------------------
 // Constants
@@ -75,11 +87,11 @@ local unless_dry_run = {
 local dry_run = "${{ inputs.dry-run || false }}";
 
 // ----------------------------------------------------------------------------
-// Docker jobs
+// Docker jobs (build and then push)
 // ----------------------------------------------------------------------------
 
 local build_test_docker_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   with: {
     // don't add a "latest" tag (we'll promote "canary" to "latest" after
@@ -110,7 +122,7 @@ local build_test_docker_job = {
 };
 
 local build_test_docker_nonroot_job = {
-  uses: './.github/workflows/build-test-docker.yaml',
+  uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
   needs: [
     // We want to run build-test-docker-nonroot *after* build-test-docker
@@ -166,7 +178,7 @@ local push_docker_job(artifact_name, repository_name) = {
 // Note that we now have a 50GB quota on pypi thx to a request we made in
 // Dec 2023: https://github.com/pypi/support/issues/3464
 // Indeed around that time we reached our quota because each release was
-// taking 170MB and we had released a lot.
+// taking 170MB and we had released many versions.
 // alt: remove old versions, but Bence didn't like it.
 
 local park_pypi_packages_job = {
@@ -199,7 +211,7 @@ local park_pypi_packages_job = {
       uses: 'pypa/gh-action-pypi-publish@release/v1',
       with: {
         user: '__token__',
-        password: '${{ secrets.pypi_upload_token }}',
+        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
         packages_dir: 'cli/dist/',
       },
@@ -210,7 +222,7 @@ local park_pypi_packages_job = {
       with: {
         repository_url: 'https://test.pypi.org/legacy/',
         user: '__token__',
-        password: '${{ secrets.test_pypi_upload_token }}',
+        password: '${{ secrets.TEST_PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
         packages_dir: 'cli/dist/',
       },
@@ -251,7 +263,7 @@ local upload_wheels_job = {
       uses: 'pypa/gh-action-pypi-publish@release/v1',
       with: {
         user: '__token__',
-        password: '${{ secrets.pypi_upload_token }}',
+        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
         skip_existing: true,
       },
     } + unless_dry_run,
@@ -329,57 +341,12 @@ local create_release_interfaces_job = {
 } + unless_dry_run;
 
 // ----------------------------------------------------------------------------
-// Homebrew jobs
-// ----------------------------------------------------------------------------
-
-local sleep_before_homebrew_job = {
-  // Need to wait for Pypi to propagate information so that
-  // 'brew bump-formula-pr' in release_homebrew.jsonnet can access
-  // information about the latest semgrep from Pypi
-  // TODO: is this still needed? We used to rely on a pipgrip thing,
-  // but it's not the case anymore, so maybe we can just sleep 1m
-  needs: [
-    'upload-wheels',
-  ],
-  'runs-on': 'ubuntu-latest',
-  steps: [
-    {
-      run: 'sleep 10m',
-    } + unless_dry_run,
-  ],
-};
-
-local homebrew_core_pr_job_base =
-  release_homebrew.export.homebrew_core_pr(version);
-
-local homebrew_core_pr_job =
- homebrew_core_pr_job_base + {
-  // Needs to run after Pypi released so brew can update Pypi dependency hashes
-  needs: [
-    'sleep-before-homebrew',
-  ],
-  steps: [
-    {
-      name: 'Get the version',
-      id: 'get-version',
-      run: |||
-        TAG=${GITHUB_REF/refs\/tags\//}
-        if [ "${{ inputs.dry-run }}" = "true" ]; then
-          TAG=v99.99.99
-        fi
-        echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
-      |||,
-    },
-  ] + homebrew_core_pr_job_base.steps,
-};
-
-// ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
 {
   name: 'release',
   on: {
-    // to trigger manually a release, especially in dry-mode
+    // to trigger manually a release, especially in dryrun mode
     workflow_dispatch: release_inputs,
     // see nightly.jsonnet
     workflow_call: release_inputs,
@@ -399,8 +366,9 @@ local homebrew_core_pr_job =
     'build-test-docker': build_test_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     // TODO? Not sure why we run those jobs here again; tests.jsonnet already
-    // runs those jobs on the release PR. Not sure also why then we don't run
-    // build-test-javascript like in tests.jsonnet.
+    // runs those jobs on the release PR.
+    // TODO?? Not sure also why we don't run build-test-javascript like in
+    // tests.jsonnet then
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
@@ -453,10 +421,5 @@ local homebrew_core_pr_job =
     'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,
-    // These two steps are no longer necessary because homebrew now
-    // autobumps us (as of 1/20/2024). Leaving it commented until
-    // we've had a few successful releases
-    // 'sleep-before-homebrew': sleep_before_homebrew_job,
-    // 'homebrew-core-pr': homebrew_core_pr_job,
   },
 }

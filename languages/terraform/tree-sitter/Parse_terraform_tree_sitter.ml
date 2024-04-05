@@ -451,7 +451,7 @@ and map_object_elem (env : env) (x : CST.object_elem) : G.field =
         | _ -> G.EDynamic v1
       in
       let ent = { G.name = n_or_dyn; attrs = []; tparams = None } in
-      let vdef = { G.vinit = Some v3; vtype = None } in
+      let vdef = { G.vinit = Some v3; vtype = None; vtok = G.no_sc } in
       let def =
         match v2 with
         | Left _teq -> G.VarDef vdef

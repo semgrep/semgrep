@@ -39,6 +39,7 @@
      ppx_hash
      ppx_sexp_conv
      ppx_inline_test
+     lwt_ppx
    )
  )
 )

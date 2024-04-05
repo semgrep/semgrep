@@ -73,6 +73,8 @@ type t = {
   action : string;
   (* Other *)
   version : string;
+  (* To add data to our opentelemetry top span, which makes it easier to filter *)
+  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 
@@ -131,4 +133,5 @@ let default =
     action = "";
     (* Other *)
     version = "";
+    top_level_span = None;
   }

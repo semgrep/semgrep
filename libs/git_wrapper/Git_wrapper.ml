@@ -38,15 +38,20 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  *  - be more consistent and requires an Fpath instead
  *    of relying sometimes on cwd.
  *)
+(* Standard git uses sha1 *)
+
+module type Store = Git.S with type hash = Digestif.SHA1.t
+
+module Hash = Git.Hash.Make (Digestif.SHA1)
+module Value = Git.Value.Make (Hash)
+module Commit = Git.Commit.Make (Hash)
+module Tree = Git.Tree.Make (Hash)
+module Blob = Git.Blob.Make (Hash)
+module User = Git.User
 
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-
-(* TODO: could also do
- * [type git_cap] abstract type and then
- * let git_cap_of_exec _caps = unit
- *)
 
 type status = {
   added : string list;
@@ -57,22 +62,33 @@ type status = {
 }
 [@@deriving show]
 
+(* To make sure we don't call other commands!
+ * TODO: we could create a special git_cap capabilities instead of using
+ * Cap.exec. We could have
+ *   type git_cap
+ *   val git_cap_of_exec: Cap.exec -> git_cap
+ *)
 let git : Cmd.name = Cmd.Name "git"
 
-type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-type sha = SHA of string [@@deriving eq, ord, sexp] [@@unboxed]
+type hash = Hash.t [@@deriving show, eq, ord]
+type value = Value.t [@@deriving show, eq, ord]
+type commit = Commit.t [@@deriving show, eq, ord]
+type blob = Blob.t [@@deriving show, eq, ord]
+type author = User.t [@@deriving show, eq, ord]
+type object_table = (hash, value) Hashtbl.t
 
-(* print no quotes *)
-let show_sha (SHA str) = str
-let pp_sha fmt sha = Format.fprintf fmt "%s" (show_sha sha)
-
-(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
-type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
+type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 [@@deriving show]
 
-type batch_check_extra = { size : int } [@@deriving show]
-type batch_extra = { contents : string } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
+(*****************************************************************************)
+(* Reexports *)
+(*****************************************************************************)
+
+let commit_digest = Commit.digest
+let commit_author = Commit.author
+let hex_of_hash = Hash.to_hex
+let blob_digest = Blob.digest
+let string_of_blob = Blob.to_string
 
 (*****************************************************************************)
 (* Error management *)
@@ -179,27 +195,82 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
-let temporary_remote_checkout_path caps url =
-  let name =
-    match remote_repo_name url with
-    | Some name -> name
-    | None -> failwith "Could not get remote repo name"
-  in
-  let rand_prefix = Uuidm.v `V4 |> Uuidm.to_string in
-  let name = rand_prefix ^ "_" ^ name in
-  let tmp_dir = CapTmp.get_temp_dir_name caps#tmp in
-  Fpath.add_seg tmp_dir name
+let tree_of_commit (objects : object_table) commit =
+  commit |> Commit.tree |> Hashtbl.find_opt objects |> fun obj ->
+  match obj with
+  | Some (Git.Value.Tree tree) -> tree
+  | _ ->
+      failwith
+        "Not a tree! Shouldn't happen, as we read a tree from a commit from a \
+         store."
 
-let obj_type_of_string = function
-  | "commit" -> Some Commit
-  | "blob" -> Some Blob
-  | "tree" -> Some Tree
-  | "tag" -> Some Tag
-  | _ -> None
+let rec blobs_of_tree ?(path_prefix = "") (objects : object_table)
+    (tree : Tree.t) : blob_with_extra list =
+  tree |> Tree.to_list |> List.concat_map (blobs_of_entry ~path_prefix objects)
+
+and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
+    Tree.entry -> blob_with_extra list = function
+  | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash } ->
+      let blob =
+        hash |> Hashtbl.find_opt objects |> fun obj ->
+        match obj with
+        | Some (Git.Value.Blob blob) -> blob
+        | _ ->
+            failwith
+              "Not a blob! Shouldn't happen, as we read a blob from a tree \
+               from a store."
+      in
+      (* If youre on a 32bit machine trying to scan files with blobs > 2gb you deserve the error this could cause *)
+      let size = blob |> Blob.length |> Int64.to_int in
+      let path = Filename.concat path_prefix path_segment |> Fpath.v in
+      [ { blob; path; size } ]
+  | { perm = `Dir; name = path_segment; node = hash } ->
+      let tree =
+        hash |> Hashtbl.find_opt objects |> fun obj ->
+        match obj with
+        | Some (Git.Value.Tree tree) -> tree
+        | _ ->
+            failwith
+              "Not a tree! Shouldn't happen, as we read a tree from a tree \
+               from a store."
+      in
+      let path = Filename.concat path_prefix path_segment in
+      blobs_of_tree ~path_prefix:path objects tree
+  | { perm = `Link; _ }
+  | { perm = `Commit; _ } ->
+      []
+
+let blobs_by_commit objects commits =
+  commits
+  |> List_.map (fun commit ->
+         let tree = tree_of_commit objects commit in
+         (commit, tree))
+  |> List_.map (fun (commit, tree) ->
+         let blobs = blobs_of_tree objects tree in
+         (commit, blobs))
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
+
+let commit_blobs_by_date objects =
+  Logs.debug (fun m -> m ~tags "getting commits");
+  let commits =
+    objects |> Hashtbl.to_seq |> List.of_seq
+    |> List_.map_filter (fun (_, value) ->
+           match value with
+           | Git.Value.Commit commit -> Some commit
+           | _ -> None)
+  in
+  Logs.debug (fun m -> m ~tags "got commits");
+  Logs.debug (fun m -> m ~tags "sorting commits");
+  let commits_by_date =
+    commits |> List.sort Commit.compare_by_date |> List.rev
+  in
+  Logs.debug (fun m -> m ~tags "sorted commits");
+  let blobs_by_commit = blobs_by_commit objects commits_by_date in
+  Logs.debug (fun m -> m ~tags "got blobs by commit");
+  blobs_by_commit
 
 let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
@@ -629,6 +700,7 @@ let get_project_url ?cwd () : string option =
   | Ok (url, _) -> Some (Uri.to_string (clean_project_url url))
   | Error _ ->
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
+
 (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
    when the domain is [".io"]?). We probably should handle that by a new
    environment variable. I just copied what [pysemgrep] does.
@@ -669,206 +741,13 @@ let get_git_logs ?cwd ?(since = None) () : string list =
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   List.filter (fun f -> not (String.trim f = "")) lines
 
-let cat_file_batch_check_all_objects ?cwd () =
-  let cmd =
-    ( git,
-      cd cwd
-      @ [
-          "cat-file";
-          "--batch-all-objects";
-          "--batch-check";
-          "--unordered" (* List in pack order instead of hash; faster. *);
-        ] )
-  in
-  let* objects =
-    match UCmd.lines_of_run ~trim:true cmd with
-    | Ok (s, (_, `Exited 0)) -> Some s
-    | _ -> None
-  in
-  let objects : batch_check_extra obj list =
-    List.filter_map
-      (fun obj ->
-        let mk_obj sha kind size =
-          let* size = int_of_string_opt size in
-          Some { kind; sha = SHA sha; extra = { size } }
-        in
-        match String.split_on_char ' ' obj with
-        | [ sha; "tag"; size ] -> mk_obj sha Tag size
-        | [ sha; "commit"; size ] -> mk_obj sha Commit size
-        | [ sha; "tree"; size ] -> mk_obj sha Tree size
-        | [ sha; "blob"; size ] -> mk_obj sha Blob size
-        | _ ->
-            Logs.warn (fun m ->
-                m "Issue parsing git object: %s; this object will be ignored"
-                  obj);
-            None)
-      objects
-  in
-  Some objects
-
-let cat_file_blob ?cwd (SHA sha) =
-  let cmd = (git, cd cwd @ [ "cat-file"; "blob"; sha ]) in
+let cat_file_blob ?cwd (hash : hash) =
+  let cmd = (git, cd cwd @ [ "cat-file"; "blob"; Hash.to_hex hash ]) in
   match UCmd.string_of_run ~trim:false cmd with
   | Ok (s, (_, `Exited 0)) -> Ok s
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
-
-let batch_cat_file_blob ?cwd (caps : < Cap.tmp >) (blob_shas : sha list) =
-  let cmd =
-    Bos.Cmd.(
-      v "git"
-      %% of_list
-           (cd cwd
-           @ [
-               "cat-file";
-               (* Print object information and contents for each object
-                  provided on stdin. *)
-               "--batch";
-               (* Since we write to a file, ensure output is buffered. If we
-                  change to read from stdio, we probably should _not_ buffer so
-                  we can stream output. *)
-               "--buffer";
-             ]))
-  in
-  (* Each object is formatted as
-
-         <oid> SP <type> SP <size> NUL
-         <contents> LF
-
-     See also
-     <https://git-scm.com/docs/git-cat-file#:~:text=For%20example%2C%20%2D%2Dbatch%20without%20a%20custom%20format%20would%20produce%3A>
-
-     This gets the next output out of the channel, and then leaves the rest.
-     This is so we can generate a lazy Seq.t so we don't have to read all of
-     the objects into memory if we are going to write them back out to
-     tempfiles sequentially anyway.
-  *)
-  let get_next_obj chan =
-    (* Read the header line *)
-    match In_channel.input_line chan with
-    | None ->
-        (* Remember to close the channel when we're done.
-           Note that this means the user needs to consume the entire generated
-           stream currently in order to avoid a resource leak, but I think this
-           is fine.
-        *)
-        close_in chan;
-        None
-    | Some metadata ->
-        Some
-          ( (match String.split_on_char ' ' metadata with
-            | [ sha; kind; size ] ->
-                let ( let* ) = Result.bind in
-                let* kind =
-                  obj_type_of_string kind
-                  |> Option.to_result
-                       ~none:
-                         (spf "invalid object type %s for object %s" kind sha)
-                in
-                let* size =
-                  int_of_string_opt size
-                  |> Option.to_result
-                       ~none:
-                         (spf "invalid object size %s for object %s" size sha)
-                in
-                (* Now use the size from the header line to read the whole
-                   contents all at once *)
-                let contents = really_input_string chan size in
-                ignore (input_char chan);
-                (* discard trailing newline *)
-                let obj = { kind; sha = SHA sha; extra = { contents } } in
-                Ok obj
-            | _ -> Error ("invalid git object: " ^ metadata)),
-            chan )
-  in
-  (* TODO: can probably use a pipe to git cat instead of using /tmp *)
-  let output = CapTmp.new_temp_file caps#tmp "git-batch-cat-files" ".log" in
-  let input =
-    blob_shas |> List_.map (function SHA str -> str) |> String.concat "\n"
-  in
-  match Bos.OS.Cmd.(run_io cmd (in_string input) |> out_file output) with
-  | Ok ((), (_, `Exited 0)) ->
-      (* TODO: This is _really_ ugly, but to my knowledge there is no better
-         way to "stream" the output of the command. *)
-      let chan = In_channel.open_bin !!output in
-      Ok (Seq.unfold get_next_obj chan)
-  | Ok ((), (_, `Exited n)) -> Error (spf "git exited with nonzero code %d" n)
-  | Ok ((), (_, `Signaled s)) -> Error (spf "git terminated due to signal %d" s)
-  | Error (`Msg s) -> Error s
-
-let object_size ?cwd (SHA sha) =
-  let cmd = (git, cd cwd @ [ "cat-file"; "-s"; sha ]) in
-  match UCmd.string_of_run ~trim:false cmd with
-  | Ok (s, (_, `Exited 0)) -> int_of_string_opt s
-  | _ -> None
-
-let commit_timestamp ?cwd (SHA sha) =
-  (* %cI - print datetime in strict ISO 8601 format *)
-  let cmd = (git, cd cwd @ [ "show"; "--no-patch"; "--format=%cI"; sha ]) in
-  match UCmd.string_of_run ~trim:false cmd with
-  | Ok (s, (_, `Exited 0)) ->
-      Timedesc.Timestamp.of_iso8601 s |> Result.to_option
-  | _ -> None
-
-let ls_tree ?cwd ?(recurse = false) (SHA sha) : ls_tree_extra obj list option =
-  let cmd =
-    ( git,
-      cd cwd
-      @ ("ls-tree" :: (if recurse then [ "-r" ] else []))
-      (* NOTE: We use 0x00 to delimit the fields since other characters may
-         appear in path *)
-      @ [
-          "--full-tree";
-          "--format=%(objecttype)%x00%(objectname)%x00%(objectsize)%x00%(path)";
-          sha;
-        ] )
-  in
-  let* objects =
-    match UCmd.lines_of_run ~trim:true cmd with
-    | Ok (s, (_, `Exited 0)) -> Some s
-    | _ -> None
-  in
-  let objects =
-    List.filter_map
-      (fun obj ->
-        let obj_info =
-          (* NOTE: We split on 0x00 here since we've chosen that as the
-             delimiter in the format string for ls-tree's output above. *)
-          match String.split_on_char '\x00' obj with
-          (* possible for submodules *)
-          | [ "commit"; sha; size; path ] ->
-              Ok (Fpath.of_string path, sha, int_of_string_opt size, Commit)
-          | [ "tree"; sha; size; path ] ->
-              Ok (Fpath.of_string path, sha, int_of_string_opt size, Tree)
-          | [ "blob"; sha; size; path ] ->
-              Ok (Fpath.of_string path, sha, int_of_string_opt size, Blob)
-          (* possible, but we probably don't care. *)
-          | [ "tag"; sha; size; path ] ->
-              Ok (Fpath.of_string path, sha, int_of_string_opt size, Tag)
-          | _ -> Error "invalid syntax"
-        in
-        match obj_info with
-        | Ok (Ok path, sha, Some size, kind) ->
-            Some { kind; sha = SHA sha; extra = { path; size } }
-        | Ok (_, _, None, _) ->
-            Logs.warn (fun m ->
-                m
-                  "Issue parsing git object: %s -- invalid size; this object \
-                   will be ignored"
-                  obj);
-            None
-        | Ok (Error (`Msg s), _, _, _)
-        | Error s ->
-            Logs.warn (fun m ->
-                m
-                  "Issue parsing git object: %s -- %s; this object will be \
-                   ignored"
-                  obj s);
-            None)
-      objects
-  in
-  Some objects
 
 let with_git_repo (files : Testutil_files.t list) func =
   Testutil_files.with_tempfiles_verbose files (fun path ->

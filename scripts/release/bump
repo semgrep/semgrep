@@ -4,7 +4,7 @@
 #
 # This script relies on the SEMGREP_RELEASE_NEXT_VERSION env variable being set.
 # This script is usually called by 'make release', which is itself called by
-# .github/workflows/start-release.yml which sets SEMGREP_RELEASE_NEXT_VERSION.
+# .github/workflows/start-release.jsonnet which sets SEMGREP_RELEASE_NEXT_VERSION.
 
 case "$(uname -s)" in
   Linux)

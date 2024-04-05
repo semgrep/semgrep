@@ -401,7 +401,7 @@ install-deps-UBUNTU-for-semgrep-core:
 # macOS (brew)
 # -------------------------------------------------
 
-# see also scripts/osx-setup-for-release.sh that adjust those
+# see also scripts/osx-setup-*-for-release.sh that adjust those
 # external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
 	brew install $(BREW_DEPS)

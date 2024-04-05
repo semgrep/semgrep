@@ -463,7 +463,15 @@ def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineKind(
+                    out.PROREQUIRED(
+                        value=out.ProFeature(
+                            interproc_taint=True,
+                            interfile_taint=True,
+                            proprietary_language=False,
+                        )
+                    )
+                ),
                 is_ignored=False,
                 historical_info=out.HistoricalInfo(
                     git_blob=out.Sha1("a" * 40),
@@ -548,11 +556,12 @@ def create_validator_rule_match(
     match_validation_state: Union[
         out.ConfirmedValid, out.ConfirmedInvalid, out.ValidationError, out.NoValidator
     ],
+    action: str = "monitor",
 ):
     return RuleMatch(
         message="message",
         metadata={
-            "dev.semgrep.actions": ["monitor"],
+            "dev.semgrep.actions": [action],
             "dev.semgrep.validation_state.actions": validation_state_actions,
         },
         severity=out.MatchSeverity(out.Error()),
@@ -573,49 +582,56 @@ def create_validator_rule_match(
 
 @pytest.mark.quick
 @pytest.mark.parametrize(
-    ("validation_state_actions", "match_validation_state", "is_blocking"),
+    ("validation_state_actions", "match_validation_state", "action", "is_blocking"),
     [
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.ConfirmedValid(),
+            "block",
             False,
         ),
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.ConfirmedInvalid(),
+            "block",
             False,
         ),
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.ValidationError(),
+            "monitor",
             True,
         ),
         (
             {"valid": "comment", "invalid": "monitor", "error": "block"},
             out.NoValidator(),
-            False,
+            "block",
+            True,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
             out.ConfirmedValid(),
+            "monitor",
             True,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
             out.ConfirmedInvalid(),
+            "monitor",
             True,
         ),
         (
             {"valid": "block", "invalid": "block", "error": "block"},
             out.NoValidator(),
-            True,
+            "monitor",
+            False,
         ),
     ],
 )
 def test_validator_rule_blocking(
-    validation_state_actions, match_validation_state, is_blocking
+    validation_state_actions, match_validation_state, action, is_blocking
 ):
     rule_match = create_validator_rule_match(
-        validation_state_actions, match_validation_state
+        validation_state_actions, match_validation_state, action
     )
     assert rule_match.is_blocking == is_blocking

@@ -242,7 +242,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details =
                      Some
                        (spf "Issue creating a target from git blob %s"
-                          (Git_wrapper.show_sha sha));
+                          (Digestif.SHA1.to_hex sha));
                    rule_id = None;
                  })
 
@@ -571,6 +571,7 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
+[@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
@@ -605,8 +606,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let origin = Target.origin target in
-           Logs.info (fun m ->
-               m "Analyzing %s (contents in %s)" (Origin.to_string origin)
+           Logs.debug (fun m ->
+               m ~tags "Analyzing %s (contents in %s)" (Origin.to_string origin)
                  !!internal_path);
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -672,7 +673,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      let errors =
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
-                           Logs.info (fun m ->
+                           Logs.debug (fun m ->
                                m ~tags "Timeout on %s (contents in %s)"
                                  (Origin.to_string origin) !!internal_path);
                            (* TODO what happened here is several rules
@@ -1070,10 +1071,20 @@ let scan ?match_hook (caps : < Cap.tmp >) config
     else NoPrefiltering
   in
 
+  (* Add information to the trace *)
+  let num_targets = List.length all_targets in
+  let num_skipped_targets = List.length skipped in
+  Tracing.add_data_to_opt_span config.top_level_span
+    [
+      ("num_rules", `Int (List.length valid_rules));
+      ("num_targets", `Int num_targets);
+      ("num_skipped_targets", `Int num_skipped_targets);
+    ];
+
   (* Let's go! *)
-  Logs.info (fun m ->
-      m ~tags "processing %d files, skipping %d files" (List.length all_targets)
-        (List.length skipped));
+  Logs.debug (fun m ->
+      m ~tags "processing %d files, skipping %d files" num_targets
+        num_skipped_targets);
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
@@ -1107,10 +1118,12 @@ let scan ?match_hook (caps : < Cap.tmp >) config
       (List_.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
-  Logs.info (fun m ->
-      m ~tags "found %d matches, %d errors"
-        (List.length res.processed_matches)
-        (List.length res.errors));
+  let num_matches = List.length res.processed_matches in
+  let num_errors = List.length res.errors in
+  Tracing.add_data_to_opt_span config.top_level_span
+    [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
+  Logs.debug (fun m ->
+      m ~tags "found %d matches, %d errors" num_matches num_errors);
 
   let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
@@ -1127,7 +1140,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 
   (* Concatenate all the skipped targets *)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "there were %d skipped targets" (List.length skipped_targets));
   (* TODO: returning, or not skipped_targets does not seem to have any impact
    * on our testsuite, weird. We need to add more tests. Maybe because
@@ -1139,15 +1152,12 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 (* Entry point *)
 (*****************************************************************************)
 
-let time_and_trace_rules (caps : < Cap.tmp >) config =
-  (* TODO remove this wrapper function once we have a tracing ppx *)
-  Tracing.with_span ~__FILE__ ~__LINE__ "Core_scan.handle_target" (fun _sp ->
-      Common.with_time (fun () -> rules_from_rule_source caps config))
-
 let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
-    let timed_rules = time_and_trace_rules caps config in
+    let timed_rules =
+      Common.with_time (fun () -> rules_from_rule_source caps config)
+    in
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and
@@ -1160,6 +1170,6 @@ let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
-      Logs.info (fun m ->
+      Logs.debug (fun m ->
           m ~tags "Uncaught exception: %s" (Exception.to_string e));
       Error (e, None)

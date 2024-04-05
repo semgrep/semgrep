@@ -170,6 +170,7 @@ def ci(
     # TODO: Remove after October 2023. Left for a error message
     # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
+    historical_secrets: bool,
     internal_ci_scan_results: bool,
     code: bool,
     config: Optional[Tuple[str, ...]],
@@ -249,16 +250,6 @@ def ci(
         logger.info("Please use --secrets instead of --beta-testing-secrets")
         sys.exit(FATAL_EXIT_CODE)
 
-    output_settings = OutputSettings(
-        output_format=output_format,
-        output_destination=output,
-        verbose_errors=verbose,
-        timeout_threshold=timeout_threshold,
-        output_time=time_flag,
-        output_per_finding_max_lines_limit=max_lines_per_finding,
-        output_per_line_max_chars_limit=max_chars_per_line,
-    )
-    output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
@@ -375,13 +366,18 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
+    if not run_secrets and historical_secrets:
+        logger.info("Cannot run historical secrets scan without secrets enabled.")
+        sys.exit(FATAL_EXIT_CODE)
+
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
-        requested_engine=requested_engine,
-        scan_handler=scan_handler,
-        git_meta=metadata,
+        logged_in=state.app_session.token is not None,
+        engine_flag=requested_engine,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=diff_depth >= 0,
+        interfile_diff_scan_enabled=diff_depth >= 0,
+        ci_scan_handler=scan_handler,
+        git_meta=metadata,
         supply_chain_only=supply_chain_only,
     )
 
@@ -410,6 +406,18 @@ def ci(
             )
         else:
             run_install_semgrep_pro()
+
+    output_settings = OutputSettings(
+        output_format=output_format,
+        output_destination=output,
+        verbose_errors=verbose,
+        timeout_threshold=timeout_threshold,
+        output_time=time_flag,
+        output_per_finding_max_lines_limit=max_lines_per_finding,
+        output_per_line_max_chars_limit=max_chars_per_line,
+        dataflow_traces=dataflow_traces,
+    )
+    output_handler = OutputHandler(output_settings)
 
     # Base arguments for actually running the scan. This is done here so we can
     # re-use this in the event we need to perform a second scan. Currently the
@@ -501,7 +509,15 @@ def ci(
     # place we wouldn't need this seprarately. There are some benefits
     # (e.g., separate progress bar), but it would simplify output logic if we
     # simply had one "scan".
-    if run_secrets and scan_handler and scan_handler.historical_config.enabled:
+    run_historical_secrets_scan = (
+        run_secrets and scan_handler and scan_handler.historical_config.enabled
+    ) or historical_secrets
+
+    if run_historical_secrets_scan and metadata.merge_base_ref:
+        logger.info(
+            f"Historical scanning was enabled, but is not yet supported on diff scans."
+        )
+    elif run_historical_secrets_scan:
         try:
             console.print(Title("Secrets Historical Scan"))
 

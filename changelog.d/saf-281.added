@@ -1,3 +1,0 @@
-We've implemented basic support for the `yield` keyword in Python. The Pro
-engine now detects taint findings from taint sources returned by the yield
-keyword.

@@ -6,6 +6,8 @@
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+local wheel_name = 'osx-x86-wheel';
+
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -48,7 +50,6 @@ local test_semgrep_steps = [
 // ----------------------------------------------------------------------------
 
 local artifact_name = 'semgrep-osx-${{ github.sha }}';
-local wheel_name = 'osx-x86-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,
@@ -62,27 +63,17 @@ local build_core_job = {
       + semgrep.cache_opam.if_cache_inputs,
     {
       name: 'Install dependencies',
-      run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
+      run: |||
+        ./scripts/osx-setup-opam-for-release.sh "%s"
+        ./scripts/osx-setup-post-opam-for-release.sh
+      ||| % semgrep.opam_switch,
     },
     {
       name: 'Compile semgrep',
       run: 'opam exec -- make core',
     },
-    {
-      name: 'Make artifact',
-      run: |||
-        mkdir artifacts
-        cp ./bin/semgrep-core artifacts/
-        tar czf artifacts.tgz artifacts
-      |||,
-    },
-    {
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        path: 'artifacts.tgz',
-        name: artifact_name,
-      },
-    },
+    actions.make_artifact_step("./bin/semgrep-core"),
+    actions.upload_artifact_step(artifact_name),
   ],
 };
 
@@ -93,12 +84,7 @@ local build_wheels_job = {
   ],
   steps: [
     actions.checkout_with_submodules(),
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: artifact_name,
-      },
-    },
+    actions.download_artifact_step(artifact_name),
     {
       run: |||
         tar xvfz artifacts.tgz
@@ -122,14 +108,9 @@ local test_wheels_job = {
     'build-wheels',
   ],
   steps: [
+    actions.download_artifact_step(wheel_name),
     {
-      uses: 'actions/download-artifact@v1',
-      with: {
-        name: wheel_name,
-      },
-    },
-    {
-      run: 'unzip ./osx-x86-wheel/dist.zip',
+      run: 'unzip dist.zip',
     },
     {
       name: 'install package',

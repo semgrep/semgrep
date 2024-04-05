@@ -34,6 +34,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
+from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
@@ -1449,6 +1450,36 @@ def test_outputs(
     )
 
 
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_sarif_output_with_dataflow_traces(
+    git_tmp_path_with_commit,
+    snapshot,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", "--dataflow-traces"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        output_format=OutputFormat.SARIF,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
 @pytest.mark.osemfail
 def test_nosem(
@@ -2103,6 +2134,123 @@ def test_existing_supply_chain_finding(
 
 
 @pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+            rules:
+              - id: supply-chain-parity-1
+                message: "found a dependency"
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: python-dateutil
+                    version: == 2.8.2
+                metadata:
+                    dev.semgrep.actions: [block]
+                    sca-kind: upgrade-only
+              - id: supply-chain-parity-2
+                message: "found another dependency without a pattern"
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: mypy
+                    version: == 0.950
+                metadata:
+                    dev.semgrep.actions: [block]
+                    sca-kind: upgrade-only
+              - id: supply-chain-reachable-1
+                message: "found a reachable vulnerability from a dependency"
+                pattern: $X = 2
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: mypy
+                    version: == 0.950
+                metadata:
+                    dev.semgrep.actions: [block]
+            """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
+@pytest.mark.osemfail
+def test_reachable_and_unreachable_diff_scan_findings(
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                head_commit,
+                head_commit[:7],
+                base_commit,
+            ]
+        ),
+        "base_output.txt",
+    )
+
+    findings_json = upload_results_mock.last_request.json()
+    assert len(findings_json["findings"]) == 3
+
+    pyfile1 = repo_copy_base / "foo.py"
+    pyfile1.write_text(f"x = 2\n")
+
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add lockfile"], check=True, capture_output=True
+    )
+    new_head_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", "--baseline-commit", head_commit],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                new_head_commit,
+                new_head_commit[:7],
+                head_commit,
+            ]
+        ),
+        "new_output.txt",
+    )
+    findings_json = upload_results_mock.last_request.json()
+    assert len(findings_json["findings"]) == 1
+
+
+@pytest.mark.parametrize(
     "enabled_products",
     [[], ["product"]],
     ids=["empty-products", "non-empty-products"],
@@ -2143,12 +2291,12 @@ def test_enabled_products(
         assert "No products are enabled for this organization" not in result.stderr
 
 
-@pytest.mark.parametrize("enable_deepsemgrep", [True, False])
+@pytest.mark.parametrize("oss_only", [False, True])
 @pytest.mark.osemfail
 def test_pro_diff_slow_rollout(
     run_semgrep: RunSemgrep,
     mocker,
-    enable_deepsemgrep,
+    oss_only,
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
@@ -2157,7 +2305,6 @@ def test_pro_diff_slow_rollout(
     Verify that generic_slow_rollout enables pro diff scan
     """
     mocker.patch.object(ScanHandler, "generic_slow_rollout", True)
-    mocker.patch.object(ScanHandler, "deepsemgrep", enable_deepsemgrep)
     mocker.patch.object(EngineType, "check_if_installed", return_value=True)
     mock_send = mocker.patch.object(Metrics, "add_diff_depth")
 
@@ -2165,8 +2312,10 @@ def test_pro_diff_slow_rollout(
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
+    engine_flag_opt = ["--oss-only"] if oss_only else []
+
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        options=["ci", "--no-suppress-errors", *engine_flag_opt],
         target_name=None,
         strict=False,
         force_metrics_off=False,
@@ -2174,10 +2323,10 @@ def test_pro_diff_slow_rollout(
         env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,
     )
-    if enable_deepsemgrep:
-        mock_send.assert_called_once_with(2)
-    else:
+    if oss_only:
         mock_send.assert_not_called()
+    else:
+        mock_send.assert_called_once_with(2)
 
 
 @pytest.mark.parametrize(
@@ -2249,3 +2398,30 @@ def test_ci_uuid(
     assert (
         found_uuid == expected_uuid
     ), f"Expected {expected_uuid} but found {found_uuid}"
+
+
+@pytest.mark.osemfail
+def test_fail_on_historical_scan_without_secrets(
+    run_semgrep: RunSemgrep,
+    snapshot,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--historical-secrets", "--no-suppress-errors"],
+        strict=False,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        assert_exit_code=2,
+        target_name=None,
+        use_click_runner=True,
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "output.txt",
+    )

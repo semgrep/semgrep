@@ -13,15 +13,16 @@ let mask_temp_git_hash =
   Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ()
 
 (* Precisely mask the hexadecimal part in a temp folder name
-   such as 'test-1e92745e' *)
+   such as 'test-1e92745e'. This is printed by some tests as a relative
+   path that is not automatically detected by Testo.mask_temp_paths. *)
 let mask_test_dirname =
-  Testo.mask_pcre_pattern ~mask:"test-<HEX>" "test-[a-f0-9]{1,8}"
+  Testo.mask_pcre_pattern ~replace:(fun _ -> "<HEX>") "test-([a-f0-9]{1,8})"
 
 let normalize =
-  [ mask_temp_git_hash; mask_test_dirname; Testo.mask_temp_paths () ]
+  [ mask_temp_git_hash; Testutil.mask_temp_paths (); mask_test_dirname ]
 
 let t = Testo.create
-let capture = Testo.create ~checked_output:Stdout ~normalize
+let capture = Testo.create ~checked_output:(Testo.stdout ()) ~normalize
 
 (*
    List repo files relative to 'cwd' which can be the root of the git repo,

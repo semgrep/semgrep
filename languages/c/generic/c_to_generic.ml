@@ -463,7 +463,7 @@ and var_decl
   let v3 = storage (snd v1) xstorage in
   let v4 = option initialiser init in
   let entity = G.basic_entity v1 ~attrs:v3 in
-  (entity, G.VarDef { G.vinit = v4; vtype = Some v2 })
+  (entity, G.VarDef { G.vinit = v4; vtype = Some v2; vtok = G.no_sc })
 
 and initialiser x =
   match x with

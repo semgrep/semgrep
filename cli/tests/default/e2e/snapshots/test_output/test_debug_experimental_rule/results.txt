@@ -64,8 +64,8 @@ Running Semgrep engine with command:
     }
   ]
 }
-[<MASKED>][INFO](Core_scan): processing 1 files, skipping 0 files
-[<MASKED>][INFO]: Analyzing <MASKED> (contents in <MASKED>
+[<MASKED>][DEBUG](Core_scan): processing 1 files, skipping 0 files
+[<MASKED>][DEBUG](Core_scan): Analyzing <MASKED> (contents in <MASKED>
 [<MASKED>][DEBUG](Match_rules): checking <MASKED> with 1 rules
 [<MASKED>][DEBUG](Pfff_or_tree_sitter): trying to parse with Pfff parser the pattern
 [<MASKED>][DEBUG](Analyze_rule): cnf0 = (Analyze_rule.And
@@ -118,8 +118,8 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](Match_search_mode): evaluating the formula
 [<MASKED>][DEBUG](Match_search_mode): found 2 final ranges
 [<MASKED>][DEBUG](Core_scan): done with <MASKED> (contents in <MASKED>
-[<MASKED>][INFO](Core_scan): found 2 matches, 0 errors
-[<MASKED>][INFO](Core_scan): there were 0 skipped targets
+[<MASKED>][DEBUG](Core_scan): found 2 matches, 0 errors
+[<MASKED>][DEBUG](Core_scan): there were 0 skipped targets
 [<MASKED>][DEBUG](Core_command): size of returned JSON string: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
@@ -229,8 +229,8 @@ Running Semgrep engine with command:
     }
   ]
 }
-[<MASKED>][[34mINFO[0m](Core_scan): processing 1 files, skipping 0 files
-[<MASKED>][[34mINFO[0m]: Analyzing <MASKED> (contents in <MASKED>
+[<MASKED>][[32mDEBUG[0m](Core_scan): processing 1 files, skipping 0 files
+[<MASKED>][[32mDEBUG[0m](Core_scan): Analyzing <MASKED> (contents in <MASKED>
 [<MASKED>][[32mDEBUG[0m](Match_rules): checking <MASKED> with 1 rules
 [<MASKED>][[32mDEBUG[0m](Pfff_or_tree_sitter): trying to parse with Pfff parser the pattern
 [<MASKED>][[32mDEBUG[0m](Analyze_rule): cnf0 = (Analyze_rule.And
@@ -283,8 +283,8 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](Match_search_mode): evaluating the formula
 [<MASKED>][[32mDEBUG[0m](Match_search_mode): found 2 final ranges
 [<MASKED>][[32mDEBUG[0m](Core_scan): done with <MASKED> (contents in <MASKED>
-[<MASKED>][[34mINFO[0m](Core_scan): found 2 matches, 0 errors
-[<MASKED>][[34mINFO[0m](Core_scan): there were 0 skipped targets
+[<MASKED>][[32mDEBUG[0m](Core_scan): found 2 matches, 0 errors
+[<MASKED>][[32mDEBUG[0m](Core_scan): there were 0 skipped targets
 [<MASKED>][[32mDEBUG[0m](Core_command): size of returned JSON string: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files

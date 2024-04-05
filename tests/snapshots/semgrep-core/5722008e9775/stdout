@@ -3,10 +3,10 @@
 dir/ignore-me
 sub/dir/ignore-me-not
 --- Filtered files ---
-Selection events for path .gitignore:
-SEL .gitignore
-Selection events for path dir/ignore-me:
-ignored at <TEMPORARY FILE PATH>, line 1: dir/*
-IGN dir/ignore-me
-Selection events for path sub/dir/ignore-me-not:
-SEL sub/dir/ignore-me-not
+Selection events for path /.gitignore:
+SEL ppath /.gitignore
+Selection events for path /dir/ignore-me:
+ignored at <TMP>/<MASKED>/.gitignore, line 1: dir/*
+IGN ppath /dir/ignore-me
+Selection events for path /sub/dir/ignore-me-not:
+SEL ppath /sub/dir/ignore-me-not

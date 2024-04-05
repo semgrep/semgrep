@@ -54,7 +54,7 @@ let setup_logging (conf : Scan_CLI.conf) =
   Logs_.sdebug ~tags "CLI_common.setup_logging";
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
-  Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
+  Logs.debug (fun m -> m ~tags "Semgrep version: %s" Version.version);
   ()
 
 (* ugly: also partially done in CLI.ml *)
@@ -66,8 +66,8 @@ let setup_profiling (conf : Scan_CLI.conf) =
   *)
   if conf.common.profile then (
     (* ugly: no need to set Common.profile, this was done in CLI.ml *)
-    Logs.debug (fun m -> m "Profile mode On");
-    Logs.debug (fun m -> m "disabling -j when in profiling mode");
+    Logs.debug (fun m -> m ~tags "Profile mode On");
+    Logs.debug (fun m -> m ~tags "disabling -j when in profiling mode");
     { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
@@ -136,10 +136,11 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
+    let fixes_env = Autofix.make_fixed_lines_env () in
     core_matches
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
-            ~dryrun:conf.output_conf.dryrun hrules)
+            ~dryrun:conf.output_conf.dryrun fixes_env hrules)
   in
   let cli_matches =
     cli_matches
@@ -191,7 +192,7 @@ let print_logo () : unit =
 └─────────────┘
 |}
   in
-  Logs.app (fun m -> m "%s" logo);
+  Logs.app (fun m -> m ~tags "%s" logo);
   ()
 
 let feature_status_str ~(enabled : bool) : string =
@@ -232,11 +233,11 @@ let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
   List.iter
     (fun (feature_name, desc, is_enabled) ->
       Logs.app (fun m ->
-          m "%s %s"
+          m ~tags "%s %s"
             (feature_status_str ~enabled:is_enabled)
             (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name));
       Logs.app (fun m ->
-          m "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
+          m ~tags "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
     features;
   ()
 
@@ -261,7 +262,7 @@ let display_rule_source ~(rule_source : Rules_source.t) : unit =
           "Loading rules from local config..."
     | Pattern _ -> Ocolor_format.asprintf {|@{  %s@}|} "Using custom pattern."
   in
-  Logs.app (fun m -> m "%s" msg);
+  Logs.app (fun m -> m ~tags "%s" msg);
   ()
 
 (*************************************************************************)
@@ -319,7 +320,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
   in
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.targeting_conf.project_root with
-    | Some (Find_targets.Git_remote git_remote) -> (
+    | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
         | None ->
             failwith
@@ -327,7 +328,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
                the pro engine, but do not have the pro engine. You may need to \
                acquire a different binary."
         | Some pro_git_remote_scan_setup ->
-            pro_git_remote_scan_setup git_remote core_run_for_osemgrep)
+            pro_git_remote_scan_setup core_run_for_osemgrep)
     | _ -> core_run_for_osemgrep
   in
   core_run_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
@@ -423,7 +424,7 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
              else x_end_range.pos.bytepos - y_end_range.pos.bytepos))
   in
   Logs.app (fun m ->
-      m "Removed %s that were in baseline scan"
+      m ~tags "Removed %s that were in baseline scan"
         (String_.unit_str !removed "finding"));
   { head with processed_matches }
 
@@ -570,18 +571,18 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     let filtered_rules =
       Rule_filtering.filter_rules conf.rule_filtering_conf rules
     in
-    Logs.info (fun m ->
-        m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
+    Logs.debug (fun m ->
+        m ~tags "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
     (* step 2: printing the skipped targets *)
     let targets, skipped = targets_and_skipped in
     Logs.debug (fun m ->
-        m "%a" Targets_report.pp_targets_debug
+        m ~tags "%a" Targets_report.pp_targets_debug
           (conf.target_roots, skipped, targets));
-    Logs.info (fun m ->
+    Logs.debug (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
-               m "Ignoring %s due to %s (%s)"
+               m ~tags "Ignoring %s due to %s (%s)"
                  !!(x.Semgrep_output_v1_t.path)
                  (Semgrep_output_v1_t.show_skip_reason
                     x.Semgrep_output_v1_t.reason)
@@ -707,10 +708,18 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      let is_logged_in = Semgrep_login.is_logged_in () in
+      let runtime_params =
+        Output.
+          {
+            is_logged_in = Semgrep_login.is_logged_in ();
+            is_using_registry =
+              Metrics_.g.is_using_registry
+              || !Semgrep_envvars.v.mock_using_registry;
+          }
+      in
       Output.output_result
         { conf.output_conf with output_format }
-        profiler ~is_logged_in res
+        profiler runtime_params res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
@@ -731,8 +740,8 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       Metrics_.add_profiling profiler);
 
     let skipped_groups = Skipped_report.group_skipped skipped in
-    Logs.info (fun m ->
-        m "%a" Skipped_report.pp_skipped
+    Logs.debug (fun m ->
+        m ~tags "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_gitignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
@@ -741,7 +750,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
      * prefix), and is filtered when using --quiet.
      *)
     Logs.app (fun m ->
-        m "%a"
+        m ~tags "%a"
           (Summary_report.pp_summary
              ~respect_gitignore:conf.targeting_conf.respect_gitignore
              ~maturity:conf.common.maturity
@@ -749,7 +758,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
              ~skipped_groups)
           ());
     Logs.app (fun m ->
-        m "Ran %s on %s: %s."
+        m ~tags "Ran %s on %s: %s."
           (String_.unit_str (List.length rules_with_targets) "rule")
           (String_.unit_str (List.length cli_output.paths.scanned) "file")
           (String_.unit_str (List.length cli_output.results) "finding"));
@@ -808,7 +817,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
      match conf.rules_source with
      | Pattern _ ->
          Logs.app (fun m ->
-             m "%s"
+             m ~tags "%s"
                (Ocolor_format.asprintf {|@{<bold>  %s@}|}
                   "Code scanning at ludicrous speed.\n"))
      | _ ->
@@ -846,7 +855,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
            configs only from local files (like --config=xyz.yml) does not \
            enable metrics.@.@.More information: \
            https://semgrep.dev/docs/metrics");
-    Logs.app (fun m -> m "%s" pysemgrep_hack2);
+    Logs.app (fun m -> m ~tags "%s" pysemgrep_hack2);
     let settings =
       {
         settings with
@@ -872,17 +881,6 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
-  (* Change dir if project_root is a git_remote
-     note: sorry cooper, we gotta do this because
-     git sparse-checkout doesn't like absolute paths. - anonymous
-     Please try harder to not use chdir as it invalidates all relative paths.
-     'git -C dir' should work, no? - Martin
-  *)
-  (match conf.targeting_conf.project_root with
-  | Some (Find_targets.Git_remote { checkout_path; _ }) ->
-      Logs.debug (fun m -> m ~tags "chdir %s" (Rfpath.show checkout_path));
-      CapSys.chdir caps#chdir (Rpath.to_string checkout_path.rpath)
-  | _ -> ());
   (* step3: let's go *)
   let res =
     run_scan_files
@@ -936,7 +934,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   setup_logging conf;
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
-  Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
+  Logs.debug (fun m -> m ~tags "conf = %s" (Scan_CLI.show_conf conf));
 
   match () with
   (* "alternate modes" where no search is performed.

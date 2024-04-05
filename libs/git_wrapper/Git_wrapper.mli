@@ -4,17 +4,9 @@
 
 exception Error of string
 
-val remote_repo_name : string -> string option
-(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
-
-val temporary_remote_checkout_path : < Cap.tmp > -> string -> Fpath.t
-(** [temporary_remote_checkout_path "https://github.com/semgrep/semgrep.git"]
-    will return [Some "<TMPDIR>/RAND_UUID_semgrep"]. Expects url to be a valid
-    remote repo name *)
-
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
- * raise an Error otherwise
+ * raise an Error exn otherwise.
  *)
 val git_check_output : < Cap.exec > -> Cmd.args -> string
 
@@ -102,20 +94,6 @@ type status = {
 }
 [@@deriving show]
 
-(* We avoid type aliases such as 'type sha = string' because it creates
-   bad error messages mentioning 'sha' instead of 'string'
-   in contexts where no SHAs are involved. *)
-type sha = SHA of string [@@unboxed] [@@deriving show, eq, ord, sexp]
-type obj_type = Tag | Commit | Tree | Blob [@@deriving show]
-
-(* See <https://git-scm.com/book/en/v2/Git-Internals-Git-Objects> *)
-type 'extra obj = { kind : obj_type; sha : sha; extra : 'extra }
-[@@deriving show]
-
-type batch_check_extra = { size : int } [@@deriving show]
-type batch_extra = { contents : string } [@@deriving show]
-type ls_tree_extra = { path : Fpath.t; size : int } [@@deriving show]
-
 (* git status *)
 val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
@@ -198,74 +176,50 @@ val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
     the commits since the specified time.
  *)
 
-val cat_file_batch_check_all_objects :
-  ?cwd:Fpath.t -> unit -> batch_check_extra obj list option
-(** [cat_file_batch_all_objects ()] will run [git log
-   --batch-all-objects --batch-check] in the current working directory (or such
-   directory provided by [cwd])
+type hash = Digestif.SHA1.t [@@deriving show, eq, ord]
+type value = hash Git.Value.t [@@deriving show, eq, ord]
+type commit = hash Git.Commit.t [@@deriving show, eq, ord]
+type author = Git.User.t [@@deriving show, eq, ord]
+type blob = Git.Blob.t [@@deriving show, eq, ord]
+type object_table = (hash, value) Hashtbl.t
 
-   A batch format sufficient for obtaining the information in
-   [batch_check_extra] will be used and that information will be attached to each
-   object.
- *)
+type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
+[@@deriving show]
 
-val cat_file_blob : ?cwd:Fpath.t -> sha -> (string, string) result
+val commit_digest : commit -> hash
+(** [commit_digest commit] is the SHA of the commit*)
+
+val commit_author : commit -> author
+(** [commit_author commit] is the author of the commit*)
+
+val blob_digest : blob -> hash
+(** [blob_digest blob] is the SHA of the blob*)
+
+val string_of_blob : blob -> string
+(** [string_of_blob blob] is the content of the blob*)
+
+val hex_of_hash : hash -> string
+(** [hex_of_hash hash] is the hexadecimal representation of the hash*)
+
+val commit_blobs_by_date : object_table -> (commit * blob_with_extra list) list
+(** [commit_blobs_by_date store] is the list of commits and the blobs they reference, ordered by date, newest first*)
+
+val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
 (** [cat_file_blob sha] will run [git cat-file blob sha] and return either
     {ul
       {- [Ok contents], where [contents] is the contents of the blob; or}
       {- [Error message] where [message] is a brief message indicating why git
-      could not perform the action, e.g., [sha] is not the sha of a blob or
-      [sha] does not designate an object.}
+      could not perform the action, e.g., [hash] is not the sha of a blob or
+      [hash] does not designate an object.}
     }
  *)
 
-val batch_cat_file_blob :
-  ?cwd:Fpath.t ->
-  < Cap.tmp > ->
-  sha list ->
-  ((batch_extra obj, string) result Seq.t, string) result
-(** [batch_cat_file_blob blobs] will run [git cat-file --batch] for each blob
-    object whose sha is listed in [blobs] and return either:
-    {ul
-      {- [Ok output], where [output] is a sequence batch output, where the
-      elements are either [Ok info], where [info] is the information returned
-      about that blob; or [Error message] where [message] is a brief message
-      indicating why git could not perform the action in relation to an
-      individual blob, e.g., a sha in [blobs] is not the sha of a blob or does
-      not designate an object.
+val remote_repo_name : string -> string option
+(** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
 
-      Note that the output Seq must be consumed to prevent a resource leak,
-      since this is implemented by saving the results, and then parsing
-      additional blobs on-demand. Ideally we would rely on Eio for this, but
-      that's currently blocked on 5.x.}
-      {- [Error message], where [message] is a brief message indicating why git
-      could not perform the entire batch operation, e.g., the directory in
-      which git was run is not a git repo.}
-    }
-
-    Note: we make no ordering guarantee of objects in the output list relative
-    to the order in the input list.
- *)
-
-val object_size : ?cwd:Fpath.t -> sha -> int option
-(** [object_size sha] evaluates to [Some s] where [s] is the size of the object
-    designated by [sha] in bytes, or [None] if an error occured (e.g. the
-    object didn't exist).
-  *)
-
-val commit_timestamp : ?cwd:Fpath.t -> sha -> Timedesc.Timestamp.t option
-(** [commit_datetime sha] evaluates to [Some dt] where [dt] is the date and
-   time of the commit designated by [sha] or [None] if an error occured (e.g.,
-   the sha was for another object type).
- *)
-
-val ls_tree :
-  ?cwd:Fpath.t -> ?recurse:bool -> sha -> ls_tree_extra obj list option
-(** [ls_tree ~recurse sha] will run `git ls-tree --full-tree` and report the
-   listed objects and their file paths relative to that tree. If [recurse] is
-   specified to be true (it is false by default) then the `-r` option is passed
-   and git will recurse into subtrees.
- *)
+(*****************************************************************************)
+(* For testing *)
+(*****************************************************************************)
 
 (*
    Create a temporary git repo for testing purposes, cd into it,

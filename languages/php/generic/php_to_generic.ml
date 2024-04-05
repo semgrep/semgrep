@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -193,7 +193,7 @@ let rec stmt_aux = function
              let v1 = var v1 and v2 = option expr v2 in
              let attrs = [ G.KeywordAttr (G.Static, t) ] in
              let ent = G.basic_entity v1 ~case_insensitive:false ~attrs in
-             let def = { G.vinit = v2; vtype = None } in
+             let def = { G.vinit = v2; vtype = None; vtok = G.no_sc } in
              G.DefStmt (ent, G.VarDef def) |> G.s)
   | Global (t, v1) ->
       v1
@@ -609,7 +609,7 @@ and constant_def { cst_name; cst_body; cst_tok = tok } =
   let body = expr cst_body in
   let attr = [ G.KeywordAttr (G.Const, tok) ] in
   let ent = G.basic_entity id ~case_insensitive:false ~attrs:attr in
-  (ent, { G.vinit = Some body; vtype = None })
+  (ent, { G.vinit = Some body; vtype = None; vtok = G.no_sc })
 
 and enum_type _tok { e_base; e_constraint } =
   let t = hint_type e_base in
@@ -698,7 +698,7 @@ and class_var
     list modifier cmodifiers |> List_.map (fun m -> G.KeywordAttr m)
   in
   let ent = G.basic_entity id ~case_insensitive:false ~attrs:modifiers in
-  let def = { G.vtype = typ; vinit = value } in
+  let def = { G.vtype = typ; vinit = value; vtok = G.no_sc } in
   (ent, def)
 
 and method_def v = func_def v

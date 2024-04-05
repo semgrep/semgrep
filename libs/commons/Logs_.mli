@@ -41,7 +41,7 @@
 val enable_logging : unit -> unit
 
 (* list of Logs.src we don't want to enable logging for (third-party libs) *)
-val default_skip_libs : string list
+val default_skip_libs : Re.re list
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
@@ -82,7 +82,7 @@ val default_skip_libs : string list
 val setup_logging :
   ?highlight_setting:Std_msg.highlight_setting ->
   ?log_to_file:Fpath.t ->
-  ?skip_libs:string list ->
+  ?skip_libs:Re.re list ->
   ?require_one_of_these_tags:string list ->
   ?read_tags_from_env_var:string option ->
   level:Logs.level option ->
@@ -118,7 +118,7 @@ val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
    A function that masks the timestamps in log output so that we can compare
    logs from one run to another. To be used as:
 
-     Testo.create ~checked_output:Stderr ~mask_output:[Logs_.mask_time] ...
+     Testo.create ~checked_output:(Testo.stderr ()) ~mask_output:[Logs_.mask_time] ...
 
    This is crude. Beware false positives.
 *)
@@ -129,7 +129,7 @@ val mask_time : string -> string
    logs:
 
      Testo.create
-        ~checked_output:Stderr
+        ~checked_output:(Testo.stderr ())
         ~mask_output:[Logs_.mask_log_lines]
         ...
 

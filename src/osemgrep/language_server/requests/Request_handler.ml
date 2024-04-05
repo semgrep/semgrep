@@ -30,18 +30,7 @@ module CR = Client_request
 
 (* Specifically for custom requests for searching. *)
 let search_handler (server : RPC_server.t) params =
-  let server =
-    let session = server.session in
-    let session =
-      {
-        session with
-        user_settings = { session.user_settings with only_git_dirty = false };
-      }
-    in
-    { server with session }
-  in
-  let runner rules = Scan_helpers.run_semgrep server ~rules |> fst in
-  Search.on_request runner params
+  Search.on_request server params
 
 (* Dispatch to the various custom request handlers. *)
 let handle_custom_request server (meth : string)
