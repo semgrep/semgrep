@@ -689,7 +689,10 @@ let do_search info =
         YS.Util.(resp.result |> Result.get_ok |> member "locations" |> to_list)
       with
       | [] -> Lwt.return None
-      | matches -> Lwt.return (Some (matches, ())))
+      | matches ->
+          (* Send the searchOngoing so we get the next response *)
+          send_semgrep_search_ongoing info;
+          Lwt.return (Some (matches, ())))
     ()
   |> Lwt_seq.to_list
 
@@ -893,7 +896,7 @@ let test_ls_ext caps () =
 
           (* search *)
           let%lwt matches_of_files = do_search info in
-          assert (YS.Util.(List.concat matches_of_files |> List.length = 3));
+          assert (List.concat matches_of_files |> List.length = 3);
 
           (* hover is on by default *)
           let%lwt () =
