@@ -106,6 +106,7 @@ a few other projects developed at r2c.
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
     (digestif (>= "1.0.0"))
+   (astring (>= "0.8.0"))
     uri
     bos
   )
