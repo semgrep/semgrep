@@ -106,7 +106,6 @@ a few other projects developed at r2c.
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
     (digestif (>= "1.0.0"))
-   (astring (>= "0.8.0"))
     uri
     bos
   )
@@ -510,6 +509,7 @@ For more information see https://semgrep.dev
     (js_of_ocaml-lwt (= 5.5.2))
     ctypes_stubs_js
     integers_stubs_js
+    javalib
   )
 )
 
