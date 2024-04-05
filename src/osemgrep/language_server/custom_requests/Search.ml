@@ -182,19 +182,19 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
 (* Output *)
 (*****************************************************************************)
 
-let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
+let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
         let uri = !!path |> Uri.of_path |> Uri.to_string in
         let matches =
           matches
-          |> List_.map (fun (m : Pattern_match.t) ->
+          |> List_.map (fun (m : OutJ.cli_match) ->
                  let range_json =
-                   Range.yojson_of_t (Conv.range_of_toks m.range_loc)
+                   Range.yojson_of_t (Conv.range_of_cli_match m)
                  in
                  let fix_json =
-                   match m.rule_id.fix with
+                   match m.extra.fix with
                    | None -> `Null
                    | Some s -> `String s
                  in
@@ -234,14 +234,22 @@ let rec search_single_target (server : RPC_server.t) =
       )
   | Some ((rules, file), server) -> (
       try
-        let matches =
-          List.concat_map
-            (fun rule ->
-              (* !!calling the engine!! *)
-              match Scan_helpers.run_core_search rule file with
-              | None -> []
-              | Some matches -> matches)
-            rules
+        let run_server =
+          {
+            server with
+            session =
+              {
+                server.session with
+                user_settings =
+                  { server.session.user_settings with only_git_dirty = false };
+              };
+          }
+        in
+        let matches, _scanned =
+          (* !!calling the engine!! *)
+          Scan_helpers.run_semgrep
+            ~rules:(List_.map (fun r -> (r :> Rule.rule)) rules)
+            ~targets:[ file ] run_server
         in
         match matches with
         | [] -> search_single_target server
