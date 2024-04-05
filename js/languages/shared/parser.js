@@ -8,7 +8,6 @@ exports.createParser = async (parserFilename) => {
     locateFile: (_) => `${__dirname}/../../engine/dist/semgrep-engine.wasm`,
   });
   globalThis.LibPcreModule = wasm;
-  globalThis.LibPcre2Module = wasm;
 
   const { ParserFactory } = require(parserFilename);
 

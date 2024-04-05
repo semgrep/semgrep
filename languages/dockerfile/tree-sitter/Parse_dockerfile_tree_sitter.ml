@@ -175,9 +175,9 @@ type ellipsis_or_bash =
    grammar.
 *)
 let is_plain_ellipsis =
-  let rex = Pcre2_.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
+  let rex = Pcre_.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
   fun s ->
-    match Pcre2_.pmatch ~rex s with
+    match Pcre_.pmatch ~rex s with
     | Ok res -> res
     | Error _err -> false
 

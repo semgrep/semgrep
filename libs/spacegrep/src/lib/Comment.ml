@@ -1,7 +1,6 @@
 (*
    Strip comments and the like as a preprocessing phase.
 *)
-[@@@alert "-deprecated"]
 
 open Printf
 

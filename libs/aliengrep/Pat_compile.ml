@@ -7,7 +7,6 @@
    Dig into the test outputs to see what the generated PCRE code looks like
    e.g. cat ~/semgrep/_build/default/tests/_build/_tests/semgrep-core/aliengrep.014.output
 *)
-[@@@alert "-deprecated"]
 
 open Printf
 

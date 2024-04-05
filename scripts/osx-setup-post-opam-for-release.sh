@@ -27,11 +27,9 @@ LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
-ls -l "$(brew --prefix)"/opt/pcre2/lib || true
 ls -l "$(brew --prefix)"/opt/gmp/lib || true
 ls -l "$(brew --prefix)"/opt/libev/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
-rm -f "$(brew --prefix)"/opt/pcre2/lib/libpcre2-8.0.dylib
 rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 rm -f "$(brew --prefix)"/opt/libev/lib/libev.4.dylib
 
