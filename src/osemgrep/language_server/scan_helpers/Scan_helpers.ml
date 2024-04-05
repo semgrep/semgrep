@@ -24,6 +24,17 @@ module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
+    AST_generic.program * Tok.location list =
+  let { Parsing_result2.ast; skipped_tokens; _ } =
+    Parse_target.parse_and_resolve_name lang fpath
+  in
+  (ast, skipped_tokens)
+
+(*****************************************************************************)
 (* Semgrep helpers *)
 (*****************************************************************************)
 
@@ -133,6 +144,37 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
       Logs.debug (fun m -> m "Found %d matches" (List.length matches));
       Session.send_metrics session;
       (matches, scanned)
+
+(* This function runs a search by hooking into Match_search_mode, which bypasses
+   some of the CLI.
+   TODO: Reconsider using run_semgrep instead, now that we are no longer planning to
+   use the match hook.
+*)
+let run_core_search (file : Fpath.t) rule =
+  let hook _file _pm = () in
+  let xlang = rule.Rule.target_analyzer in
+  (* We have to look at all the initial files again when we do this.
+     TODO: Maybe could be better to infer languages from each file,
+     so we only have to look at each file once.
+  *)
+  if Filter_target.filter_target_for_xlang xlang file then
+    let xtarget =
+      Xtarget.resolve parse_and_resolve_name
+        (Target.mk_regular xlang Product.all (File file))
+    in
+    try
+      (* !!calling the engine!! *)
+      let ({ Core_result.matches; _ } : _ Core_result.match_result) =
+        Match_search_mode.check_rule rule hook Match_env.default_xconfig xtarget
+      in
+      match (matches, xtarget.path.origin) with
+      | [], _ -> None
+      | _, File path -> Some matches
+      (* This shouldn't happen. *)
+      | _, GitBlob _ -> None
+    with
+    | Parsing_error.Syntax_error _ -> None
+  else None
 
 (** Scan all folders in the workspace *)
 let scan_workspace server =

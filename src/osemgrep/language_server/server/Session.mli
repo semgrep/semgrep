@@ -27,6 +27,7 @@ type t = {
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
+  search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
   caps : < Cap.random ; Cap.network ; Cap.tmp >; [@opaque]
