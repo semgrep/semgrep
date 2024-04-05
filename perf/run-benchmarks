@@ -273,7 +273,7 @@ def run_semgrep(
     if trace:
         args.extend(["--trace"])
     if traces_endpoint:
-        args.extend(["--traces-endpoint", traces_endpoint])
+        args.extend(["--traces-endpoint semgrep-dev", traces_endpoint])
 
     # Finally, add target
     if not docker:
