@@ -774,8 +774,8 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
                 (Trace_data.no_analysis_features ())
             in
             Tracing.configure_tracing "semgrep-oss";
-            Tracing.with_tracing "Core_command.semgrep_core_dispatch" trace_data
-              (fun sp ->
+            Tracing.with_tracing config.traces_endpoint
+              "Core_command.semgrep_core_dispatch" trace_data (fun sp ->
                 Core_command.semgrep_core_dispatch caps
                   { config with top_level_span = Some sp }))
           else Core_command.semgrep_core_dispatch caps config)

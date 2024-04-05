@@ -92,7 +92,7 @@ let configure_tracing service_name =
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_tracing fname data traces_endpoint f =
+let with_tracing traces_endpoint fname data f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from

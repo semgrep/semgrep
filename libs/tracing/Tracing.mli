@@ -55,9 +55,9 @@ val configure_tracing : string -> unit
     backend with threads, HTTP connections, etc. when called *)
 
 val with_tracing :
+  string option ->
   string ->
   (string * Trace_core.user_data) list ->
-  string option ->
   (span -> 'a) ->
   'a
 (** Setup instrumentation and run the passed function.
