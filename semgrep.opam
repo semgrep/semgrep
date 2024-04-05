@@ -79,6 +79,7 @@ depends: [
   "js_of_ocaml-lwt" {= "5.5.2"}
   "ctypes_stubs_js"
   "integers_stubs_js"
+  "javalib"
   "odoc" {with-doc}
 ]
 build: [

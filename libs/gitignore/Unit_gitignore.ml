@@ -58,7 +58,7 @@ let test_filter (files : F.t list) () =
 (*****************************************************************************)
 
 let t =
-  Testo.create ~checked_output:(Testo.stdout ())
+  Testo.create ~checked_output:Testo.Stdout
     ~normalize:[ Testutil.mask_temp_paths () ]
 
 let tests =

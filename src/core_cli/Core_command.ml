@@ -17,6 +17,7 @@ open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module E = Core_error
 
+let _x = Javalib.is_final_field
 let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
