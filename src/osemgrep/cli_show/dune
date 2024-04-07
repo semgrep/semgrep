@@ -9,6 +9,7 @@
   (libraries
     cmdliner
     commons
+    extism
     lwt
     networking.http_helpers
     lwt_platform

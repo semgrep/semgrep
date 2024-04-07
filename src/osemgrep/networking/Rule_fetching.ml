@@ -119,8 +119,8 @@ let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
   let content =
     let headers =
       match token_opt with
-      | None -> None
-      | Some token -> Some [ Auth.auth_header_of_token token ]
+      | None -> Some [ ("Accept", "application/json") ]
+      | Some token -> Some [ Auth.auth_header_of_token token; ("Accept", "application/json") ]
     in
     let%lwt res = Http_helpers.get_async ?headers caps#network url in
     match res with
@@ -386,6 +386,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       let%lwt content =
         fetch_content_from_registry_url_async ~token_opt caps url
       in
+      Logs.debug (fun m -> m "content from registry: %s" content);
       CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition_result Fun.id

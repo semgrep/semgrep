@@ -1,10 +1,11 @@
 module OutJ = Semgrep_output_v1_j
+open Extism
 
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
-type identity_kind = Identity | Deployment
+type identity_kind = Identity | Deployment | Demo
 
 let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
     Exit_code.t =
@@ -18,6 +19,25 @@ let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
           let id = Lwt_platform.run (Semgrep_App.get_identity_async caps) in
           Logs.app (fun m ->
               m "%s You are logged in as %s" (Std_msg.success_tag ()) id)
+      | Demo ->
+          (* let wasm =
+            Manifest.Wasm.url
+              "https://github.com/extism/plugins/releases/latest/download/greet.wasm"
+          in *)
+          (* let wasm = Manifest.Wasm.file "./greet.wasm" in *)
+          (* let wasm =
+            Manifest.Wasm.url
+              "file://Users/zz/Downloads/greet.wasm"
+          in *)
+          (* let manifest = Manifest.create [ wasm ] in *)
+          (* let manifest = Manifest.(create [ Wasm.file "./greet.wasm" ]) in *)
+          let manifest = Manifest.(create [ Wasm.file "/Users/zz/Dev/Semgrep/semgrep/src/osemgrep/cli_show/greet.wasm" ]) in
+          let plugin = Plugin.of_manifest_exn manifest in
+          let res =
+            Plugin.call_string_exn plugin ~name:"greet" "ZZ"
+          in
+          Logs.app (fun m ->
+              m "%s  greet: %s" (Std_msg.success_tag ()) res)
       | Deployment -> (
           let (x : OutJ.deployment_config option) =
             Lwt_platform.run (Semgrep_App.get_deployment_from_token_async caps)

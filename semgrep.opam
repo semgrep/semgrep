@@ -25,6 +25,7 @@ depends: [
   "alcotest-js"
   "alcotest-lwt"
   "calendar"
+  "extism" {>= "1.1.0"}
   "fmt"
   "ocolor"
   "ANSITerminal"

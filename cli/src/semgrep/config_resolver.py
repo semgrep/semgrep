@@ -136,6 +136,8 @@ class ConfigLoader:
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
 
+        logger.info(f"ConfigLoader: {self._config_path}")
+
     def load_config(self) -> List[ConfigFile]:
         """
         Loads a config based on self's state.
@@ -184,7 +186,7 @@ class ConfigLoader:
 
     def _download_config_from_url(self, url: str) -> ConfigFile:
         app_session = get_state().app_session
-        logger.debug("Downloading config from %s", url)
+        logger.info("Downloading config from %s", url)
         error = f"Failed to download configuration from {url}"
         try:
             resp = app_session.get(url, headers={"Accept": "application/json"})

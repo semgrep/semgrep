@@ -70,6 +70,8 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       Exit_code.ok ~__LOC__
   | Identity ->
       Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Identity
+  | Demo ->
+      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Demo
   | Deployment ->
       Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
   | SupportedLanguages ->

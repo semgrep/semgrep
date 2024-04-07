@@ -37,6 +37,7 @@ and show_kind =
   (* a.k.a whoami *)
   | Identity
   | Deployment
+  | Demo
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-ast -e <pattern>'
    * alt: we could accept XLang.t to dump extended patterns *)
@@ -96,6 +97,7 @@ let cmdline_term : conf Term.t =
       | [ "dump-rule-v2"; file ] -> DumpRuleV2 (Fpath.v file)
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
+      | [ "demo" ] -> Demo
       | [ "deployment" ] -> Deployment
       | [] ->
           Error.abort

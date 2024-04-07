@@ -62,7 +62,8 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-METRICS_ENDPOINT = "https://metrics.semgrep.dev"
+METRICS_ENDPOINT = "http://localhost:8092/api/metrics"
+# "https://metrics.semgrep.dev"
 
 
 class MetricsState(Enum):

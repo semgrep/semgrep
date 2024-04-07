@@ -19,6 +19,7 @@ and show_kind =
   | SupportedLanguages
   | Identity
   | Deployment
+  | Demo
   (* dumpers *)
   | DumpPattern of string * Lang.t
   | DumpAST of Fpath.t * Lang.t
