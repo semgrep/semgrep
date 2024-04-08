@@ -507,6 +507,7 @@ For more information see https://semgrep.dev
     (js_of_ocaml-lwt (= 5.5.2))
     ctypes_stubs_js
     integers_stubs_js
+    (tls-mirage (= 0.17.3))
   )
 )
 
