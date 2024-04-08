@@ -496,6 +496,7 @@ For more information see https://semgrep.dev
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))
+    (tls-mirage (= 0.17.3)) ; force older version of tls-mirage to make windows work
     ; concurrency
     lwt
     lwt_ppx
