@@ -1,0 +1,3 @@
+Improved removal of pre-existing findings in inter-file diff scan: We've
+implemented a more effective method for removing pre-existing findings from
+intra-file rules in the inter-file diff scan.

@@ -637,13 +637,15 @@ def run_scan(
                     baseline_target_strings = target_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
+                        scanned = [
+                            Path(t.value) for t in output_extra.core.paths.scanned
+                        ]
+                        scanned.extend(baseline_handler.status.renamed.values())
                         baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
                             frozenset(
-                                Path(t)
-                                for t in target_mode_config.get_diff_targets()
-                                if t.exists() and not t.is_symlink()
+                                t for t in scanned if t.exists() and not t.is_symlink()
                             ),
-                            target_mode_config.get_diff_depth(),
+                            0,  # scanning the same set of files in the second run
                         )
                     else:
                         baseline_target_strings = frozenset(
