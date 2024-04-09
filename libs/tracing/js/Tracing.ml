@@ -46,6 +46,6 @@ let add_data_to_opt_span (_i : span option)
 
 let configure_tracing (_service_name : string) = ()
 
-let with_tracing (_traces_endpoing : string) (_fname : string)
+let with_tracing (_traces_endpoint : string) (_fname : string)
     (_data : (string * Trace_core.user_data) list) f =
   f 0L

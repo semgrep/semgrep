@@ -212,12 +212,13 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
+        help="Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.",
     ),
     optgroup.option(
         "--traces-endpoint",
         envvar="SEMGREP_OTEL_ENDPOINT",
         default=None,
-        help="Url to send OpenTelemetry traces",
+        help="Url to send OpenTelemetry traces to, if `--trace` is present. This feature is meant for internal use and may be changed or removed wihtout warning.",
     ),
     optgroup.option(
         "--matching-explanations",

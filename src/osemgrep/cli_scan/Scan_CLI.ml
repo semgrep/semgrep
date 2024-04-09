@@ -448,12 +448,18 @@ let o_time : bool Term.t =
 let o_trace : bool Term.t =
   H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
     ~default:default.trace
-    ~doc:{|Upload a trace of the scan to our endpoint (rule, target).
+    ~doc:
+      {|Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.
 |}
 
 let o_traces_endpoint : string option Term.t =
   let info =
-    Arg.info [ "traces-endpoint" ] ~doc:"Url to send OpenTelemetry traces"
+    Arg.info [ "traces-endpoint" ]
+      ~doc:
+        "Endpoint to send OpenTelemetry traces to, if `--trace` is present. \
+         The value may be `semgrep-prod` (default), `semgrep-dev`, \
+         `semgrep-local`, or any valid URL.  This feature is meant for \
+         internal use and may be changed or removed wihtout warning."
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
