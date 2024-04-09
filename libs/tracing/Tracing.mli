@@ -55,8 +55,8 @@ val configure_tracing : string -> unit
     backend with threads, HTTP connections, etc. when called *)
 
 val with_tracing :
-  string option ->
   string ->
+  string option ->
   (string * Trace_core.user_data) list ->
   (span -> 'a) ->
   'a
