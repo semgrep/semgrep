@@ -603,17 +603,8 @@ and parse_formula env (value : G.expr) : R.formula =
            (* TODO put in *)
          in *)
       R.P
-        (try parse_rule_xpattern env (s, t) with
-        | (Time_limit.Timeout _ | UnixExit _) as e ->
-            Exception.catch_and_reraise e
-        (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-        | exn ->
-            Rule.raise_error (Some env.id)
-              (InvalidRule
-                 ( InvalidPattern
-                     (s, env.target_analyzer, Common.exn_to_s exn, env.path),
-                   env.id,
-                   t )))
+        (try_and_raise_invalid_pattern_if_error env (s, t) (fun () ->
+             parse_rule_xpattern env (s, t)))
       |> R.f
   (* If that doesn't work, it should be a key-value pairing.
    *)

@@ -11,6 +11,7 @@
    commons
    commons2
    profiling
+   tree-sitter.run
  )
  (inline_tests)
  (preprocess

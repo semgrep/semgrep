@@ -731,6 +731,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                   * semgrep-core process.
                   *)
                  | exn when not !Flag_semgrep.fail_fast ->
+                     UCommon.pr2
+                       (Common.spf " got exn %s" (Printexc.to_string exn));
                      let e = Exception.catch exn in
                      let errors =
                        Core_error.ErrorSet.singleton

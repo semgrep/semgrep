@@ -45,6 +45,7 @@ exception Syntax_error of Tok.t
 
 (* when we convert a CST to AST *)
 exception Ast_builder_error of string * Tok.t
+exception Tree_sitter_error of Tree_sitter_run.Tree_sitter_error.t list
 
 (* other errors during parsing.
  * TODO? use Tok.location instead of Tok.t?

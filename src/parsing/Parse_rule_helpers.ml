@@ -105,8 +105,20 @@ let pcre_error_to_string s exn =
 let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
   try f () with
   | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  | Parsing_error.Tree_sitter_error errs ->
+      UCommon.pr2 "caught th exn";
+      let output =
+        Common.spf "tree-sitter parsing error\nTree-sitter output:\n%s"
+          (errs
+          |> List_.map Tree_sitter_run.Tree_sitter_error.to_string
+          |> String.concat "\n")
+      in
+      Rule.raise_error (Some env.id)
+        (InvalidRule
+           (InvalidPattern (s, env.target_analyzer, output, env.path), env.id, t))
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
+      UCommon.pr2 (Common.spf "did not catch cause got" ^ Common.exn_to_s exn);
       let error_kind : R.invalid_rule_error_kind =
         InvalidPattern (s, env.target_analyzer, Common.exn_to_s exn, env.path)
       in

@@ -106,6 +106,10 @@ let extract_pattern_from_tree_sitter_result
   | Some pat ->
       (* TODO: treat missing tokens as errors once we're confident that
          these new errors won't affect users negatively on a large scale. *)
+      UCommon.pr2
+        (Common.spf "in extract pat with errs %s\n"
+           (String.concat "\n"
+              (List.map Tree_sitter_run.Tree_sitter_error.to_string res.errors)));
       if has_errors_other_than_missing_tokens res then (
         if print_errors then
           res.errors
@@ -113,7 +117,7 @@ let extract_pattern_from_tree_sitter_result
                  UCommon.pr2
                    (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
         (* to be backward compatible with what we do in PfffPat *)
-        raise Parsing.Parse_error)
+        raise (Parsing_error.Tree_sitter_error res.errors))
       else pat
 
 (*****************************************************************************)
@@ -308,9 +312,11 @@ let run_pattern ~print_errors parsers program =
         | Error e -> (
             match f xs with
             | Ok res -> Stdlib.Ok res
-            | Error _ ->
+            | Error e2 -> (
+                match Exception.get_exn e2 with
+                | Parsing_error.Tree_sitter_error _ -> Error e2
                 (* Return the error from the first parser. *)
-                Error e))
+                | _ -> Error e)))
   in
   match f parsers with
   | Ok res -> res
