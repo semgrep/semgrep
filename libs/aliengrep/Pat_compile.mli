@@ -1,7 +1,6 @@
 (*
    Compile a pattern into a regexp.
 *)
-[@@@alert "-deprecated"]
 
 type metavariable_kind =
   | Metavariable

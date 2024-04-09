@@ -1,10 +1,32 @@
+(* Brandon Wu
+ *
+ * Copyright (C) 2019-2024 Semgrep, Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
 open Lsp
 open Lsp.Types
-open Fpath_.Operators
 module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/search"
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(* The main logic for the /semgrep/search LSP command, which is meant to be
+   run on a manual search.
+*)
 
 (*****************************************************************************)
 (* Parameters *)
@@ -65,8 +87,28 @@ module Request_params = struct
 end
 
 (*****************************************************************************)
-(* Helpers *)
+(* Types *)
 (*****************************************************************************)
+
+type env = {
+  params : Request_params.t;
+  initial_files : Fpath.t list;
+  roots : Scanning_root.t list;
+}
+
+(*****************************************************************************)
+(* Information gathering *)
+(*****************************************************************************)
+
+let mk_env (server : RPC_server.t) params =
+  let scanning_roots =
+    List_.map Scanning_root.of_fpath server.session.workspace_folders
+  in
+  let files =
+    server.session.cached_workspace_targets |> Hashtbl.to_seq_values
+    |> List.of_seq |> List.concat
+  in
+  { roots = scanning_roots; initial_files = files; params }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.
@@ -75,31 +117,30 @@ end
    I tried Find_targets.get_targets, but this ran into an error because of some
    path relativity stuff, I think.
 *)
-let get_relevant_xlangs (server : RPC_server.t) : Xlang.t list =
-  let files =
-    server.session.cached_workspace_targets |> Hashtbl.to_seq_values
-    |> List.of_seq |> List.concat
-  in
+let get_relevant_xlangs (env : env) : Xlang.t list =
   let lang_set = Hashtbl.create 10 in
   List.iter
     (fun file ->
       let file_langs = Lang.langs_of_filename file in
       List.iter (fun lang -> Hashtbl.replace lang_set lang ()) file_langs)
-    files;
+    env.initial_files;
   Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
-let get_relevant_rules (params : Request_params.t) (server : RPC_server.t) :
-    Rule.t list =
-  let rules_and_origins =
-    Rule_fetching.rules_from_pattern (params.pattern, params.lang, None)
+let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
+    Rule.rules =
+  let rules_of_langs (lang_opt : Xlang.t option) : Rule.rules =
+    let rules_and_origins =
+      Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
+    in
+    let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
+    rules
   in
-  let rules, _ = Rule_fetching.partition_rules_and_errors rules_and_origins in
-  let xlangs = get_relevant_xlangs server in
+  let xlangs = get_relevant_xlangs env in
   let rules_with_relevant_xlang =
-    List.filter
-      (fun (rule : Rule.t) -> List.mem rule.target_analyzer xlangs)
-      rules
+    rules_of_langs None
+    |> List.filter (fun (rule : Rule.rule) ->
+           List.mem rule.target_analyzer xlangs)
   in
   match rules_with_relevant_xlang with
   (* Unfortunately, almost everything parses as YAML, because you can specify
@@ -110,11 +151,7 @@ let get_relevant_rules (params : Request_params.t) (server : RPC_server.t) :
   | []
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
-      let rules_and_origins =
-        Rule_fetching.rules_from_pattern
-          (params.pattern, Some Xlang.LRegex, None)
-      in
-      Rule_fetching.partition_rules_and_errors rules_and_origins |> fst
+      rules_of_langs (Some Xlang.LRegex)
   | other -> other
 
 (*****************************************************************************)
@@ -124,25 +161,36 @@ let get_relevant_rules (params : Request_params.t) (server : RPC_server.t) :
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let on_request server runner params =
+let on_request (server : RPC_server.t) params =
   match Request_params.of_jsonrpc_params params with
   | None -> None
   | Some params ->
-      let rules = get_relevant_rules params server in
-      let rules_with_fixes =
-        rules |> List_.map (fun rule -> { rule with Rule.fix = params.fix })
+      let env = mk_env server params in
+      let rules = get_relevant_rules env in
+      (* !!calling the engine!! *)
+      let matches, _scanned =
+        let session =
+          {
+            server.session with
+            user_settings =
+              { server.session.user_settings with only_git_dirty = false };
+          }
+        in
+        Scan_helpers.run_semgrep ~targets:env.initial_files
+          { server with session } ~rules
       in
-      let matches = runner rules_with_fixes in
       let matches_by_file =
-        Assoc.group_by (fun (m : OutJ.cli_match) -> !!(m.path)) matches
+        matches
+        |> List_.map (fun (m : OutJ.cli_match) -> (Fpath.to_string m.path, m))
+        |> Common2.group_assoc_bykey_eff
       in
       let json =
         List_.map
-          (fun (file, matches) ->
-            let uri = file |> Uri.of_path |> Uri.to_string in
+          (fun (path, matches) ->
+            let uri = path |> Uri.of_path |> Uri.to_string in
             let matches =
               matches
-              |> List_.map (fun m ->
+              |> List_.map (fun (m : OutJ.cli_match) ->
                      let range_json =
                        Range.yojson_of_t (Conv.range_of_cli_match m)
                      in

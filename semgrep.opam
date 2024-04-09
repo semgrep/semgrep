@@ -48,7 +48,6 @@ depends: [
   "visitors" {= "20210608"}
   "re"
   "pcre"
-  "pcre2" {>= "7.5.2"}
   "ocamlgraph"
   "parmap"
   "semver"
@@ -70,6 +69,7 @@ depends: [
   "tls-lwt"
   "emile"
   "digestif" {>= "1.0.0"}
+  "tls-mirage" {= "0.17.3"}
   "lwt"
   "lwt_ppx"
   "conf-libev" {os != "win32"}

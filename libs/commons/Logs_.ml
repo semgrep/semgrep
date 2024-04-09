@@ -250,14 +250,7 @@ let log_level_of_string_opt str : Logs.level option option =
 let read_level_from_env () =
   (* left-to-right in order of precedence = from more specific to least
      specific *)
-  let vars =
-    [
-      "PYTEST_SEMGREP_LOG_LEVEL";
-      "SEMGREP_LOG_LEVEL";
-      "PYTEST_LOG_LEVEL";
-      "LOG_LEVEL";
-    ]
-  in
+  let vars = [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ] in
   vars
   |> List.find_map (fun var ->
          match USys.getenv_opt var with

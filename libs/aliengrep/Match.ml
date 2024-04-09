@@ -1,7 +1,6 @@
 (*
    Match a compiled pattern against a target string.
 *)
-[@@@alert "-deprecated"]
 
 type loc = { start : int; length : int; substring : string } [@@deriving show]
 
