@@ -40,7 +40,7 @@ repos:
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
-        exclude: "^(bin|test|libs/testo/.*test|libs/spacegrep/bin)$"
+        exclude: "^(bin|test|libs/testo/.*test|libs/spacegrep/bin/*)$"
       - id: check-toml
       - id: check-vcs-permalinks
       - id: check-xml
