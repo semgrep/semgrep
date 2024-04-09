@@ -898,21 +898,27 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
 
           (* let's remove the negative ranges *)
           let ranges, negs_expls =
-            List.fold_right
-              (fun (tok, x) (ranges, acc_expls) ->
-                let ranges_neg, expl = evaluate_formula env opt_context x in
-                let ranges =
-                  RM.difference_ranges env.xconf.config ranges ranges_neg
-                in
-                let expl =
-                  if_explanations env ranges [ expl ] (OutJ.Negation, tok)
-                in
-                (ranges, expl :: acc_expls))
-              neg (ranges, [])
+            neg
+            |> List.fold_left
+                 (fun (ranges, acc_expls) (tok, x) ->
+                   let ranges_neg, expl = evaluate_formula env opt_context x in
+                   let ranges =
+                     RM.difference_ranges env.xconf.config ranges ranges_neg
+                   in
+                   let expl =
+                     if_explanations env ranges [ expl ] (OutJ.Negation, tok)
+                   in
+                   (ranges, expl :: acc_expls))
+                 (ranges, [])
           in
 
           let expl =
-            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
+            (* We reverse these negation explanations, because we folded across them from
+               the left, meaning they are in the opposite order as in the original rule.
+            *)
+            if_explanations env ranges
+              (posrs_expls @ List.rev negs_expls)
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
