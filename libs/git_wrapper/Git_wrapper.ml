@@ -389,25 +389,21 @@ let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
   in
   rel_paths
 
-let get_project_root ?cwd () =
-  let cmd = (git, cd cwd @ [ "rev-parse"; "--show-toplevel" ]) in
+(* TODO: somehow avoid error message on stderr in case this is not a git repo *)
+let get_project_root_for_files_in_dir dir =
+  let cmd = (git, [ "-C"; !!dir; "rev-parse"; "--show-toplevel" ]) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
   | _ -> None
 
-let get_superproject_root ?cwd () =
-  let cmd =
-    (git, cd cwd @ [ "rev-parse"; "--show-superproject-working-tree" ])
-  in
-  match UCmd.string_of_run ~trim:true cmd with
-  | Ok ("", (_, `Exited 0)) -> get_project_root ?cwd ()
-  | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
-  | _ -> None
+let get_project_root_for_file file =
+  get_project_root_for_files_in_dir (Fpath.parent file)
 
-let get_project_root_exn () =
-  match get_project_root () with
-  | Some path -> path
-  | _ -> raise (Error "Could not get git root from git rev-parse")
+let get_project_root_for_file_or_files_in_dir path =
+  if Sys.is_directory !!path then get_project_root_for_files_in_dir path
+  else get_project_root_for_file path
+
+let is_tracked_by_git file = get_project_root_for_file file |> Option.is_some
 
 let checkout ?cwd ?git_ref () =
   let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
@@ -474,7 +470,12 @@ let get_merge_base commit =
 let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?(branch = None)
     f =
   let cwd = getcwd () |> Fpath.to_dir_path in
-  let git_root = get_project_root_exn () |> Fpath.to_dir_path in
+  let git_root =
+    match get_project_root_for_files_in_dir cwd with
+    | None ->
+        raise (Error ("Could not get git root for current directory " ^ !!cwd))
+    | Some path -> Fpath.to_dir_path path
+  in
   let relative_path =
     match Fpath.relativize ~root:git_root cwd with
     | Some p -> p
@@ -603,13 +604,6 @@ let status ?cwd ?commit () =
     renamed = !renamed;
   }
 
-let is_git_repo ?cwd () =
-  let cmd = (git, cd cwd @ [ "rev-parse"; "--is-inside-work-tree" ]) in
-  match UCmd.status_of_run ~quiet:true cmd with
-  | Ok (`Exited 0) -> true
-  | Ok _ -> false
-  | Error (`Msg e) -> raise (Error e)
-
 let dirty_lines_of_file ?cwd ?(git_ref = "HEAD") file =
   let cwd =
     match cwd with
@@ -635,18 +629,6 @@ let dirty_lines_of_file ?cwd ?(git_ref = "HEAD") file =
       Option.bind lines (fun l -> Some (range_of_git_diff l))
   | Ok _, _ -> None
   | Error (`Msg e), _ -> raise (Error e)
-
-let is_tracked_by_git ?cwd file =
-  let cwd =
-    match cwd with
-    | None -> Some (Fpath.parent file)
-    | Some _ -> cwd
-  in
-  let cmd = (git, cd cwd @ [ "ls-files"; "--error-unmatch"; !!file ]) in
-  match UCmd.status_of_run ~quiet:true cmd with
-  | Ok (`Exited 0) -> true
-  | Ok _ -> false
-  | Error (`Msg e) -> raise (Error e)
 
 let dirty_files ?cwd () =
   let cmd =

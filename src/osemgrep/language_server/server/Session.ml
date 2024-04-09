@@ -68,8 +68,8 @@ let create caps capabilities =
   }
 
 let dirty_files_of_folder folder =
-  let git_repo = Git_wrapper.is_git_repo ~cwd:folder () in
-  if git_repo then
+  let git_repo = Git_wrapper.get_project_root_for_files_in_dir folder in
+  if Option.is_some git_repo then
     let dirty_files = Git_wrapper.dirty_files ~cwd:folder () in
     Some (List_.map (fun x -> folder // x) dirty_files)
   else None

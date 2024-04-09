@@ -32,7 +32,7 @@ let find_any_project_root ?fallback_root ?force_root (fpath : Fpath.t) =
       let scanning_root_info = force_project_root ~project_root fpath in
       (kind, scanning_root_info)
   | None -> (
-      match Git_wrapper.get_project_root ~cwd:fpath () with
+      match Git_wrapper.get_project_root_for_file_or_files_in_dir fpath with
       | Some project_root ->
           (* note: this project_root returned by git appears to be
              a physical path already. *)
