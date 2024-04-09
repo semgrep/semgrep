@@ -123,6 +123,29 @@ type env = {
 (* Information gathering *)
 (*****************************************************************************)
 
+let filter_out_multiple_python (rules : Rule.search_rule list) :
+    Rule.search_rule list =
+  let has_python3 =
+    List.exists
+      (fun x ->
+        match x.Rule.target_analyzer with
+        | Xlang.L (Python3, _) -> true
+        | _ -> false)
+      rules
+  in
+  (* If a pattern parses with python3, don't run any more Python rules. *)
+  if has_python3 then
+    List.filter
+      (fun x ->
+        match x.Rule.target_analyzer with
+        | Xlang.L (Python2, _) -> false
+        | Xlang.L (Python, _) -> false
+        | _ -> true)
+      rules
+  else rules
+
+(* Make an environment for the search. *)
+
 let mk_env (server : RPC_server.t) params =
   let scanning_roots =
     List_.map Scanning_root.of_fpath server.session.workspace_folders
@@ -176,7 +199,7 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
       rules_of_langs (Some Xlang.LRegex)
-  | other -> other
+  | other -> other |> filter_out_multiple_python
 
 (*****************************************************************************)
 (* Output *)
