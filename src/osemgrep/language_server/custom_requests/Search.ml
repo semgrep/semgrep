@@ -182,7 +182,8 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
 (* Output *)
 (*****************************************************************************)
 
-let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
+let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) :
+    Yojson.Safe.t option =
   let json =
     List_.map
       (fun (path, matches) ->

@@ -534,7 +534,7 @@ let send_semgrep_search info ?language pattern =
 
 let send_semgrep_search_ongoing info =
   send_custom_request info ~meth:"semgrep/searchOngoing"
-    ~params:(Jsonrpc.Structured.t_of_yojson `Null)
+    ~params:(Jsonrpc.Structured.t_of_yojson (`Assoc []))
 
 let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =
   let uri = Uri.of_path (Fpath.to_string path) |> Uri.yojson_of_t in
