@@ -209,7 +209,7 @@ def ci(
     timeout: int,
     interfile_timeout: Optional[int],
     trace: bool,
-    traces_endpoint: str,
+    trace_endpoint: str,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -453,7 +453,7 @@ def ci(
         "max_memory": max_memory,
         "interfile_timeout": interfile_timeout,
         "trace": trace,
-        "traces_endpoint": traces_endpoint,
+        "trace_endpoint": trace_endpoint,
         "timeout_threshold": timeout_threshold,
         "skip_unknown_extensions": (not scan_unknown_extensions),
         "allow_untrusted_validators": allow_untrusted_validators,

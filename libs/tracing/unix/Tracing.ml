@@ -46,7 +46,7 @@ module Otel = Opentelemetry
  * which collects them to send to a viewer.
  *
  * If you want to send traces to a different endpoint, append your command with
- * the `--traces-endpoint=<url> argument
+ * the `--trace-endpoint=<url> argument
  *)
 
 (*****************************************************************************)
@@ -92,7 +92,7 @@ let configure_tracing service_name =
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_tracing fname traces_endpoint data f =
+let with_tracing fname trace_endpoint data f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -101,7 +101,7 @@ let with_tracing fname traces_endpoint data f =
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
   let url =
-    match traces_endpoint with
+    match trace_endpoint with
     | Some url -> (
         match url with
         | "semgrep-prod" -> default_endpoint

@@ -56,7 +56,7 @@ type conf = {
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
   trace : bool;
-  traces_endpoint : string option;
+  trace_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]
@@ -121,7 +121,7 @@ let default : conf =
     validate = None;
     test = None;
     trace = false;
-    traces_endpoint = None;
+    trace_endpoint = None;
     ls = false;
   }
 
@@ -452,9 +452,9 @@ let o_trace : bool Term.t =
       {|Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.
 |}
 
-let o_traces_endpoint : string option Term.t =
+let o_trace_endpoint : string option Term.t =
   let info =
-    Arg.info [ "traces-endpoint" ]
+    Arg.info [ "trace-endpoint" ]
       ~doc:
         "Endpoint to send OpenTelemetry traces to, if `--trace` is present. \
          The value may be `semgrep-prod` (default), `semgrep-dev`, \
@@ -928,7 +928,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold trace traces_endpoint validate version version_check vim
+      timeout_threshold trace trace_endpoint validate version version_check vim
       =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
@@ -1264,7 +1264,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       validate;
       test;
       trace;
-      traces_endpoint;
+      trace_endpoint;
       ls;
     }
   in
@@ -1286,7 +1286,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_traces_endpoint
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
     $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
