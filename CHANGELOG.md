@@ -6,6 +6,34 @@
 
 <!-- insertion point -->
 
+## [1.68.0](https://github.com/returntocorp/semgrep/releases/tag/v1.68.0) - 2024-04-08
+
+
+### Added
+
+
+- Scan un-changed lockfiles in diff-aware scans (gh-9899)
+- Languages: Added the QL language (used by CodeQL) to Semgrep (saf-947)
+- SwiftPM parser will now report package url and reference. (sc-1218)
+- Add support for Elixir (Mix) SCA parsing for pro engine users. (sc-1303)
+
+
+### Fixed
+
+
+- Output for sarif format includes dataflow traces. (gh-10004)
+- The environment variable `LOG_LEVEL` (as well as `PYTEST_LOG_LEVEL`) is
+  no longer consulted by Semgrep to determine the log level. Only
+  `SEMGREP_LOG_LEVEL` is consulted. `PYTEST_SEMGREP_LOG_LEVEL` is also
+  consulted in the current implementation but should not be used outside of
+  Semgrep's Pytest tests. This is to avoid accidentally affecting Semgrep
+  when inheriting the `LOG_LEVEL` destined to another application. (gh-10044)
+- Fixed swiftpm parser to no longer limit the amount of found packages in manifest file. (sc-1364)
+- Fixed incorrect ecosystem being used for Elixir. Hex should be used instead of Mix. (sc-elixir)
+- Fixed the match_based_ids of lockfile-only findings to differentiate between findings in cases where one rule produces multiple findings in one lockfile (sca-mid)
+- Secrets historical scans: fixed a bug where historical scans could run on differential scans. (scrt-545)
+
+
 ## [1.67.0](https://github.com/returntocorp/semgrep/releases/tag/v1.67.0) - 2024-03-28
 
 
