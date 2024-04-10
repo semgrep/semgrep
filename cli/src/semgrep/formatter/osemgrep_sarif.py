@@ -1,0 +1,161 @@
+import contextlib
+import json
+import tempfile
+import timeit
+from typing import Any
+from typing import Iterable
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
+
+import semgrep.ocaml as ocaml
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.error import SemgrepError
+from semgrep.formatter.base import BaseFormatter
+from semgrep.formatter.base import rule_match_to_CliMatch
+from semgrep.formatter.sarif import SarifFormatter
+from semgrep.metrics import Metrics
+from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_interfaces.semgrep_metrics import OsemgrepFormatOutput
+from semgrep.verbose_logging import getLogger
+
+
+logger = getLogger(__name__)
+
+
+class OsemgrepSarifFormatter(BaseFormatter):
+    def __init__(self, metrics: Metrics) -> None:
+        # Metrics is temporarily needed so we can keep track of cases
+        # where we fail to format in osemgrep in production.
+        self.metrics = metrics
+
+    def _osemgrep_format(
+        self,
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
+        semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: out.CliOutputExtra,
+        extra: Mapping[str, Any],
+        _is_ci_invocation: bool,
+    ) -> Optional[out.SarifFormatReturn]:
+        exit_stack = contextlib.ExitStack()
+        with exit_stack:
+            rule_file = exit_stack.enter_context(
+                tempfile.NamedTemporaryFile("w+", suffix=".json")
+            )
+            rule_file_contents = json.dumps(
+                {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
+            )
+            rule_file.write(rule_file_contents)
+            rule_file.flush()
+            rules_path = out.Fpath(rule_file.name)
+
+            """
+            Exclude Semgrep notice for users who
+            1. log in
+            2. use pro engine
+            3. are not using registry
+            """
+            is_logged_in = extra.get("is_logged_in", False)
+            is_pro = (
+                cli_output_extra.engine_requested
+                and cli_output_extra.engine_requested == out.EngineKind(out.PRO_())
+            )
+            is_using_registry = extra.get("is_using_registry", False)
+            hide_nudge = is_logged_in or is_pro or not is_using_registry
+
+            engine_label = "PRO" if is_pro else "OSS"
+
+            # Sort according to RuleMatch.get_ordering_key
+            sorted_findings = sorted(rule_matches)
+            cli_matches = [
+                rule_match_to_CliMatch(rule_match) for rule_match in sorted_findings
+            ]
+            cli_errors = [e.to_CliError() for e in semgrep_structured_errors]
+
+            rpc_params = out.SarifFormatParams(
+                hide_nudge,
+                engine_label,
+                rules_path,
+                cli_matches,
+                cli_errors,
+            )
+            formatted_output = ocaml.sarif_format(rpc_params)
+            if formatted_output:
+                return formatted_output.value
+        return None
+
+    def keep_ignores(self) -> bool:
+        # SARIF output includes ignored findings, but labels them as suppressed.
+        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
+        return True
+
+    def format(
+        self,
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
+        semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: out.CliOutputExtra,
+        extra: Mapping[str, Any],
+        is_ci_invocation: bool,
+    ) -> str:
+        rule_list = list(rules)
+        rule_match_list = list(rule_matches)
+        error_list = list(semgrep_structured_errors)
+        rpc_start = timeit.default_timer()
+        rpc_result = self._osemgrep_format(
+            rule_list,
+            rule_match_list,
+            error_list,
+            cli_output_extra,
+            extra,
+            is_ci_invocation,
+        )
+        rpc_elapse = timeit.default_timer() - rpc_start
+
+        pysemgrep_formatter = SarifFormatter()
+        py_start = timeit.default_timer()
+        py_output = pysemgrep_formatter.format(
+            rule_list,
+            rule_match_list,
+            error_list,
+            cli_output_extra,
+            extra,
+            is_ci_invocation,
+        )
+        py_elapse = timeit.default_timer() - py_start
+
+        succeeded = False
+        is_match = None
+        validate_elapse = None
+        o_elapse = None
+        if rpc_result is not None:
+            succeeded = True
+            o_elapse = rpc_result.format_time_seconds
+
+            # Validate results and time it to make sure it's not expensive.
+            validate_start = timeit.default_timer()
+            o_output = rpc_result.output
+            o_json = json.loads(o_output)
+            py_json = json.loads(py_output)
+            is_match = o_json == py_json
+            validate_elapse = timeit.default_timer() - validate_start
+
+        # Update metrics so we can keep track of how well the migration is going.
+        format_metrics = OsemgrepFormatOutput()
+        format_metrics.format = "SARIF"
+        format_metrics.succeeded = succeeded
+        format_metrics.is_match = is_match
+        format_metrics.osemgrep_rpc_response_time_seconds = rpc_elapse
+        format_metrics.osemgrep_format_time_seconds = o_elapse
+        format_metrics.pysemgrep_format_time_seconds = py_elapse
+        format_metrics.validation_time_seconds = validate_elapse
+        self.metrics.add_osemgrep_format_output_metrics(format_metrics)
+
+        if succeeded and is_match:
+            return o_output
+        logger.verbose(
+            "Osemgrep vs Pysemgrep SARIF output mismatch. Falling back to python output."
+        )
+        return py_output
