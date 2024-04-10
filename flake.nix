@@ -187,7 +187,10 @@
             type = "app";
             program = "${pysemgrep}/bin/pysemgrep";
           };
-          default = self.outputs.${system}.apps.semgrep;
+          default = {
+            type = "app";
+            program = "${pysemgrep}/bin/semgrep";
+          };
         };
 
         formatter = pkgs.nixpkgs-fmt;
