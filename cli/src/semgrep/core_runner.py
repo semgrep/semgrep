@@ -648,7 +648,7 @@ class CoreRunner:
             Tuple[Path, Language], Tuple[List[int], Set[str]]
         ] = collections.defaultdict(lambda: (list(), set()))
 
-        lockfiles = target_manager.get_all_lockfiles()
+        lockfiles = target_manager.get_all_lockfiles(ignore_baseline_handler=True)
         unused_rules = []
 
         for rule_num, rule in enumerate(rules):

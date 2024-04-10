@@ -822,7 +822,9 @@ class TargetManager:
 
         return paths.kept
 
-    def get_all_lockfiles(self) -> Dict[Ecosystem, FrozenSet[Path]]:
+    def get_all_lockfiles(
+        self, ignore_baseline_handler: bool = False
+    ) -> Dict[Ecosystem, FrozenSet[Path]]:
         """
         Return a dict mapping each ecosystem to the set of lockfiles for that ecosystem
         """
@@ -841,7 +843,10 @@ class TargetManager:
         }
 
         return {
-            ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
+            ecosystem: self.get_lockfiles(
+                ecosystem, ignore_baseline_handler=ignore_baseline_handler
+            )
+            for ecosystem in ALL_ECOSYSTEMS
         }
 
     @lru_cache(maxsize=None)

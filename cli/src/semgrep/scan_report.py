@@ -313,13 +313,20 @@ def print_scan_status(
         ),  # code-smell since secrets and sast are within the same plan
     )
 
-    lockfiles = target_manager.get_all_lockfiles()
+    lockfiles_with_diff = target_manager.get_all_lockfiles()
+    all_lockfiles = target_manager.get_all_lockfiles(ignore_baseline_handler=True)
     sca_plan = CoreRunner.plan_core_run(
         [
             rule
             for rule in rules
             if isinstance(rule.product.value, out.SCA)
-            and any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
+            and (
+                any(lockfiles_with_diff[ecosystem] for ecosystem in rule.ecosystems)
+                or (
+                    rule.should_run_on_semgrep_core
+                    and any(all_lockfiles[ecosystem] for ecosystem in rule.ecosystems)
+                )
+            )
         ],
         target_manager,
         product=out.Product(out.SCA()),

@@ -36,6 +36,7 @@ from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
+from semgrep.console import console
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
@@ -663,6 +664,13 @@ def run_scan(
                             get_file_ignore()
                         ),
                     )
+
+                    filterd_rules = [
+                        rule
+                        for rule, matches in rule_matches_by_rule.items()
+                        if matches
+                    ]
+                    console.print(filterd_rules)
 
                     (
                         baseline_rule_matches_by_rule,
