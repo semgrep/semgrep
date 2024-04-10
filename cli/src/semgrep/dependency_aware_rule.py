@@ -103,11 +103,11 @@ def generate_unreachable_sca_findings(
                     match=out.CoreMatch(
                         check_id=out.RuleId(rule.id),
                         path=out.Fpath(str(lockfile_path)),
-                        start=out.Position(found_dep.line_number or 0, 0, 0),
+                        start=out.Position(found_dep.line_number or 1, 1, 1),
                         end=out.Position(
-                            (found_dep.line_number if found_dep.line_number else 0),
-                            0,
-                            0,
+                            (found_dep.line_number if found_dep.line_number else 1),
+                            1,
+                            1,
                         ),
                         # TODO: we need to define the fields below in
                         # Output_from_core.atd so we can reuse out.MatchExtra
