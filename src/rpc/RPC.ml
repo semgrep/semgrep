@@ -67,10 +67,14 @@ let handle_sarif_format caps hide_nudge engine_label (rules : fpath)
       skipped_rules = [];
     }
   in
-  let sarif_json =
-    Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
+  let output, format_time_seconds =
+    Common.with_time (fun () ->
+        let sarif_json =
+          Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
+        in
+        Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   in
-  Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json
+  (output, format_time_seconds)
 
 let handle_call caps : function_call -> (function_return, string) result =
   function
@@ -79,12 +83,12 @@ let handle_call caps : function_call -> (function_return, string) result =
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
   | `CallSarifFormat
       { hide_nudge; engine_label; rules; cli_matches; cli_errors } ->
-      let formatted_output =
+      let output, format_time_seconds =
         handle_sarif_format
           (caps :> < Cap.tmp >)
           hide_nudge engine_label rules cli_matches cli_errors
       in
-      Ok (`RetSarifFormat formatted_output)
+      Ok (`RetSarifFormat { output; format_time_seconds })
 
 let read_packet chan =
   let* size_str =

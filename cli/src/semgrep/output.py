@@ -70,11 +70,6 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
 }
 
 
-OSEMGREP_FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
-    OutputFormat.SARIF: OsemgrepSarifFormatter,
-}
-
-
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
     {
         out.MatchSeverity(out.Info()),
@@ -173,22 +168,27 @@ class OutputHandler:
 
         self.final_error: Optional[Exception] = None
 
-        formatter_type = None
+        formatter: Optional[BaseFormatter] = None
         # If configured to use osemgrep to format the output, use the osemgrep formatter.
         if self.settings.use_osemgrep_format_output:
-            formatter_type = OSEMGREP_FORMATTERS.get(self.settings.output_format)
-            if formatter_type is None:
+            if self.settings.output_format == OutputFormat.SARIF:
+                metrics = get_state().metrics
+                formatter = OsemgrepSarifFormatter(metrics)
+            else:
                 logger.warning(
-                    f"Osemgrep formatter for {self.settings.output_format} is not supported yet."
+                    f"Osemgrep formatter for {self.settings.output_format} is not supported yet. "
+                    "Falling back to pysemgrep formatter."
                 )
 
         # If the formatter is not yet supported, fallback to the pysemgrep formatter
-        if formatter_type is None:
+        if formatter is None:
             formatter_type = FORMATTERS.get(self.settings.output_format)
-        if formatter_type is None:
-            raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
+            if formatter_type is not None:
+                formatter = formatter_type()
 
-        self.formatter = formatter_type()
+        if formatter is None:
+            raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
+        self.formatter = formatter
 
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
