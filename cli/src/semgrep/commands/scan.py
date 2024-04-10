@@ -212,6 +212,13 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
+        help="Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.",
+    ),
+    optgroup.option(
+        "--trace-endpoint",
+        envvar="SEMGREP_OTEL_ENDPOINT",
+        default=None,
+        help="Url to send OpenTelemetry traces to, if `--trace` is present. This feature is meant for internal use and may be changed or removed wihtout warning.",
     ),
     optgroup.option(
         "--matching-explanations",
@@ -463,6 +470,7 @@ def scan(
     timeout_threshold: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    trace_endpoint: Optional[str],
     use_git_ignore: bool,
     validate: bool,
     verbose: bool,
@@ -619,6 +627,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             trace=trace,
+                            trace_endpoint=trace_endpoint,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
@@ -684,6 +693,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     trace=trace,
+                    trace_endpoint=trace_endpoint,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,
