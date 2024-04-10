@@ -18,6 +18,9 @@ open Common
 (* Filenames *)
 (*****************************************************************************)
 
+(* nosemgrep: forbid-tmp *)
+let get_temp_dir_name () = UFilename.get_temp_dir_name () |> UUnix.realpath
+
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> Common.matched1 s
   | s -> s

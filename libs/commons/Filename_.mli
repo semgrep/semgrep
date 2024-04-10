@@ -1,3 +1,6 @@
+val get_temp_dir_name : unit -> string
+(** Same as 'Filename.get_temp_dir_name' but resolves symlinks (returns a "real path"). *)
+
 (* Deprecated: use the Ppath module instead! *)
 val filename_without_leading_path :
   string -> string (* filename *) -> string (* filename *)

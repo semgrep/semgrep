@@ -103,7 +103,7 @@ let mock_workspace ?(git = false) () : Fpath.t =
   let rand_dir () =
     let uuid = Uuidm.v `V4 in
     let dir_name = "test_workspace_" ^ Uuidm.to_string uuid in
-    let dir = Filename.concat (Filename.get_temp_dir_name ()) dir_name in
+    let dir = Filename.concat (Filename_.get_temp_dir_name ()) dir_name in
     Unix.mkdir dir 0o777;
     dir
   in

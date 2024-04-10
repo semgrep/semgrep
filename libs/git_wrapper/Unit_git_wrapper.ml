@@ -96,7 +96,7 @@ let tests =
                  (Sys.getcwd ())));
     t "fail to get git project root" (fun () ->
         (* A standard folder that we know is not in a git repo *)
-        let cwd = Filename.get_temp_dir_name () |> Fpath.v in
+        let cwd = Filename_.get_temp_dir_name () |> Fpath.v in
         match Git_wrapper.get_project_root ~cwd () with
         | Some root ->
             Alcotest.fail

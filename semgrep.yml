@@ -349,6 +349,25 @@ rules:
     languages: [ocaml]
     severity: WARNING
 
+  - id: no-filename-get-temp-dir-name
+    pattern: List.map
+    message: >-
+      `Filename.get_temp_dir_name` may return a path that is not "real", that is,
+      contains symlinks, that may cause problems specially in test suites.
+      Use `Filename_.get_temp_dir_name` instead.
+    fix: Filename_.get_temp_dir_anme
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: no-metavariable-equal-xyz
     patterns:
       - pattern: Metavariable.$F

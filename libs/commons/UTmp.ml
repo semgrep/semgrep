@@ -98,7 +98,8 @@ end
 (* API using Fpath.t for filenames *)
 (*****************************************************************************)
 
-let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())
+let get_temp_dir_name () =
+  Fpath.v (UFilename.get_temp_dir_name () |> UUnix.realpath)
 
 let new_temp_file ?(temp_dir = get_temp_dir_name ()) prefix suffix =
   let temp_dir = !!temp_dir in
