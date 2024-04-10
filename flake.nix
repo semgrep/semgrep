@@ -202,6 +202,7 @@
           '';
           inputsFrom = [ osemgrep pysemgrep ];
           buildInputs = devOpamPackages ++ devPipInputs ++ (with pkgs; [
+            pre-commit
             pipenv
           ]);
         };
