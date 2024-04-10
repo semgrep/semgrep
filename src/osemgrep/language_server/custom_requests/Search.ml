@@ -175,15 +175,61 @@ let mk_env (server : RPC_server.t) (params : Request_params.t) =
     server.session.cached_workspace_targets |> Hashtbl.to_seq_values
     |> List.of_seq |> List.concat
   in
+  let project_root =
+    match
+      List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
+    with
+    | Error _ -> failwith "somehow unable to get project root from first root"
+    | Ok rfpath -> rfpath
+  in
+  (* TODO: This has a bug!!!
+     Suppose we exclude `test.py` and are given `tests2/test.py`.
+     This code will not exclude properly, on the basis that `test.py`
+     does not match `tests2/test.py`.
+     Essentially, we may need to look at every suffix of the file to see
+     if it matches.
+  *)
   let filtered_by_includes_excludes =
     files
-    |> List.filter (fun x ->
-           (* Must be included for all includes... *)
-           List.for_all (fun inc -> Glob.Match.run inc !!x) params.includes
-           (* and not excluded, for all excludes *)
-           && List.for_all
-                (fun exc -> not (Glob.Match.run exc !!x))
-                params.excludes)
+    |> List.filter (fun file ->
+           (* Why must we do this?
+               The paths that we receive are absolute paths in the machine.
+               This means something like /Users/brandonspark/test/test.py.
+               When we match it against a blob, like `test.py`, obviously this
+               will not match, because of the giant absolute prefix.
+               We actually want the path _relative to the project root_, which is
+               `test.py` for the project `test`.
+               So we use `Fpath.rem_prefix` here, which emulates that functionality.
+           *)
+           match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
+           | None ->
+               Logs.debug (fun m ->
+                   m "file not in project: %s" (Fpath.to_string file));
+               false
+           | Some file_relative_to_root ->
+               let is_not_included =
+                 match params.includes with
+                 | [] -> false
+                 (* if there wasn't a single included which included you, you are excluded *)
+                 | _ ->
+                     not
+                       (List.exists
+                          (fun inc ->
+                            Glob.Match.run inc !!file_relative_to_root)
+                          params.includes)
+               in
+               let is_not_excluded =
+                 match params.excludes with
+                 | [] -> true
+                 (* if there wasn't a single excluded which excluded you, you are included *)
+                 | _ ->
+                     not
+                       (List.exists
+                          (fun exc ->
+                            Glob.Match.run exc !!file_relative_to_root)
+                          params.excludes)
+               in
+               (not is_not_included) && is_not_excluded)
   in
   {
     roots = scanning_roots;
@@ -327,10 +373,6 @@ let rec search_single_target (server : RPC_server.t) =
     scan like normal, only returning the match ranges per file *)
 let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
     =
-  UCommon.pr2
-    (Common.spf "got params %s"
-       (Common2.string_of_option Yojson.Safe.to_string
-          (Option.map Jsonrpc.Structured.yojson_of_t params)));
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
