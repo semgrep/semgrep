@@ -368,6 +368,20 @@ let mock_workspaces () =
 
   (workspace1, (Fpath.v workspace2_root, workspace2_files))
 
+let mock_search_files () : _ * Fpath.t list =
+  let git_tmp_path = git_tmp_path () in
+
+  let root = git_tmp_path in
+  let path1 = root / "a" / "b" / "c.py" in
+  let path2 = root / "test.py" in
+  (* should have preexisting matches that are committed *)
+  Unix.mkdir (root / "a" |> Fpath.to_string) 0o777;
+  Unix.mkdir (root / "a" / "b" |> Fpath.to_string) 0o777;
+  open_and_write_default_content ~mode:[ Open_wronly ] path1;
+  open_and_write_default_content ~mode:[ Open_wronly ] path2;
+
+  (root, [ path1; path2 ])
+
 (*****************************************************************************)
 (* Sending functions *)
 (*****************************************************************************)
@@ -528,8 +542,10 @@ let send_semgrep_scan_workspace ?(full = false) info =
 let _send_semgrep_refresh_rules info =
   send_custom_notification info ~meth:"semgrep/refreshRules"
 
-let send_semgrep_search info ?language pattern =
-  let params = Search.mk_params ~lang:language ~fix:None pattern in
+let send_semgrep_search info ?language ~includes ~excludes pattern =
+  let params =
+    Search.mk_params ~lang:language ~fix:None ~includes ~excludes pattern
+  in
   send_custom_request info ~meth:"semgrep/search" ~params
 
 let send_semgrep_search_ongoing info =
@@ -680,8 +696,8 @@ let check_startup info folders (files : Fpath.t list) =
 (* Tests *)
 (*****************************************************************************)
 
-let do_search info =
-  send_semgrep_search info "print(...)";
+let do_search ?(pattern = "print(...)") ?(includes = []) ?(excludes = []) info =
+  send_semgrep_search info pattern ~includes ~excludes;
   Lwt_seq.unfold_lwt
     (fun () ->
       let%lwt resp = receive_response info in
@@ -694,7 +710,7 @@ let do_search info =
           send_semgrep_search_ongoing info;
           Lwt.return (Some (matches, ())))
     ()
-  |> Lwt_seq.to_list
+  |> Lwt_seq.to_list |> Lwt.map List.concat
 
 let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
   (* Not setting this means that really nasty errors happen when an exception
@@ -895,8 +911,8 @@ let test_ls_ext caps () =
           in
 
           (* search *)
-          let%lwt matches_of_files = do_search info in
-          assert (List.concat matches_of_files |> List.length = 3);
+          let%lwt matches = do_search info in
+          assert (matches |> List.length = 3);
 
           (* hover is on by default *)
           let%lwt () =
@@ -1018,6 +1034,76 @@ let test_ls_libev () =
   Lwt_platform.set_engine ();
   Lwt.return_unit
 
+let test_search_includes_excludes caps () =
+  with_session caps (fun info ->
+      let root, files = mock_search_files () in
+      let%lwt () = check_startup info [ root ] files in
+      let%lwt matches = do_search ~pattern:"x = 0" info in
+      assert (List.length matches = 2);
+
+      let assert_with_includes_excludes ?(includes = []) ?(excludes = [])
+          ~matches_test ~matches_c () =
+        let%lwt matches = do_search ~includes ~excludes ~pattern:"x = 0" info in
+        let num_matches =
+          (if matches_test then 1 else 0) + if matches_c then 1 else 0
+        in
+        assert (List.length matches = num_matches);
+        if matches_test then
+          assert (
+            List.exists
+              (fun m ->
+                YS.Util.(m |> member "uri" |> to_string) = "file://test.py")
+              matches);
+        if matches_c then
+          assert (
+            List.exists
+              (fun m ->
+                YS.Util.(m |> member "uri" |> to_string) = "file://a/b/c.py")
+              matches);
+        Lwt.return_unit
+      in
+
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "c.py" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~excludes:[ "c.py" ] ~matches_c:false
+          ~matches_test:true ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "test.py" ] ~matches_c:false
+          ~matches_test:true ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~excludes:[ "test.py" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "py" ] ~matches_c:false
+          ~matches_test:false ()
+      in
+
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "b" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "a" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~excludes:[ "a" ] ~matches_c:false
+          ~matches_test:true ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "a/b/c.py" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+
+      Lwt.return_unit)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -1038,6 +1124,8 @@ let promise_tests caps =
        ~expected_outcome:
          (Should_fail "TODO: currently failing in js tests in CI"); *)
     Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
+    Test_lwt.create "Test LS /semgrep/search includes/excludes"
+      (test_search_includes_excludes caps);
   ]
   |> List_.map (fun (test : _ Test.t) ->
          Test.update test ~func:(with_timeout test.func))

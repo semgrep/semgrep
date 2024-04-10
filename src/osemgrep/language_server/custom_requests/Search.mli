@@ -2,7 +2,12 @@ val start_meth : string
 (** method to match on: semgrep/search *)
 
 val mk_params :
-  lang:Xlang.t option -> fix:string option -> string -> Jsonrpc.Structured.t
+  lang:Xlang.t option ->
+  fix:string option ->
+  includes:string list ->
+  excludes:string list ->
+  string ->
+  Jsonrpc.Structured.t
 
 val ongoing_meth : string
 (** method to match on: semgrep/searchOngoing *)

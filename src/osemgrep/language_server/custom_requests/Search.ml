@@ -61,13 +61,25 @@ let parse_globs ~kind (strs : Yojson.Safe.t list) =
        | `String s -> (
            try
              let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
+             (* We do this because including/excluding does not need to
+                specify a precise path.
+                For instance, the default behavior of VS Code's search panel
+                is if you include something like `a`, then this will
+                automatically include any folder named `a`. This includes
+                something like `/a`, or even `/b/a`. Essentially, there
+                is allowed to be stuff before and after it.
+             *)
+             let s =
+               if Fpath.exists_ext (Fpath.v s) then "**/" ^ s
+               else "**/" ^ s ^ "/**"
+             in
              Some (Glob.Match.compile ~source:loc (Glob.Parse.parse_string s))
            with
            | Glob.Lexer.Syntax_error _ -> None)
        | _ -> None)
 
 (* coupling: you must change this if you change the `Request_params.t` type! *)
-let mk_params ~lang ~fix pattern =
+let mk_params ~lang ~fix ~includes ~excludes pattern =
   let lang =
     match lang with
     | None -> `Null
@@ -78,8 +90,17 @@ let mk_params ~lang ~fix pattern =
     | None -> `Null
     | Some fix -> `String fix
   in
+  let includes = List_.map (fun x -> `String x) includes in
+  let excludes = List_.map (fun x -> `String x) excludes in
   let params =
-    `Assoc [ ("pattern", `String pattern); ("language", lang); ("fix", fix) ]
+    `Assoc
+      [
+        ("pattern", `String pattern);
+        ("language", lang);
+        ("fix", fix);
+        ("includes", `List includes);
+        ("excludes", `List excludes);
+      ]
   in
   params
 
@@ -141,6 +162,46 @@ type env = {
 }
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let filter_by_includes_excludes ~project_root (file : Fpath.t)
+    (includes : Glob.Match.compiled_pattern list)
+    (excludes : Glob.Match.compiled_pattern list) =
+  (* Why must we do this?
+     The paths that we receive are absolute paths in the machine.
+     This means something like /Users/brandonspark/test/test.py.
+     When we match it against a blob, like `test.py`, obviously this
+     will not match, because of the giant absolute prefix.
+     We actually want the path _relative to the project root_, which is
+     `test.py` for the project `test`.
+     So we use `Fpath.rem_prefix` here, which emulates that functionality.
+  *)
+  match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
+  | None ->
+      Logs.debug (fun m -> m "file not in project: %s" (Fpath.to_string file));
+      false
+  | Some file_relative_to_root ->
+      let is_included =
+        (* if there is not any instance of an `includes`, anything is fair game.
+         *)
+        match includes with
+        | [] -> true
+        (* otherwise, you must be mentioned in the includes *)
+        | _ ->
+            List.exists
+              (fun inc -> Glob.Match.run inc !!file_relative_to_root)
+              includes
+      in
+      let is_excluded =
+        (* if you have been mentioned in the excludes, you are excluded *)
+        List.exists
+          (fun exc -> Glob.Match.run exc !!file_relative_to_root)
+          excludes
+      in
+      is_included && not is_excluded
+
+(*****************************************************************************)
 (* Information gathering *)
 (*****************************************************************************)
 
@@ -182,54 +243,11 @@ let mk_env (server : RPC_server.t) (params : Request_params.t) =
     | Error _ -> failwith "somehow unable to get project root from first root"
     | Ok rfpath -> rfpath
   in
-  (* TODO: This has a bug!!!
-     Suppose we exclude `test.py` and are given `tests2/test.py`.
-     This code will not exclude properly, on the basis that `test.py`
-     does not match `tests2/test.py`.
-     Essentially, we may need to look at every suffix of the file to see
-     if it matches.
-  *)
   let filtered_by_includes_excludes =
     files
     |> List.filter (fun file ->
-           (* Why must we do this?
-               The paths that we receive are absolute paths in the machine.
-               This means something like /Users/brandonspark/test/test.py.
-               When we match it against a blob, like `test.py`, obviously this
-               will not match, because of the giant absolute prefix.
-               We actually want the path _relative to the project root_, which is
-               `test.py` for the project `test`.
-               So we use `Fpath.rem_prefix` here, which emulates that functionality.
-           *)
-           match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
-           | None ->
-               Logs.debug (fun m ->
-                   m "file not in project: %s" (Fpath.to_string file));
-               false
-           | Some file_relative_to_root ->
-               let is_not_included =
-                 match params.includes with
-                 | [] -> false
-                 (* if there wasn't a single included which included you, you are excluded *)
-                 | _ ->
-                     not
-                       (List.exists
-                          (fun inc ->
-                            Glob.Match.run inc !!file_relative_to_root)
-                          params.includes)
-               in
-               let is_not_excluded =
-                 match params.excludes with
-                 | [] -> true
-                 (* if there wasn't a single excluded which excluded you, you are included *)
-                 | _ ->
-                     not
-                       (List.exists
-                          (fun exc ->
-                            Glob.Match.run exc !!file_relative_to_root)
-                          params.excludes)
-               in
-               (not is_not_included) && is_not_excluded)
+           filter_by_includes_excludes ~project_root file params.includes
+             params.excludes)
   in
   {
     roots = scanning_roots;
