@@ -43,6 +43,12 @@ open Ast_helper
 (* Helpers *)
 (*****************************************************************************)
 
+let location_errorf ~loc fmt =
+  Format.kasprintf
+    (fun err ->
+      raise (Ocaml_common.Location.Error (Ocaml_common.Location.error ~loc err)))
+    fmt
+
 let name_of_func_pat (pat : Parsetree.pattern) =
   match pat.ppat_desc with
   | Ppat_var { txt; _ } -> txt
@@ -85,6 +91,21 @@ let make_label loc l =
       pexp_attributes = [];
     } )
 
+let make_traced_expr loc action_name var_pat e =
+  Exp.apply
+    (Exp.ident { txt = Lident "@@"; loc })
+    [
+      ( Nolabel,
+        Exp.apply
+          (Exp.ident { txt = Ldot (Lident "Tracing", "with_span"); loc })
+          [
+            make_label loc "__FILE__";
+            make_label loc "__LINE__";
+            (Nolabel, Exp.constant (Pconst_string (action_name, loc, None)));
+          ] );
+      (Nolabel, Exp.fun_ Nolabel None var_pat e);
+    ]
+
 (*****************************************************************************)
 (* Mapper *)
 (*****************************************************************************)
@@ -103,30 +124,8 @@ let map_expr_add_tracing attr_payload pat e =
             (* Just use the function name *)
             module_name_of_loc loc ^ "." ^ name_of_func_pat pat
       in
-      let body_with_tracing =
-        Exp.apply
-          (Exp.ident { txt = Lident "@@"; loc })
-          [
-            ( Nolabel,
-              Exp.apply
-                (Exp.ident { txt = Ldot (Lident "Tracing", "with_span"); loc })
-                [
-                  make_label loc "__FILE__";
-                  make_label loc "__LINE__";
-                  ( Nolabel,
-                    Exp.constant (Pconst_string (action_name, loc, None)) );
-                ] );
-            ( Nolabel,
-              Exp.fun_ Nolabel None
-                {
-                  ppat_desc = Ppat_var { txt = "_sp"; loc };
-                  ppat_loc = loc;
-                  ppat_attributes = [];
-                  ppat_loc_stack = [];
-                }
-                e );
-          ]
-      in
+      let var_pat = Ast_builder.Default.ppat_var ~loc { txt = "_sp"; loc } in
+      let body_with_tracing = make_traced_expr loc action_name var_pat e in
       {
         e with
         pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, body_with_tracing);
@@ -134,8 +133,53 @@ let map_expr_add_tracing attr_payload pat e =
   | _ -> e
 
 (*****************************************************************************)
+(* Main expander *)
+(*****************************************************************************)
+
+(* Implements `let%trace = "<name>"`. This code is mostly copied from
+ * https://github.com/c-cube/ocaml-trace/blob/main/src/ppx/ppx_trace.ml
+ * I only copied `rule_let` because for top level annotations we're still
+ * using [@@trace] as discussed later *)
+
+let expand_let ~ctxt var (action_name : string) e =
+  let loc = Expansion_context.Extension.extension_point_loc ctxt in
+  Ast_builder.Default.(
+    let var_pat =
+      match var with
+      | `Var v -> ppat_var ~loc:v.loc v
+      | `Unit -> ppat_var ~loc { loc; txt = "_sp" }
+    in
+    make_traced_expr loc action_name var_pat e)
+
+let extension_let =
+  Extension.V3.declare "trace" Extension.Context.expression
+    (let open! Ast_pattern in
+     single_expr_payload
+       (pexp_let nonrecursive
+          (value_binding
+             ~pat:
+               (let pat_var = ppat_var __' |> map ~f:(fun f v -> f (`Var v)) in
+                let pat_unit =
+                  as__ @@ ppat_construct (lident (string "()")) none
+                  |> map ~f:(fun f _ -> f `Unit)
+                in
+                alt pat_var pat_unit)
+             ~expr:(estring __)
+          ^:: nil)
+          __))
+    expand_let
+
+let rule_let = Ppxlib.Context_free.Rule.extension extension_let
+
+(*****************************************************************************)
 (* Main driver *)
 (*****************************************************************************)
+
+(* Implements [@@trace]. This is not the standard way to add a ppx;
+   for our use case you would usually use an expander. To keep with
+   the existing syntax in our codebase and to maintain compatibility
+   with our tooling, I'm using `[@@trace]` for top level annotations,
+   but we should migrate to the standard syntax to simplify our code. *)
 
 let impl (xs : structure) : structure =
   let map_trace_exprs =
@@ -161,4 +205,4 @@ let impl (xs : structure) : structure =
 
 (* TODO: add ~extensions so that `let%trace = ` is a possible transformation.
    Copy https://github.com/c-cube/ocaml-trace/blob/main/src/ppx/ppx_trace.ml *)
-let () = Driver.register_transformation ~impl "ppx_tracing"
+let () = Driver.register_transformation ~rules:[ rule_let ] ~impl "ppx_tracing"
