@@ -458,16 +458,15 @@ let git_list_untracked_files (project_roots : project_roots) :
 
 let scanning_root_by_project (force_root : force_root)
     (scanning_root : Scanning_root.t) : Project.t * Fppath.t =
-  let kind, { Git_project.project_root; inproject_path = scanning_root_ppath } =
-    Git_project.find_any_project_root ?force_root
-      (Scanning_root.to_fpath scanning_root)
+  let scanning_root_fpath = Scanning_root.to_fpath scanning_root in
+  let kind, scanning_root_info =
+    Git_project.find_any_project_root ?force_root scanning_root_fpath
   in
-  ( ({ kind; path = project_root } : Project.t),
-    ({
-       fpath = Scanning_root.to_fpath scanning_root;
-       ppath = scanning_root_ppath;
-     }
-      : Fppath.t) )
+  let project : Project.t = { kind; path = scanning_root_info.project_root } in
+  let path : Fppath.t =
+    { fpath = scanning_root_fpath; ppath = scanning_root_info.inproject_path }
+  in
+  (project, path)
 
 (*
    Identify the project root for each scanning root and group them
