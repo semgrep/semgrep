@@ -67,6 +67,13 @@ update_cli_setup_py() {
   git add "$target"
 }
 
+update_dune_project() {
+  target=dune-project
+  echo "Updating $target"
+  sed_in_place 's/^(version .*)$/(version '"$release"')/' "$target"
+  git add "$target"
+}
+
 # Update files containing the release ID.
 #
 # Ideally this shouldn't modify source files,
@@ -76,6 +83,7 @@ bump() {
   update_setup_py
   update_cli_setup_py
   update_version_ml
+  update_dune_project
 }
 
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
