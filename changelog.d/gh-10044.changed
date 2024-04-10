@@ -1,0 +1,3 @@
+Passing --debug to Semgrep will not print anything extra unless a set of tags
+is specified via `LOG_TAGS`. We do not want --debug's output to be enourmous,
+as it tends not to be useful and yet cause some problems.
