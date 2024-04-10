@@ -107,6 +107,7 @@ let normalize =
     Testo.mask_line ~after:"Initialized empty Git repository in" ();
     Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ();
     Testo.mask_pcre_pattern "/test-[a-f0-9]+";
+    Testutil.mask_temp_paths ();
   ]
 
 (*
