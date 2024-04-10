@@ -204,6 +204,5 @@ cli/src/semgrep/bin/*
 
 # nix
 **/result
-
 # Personal symlink to semgrep-proprietary used by 'make pro'
 semgrep-proprietary
