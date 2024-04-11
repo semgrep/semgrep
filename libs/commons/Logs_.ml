@@ -144,8 +144,20 @@ let has_nonempty_intersection tag_str_list tag_set =
 
 let has_tag opt_str_list tag_set =
   match opt_str_list with
-  | None (* = no filter *) -> true
-  | Some tag_str_list -> has_nonempty_intersection tag_str_list tag_set
+  | None (* = no filter *) ->
+      (* If there is no filter, we filter out every tagged message. We don't want
+       * --debug's output to be enourmous, that tends not to be useful. You should
+       * instead first consider what exact debug info you need (i.e. what "tags").
+       * This is also a perf problem for the Python CLI that captures all this
+       * output in-memory (despite it shouldn't do that in the first place...). *)
+      Logs.Tag.is_empty tag_set
+  | Some [ "everything" ] ->
+      (* Special tag "everything" prints every debug message. *)
+      true
+  | Some tag_str_list ->
+      (* Untagged messages are always printed. *)
+      Logs.Tag.is_empty tag_set
+      || has_nonempty_intersection tag_str_list tag_set
 
 let read_tags_from_env_var opt_var =
   match opt_var with
