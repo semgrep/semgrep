@@ -637,13 +637,24 @@ def run_scan(
                     baseline_target_strings = target_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
+                        scanned = [
+                            # Conducting the inter-file diff scan twice with the exact same configuration,
+                            # both on the current commit and the baseline commit, could result in the absence
+                            # of a newly added file and its dependencies from the baseline run. Consequently,
+                            # this may lead to the failure to remove pre-existing findings. A more effective
+                            # approach would involve utilizing the same set of scanned diff targets from the
+                            # first run in the baseline run. This approach ensures the safe elimination of any
+                            # existing findings in the dependency files, even if the original file does not
+                            # exist in the baseline commit.
+                            Path(t.value)
+                            for t in output_extra.core.paths.scanned
+                        ]
+                        scanned.extend(baseline_handler.status.renamed.values())
                         baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
                             frozenset(
-                                Path(t)
-                                for t in target_mode_config.get_diff_targets()
-                                if t.exists() and not t.is_symlink()
+                                t for t in scanned if t.exists() and not t.is_symlink()
                             ),
-                            target_mode_config.get_diff_depth(),
+                            0,  # scanning the same set of files in the second run
                         )
                     else:
                         baseline_target_strings = frozenset(
