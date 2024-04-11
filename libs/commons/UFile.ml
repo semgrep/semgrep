@@ -175,6 +175,19 @@ let write_file ~file data = Legacy.write_file ~file:!!file data
 let read_file ?max_len path = Legacy.read_file ?max_len !!path
 let with_open_out path func = Legacy.with_open_outfile !!path func
 let with_open_in path func = Legacy.with_open_infile !!path func
+let default_temp_file_prefix = USys.argv.(0) |> Filename.basename
+
+let with_temp_file ?(contents = "") ?dir ?(persist = false)
+    ?(prefix = default_temp_file_prefix) ?(suffix = "") func =
+  let temp_dir = Option.map Fpath.to_string dir in
+  (* nosemgrep: forbid-tmp *)
+  let path = Fpath.v (UFilename.temp_file ?temp_dir prefix suffix) in
+  (match contents with
+  | "" -> ()
+  | contents -> write_file ~file:path contents);
+  Common.protect
+    (fun () -> func path)
+    ~finally:(fun () -> if not persist then USys.remove !!path)
 
 let filesize file =
   if not !Common.jsoo (* this does not work well with jsoo *) then

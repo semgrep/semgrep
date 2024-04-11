@@ -100,6 +100,27 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
                msg;
              ()))
 
+let test_absolute_target_path caps =
+  let func () =
+    UFile.with_temp_file ~contents:"hello\n" ~suffix:".py" (fun path ->
+        assert (Fpath.is_abs path);
+        (* We want 'path' to be in a file in a folder other than the current
+           folder. *)
+        assert (!!(Fpath.parent path) <> Unix.getcwd ());
+        Scan_subcommand.main caps
+          [|
+            "semgrep-scan";
+            "--experimental";
+            "-l";
+            "python";
+            "-e";
+            "hello";
+            !!path;
+          |]
+        |> Exit_code.Check.ok)
+  in
+  Testo.create "absolute path as target" func
+
 let random_init = lazy (Random.self_init ())
 
 let create_named_pipe () =
@@ -112,11 +133,6 @@ let create_named_pipe () =
   Unix.mkfifo path 0o644;
   Fpath.v path
 
-(* TODO: move this to a library *)
-let with_tempfile ?(prefix = "") ?(suffix = "") func =
-  let path = Fpath.v (Filename.temp_file prefix suffix) in
-  Common.protect (fun () -> func path) ~finally:(fun () -> Sys.remove !!path)
-
 (*
    This probably doesn't work on Windows due to the reliance on a shell
    command but could be ported (it doesn't need 'fork').
@@ -127,7 +143,7 @@ let with_read_from_named_pipe ~data func =
   Common.protect
     (fun () ->
       (* Start another process to write to the pipe in parallel *)
-      with_tempfile (fun reg_file ->
+      UFile.with_temp_file (fun reg_file ->
           (* We go through a regular file so as to avoid quoting issues. *)
           UFile.write_file ~file:reg_file data;
           let writer_command =
@@ -147,21 +163,19 @@ let with_read_from_named_pipe ~data func =
 
 let test_named_pipe (caps : Scan_subcommand.caps) =
   let func () =
-    let exit_code =
-      (* Search for pattern "hello" in a named pipe containing "hello" *)
-      with_read_from_named_pipe ~data:"hello\n" (fun pipe_path ->
-          Scan_subcommand.main caps
-            [|
-              "semgrep-scan";
-              "--experimental";
-              "-l";
-              "python";
-              "-e";
-              "hello";
-              !!pipe_path;
-            |])
-    in
-    Alcotest.(check int) "exit code" 0 (Exit_code.to_int exit_code)
+    (* Search for pattern "hello" in a named pipe containing "hello" *)
+    with_read_from_named_pipe ~data:"hello\n" (fun pipe_path ->
+        Scan_subcommand.main caps
+          [|
+            "semgrep-scan";
+            "--experimental";
+            "-l";
+            "python";
+            "-e";
+            "hello";
+            !!pipe_path;
+          |]
+        |> Exit_code.Check.ok)
   in
   Testo.create "named pipe as target" func
 
@@ -175,5 +189,6 @@ let tests (caps : CLI.caps) =
     [
       test_scan_config_registry_no_token caps;
       test_scan_config_registry_with_invalid_token scan_caps;
+      test_absolute_target_path scan_caps;
       test_named_pipe scan_caps;
     ]
