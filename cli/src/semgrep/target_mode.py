@@ -41,6 +41,7 @@ class DiffScan:
 
 @frozen
 class ProDiffScan:
+    # TODO: rename this class to InterfileDiffScan
     diff_targets: FrozenSet[Path] = field()
     diff_depth: int = field()
 
