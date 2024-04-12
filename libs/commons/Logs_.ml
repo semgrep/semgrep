@@ -147,13 +147,13 @@ let default_tags = [ default_tag_str ]
 let default_tag = create_tag default_tag_str
 let default_tag_set = create_tag_set [ default_tag ]
 
-let read_tags_from_env_var opt_var =
-  match opt_var with
-  | None -> None
-  | Some var -> (
-      match USys.getenv_opt var with
-      | None -> None
-      | Some str -> Some (String.split_on_char ',' str))
+(* Consult environment variables from left-to-right in order of precedence. *)
+let read_from_environment_variables vars =
+  List.find_map (fun var -> USys.getenv_opt var) vars
+
+let read_tags_from_env_vars vars =
+  vars |> read_from_environment_variables
+  |> Option.map (String.split_on_char ',')
 
 (* log reporter
 
@@ -162,9 +162,9 @@ let read_tags_from_env_var opt_var =
    incomprehensible and excessively complicated given how little it provides.
 *)
 let reporter ~dst ~require_one_of_these_tags
-    ~read_tags_from_env_var:(opt_env_var : string option) () =
+    ~read_tags_from_env_vars:(env_vars : string list) () =
   let require_one_of_these_tags =
-    match read_tags_from_env_var opt_env_var with
+    match read_tags_from_env_vars env_vars with
     | Some tags -> tags
     | None -> require_one_of_these_tags
   in
@@ -182,7 +182,7 @@ let reporter ~dst ~require_one_of_these_tags
     in
     let r =
       msgf (fun ?header ?(tags = default_tag_set) fmt ->
-          let pp_w_time () =
+          let pp_w_time ~tags =
             let current = now () in
             (* Add a header *)
             Format.kfprintf k dst
@@ -197,13 +197,15 @@ let reporter ~dst ~require_one_of_these_tags
           | Error
           | Warning
           | Info ->
-              pp_w_time ()
+              (* Print no tags for levels other than Debug since we can't
+                 filter these messages by tag. *)
+              pp_w_time ~tags:Logs.Tag.empty
           | Debug ->
               (* Tag-based filtering *)
               if
                 select_all_debug_messages
                 || has_nonempty_intersection require_one_of_these_tags tags
-              then pp_w_time ()
+              then pp_w_time ~tags
               else (* print nothing *)
                 Format.ikfprintf k dst fmt)
     in
@@ -252,15 +254,11 @@ let log_level_of_string_opt str : Logs.level option option =
    The PYTEST_ prefix is needed when using pytest because it will unset
    all other environment variables.
 *)
-let read_level_from_env () =
-  (* left-to-right in order of precedence = from more specific to least
-     specific *)
-  let vars = [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ] in
-  vars
-  |> List.find_map (fun var ->
-         match USys.getenv_opt var with
-         | None -> None
-         | Some str -> log_level_of_string_opt str)
+let read_level_from_env vars =
+  (* from more specific to least specific *)
+  match read_from_environment_variables vars with
+  | None -> None
+  | Some str -> log_level_of_string_opt str
 
 (*****************************************************************************)
 (* Entry points *)
@@ -273,17 +271,20 @@ let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
   Logs.set_reporter
     (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
-       ~read_tags_from_env_var:None ());
+       ~read_tags_from_env_vars:[] ());
   ()
 
 let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
     ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
     ?(require_one_of_these_tags = default_tags)
-    ?(read_tags_from_env_var = Some "LOG_TAGS") ~level () =
+    ?(read_level_from_env_vars =
+      [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ])
+    ?(read_tags_from_env_vars =
+      [ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]) ~level () =
   (* Override the log level if it's provided by an environment variable!
      This is for debugging a command that gets called by some wrapper. *)
   let level =
-    match read_level_from_env () with
+    match read_level_from_env read_level_from_env_vars with
     | Some level_from_env -> level_from_env
     | None -> level
   in
@@ -302,7 +303,7 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   Logs.set_reporter
-    (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_var ());
+    (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars ());
   Logs.debug (fun m ->
       m "setup_logging: highlight_setting=%s, highlight=%B"
         (Std_msg.show_highlight_setting highlight_setting)

@@ -47,8 +47,8 @@ Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 [<MASKED>][DEBUG](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED>][INFO](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
-[<MASKED>][INFO](cli, Core_CLI): Version: semgrep-core version: <MASKED>
+[<MASKED>][INFO]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
+[<MASKED>][INFO]: Version: semgrep-core version: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
@@ -140,8 +140,8 @@ Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 [<MASKED>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED>][[34mINFO[0m](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
-[<MASKED>][[34mINFO[0m](cli, Core_CLI): Version: semgrep-core version: <MASKED>
+[<MASKED>][[34mINFO[0m]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
+[<MASKED>][[34mINFO[0m]: Version: semgrep-core version: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
