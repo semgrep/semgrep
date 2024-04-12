@@ -203,5 +203,7 @@ scripts/release/release_body.txt
 
 # nix
 result
+# direnv
+.direnv
 # Personal symlink to semgrep-proprietary used by 'make pro'
 /semgrep-proprietary
