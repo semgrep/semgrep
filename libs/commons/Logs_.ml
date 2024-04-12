@@ -192,7 +192,7 @@ let reporter ~dst ~require_one_of_these_tags
     in
     let r =
       msgf (fun ?header ?(tags = Logs.Tag.empty) fmt ->
-          let pp_w_time () =
+          let pp_w_time ~tags =
             let current = now () in
             (* Add a header *)
             Format.kfprintf k dst
@@ -207,10 +207,12 @@ let reporter ~dst ~require_one_of_these_tags
           | Error
           | Warning
           | Info ->
-              pp_w_time ()
+              (* Print no tags for levels other than Debug since we can't
+                 filter these messages by tag. *)
+              pp_w_time ~tags:Logs.Tag.empty
           | Debug ->
               (* Tag-based filtering *)
-              if has_tag require_one_of_these_tags tags then pp_w_time ()
+              if has_tag require_one_of_these_tags tags then pp_w_time ~tags
               else (* print nothing *)
                 Format.ikfprintf k dst fmt)
     in
