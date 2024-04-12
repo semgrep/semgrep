@@ -1,0 +1,3 @@
+The implicit tag to show all debug-level log messages changes from
+`everything` to `all`. All debug-level messages shown by default are
+now tagged and selectable with a `default` tag.
