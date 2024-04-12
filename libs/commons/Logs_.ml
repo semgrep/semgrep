@@ -285,8 +285,8 @@ let enable_logging () =
 
 let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
     ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
-    ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
-    ~level () =
+    ?require_one_of_these_tags
+    ?(read_tags_from_env_var = Some "SEMGREP_LOG_TAGS") ~level () =
   (* Override the log level if it's provided by an environment variable!
      This is for debugging a command that gets called by some wrapper. *)
   let level =

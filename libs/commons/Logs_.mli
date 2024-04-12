@@ -57,12 +57,13 @@ val default_skip_libs : Re.re list
    'read_tags_from_env_var': specifies an environment variable
    from which a list of comma-separated tags will be read if the variable
    is set, in which case the list of tags will override any value set
-   via 'require_one_of_these_tags'. This variable is "LOG_TAGS" by default.
+   via 'require_one_of_these_tags'. This variable is "SEMGREP_LOG_TAGS"
+   by default.
    To disable it, set it to None. The following shell command shows how
    to make semgrep run at the debug level but only show lines tagged with
    'Match_rules' or 'Core_scan'.
 
-     $ LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
+     $ SEMGREP_LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
      ...
      [00.45][INFO](Core_scan): Analyzing TCB/CapStdlib.ml
      [00.45][INFO](Core_scan): Analyzing tests/parsing/ocaml/attribute_type.ml
