@@ -142,10 +142,10 @@ let has_nonempty_intersection tag_str_list tag_set =
       ok || List.mem (Logs.Tag.name def) tag_str_list)
     tag_set false
 
-let has_tag opt_str_list tag_set =
-  match opt_str_list with
-  | None (* = no filter *) -> true
-  | Some tag_str_list -> has_nonempty_intersection tag_str_list tag_set
+let default_tag_str = "default"
+let default_tags = [ default_tag_str ]
+let default_tag = create_tag default_tag_str
+let default_tag_set = create_tag_set [ default_tag ]
 
 let read_tags_from_env_var opt_var =
   match opt_var with
@@ -165,9 +165,11 @@ let reporter ~dst ~require_one_of_these_tags
     ~read_tags_from_env_var:(opt_env_var : string option) () =
   let require_one_of_these_tags =
     match read_tags_from_env_var opt_env_var with
-    | Some _ as some_tags -> some_tags
+    | Some tags -> tags
     | None -> require_one_of_these_tags
   in
+  (* Each debug message is implicitly tagged with "all". *)
+  let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
   let report _src level ~over k msgf =
     let pp_style, _style, style_off =
       match color level with
@@ -179,7 +181,7 @@ let reporter ~dst ~require_one_of_these_tags
       k ()
     in
     let r =
-      msgf (fun ?header ?(tags = Logs.Tag.empty) fmt ->
+      msgf (fun ?header ?(tags = default_tag_set) fmt ->
           let pp_w_time () =
             let current = now () in
             (* Add a header *)
@@ -198,7 +200,10 @@ let reporter ~dst ~require_one_of_these_tags
               pp_w_time ()
           | Debug ->
               (* Tag-based filtering *)
-              if has_tag require_one_of_these_tags tags then pp_w_time ()
+              if
+                select_all_debug_messages
+                || has_nonempty_intersection require_one_of_these_tags tags
+              then pp_w_time ()
               else (* print nothing *)
                 Format.ikfprintf k dst fmt)
     in
@@ -267,14 +272,14 @@ let read_level_from_env () =
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
   Logs.set_reporter
-    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:None
+    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
        ~read_tags_from_env_var:None ());
   ()
 
 let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
     ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
-    ?require_one_of_these_tags ?(read_tags_from_env_var = Some "LOG_TAGS")
-    ~level () =
+    ?(require_one_of_these_tags = default_tags)
+    ?(read_tags_from_env_var = Some "LOG_TAGS") ~level () =
   (* Override the log level if it's provided by an environment variable!
      This is for debugging a command that gets called by some wrapper. *)
   let level =
