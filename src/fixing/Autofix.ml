@@ -99,7 +99,7 @@ let parse_pattern lang pattern =
 let parse_target lang text =
   (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
   (* nosemgrep: forbid-tmp *)
-  UTmp.with_tmp_file ~str:text ~ext:"check" (fun file ->
+  UTmp.with_temp_file ~str:text ~ext:"check" (fun file ->
       try Ok (Parse_target.just_parse_with_lang lang file) with
       | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       | e ->
