@@ -142,22 +142,10 @@ let has_nonempty_intersection tag_str_list tag_set =
       ok || List.mem (Logs.Tag.name def) tag_str_list)
     tag_set false
 
-let has_tag opt_str_list tag_set =
-  match opt_str_list with
-  | None (* = no filter *) ->
-      (* If there is no filter, we filter out every tagged message. We don't want
-       * --debug's output to be enourmous, that tends not to be useful. You should
-       * instead first consider what exact debug info you need (i.e. what "tags").
-       * This is also a perf problem for the Python CLI that captures all this
-       * output in-memory (despite it shouldn't do that in the first place...). *)
-      Logs.Tag.is_empty tag_set
-  | Some [ "everything" ] ->
-      (* Special tag "everything" prints every debug message. *)
-      true
-  | Some tag_str_list ->
-      (* Untagged messages are always printed. *)
-      Logs.Tag.is_empty tag_set
-      || has_nonempty_intersection tag_str_list tag_set
+let default_tag_str = "default"
+let default_tags = [ default_tag_str ]
+let default_tag = create_tag default_tag_str
+let default_tag_set = create_tag_set [ default_tag ]
 
 (* Consult environment variables from left-to-right in order of precedence. *)
 let read_from_environment_variables vars =
@@ -177,9 +165,11 @@ let reporter ~dst ~require_one_of_these_tags
     ~read_tags_from_env_vars:(env_vars : string list) () =
   let require_one_of_these_tags =
     match read_tags_from_env_vars env_vars with
-    | Some _ as some_tags -> some_tags
+    | Some tags -> tags
     | None -> require_one_of_these_tags
   in
+  (* Each debug message is implicitly tagged with "all". *)
+  let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
   let report _src level ~over k msgf =
     let pp_style, _style, style_off =
       match color level with
@@ -191,7 +181,7 @@ let reporter ~dst ~require_one_of_these_tags
       k ()
     in
     let r =
-      msgf (fun ?header ?(tags = Logs.Tag.empty) fmt ->
+      msgf (fun ?header ?(tags = default_tag_set) fmt ->
           let pp_w_time ~tags =
             let current = now () in
             (* Add a header *)
@@ -212,7 +202,10 @@ let reporter ~dst ~require_one_of_these_tags
               pp_w_time ~tags:Logs.Tag.empty
           | Debug ->
               (* Tag-based filtering *)
-              if has_tag require_one_of_these_tags tags then pp_w_time ~tags
+              if
+                select_all_debug_messages
+                || has_nonempty_intersection require_one_of_these_tags tags
+              then pp_w_time ~tags
               else (* print nothing *)
                 Format.ikfprintf k dst fmt)
     in
@@ -277,13 +270,13 @@ let read_level_from_env vars =
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
   Logs.set_reporter
-    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:None
+    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
        ~read_tags_from_env_vars:[] ());
   ()
 
 let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
     ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
-    ?require_one_of_these_tags
+    ?(require_one_of_these_tags = default_tags)
     ?(read_level_from_env_vars =
       [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ])
     ?(read_tags_from_env_vars =
