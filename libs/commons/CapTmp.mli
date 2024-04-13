@@ -1,6 +1,6 @@
 (* Capability aware wrappers to UTmp.ml *)
 
-val with_tmp_file :
+val with_temp_file :
   Cap.FS.tmp -> str:string -> ext:string -> (Fpath.t -> 'a) -> 'a
 
 val get_temp_dir_name : Cap.FS.tmp -> Fpath.t
