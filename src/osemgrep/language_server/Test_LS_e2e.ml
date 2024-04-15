@@ -1037,6 +1037,7 @@ let test_ls_libev () =
 let test_search_includes_excludes caps () =
   with_session caps (fun info ->
       let root, files = mock_search_files () in
+
       let%lwt () = check_startup info [ root ] files in
       let%lwt matches = do_search ~pattern:"x = 0" info in
       assert (List.length matches = 2);
@@ -1048,18 +1049,24 @@ let test_search_includes_excludes caps () =
           (if matches_test then 1 else 0) + if matches_c then 1 else 0
         in
         assert (List.length matches = num_matches);
-        if matches_test then
-          assert (
-            List.exists
-              (fun m ->
-                YS.Util.(m |> member "uri" |> to_string) = "file://test.py")
-              matches);
-        if matches_c then
-          assert (
-            List.exists
-              (fun m ->
-                YS.Util.(m |> member "uri" |> to_string) = "file://a/b/c.py")
-              matches);
+        if
+          matches_test
+          && not
+               (List.exists
+                  (fun m ->
+                    String.ends_with ~suffix:"test.py"
+                      YS.Util.(m |> member "uri" |> to_string))
+                  matches)
+        then Alcotest.failf "failed to find test.py for matches_test case";
+        if
+          matches_c
+          && not
+               (List.exists
+                  (fun m ->
+                    String.ends_with ~suffix:"a/b/c.py"
+                      YS.Util.(m |> member "uri" |> to_string))
+                  matches)
+        then Alcotest.failf "failed to find test.py for matches_c case";
         Lwt.return_unit
       in
 
@@ -1125,7 +1132,8 @@ let promise_tests caps =
          (Should_fail "TODO: currently failing in js tests in CI"); *)
     Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
     Test_lwt.create "Test LS /semgrep/search includes/excludes"
-      (test_search_includes_excludes caps);
+      (test_search_includes_excludes caps)
+      ~tolerate_chdir:true;
   ]
   |> List_.map (fun (test : _ Test.t) ->
          Test.update test ~func:(with_timeout test.func))
