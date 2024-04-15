@@ -1684,5 +1684,5 @@ let get_std_jsonnet () =
    * no need to use tmp file
    *)
   (* nosemgrep: forbid-tmp *)
-  UTmp.with_tmp_file ~str:std ~ext:"jsonnet" (fun file ->
+  UTmp.with_temp_file ~str:std ~ext:"jsonnet" (fun file ->
       Parse_jsonnet.parse_program file)

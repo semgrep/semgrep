@@ -604,7 +604,7 @@ let options caps actions =
         " output profiling information" );
       ( "-keep_tmp_files",
         (* nosemgrep: forbid-tmp *)
-        Arg.Set UTmp.save_tmp_files,
+        Arg.Set UTmp.save_temp_files,
         " keep temporary generated files" );
     ]
   @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)

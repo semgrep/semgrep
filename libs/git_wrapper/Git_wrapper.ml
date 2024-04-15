@@ -648,7 +648,7 @@ let is_tracked_by_git ?cwd file =
   | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
-let dirty_files ?cwd () =
+let dirty_paths ?cwd () =
   let cmd =
     (git, cd cwd @ [ "status"; "--porcelain"; "--ignore-submodules" ])
   in

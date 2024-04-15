@@ -591,11 +591,12 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
     errors = errs |> List_.map error_to_error;
     paths =
       {
-        (* TODO: those are set later in Cli_json_output.ml,
-         * but should we compute skipped and scanned here instead?
-         *)
+        (* It seems that we have two separate paths, one for osemgrep
+           (Cli_json_output.ml) and another for pysemgrep here. We
+           should update this section to output the results
+           specifically for pysemgrep. *)
         skipped = None;
-        scanned = [];
+        scanned = res.scanned;
       };
     skipped_rules =
       res.skipped_rules

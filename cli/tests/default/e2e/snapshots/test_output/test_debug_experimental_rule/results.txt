@@ -11,8 +11,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-[<MASKED>][DEBUG]: setup_logging: highlight_setting=Std_msg.Auto, highlight=false
-[<MASKED>][DEBUG](Pysemgrep): execute pysemgrep: "osemgrep" "--debug" "--strict" "--config" "<MASKED>" "<MASKED>"
+[<MASKED>][DEBUG](default): setup_logging: highlight_setting=Std_msg.Auto, highlight=false
 semgrep version <MASKED>
 Failed to get project url from 'git ls-remote': Command failed with exit code: 128
 -----
@@ -47,80 +46,9 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-[<MASKED>][DEBUG]: setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED>][INFO](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
-[<MASKED>][INFO](cli, Core_CLI): Version: semgrep-core version: <MASKED>
-[<MASKED>][DEBUG](Core_scan): Parsing <MASKED>:
-{
-  "rules": [
-    {
-      "id": "rules.experiment.research-experiment",
-      "languages": [
-        "python"
-      ],
-      "message": "A match was found.",
-      "pattern": "print(\"...\")",
-      "severity": "EXPERIMENT"
-    }
-  ]
-}
-[<MASKED>][DEBUG](Core_scan): processing 1 files, skipping 0 files
-[<MASKED>][DEBUG](Core_scan): Analyzing <MASKED> (contents in <MASKED>
-[<MASKED>][DEBUG](Match_rules): checking <MASKED> with 1 rules
-[<MASKED>][DEBUG](Pfff_or_tree_sitter): trying to parse with Pfff parser the pattern
-[<MASKED>][DEBUG](Analyze_rule): cnf0 = (Analyze_rule.And
-   [(Analyze_rule.Or
-       [(Analyze_rule.LPat
-           { Xpattern.pat =
-             (Xpattern.Sem (
-                (E
-                   { e =
-                     (Call (
-                        { e =
-                          (N
-                             (Id (("print", ()),
-                                { id_resolved = ref (None);
-                                  id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = 7 }
-                                )));
-                          e_id = 0; e_range = None;
-                          is_implicit_return = false },
-                        ((),
-                         [(Arg
-                             { e = (L (String ((), ("...", ()), ())));
-                               e_id = 0; e_range = None;
-                               is_implicit_return = false })
-                           ],
-                         ())
-                        ));
-                     e_id = 0; e_range = None; is_implicit_return = false }),
-                Python));
-             pstr = ("print(\"...\")", ()); pid = 1 })
-         ])
-     ])
-[<MASKED>][DEBUG](Analyze_rule): cnf1 = (Analyze_rule.And
-   [(Analyze_rule.Or [(Analyze_rule.StringsAndMvars (["print"], []))])])
-[<MASKED>][DEBUG](Analyze_rule): cnf2 = (Analyze_rule.And [(Analyze_rule.Or [(Analyze_rule.Idents ["print"])])])
-[<MASKED>][DEBUG](Match_rules): looking for ["Pred",["Idents",["print"]]] in <MASKED>
-[<MASKED>][DEBUG](Analyze_rule): check for the presence of "print"
-[<MASKED>][DEBUG](Pfff_or_tree_sitter): trying to parse with Pfff parser <MASKED>
-[<MASKED>][DEBUG](Naming_AST): Naming_AST.resolve program
-[<MASKED>][DEBUG](Naming_AST): could not find 'print' in environment at <MASKED>:1:0
-[<MASKED>][DEBUG](Naming_AST): could not find 'print' in environment at <MASKED>:3:0
-[<MASKED>][DEBUG](svalue, Constant_propagation): Constant_propagation.propagate_basic program
-[<MASKED>][DEBUG](svalue, Constant_propagation): Constant_propagation.propagate_dataflow program
-[<MASKED>][DEBUG](warning, taint, svalue, AST_to_IL): <MASKED>:1:0: the ident 'print' is not resolved
-[<MASKED>][DEBUG](warning, taint, svalue, AST_to_IL): <MASKED>:3:0: the ident 'print' is not resolved
-[<MASKED>][DEBUG](Parse_target): Parse_target.parse_and_resolve_name done
-[<MASKED>][DEBUG](Match_patterns): checking <MASKED> with 1 mini rules
-[<MASKED>][DEBUG](Match_search_mode): found 2 matches
-[<MASKED>][DEBUG](Match_search_mode): evaluating the formula
-[<MASKED>][DEBUG](Match_search_mode): found 2 final ranges
-[<MASKED>][DEBUG](Core_scan): done with <MASKED> (contents in <MASKED>
-[<MASKED>][DEBUG](Core_scan): found 2 matches, 0 errors
-[<MASKED>][DEBUG](Core_scan): there were 0 skipped targets
-[<MASKED>][DEBUG](Core_command): size of returned JSON string: <MASKED>
+[<MASKED>][DEBUG](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED>][INFO]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
+[<MASKED>][INFO]: Version: semgrep-core version: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
@@ -176,8 +104,7 @@ Not sending pseudonymous metrics since metrics are configured to OFF and registr
 === end of stdout - color
 
 === stderr - color
-[<MASKED>][DEBUG]: setup_logging: highlight_setting=Std_msg.Auto, highlight=false
-[<MASKED>][DEBUG](Pysemgrep): execute pysemgrep: "osemgrep" "--debug" "--strict" "--config" "<MASKED>" "<MASKED>"
+[<MASKED>][DEBUG](default): setup_logging: highlight_setting=Std_msg.Auto, highlight=false
 semgrep version <MASKED>
 Failed to get project url from 'git ls-remote': Command failed with exit code: 128
 -----
@@ -212,80 +139,9 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-[<MASKED>][[32mDEBUG[0m]: setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED>][[34mINFO[0m](cli, Core_CLI): Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
-[<MASKED>][[34mINFO[0m](cli, Core_CLI): Version: semgrep-core version: <MASKED>
-[<MASKED>][[32mDEBUG[0m](Core_scan): Parsing <MASKED>:
-{
-  "rules": [
-    {
-      "id": "rules.experiment.research-experiment",
-      "languages": [
-        "python"
-      ],
-      "message": "A match was found.",
-      "pattern": "print(\"...\")",
-      "severity": "EXPERIMENT"
-    }
-  ]
-}
-[<MASKED>][[32mDEBUG[0m](Core_scan): processing 1 files, skipping 0 files
-[<MASKED>][[32mDEBUG[0m](Core_scan): Analyzing <MASKED> (contents in <MASKED>
-[<MASKED>][[32mDEBUG[0m](Match_rules): checking <MASKED> with 1 rules
-[<MASKED>][[32mDEBUG[0m](Pfff_or_tree_sitter): trying to parse with Pfff parser the pattern
-[<MASKED>][[32mDEBUG[0m](Analyze_rule): cnf0 = (Analyze_rule.And
-   [(Analyze_rule.Or
-       [(Analyze_rule.LPat
-           { Xpattern.pat =
-             (Xpattern.Sem (
-                (E
-                   { e =
-                     (Call (
-                        { e =
-                          (N
-                             (Id (("print", ()),
-                                { id_resolved = ref (None);
-                                  id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = 7 }
-                                )));
-                          e_id = 0; e_range = None;
-                          is_implicit_return = false },
-                        ((),
-                         [(Arg
-                             { e = (L (String ((), ("...", ()), ())));
-                               e_id = 0; e_range = None;
-                               is_implicit_return = false })
-                           ],
-                         ())
-                        ));
-                     e_id = 0; e_range = None; is_implicit_return = false }),
-                Python));
-             pstr = ("print(\"...\")", ()); pid = 1 })
-         ])
-     ])
-[<MASKED>][[32mDEBUG[0m](Analyze_rule): cnf1 = (Analyze_rule.And
-   [(Analyze_rule.Or [(Analyze_rule.StringsAndMvars (["print"], []))])])
-[<MASKED>][[32mDEBUG[0m](Analyze_rule): cnf2 = (Analyze_rule.And [(Analyze_rule.Or [(Analyze_rule.Idents ["print"])])])
-[<MASKED>][[32mDEBUG[0m](Match_rules): looking for ["Pred",["Idents",["print"]]] in <MASKED>
-[<MASKED>][[32mDEBUG[0m](Analyze_rule): check for the presence of "print"
-[<MASKED>][[32mDEBUG[0m](Pfff_or_tree_sitter): trying to parse with Pfff parser <MASKED>
-[<MASKED>][[32mDEBUG[0m](Naming_AST): Naming_AST.resolve program
-[<MASKED>][[32mDEBUG[0m](Naming_AST): could not find 'print' in environment at <MASKED>:1:0
-[<MASKED>][[32mDEBUG[0m](Naming_AST): could not find 'print' in environment at <MASKED>:3:0
-[<MASKED>][[32mDEBUG[0m](svalue, Constant_propagation): Constant_propagation.propagate_basic program
-[<MASKED>][[32mDEBUG[0m](svalue, Constant_propagation): Constant_propagation.propagate_dataflow program
-[<MASKED>][[32mDEBUG[0m](warning, taint, svalue, AST_to_IL): <MASKED>:1:0: the ident 'print' is not resolved
-[<MASKED>][[32mDEBUG[0m](warning, taint, svalue, AST_to_IL): <MASKED>:3:0: the ident 'print' is not resolved
-[<MASKED>][[32mDEBUG[0m](Parse_target): Parse_target.parse_and_resolve_name done
-[<MASKED>][[32mDEBUG[0m](Match_patterns): checking <MASKED> with 1 mini rules
-[<MASKED>][[32mDEBUG[0m](Match_search_mode): found 2 matches
-[<MASKED>][[32mDEBUG[0m](Match_search_mode): evaluating the formula
-[<MASKED>][[32mDEBUG[0m](Match_search_mode): found 2 final ranges
-[<MASKED>][[32mDEBUG[0m](Core_scan): done with <MASKED> (contents in <MASKED>
-[<MASKED>][[32mDEBUG[0m](Core_scan): found 2 matches, 0 errors
-[<MASKED>][[32mDEBUG[0m](Core_scan): there were 0 skipped targets
-[<MASKED>][[32mDEBUG[0m](Core_command): size of returned JSON string: <MASKED>
+[<MASKED>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED>][[34mINFO[0m]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
+[<MASKED>][[34mINFO[0m]: Version: semgrep-core version: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
