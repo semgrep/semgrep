@@ -55,8 +55,31 @@ let ongoing_meth = "semgrep/searchOngoing"
 (* Parameters *)
 (*****************************************************************************)
 
+let parse_globs ~kind (strs : Yojson.Safe.t list) =
+  strs
+  |> List_.map_filter (function
+       | `String s -> (
+           try
+             let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
+             (* We do this because including/excluding does not need to
+                specify a precise path.
+                For instance, the default behavior of VS Code's search panel
+                is if you include something like `a`, then this will
+                automatically include any folder named `a`. This includes
+                something like `/a`, or even `/b/a`. Essentially, there
+                is allowed to be stuff before and after it.
+             *)
+             let s =
+               if Fpath.exists_ext (Fpath.v s) then "**/" ^ s
+               else "**/" ^ s ^ "/**"
+             in
+             Some (Glob.Match.compile ~source:loc (Glob.Parse.parse_string s))
+           with
+           | Glob.Lexer.Syntax_error _ -> None)
+       | _ -> None)
+
 (* coupling: you must change this if you change the `Request_params.t` type! *)
-let mk_params ~lang ~fix pattern =
+let mk_params ~lang ~fix ~includes ~excludes pattern =
   let lang =
     match lang with
     | None -> `Null
@@ -67,21 +90,36 @@ let mk_params ~lang ~fix pattern =
     | None -> `Null
     | Some fix -> `String fix
   in
+  let includes = List_.map (fun x -> `String x) includes in
+  let excludes = List_.map (fun x -> `String x) excludes in
   let params =
-    `Assoc [ ("pattern", `String pattern); ("language", lang); ("fix", fix) ]
+    `Assoc
+      [
+        ("pattern", `String pattern);
+        ("language", lang);
+        ("fix", fix);
+        ("includes", `List includes);
+        ("excludes", `List excludes);
+      ]
   in
   params
 
 module Request_params = struct
   (* coupling: you must change the `mk_params` function above if you change this type! *)
-  type t = { pattern : string; lang : Xlang.t option; fix : string option }
+  type t = {
+    pattern : string;
+    lang : Xlang.t option;
+    fix : string option;
+    includes : Glob.Match.compiled_pattern list;
+    excludes : Glob.Match.compiled_pattern list;
+  }
 
   (* This schema means that it matters what order the arguments are in!
      This is a little undesirable, but it's annoying to be truly
      order-agnostic, and this is what `ocaml-lsp` also does.
      https://github.com/ocaml/ocaml-lsp/blob/ad209576feb8127e921358f2e286e68fd60345e7/ocaml-lsp-server/src/custom_requests/req_wrapping_ast_node.ml#L8
   *)
-  let of_jsonrpc_params params : t option =
+  let of_jsonrpc_params (params : Jsonrpc.Structured.t option) : t option =
     match params with
     | Some
         (`Assoc
@@ -89,6 +127,8 @@ module Request_params = struct
             ("pattern", `String pattern);
             ("language", lang);
             ("fix", fix_pattern);
+            ("includes", `List includes);
+            ("excludes", `List excludes);
           ]) ->
         let lang_opt =
           match lang with
@@ -100,7 +140,9 @@ module Request_params = struct
           | `String fix -> Some fix
           | _ -> None
         in
-        Some { pattern; lang = lang_opt; fix = fix_opt }
+        let includes = parse_globs ~kind:"includes" includes in
+        let excludes = parse_globs ~kind:"excludes" excludes in
+        Some { pattern; lang = lang_opt; fix = fix_opt; includes; excludes }
     | __else__ -> None
 
   let _of_jsonrpc_params_exn params : t =
@@ -118,6 +160,46 @@ type env = {
   initial_files : Fpath.t list;
   roots : Scanning_root.t list;
 }
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let filter_by_includes_excludes ~project_root (file : Fpath.t)
+    (includes : Glob.Match.compiled_pattern list)
+    (excludes : Glob.Match.compiled_pattern list) =
+  (* Why must we do this?
+     The paths that we receive are absolute paths in the machine.
+     This means something like /Users/brandonspark/test/test.py.
+     When we match it against a blob, like `test.py`, obviously this
+     will not match, because of the giant absolute prefix.
+     We actually want the path _relative to the project root_, which is
+     `test.py` for the project `test`.
+     So we use `Fpath.rem_prefix` here, which emulates that functionality.
+  *)
+  match Fpath.rem_prefix (Rfpath.to_fpath project_root) file with
+  | None ->
+      Logs.debug (fun m -> m "file not in project: %s" (Fpath.to_string file));
+      false
+  | Some file_relative_to_root ->
+      let is_included =
+        (* if there is not any instance of an `includes`, anything is fair game.
+         *)
+        match includes with
+        | [] -> true
+        (* otherwise, you must be mentioned in the includes *)
+        | _ ->
+            List.exists
+              (fun inc -> Glob.Match.run inc !!file_relative_to_root)
+              includes
+      in
+      let is_excluded =
+        (* if you have been mentioned in the excludes, you are excluded *)
+        List.exists
+          (fun exc -> Glob.Match.run exc !!file_relative_to_root)
+          excludes
+      in
+      is_included && not is_excluded
 
 (*****************************************************************************)
 (* Information gathering *)
@@ -146,7 +228,7 @@ let filter_out_multiple_python (rules : Rule.search_rule list) :
 
 (* Make an environment for the search. *)
 
-let mk_env (server : RPC_server.t) params =
+let mk_env (server : RPC_server.t) (params : Request_params.t) =
   let scanning_roots =
     List_.map Scanning_root.of_fpath server.session.workspace_folders
   in
@@ -154,7 +236,24 @@ let mk_env (server : RPC_server.t) params =
     server.session.cached_workspace_targets |> Hashtbl.to_seq_values
     |> List.of_seq |> List.concat
   in
-  { roots = scanning_roots; initial_files = files; params }
+  let project_root =
+    match
+      List.nth scanning_roots 0 |> Scanning_root.to_fpath |> Rfpath.of_fpath
+    with
+    | Error _ -> failwith "somehow unable to get project root from first root"
+    | Ok rfpath -> rfpath
+  in
+  let filtered_by_includes_excludes =
+    files
+    |> List.filter (fun file ->
+           filter_by_includes_excludes ~project_root file params.includes
+             params.excludes)
+  in
+  {
+    roots = scanning_roots;
+    initial_files = filtered_by_includes_excludes;
+    params;
+  }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.
@@ -290,7 +389,8 @@ let rec search_single_target (server : RPC_server.t) =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let start_search (server : RPC_server.t) params =
+let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
+    =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
