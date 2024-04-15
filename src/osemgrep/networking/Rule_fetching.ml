@@ -424,42 +424,23 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
 (* Entry point *)
 (*****************************************************************************)
 
-let rules_from_patterns (patterns, xlang_opt, fix) : rules_and_origin list =
-  let fk = Tok.unsafe_fake_tok "" in
-  let rules_and_origin_for_xlang xlang =
-    let xpats =
-      List_.map
-        (fun (positive, pat) ->
-          let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-          (* force the parsing of the pattern to get the parse error if any *)
-          (match xpat.XP.pat with
-          | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-          | XP.Spacegrep _
-          | XP.Aliengrep _
-          | XP.Regexp _ ->
-              ());
-          (positive, xpat))
-        patterns
-    in
-    let of_xpat (positive, xpat) =
-      if positive then Rule.f (Rule.P xpat)
-      else Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat)))
-    in
-    let formula =
-      match xpats with
-      | [ (positive, xpat) ] -> of_xpat (positive, xpat)
-      | _ ->
-          Rule.And (Tok.unsafe_fake_tok "", List_.map of_xpat xpats) |> Rule.f
-    in
-    let rule = Rule.rule_of_formula xlang formula in
-    let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-    { rules = [ rule ]; errors = []; origin = CLI_argument }
+let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
+  let xlang_compatible_with_pat xlang =
+    let xpat = Parse_rule.parse_fake_xpattern xlang pat in
+    (* force the parsing of the pattern to get the parse error if any *)
+    (match xpat.XP.pat with
+    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+    | XP.Spacegrep _
+    | XP.Aliengrep _
+    | XP.Regexp _ ->
+        ());
+    xlang
   in
   match xlang_opt with
   | Some xlang ->
       (* TODO? capture also parse errors here? and transform the pattern
          * parse error in invalid_rule_error to return in rules_and_origin? *)
-      [ rules_and_origin_for_xlang xlang ]
+      [ xlang_compatible_with_pat xlang ]
   (* osemgrep-only: better: can use -e without -l! we try all languages *)
   | None ->
       (* We need uniq_by because Lang.assoc contain multiple times the
@@ -480,15 +461,17 @@ let rules_from_patterns (patterns, xlang_opt, fix) : rules_and_origin list =
       all_langs
       |> List_.map_filter (fun l ->
              try
-               let xlang = Xlang.of_lang l in
-               let r = rules_and_origin_for_xlang xlang in
+               let xlang = Xlang.of_lang l |> xlang_compatible_with_pat in
                Logs.debug (fun m ->
                    m "language %s valid for the pattern" (Lang.show l));
-               Some r
+               Some xlang
              with
              | R.Error _
              | Failure _ ->
                  None)
+
+let rules_and_origin_of_rule rule =
+  { rules = [ rule ]; errors = []; origin = CLI_argument }
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
@@ -536,7 +519,16 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
        * better: '-e foo -l generic' was not handled in semgrep-core
     *)
     | Pattern (pat, xlang_opt, fix) ->
-        Lwt.return (rules_from_patterns ([ (true, pat) ], xlang_opt, fix), [])
+        let valid_langs = langs_of_pattern (pat, xlang_opt) in
+        let rules_and_origins =
+          List_.map
+            (fun xlang ->
+              let xpat = Parse_rule.parse_fake_xpattern xlang pat in
+              let rule = Rule.rule_of_xpattern ~fix xlang xpat in
+              rules_and_origin_of_rule rule)
+            valid_langs
+        in
+        Lwt.return (rules_and_origins, [])
   in
 
   (* error handling: *)
