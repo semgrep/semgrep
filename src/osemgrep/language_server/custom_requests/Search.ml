@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 
+module R = Range
 open Lsp
 open Lsp.Types
 module Conv = Convert_utils
@@ -272,8 +273,8 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
   Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
-let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
-    Rule.search_rule list =
+let get_relevant_rules ({ params = { pattern; fix; lang; _ }; _ } as env : env)
+    : Rule.search_rule list =
   let rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list =
     let rules_and_origins =
       Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
@@ -284,7 +285,7 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   in
   let xlangs = get_relevant_xlangs env in
   let rules_with_relevant_xlang =
-    rules_of_langs None
+    rules_of_langs lang
     |> List.filter (fun (rule : Rule.search_rule) ->
            List.mem rule.target_analyzer xlangs)
   in
@@ -304,8 +305,59 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
 (* Output *)
 (*****************************************************************************)
 
-let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) :
-    Yojson.Safe.t option =
+(* [first_non_whitespace_after s start] finds the first occurrence
+   of a non-whitespace character after index [start] in string [s]*)
+let first_non_whitespace_after s start =
+  try Str.search_forward (Str.regexp "[^ ]") s start with
+  | Not_found -> start
+
+(* TODO: unit tests would be nice *)
+let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
+  let before_col, is_cut_off =
+    let ideal_start = Int.max 0 (begin_col - before_length) in
+    let ideal_end = Int.max 0 (begin_col - (before_length * 2)) in
+    if ideal_start = 0 then (first_non_whitespace_after line 0, false)
+    else
+      (* The picture looks like this:
+         xxxxxoooooxxxxxoooooxxxxxoooooxxxxx
+                                      ^--^ match
+                          ^ ideal_end
+              ^ ideal_start
+              |___________| ideal range
+
+         the "ideal_start" and "ideal_end" indices denote the ends of the
+         "ideal range", which is by default 12-24 characters before the
+         start of the match.
+         We want to find a "natural beginning" of the preview, such as a space.
+         If at all possible, though, it should exist in the ideal range, because
+         if our preview starts too early, we won't be able to see the match.
+         So we'll look to the left from the ideal end, and hopefully find a good
+         place to the right of the ideal start.
+         If we don't find a nice starting point, then we'll just go with the ideal start.
+      *)
+      (* Find the nearest space that occurred before the match
+         This is in the hopes of finding a "natural" stopping point.
+      *)
+      match String.rindex_from_opt line ideal_end ' ' with
+      (* We don't want the preview to be too far, though.
+         It needs to be at most as early as the ideal start.
+         We don't need to call `first_non_whitespace_after` because we know
+         this index is right after the closest whitespace to ideal_end.
+      *)
+      | Some idx when idx > ideal_start -> (idx + 1, false)
+      (* This means our preview is currently on whitespace, let's skip ahead if possible.
+      *)
+      | _ when String.get line ideal_start = ' ' ->
+          (first_non_whitespace_after line ideal_start, false)
+      (* if we're not on whitespace, we can't do better. Just cut the word in half. *)
+      | _ -> (ideal_start, true)
+  in
+  let before = String.sub line before_col (begin_col - before_col) in
+  let inside = String.sub line begin_col (end_col - begin_col) in
+  let after = Str.string_after line end_col in
+  ((if is_cut_off then "..." ^ before else before), inside, after)
+
+let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
@@ -313,15 +365,30 @@ let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) :
         let matches =
           matches
           |> List_.map (fun (m : OutJ.cli_match) ->
-                 let range_json =
-                   Range.yojson_of_t (Conv.range_of_cli_match m)
+                 let range = Conv.range_of_cli_match m in
+                 let range_json = Range.yojson_of_t range in
+                 let line = List.nth (UFile.cat path) range.start.line in
+                 let before, inside, after =
+                   if range.start.line = range.end_.line then
+                     preview_of_line line
+                       ~col_range:(range.start.character, range.end_.character)
+                   else
+                     preview_of_line line
+                       ~col_range:(range.start.character, String.length line)
                  in
                  let fix_json =
                    match m.extra.fix with
                    | None -> `Null
                    | Some s -> `String s
                  in
-                 `Assoc [ ("range", range_json); ("fix", fix_json) ])
+                 `Assoc
+                   [
+                     ("range", range_json);
+                     ("fix", fix_json);
+                     ("before", `String before);
+                     ("inside", `String inside);
+                     ("after", `String after);
+                   ])
         in
         `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
       matches_by_file
@@ -352,7 +419,7 @@ let rec search_single_target (server : RPC_server.t) =
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
       *)
-      ( json_of_matches [],
+      ( Some (`Assoc [ ("locations", `List []) ]),
         { server with session = { server.session with search_config = None } }
       )
   | Some ((rules, file), server) -> (
