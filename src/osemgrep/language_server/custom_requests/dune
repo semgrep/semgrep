@@ -8,5 +8,6 @@
    semgrep.osemgrep_cli_scan
    semgrep.language_server.scan_helpers
    glob
+   semgrep_core
  )
 )

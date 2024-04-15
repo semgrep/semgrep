@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 
+module R = Range
 open Lsp
 open Lsp.Types
 module Conv = Convert_utils
@@ -304,8 +305,17 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
 (* Output *)
 (*****************************************************************************)
 
-let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) :
-    Yojson.Safe.t option =
+let go line begin_col end_col =
+  let before_col = Int.max 0 (begin_col - 8) in
+  let before = String.sub line before_col (begin_col - before_col) in
+  let inside = String.sub line begin_col (end_col - begin_col) in
+  let after =
+    String.sub line end_col (Int.min 8 (String.length line - end_col))
+  in
+  (before, inside, after)
+
+let json_of_matches (xtarget : Xtarget.t)
+    (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
@@ -313,15 +323,31 @@ let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) :
         let matches =
           matches
           |> List_.map (fun (m : OutJ.cli_match) ->
-                 let range_json =
-                   Range.yojson_of_t (Conv.range_of_cli_match m)
+                 let range = Conv.range_of_cli_match m in
+                 let range_json = Range.yojson_of_t in
+                 let line =
+                   List.nth
+                     (Common2.lines (Lazy.force xtarget.lazy_content))
+                     range.start.line
+                 in
+                 let before, inside, after =
+                   if range.start.line = range.end_.line then
+                     go line range.start.character range.end_.character
+                   else go line range.start.character (String.length line)
                  in
                  let fix_json =
                    match m.extra.fix with
                    | None -> `Null
                    | Some s -> `String s
                  in
-                 `Assoc [ ("range", range_json); ("fix", fix_json) ])
+                 `Assoc
+                   [
+                     ("range", range_json);
+                     ("fix", fix_json);
+                     ("before", `String before);
+                     ("inside", `String inside);
+                     ("after", `String after);
+                   ])
         in
         `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
       matches_by_file
@@ -352,7 +378,7 @@ let rec search_single_target (server : RPC_server.t) =
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
       *)
-      ( json_of_matches [],
+      ( Some (`Assoc [ ("locations", `List []) ]),
         { server with session = { server.session with search_config = None } }
       )
   | Some ((rules, file), server) -> (
