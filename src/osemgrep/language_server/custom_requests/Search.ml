@@ -96,7 +96,11 @@ let mk_params ~lang ~fix ~includes ~excludes pattern =
   let params =
     `Assoc
       [
-        ("pattern", `String pattern);
+        ( "patterns",
+          `List
+            [
+              `Assoc [ ("positive", `Bool true); ("pattern", `String pattern) ];
+            ] );
         ("language", lang);
         ("fix", fix);
         ("includes", `List includes);
@@ -222,6 +226,19 @@ let filter_by_includes_excludes ~project_root (file : Fpath.t)
       in
       is_included && not is_excluded
 
+let formula_of_signed_patterns xlang patterns =
+  let of_signed_pattern ({ positive; pattern } : Request_params.signed_pattern)
+      =
+    let xpat = Parse_rule.parse_fake_xpattern xlang pattern in
+    if positive then Rule.f (Rule.P xpat)
+    else Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat)))
+  in
+  match patterns with
+  | [ signed_pat ] -> of_signed_pattern signed_pat
+  | _ ->
+      Rule.And (Tok.unsafe_fake_tok "", List_.map of_signed_pattern patterns)
+      |> Rule.f
+
 (*****************************************************************************)
 (* Information gathering *)
 (*****************************************************************************)
@@ -319,7 +336,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
         List.filter (fun xlang -> List.mem xlang relevant_xlangs) xlangs
   in
   (* Returns Some if we every pattern is parseable in `xlang` *)
-  let process_lang xlang : Rule.search_rule option =
+  let rule_of_lang_opt xlang : Rule.search_rule option =
     (* Get all valid lang -> patterns pairings, for valid languages
         which are valid for all patterns
     *)
@@ -330,20 +347,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
         langs_of_patterns
     in
     if valid_for_all_xpats then
-      let formula =
-        let of_signed_pattern
-            ({ positive; pattern } : Request_params.signed_pattern) =
-          let xpat = Parse_rule.parse_fake_xpattern xlang pattern in
-          if positive then Rule.f (Rule.P xpat)
-          else Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat)))
-        in
-        match patterns with
-        | [ signed_pat ] -> of_signed_pattern signed_pat
-        | _ ->
-            Rule.And
-              (Tok.unsafe_fake_tok "", List_.map of_signed_pattern patterns)
-            |> Rule.f
-      in
+      let formula = formula_of_signed_patterns xlang patterns in
       match Rule.rule_of_formula ~fix xlang formula with
       | { mode = `Search f; _ } as r ->
           (* repack here so we get the right search_rule type *)
@@ -351,7 +355,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
       | _ -> None
     else None
   in
-  let search_rules = List_.map_filter process_lang valid_xlangs in
+  let search_rules = List_.map_filter rule_of_lang_opt valid_xlangs in
   match search_rules with
   (* Unfortunately, almost everything parses as YAML, because you can specify
      no quotes and it will be interpreted as a YAML string
@@ -361,7 +365,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
   | []
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
-      rules_of_langs (Some Xlang.LRegex)
+      rule_of_lang_opt Xlang.LRegex |> Option.to_list
   | other -> other |> filter_out_multiple_python
 
 (*****************************************************************************)
