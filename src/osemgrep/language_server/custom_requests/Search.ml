@@ -357,8 +357,7 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
   let after = Str.string_after line end_col in
   ((if is_cut_off then "..." ^ before else before), inside, after)
 
-let json_of_matches (xtarget : Xtarget.t)
-    (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
+let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
@@ -367,12 +366,8 @@ let json_of_matches (xtarget : Xtarget.t)
           matches
           |> List_.map (fun (m : OutJ.cli_match) ->
                  let range = Conv.range_of_cli_match m in
-                 let range_json = Range.yojson_of_t in
-                 let line =
-                   List.nth
-                     (Common2.lines (Lazy.force xtarget.lazy_content))
-                     range.start.line
-                 in
+                 let range_json = Range.yojson_of_t range in
+                 let line = List.nth (UFile.cat path) range.start.line in
                  let before, inside, after =
                    if range.start.line = range.end_.line then
                      preview_of_line line
