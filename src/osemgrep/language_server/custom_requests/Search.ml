@@ -273,8 +273,8 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
   Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
-let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
-    Rule.search_rule list =
+let get_relevant_rules ({ params = { pattern; fix; lang; _ }; _ } as env : env)
+    : Rule.search_rule list =
   let rules_of_langs (lang_opt : Xlang.t option) : Rule.search_rule list =
     let rules_and_origins =
       Rule_fetching.rules_from_pattern (pattern, lang_opt, fix)
@@ -285,7 +285,7 @@ let get_relevant_rules ({ params = { pattern; fix; _ }; _ } as env : env) :
   in
   let xlangs = get_relevant_xlangs env in
   let rules_with_relevant_xlang =
-    rules_of_langs None
+    rules_of_langs lang
     |> List.filter (fun (rule : Rule.search_rule) ->
            List.mem rule.target_analyzer xlangs)
   in
