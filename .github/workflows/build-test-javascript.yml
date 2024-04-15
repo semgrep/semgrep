@@ -26,7 +26,7 @@ jobs:
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-          make build-semgrep-jsoo-debug
+          make build-semgrep-jsoo
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build-${{ github.sha }}
@@ -34,7 +34,7 @@ jobs:
             _build/default/js/**/*.bc.js
           retention-days: 1
   test:
-    container: emscripten/emsdk:3.1.56
+    container: emscripten/emsdk:3.1.51
     env:
       HOME: /root
     needs:
@@ -65,7 +65,7 @@ jobs:
           path: _build/default/js
       - uses: actions/setup-node@v3
         with:
-          node-version: "21"
+          node-version: "18"
       - name: Build JS artifacts
         run: make -C js -j $(nproc) build
       - name: Test JS artifacts
