@@ -3,4 +3,4 @@
 
   Automatically modified by scripts/release/bump.
 *)
-let version = "1.67.0"
+let version = "1.68.0"

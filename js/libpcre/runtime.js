@@ -222,14 +222,12 @@ function pcre_config_stackrecurse_stub() {
 //Provides: pcre_alloc_string
 //Requires: libpcre
 function pcre_alloc_string(js_string) {
-    var ptr;
-    const array = libpcre.intArrayFromString(js_string);
-    const length = array.length;
-    // Note that length here is the length of the array, which already includes
-    // the null terminator.
-    ptr = libpcre._malloc(length);
-    libpcre.writeArrayToMemory(array, ptr);
-    return ptr;
+  var ptr;
+  const array = libpcre.intArrayFromString(js_string);
+  const length = array.length;
+  ptr = libpcre._malloc(length + 1);
+  libpcre.writeArrayToMemory(array, ptr);
+  return ptr;
 }
 
 //Provides: pcre_compile_stub_bc

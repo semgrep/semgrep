@@ -54,15 +54,22 @@ val default_skip_libs : Re.re list
    'require_one_of_these_tags': if a list of tags is provided, at least one
    of these tags must be set for a log instruction to be printed.
 
-   'read_tags_from_env_var': specifies an environment variable
+   'read_level_from_env_var': environment variables that override the
+   'level' argument. The default is ["PYTEST_SEMGREP_LOG_LEVEL";
+   "SEMGREP_LOG_LEVEL"]. See also 'read_tags_from_env_vars'.
+
+   'read_tags_from_env_vars': specifies environment variables
    from which a list of comma-separated tags will be read if the variable
    is set, in which case the list of tags will override any value set
-   via 'require_one_of_these_tags'. This variable is "LOG_TAGS" by default.
+   via 'require_one_of_these_tags'. This variable is "SEMGREP_LOG_TAGS"
+   by default. "PYTEST_SEMGREP_LOG_TAGS" is also supported and allows
+   modifying the logging behavior of pytest tests since pytest clears
+   the environment except for variables starting with "PYTEST_".
    To disable it, set it to None. The following shell command shows how
    to make semgrep run at the debug level but only show lines tagged with
    'Match_rules' or 'Core_scan'.
 
-     $ LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
+     $ SEMGREP_LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
      ...
      [00.45][INFO](Core_scan): Analyzing TCB/CapStdlib.ml
      [00.45][INFO](Core_scan): Analyzing tests/parsing/ocaml/attribute_type.ml
@@ -84,7 +91,8 @@ val setup_logging :
   ?log_to_file:Fpath.t ->
   ?skip_libs:Re.re list ->
   ?require_one_of_these_tags:string list ->
-  ?read_tags_from_env_var:string option ->
+  ?read_level_from_env_vars:string list ->
+  ?read_tags_from_env_vars:string list ->
   level:Logs.level option ->
   unit ->
   unit
@@ -118,7 +126,7 @@ val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
    A function that masks the timestamps in log output so that we can compare
    logs from one run to another. To be used as:
 
-     Testo.create ~checked_output:Stderr ~mask_output:[Logs_.mask_time] ...
+     Testo.create ~checked_output:(Testo.stderr ()) ~mask_output:[Logs_.mask_time] ...
 
    This is crude. Beware false positives.
 *)
@@ -129,7 +137,7 @@ val mask_time : string -> string
    logs:
 
      Testo.create
-        ~checked_output:Stderr
+        ~checked_output:(Testo.stderr ())
         ~mask_output:[Logs_.mask_log_lines]
         ...
 

@@ -104,7 +104,7 @@ let tests =
   Testo.categorize "String_"
     [
       t "safe_sub" test_safe_sub;
-      t ~checked_output:Stdout "show" test_show;
+      t ~checked_output:(Testo.stdout ()) "show" test_show;
       t "trim_cr" test_trim_cr;
       t "lines_of_range" test_lines_of_range;
     ]

@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "github.com/semgrep/semgrep"
+    "url": "github.com/returntocorp/semgrep"
   },
   "files": [
     "dist/index.cjs",
