@@ -363,6 +363,15 @@ class ScanHandler:
             name = USER_FRIENDLY_PRODUCT_NAMES.get(r.product, r.product.to_json())
             findings_by_product[f"{name}"] += len(f)
 
+        # NOTE: We currently do not use the errors field for anything in the app,
+        # and including errors can inflate the size of our scan DB records and processing
+        # time. Errors are already captured and stored to S3 from the CLI data pipeline,
+        # and we can associate CI scans with their corresponding CLI errors via `local_scan_id`.
+        #
+        # See GROW-198 and SAF-333 for more context.
+
+        cli_errors: List[out.CliError] = []  # [error.to_CliError() for error in errors]
+
         complete = out.CiScanComplete(
             exit_code=(
                 1
@@ -376,7 +385,7 @@ class ScanHandler:
                 findings=len(
                     [match for match in new_matches if not match.from_transient_scan]
                 ),
-                errors=[error.to_CliError() for error in errors],
+                errors=cli_errors,
                 total_time=total_time,
                 unsupported_exts=dict(ignored_ext_freqs),
                 lockfile_scan_info=dependency_counts,
