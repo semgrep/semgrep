@@ -75,7 +75,8 @@ let setup_logging ~force_color ~level =
       m ~tags "Logging setup for osemgrep: force_color=%B level=%s" force_color
         (Logs.level_to_string level));
   Std_msg.setup ~highlight_setting:(if force_color then On else Auto) ();
-  Logs_.setup_logging ~level ();
+  (* coupling: See also calls to Logs_.setup() in Core_CLI.ml *)
+  Logs_.setup ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist

@@ -24,39 +24,18 @@ open Common
 (* Globals *)
 (*****************************************************************************)
 
+(* unix time in seconds *)
+let now () : float = UUnix.gettimeofday ()
+
 (* This global is used by the reporter to print the difference between
    the time the log call was done and the time the program was started.
 
    TODO? Actually, the implementation is a bit dumb and probably show weird
    metrics when we use [lwt]. For such case, it's better to add a _counter_
    and use the tag mechanism to really show right metrics.
-
-   This variable is set when we configure loggers.
-
    alt: use Mtime_clock.now ()
 *)
-let now () : float = UUnix.gettimeofday ()
-
-(* unix time in seconds *)
 let time_program_start = now ()
-
-(* Some libraries have multiple log sources (i.e. lib.m1 and lib.m2)
- * so we use regexps below to catch them all.
- *)
-let default_skip_src : Re.re list =
-  [
-    "^bos$";
-    "^ca-certs$";
-    "^cohttp.lwt.*$";
-    "^conduit_lwt_server";
-    "^dns";
-    "^git.*$";
-    "^handshake$";
-    "^mirage-crypto-rng.*$";
-    "^tls.*$";
-    "^x509$";
-  ]
-  |> List_.map Re.Pcre.regexp
 
 (*****************************************************************************)
 (* String tags *)
@@ -114,6 +93,10 @@ let string_of_tags tags =
    being potentially extremely slow. -- Martin
 *)
 let pp_tags fmt tags = Format.pp_print_string fmt (string_of_tags tags)
+let default_tag_str = "default"
+let default_tags = [ default_tag_str ]
+let default_tag = create_tag default_tag_str
+let default_tag_set = create_tag_set [ default_tag ]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -140,34 +123,52 @@ let has_nonempty_intersection tag_str_list tag_set =
       ok || List.mem (Logs.Tag.name def) tag_str_list)
     tag_set false
 
-let default_tag_str = "default"
-let default_tags = [ default_tag_str ]
-let default_tag = create_tag default_tag_str
-let default_tag_set = create_tag_set [ default_tag ]
-
 (* Consult environment variables from left-to-right in order of precedence. *)
-let read_from_environment_variables vars =
+let read_from_env_vars (vars : string list) : string option =
   List.find_map (fun var -> USys.getenv_opt var) vars
 
-let read_tags_from_env_vars vars =
-  vars |> read_from_environment_variables
-  |> Option.map (String.split_on_char ',')
+let read_csv_from_env_vars (vars : string list) : string list option =
+  vars |> read_from_env_vars |> Option.map (String.split_on_char ',')
 
-(* log reporter
+(* Note that writing to a freshly-opened file path can still write to
+   a terminal. Such an example is '/dev/stderr'. *)
+let isatty chan =
+  let fd = UUnix.descr_of_out_channel chan in
+  !ANSITerminal.isatty fd
 
-   This code was copy-pasted and derived from the example in the Logs library.
+let create_formatter opt_file =
+  let chan, fmt =
+    match opt_file with
+    | None -> (UStdlib.stderr, UFormat.err_formatter)
+    | Some out_file ->
+        let oc =
+          (* This truncates the log file, which is usually what we want for
+             Semgrep. *)
+          UStdlib.open_out (Fpath.to_string out_file)
+        in
+        (oc, UFormat.formatter_of_out_channel oc)
+  in
+  (isatty chan, fmt)
+
+(*****************************************************************************)
+(* The "reporter" *)
+(*****************************************************************************)
+
+(* This code was copy-pasted and derived from the example in the Logs library.
    The Logs library interface makes us write this code that is frankly
    incomprehensible and excessively complicated given how little it provides.
 *)
-let reporter ~dst ~require_one_of_these_tags
+let mk_reporter ~dst ~require_one_of_these_tags
     ~read_tags_from_env_vars:(env_vars : string list) () =
   let require_one_of_these_tags =
-    match read_tags_from_env_vars env_vars with
+    match read_csv_from_env_vars env_vars with
     | Some tags -> tags
     | None -> require_one_of_these_tags
   in
   (* Each debug message is implicitly tagged with "all". *)
   let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
+
+  (* here we go ... this is quite complicated *)
   let report src level ~over k msgf =
     let src_name = Logs.Src.name src in
     let is_default_src = src_name = "application" in
@@ -215,31 +216,11 @@ let reporter ~dst ~require_one_of_these_tags
   in
   { Logs.report }
 
-(* Note that writing to a freshly-opened file path can still write to
-   a terminal. Such an example is '/dev/stderr'. *)
-let isatty chan =
-  let fd = UUnix.descr_of_out_channel chan in
-  !ANSITerminal.isatty fd
-
-let create_formatter opt_file =
-  let chan, fmt =
-    match opt_file with
-    | None -> (UStdlib.stderr, UFormat.err_formatter)
-    | Some out_file ->
-        let oc =
-          (* This truncates the log file, which is usually what we want for
-             Semgrep. *)
-          UStdlib.open_out (Fpath.to_string out_file)
-        in
-        (oc, UFormat.formatter_of_out_channel oc)
-  in
-  (isatty chan, fmt)
-
 (*****************************************************************************)
 (* Specifying the log level with an environment variable *)
 (*****************************************************************************)
 
-let log_level_of_string_opt str : Logs.level option option =
+let log_level_of_string_opt (str : string) : Logs.level option option =
   match str with
   | "app" -> Some (Some App)
   | "error" -> Some (Some Error)
@@ -249,15 +230,9 @@ let log_level_of_string_opt str : Logs.level option option =
   | "none" -> Some None
   | _ -> None
 
-(* TODO: document this and handle the interpretation at the time
-   of parsing the command line.
-
-   The PYTEST_ prefix is needed when using pytest because it will unset
-   all other environment variables.
-*)
-let read_level_from_env vars =
+let read_level_from_env (vars : string list) : Logs.level option option =
   (* from more specific to least specific *)
-  match read_from_environment_variables vars with
+  match read_from_env_vars vars with
   | None -> None
   | Some str -> log_level_of_string_opt str
 
@@ -268,26 +243,28 @@ let read_level_from_env vars =
 (* Enable basic logging (level = Logs.Warning) so that you can use Logging
  * calls even before a precise call to setup_logging.
  *)
-let enable_logging () =
+let setup_basic () =
   Logs.set_level ~all:true (Some Logs.Warning);
   Logs.set_reporter
-    (reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
+    (mk_reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
        ~read_tags_from_env_vars:[] ());
   ()
 
-let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
-    ?log_to_file:opt_file ?(skip_libs = default_skip_src)
-    ?(require_one_of_these_tags = default_tags)
-    ?(read_level_from_env_vars =
-      [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ])
-    ?(read_tags_from_env_vars =
-      [ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]) ~level () =
+let setup ?(highlight_setting = Std_msg.get_highlight_setting ())
+    ?log_to_file:opt_file ?(require_one_of_these_tags = default_tags)
+    ?(read_level_from_env_vars = [ "LOG_LEVEL" ])
+    ?(read_srcs_from_env_vars = [ "LOG_SRCS" ])
+    ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ~level () =
   (* Override the log level if it's provided by an environment variable!
      This is for debugging a command that gets called by some wrapper. *)
-  let level =
+  let level : Logs.level option =
     match read_level_from_env read_level_from_env_vars with
     | Some level_from_env -> level_from_env
     | None -> level
+  in
+  let show_srcs : Re.re list =
+    read_csv_from_env_vars read_srcs_from_env_vars
+    |> List_.optlist_to_list |> List_.map Re.Pcre.regexp
   in
   let isatty, dst = create_formatter opt_file in
   let highlight =
@@ -304,26 +281,28 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   Logs.set_reporter
-    (reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars ());
+    (mk_reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars ());
   Logs.debug (fun m ->
       m "setup_logging: highlight_setting=%s, highlight=%B"
         (Std_msg.show_highlight_setting highlight_setting)
         highlight);
-  (* from https://github.com/mirage/ocaml-cohttp#debugging *)
-  (* Disable all third-party libs logs *)
+  (* From https://github.com/mirage/ocaml-cohttp#debugging.
+   * Disable all (third-party) libs logs unless specified in show_srcs
+   * (which itself is derived from LOG_SRCS or similar environment variable).
+   *)
   Logs.Src.list ()
   |> List.iter (fun src ->
          let src_name = Logs.Src.name src in
-         let skip_log =
+         let show_log =
            match src_name with
            (* those are the one we are really interested in *)
-           | "application" -> false
-           | x -> skip_libs |> List.exists (fun re -> Re.execp re x)
+           | "application" -> true
+           | x -> show_srcs |> List.exists (fun re -> Re.execp re x)
          in
-         if skip_log then Logs.Src.set_level src None;
+         if not show_log then Logs.Src.set_level src None;
          Logs.debug (fun m ->
              m "%s logs for %s"
-               (if skip_log then "Skipping" else "Showing")
+               (if show_log then "Showing" else "Skipping")
                src_name))
 
 (*****************************************************************************)

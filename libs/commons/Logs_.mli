@@ -34,14 +34,10 @@
      Semgrep: activated with --debug
 *)
 
-(* Enable basic logging (level = Logs.Warning) so that
-   you can use Logging calls even before a precise call
-   to setup_logging.
-*)
-val enable_logging : unit -> unit
-
-(* List of Logs.src we don't want to enable logging for (third-party libs) *)
-val default_skip_src : Re.re list
+(* Enable basic logging (level = Logs.Warning) so you can use Logging calls
+ * even before a precise call to setup_logging().
+ *)
+val setup_basic : unit -> unit
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
@@ -55,8 +51,15 @@ val default_skip_src : Re.re list
    of these tags must be set for a log instruction to be printed.
 
    'read_level_from_env_var': environment variables that override the
-   'level' argument. The default is ["PYTEST_SEMGREP_LOG_LEVEL";
-   "SEMGREP_LOG_LEVEL"]. See also 'read_tags_from_env_vars'.
+   'level' argument. The default is ["LOG_LEVEL"].
+    See also 'read_tags_from_env_vars'.
+
+   'read_srcs_from_env_vars': specifies environment variables
+   from which a list of comma-separated (PCRE compliant) regexps will be
+   read if the variable is set, in which case the list of regexps will be
+   used to enable logging for third-party libraries whose src is matching
+   one of the regexp.
+   This variable is "LOG_SRCS" by default.
 
    'read_tags_from_env_vars': specifies environment variables
    from which a list of comma-separated tags will be read if the variable
@@ -86,12 +89,12 @@ val default_skip_src : Re.re list
      [00.45][DEBUG](Match_rules): checking tests/parsing/ocaml/basic.mli with 1 rules
      ...
 *)
-val setup_logging :
+val setup :
   ?highlight_setting:Std_msg.highlight_setting ->
   ?log_to_file:Fpath.t ->
-  ?skip_libs:Re.re list ->
   ?require_one_of_these_tags:string list ->
   ?read_level_from_env_vars:string list ->
+  ?read_srcs_from_env_vars:string list ->
   ?read_tags_from_env_vars:string list ->
   level:Logs.level option ->
   unit ->

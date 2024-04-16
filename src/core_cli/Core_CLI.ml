@@ -715,13 +715,15 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   let config = mk_config () in
 
   Core_profiling.profiling := config.debug || config.report_time;
+
+  (* coupling: CLI_common.setup_logging *)
   Std_msg.setup ~highlight_setting:On ();
-  Logs_.setup_logging ?log_to_file:config.log_to_file
-    ?require_one_of_these_tags:None
+  Logs_.setup ?log_to_file:config.log_to_file ?require_one_of_these_tags:None
     ~level:
       (* TODO: command-line option or env variable to choose the log level *)
       (if config.debug then Some Debug else Some Info)
     ();
+
   Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =
