@@ -48,13 +48,14 @@ make install-deps-MACOS-for-semgrep-core
 LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
-# Note that libpcre2-8 is not removed, since later parts of the workflow in Pro
-# rely on it. We think it is fine to dynamically link since git seemingly has a
-# runtime dependency on it (at least in GHA?), and we rely on git.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
+ls -l "$(brew --prefix)"/opt/pcre2/lib || true
 ls -l "$(brew --prefix)"/opt/gmp/lib || true
 ls -l "$(brew --prefix)"/opt/libev/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
+# Move pcre2 instead, so the loader can find the dylib for git, but the linker
+# will still use the static version.
+mv "$(brew --prefix)"/opt/pcre2/lib/libpcre2-8.0.dylib "/usr/local/Cellar/pcre2/10.42/lib/"
 rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 rm -f "$(brew --prefix)"/opt/libev/lib/libev.4.dylib
 
