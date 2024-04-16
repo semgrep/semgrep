@@ -3,6 +3,7 @@ import os
 import pathlib
 import sys
 from collections import defaultdict
+from functools import lru_cache
 from functools import reduce
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from typing import List
 from typing import Mapping
 from typing import NamedTuple
 from typing import Optional
+from typing import Self
 from typing import Sequence
 from typing import Set
 from typing import Tuple
@@ -118,6 +120,31 @@ def _build_time_json(
         max_memory_bytes=profile.max_memory_bytes,
     )
 
+# This class is the internal representation of OutputSettings below.
+# Since it is internal it can change as much as necisarry to make
+# typchecking more accurate and enforce invariants.
+class NormalizedOutputSettings(NamedTuple):
+    # Immutable List of OutputDestination x OutputFormat
+    outputs: Tuple[Tuple[Optional[str], OutputFormat], ...]
+    output_per_finding_max_lines_limit: Optional[int]
+    output_per_line_max_chars_limit: Optional[int]
+    error_on_findings: bool
+    verbose_errors: bool
+    strict: bool
+    output_time: bool
+    timeout_threshold: int
+    dataflow_traces: bool
+
+    def has_output_format(self, other: OutputFormat) -> bool:
+        return bool(
+            sum(
+                (1 for (_, fmt) in self.outputs if other == fmt)
+            )
+        )
+    
+    def has_text_output(self) -> bool:
+        return self.has_output_format(OutputFormat.TEXT)
+
 
 # This class is the internal representation of OutputSettings below.
 # Since it is internal it can change as much as necesarry to make
@@ -149,7 +176,7 @@ class NormalizedOutputSettings(NamedTuple):
 # changes to this API, and make them backwards compatible, if possible.
 class OutputSettings(NamedTuple):
     # It is optional to maintain backwards compatibility.
-    # Calling normalize produces the internal representation used by output.py.
+    # Calling normalize produces the internal representation used by OutputHandler.
     outputs: Optional[Dict[Optional[str], OutputFormat]] = None
     output_format: Optional[OutputFormat] = None
     output_destination: Optional[str] = None
@@ -190,21 +217,28 @@ class OutputSettings(NamedTuple):
             dataflow_traces=self.dataflow_traces,
         )
 
-    def normalize(self) -> OutputSettings:
-
-        # Move output_format and output_destination to outputs 
+    def normalize(self) -> NormalizedOutputSettings:
+        normalized_outputs: Tuple[Tuple[Optional[str], OutputFormat], ...] = ()
         if self.output_format is None:
             if self.outputs is None:
-                # error here
-            return self
-        current_outputs = ()
-        if self.outputs is not None:
-            current_outputs = self.outputs
+                raise RuntimeError(f"Invalid output configuration: No output specified")
+            normalized_outputs = self.outputs
+        else:
+            if self.outputs is not None:
+                normalized_outputs = self.outputs
+            normalized_outputs += ((self.output_destination, self.output_format),)
 
-        current_outputs += ((self.output_format, self.output_destination),)
-        
-        
-        
+        return NormalizedOutputSettings(
+            outputs=normalized_outputs,
+            output_per_finding_max_lines_limit=self.output_per_finding_max_lines_limit,
+            output_per_line_max_chars_limit=self.output_per_line_max_chars_limit,
+            error_on_findings=self.error_on_findings,
+            verbose_errors=self.verbose_errors,
+            strict=self.strict,
+            output_time=self.output_time,
+            timeout_threshold=self.timeout_threshold,
+            dataflow_traces=self.dataflow_traces
+        )
 
 class OutputHandler:
     """
@@ -569,6 +603,7 @@ class OutputHandler:
     def _build_output(
         self, output_destination: Optional[str], output_format: OutputFormat
     ) -> Tuple[Optional[str], str]:
+
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
             # This is incorrect when some rules are skipped by semgrep-core
@@ -579,24 +614,66 @@ class OutputHandler:
         )
         cli_timing: Optional[out.Profile] = None
 
-        explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-
-        # Extra, extra! This just in! 🗞️
-        # The extra dict is for blatantly skipping type checking and function signatures.
-        # - The text formatter uses it to store settings
-        # You should use CliOutputExtra for better type checking
-        extra: Dict[str, Any] = {}
-        if self.settings.output_time and self.extra and self.extra.core.time:
-            cli_timing = _build_time_json(
-                self.filtered_rules,
-                self.all_targets,
-                self.extra.core.time,
-                self.profiler,
+        for output_destination, output_format in self.settings.outputs:
+            # CliOutputExtra members
+            cli_paths = out.ScannedAndSkipped(
+                # This is incorrect when some rules are skipped by semgrep-core
+                # e.g. proprietary rules.
+                # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
+                scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
+                skipped=None,
             )
-        if self.settings.verbose_errors:
-            # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
-            skipped = sorted(
-                self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
+            cli_timing: Optional[out.Profile] = None
+    
+            explanations: Optional[List[out.MatchingExplanation]] = self.explanations
+    
+            # Extra, extra! This just in! 🗞️
+            # The extra dict is for blatantly skipping type checking and function signatures.
+            # - The text formatter uses it to store settings
+            # You should use CliOutputExtra for better type checking
+            extra: Dict[str, Any] = {}
+            if self.settings.output_time and self.extra and self.extra.core.time:
+                cli_timing = _build_time_json(
+                    self.filtered_rules,
+                    self.all_targets,
+                    self.extra.core.time,
+                    self.profiler,
+                )
+            if self.settings.verbose_errors:
+                # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
+                skipped = sorted(
+                    self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
+                )
+                cli_paths = dataclasses.replace(
+                    cli_paths,
+                    skipped=[
+                        out.SkippedTarget(
+                            path=out.Fpath(x["path"]),
+                            reason=out.SkipReason.from_json(x["reason"]),
+                        )
+                        for x in skipped
+                    ],
+                )
+                extra["verbose_errors"] = True
+            if self.settings.has_text_output():
+                extra["color_output"] = (
+                    (output_destination is None and sys.stdout.isatty())
+                    or os.environ.get("SEMGREP_FORCE_COLOR")
+                ) and not os.environ.get("NO_COLOR")
+                extra[
+                    "per_finding_max_lines_limit"
+                ] = self.settings.output_per_finding_max_lines_limit
+                extra[
+                    "per_line_max_chars_limit"
+                ] = self.settings.output_per_line_max_chars_limit
+                extra["dataflow_traces"] = self.settings.dataflow_traces
+            if self.settings.has_output_format(OutputFormat.SARIF):
+                extra["dataflow_traces"] = self.settings.dataflow_traces
+    
+            state = get_state()
+            # If users are not using our registry, we will not nudge them to login
+            extra["is_using_registry"] = (
+                state.metrics.is_using_registry or state.env.mock_using_registry
             )
             cli_paths = dataclasses.replace(
                 cli_paths,
@@ -669,3 +746,4 @@ class OutputHandler:
             is_ci_invocation=self.is_ci_invocation,
         )
         return (output_destination, output)
+
