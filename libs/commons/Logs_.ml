@@ -170,7 +170,7 @@ let reporter ~dst ~require_one_of_these_tags
   let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
   let report src level ~over k msgf =
     let src_name = Logs.Src.name src in
-    let is_app = src_name = "application" in
+    let is_default_src = src_name = "application" in
     let pp_style, _style, style_off =
       match color level with
       | None -> ((fun _ppf _style -> ()), "", "")
@@ -189,7 +189,7 @@ let reporter ~dst ~require_one_of_these_tags
               ("@[[%05.2f]%a%a%s: " ^^ fmt ^^ "@]@.")
               (current -. time_program_start)
               Logs_fmt.pp_header (level, header) pp_tags tags
-              (if is_app then "" else "(" ^ src_name ^ ")")
+              (if is_default_src then "" else "(" ^ src_name ^ ")")
           in
           match level with
           | App ->
@@ -320,9 +320,11 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
            | "application" -> false
            | x -> skip_libs |> List.exists (fun re -> Re.execp re x)
          in
-         if skip_log then (
-           Logs.Src.set_level src None;
-           Logs.debug (fun m -> m "Skipping log for %s src" src_name)))
+         if skip_log then Logs.Src.set_level src None;
+         Logs.debug (fun m ->
+             m "%s logs for %s"
+               (if skip_log then "Skipping" else "Showing")
+               src_name))
 
 (*****************************************************************************)
 (* Missing basic functions *)
