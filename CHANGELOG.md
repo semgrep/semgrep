@@ -12,7 +12,8 @@
 ### Added
 
 
-- Tracing: remove support for SEMGREP_OTEL_ENDPOINT and replace with `--trace-endpoint <url>`.
+- Tracing: remove support for SEMGREP_OTEL_ENDPOINT and replace with
+  `--trace-endpoint <url>`.
   This change is for an internal feature for debugging performance. (saf-885)
 
 
@@ -20,15 +21,15 @@
 
 
 - Passing --debug to Semgrep will not print much, unless a set of tags is specified
-  via `LOG_TAGS`. You can get all debug logs with `LOG_TAGS=everything`. We do not
-  want --debug's output to be enourmous, as it tends not to be useful and yet cause
-  some problems. Note that --debug is mainly intended for Semgrep developers, please
-  ask for help if needed. (gh-10044)
-- * The environment variables used to select the debug-level log messages
-    are now prefixed with `SEMGREP_` (or `PYTEST_SEMGREP_`) to avoid namespace
-    pollution and undesired cross-application side effects.
-    The supported environment variables are now `SEMGREP_LOG_TAGS`
-    and `PYTEST_SEMGREP_LOG_TAGS`. (gh-10087)
+  via `LOG_TAGS`. You can get all debug logs with `LOG_TAGS=everything`. We do
+  not want --debug's output to be enormous, as it tends not to be useful and yet
+  cause some problems. Note that --debug is mainly intended for Semgrep developers,
+  please ask for help if needed. (gh-10044)
+- The environment variables used to select the debug-level log messages
+  are now prefixed with `SEMGREP_` (or `PYTEST_SEMGREP_`) to avoid namespace
+  pollution and undesired cross-application side effects.
+  The supported environment variables are now `SEMGREP_LOG_TAGS`
+  and `PYTEST_SEMGREP_LOG_TAGS`. (gh-10087)
 - The implicit tag to show all debug-level log messages changes from
   `everything` to `all`. All debug-level messages shown by default are
   now tagged and selectable with a `default` tag. (gh-10089)

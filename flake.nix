@@ -1,17 +1,32 @@
-# you found our nix flake!
-# use https://github.com/DeterminateSystems/nix-installer to get nix easily
+# ## Overview
+#
+# This is a Nix file for Semgrep developers.
+#
+# Nix is a dependency manager. Nix allows to use just one command
+# to get a fully functional correct and near identical development
+# environment across any OS, instead of the 10-20 commands it normally takes.
+# It's totally opt-in and will not impact anyones work flow.
+# See https://shopify.engineering/what-is-nix for more information.
+#
+# What is the difference with a Dockerfile?
+# TODO
+#
+# Note that there is also a Nix(OS) file for semgrep here:
+# https://github.com/NixOS/nixpkgs/tree/master/pkgs/tools/security/semgrep
+# so people can install Semgrep on NixOS.
+# However the current file is directed at Semgrep developers, not Semgrep users.
+#
+# ## Quick install of Nix
+#
+# Use https://github.com/DeterminateSystems/nix-installer to get Nix easily
 # then run `nix develop` to get a shell with all the dependencies
+#
 # Quick start:
 # To use your shell when developing:
 # nix develop -c $SHELL
 #
-# To disallow all deps outside of nix:
+# To disallow all deps outside of Nix:
 # nix develop -i
-#
-# #TL;DR; Nix is a dependency manager. This makes it so it takes only one
-# #command to have a fully functional correct and near identical development
-# #environment across any OS, instead of the 10-20 commands it normally takes.
-# #It's totally opt-in and will not impact anyones work flow.
 
 # ## What is Nix?
 #
@@ -29,18 +44,18 @@
 
 # ## Why should I care?
 #
-#Our OCaml code is (mostly) correct because that's a focus of the language
+# Our OCaml code is (mostly) correct because that's a focus of the language
 # itself. But it relies on a lot of C code and external dependencies, like
 # `libev`, `libcurl`, `tree-sitter` etc. This means that if someone wants to
 # build and contribute to Semgrep, they must install these dependencies, and
-# hope that their versions is compatible. For example if you install the ocaml
+# hope that their versions is compatible. For example if you install the OCaml
 # packages needed for osemgrep, and then install libev, things won't work, since
 # the lwt package needs libev when its initially installed. If you're on mac,
 # you also have to tell opam where libev is before installing lwt. So our OCaml
 # is correct, but only if you can build it, and only if you build it with the
 # right dependencies.
 
-# By using nix, we can declare all these dependencies explicitly, and then
+# By using Nix, we can declare all these dependencies explicitly, and then
 # anyone across any *nix system can easily build Semgrep with only one command!
 # What's even better, is for regular contributors, these dependencies will auto
 # update and rebuild whenever a new dependency is added. So if someone adds a
@@ -162,6 +177,8 @@
 #
 # - [Nix PhD Thesis](https://edolstra.github.io/pubs/phd-thesis.pdf) - Nix
 #   creator's PhD thesis on Nix. ~275 pages but really approachable
+
+
 {
   description = "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
   inputs = {
