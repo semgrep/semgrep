@@ -19,7 +19,7 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "hello",
-        "message": "hello",
+        "message": "simple search rule",
         "metadata": {},
         "metavars": {},
         "severity": "ERROR",
