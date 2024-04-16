@@ -22,7 +22,7 @@
 
 - Passing --debug to Semgrep will not print much, unless a set of tags is specified
   via `LOG_TAGS`. You can get all debug logs with `LOG_TAGS=everything`. We do
-  not want --debug's output to be enourmous, as it tends not to be useful and yet
+  not want --debug's output to be enormous, as it tends not to be useful and yet
   cause some problems. Note that --debug is mainly intended for Semgrep developers,
   please ask for help if needed. (gh-10044)
 - The environment variables used to select the debug-level log messages
