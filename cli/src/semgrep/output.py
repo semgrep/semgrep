@@ -583,7 +583,7 @@ class OutputHandler:
                     ],
                 )
                 extra["verbose_errors"] = True
-            if self.settings.has_text_output():
+            if output_format == OutputFormat.TEXT:
                 extra["color_output"] = (
                     (output_destination is None and sys.stdout.isatty())
                     or os.environ.get("SEMGREP_FORCE_COLOR")
@@ -595,7 +595,7 @@ class OutputHandler:
                     "per_line_max_chars_limit"
                 ] = self.settings.output_per_line_max_chars_limit
                 extra["dataflow_traces"] = self.settings.dataflow_traces
-            if self.settings.has_output_format(OutputFormat.SARIF):
+            if output_format == OutputFormat.SARIF:
                 extra["dataflow_traces"] = self.settings.dataflow_traces
 
             state = get_state()
