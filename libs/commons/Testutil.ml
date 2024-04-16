@@ -20,4 +20,4 @@ let mask_temp_paths ?depth ?replace () =
       ~tmpdir:(UFilename.get_temp_dir_name () |> UUnix.realpath)
       ()
   in
-  fun text -> text |> mask_original_path |> mask_physical_path
+  fun text -> text |> mask_physical_path |> mask_original_path
