@@ -122,7 +122,9 @@ def _build_time_json(
 # as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
 # changes to this API, and make them backwards compatible, if possible.
 class OutputSettings(NamedTuple):
-    output_format: OutputFormat
+    # List of OutputFormat x OutputDestination
+    outputs: Optional[Tuple[Tuple[OutputFormat, Optional[str]], ...]] = None
+    output_format: Optional[OutputFormat] = None
     output_destination: Optional[str] = None
     output_per_finding_max_lines_limit: Optional[int] = None
     output_per_line_max_chars_limit: Optional[int] = None
@@ -134,6 +136,21 @@ class OutputSettings(NamedTuple):
     dataflow_traces: bool = False
     use_osemgrep_to_format: Optional[Set[OutputFormat]] = None
 
+    def normalize(self) -> OutputSettings:
+
+        # Move output_format and output_destination to outputs 
+        if self.output_format is None:
+            if self.outputs is None:
+                # error here
+            return self
+        current_outputs = ()
+        if self.outputs is not None:
+            current_outputs = self.outputs
+
+        current_outputs += ((self.output_format, self.output_destination),)
+        
+        
+        
 
 class OutputHandler:
     """
