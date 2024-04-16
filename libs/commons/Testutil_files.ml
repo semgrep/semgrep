@@ -189,30 +189,19 @@ let with_tempdir ?(persist = false) ?(chdir = false) func =
     ~finally:(fun () -> if not persist then remove dir)
     (fun () -> if chdir then with_chdir dir (fun () -> func dir) else func dir)
 
-let with_tempfiles ?persist ?chdir files func =
-  with_tempdir ?persist ?chdir (fun root ->
-      (* files are automatically deleted as part of the cleanup done by
-         'with_tempdir'. *)
-      write root files;
-      func root)
-
 let print_files files =
   flatten files |> List.iter (fun path -> UPrintf.printf "%s\n" !!path)
 
-let with_tempfiles_verbose (files : t list) func =
-  with_tempdir ~chdir:true (fun root ->
+let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
+  with_tempdir ?persist ?chdir (fun root ->
+      (* files are automatically deleted as part of the cleanup done by
+         'with_tempdir'. *)
       let files = sort files in
-      UPrintf.printf "Input files:\n";
-      print_files files;
+      if verbose then (
+        UPrintf.printf "--- begin input files ---\n";
+        print_files files;
+        UPrintf.printf "--- end input files ---\n");
       write root files;
-      (* Nice listing of the real file tree.
-            old: Don't care if the 'tree' command is unavailable.
-            new: Having the same output on all platform matters because we
-            now compare the output of tests against expectations. The version
-            of 'tree' in CI seems to be ignoring '-a'.
-            TODO: remove permanently or implement our own version of 'tree'.
-         USys.command (Printf.sprintf "tree -a '%s'" !!root) |> ignore;
-      *)
       func root)
 
 let () =

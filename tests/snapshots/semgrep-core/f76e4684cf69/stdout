@@ -2,6 +2,10 @@ Test name: with git > basic include
 --- Files added before 'git add' ---
 a
 b
+--- begin input files ---
+a
+b
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  2 files changed, 0 insertions(+), 0 deletions(-)

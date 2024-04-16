@@ -668,6 +668,19 @@ let init ?cwd ?(branch = "main") () =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
+let config_set ?cwd key value =
+  let cmd = (git, cd cwd @ [ "config"; key; value ]) in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Error setting git config entry")
+
+let config_get ?cwd key =
+  let cmd = (git, cd cwd @ [ "config"; key ]) in
+  match UCmd.string_of_run ~trim:true cmd with
+  | Ok (data, (_, `Exited 0)) -> Some data
+  | Ok (_empty, (_, `Exited 1)) -> None
+  | _ -> raise (Error "Error getting git config entry")
+
 let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
   let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
@@ -749,10 +762,29 @@ let cat_file_blob ?cwd (hash : hash) =
   | Error (`Msg s) ->
       Error s
 
-let with_git_repo (files : Testutil_files.t list) func =
-  Testutil_files.with_tempfiles_verbose files (fun path ->
-      Testutil_files.with_chdir path (fun () ->
-          init ();
-          add ~force:true [ Fpath.v "." ];
-          commit "Add all the files";
-          func ()))
+(*****************************************************************************)
+(* Combination of git commands (for testing etc.) *)
+(*****************************************************************************)
+
+let create_git_repo ?(honor_gitignore = true)
+    ?(user_email = "tester@example.com") ?(user_name = "Tester") () =
+  flush stdout;
+  flush stderr;
+  init ();
+  (* We set user name and email to avoid warnings in some git
+     versions. *)
+  config_set "user.name" user_name;
+  config_set "user.email" user_email;
+  add ~force:(not honor_gitignore) [ Fpath.v "." ];
+  let msg =
+    if honor_gitignore then "Add files"
+    else "Add all the files (including gitignored files)"
+  in
+  commit msg
+
+let with_git_repo ?honor_gitignore ?(really_create_git_repo = true) ?user_email
+    ?user_name (files : Testutil_files.t list) func =
+  Testutil_files.with_tempfiles ~verbose:true ~chdir:true files (fun cwd ->
+      if really_create_git_repo then
+        create_git_repo ?honor_gitignore ?user_email ?user_name ();
+      func cwd)

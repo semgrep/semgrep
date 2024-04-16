@@ -3,6 +3,8 @@ Test name: without git > basic semgrepignore
 .semgrepignore
 a
 b
+--- begin input files ---
+--- end input files ---
 --- Selected targets ---
 selected .semgrepignore
 selected a
