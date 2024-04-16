@@ -1,5 +1,0 @@
-In generic mode (default, spacegrep engine), matching a pattern that
-ends with an ellipsis now favors the longest match rather than the shortest
-match when multiple matches are possible. For example, for a given target
-program `a a b`, the pattern `a ... b` will match `a b` as before but
-the pattern `a ...` will now match the longer `a a b` rather than `a b`.

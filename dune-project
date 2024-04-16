@@ -3,7 +3,7 @@
 (using menhir 2.1)
 
 ; set here so the semgrep package below can use it and we can easily bump it
-(version 1.68.0)
+(version 1.69.0)
 ; disable mangling of of workspace root, to preserve debugging information
 ; needed to support earlybird debugger
 ; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
