@@ -94,6 +94,15 @@ struct
            | None -> failwith "HTTP client not initialized")
     in
     (* Send the request to the proxy, not the original url, if it's set *)
+    let%lwt content_length_header =
+      match meth with
+      | `POST ->
+          let%lwt length, _ = Cohttp_lwt.Body.length body in
+          (* Not added when using callv :(, so we gotta add it here *)
+          Lwt.return [ ("content-length", Int64.to_string length) ]
+      | _ -> Lwt.return []
+    in
+    let headers = content_length_header @ headers in
     let headers = Header.of_list headers in
     let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
     let req, url =

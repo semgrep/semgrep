@@ -2,6 +2,8 @@ Test name: without git > basic include
 --- Files not added to git ---
 a
 b
+--- begin input files ---
+--- end input files ---
 --- '--include' patterns ---
 a
 --- Selected targets ---

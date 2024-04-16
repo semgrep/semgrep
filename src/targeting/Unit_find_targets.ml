@@ -25,19 +25,6 @@ module Out = Semgrep_output_v1_t
 *)
 
 (*
-   git init + add all the files that we put in,
-   honoring .gitignore if present.
-
-   TODO: move this functionality to Testutil_files?
-*)
-let create_git_repo () =
-  flush stdout;
-  flush stderr;
-  Git_wrapper.init ();
-  Git_wrapper.add [ Fpath.v "." ];
-  Git_wrapper.commit "Add files"
-
-(*
    Generic function that puts files into a temporary workspace and lists them.
 
    with_git: make this a git repository
@@ -49,24 +36,23 @@ let test_find_targets ?includes ?(excludes = [])
   let category = if with_git then "with git" else "without git" in
   let test_func () =
     printf "Test name: %s > %s\n" category name;
-    F.with_tempdir ~chdir:true (fun root ->
-        let git_files, non_git_files =
-          if with_git then (F.sort files, F.sort non_git_files)
-          else ([], F.sort (files @ non_git_files))
-        in
-        (match git_files with
-        | [] -> ()
-        | _ ->
-            printf "--- Files added before 'git add' ---\n";
-            print_files git_files);
-        (match non_git_files with
-        | [] -> ()
-        | _ ->
-            printf "--- Files not added to git ---\n";
-            print_files non_git_files);
+    let git_files, non_git_files =
+      if with_git then (F.sort files, F.sort non_git_files)
+      else ([], F.sort (files @ non_git_files))
+    in
+    (match git_files with
+    | [] -> ()
+    | _ ->
+        printf "--- Files added before 'git add' ---\n";
+        print_files git_files);
+    (match non_git_files with
+    | [] -> ()
+    | _ ->
+        printf "--- Files not added to git ---\n";
+        print_files non_git_files);
 
-        F.write root git_files;
-        if with_git then create_git_repo ();
+    Git_wrapper.with_git_repo ~honor_gitignore:true
+      ~really_create_git_repo:with_git git_files (fun root ->
         F.write root non_git_files;
 
         let conf =
@@ -98,10 +84,11 @@ let test_find_targets ?includes ?(excludes = [])
                printf "ignored %s [%s]\n" !!(x.path)
                  (Out.show_skip_reason x.reason)))
   in
-  Testo.create name test_func ~category:[ category ] ~checked_output:Stdout
+  Testo.create name test_func ~category:[ category ]
+    ~checked_output:(Testo.stdout ())
     ~normalize:
       [
-        Testo.mask_temp_paths ();
+        Testutil.mask_temp_paths ();
         Testo.mask_line ~after:"(root-commit) " ~before:"]" ();
       ]
 

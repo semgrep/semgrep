@@ -3,6 +3,11 @@ Test name: with git > basic gitignore
 .gitignore
 a
 b
+--- begin input files ---
+.gitignore
+a
+b
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  2 files changed, 1 insertion(+)

@@ -6,35 +6,13 @@ set -eux
 # history: there used to be a separate osx-m1-release.sh script
 # that was mostly a copy of this file, but now the
 # build steps are identical so we just have one script.
-
-# Note that this script runs from a self-hosted CI runner which
-# does not reset the environment between each run, so you may
-# need to do more cleanup than usually necessary.
-
-brew install opam
-opam init --no-setup --bare
-#still needed?
-#brew update
+# Was previously combined with osx-setup-opam-for-release.sh
 
 # Some CI runners have tree-sitter preinstalled which interfere with
 # out static linking plans below so better to remove it.
 # TODO: fix setup-m1-builder.sh instead?
 brew uninstall --force semgrep
 brew uninstall --force tree-sitter
-
-SWITCH_NAME="${1:-4.14.0}"
-
-#coupling: this should be the same version than in our Dockerfile
-if opam switch "${SWITCH_NAME}" ; then
-    # This happens because the self-hosted CI runners do not
-    # cleanup things between each run.
-    echo "Switch ${SWITCH_NAME} exists, continuing"
-else
-    echo "Switch ${SWITCH_NAME} doesn't yet exist, creating..."
-    opam switch create "${SWITCH_NAME}"
-    opam switch "${SWITCH_NAME}"
-fi
-eval "$(opam env)"
 
 #pad:??? What was for? This was set only for the M1 build before
 # Needed so we don't make config w/ sudo
@@ -49,11 +27,9 @@ LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
-ls -l "$(brew --prefix)"/opt/pcre2/lib || true
 ls -l "$(brew --prefix)"/opt/gmp/lib || true
 ls -l "$(brew --prefix)"/opt/libev/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
-rm -f "$(brew --prefix)"/opt/pcre2/lib/libpcre2-8.0.dylib
 rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 rm -f "$(brew --prefix)"/opt/libev/lib/libev.4.dylib
 

@@ -4,7 +4,6 @@
    This doesn't use ocamllex because we need to support character sets
    defined dynamically (e.g. from a config file).
 *)
-[@@@alert "-deprecated"]
 
 open Printf
 

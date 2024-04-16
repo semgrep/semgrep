@@ -1,6 +1,9 @@
 Test name: with git > basic test
 --- Files added before 'git add' ---
 .gitignore
+--- begin input files ---
+.gitignore
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  1 file changed, 0 insertions(+), 0 deletions(-)

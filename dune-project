@@ -1,6 +1,9 @@
 (lang dune 3.7)
 (name semgrep)
 (using menhir 2.1)
+
+; set here so the semgrep package below can use it and we can easily bump it
+(version 1.69.0)
 ; disable mangling of of workspace root, to preserve debugging information
 ; needed to support earlybird debugger
 ; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
@@ -101,7 +104,6 @@ a few other projects developed at r2c.
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
     (pcre (>= "7.5.0" ))
-    (pcre2 (>= "7.5.2" ))
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
@@ -398,7 +400,6 @@ metrics
 )
 
 (package (name semgrep)
-  (version 1.38.0)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
   (description "\
 Semgrep is like grep but for searching patterns at the AST level.
@@ -473,7 +474,6 @@ For more information see https://semgrep.dev
     ; regexps
     re
     pcre
-    (pcre2 (>= "7.5.2" ))
     ; misc
     ocamlgraph
     parmap
@@ -498,6 +498,7 @@ For more information see https://semgrep.dev
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))
+    (tls-mirage (= 0.17.3)) ; force older version of tls-mirage to make windows work
     ; concurrency
     lwt
     lwt_ppx

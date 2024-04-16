@@ -34,6 +34,7 @@ type t = {
   debug : bool;
   profile : bool;
   trace : bool;
+  trace_endpoint : string option;
   report_time : bool;
   error_recovery : bool;
   profile_start : float;
@@ -98,6 +99,7 @@ let default =
     debug = false;
     profile = false;
     trace = false;
+    trace_endpoint = None;
     report_time = false;
     error_recovery = false;
     profile_start = 0.;

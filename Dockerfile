@@ -14,6 +14,10 @@
 # but those tools are not necessary when *running* semgrep.
 # This is a standard practice in the Docker world.
 # See https://docs.docker.com/build/building/multi-stage/
+#
+# In case of problems, if you need to debug the docker image, run 'docker build .',
+# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
+# to interactively explore the docker image.
 
 ###############################################################################
 # Step0: collect files needed to build semgrep-cpre
@@ -223,12 +227,11 @@ RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
 RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
 
-# Note that we just use CMD below, but not ENTRYPOINT. Why not having also
-#   ENTRYPOINT ["semgrep"] ?
+# Note that we just use CMD below. Why not using ENTRYPOINT ["semgrep"] ?
 # so that people can simply run
 # `docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help` instead of
 # `docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --help`?
-# (It's even worse now that we switched company name with
+# (It's even worse now that we've switched company name with
 # `docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep --help`, we now
 # have three semgrep, hmmm).
 #
@@ -239,10 +242,6 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # image's entrypoint in a .gitlab-ci.yml.
 # => Simpler to not have any ENTRYPOINT, even it means forcing the user
 # to repeat multiple times semgrep in the docker command line.
-#
-# In case of problems, if you need to debug the docker image, run 'docker build .',
-# identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
-# to interactively explore the docker image.
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
@@ -262,6 +261,8 @@ RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secret
 
 # Clear out any detritus from the pro install (especially credentials)
 RUN rm -rf /root/.semgrep
+
+# This was the final step! This is what we ship to users.
 
 ###############################################################################
 # optional: nonroot variant

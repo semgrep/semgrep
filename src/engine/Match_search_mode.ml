@@ -126,7 +126,8 @@ let partition_xpatterns xs =
          | XP.Sem (x, _lang) -> Stack_.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Stack_.push (x, pid, str) spacegrep
          | XP.Aliengrep x -> Stack_.push (x, pid, str) aliengrep
-         | XP.Regexp x -> Stack_.push (Pcre2_.pcre_compile x, pid, str) regexp);
+         | XP.Regexp x ->
+             Stack_.push (Regexp_engine.pcre_compile x, pid, str) regexp);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !aliengrep, List.rev !regexp)
 
 let group_matches_per_pattern_id (xs : Pattern_match.t list) :
@@ -912,7 +913,12 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
           in
 
           let expl =
-            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
+            (* We reverse these negation explanations, because we folded across them from
+               the left, meaning they are in the opposite order as in the original rule.
+            *)
+            if_explanations env ranges
+              (posrs_expls @ List.rev negs_expls)
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"

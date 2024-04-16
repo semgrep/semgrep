@@ -495,9 +495,9 @@ let regexp_matcher_of_regexp_string s =
     in
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     (* TODO: add `ANCHORED to be consistent with Python re.match (!re.search)*)
-    let re = Pcre2_.regexp ~flags x in
+    let re = Pcre_.regexp ~flags x in
     fun s2 ->
-      Pcre2_.pmatch_noerr ~rex:re s2 |> fun b ->
+      Pcre_.pmatch_noerr ~rex:re s2 |> fun b ->
       Logs.debug (fun m -> m ~tags "regexp match: %s on %s, result = %b" s s2 b);
       b)
   else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)

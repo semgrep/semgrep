@@ -21,7 +21,6 @@
    bos
    re
    pcre
-   pcre2
    digestif.ocaml
    sexplib
    ; web stuff

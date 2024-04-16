@@ -1,9 +1,10 @@
-Input files:
+--- begin input files ---
 a
 b
 c
 dir/d
 dir/e
+--- end input files ---
 Output files:
 a
 b

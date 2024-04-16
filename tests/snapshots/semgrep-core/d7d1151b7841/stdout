@@ -5,6 +5,10 @@ c
 --- Files not added to git ---
 a
 b
+--- begin input files ---
+.gitignore
+c
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  2 files changed, 1 insertion(+)

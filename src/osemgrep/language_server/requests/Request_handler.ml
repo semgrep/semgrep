@@ -28,38 +28,33 @@ module CR = Client_request
 (* Code *)
 (*****************************************************************************)
 
-(* Specifically for custom requests for searching. *)
-let search_handler (server : RPC_server.t) params =
-  let server =
-    let session = server.session in
-    let session =
-      {
-        session with
-        user_settings = { session.user_settings with only_git_dirty = false };
-      }
-    in
-    { server with session }
-  in
-  let runner rules = Scan_helpers.run_semgrep server ~rules |> fst in
-  Search.on_request runner params
-
 (* Dispatch to the various custom request handlers. *)
 let handle_custom_request server (meth : string)
     (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * RPC_server.t
     =
   match
+    (* Methods which can alter the server *)
     [
-      (Search.meth, search_handler);
-      (ShowAst.meth, ShowAst.on_request);
-      (Login.meth, Login.on_request);
-      (LoginStatus.meth, LoginStatus.on_request);
+      (Search.start_meth, Search.start_search);
+      (Search.ongoing_meth, Search.search_next_file);
     ]
     |> List.assoc_opt meth
   with
-  | None ->
-      Logs.warn (fun m -> m "Unhandled custom request %s" meth);
-      (None, server)
-  | Some handler -> (handler server params, server)
+  | Some handler -> handler server params
+  | None -> (
+      match
+        (* Methods which cannot alter the server. *)
+        [
+          (ShowAst.meth, ShowAst.on_request);
+          (Login.meth, Login.on_request);
+          (LoginStatus.meth, LoginStatus.on_request);
+        ]
+        |> List.assoc_opt meth
+      with
+      | None ->
+          Logs.warn (fun m -> m "Unhandled custom request %s" meth);
+          (None, server)
+      | Some handler -> (handler server params, server))
 
 let on_request (type r) (request : r CR.t) server =
   let process_result (r, server) =

@@ -14,7 +14,7 @@ let gitignore lines : Testutil_files.t = File (".gitignore", concat_lines lines)
 
 (* Test that Testutil_files works as it should *)
 let test_list (files : F.t list) () =
-  F.with_tempfiles_verbose files (fun root ->
+  F.with_tempfiles ~verbose:true files (fun root ->
       let files2 = F.read root |> F.sort in
       printf "Output files:\n";
       F.print_files files2;
@@ -58,7 +58,8 @@ let test_filter (files : F.t list) () =
 (*****************************************************************************)
 
 let t =
-  Testo.create ~checked_output:Stdout ~normalize:[ Testutil.mask_temp_paths () ]
+  Testo.create ~checked_output:(Testo.stdout ())
+    ~normalize:[ Testutil.mask_temp_paths () ]
 
 let tests =
   let open F in

@@ -168,7 +168,7 @@ let at_url_maybe ppf () : unit =
  * TODO: factorize with Session.decode_rules()
  *)
 let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
-  CapTmp.with_tmp_file caps#tmp ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_temp_file caps#tmp ~str:data ~ext:"json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           caps file
@@ -445,6 +445,7 @@ let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
       message = m.extra.message;
       severity = severity_to_int m.extra.severity;
       index;
+      engine_kind = m.extra.engine_kind;
       commit_date = "";
       (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
       syntactic_id = "";

@@ -209,6 +209,7 @@ def ci(
     timeout: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    trace_endpoint: str,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -455,6 +456,7 @@ def ci(
         "max_memory": max_memory,
         "interfile_timeout": interfile_timeout,
         "trace": trace,
+        "trace_endpoint": trace_endpoint,
         "timeout_threshold": timeout_threshold,
         "skip_unknown_extensions": (not scan_unknown_extensions),
         "allow_untrusted_validators": allow_untrusted_validators,
@@ -516,7 +518,11 @@ def ci(
         run_secrets and scan_handler and scan_handler.historical_config.enabled
     ) or historical_secrets
 
-    if run_historical_secrets_scan:
+    if run_historical_secrets_scan and metadata.merge_base_ref:
+        logger.info(
+            f"Historical scanning was enabled, but is not yet supported on diff scans."
+        )
+    elif run_historical_secrets_scan:
         try:
             console.print(Title("Secrets Historical Scan"))
 

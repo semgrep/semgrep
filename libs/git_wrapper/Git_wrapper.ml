@@ -123,8 +123,8 @@ exception Error of string
  * We use a named capture group for the lines, and then split on the comma if
  * it's a multiline diff
  *)
-let git_diff_lines_re = Pcre2_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let remote_repo_name_re = Pcre2_.regexp {|^http.*\/(.*)\.git$|}
+let git_diff_lines_re = Pcre_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
+let remote_repo_name_re = Pcre_.regexp {|^http.*\/(.*)\.git$|}
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -164,7 +164,7 @@ let flag name (is_set : bool) : string list =
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
   let range_of_substrings substrings =
-    let line = Pcre2.get_substring substrings 1 in
+    let line = Pcre.get_substring substrings 1 in
     let lines = Str.split (Str.regexp ",") line in
     let first_line =
       match lines with
@@ -178,7 +178,7 @@ let range_of_git_diff lines =
     let end_ = change_count + start in
     (start, end_)
   in
-  let matched_ranges = Pcre2_.exec_all ~rex:git_diff_lines_re lines in
+  let matched_ranges = Pcre_.exec_all ~rex:git_diff_lines_re lines in
   (* get the first capture group, then optionally split the comma if multiline
      diff *)
   match matched_ranges with
@@ -191,8 +191,8 @@ let range_of_git_diff lines =
   | Error _ -> [||]
 
 let remote_repo_name url =
-  match Pcre2_.exec ~rex:remote_repo_name_re url with
-  | Ok (Some substrings) -> Some (Pcre2.get_substring substrings 1)
+  match Pcre_.exec ~rex:remote_repo_name_re url with
+  | Ok (Some substrings) -> Some (Pcre.get_substring substrings 1)
   | _ -> None
 
 let tree_of_commit (objects : object_table) commit =
@@ -648,7 +648,7 @@ let is_tracked_by_git ?cwd file =
   | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
-let dirty_files ?cwd () =
+let dirty_paths ?cwd () =
   let cmd =
     (git, cd cwd @ [ "status"; "--porcelain"; "--ignore-submodules" ])
   in
@@ -667,6 +667,19 @@ let init ?cwd ?(branch = "main") () =
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
+
+let config_set ?cwd key value =
+  let cmd = (git, cd cwd @ [ "config"; key; value ]) in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Error setting git config entry")
+
+let config_get ?cwd key =
+  let cmd = (git, cd cwd @ [ "config"; key ]) in
+  match UCmd.string_of_run ~trim:true cmd with
+  | Ok (data, (_, `Exited 0)) -> Some data
+  | Ok (_empty, (_, `Exited 1)) -> None
+  | _ -> raise (Error "Error getting git config entry")
 
 let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
@@ -749,10 +762,29 @@ let cat_file_blob ?cwd (hash : hash) =
   | Error (`Msg s) ->
       Error s
 
-let with_git_repo (files : Testutil_files.t list) func =
-  Testutil_files.with_tempfiles_verbose files (fun path ->
-      Testutil_files.with_chdir path (fun () ->
-          init ();
-          add ~force:true [ Fpath.v "." ];
-          commit "Add all the files";
-          func ()))
+(*****************************************************************************)
+(* Combination of git commands (for testing etc.) *)
+(*****************************************************************************)
+
+let create_git_repo ?(honor_gitignore = true)
+    ?(user_email = "tester@example.com") ?(user_name = "Tester") () =
+  flush stdout;
+  flush stderr;
+  init ();
+  (* We set user name and email to avoid warnings in some git
+     versions. *)
+  config_set "user.name" user_name;
+  config_set "user.email" user_email;
+  add ~force:(not honor_gitignore) [ Fpath.v "." ];
+  let msg =
+    if honor_gitignore then "Add files"
+    else "Add all the files (including gitignored files)"
+  in
+  commit msg
+
+let with_git_repo ?honor_gitignore ?(really_create_git_repo = true) ?user_email
+    ?user_name (files : Testutil_files.t list) func =
+  Testutil_files.with_tempfiles ~verbose:true ~chdir:true files (fun cwd ->
+      if really_create_git_repo then
+        create_git_repo ?honor_gitignore ?user_email ?user_name ();
+      func cwd)

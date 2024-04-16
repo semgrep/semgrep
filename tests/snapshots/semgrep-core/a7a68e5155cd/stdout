@@ -3,6 +3,8 @@ Test name: without git > basic gitignore
 .gitignore
 a
 b
+--- begin input files ---
+--- end input files ---
 --- Selected targets ---
 selected .gitignore
 selected a

@@ -7,14 +7,12 @@ export interface LS {
 
 declare global {
   var LibPcreModule: any;
-  var LibPcre2Module: any;
 }
 
 export const LSFactory = async () => {
   const loadedLSWasm = await LSWasm();
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = loadedLSWasm;
-  globalThis.LibPcre2Module = loadedLSWasm;
   const { init, handleClientMessage, setWriteRef } = require("./Main.bc");
   init(loadedLSWasm);
   const clientMessageHandler = async (packet: any) => {

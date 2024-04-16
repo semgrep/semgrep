@@ -4,6 +4,12 @@ Test name: with git > semgrepignore file takes precedence over --include
 c.c
 dir/a.c
 dir/b.c
+--- begin input files ---
+.semgrepignore
+c.c
+dir/a.c
+dir/b.c
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  4 files changed, 1 insertion(+)

@@ -135,11 +135,14 @@ val is_tracked_by_git : ?cwd:Fpath.t -> Fpath.t -> bool
 (** [is_tracked_by_git path] Returns true if the file is tracked by git *)
 
 (* precondition: cwd must be a directory *)
-val dirty_files : ?cwd:Fpath.t -> unit -> Fpath.t list
-(** [dirty_files ()] is the list of files which are dirty in a git repo, i.e.,
-    files which differ at all from the current index to the HEAD commit, plus
-    untracked files. Note that this means this list includes files which were
-    deleted. *)
+val dirty_paths : ?cwd:Fpath.t -> unit -> Fpath.t list
+(** [dirty_paths ()] is the list of paths which are dirty in a git repo, i.e.,
+    paths which differ at all from the current index to the HEAD commit, plus
+    untracked files. Note that this means this list includes paths which were
+    deleted.
+    We use "paths" instead of "files" here because it may include directories,
+    for newly created directories!
+  *)
 
 val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
 (** [init ()] creates an empty git repository in the current directory. If
@@ -152,6 +155,12 @@ val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
     The branch is set by default to 'main' to avoid warnings that depend
     on the git version.
 *)
+
+(* Set or replace an entry in the user's config tied to the repo. *)
+val config_set : ?cwd:Fpath.t -> string -> string -> unit
+
+(* Get the value of an entry in the user's config. *)
+val config_get : ?cwd:Fpath.t -> string -> string option
 
 val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
 (** [add files] adds the [files] to the git index. *)
@@ -218,12 +227,39 @@ val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
 
 (*****************************************************************************)
-(* For testing *)
+(* Combination of git commands (for testing etc.) *)
 (*****************************************************************************)
 
 (*
    Create a temporary git repo for testing purposes, cd into it,
    call a function, tear down the repo, and restore the original cwd.
    This is an extension of Testutil_files.
+
+   At least one regular file must be specified for the operation to succeed
+   e.g. [File ("empty", "")].
+
+   User name and email are set locally for the repo using default values
+   which can be overridden.
+
+   'really_create_git_repo:false' allows for tests to not create a git repo but
+   create temporary files and remove them when done. Default is true.
+
+   'honor_gitignore:false' will cause gitignored files to be added anyway.
+   Default is true.
 *)
-val with_git_repo : Testutil_files.t list -> (unit -> 'a) -> 'a
+val with_git_repo :
+  ?honor_gitignore:bool ->
+  ?really_create_git_repo:bool ->
+  ?user_email:string ->
+  ?user_name:string ->
+  Testutil_files.t list ->
+  (Fpath.t -> 'a) ->
+  'a
+
+(* Initialize a git repo similarly to 'with_git_repo'. *)
+val create_git_repo :
+  ?honor_gitignore:bool ->
+  ?user_email:string ->
+  ?user_name:string ->
+  unit ->
+  unit

@@ -6,6 +6,75 @@
 
 <!-- insertion point -->
 
+## [1.69.0](https://github.com/returntocorp/semgrep/releases/tag/v1.69.0) - 2024-04-16
+
+
+### Added
+
+
+- Tracing: remove support for SEMGREP_OTEL_ENDPOINT and replace with
+  `--trace-endpoint <url>`.
+  This change is for an internal feature for debugging performance. (saf-885)
+
+
+### Changed
+
+
+- Passing --debug to Semgrep will not print much, unless a set of tags is specified
+  via `LOG_TAGS`. You can get all debug logs with `LOG_TAGS=everything`. We do
+  not want --debug's output to be enormous, as it tends not to be useful and yet
+  cause some problems. Note that --debug is mainly intended for Semgrep developers,
+  please ask for help if needed. (gh-10044)
+- The environment variables used to select the debug-level log messages
+  are now prefixed with `SEMGREP_` (or `PYTEST_SEMGREP_`) to avoid namespace
+  pollution and undesired cross-application side effects.
+  The supported environment variables are now `SEMGREP_LOG_TAGS`
+  and `PYTEST_SEMGREP_LOG_TAGS`. (gh-10087)
+- The implicit tag to show all debug-level log messages changes from
+  `everything` to `all`. All debug-level messages shown by default are
+  now tagged and selectable with a `default` tag. (gh-10089)
+
+
+### Fixed
+
+
+- In generic mode (default, spacegrep engine), matching a pattern that
+  ends with an ellipsis now favors the longest match rather than the shortest
+  match when multiple matches are possible. For example, for a given target
+  program `a a b`, the pattern `a ... b` will match `a b` as before but
+  the pattern `a ...` will now match the longer `a a b` rather than `a b`. (gh-10039)
+- Fixed the inter-file diff scan issue where the removal of pre-existing findings
+  didn't work properly when adding a new file or renaming an existing file. (saf-897)
+
+
+## [1.68.0](https://github.com/returntocorp/semgrep/releases/tag/v1.68.0) - 2024-04-08
+
+
+### Added
+
+
+- Scan un-changed lockfiles in diff-aware scans (gh-9899)
+- Languages: Added the QL language (used by CodeQL) to Semgrep (saf-947)
+- SwiftPM parser will now report package url and reference. (sc-1218)
+- Add support for Elixir (Mix) SCA parsing for pro engine users. (sc-1303)
+
+
+### Fixed
+
+
+- Output for sarif format includes dataflow traces. (gh-10004)
+- The environment variable `LOG_LEVEL` (as well as `PYTEST_LOG_LEVEL`) is
+  no longer consulted by Semgrep to determine the log level. Only
+  `SEMGREP_LOG_LEVEL` is consulted. `PYTEST_SEMGREP_LOG_LEVEL` is also
+  consulted in the current implementation but should not be used outside of
+  Semgrep's Pytest tests. This is to avoid accidentally affecting Semgrep
+  when inheriting the `LOG_LEVEL` destined to another application. (gh-10044)
+- Fixed swiftpm parser to no longer limit the amount of found packages in manifest file. (sc-1364)
+- Fixed incorrect ecosystem being used for Elixir. Hex should be used instead of Mix. (sc-elixir)
+- Fixed the match_based_ids of lockfile-only findings to differentiate between findings in cases where one rule produces multiple findings in one lockfile (sca-mid)
+- Secrets historical scans: fixed a bug where historical scans could run on differential scans. (scrt-545)
+
+
 ## [1.67.0](https://github.com/returntocorp/semgrep/releases/tag/v1.67.0) - 2024-03-28
 
 

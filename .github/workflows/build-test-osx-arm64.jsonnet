@@ -61,7 +61,10 @@ local build_core_job = {
     // exactly the same than in build-test-oxs-x86.jsonnet
     {
       name: 'Install dependencies',
-      run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
+      run: |||
+        ./scripts/osx-setup-opam-for-release.sh "%s"
+        ./scripts/osx-setup-post-opam-for-release.sh
+      ||| % semgrep.opam_switch,
     },
     {
       name: 'Compile semgrep',
