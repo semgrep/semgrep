@@ -148,7 +148,6 @@ class NormalizedOutputSettings(NamedTuple):
 # as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
 # changes to this API, and make them backwards compatible, if possible.
 class OutputSettings(NamedTuple):
-    # Immutable List of OutputDestination x OutputFormat.
     # It is optional to maintain backwards compatibility.
     # Calling normalize produces the internal representation used by output.py.
     outputs: Optional[Dict[Optional[str], OutputFormat]] = None
@@ -191,6 +190,21 @@ class OutputSettings(NamedTuple):
             dataflow_traces=self.dataflow_traces,
         )
 
+    def normalize(self) -> OutputSettings:
+
+        # Move output_format and output_destination to outputs 
+        if self.output_format is None:
+            if self.outputs is None:
+                # error here
+            return self
+        current_outputs = ()
+        if self.outputs is not None:
+            current_outputs = self.outputs
+
+        current_outputs += ((self.output_format, self.output_destination),)
+        
+        
+        
 
 class OutputHandler:
     """
