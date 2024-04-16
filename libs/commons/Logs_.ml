@@ -1,6 +1,6 @@
-(* Yoann Padioleau
+(* Yoann Padioleau, Martin Jambon
  *
- * Copyright (C) 2022 Semgrep Inc.
+ * Copyright (C) 2022-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,48 +15,46 @@
 open Common
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Small wrapper around the Logs library.
+ *)
+
+(*****************************************************************************)
 (* Globals *)
 (*****************************************************************************)
 
-(** This global is used by the reporter to print the difference between
-    the time the log call was done and the time the program was started.
-    TODO? Actually, the implementation is a bit dumb and probably show weird
-     metrics when we use [lwt]. For such case, it's better to add a _counter_
-     and use the tag mechanism to really show right metrics.
+(* This global is used by the reporter to print the difference between
+   the time the log call was done and the time the program was started.
 
-     This variable is set when we configure loggers.
+   TODO? Actually, the implementation is a bit dumb and probably show weird
+   metrics when we use [lwt]. For such case, it's better to add a _counter_
+   and use the tag mechanism to really show right metrics.
+
+   This variable is set when we configure loggers.
+
+   alt: use Mtime_clock.now ()
 *)
-
-(* alt: use Mtime_clock.now () *)
 let now () : float = UUnix.gettimeofday ()
 
 (* unix time in seconds *)
 let time_program_start = now ()
 
-(* Some libraries will have multiple log sources i.e. lib.m1 and lib.m2 *)
-(* So we can use wildcards here to catch them all*)
-let default_skip_libs =
+(* Some libraries have multiple log sources (i.e. lib.m1 and lib.m2)
+ * so we use regexps below to catch them all.
+ *)
+let default_skip_src : Re.re list =
   [
-    "ca-certs";
-    "bos";
-    "cohttp.lwt.*";
-    "conduit_lwt_server";
-    "dns*";
-    (* There's like a dozen of these, I'm not adding them all -austin *)
-    "git*";
-    "happy-eyeballs*";
-    "awa.*";
-    "paf*";
-    "thin";
-    "find-common";
-    "smart_flow";
-    "mimic";
-    "pck";
-    "mirage-crypto-rng*";
-    "handshake";
-    "tls.*";
-    "eio_linux";
-    "x509";
+    "^bos$";
+    "^ca-certs$";
+    "^cohttp.lwt.*$";
+    "^conduit_lwt_server";
+    "^dns";
+    "^git.*$";
+    "^handshake$";
+    "^mirage-crypto-rng.*$";
+    "^tls.*$";
+    "^x509$";
   ]
   |> List_.map Re.Pcre.regexp
 
@@ -170,7 +168,9 @@ let reporter ~dst ~require_one_of_these_tags
   in
   (* Each debug message is implicitly tagged with "all". *)
   let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
-  let report _src level ~over k msgf =
+  let report src level ~over k msgf =
+    let src_name = Logs.Src.name src in
+    let is_app = src_name = "application" in
     let pp_style, _style, style_off =
       match color level with
       | None -> ((fun _ppf _style -> ()), "", "")
@@ -186,9 +186,10 @@ let reporter ~dst ~require_one_of_these_tags
             let current = now () in
             (* Add a header *)
             Format.kfprintf k dst
-              ("@[[%05.2f]%a%a: " ^^ fmt ^^ "@]@.")
+              ("@[[%05.2f]%a%a%s: " ^^ fmt ^^ "@]@.")
               (current -. time_program_start)
               Logs_fmt.pp_header (level, header) pp_tags tags
+              (if is_app then "" else "(" ^ src_name ^ ")")
           in
           match level with
           | App ->
@@ -275,7 +276,7 @@ let enable_logging () =
   ()
 
 let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
-    ?log_to_file:opt_file ?(skip_libs = default_skip_libs)
+    ?log_to_file:opt_file ?(skip_libs = default_skip_src)
     ?(require_one_of_these_tags = default_tags)
     ?(read_level_from_env_vars =
       [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ])
@@ -312,12 +313,16 @@ let setup_logging ?(highlight_setting = Std_msg.get_highlight_setting ())
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
   |> List.iter (fun src ->
-         match Logs.Src.name src with
-         | x when List.exists ((flip Re.execp) x) skip_libs ->
-             Logs.Src.set_level src None
-         (* those are the one we are really interested in *)
-         | "application" -> ()
-         | s -> failwith ("Logs library not handled: " ^ s))
+         let src_name = Logs.Src.name src in
+         let skip_log =
+           match src_name with
+           (* those are the one we are really interested in *)
+           | "application" -> false
+           | x -> skip_libs |> List.exists (fun re -> Re.execp re x)
+         in
+         if skip_log then (
+           Logs.Src.set_level src None;
+           Logs.debug (fun m -> m "Skipping log for %s src" src_name)))
 
 (*****************************************************************************)
 (* Missing basic functions *)

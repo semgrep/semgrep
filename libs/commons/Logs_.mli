@@ -1,4 +1,4 @@
-(* Small helpers around the Logs library.
+(* Small wrapper around the Logs library.
 
    Here are the usage conventions for the Logs library level,
    augmented from https://erratique.ch/software/logs/doc/Logs/index.html#usage
@@ -40,8 +40,8 @@
 *)
 val enable_logging : unit -> unit
 
-(* list of Logs.src we don't want to enable logging for (third-party libs) *)
-val default_skip_libs : Re.re list
+(* List of Logs.src we don't want to enable logging for (third-party libs) *)
+val default_skip_src : Re.re list
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
