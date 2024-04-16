@@ -3,7 +3,6 @@ import os
 import pathlib
 import sys
 from collections import defaultdict
-from functools import lru_cache
 from functools import reduce
 from pathlib import Path
 from typing import Any
@@ -15,7 +14,6 @@ from typing import List
 from typing import Mapping
 from typing import NamedTuple
 from typing import Optional
-from typing import Self
 from typing import Sequence
 from typing import Set
 from typing import Tuple
@@ -120,6 +118,7 @@ def _build_time_json(
         max_memory_bytes=profile.max_memory_bytes,
     )
 
+
 # This class is the internal representation of OutputSettings below.
 # Since it is internal it can change as much as necisarry to make
 # typchecking more accurate and enforce invariants.
@@ -136,12 +135,8 @@ class NormalizedOutputSettings(NamedTuple):
     dataflow_traces: bool
 
     def has_output_format(self, other: OutputFormat) -> bool:
-        return bool(
-            sum(
-                (1 for (_, fmt) in self.outputs if other == fmt)
-            )
-        )
-    
+        return bool(sum(1 for (_, fmt) in self.outputs if other == fmt))
+
     def has_text_output(self) -> bool:
         return self.has_output_format(OutputFormat.TEXT)
 
@@ -237,8 +232,9 @@ class OutputSettings(NamedTuple):
             strict=self.strict,
             output_time=self.output_time,
             timeout_threshold=self.timeout_threshold,
-            dataflow_traces=self.dataflow_traces
+            dataflow_traces=self.dataflow_traces,
         )
+
 
 class OutputHandler:
     """
@@ -433,7 +429,7 @@ class OutputHandler:
         return bool(
             sum(
                 1
-                for dest, _ in self.settings.get_outputs()
+                for dest in self.settings.outputs
                 if self._formatters[dest].keep_ignores()
             )
         )
@@ -614,66 +610,24 @@ class OutputHandler:
         )
         cli_timing: Optional[out.Profile] = None
 
-        for output_destination, output_format in self.settings.outputs:
-            # CliOutputExtra members
-            cli_paths = out.ScannedAndSkipped(
-                # This is incorrect when some rules are skipped by semgrep-core
-                # e.g. proprietary rules.
-                # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
-                scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
-                skipped=None,
+        explanations: Optional[List[out.MatchingExplanation]] = self.explanations
+
+        # Extra, extra! This just in! 🗞️
+        # The extra dict is for blatantly skipping type checking and function signatures.
+        # - The text formatter uses it to store settings
+        # You should use CliOutputExtra for better type checking
+        extra: Dict[str, Any] = {}
+        if self.settings.output_time and self.extra and self.extra.core.time:
+            cli_timing = _build_time_json(
+                self.filtered_rules,
+                self.all_targets,
+                self.extra.core.time,
+                self.profiler,
             )
-            cli_timing: Optional[out.Profile] = None
-    
-            explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-    
-            # Extra, extra! This just in! 🗞️
-            # The extra dict is for blatantly skipping type checking and function signatures.
-            # - The text formatter uses it to store settings
-            # You should use CliOutputExtra for better type checking
-            extra: Dict[str, Any] = {}
-            if self.settings.output_time and self.extra and self.extra.core.time:
-                cli_timing = _build_time_json(
-                    self.filtered_rules,
-                    self.all_targets,
-                    self.extra.core.time,
-                    self.profiler,
-                )
-            if self.settings.verbose_errors:
-                # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
-                skipped = sorted(
-                    self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
-                )
-                cli_paths = dataclasses.replace(
-                    cli_paths,
-                    skipped=[
-                        out.SkippedTarget(
-                            path=out.Fpath(x["path"]),
-                            reason=out.SkipReason.from_json(x["reason"]),
-                        )
-                        for x in skipped
-                    ],
-                )
-                extra["verbose_errors"] = True
-            if self.settings.has_text_output():
-                extra["color_output"] = (
-                    (output_destination is None and sys.stdout.isatty())
-                    or os.environ.get("SEMGREP_FORCE_COLOR")
-                ) and not os.environ.get("NO_COLOR")
-                extra[
-                    "per_finding_max_lines_limit"
-                ] = self.settings.output_per_finding_max_lines_limit
-                extra[
-                    "per_line_max_chars_limit"
-                ] = self.settings.output_per_line_max_chars_limit
-                extra["dataflow_traces"] = self.settings.dataflow_traces
-            if self.settings.has_output_format(OutputFormat.SARIF):
-                extra["dataflow_traces"] = self.settings.dataflow_traces
-    
-            state = get_state()
-            # If users are not using our registry, we will not nudge them to login
-            extra["is_using_registry"] = (
-                state.metrics.is_using_registry or state.env.mock_using_registry
+        if self.settings.verbose_errors:
+            # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
+            skipped = sorted(
+                self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
             cli_paths = dataclasses.replace(
                 cli_paths,
@@ -687,7 +641,7 @@ class OutputHandler:
             )
             extra["verbose_errors"] = True
         if output_format == OutputFormat.TEXT:
-            extra["color_output"] = (
+            wextra["color_output"] = (
                 (output_destination is None and sys.stdout.isatty())
                 or os.environ.get("SEMGREP_FORCE_COLOR")
             ) and not os.environ.get("NO_COLOR")

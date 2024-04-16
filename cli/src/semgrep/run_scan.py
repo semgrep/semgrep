@@ -818,4 +818,3 @@ def run_scan_and_return_json(
         raise RuntimeError("run_scan_and_return_json: expects a single output")
 
     return json.loads(outputs[0][1])  # type: ignore
-
