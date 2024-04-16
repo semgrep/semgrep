@@ -148,7 +148,7 @@ let main (caps : Cap.all_caps) : unit =
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
         Std_msg.setup ~highlight_setting:On ();
-        Logs_.setup_logging ~highlight_setting:On ~level:(Some Logs.Debug) ()
+        Logs_.setup_logging ~highlight_setting:On ~level:(Some Logs.Info) ()
       in
       Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
           tests_with_delayed_error caps |> cleanup_before_each_test reset))
