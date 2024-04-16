@@ -960,7 +960,8 @@ let rule_of_formula ?(fix = None) (xlang : Xlang.t) (formula : formula) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
-    id = (Rule_ID.of_string "-e", fk);
+    (* Coupling: Constants.rule_id_for_dash_e *)
+    id = (Rule_ID.of_string "-", fk);
     mode = `Search formula;
     fix;
     (* default values *)
