@@ -1,5 +1,0 @@
-* The environment variables used to select the debug-level log messages
-  are now prefixed with `SEMGREP_` (or `PYTEST_SEMGREP_`) to avoid namespace
-  pollution and undesired cross-application side effects.
-  The supported environment variables are now `SEMGREP_LOG_TAGS`
-  and `PYTEST_SEMGREP_LOG_TAGS`.

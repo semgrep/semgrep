@@ -1,6 +1,9 @@
 (lang dune 3.7)
 (name semgrep)
 (using menhir 2.1)
+
+; set here so the semgrep package below can use it and we can easily bump it
+(version 1.69.0)
 ; disable mangling of of workspace root, to preserve debugging information
 ; needed to support earlybird debugger
 ; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
@@ -397,7 +400,6 @@ metrics
 )
 
 (package (name semgrep)
-  (version 1.38.0)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
   (description "\
 Semgrep is like grep but for searching patterns at the AST level.

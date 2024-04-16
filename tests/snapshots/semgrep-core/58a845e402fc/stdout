@@ -2,6 +2,8 @@ Test name: without git > deep include
 --- Files not added to git ---
 dir/a
 dir/b
+--- begin input files ---
+--- end input files ---
 --- '--include' patterns ---
 a
 --- Selected targets ---

@@ -1,2 +1,0 @@
-Fixed the inter-file diff scan issue where the removal of pre-existing findings
-didn't work properly when adding a new file or renaming an existing file.

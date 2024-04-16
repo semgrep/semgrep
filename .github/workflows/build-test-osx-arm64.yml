@@ -41,6 +41,8 @@ jobs:
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
           path: artifacts.tgz
+      - name: Test semgrep-core
+        run: opam exec -- make core-test
   build-wheels:
     needs:
       - build-core

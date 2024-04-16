@@ -1,2 +1,0 @@
-Tracing: remove support for SEMGREP_OTEL_ENDPOINT and replace with `--trace-endpoint <url>`.
-This change is for an internal feature for debugging performance.

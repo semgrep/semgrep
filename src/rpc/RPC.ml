@@ -42,6 +42,7 @@ let handle_call : function_call -> (function_return, string) result = function
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = handle_autofix dryrun edits in
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
+  | `CallSarifFormat _ -> Error "TODO: CallSarifFormat"
 
 let read_packet chan =
   let* size_str =
