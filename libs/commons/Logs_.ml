@@ -168,7 +168,6 @@ let mk_reporter ~dst ~require_one_of_these_tags
   (* Each debug message is implicitly tagged with "all". *)
   let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
 
-  (* here we go ... this is quite complicated *)
   let report src level ~over k msgf =
     let src_name = Logs.Src.name src in
     let is_default_src = src_name = "application" in
