@@ -1,0 +1,8 @@
+Added an experimental feature for users to use osemgrep to format
+SARIF output.
+
+When the flag --sarif and --use-osemgrep-format-output is specified,
+semgrep will use the ocaml implementation to format SARIF.
+
+This flag is experimental and can be removed any time. Users must not
+rely on it being available.
