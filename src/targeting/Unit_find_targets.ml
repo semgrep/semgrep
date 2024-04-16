@@ -102,7 +102,7 @@ let test_find_targets ?includes ?(excludes = [])
     ~checked_output:(Testo.stdout ())
     ~normalize:
       [
-        Testo.mask_temp_paths ();
+        Testutil.mask_temp_paths ();
         Testo.mask_line ~after:"(root-commit) " ~before:"]" ();
       ]
 
