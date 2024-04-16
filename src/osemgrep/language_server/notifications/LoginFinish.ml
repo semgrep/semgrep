@@ -4,7 +4,10 @@ module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/loginFinish"
 let wait_before_retry_in_ms = 6 * 1000
-let max_retries = 30
+
+(* let's give them a solid 3 minutes, since people can be slow, and somehow *)
+(* this goes by way faster on Windows *)
+let max_retries = 60 * 3
 
 (*****************************************************************************)
 (* Request parameters *)
