@@ -1,4 +1,4 @@
-(* Yoann Padioleau, Martin Jambon
+(* Yoann Padioleau
  *
  * Copyright (C) 2022-2024 Semgrep Inc.
  *
