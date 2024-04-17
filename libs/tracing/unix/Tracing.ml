@@ -69,11 +69,34 @@ type user_data = Trace_core.user_data
 let default_endpoint = "https://telemetry.semgrep.dev"
 let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
 let default_local_endpoint = "http://localhost:4318"
+let trace_level_var = "TRACE_LEVEL"
+
+(*****************************************************************************)
+(* Levels *)
+(*****************************************************************************)
+
+type level =
+  | Info  (** Traces for timings we want to track regularly (default level) *)
+  | Debug  (** Traces to help profile a specific run *)
+  | Trace  (** All traces *)
+
+let level_to_trace_level level =
+  match level with
+  | Info -> Trace_core.Level.Info
+  | Debug -> Trace_core.Level.Debug1
+  | Trace -> Trace_core.Level.Trace
 
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-let with_span = Trace_core.with_span
+let with_span ?level =
+  let level =
+    level
+    |> Option.fold ~none:Trace_core.Level.Info ~some:(fun l ->
+           level_to_trace_level l)
+  in
+  Trace_core.with_span ~level
+
 let add_data_to_span = Trace_core.add_data_to_span
 
 (* This function is helpful for Semgrep, which stores an optional span *)
@@ -110,7 +133,18 @@ let with_tracing fname trace_endpoint data f =
         | _ -> url)
     | None -> default_endpoint
   in
+  let level =
+    match Sys.getenv_opt trace_level_var with
+    | Some level -> (
+        match String.lowercase_ascii level with
+        | "info" -> Info
+        | "trace" -> Trace
+        | "debug" -> Debug
+        | _ -> Info)
+    | None -> Info
+  in
   let data () = data in
+  Trace_core.set_current_level (level_to_trace_level level);
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
   with_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp -> f sp
