@@ -48,7 +48,7 @@ make install-deps-MACOS-for-semgrep-core
 LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Allow pkg-config to pick up tree-sitter in GitHub Actions.
-if [ ${GITHUB_ENV+set} ]; then
+if [ -n "${GITHUB_ENV+set}" ]; then
     # We have to use a parameter expansion here since CI does not consistently
     # have PKG_CONFIG_PATH set and this would otherwise cause the CI step
     # running this script to fail.
