@@ -576,11 +576,10 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 
     (* step 2: printing the skipped targets *)
     let targets, skipped = targets_and_skipped in
-    Logs.debug (fun m ->
+    Log_targeting.Log.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
           (conf.target_roots, skipped, targets));
-    (* alt: use Logs.info but this is quite long so better Logs.debug *)
-    Logs.debug (fun m ->
+    Log_targeting.Log.debug (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
                m "Ignoring %s due to %s (%s)"
