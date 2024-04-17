@@ -115,7 +115,7 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
 let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
     string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
-  Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
+  Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
     let headers =
       match token_opt with
@@ -130,7 +130,7 @@ let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
-  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
+  Logs.info (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
 
 let fetch_content_from_registry_url_async ~token_opt caps url =
@@ -146,7 +146,7 @@ let fetch_content_from_registry_url ~token_opt caps url =
 (*****************************************************************************)
 
 let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
-  Logs.debug (fun m -> m "loading yaml file %s, converting to jsonnet" !!file);
+  Logs.info (fun m -> m "loading yaml file %s, converting to jsonnet" !!file);
   (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
    * to be used to parse semgrep rules?
    *)
@@ -308,11 +308,11 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
  *)
 let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     (rules_and_origin, Rule.error) Result.t =
-  Logs.debug (fun m -> m "loading local config from %s" !!file);
+  Logs.info (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
     | Ok (rules, errors) ->
-        Logs.debug (fun m -> m "Done loading local config from %s" !!file);
+        Logs.info (fun m -> m "Done loading local config from %s" !!file);
         Ok { rules; errors; origin = Local_file file }
     | Error err -> Error err
   else
