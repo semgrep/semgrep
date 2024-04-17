@@ -14,6 +14,7 @@ OS="$1"
 #   name. It is assumed that the reason we're on alpine is to get
 #   statically-linked executables.
 if [[ "$(opam switch show)" == *+static* ]]; then
+    FLAGS=()
 	CCLIB=("-lssl" "-lcrypto" "-lz")
 	CCOPT=("-static" "-no-pie")
 else
@@ -23,6 +24,7 @@ else
 			# The -cclib statically link in libcurl's dependencies.
 			# This can be removed when we transition away from the ocurl otel collector
 			#old: was just '--copt -static --copy -no-pie' before we dependended on libcurl
+            FLAGS=()
 			CCLIB=("-lssl" "-lcrypto" "-lz")
 			CCOPT=("-static" "-no-pie")
 		fi
@@ -101,9 +103,13 @@ else
 			"$(brew --prefix pcre)/lib/libpcre.a"
 			"$(brew --prefix pcre2)/lib/libpcre2-8.a"
 			"-lpthread")
+            CCOPT=()
 		;;
 	windows)
         # not sure what we want to do here
+        FLAGS=()
+        CCLIB=()
+        CCOPT=()
         ;;
 	esac
 fi
