@@ -741,7 +741,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       Metrics_.add_profiling profiler);
 
     let skipped_groups = Skipped_report.group_skipped skipped in
-    Logs.debug (fun m ->
+    Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_gitignore,
             conf.common.maturity,
