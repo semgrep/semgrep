@@ -47,20 +47,10 @@ make install-deps-MACOS-for-semgrep-core
 #         because of something with how tree-sitter is installed.
 LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
-# Remove dynamically linked libraries to force MacOS to use static ones.
-ls -l "$(brew --prefix)"/opt/pcre/lib || true
-ls -l "$(brew --prefix)"/opt/gmp/lib || true
-ls -l "$(brew --prefix)"/opt/libev/lib || true
-rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
-rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
-rm -f "$(brew --prefix)"/opt/libev/lib/libev.4.dylib
-
-# This needs to be done after make install-deps-xxx but before make core
-TREESITTER_LIBDIR=libs/ocaml-tree-sitter-core/tree-sitter/lib
-echo "TREESITTER_LIBDIR is $TREESITTER_LIBDIR and contains:"
-ls -l "$TREESITTER_LIBDIR" || true
-
-echo "Deleting all the tree-sitter dynamic libraries to force static linking."
-rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib
-rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.dylib
-rm -f "$TREESITTER_LIBDIR"/libtree-sitter.dylib
+# Allow pkg-config to pick up tree-sitter in GitHub Actions.
+if [ ${GITHUB_ENV+set} ]; then
+    # We have to use a parameter expansion here since CI does not consistently
+    # have PKG_CONFIG_PATH set and this would otherwise cause the CI step
+    # running this script to fail.
+    echo "PKG_CONFIG_PATH=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib/pkgconfig:${PKG_CONFIG_PATH+"${PKG_CONFIG_PATH}"}" >> "$GITHUB_ENV"
+fi
