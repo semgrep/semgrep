@@ -8,6 +8,6 @@ bug-reports: "n/a"
 synopsis: "OCaml dependencies needed in CI"
 
 depends: [
-  # commented out since it doesn't support 5.2
-  #"ocamlformat" {= "0.26.1" }  # used by the pre-commit hook
+  # OCamlFormat doesn't support OCaml 5 https://github.com/ocaml-ppx/ocamlformat/issues/2524
+  ("ocamlformat" {= "0.26.1" } & "ocaml" {< "5.0"})  # used by the pre-commit hook
 ]
