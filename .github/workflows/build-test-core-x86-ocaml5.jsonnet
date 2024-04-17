@@ -6,7 +6,7 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 //TODO: currently fails because of conflicts with ocamlformat and jsoo
-local opam_switch = '5.2.0~beta2';
+local opam_switch = 'ocaml-base-compiler.5.2.0~beta2';
 
 // ----------------------------------------------------------------------------
 // The job
