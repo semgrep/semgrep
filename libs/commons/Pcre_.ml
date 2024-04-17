@@ -12,7 +12,9 @@ type t = {
 }
 [@@deriving show, eq]
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let src = Logs.Src.create "commons.pcre"
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (*
    Provide missing error->string conversion
@@ -110,9 +112,9 @@ let log_error rex subj err =
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  Logs.warn (fun m ->
-      m ~tags "PCRE error: %s on input %S. Source regexp: %S"
-        (string_of_error err) string_fragment rex.pattern)
+  Log.err (fun m ->
+      m "PCRE error: %s on input %S. Source regexp: %S" (string_of_error err)
+        string_fragment rex.pattern)
 
 let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
   match pmatch ?iflags ?flags ~rex ?pos ?callout subj with

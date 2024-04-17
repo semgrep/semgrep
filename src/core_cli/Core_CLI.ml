@@ -717,13 +717,33 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   let config = mk_config () in
 
   Core_profiling.profiling := config.debug || config.report_time;
+
+  (* coupling: CLI_common.setup_logging *)
   Std_msg.setup ~highlight_setting:On ();
-  Logs_.setup_logging ?log_to_file:config.log_to_file
-    ?require_one_of_these_tags:None
+  (* We override the default use of LOG_XXX env var in Logs_.setup() with
+   * SEMGREP_LOG_XXX env vars because Gitlab was reporting perf problems due
+   * to all the logging produced by Semgrep. Indeed, Gitlab CI itself is running
+   * jobs with LOG_LEVEL=debug, so better to use a different name for now.
+   * LATER: once we migrate most of our logs to use Logs.src, we should have
+   * far less logging by default, even in debug level, so we can restore
+   * LOG_LEVEL.
+   *
+   * The PYTEST_XXX env vars allows modifying the logging behavior of pytest
+   * tests since pytest clears the environment except for variables starting
+   * with "PYTEST_".
+   * LATER: once we remove pysemgrep and switch from pytest to Testo, we
+   * can get rid of those PYTEST_xxx env vars.
+   *)
+  Logs_.setup ?log_to_file:config.log_to_file ?require_one_of_these_tags:None
+    ~read_level_from_env_vars:
+      [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
+    ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]
+    ~read_tags_from_env_vars:[ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]
     ~level:
       (* TODO: command-line option or env variable to choose the log level *)
       (if config.debug then Some Debug else Some Info)
     ();
+
   Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =

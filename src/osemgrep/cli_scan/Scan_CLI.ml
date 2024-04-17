@@ -930,13 +930,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
       timeout_threshold trace trace_endpoint validate version version_check vim
       =
-    (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
-     * correctly *)
-    Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
-    Logs_.setup_logging ~level:common.CLI_common.logging_level ();
     let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed caps
-        ~experimental:(common.maturity =*= Maturity.Experimental)
+        ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
         target_roots
     in
     let project_root =

@@ -497,7 +497,7 @@ def scan(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
-            "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
+            "The flags --beta-testing-secrets-enabled and --oss-only are incompatible. Semgrep Secrets is a proprietary extension."
         )
 
     state = get_state()
