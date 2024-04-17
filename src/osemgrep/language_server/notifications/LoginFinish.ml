@@ -4,6 +4,9 @@ module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/loginFinish"
 let wait_before_retry_in_ms = 6 * 1000
+
+(* let's give them a solid 3 minutes, since people can be slow, and somehow *)
+(* this goes by way faster on Windows *)
 let max_retries = 30
 
 (*****************************************************************************)
@@ -53,7 +56,10 @@ let on_notification _server params : unit =
           let caps = Cap.network_caps_UNSAFE () in
           let^ token, _ =
             Semgrep_login.fetch_token_async ~min_wait_ms:wait_before_retry_in_ms
-              ~max_retries caps sessionId
+              ~max_retries
+              ~wait_hook:(fun delay_ms ->
+                Lwt_platform.sleep Float.(of_int delay_ms /. 1000.))
+              caps sessionId
           in
           let caps = Auth.cap_token_and_network token caps in
           let^ _deployment =

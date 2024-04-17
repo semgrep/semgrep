@@ -62,7 +62,7 @@ val fetch_token_async :
   ?min_wait_ms:int ->
   ?next_wait_ms:int ->
   ?max_retries:int ->
-  ?wait_hook:(int -> unit) ->
+  ?wait_hook:(int -> unit Lwt.t) ->
   < network : Cap.Network.t ; .. > ->
   shared_secret ->
   (Auth.token * string, string) result Lwt.t
