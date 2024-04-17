@@ -109,8 +109,8 @@ let extract_scan_id (data : string) : (scan_id, string) result =
         )
     | _else -> Error ("Bad json in body when asking for scan id: " ^ data)
   with
-  | e ->
-      Error ("Couldn't parse json, error: " ^ Printexc.to_string e ^ ": " ^ data)
+  | Yojson.Json_error msg ->
+      Error (spf "Couldn't parse json, err = %s, data was %s" msg data)
 
 (* the server reply when POST to "/api/agent/scans/<scan_id>/results"  *)
 let extract_errors (data : string) : string list =
