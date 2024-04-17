@@ -55,6 +55,7 @@ local job = {
     {
       name: 'Test semgrep',
       run: |||
+        eval $(opam env)
         make test
       |||,
     },

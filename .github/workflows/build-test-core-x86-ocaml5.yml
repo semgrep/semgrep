@@ -30,6 +30,7 @@ jobs:
           make
       - name: Test semgrep
         run: |
+          eval $(opam env)
           make test
 name: build-test-core-x86-ocaml5
 on:
