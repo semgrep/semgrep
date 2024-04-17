@@ -49,4 +49,4 @@ LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Allow pkg-config to pick up tree-sitter. Perhaps export this in the tree
 # sitter install script? But not persistent. Hmm.
-export PKG_CONFIG_PATH="libs/ocaml-tree-sitter-core/tree-sitter/lib/pkgconfig:$PKG_CONFIG_PATH"
+export PKG_CONFIG_PATH="$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib/pkgconfig:$PKG_CONFIG_PATH"
