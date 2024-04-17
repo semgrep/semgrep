@@ -59,19 +59,26 @@ rules:
   - id: not-using-our-pcre-wrappers
     patterns:
       - pattern-either:
-          - pattern: Pcre.regexp
-          - pattern: Pcre.pmatch
-          - pattern: Pcre.exec
-          - pattern: Pcre.exec_all
-          - pattern: Pcre.split
+          - pattern: $PCRE.regexp
+          - pattern: $PCRE.pmatch
+          - pattern: $PCRE.exec
+          - pattern: $PCRE.exec_all
+          - pattern: $PCRE.split
+      - metavariable-pattern:
+          metavariable: $PCRE
+          pattern-either:
+            - pattern: Pcre
+            - pattern: Pcre2
     message: >-
-      You should use one of the equivalent functions in Pcre_, which
-      automatically sets some flags and handles exceptions.
+      You should use one of the equivalent functions in Pcre2_ (or
+      Pcre_), which automatically sets some flags and handles
+      exceptions.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
         - Pcre_.ml
+        - Pcre2_.ml
 
   - id: no-list-map2
     pattern: List.map2

@@ -349,15 +349,29 @@ install-deps: install-deps-for-semgrep-core
 # - zlib: ??
 
 # - openssl-libs-static: dependency of curl-static
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
+ALPINE_APK_DEPS_CORE=pcre-dev \
+					 pcre2-dev \
+					 gmp-dev \
+					 libev-dev \
+					 curl-dev \
+					 openssl-libs-static \
+					 zlib-static
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests
-ALPINE_APK_DEPS_PYSEMGREP=python3
+# - python-dev: for compiling jsonnet for pysemgrep
+ALPINE_APK_DEPS_PYSEMGREP=python3 \
+						  python3-dev
 
 # Here is why we need those external packages:
 # - pkg-config?
-UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
+# NOTE: libpcre3 is actually libpcre
+UBUNTU_DEPS=pkg-config \
+			libpcre3-dev \
+			libpcre2-dev \
+			libgmp-dev \
+			libev-dev \
+			libcurl4-gnutls-dev
 
 #TODO: ARCH_DEPS=??
 
@@ -365,11 +379,22 @@ UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp libev curl pkg-config coreutils gettext
+BREW_DEPS=pkg-config \
+		  pcre \
+		  pcre2 \
+		  gmp \
+		  libev \
+		  curl \
+		  coreutils \
+		  gettext
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?
-WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libcurl
+WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config \
+						 conf-gmp \
+						 conf-libpcre \
+						 conf-libpcre2-8 \
+						 conf-libcurl
 
 # -------------------------------------------------
 # Alpine
@@ -402,7 +427,7 @@ install-deps-UBUNTU-for-semgrep-core:
 # macOS (brew)
 # -------------------------------------------------
 
-# see also scripts/osx-setup-*-for-release.sh that adjust those
+# see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
 	brew install $(BREW_DEPS)
