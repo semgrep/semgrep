@@ -36,9 +36,9 @@ module H = Eval_jsonnet_common
 (* Standard library *)
 (*****************************************************************************)
 
-(*Creates std so that we can add it to the environment when we switch back to
-  * environment model for handling standard library functions
-*)
+(* Creates std so that we can add it to the environment when we switch back to
+ * environment model for handling standard library functions
+ *)
 let pre_std = lazy (Std_jsonnet.get_std_jsonnet ())
 
 (* This is an arbitrary path, used as a placeholder, since we aren't

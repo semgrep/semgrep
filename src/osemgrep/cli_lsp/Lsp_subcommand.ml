@@ -9,7 +9,7 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.random ; Cap.network >
+type caps = < Cap.random ; Cap.network ; Cap.tmp >
 
 module Io = RPC_server.MakeLSIO (struct
   type input = Lwt_io.input_channel
@@ -49,7 +49,7 @@ let run_conf (caps : caps) (conf : Lsp_CLI.conf) : Exit_code.t =
   RPC_server.io_ref := (module Io);
   Logs.debug (fun m -> m "Starting semgrep-lsp");
   Lwt_platform.run (LS.start caps);
-  Exit_code.ok
+  Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

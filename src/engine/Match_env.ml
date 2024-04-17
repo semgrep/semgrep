@@ -89,6 +89,7 @@ let fake_rule_id (id, str) =
     PM.id = Rule_ID.of_string (string_of_int id);
     pattern_string = str;
     message = "";
+    metadata = None;
     fix = None;
     fix_regexp = None;
     langs = [];

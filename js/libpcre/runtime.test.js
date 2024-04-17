@@ -13,6 +13,14 @@ globalThis.caml_invalid_argument = () => {
   throw new Error(InvalidArgumentError);
 };
 
+globalThis.caml_raise_with_arg = (error, arg) => {
+    throw new Error(`caml raise: {tag: ${error}, arg: ${arg}}`);
+};
+
+globalThis.caml_named_value = (name) => {
+    return name;
+};
+
 globalThis.caml_jsstring_of_string = (value) => value;
 
 describe("pcre-ocaml stubs", () => {
@@ -23,18 +31,21 @@ describe("pcre-ocaml stubs", () => {
   test("version is expected", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     expect(stubs.pcre_version_stub()).toBe(EXPECTED_VERSION);
   });
 
   test("utf-8 is supported", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     expect(stubs.pcre_config_utf8_stub()).toBe(1);
   });
 
   test("utf-8 is parsed", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     let s = "E2 80 AA";
 
     let bytes = [...s.matchAll(/[^ ]{1,2}/g)].map((a) => parseInt(a[0], 16));
@@ -49,14 +60,16 @@ describe("pcre-ocaml stubs", () => {
   test("correctly fails to compile an invalid regex", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     expect(() => stubs.pcre_compile_stub_bc(0, 0, `(`)).toThrow(
-      "missing ) at offset 1"
+      "caml raise: {tag: Pcre.Error, arg: 0,missing ),1}"
     );
   });
 
   test("compiles a regex that javascript cant", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     stubs.pcre_compile_stub_bc(
       0,
       0,
@@ -67,6 +80,7 @@ describe("pcre-ocaml stubs", () => {
   test("match multiple times with offset", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     const regex = stubs.pcre_compile_stub_bc(0, 0, `([a-z]+)`);
     const subject = "foo.bar.baz.quux";
     const subject_start = 3;
@@ -116,6 +130,7 @@ describe("pcre-ocaml stubs", () => {
   test("pcre_get_stringnumber works with named capture groups", async () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
+    stubs.pcre_ocaml_init();
     const regex = stubs.pcre_compile_stub_bc(
       0,
       0,

@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 open Fpath_.Operators
 module Ast = Cst_php
 module Flag = Flag_parsing
@@ -166,59 +165,7 @@ let any_of_string s =
       in
       Parser_php.semgrep_pattern lexer lexbuf_fake)
 
-(*
- * todo: obsolete now with parse_any ? just redirect to parse_any ?
- *
- * This function is useful not only to test but also in our own code
- * as a shortcut to build complex expressions
- *)
-let (expr_of_string : string -> Cst_php.expr) =
- fun s ->
-  let tmpfile = UTmp.new_temp_file "pfff_expr_of_s" "php" in
-  UFile.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
-
-  let ast = parse_program tmpfile in
-
-  let res =
-    match ast with
-    | [ Ast.TopStmt (Ast.ExprStmt (e, _tok)); Ast.FinalDef _ ] -> e
-    | _ -> failwith "only expr pattern are supported for now"
-  in
-  UTmp.erase_this_temp_file tmpfile;
-  res
-
-(* It is clearer for our testing code to programmatically build source files
- * so that all the information about a test is in the same
- * file. You don't have to open extra files to understand the test
- * data. This function is useful mostly for our unit tests
- *)
-let (program_of_string : string -> Cst_php.program) =
- fun s ->
-  let tmpfile = UTmp.new_temp_file "pfff_expr_of_s" "php" in
-  UFile.write_file tmpfile ("<?php \n" ^ s ^ "\n");
-  let ast = parse_program tmpfile in
-  UTmp.erase_this_temp_file tmpfile;
-  ast
-
-(* use program_of_string when you can *)
-let tmp_php_file_from_string ?(header = "<?php\n") s =
-  let tmp_file = UTmp.new_temp_file "test" ".php" in
-  UFile.write_file ~file:tmp_file (header ^ s);
-  tmp_file
-
-(* this function is useful mostly for our unit tests *)
-let (tokens_of_string : string -> Parser_php.token list) =
- fun str ->
-  let str = "<?php \n" ^ str ^ "\n" in
-  tokens (Parsing_helpers.Str str)
-
-(* A fast-path parser of xdebug expressions in xdebug dumpfiles.
- * See xdebug.ml *)
-let (xdebug_expr_of_string : string -> Cst_php.expr) =
- fun _s ->
-  (*
-  let lexbuf = Lexing.from_string s in
-  let expr = Parser_php.expr basic_lexer_skip_comments lexbuf in
-  expr
-*)
-  raise Todo
+let program_of_string s =
+  match any_of_string s with
+  | Cst_php.Program x -> x
+  | _else_ -> failwith ("not a program: " ^ s)

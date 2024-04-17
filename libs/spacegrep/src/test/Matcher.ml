@@ -202,6 +202,11 @@ let matcher_corpus =
       Matches [ "1 2"; "2 3" ],
       "$A ... $B",
       "1 2 3" );
+    ( "overlapping matches with closed end",
+      Matches [ "a b" ],
+      "a ... b",
+      "a a b" );
+    ("overlapping matches with open end", Matches [ "a a b" ], "a ...", "a a b");
     ("leading dots", Matches [ "a b" ], "... b", "a b c");
     ("match block start", Matches [ "a"; "b" ], "... $X", "a\n  b\n  c\nd\ne\n");
     ("match everything", Matches [ "a b c" ], "...", "a b c");
@@ -217,10 +222,10 @@ let matcher_corpus_same_line_ellipsis =
 let matcher_corpus_two_line_ellipsis =
   [ ("two-line ellipsis", Matches [ "a b\nc" ], "a ...", "x\ny a b\nc\nd") ]
 
-let create_matcher_suite param matcher_corpus =
+let create_matcher_suite ?expected_outcome param matcher_corpus =
   List_.map
     (fun (name, expectation, pat_str, doc_str) ->
-      Testo.create name (fun () ->
+      Testo.create ?expected_outcome name (fun () ->
           check_matching param pat_str doc_str expectation))
     matcher_corpus
 

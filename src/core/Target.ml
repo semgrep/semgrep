@@ -40,8 +40,10 @@ type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 (** [tempfile_of_git_blob sha] is the path to a newly created temporary file
     which contains the contents of the git blob object identified by [sha] *)
 let tempfile_of_git_blob sha =
-  let contents = Git_wrapper.cat_file_blob sha |> Result.get_ok in
-  let file = UTmp.new_temp_file "git-blob" ([%show: Git_wrapper.sha] sha) in
+  let contents = sha |> Git_wrapper.cat_file_blob |> Result.get_ok in
+  (* TODO: use CapTmp, but that requires to change lots of callers *)
+  (* nosemgrep: forbid-tmp *)
+  let file = UTmp.new_temp_file "git-blob" (Git_wrapper.hex_of_hash sha) in
   UFile.write_file file contents;
   file
 

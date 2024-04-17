@@ -11,8 +11,7 @@ open Fpath_.Operators
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO: FS too *)
-type caps = < Cap.random >
+type caps = < Cap.random ; Cap.chdir ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -28,7 +27,9 @@ let chop_origin_if_needed branch : string =
        *)
       "develop"
   (* let's chop the origin *)
-  | _ when Base.String.is_prefix ~prefix:"origin/" branch ->
+  | _
+    when (* TODO: don't use JaneStreet Base until we agree to do so *)
+         Base.String.is_prefix ~prefix:"origin/" branch ->
       Base.String.chop_prefix_exn ~prefix:"origin/" branch
   | _ -> branch
 
@@ -353,7 +354,7 @@ let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
   if UFile.dir_exists repo then repo
   else
     let tmp_dir =
-      UTmp.get_temp_dir_name ()
+      CapTmp.get_temp_dir_name caps#tmp
       / spf "semgrep_install_ci_%6X" (CapRandom.int caps#random 0xFFFFFF)
     in
     mkdir_if_needed !!tmp_dir;
@@ -369,13 +370,13 @@ let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
     in
     tmp_dir / repo
 
-let write_workflow_file ~git_dir:dir : unit =
+let write_workflow_file (caps : < Cap.chdir ; Cap.tmp >) ~git_dir:dir : unit =
   let commit = get_default_branch_in ~dst:dir in
   Logs.debug (fun m -> m "Using '%s' as default branch." commit);
   let res =
     Bos.OS.Dir.with_current dir
       (fun () ->
-        Git_wrapper.run_with_worktree ~commit
+        Git_wrapper.run_with_worktree caps ~commit
           ~branch:(Some (get_new_branch ()))
           (fun () ->
             let github_dir = ".github" in
@@ -422,7 +423,7 @@ let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
   | _else_ ->
       Logs.info (fun m -> m "Preparing Semgrep workflow for %s" !!repo);
       let dir = prep_repo caps repo in
-      write_workflow_file ~git_dir:dir;
+      write_workflow_file (caps :> < Cap.chdir ; Cap.tmp >) ~git_dir:dir;
       if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
         Logs.info (fun m -> m "Semgrep secret already present, skipping")
       else add_semgrep_gh_secret ~git_dir:dir ~token;
@@ -451,7 +452,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
             (Std_msg.error_tag ()));
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
   | Some token ->
       (* setup gh *)
       install_gh_cli_if_needed ();
@@ -462,7 +463,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
             (Std_msg.success_tag ()));
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

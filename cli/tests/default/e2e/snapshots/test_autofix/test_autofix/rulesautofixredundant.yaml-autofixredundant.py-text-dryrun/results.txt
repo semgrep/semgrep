@@ -1,0 +1,21 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+    targets/autofix/redundant.py
+    ❯❱ rules.autofix.replace-ac
+          slice a-c matches
+
+           ▶▶┆ Autofix ▶ replaced_lines_a_to_c_OK
+            1┆ replaced_lines_a_to_c_OK
+
+    ❯❱ rules.autofix.replace-ac-copy
+          slice a-c matches
+
+           ▶▶┆ Autofix ▶ replaced_lines_a_to_c_OK
+            1┆ a
+            2┆ b
+            3┆ c
+

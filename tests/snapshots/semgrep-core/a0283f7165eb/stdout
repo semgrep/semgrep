@@ -1,0 +1,27 @@
+Test name: with git > semgrepignore file takes precedence over --include
+--- Files added before 'git add' ---
+.semgrepignore
+c.c
+dir/a.c
+dir/b.c
+--- begin input files ---
+.semgrepignore
+c.c
+dir/a.c
+dir/b.c
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 4 files changed, 1 insertion(+)
+ create mode 100644 .semgrepignore
+ create mode 100644 c.c
+ create mode 100644 dir/a.c
+ create mode 100644 dir/b.c
+--- '--include' patterns ---
+*.c
+--- Selected targets ---
+selected c.c
+--- Skipped targets ---
+ignored .semgrepignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
+ignored dir/a.c [Semgrep_output_v1_t.Semgrepignore_patterns_match]
+ignored dir/b.c [Semgrep_output_v1_t.Semgrepignore_patterns_match]

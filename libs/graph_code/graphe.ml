@@ -435,7 +435,7 @@ let shortest_path k1 k2 g =
  *   let node = whatever g in
  *   let g2 = transitive_closure g in
  *   let succ = succ node g2
- *  is it because node references something from g? Is is the same
+ *  is it because node references something from g? Is it the same
  *  issue that for copy?
  *
  *)

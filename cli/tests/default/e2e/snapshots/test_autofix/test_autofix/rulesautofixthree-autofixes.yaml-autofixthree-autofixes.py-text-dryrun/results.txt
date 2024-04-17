@@ -1,0 +1,22 @@
+
+
+┌─────────────────┐
+│ 3 Code Findings │
+└─────────────────┘
+
+    targets/autofix/three-autofixes.py
+   ❯❯❱ rules.autofix.autofix-bugtest
+          This rule decreases the file in length and will be applied three times in this test.
+
+           ▶▶┆ Autofix ▶ requests.post(headers=auth_headers, url=self.url, endpoints="endpoint", _injected=True)
+            4┆ return requests.post(headers=auth_headers, url=self.url, endpoints="endpoint",
+               _injected=True)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ requests.post(headers=auth_headers, url=self.url, endpoints="endpoint", _injected=True)
+           12┆ return requests.post(headers=auth_headers, url=self.url, endpoints="endpoint",
+               _injected=True)
+            ⋮┆----------------------------------------
+           ▶▶┆ Autofix ▶ requests.post(headers=auth_headers, url=self.url, endpoints="endpoint", _injected=True)
+           20┆ return requests.post(headers=auth_headers, url=self.url, endpoints="endpoint",
+               _injected=True)
+

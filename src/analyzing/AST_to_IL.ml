@@ -1199,7 +1199,7 @@ and stmt_expr env ?e_gen st =
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, expr_opt env t eorig)) |> add_stmt env;
       expr_opt env t None
-  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty })
+  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty; vtok = _ })
     when def_expr_evaluates_to_value env.lang ->
       type_opt env opt_ty;
       (* We may end up here due to Elixir_to_elixir's parsing. Other languages
@@ -1252,8 +1252,10 @@ and cond_with_pre_stmts env cond =
       | G.Cond e -> expr env e
       | G.OtherCond
           ( todok,
-            [ (Def (ent, VarDef { G.vinit = Some e; vtype = opt_ty }) as def) ]
-          ) ->
+            [
+              (Def (ent, VarDef { G.vinit = Some e; vtype = opt_ty; vtok = _ })
+               as def);
+            ] ) ->
           type_opt env opt_ty;
           (* e.g. C/C++: `if (const char *tainted_or_null = source("PATH"))` *)
           let e' = expr env e in
@@ -1285,7 +1287,7 @@ and for_var_or_expr_list env xs =
        | G.ForInitVar (ent, vardef) -> (
            (* copy paste of VarDef case in stmt *)
            match vardef with
-           | { G.vinit = Some e; vtype = opt_ty } ->
+           | { G.vinit = Some e; vtype = opt_ty; vtok = _ } ->
                let ss1, e' = expr_with_pre_stmts env e in
                let ss2 = type_opt_with_pre_stmts env opt_ty in
                let lv = lval_of_ent env ent in
@@ -1475,9 +1477,17 @@ and mk_class_construction env obj origin_exp ty cons_id_info args :
 
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (eorig, tok) ->
-      if eorig.is_implicit_return then implicit_return env eorig tok
-      else expr_stmt env eorig tok
+  | G.ExprStmt (eorig, tok) -> (
+      match eorig with
+      | { is_implicit_return = true; _ } -> implicit_return env eorig tok
+      (* Python's yield statement functions similarly to a return
+         statement but with the added capability of saving the
+         function's state. While this analogy isn't entirely precise,
+         we currently treat it as a return statement for simplicity's
+         sake. *)
+      | { e = Yield (_, Some e, _); _ } when env.lang =*= Lang.Python ->
+          implicit_return env e tok
+      | _ -> expr_stmt env eorig tok)
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
@@ -1491,12 +1501,12 @@ and stmt_aux env st =
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
       mk_class_construction env obj' new_exp ty cons_id_info args |> snd
-  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty }) ->
+  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = opt_ty; vtok = _ }) ->
       let ss1, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       let ss2 = type_opt_with_pre_stmts env opt_ty in
       ss1 @ ss2 @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
-  | G.DefStmt (_ent, G.VarDef { G.vinit = None; vtype = Some ty }) ->
+  | G.DefStmt (_ent, G.VarDef { G.vinit = None; vtype = Some ty; vtok = _ }) ->
       (* We want to analyze any expressions in 'ty'. *)
       let ss, _ = type_with_pre_stmts env ty in
       ss

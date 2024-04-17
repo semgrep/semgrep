@@ -21,6 +21,7 @@ module H = Cmdliner_
  * them to the minimum; if you want flexibility, use semgrep scan,
  * otherwise semgrep ci should be minimalist and take no
  * args at all in most cases.
+ *
  * We probably still want though conf_runner flags like:
  *  - --max-memory, -j, --timeout (even though iago want to remove it)
  *  - the pro-engine flags --pro, --oss-only, etc (even though again
@@ -29,6 +30,9 @@ module H = Cmdliner_
  *  - --include, --exclude
  *  - maybe also --output? (even though I don't understand why people
  *    just don't simply use shell redirection)
+ *
+ * Note though that now osemgrep is called first by cli/bin/semgrep, so
+ * we must accept here all flags and then fallback to pysemgrep.
  *)
 type conf = {
   (* TODO? is this still used? *)
@@ -37,7 +41,10 @@ type conf = {
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
   products : OutJ.product list;
-  (* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
+  (* BIG ONE: 'semgrep ci' shares most of its flags with 'semgrep scan'
+   * TODO: we should reduce it actually, maybe just accept the core_runner
+   * opti flags.
+   *)
   scan_conf : Scan_CLI.conf;
 }
 [@@deriving show]
@@ -108,7 +115,7 @@ If false, encountered errors are not suppressed and the exit code is non-zero
 (* Turn argv into conf *)
 (*************************************************************************)
 
-let cmdline_term : conf Term.t =
+let cmdline_term caps : conf Term.t =
   (* Note that we ignore the _xxx_meta; The actual environment variables
    * grabbing is done in Ci_subcommand.generate_meta_from_env, but we pass
    * it below so we can get a nice man page documenting those environment
@@ -126,7 +133,7 @@ let cmdline_term : conf Term.t =
   in
   Term.(
     const combine
-    $ Scan_CLI.cmdline_term ~allow_empty_config:true
+    $ Scan_CLI.cmdline_term caps ~allow_empty_config:true
     $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run
     $ o_internal_ci_scan_results $ o_secrets $ o_supply_chain
     $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
@@ -152,7 +159,7 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : conf =
+let parse_argv (caps : < Cap.tmp >) (argv : string array) : conf =
   (* mostly a copy of Scan_CLI.parse_argv with different doc and man *)
-  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
+  let cmd : conf Cmd.t = Cmd.v cmdline_info (cmdline_term caps) in
   CLI_common.eval_value ~argv cmd

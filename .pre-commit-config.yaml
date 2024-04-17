@@ -18,7 +18,7 @@
 # of time to deal with issues caused by bumping Python dependencies, unless it is
 # truly needed.
 
-exclude: "^tests|^cli/tests/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b"
+exclude: "^tests|^cli/tests/default/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b"
 default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
@@ -40,7 +40,7 @@ repos:
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
-        exclude: "^(bin|test|libs/testo/.*test)$"
+        exclude: "^(bin|test|libs/testo/.*test|libs/spacegrep/bin/.*)$"
       - id: check-toml
       - id: check-vcs-permalinks
       - id: check-xml

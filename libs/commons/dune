@@ -3,11 +3,12 @@
  (wrapped false)
  (flags (:standard -open TCB))
  (libraries
-   str
    TCB
+   ; stdlib
+   str
    unix
+   ; popular libs
    fpath
-   uri
    yojson
    atdgen-runtime
    fmt
@@ -24,7 +25,7 @@
    digestif.ocaml
    sexplib
    ; web stuff
-   uuidm
+   uri uuidm
    ; async stuff
    lwt
    alcotest-lwt
@@ -39,6 +40,7 @@
      ppx_hash
      ppx_sexp_conv
      ppx_inline_test
+     lwt_ppx
    )
  )
 )

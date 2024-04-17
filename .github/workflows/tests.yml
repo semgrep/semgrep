@@ -15,11 +15,11 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
+          name: semgrep-core-x86-artifact
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
@@ -43,11 +43,11 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
+          name: semgrep-core-x86-artifact
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
@@ -62,18 +62,15 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yml
   build-test-docker:
     secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yaml
+    uses: ./.github/workflows/build-test-docker.yml
     with:
-      artifact-name: image-test
+      artifact-name: semgrep-docker-image-artifact
       docker-flavor: |
-        latest=auto
+        latest=false
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
         type=ref,event=pr
         type=ref,event=branch
         type=sha,event=branch
-        type=edge
       enable-tests: true
       file: Dockerfile
       repository-name: returntocorp/semgrep
@@ -82,19 +79,15 @@ jobs:
     needs:
       - build-test-docker
     secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yaml
+    uses: ./.github/workflows/build-test-docker.yml
     with:
-      artifact-name: image-test-nonroot
+      artifact-name: semgrep-docker-image-artifact-nonroot
       docker-flavor: |
-        latest=auto
-        suffix=-nonroot,onlatest=true
+        latest=false
+        suffix=-nonroot
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
         type=sha,event=branch
-        type=edge
+        type=ref,event=pr
       enable-tests: false
       file: Dockerfile
       repository-name: returntocorp/semgrep
@@ -103,19 +96,15 @@ jobs:
     needs:
       - build-test-docker
     secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yaml
+    uses: ./.github/workflows/build-test-docker.yml
     with:
-      artifact-name: image-test-performance-tests
+      artifact-name: semgrep-docker-image-artifact-performance-tests
       docker-flavor: |
-        latest=auto
-        suffix=-performance-tests,onlatest=true
+        latest=false
+        suffix=-performance-tests
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
         type=sha,event=branch
-        type=edge
+        type=ref,event=pr
       enable-tests: false
       file: Dockerfile
       repository-name: returntocorp/semgrep
@@ -144,60 +133,23 @@ jobs:
   build-test-windows-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-windows-x86.yml
-  push-docker-nonroot-returntocorp:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker-nonroot
+  check-semgrep-pro:
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
-    with:
-      artifact-name: image-test-nonroot
-      dry-run: false
-      repository-name: returntocorp/semgrep
-  push-docker-nonroot-semgrep:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker-nonroot
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
-    with:
-      artifact-name: image-test-nonroot
-      dry-run: false
-      repository-name: semgrep/semgrep
-  push-docker-performance-tests:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker-performance-tests
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
-    with:
-      artifact-name: image-test-performance-tests
-      dry-run: false
-      repository-name: returntocorp/semgrep
+    uses: ./.github/workflows/check-semgrep-pro.yml
   push-docker-returntocorp:
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     needs:
       - build-test-docker
     secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
+    uses: ./.github/workflows/push-docker.yml
     with:
-      artifact-name: image-test
+      artifact-name: semgrep-docker-image-artifact
       dry-run: false
       repository-name: returntocorp/semgrep
-  push-docker-semgrep:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yaml
-    with:
-      artifact-name: image-test
-      dry-run: false
-      repository-name: semgrep/semgrep
   test-cli:
     name: test semgrep-cli
     needs:
-      - build-test-core-x86
+      - check-semgrep-pro
     permissions:
       contents: write
       pull-requests: write
@@ -211,23 +163,32 @@ jobs:
           cache: pipenv
           python-version: ${{ matrix.python }}
       - run: pip install pipenv==2022.6.7
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
+      - uses: actions/download-artifact@v3
+        with:
+          name: semgrep-core-pro-x86-artifact
+      - name: Install pro artifacts
+        run: |
+          tar xf artifacts.tgz
+
+          # All binaries will be placed in cli/tmp-bin first
+          # before copying over to /usr/bin. This is so that
+          # we don't need to run semgrep with sudo.
+          mv artifacts cli/tmp-bin
+          cd cli
+          PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
+
+          # Later we copy these files to /usr/bin which requires sudo
+          sudo cp tmp-bin/* /usr/bin
       - name: Run pytest
         run: |
           # tests should simulate CI environment iff they need one
           unset CI
           unset "${!GITHUB_@}"
 
-          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
+          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
         working-directory: cli
       - if: failure()
         name: Prepare repo for snapshot commit
@@ -248,7 +209,7 @@ jobs:
         name: Commit snapshot updates
         uses: EndBug/add-and-commit@v9
         with:
-          add: cli/tests/e2e/snapshots
+          add: cli/tests/default/e2e/snapshots
           default_author: github_actions
           message: Update pytest snapshots
           new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
@@ -325,11 +286,11 @@ jobs:
       - run: pip install pipenv==2022.6.7
       - uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
+          name: semgrep-core-x86-artifact
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
       - name: Install semgrep
         run: |
           export PATH=/github/home/.local/bin:$PATH
@@ -408,15 +369,16 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/test-semgrep-pro.yml
     with:
-      artifact-name: image-test
+      artifact-name: semgrep-docker-image-artifact
       repository-name: returntocorp/semgrep
   trigger-semgrep-comparison-argo:
+    if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
     needs:
       - push-docker-returntocorp
     secrets: inherit
     uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
 name: tests
-"on":
+on:
   pull_request:
     paths-ignore:
       - '**.md'

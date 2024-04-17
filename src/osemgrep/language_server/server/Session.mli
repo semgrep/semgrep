@@ -27,15 +27,16 @@ type t = {
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
+  search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
-  caps : < Cap.random ; Cap.network >; [@opaque]
+  caps : < Cap.random ; Cap.network ; Cap.tmp >; [@opaque]
 }
 
 val show : t -> string
 (** [show t] returns a string representation of the session *)
 
-val create : < Cap.random ; Cap.network > -> ServerCapabilities.t -> t
+val create : < Cap.random ; Cap.network ; Cap.tmp > -> ServerCapabilities.t -> t
 (** [create caps capabilities] creates a [Session.t] given server capabilities *)
 
 val send_metrics : t -> unit

@@ -1768,20 +1768,6 @@ let normalize_path (file : string) : string =
   let xs' = aux [] xs in
   (if is_rel then "" else "/") ^ join "/" xs'
 
-(*
-let relative_to_absolute s =
-  if Filename.is_relative s
-  then
-    begin
-      let old = USys.getcwd () in
-      Sys.chdir s;
-      let current = USys.getcwd () in
-      Sys.chdir old;
-      s
-    end
-  else s
-*)
-
 let relative_to_absolute s =
   if s = "." then USys.getcwd ()
   else if Filename.is_relative s then USys.getcwd () ^ "/" ^ s
@@ -4855,9 +4841,6 @@ let cmdline_flags_devel () =
     ( "-debugger",
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
-    ( "-keep_tmp_files",
-      Arg.Set UTmp.save_tmp_files,
-      " keep temporary generated files" );
   ]
 
 let cmdline_flags_verbose () =
@@ -4872,7 +4855,6 @@ let cmdline_flags_other () =
   [
     ("-nocheck_stack", Arg.Clear _check_stack, " ");
     ("-batch_mode", Arg.Set _batch_mode, " no interactivity");
-    ("-keep_tmp_files", Arg.Set UTmp.save_tmp_files, " ");
   ]
 
 (* potentially other common options but not yet integrated:
@@ -4930,8 +4912,8 @@ module Infix = struct
   let ( ==~ ) = ( ==~ )
 end
 
-let with_pr2_to_string f =
-  UTmp.with_tmp_file ~str:"" ~ext:"out" (fun path ->
+let with_pr2_to_string caps f =
+  CapTmp.with_temp_file caps ~str:"" ~ext:"out" (fun path ->
       let file = Fpath.to_string path in
       redirect_stdout_stderr file f;
       cat file)

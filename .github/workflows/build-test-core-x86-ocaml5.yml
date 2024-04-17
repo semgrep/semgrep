@@ -19,6 +19,7 @@ jobs:
       - name: Install semgrep dependencies
         run: |
           eval $(opam env)
+          sudo make install-deps-UBUNTU-for-semgrep-core
           make install-deps-for-semgrep-core
       - name: Build semgrep
         run: |
@@ -28,7 +29,7 @@ jobs:
         run: |
           echo TODO
 name: build-test-core-x86-ocaml5
-"on":
+on:
   pull_request: null
   push:
     branches:

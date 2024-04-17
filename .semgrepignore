@@ -27,9 +27,12 @@
 
 # Test data
 /tests
-/cli/tests/e2e/targets/
-/cli/tests/e2e/snapshots/
+/cli/tests/default/e2e/targets/
+/cli/tests/default/e2e/snapshots/
 /cli/tests/performance/targets/
+# This generates lots of timeout for osemgrep ci so better to skip
+/cli/tests/performance/targets_perf_sca/
+/cli/tests/default/e2e/rules/long_message.yaml
 
 # has some constructs that AST_to_IL has trouble translating ('...' in target code)
 /cli/stubs/

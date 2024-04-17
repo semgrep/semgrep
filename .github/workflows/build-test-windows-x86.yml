@@ -61,23 +61,23 @@ jobs:
           _build/install/default/bin/semgrep-core.exe -e 'print($X)' -lang python -json test.py
       - name: Package semgrep-core
         run: |
-          mkdir archive
-          cp _build/install/default/bin/semgrep-core.exe archive/
+          mkdir artifacts
+          cp _build/install/default/bin/semgrep-core.exe artifacts/
 
-          # TODO: somehow upgrade to the latest flexdll, which should allow us to statically link these libraries
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll archive/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll archive/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll archive/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll archive/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll archive/
+          # TODO: somehow upgrade to the latest flexdll, which should allow us
+          # to statically link these libraries
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
 
-          cd archive
-          tar czvf ocaml-build-artifacts.tgz *.exe *.dll
+          tar czvf artifacts.tgz artifacts
       - uses: actions/upload-artifact@v3
         with:
-          name: ocaml-build-artifacts-release-w64
-          path: archive/ocaml-build-artifacts.tgz
+          name: semgrep-core-and-dependent-libs-w64-artifact
+          path: artifacts.tgz
 name: build-test-windows-x86
-"on":
+on:
   workflow_call: null
   workflow_dispatch: null

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,18 +14,15 @@
  *)
 open Common
 
-(* G is the pattern, and B the concrete source code. For now
- * we both use the same module but they may differ later
- * as the expressivity of the pattern language grows.
- *
+(* G is the pattern, and B the concrete source code.
  * You might be tempted to just open AST_generic and get rid of G and B,
  * but it's easy to be confused on what is a pattern and what is the target,
  * so at least using different G and B helps a bit.
  *
  * subtle: use 'b' to report errors, because 'a' is the pattern.
  *)
-module B = AST_generic
 module G = AST_generic
+module B = AST_generic
 module MV = Metavariable
 module Options = Rule_options_t
 module H = AST_generic_helpers
@@ -33,6 +30,7 @@ open Matching_generic
 
 let tags = Logs_.create_tags [ __MODULE__ ]
 let hook_find_possible_parents = ref None
+let hook_r2c_pro_was_here = ref None
 
 (*****************************************************************************)
 (* Prelude *)
@@ -2465,6 +2463,21 @@ and m_stmt a b =
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
   | G.DisjStmt (a1, a2), _b -> m_stmt a1 b >||> m_stmt a2 b
+  (* some marks in the water *)
+  | ( _,
+      G.ExprStmt
+        ( { e = G.Call ({ e = G.N (G.Id (("r_2_c_was_here", _), _)); _ }, _); _ },
+          _sc ) ) ->
+      return ()
+  | ( _,
+      G.ExprStmt
+        ( {
+            e = G.Call ({ e = G.N (G.Id (("r_2_c_pro_was_here", _), _)); _ }, _);
+            _;
+          },
+          _sc ) )
+    when !hook_r2c_pro_was_here =*= Some true ->
+      return ()
   (* metavar: *)
   (* Note that we can't consider $S a statement metavariable only if the
    * semicolon is a fake one. Indeed in many places we have patterns
@@ -3148,9 +3161,11 @@ and m_parameter_classic a b =
 and m_variable_definition a b =
   match (a, b) with
   (* boilerplate *)
-  | { G.vinit = a1; vtype = a2 }, { B.vinit = b1; vtype = b2 } ->
-      (m_option m_expr) a1 b1 >>= fun () ->
-      (m_option_none_can_match_some m_type_) a2 b2
+  | ( { G.vinit = a1; vtype = a2; vtok = _a3 },
+      { B.vinit = b1; vtype = b2; vtok = _b3 } ) ->
+      let* () = (m_option m_expr) a1 b1 in
+      let* () = (m_option_none_can_match_some m_type_) a2 b2 in
+      return ()
 
 (* ------------------------------------------------------------------------- *)
 (* Field definition and use *)
@@ -3530,7 +3545,7 @@ and m_directive_vs_def a b =
                             _ ) );
                     _;
                   };
-              vtype = _;
+              _;
             } ) ) ->
         (* Match the pattern `import "foo"` against `const x = require("foo")` *)
         m_wrap m_string filea fileb
@@ -3562,7 +3577,7 @@ and m_directive_vs_def a b =
                           } );
                     _;
                   };
-              vtype = _;
+              _;
             } ) )
       when id_str = B.special_multivardef_pattern ->
         let* () = m_wrap m_string filea fileb in

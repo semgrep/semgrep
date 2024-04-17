@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -174,7 +174,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.62.0"
+let version = "1.66.1"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -232,6 +232,8 @@ type 'a bracket = tok * 'a * tok [@@deriving show, eq, hash]
 
 (* semicolon, a FakeTok in languages that do not require them (e.g., Python).
  * alt: tok option.
+ * TODO: use a tok option, or maybe better is to do like for vtok in
+ * variable_definition and use `sc option` in more places (e.g., ExprStmt)
  * See the sc value also at the end of this file to build an sc.
  *)
 type sc = tok [@@deriving show, eq, hash]
@@ -690,8 +692,7 @@ and expr_kind =
   | RegexpTemplate of expr bracket (* // *) * string wrap option (* modifiers *)
   (* see also New(...) for other values *)
   | N of name
-  | IdSpecial of
-      special wrap (*e: [[AST_generic.expr]] other identifier cases *)
+  | IdSpecial of special wrap
   (* operators and function application *)
   | Call of expr * arguments
   (* 'type_' below is usually a TyN or TyArray (or TyExpr).
@@ -728,7 +729,7 @@ and expr_kind =
   (* less: could desugar in Assign, should be only binary_operator *)
   | AssignOp of expr * operator wrap * expr
   (* newvar:! newscope:? in OCaml yes but we miss the 'in' part here  *)
-  | LetPattern of pattern * expr (*e: [[AST_generic.expr]] other assign cases *)
+  | LetPattern of pattern * expr
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
@@ -1815,6 +1816,14 @@ and variable_definition = {
   vinit : expr option;
   (* less: (tok * expr) option? *)
   vtype : type_ option;
+  (* Note that this is None for most languages. Even in C-like languages, this
+   * is also often None because one statement can contain multiple definitions
+   * as in `int a, b = 1, c;` but there is just one semicolon. We could use
+   * the ',' for the other declarations but anyway to be really correct we would
+   * need to change the `entity x VarDef` in an `entities x VarDefs` which is a
+   * complex refactoring.
+   *)
+  vtok : sc option;
 }
 
 (* ------------------------------------------------------------------------- *)
@@ -2149,9 +2158,14 @@ let error tok msg = raise (Error (msg, tok))
 let fake s = Tok.unsafe_fake_tok s
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
- * the string of a fake info
+ * the string of a fake info.
+ * TODO: try to put back ";", but in many languages like Python we still use
+ * G.sc even if we know there is no semicolon, so for those we need to refactor
+ * the code to use G.no_sc instead
+ * TODO: factorize with Tok.unsafe_sc
  *)
-let sc = Tok.unsafe_fake_tok ""
+let sc : Tok.t = Tok.unsafe_fake_tok ""
+let no_sc : Tok.t option = None
 
 (*****************************************************************************)
 (* AST builder helpers *)
@@ -2189,7 +2203,7 @@ let p x = x
  * not matter as the couple (filename, id_info_id) is unique.
  *)
 let id_info_id = IdInfoId.mk
-let empty_var = { vinit = None; vtype = None }
+let empty_var = { vinit = None; vtype = None; vtok = no_sc }
 
 let empty_id_info ?(hidden = false) ?(case_insensitive = false)
     ?(id = id_info_id ()) () =
@@ -2349,9 +2363,9 @@ let stmt1 xs =
 (* this should be simpler at some point if we get rid of FieldStmt *)
 let fld (ent, def) = F (s (DefStmt (ent, def)))
 
-let basic_field id vopt typeopt =
+let basic_field ?(vtok = no_sc) id vopt typeopt =
   let entity = basic_entity id in
-  fld (entity, VarDef { vinit = vopt; vtype = typeopt })
+  fld (entity, VarDef { vinit = vopt; vtype = typeopt; vtok })
 
 let fieldEllipsis t = F (exprstmt (e (Ellipsis t)))
 

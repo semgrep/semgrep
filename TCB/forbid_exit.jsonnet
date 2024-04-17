@@ -1,23 +1,18 @@
+local common = import 'common.libsonnet';
+
 {
   rules: [
     {
       id: 'forbid-exit',
       match: { any: [
-	'exit $N',
+        'exit $N',
         'Stdlib.exit',
         'UStdlib.exit',
-	'Unix._exit',
-	'UUnix._exit'
+        'Unix._exit',
+        'UUnix._exit'
       ] },
       languages: ['ocaml'],
-      paths: {
-        exclude: [
-           'TCB/*',
-           'tools/*', 'scripts/*',
-            '*_main.ml', 'Main.ml',
-            'Test*.ml',
-         ],
-      },
+      paths: common.exclude,
       severity: 'ERROR',
       message: |||
         Do not use directly exit(). Either raise Common.UnixExit or use the

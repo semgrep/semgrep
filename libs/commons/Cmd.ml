@@ -12,9 +12,9 @@
 (* Types *)
 (*****************************************************************************)
 
-type name = Name of string
-type args = string list
-type t = name * args
+type name = Name of string [@@deriving show]
+type args = string list [@@deriving show]
+type t = name * args [@@deriving show]
 
 (* shortcut *)
 type run_status = Bos.OS.Cmd.run_status

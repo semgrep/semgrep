@@ -16,10 +16,10 @@ jobs:
           update-alternatives --config python3
       - uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
+          name: semgrep-core-x86-artifact
       - run: |
-          tar xf ocaml-build-artifacts.tgz
-          cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
+          tar xf artifacts.tgz
+          cp artifacts/semgrep-core cli/src/semgrep/bin
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
@@ -31,10 +31,10 @@ jobs:
       - build-wheels
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: manylinux-x86-wheel
-      - run: unzip ./manylinux-x86-wheel/dist.zip
+      - run: unzip dist.zip
       - name: install package
         run: /opt/python/cp38-cp38/bin/pip install dist/*.whl
       - name: test package
@@ -46,6 +46,6 @@ jobs:
           export PATH=/opt/python/cp38-cp38/bin:$PATH
           echo '1 == 1' | semgrep -l python -e '$X == $X' -
 name: build-test-manylinux-x86
-"on":
+on:
   workflow_call: null
   workflow_dispatch: null

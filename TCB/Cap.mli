@@ -1,5 +1,5 @@
 (* Capabilities implemented as simple abstract types and explicit
- * parameters ("Lambda the ultimate security tool").
+ * (object) arguments/parameters ("Lambda the ultimate security tool").
  *
  * Note that most of the types below are on purpose abstract and there is
  * no way to build/forge them except by calling the restricted (statically
@@ -30,6 +30,7 @@ module Process : sig
   type exit
   type pid
   type kill
+  type chdir
 
   (* See also the separate Exec.t *)
   type fork
@@ -75,12 +76,14 @@ module File : sig
 end
 
 module Network : sig
-  (* TODO? make specific host subcapability? like semgrep_url_capa ? *)
+  (* TODO? make specific host subcapability? like semgrep_url_capa ?
+   * imitate Rust cap-std project with a pool of allowed IPs?
+   *)
   type t
 end
 
-(* If your program does not use those capabilities, it has the nice property
- * of being deterministic.
+(* If your program does not use the capabilities below, it has the nice
+ * property of being deterministic!
  *)
 module Misc : sig
   type random
@@ -119,11 +122,12 @@ type signal = < signal : Process.signal >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
+type chdir = < chdir : Process.chdir >
 type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; exit >
+type process_single = < signal ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -150,13 +154,14 @@ type all_caps =
  *)
 
 (* pure computation, just cpu/ram *)
-type no_cap
+type no_caps = < >
 
 (**************************************************************************)
 (* Temporary unsafe caps to help migration *)
 (**************************************************************************)
 (* !!DO NOT USE!! *)
-val network_caps_UNSAFE : unit -> < network : Network.t >
+val network_caps_UNSAFE : unit -> < network >
+val tmp_caps_UNSAFE : unit -> < tmp >
 
 (**************************************************************************)
 (* Entry point *)

@@ -99,8 +99,7 @@ let create_info caps =
 *)
 let get_rule_path () =
   match Git_wrapper.get_project_root () with
-  | Some root ->
-      Fpath.(root / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+  | Some root -> root // Fpath.v "cli/tests/default/e2e/targets/ls/rules.yaml"
   | None ->
       failwith "The test program must run from within the semgrep git project"
 
@@ -120,17 +119,6 @@ let login_url_regex =
   Regexp_engine.pcre_compile "https://semgrep.dev/login\\?cli-token=.*"
 
 let prog_regex = Regexp_engine.pcre_compile "Pr([\\s\\S]*)"
-
-(* Not setting this means that really nasty errors happen when an exception
-   is raised inside of an Lwt.async, when running the Alcotests.
-   As in, the tests will just exit with no error message at all.
-*)
-let () =
-  Lwt.async_exception_hook :=
-    fun exn ->
-      let err = Printexc.to_string exn in
-      Alcotest.fail err
-
 let timeout = 30.0
 (*****************************************************************************)
 (* Helpers *)
@@ -145,14 +133,6 @@ let open_and_write_default_content ?(mode = []) file =
   output_string oc default_content;
   close_out oc
 
-(* When running the JSCaml code, if we do an actual pause, the tests will
-   straight up exit, without giving any error messages or anything.
-   Further investigation seemed to show that pausing caused an issue with
-   how the promises resolve, such that the sleeping thread would stay
-   sleeping and the entire process would eventually exit.
-   So, when running in JSCaml, let's just not use pauses. *)
-let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
-
 let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
   let timeout_promise =
     let%lwt () = Lwt_platform.sleep timeout in
@@ -165,19 +145,17 @@ let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
 (* Core primitives *)
 (*****************************************************************************)
 
-let send (info : info) packet : unit Lwt.t =
+let send (info : info) packet : unit =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
-      let%lwt () = lwt_pause () in
-      let () = (snd info.in_stream) (Some packet) in
-      Lwt.return_unit
+      let push_func = snd info.in_stream in
+      push_func (Some packet)
 
 let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
-      let%lwt () = lwt_pause () in
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
       match server_msg with
       | Some packet -> Lwt.return packet
@@ -187,7 +165,7 @@ let receive (info : info) : Packet.t Lwt.t =
 (* Specific send/receive functions *)
 (*****************************************************************************)
 
-let send_request info request : unit Lwt.t =
+let send_request info request : unit =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
   let packet = Packet.Request (CR.to_jsonrpc_request request (`String id)) in
   send info packet
@@ -195,7 +173,7 @@ let send_request info request : unit Lwt.t =
 let send_custom_request ~meth ?params info =
   send_request info (CR.UnknownRequest { meth; params })
 
-let send_notification info (notification : Client_notification.t) : unit Lwt.t =
+let send_notification info (notification : Client_notification.t) : unit =
   let packet =
     Packet.Notification (Client_notification.to_jsonrpc notification)
   in
@@ -390,6 +368,20 @@ let mock_workspaces () =
 
   (workspace1, (Fpath.v workspace2_root, workspace2_files))
 
+let mock_search_files () : _ * Fpath.t list =
+  let git_tmp_path = git_tmp_path () in
+
+  let root = git_tmp_path in
+  let path1 = root / "a" / "b" / "c.py" in
+  let path2 = root / "test.py" in
+  (* should have preexisting matches that are committed *)
+  Unix.mkdir (root / "a" |> Fpath.to_string) 0o777;
+  Unix.mkdir (root / "a" / "b" |> Fpath.to_string) 0o777;
+  open_and_write_default_content ~mode:[ Open_wronly ] path1;
+  open_and_write_default_content ~mode:[ Open_wronly ] path2;
+
+  (root, [ path1; path2 ])
+
 (*****************************************************************************)
 (* Sending functions *)
 (*****************************************************************************)
@@ -550,14 +542,15 @@ let send_semgrep_scan_workspace ?(full = false) info =
 let _send_semgrep_refresh_rules info =
   send_custom_notification info ~meth:"semgrep/refreshRules"
 
-let send_semgrep_search info ?language pattern =
+let send_semgrep_search info ?language ~includes ~excludes pattern =
   let params =
-    match language with
-    | None -> `Assoc [ ("pattern", `String pattern) ]
-    | Some lang ->
-        `Assoc [ ("pattern", `String pattern); ("language", `String lang) ]
+    Search.mk_params ~lang:language ~fix:None ~includes ~excludes pattern
   in
   send_custom_request info ~meth:"semgrep/search" ~params
+
+let send_semgrep_search_ongoing info =
+  send_custom_request info ~meth:"semgrep/searchOngoing"
+    ~params:(Jsonrpc.Structured.t_of_yojson (`Assoc []))
 
 let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =
   let uri = Uri.of_path (Fpath.to_string path) |> Uri.yojson_of_t in
@@ -646,7 +639,7 @@ let assert_progress info message =
 
 let check_startup info folders (files : Fpath.t list) =
   (* initialize *)
-  let%lwt () = send_initialize info folders in
+  send_initialize info folders;
 
   let%lwt resp = receive_response info in
   assert_contains (Response.yojson_of_t resp) "capabilities";
@@ -657,9 +650,7 @@ let check_startup info folders (files : Fpath.t list) =
       files
   in
 
-  let%lwt () =
-    Lwt_list.iter_s (fun file -> send_did_open info file) scanned_files
-  in
+  List.iter (send_did_open info) scanned_files;
   let%lwt () =
     Lwt_list.iter_s
       (fun _ ->
@@ -668,7 +659,7 @@ let check_startup info folders (files : Fpath.t list) =
         Lwt.return_unit)
       scanned_files
   in
-  let%lwt () = send_initialized info in
+  send_initialized info;
   let%lwt () = assert_progress info "Refreshing Rules" in
 
   let%lwt () = assert_progress info "Scanning Open Documents" in
@@ -705,16 +696,39 @@ let check_startup info folders (files : Fpath.t list) =
 (* Tests *)
 (*****************************************************************************)
 
+let do_search ?(pattern = "print(...)") ?(includes = []) ?(excludes = []) info =
+  send_semgrep_search info pattern ~includes ~excludes;
+  Lwt_seq.unfold_lwt
+    (fun () ->
+      let%lwt resp = receive_response info in
+      match
+        YS.Util.(resp.result |> Result.get_ok |> member "locations" |> to_list)
+      with
+      | [] -> Lwt.return None
+      | matches ->
+          (* Send the searchOngoing so we get the next response *)
+          send_semgrep_search_ongoing info;
+          Lwt.return (Some (matches, ())))
+    ()
+  |> Lwt_seq.to_list |> Lwt.map List.concat
+
 let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
+  (* Not setting this means that really nasty errors happen when an exception
+     is raised inside of an Lwt.async, when running the Alcotests.
+     As in, the tests will just exit with no error message at all.
+  *)
   (Lwt.async_exception_hook :=
      fun exn ->
        let err = Printexc.to_string exn in
+       let traceback = Printexc.get_backtrace () in
        Logs.err (fun m -> m "Got exception: %s" err);
-       Alcotest.fail err);
+       Logs.err (fun m -> m "Traceback:\n%s" traceback);
+       Alcotest.fail "Got exception in Lwt.async during tests");
   let info = create_info caps in
-  let server_promise = LanguageServer.start info.server in
-  let f_promise = f info in
-  Lwt.join [ f_promise; server_promise ]
+  let server_promise () = LanguageServer.start info.server in
+  (* Separate promise so we actually bubble up errors from this one *)
+  Lwt.async server_promise;
+  f info
 
 let test_ls_specs caps () =
   with_session caps (fun info ->
@@ -725,7 +739,7 @@ let test_ls_specs caps () =
         files
         |> Lwt_list.iter_s (fun file ->
                (* didOpen *)
-               let%lwt () = send_did_save info file in
+               send_did_save info file;
 
                (* add content *)
                let%lwt params =
@@ -746,7 +760,7 @@ let test_ls_specs caps () =
                open_and_write_default_content ~mode:[ Open_append ] file;
 
                (* didSave *)
-               let%lwt () = send_did_save info file in
+               send_did_save info file;
 
                let%lwt params =
                  receive_notification_params
@@ -768,10 +782,8 @@ let test_ls_specs caps () =
                let char_end = diagnostic.range.end_.character in
 
                (* get code actions *)
-               let%lwt () =
-                 send_code_action info ~path:file ~diagnostics:[ diagnostic ]
-                   ~line_start ~char_start ~line_end ~char_end
-               in
+               send_code_action info ~path:file ~diagnostics:[ diagnostic ]
+                 ~line_start ~char_start ~line_end ~char_end;
                let%lwt res =
                  receive_response_result CodeActionResult.t_of_yojson info
                in
@@ -793,11 +805,9 @@ let test_ls_specs caps () =
                in
 
                (* execute command *)
-               let%lwt () =
-                 send_execute_command ~command:command.command
-                   ~arguments:(Option.get command.arguments)
-                   info
-               in
+               send_execute_command ~command:command.command
+                 ~arguments:(Option.get command.arguments)
+                 info;
                let%lwt params =
                  receive_notification_params
                    PublishDiagnosticsParams.t_of_yojson info
@@ -819,8 +829,8 @@ let test_ls_specs caps () =
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
       (* Tests target caching *)
-      let%lwt () = send_did_add info added in
-      let%lwt () = send_did_open info added in
+      send_did_add info added;
+      send_did_open info added;
 
       let%lwt notif = receive_notification info in
       let%lwt () =
@@ -828,12 +838,13 @@ let test_ls_specs caps () =
           [ `String "eqeq-five"; `String "eqeq-five" ]
       in
 
-      let%lwt () = send_did_delete info added in
+      send_did_delete info added;
 
       let%lwt notif = receive_notification info in
       let%lwt () = check_diagnostics notif added [] in
 
-      send_exit info)
+      send_exit info;
+      Lwt.return_unit)
 
 let test_ls_ext caps () =
   with_session caps (fun info ->
@@ -842,7 +853,7 @@ let test_ls_ext caps () =
           let%lwt () = check_startup info [ root ] files in
 
           (* scan workspace *)
-          let%lwt () = send_semgrep_scan_workspace info in
+          send_semgrep_scan_workspace info;
           let%lwt () = assert_progress info "Scanning Workspace" in
 
           let scanned_files =
@@ -864,7 +875,7 @@ let test_ls_ext caps () =
           in
 
           (* scan workspace full *)
-          let%lwt () = send_semgrep_scan_workspace ~full:true info in
+          send_semgrep_scan_workspace ~full:true info;
 
           Logs.app (fun m -> m "Waiting for scan to finish 2");
           let%lwt notif = receive_notification info in
@@ -900,18 +911,14 @@ let test_ls_ext caps () =
           in
 
           (* search *)
-          let%lwt () = send_semgrep_search info "print(...)" in
-          let%lwt resp = receive_response info in
-          assert (
-            YS.Util.(
-              resp.result |> Result.get_ok |> member "locations" |> to_list
-              |> List.length = 3));
+          let%lwt matches = do_search info in
+          assert (matches |> List.length = 3);
 
           (* hover is on by default *)
           let%lwt () =
             files
             |> Lwt_list.iter_s (fun file ->
-                   let%lwt () = send_hover info file ~character:1 ~line:0 in
+                   send_hover info file ~character:1 ~line:0;
                    let%lwt resp = receive_response info in
                    assert (resp.result |> Result.get_ok <> `Null);
                    (* just checking that "contents" exists *)
@@ -924,7 +931,7 @@ let test_ls_ext caps () =
           let%lwt () =
             files
             |> Lwt_list.iter_s (fun file ->
-                   let%lwt () = send_semgrep_show_ast info file in
+                   send_semgrep_show_ast info file;
                    let%lwt resp = receive_response info in
                    let resp =
                      resp.result |> Result.get_ok |> YS.Util.to_string
@@ -933,7 +940,8 @@ let test_ls_ext caps () =
                    Lwt.return_unit)
           in
 
-          send_exit info))
+          send_exit info;
+          Lwt.return_unit))
 
 let test_ls_multi caps () =
   with_session caps (fun info ->
@@ -951,7 +959,7 @@ let test_ls_multi caps () =
 
       let%lwt () = check_startup info workspace_folders files in
 
-      let%lwt () = send_did_change_folder info ~removed:[ workspace1_root ] in
+      send_did_change_folder info ~removed:[ workspace1_root ];
 
       let%lwt () = assert_progress info "Scanning Workspace" in
 
@@ -975,7 +983,7 @@ let test_ls_multi caps () =
                else check_diagnostics notif file [ `String "eqeq-five" ])
       in
 
-      let%lwt () = send_did_change_folder info ~added:[ workspace1_root ] in
+      send_did_change_folder info ~added:[ workspace1_root ];
 
       let%lwt () = assert_progress info "Scanning Workspace" in
 
@@ -985,9 +993,10 @@ let test_ls_multi caps () =
                let%lwt notif = receive_notification info in
                check_diagnostics notif file [ `String "eqeq-five" ])
       in
-      send_exit info)
+      send_exit info;
+      Lwt.return_unit)
 
-let test_login caps () =
+let _test_login caps () =
   with_session caps (fun info ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
@@ -998,11 +1007,11 @@ let test_login caps () =
       let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
-          let%lwt () = send_initialize info [] in
+          send_initialize info [];
           let%lwt resp = receive_response info in
           assert_contains (Response.yojson_of_t resp) "capabilities";
 
-          let%lwt () = send_custom_request ~meth:"semgrep/login" info in
+          send_custom_request ~meth:"semgrep/login" info;
           let%lwt msg = receive_response info in
 
           let url =
@@ -1011,17 +1020,96 @@ let test_login caps () =
 
           assert (Regexp_engine.unanchored_match login_url_regex url);
           Semgrep_settings.save settings |> ignore;
-          send_exit info))
+          send_exit info;
+          Lwt.return_unit))
 
 let test_ls_no_folders caps () =
   with_session caps (fun info ->
       let%lwt () = check_startup info [] [] in
 
-      send_exit info)
+      send_exit info;
+      Lwt.return_unit)
 
 let test_ls_libev () =
   Lwt_platform.set_engine ();
   Lwt.return_unit
+
+let test_search_includes_excludes caps () =
+  with_session caps (fun info ->
+      let root, files = mock_search_files () in
+
+      let%lwt () = check_startup info [ root ] files in
+      let%lwt matches = do_search ~pattern:"x = 0" info in
+      assert (List.length matches = 2);
+
+      let assert_with_includes_excludes ?(includes = []) ?(excludes = [])
+          ~matches_test ~matches_c () =
+        let%lwt matches = do_search ~includes ~excludes ~pattern:"x = 0" info in
+        let num_matches =
+          (if matches_test then 1 else 0) + if matches_c then 1 else 0
+        in
+        assert (List.length matches = num_matches);
+        if
+          matches_test
+          && not
+               (List.exists
+                  (fun m ->
+                    String.ends_with ~suffix:"test.py"
+                      YS.Util.(m |> member "uri" |> to_string))
+                  matches)
+        then Alcotest.failf "failed to find test.py for matches_test case";
+        if
+          matches_c
+          && not
+               (List.exists
+                  (fun m ->
+                    String.ends_with ~suffix:"a/b/c.py"
+                      YS.Util.(m |> member "uri" |> to_string))
+                  matches)
+        then Alcotest.failf "failed to find test.py for matches_c case";
+        Lwt.return_unit
+      in
+
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "c.py" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~excludes:[ "c.py" ] ~matches_c:false
+          ~matches_test:true ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "test.py" ] ~matches_c:false
+          ~matches_test:true ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~excludes:[ "test.py" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "py" ] ~matches_c:false
+          ~matches_test:false ()
+      in
+
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "b" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "a" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~excludes:[ "a" ] ~matches_c:false
+          ~matches_test:true ()
+      in
+      let%lwt () =
+        assert_with_includes_excludes ~includes:[ "a/b/c.py" ] ~matches_c:true
+          ~matches_test:false ()
+      in
+
+      Lwt.return_unit)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -1036,10 +1124,16 @@ let promise_tests caps =
     Test_lwt.create "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
     Test_lwt.create "Test LS multi-workspaces" (test_ls_multi caps)
       ~tolerate_chdir:true;
-    Test_lwt.create "Test LS login" (test_login caps)
-      ~expected_outcome:
-        (Should_fail "TODO: currently failing in js tests in CI");
+    (* Keep this test commented out while it is xfail.
+        Because logging in is side-effecting, if the test never completes, we
+        will stay log in, which can mangle some of the later tests.
+       Test_lwt.create "Test LS login" (test_login caps)
+       ~expected_outcome:
+         (Should_fail "TODO: currently failing in js tests in CI"); *)
     Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
+    Test_lwt.create "Test LS /semgrep/search includes/excludes"
+      (test_search_includes_excludes caps)
+      ~tolerate_chdir:true;
   ]
   |> List_.map (fun (test : _ Test.t) ->
          Test.update test ~func:(with_timeout test.func))

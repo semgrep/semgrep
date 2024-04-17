@@ -35,7 +35,7 @@ let config : Core_scan_config.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules ?(unit_testing = false) xs =
+let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
   let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -96,7 +96,7 @@ let test_rules ?(unit_testing = false) xs =
          (* actual *)
          let actual_errors =
            try
-             Check_rule.run_checks config Parse_rule.parse file [ target ]
+             Check_rule.run_checks caps config Parse_rule.parse file [ target ]
            with
            | exn ->
                failwith

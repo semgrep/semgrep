@@ -56,8 +56,9 @@ let parse_pattern lang_pattern str =
              Tok.unsafe_fake_tok "no loc" ))
 [@@profiling]
 
-let output_core_results caps (result_or_exn : Core_result.result_or_exn)
-    (config : Core_scan_config.t) : unit =
+let output_core_results (caps : < Cap.exit >)
+    (result_or_exn : Core_result.result_or_exn) (config : Core_scan_config.t) :
+    unit =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -110,10 +111,10 @@ let output_core_results caps (result_or_exn : Core_result.result_or_exn)
 (* semgrep-core -rules *)
 (*****************************************************************************)
 
-let semgrep_core_with_rules_and_formatted_output caps
+let semgrep_core_with_rules_and_formatted_output (caps : < Cap.tmp ; Cap.exit >)
     (config : Core_scan_config.t) : unit =
-  let res = Core_scan.scan_with_exn_handler config in
-  output_core_results caps res config
+  let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
+  output_core_results (caps :> < Cap.exit >) res config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)
@@ -126,6 +127,7 @@ let minirule_of_pattern lang pattern_string pattern =
     pattern;
     inside = false;
     message = "";
+    metadata = None;
     severity = `Error;
     langs = [ lang ];
     fix = None;
@@ -155,7 +157,8 @@ let pattern_of_config lang (config : Core_scan_config.t) =
    - Have semgrep_with_patterns return the results and errors.
    - Print the final results (json or text) using dedicated functions.
 *)
-let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
+let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
+    (config : Core_scan_config.t) : unit =
   assert (config.rule_source =*= None);
 
   (* TODO: support generic and regex patterns as well. See code in Deep.
@@ -177,7 +180,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             in
             Rule.rule_of_xpattern xlang xpat)
       in
-      let res = Core_scan.scan config (([ rule ], []), rules_parse_time) in
+      let res = Core_scan.scan caps config (([ rule ], []), rules_parse_time) in
       let json = Core_json_output.core_output_of_matches_and_errors res in
       let s = OutJ.string_of_core_output json in
       Out.put s
@@ -187,7 +190,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in scan() *)
-      let target_info, _skipped = Core_scan.targets_of_config config in
+      let target_info, _skipped = Core_scan.targets_of_config caps config in
       let files = target_info |> List_.map Target.internal_path in
       (* sanity check *)
       if config.filter_irrelevant_rules then
@@ -227,5 +230,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
 let semgrep_core_dispatch (caps : Cap.all_caps) (config : Core_scan_config.t) :
     unit =
   if config.rule_source <> None then
-    semgrep_core_with_rules_and_formatted_output caps config
-  else semgrep_core_with_one_pattern config
+    semgrep_core_with_rules_and_formatted_output
+      (caps :> < Cap.exit ; Cap.tmp >)
+      config
+  else semgrep_core_with_one_pattern (caps :> < Cap.tmp >) config

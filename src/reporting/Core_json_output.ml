@@ -25,6 +25,17 @@ module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type rule_scan_source =
+  | Unchanged
+  | NewVersion
+  | NewRule
+  | PreviousScan
+  | Unannotated
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -79,6 +90,144 @@ let range_of_any_opt startp_of_match_range any =
       let* min_loc, max_loc = AST_generic_helpers.range_of_any_opt any in
       let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
+
+let get_scan_source (metadata : J.t) =
+  let res =
+    let* j = J.member "semgrep.dev" metadata in
+    let* j2 = J.member "src" j in
+    Some
+      (match j2 with
+      | J.String "unchanged" -> Unchanged
+      | J.String "new-version" -> NewVersion
+      | J.String "new-rule" -> NewRule
+      | J.String "previous-scan" -> PreviousScan
+      | _ -> Unannotated)
+  in
+  match res with
+  | None -> Unannotated
+  | Some v -> v
+
+let annotated_rule_name (metadata : J.t) =
+  let* a = J.member "semgrep.dev" metadata in
+  let* a = J.member "rule" a in
+  match J.member "rule_name" a with
+  | Some (J.String s) -> Some s
+  | _ -> None
+
+(*****************************************************************************)
+(* Deduplication *)
+(*****************************************************************************)
+
+(* This is a port of the original pysemgrep cli_unique_key. This used to be in the CLI,
+   but has since been moved to core.
+*)
+let core_unique_key (c : OutJ.core_match) =
+  (* type-wise this is a tuple of string * string * int * int * string * string option *)
+  (* self.annotated_rule_name if self.from_transient_scan else self.rule_id,
+      str(self.path),
+      self.start.offset,
+      self.end.offset,
+      self.message,
+  *)
+  let metadata =
+    match c.extra.metadata with
+    | None -> J.Null
+    | Some json -> JSON.from_yojson json
+  in
+  let name =
+    if get_scan_source metadata =*= PreviousScan then
+      match annotated_rule_name metadata with
+      | None -> failwith ""
+      | Some s -> s
+    else Rule_ID.to_string c.check_id
+  in
+  let path =
+    match c.extra.historical_info with
+    | Some { git_blob = Some sha; _ } -> ATD_string_wrap.Sha1.unwrap sha
+    | _ -> Fpath.to_string c.path
+  in
+  (* NOTE: We include the previous scan's rules in the config for
+     consistent fixed status work. For unique hashing/grouping,
+     previous and current scan rules must have distinct check IDs.
+     Hence, previous scan rules are annotated with a unique check ID,
+     while the original ID is kept in metadata. As check_id is used
+     for unique_key, this patch fetches the check ID from metadata
+     for previous scan findings.
+     TODO: Once the fixed status work is stable, all findings should
+     fetch the check ID from metadata. This fallback prevents breaking
+     current scan results if an issue arises.
+  *)
+  ( name,
+    path,
+    c.start.offset,
+    c.end_.offset,
+    c.extra.message,
+    (* TODO: Bring this back.
+       This is necessary so we don't deduplicate taint findings which
+       have different sources.
+
+       self.match.extra.dataflow_trace.to_json_string
+       if self.match.extra.dataflow_trace
+       else None,
+    *)
+    None
+    (* NOTE: previously, we considered self.match.extra.validation_state
+       here, but since in some cases (e.g., with `anywhere`) we generate
+       many matches in certain cases, we want to consider secrets
+       matches unique under the above set of things, but with a priority
+       associated with the validation state; i.e., a match with a
+       confirmed valid state should replace all matches equal under the
+       above key. We can't do that just by not considering validation
+       state since we would pick one arbitrarily, and if we added it
+       below then we would report _both_ valid and invalid (but we only
+       want to report valid, if a valid one is present and unique per
+       above fields). See also `should_report_instead`.
+    *) )
+
+(*
+ # Sort results so as to guarantee the same results across different
+ # runs. Results may arrive in a different order due to parallelism
+ # (-j option).
+*)
+let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
+  (* Whether we prefer to report match x over match y.
+     This is currently only used for Secrets findings, which prefer a
+     finding with a confirmed validation status.
+  *)
+  let should_report_instead ((x : OutJ.core_match), (y : OutJ.core_match)) =
+    match (x, y) with
+    | { OutJ.extra = { validation_state = None; _ }; _ }, _ -> false
+    | _, { OutJ.extra = { validation_state = None; _ }; _ } -> true
+    | { OutJ.extra = { validation_state = Some `Confirmed_valid; _ }; _ }, _
+      -> (
+        match y with
+        | { OutJ.extra = { validation_state = Some `Confirmed_valid; _ }; _ } ->
+            false
+        | _ -> true)
+    | _ -> false
+  in
+  let seen = Hashtbl.create 101 in
+  xs |> OutUtils.sort_core_matches
+  (* This deduplication logic used to live in Pysemgrep, which would assume that
+     the matches had already been sorted via sort_core_matches.
+     If you run through this deduplication logic without that assumption, you'll
+     keep undesirable matches, such as those with less metavariables.
+  *)
+  |> List.iter (fun x ->
+         let key = core_unique_key x in
+         match Hashtbl.find_opt seen key with
+         | None -> Hashtbl.add seen key x
+         | Some y when should_report_instead (x, y) ->
+             Hashtbl.replace seen key x
+         | _ -> ());
+  (* Here, we must sort again, though.
+     This is because we yet again need to enforce that when Pysemgrep receives these
+     matches, that they are sorted via sort_core_matches.
+     If we don't do this, then stuff like test_baseline will start breaking.
+     So we end up sorting twice. Such is life.
+     LATER: Can optimize if necessary
+  *)
+  Hashtbl.to_seq_values seen |> List.of_seq |> OutUtils.sort_core_matches
 
 (*****************************************************************************)
 (* Converters *)
@@ -217,6 +366,14 @@ let unsafe_match_to_match
       x.taint_trace
   in
   let metavars = x.env |> List_.map (metavars startp) in
+  let metadata =
+    let* json = x.rule_id.metadata in
+    let rule_metadata = JSON.to_yojson json in
+    match x.metadata_override with
+    | Some metadata_override ->
+        Some (JSON.update rule_metadata (JSON.to_yojson metadata_override))
+    | None -> Some rule_metadata
+  in
   (* message where the metavars have been interpolated *)
   (* TODO(secrets): apply masking logic here *)
   let message =
@@ -239,32 +396,24 @@ let unsafe_match_to_match
         else (path, None)
     (* TODO(cooper): if we can have a uri or something more general than a
      * file path here then we can stop doing this hack. *)
-    | GitBlob { sha = blob_sha; paths } -> (
+    | GitBlob { sha; paths } -> (
         match paths with
         | [] -> (x.path.internal_path_to_content (* no better path *), None)
-        | (commit_sha, path) :: _ ->
-            let git_blob =
-              Some (Digestif.SHA1.of_hex (Git_wrapper.show_sha blob_sha))
-            in
-            let git_commit =
-              Digestif.SHA1.of_hex (Git_wrapper.show_sha commit_sha)
+        | (commit, path) :: _ ->
+            let git_commit = Git_wrapper.commit_digest commit in
+            let timestamp, offset = (Git_wrapper.commit_author commit).date in
+            let offset =
+              Option.value offset
+                ~default:{ sign = `Plus; hours = 0; minutes = 0 }
             in
             ( path,
               Some
                 ({
                    git_commit;
-                   git_blob;
+                   git_blob = Some sha;
                    git_commit_timestamp =
-                     (* TODO: CACHE THIS *)
-                     (match Git_wrapper.commit_timestamp commit_sha with
-                     | Some x -> x
-                     | None ->
-                         Logs.warn (fun m ->
-                             m
-                               "Issue getting timestamp for commit %a. \
-                                Reporting current time."
-                               Git_wrapper.pp_sha commit_sha);
-                         Timedesc.Timestamp.now ());
+                     Datetime_.of_unix_int_time timestamp offset.sign
+                       offset.hours offset.minutes;
                  }
                   : OutJ.historical_info) ))
   in
@@ -279,14 +428,14 @@ let unsafe_match_to_match
       {
         message = Some message;
         severity = x.severity_override;
-        metadata = Option.map JSON.to_yojson x.metadata_override;
+        metadata;
         metavars;
         dataflow_trace;
         fix =
           Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
         is_ignored;
         (* TODO *)
-        engine_kind = x.engine_kind;
+        engine_kind = x.engine_of_match;
         validation_state = Some x.validation_state;
         historical_info;
         extra_extra = None;
@@ -438,15 +587,16 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];
   {
-    results = matches |> OutUtils.sort_core_matches;
+    results = matches |> dedup_and_sort;
     errors = errs |> List_.map error_to_error;
     paths =
       {
-        (* TODO: those are set later in Cli_json_output.ml,
-         * but should we compute skipped and scanned here instead?
-         *)
+        (* It seems that we have two separate paths, one for osemgrep
+           (Cli_json_output.ml) and another for pysemgrep here. We
+           should update this section to output the results
+           specifically for pysemgrep. *)
         skipped = None;
-        scanned = [];
+        scanned = res.scanned;
       };
     skipped_rules =
       res.skipped_rules

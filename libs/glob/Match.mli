@@ -4,9 +4,7 @@
 *)
 
 (* A compiled pattern matcher. *)
-type compiled_pattern
-
-val show : compiled_pattern -> string
+type compiled_pattern [@@deriving show]
 
 (* The location of a pattern, for logging and troubleshooting. *)
 type loc = {
@@ -19,8 +17,7 @@ type loc = {
   line_number : int;
   line_contents : string;
 }
-
-val show_loc : loc -> string
+[@@deriving show]
 
 (*
    Compile the pattern into something efficient (currently uses the
@@ -59,11 +56,6 @@ val compile : source:loc -> Pattern.t -> compiled_pattern
    non-matching paths: foo bar/foo/ /foo/ /foo
 *)
 val run : compiled_pattern -> string -> bool
-
-(* This is used by the unit tests and prints the activity of the
-   'run' function. I'm worried that logger#debug would be too expensive
-   when not debugging. *)
-val debug : bool ref
 
 (* Create a location from a pattern string rather than a location in a file. *)
 val string_loc :

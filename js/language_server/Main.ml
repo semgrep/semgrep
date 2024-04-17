@@ -72,7 +72,8 @@ let _ =
 
       let server =
         ref
-          (LS.LanguageServer.create (all_caps :> < Cap.random ; Cap.network >))
+          (LS.LanguageServer.create
+             (all_caps :> < Cap.random ; Cap.network ; Cap.tmp >))
       in
       Js.export_all
         (object%js

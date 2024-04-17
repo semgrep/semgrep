@@ -133,6 +133,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
   {
     PM.id = mr.id;
     message = mr.message;
+    metadata = mr.metadata;
     pattern_string = mr.pattern_string;
     fix = mr.fix;
     fix_regexp = mr.fix_regexp;
@@ -172,7 +173,7 @@ let match_rules_and_recurse m_env path hook matches rules matcher k any x =
                           (* This will be overrided later on by the Pro engine, if this is
                              from a Pro run.
                           *)
-                          engine_kind = `OSS;
+                          engine_of_match = `OSS;
                           validation_state = `No_validator;
                           severity_override = None;
                           metadata_override = None;
@@ -343,7 +344,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   range_loc;
                                   tokens;
                                   taint_trace = None;
-                                  engine_kind = `OSS;
+                                  engine_of_match = `OSS;
                                   validation_state = `No_validator;
                                   severity_override = None;
                                   metadata_override = None;
@@ -408,7 +409,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
-                                    engine_kind = `OSS;
+                                    engine_of_match = `OSS;
                                     validation_state = `No_validator;
                                     severity_override = None;
                                     metadata_override = None;
@@ -458,7 +459,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      engine_kind = `OSS;
+                                      engine_of_match = `OSS;
                                       validation_state = `No_validator;
                                       severity_override = None;
                                       metadata_override = None;
@@ -554,7 +555,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      engine_kind = `OSS;
+                                      engine_of_match = `OSS;
                                       validation_state = `No_validator;
                                       severity_override = None;
                                       metadata_override = None;

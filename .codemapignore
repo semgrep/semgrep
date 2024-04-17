@@ -46,7 +46,7 @@ languages/typescript/tree-sitter/CST_tree_sitter_typescript.ml
 /LICENSE
 
 # big test files
-/cli/tests/e2e/rules/long_message.yaml
+/cli/tests/default/e2e/rules/long_message.yaml
 /cli/tests/performance/
 /tests/perf/
 /tests/precommit_dogfooding/
@@ -57,7 +57,7 @@ languages/typescript/tree-sitter/CST_tree_sitter_typescript.ml
 /perf/rules/
 
 # test snapshots
-/cli/tests/e2e/snapshots
+/cli/tests/default/e2e/snapshots
 
 # mypy stuff
 /cli/stubs

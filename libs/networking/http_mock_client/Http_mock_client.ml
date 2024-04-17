@@ -37,23 +37,45 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
 
   type ctx = unit
 
-  let callv ?ctx _ _ =
+  let mock_response_of_request (req : Cohttp.Request.t) (body : Body.t) =
+    Logs.debug (fun m ->
+        m "[Testing client] Request: %s"
+          (Request.sexp_of_t req |> Sexplib.Sexp.to_string_hum));
+    let%lwt _body = Body.to_string body in
+    Logs.debug (fun m -> m "[Testing client] Body: %s" _body);
+    let%lwt response = make_response req body in
+    Lwt.return (response.response, response.body)
+
+  let callv ?ctx uri (reqs : (Cohttp.Request.t * Body.t) Lwt_stream.t) =
     ignore ctx;
-    failwith "Not implemented"
+    Logs.debug (fun m ->
+        m "[Testing client] Request URI: %s" (Uri.to_string uri));
+    let response_stream =
+      Lwt_stream.map_s
+        (fun (req, body) -> mock_response_of_request req body)
+        reqs
+    in
+    Lwt.return response_stream
 
   let head ?ctx ?headers _ =
     ignore ctx;
     ignore headers;
-    failwith "Not implemented"
+    failwith
+      "head is not implemented in the HTTP mock client. If you need this \
+       functionality, please implement it."
 
   let post_form ?ctx ?headers ~params _ =
     ignore ctx;
     ignore headers;
     ignore params;
-    failwith "Not implemented"
+    failwith
+      "post_form is not implemented in the HTTP mock client. If you need this \
+       functionality, please implement it."
 
   let call ?ctx ?headers ?(body = `Empty) ?chunked meth uri =
     ignore ctx;
+    Logs.debug (fun m ->
+        m "[Testing client] Request URI: %s" (Uri.to_string uri));
     let headers =
       match headers with
       | None -> Header.init ()
@@ -65,13 +87,7 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
       | None -> false
     in
     let req = Request.make_for_client ~headers ~chunked meth uri in
-    Logs.debug (fun m ->
-        m "[Testing client] Request: %s"
-          (Request.sexp_of_t req |> Sexplib.Sexp.to_string_hum));
-    let%lwt _body = Body.to_string body in
-    Logs.debug (fun m -> m "[Testing client] Body: %s" _body);
-    let%lwt response = make_response req body in
-    Lwt.return (response.response, response.body)
+    mock_response_of_request req body
 
   let get ?ctx ?headers uri = call ?ctx ?headers `GET uri
 

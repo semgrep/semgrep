@@ -1,7 +1,7 @@
 val run_semgrep :
-  ?targets:Fpath.t list option ->
-  ?rules:Rule.rules option ->
-  ?git_ref:string option ->
+  ?targets:Fpath.t list ->
+  ?rules:Rule.rules ->
+  ?git_ref:string ->
   RPC_server.t ->
   Semgrep_output_v1_t.cli_match list * Fpath.t list
 (** [run_semgrep server] runs semgrep on the given server. If [targets] is
@@ -9,6 +9,12 @@ val run_semgrep :
   * provided, it will be used as the rules for semgrep. Otherwise, the rules
   * will be read from the config file. If [git_ref] is provided, it will be
   * used as the git ref for what matches are filtered out based on git diff.
+  *)
+
+val run_core_search : Rule.search_rule -> Fpath.t -> Pattern_match.t list option
+(** [run_core_search] runs a search intended for the /semgrep/search IDE
+    search command, by hooking lower into the Match_search_mode matching
+    process, bypassing the CLI.
   *)
 
 val scan_workspace : RPC_server.t -> unit

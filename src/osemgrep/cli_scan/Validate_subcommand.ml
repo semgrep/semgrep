@@ -39,7 +39,7 @@ module OutJ = Semgrep_output_v1_t
 (*****************************************************************************)
 
 (* TODO: should use stdout, right now we abuse Logs.app *)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (* a slice of Scan_CLI.conf *)
 type conf = {
@@ -76,8 +76,8 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
    *)
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false ~strict:conf.core_runner_conf.strict
-      (caps :> < Cap.network >)
+      ~strict:conf.core_runner_conf.strict
+      (caps :> < Cap.network ; Cap.tmp >)
       conf.rules_source
   in
   let rules, errors =
@@ -121,8 +121,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         let metarules_and_origin, _errors =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            ~registry_caching:false
-            (caps :> < Cap.network >)
+            (caps :> < Cap.network ; Cap.tmp >)
             config
         in
         let metarules, metaerrors =
@@ -131,11 +130,13 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
-        let scan_func =
-          Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+        let core_run_func =
+          Core_runner.mk_core_run_for_osemgrep
+            (Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >))
         in
         let result_and_exn =
-          scan_func conf.core_runner_conf metarules [] targets
+          core_run_func.run conf.core_runner_conf Find_targets.default_conf
+            metarules [] targets
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
         (* TODO? sanity check errors below too? *)
@@ -185,7 +186,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));
   match num_errors with
-  | 0 -> Exit_code.ok
+  | 0 -> Exit_code.ok ~__LOC__
   | _else_ ->
       (* was a raise SemgrepError originally *)
       Error.abort "Please fix the above errors and try again."
