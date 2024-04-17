@@ -419,6 +419,13 @@ def scan_options(func: Callable) -> Callable:
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
 )
+@optgroup.group("Osemgrep migration options")
+@optgroup.option(
+    "--use-osemgrep-sarif",
+    "use_osemgrep_sarif",
+    is_flag=True,
+    default=False,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -472,6 +479,7 @@ def scan(
     trace: bool,
     trace_endpoint: Optional[str],
     use_git_ignore: bool,
+    use_osemgrep_sarif: bool,
     validate: bool,
     verbose: bool,
     version: bool,
@@ -560,6 +568,9 @@ def scan(
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
 
+    use_osemgrep_to_format: Set[OutputFormat] = set()
+    if use_osemgrep_sarif:
+        use_osemgrep_to_format.add(OutputFormat.SARIF)
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -571,6 +582,7 @@ def scan(
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
+        use_osemgrep_to_format=use_osemgrep_to_format,
     )
 
     if test:
