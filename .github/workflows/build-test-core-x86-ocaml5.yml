@@ -30,7 +30,7 @@ jobs:
           make
       - name: Test semgrep
         run: |
-          echo TODO
+          make test
 name: build-test-core-x86-ocaml5
 on:
   pull_request: null

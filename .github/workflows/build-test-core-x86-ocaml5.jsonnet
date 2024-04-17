@@ -51,12 +51,11 @@ local job = {
         make
       |||,
     },
-    // TODO: some tests are currently failing with OCaml5! but at least
-    // we can still check whether it builds
+    // TODO: Upload artifacts
     {
       name: 'Test semgrep',
       run: |||
-        echo TODO
+        make test
       |||,
     },
   ],
