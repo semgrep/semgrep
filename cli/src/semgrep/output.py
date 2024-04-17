@@ -124,7 +124,7 @@ def _build_time_json(
 # typchecking more accurate and enforce invariants.
 class NormalizedOutputSettings(NamedTuple):
     # Immutable List of OutputDestination x OutputFormat
-    outputs: Tuple[Tuple[Optional[str], OutputFormat], ...]
+    outputs: Dict[Optional[str], OutputFormat]
     output_per_finding_max_lines_limit: Optional[int]
     output_per_line_max_chars_limit: Optional[int]
     error_on_findings: bool
@@ -134,8 +134,11 @@ class NormalizedOutputSettings(NamedTuple):
     timeout_threshold: int
     dataflow_traces: bool
 
+    def get_outputs(self) -> Iterator[Tuple[Optional[str], OutputFormat]]:
+        return self.outputs.items().__iter__()
+
     def has_output_format(self, other: OutputFormat) -> bool:
-        return bool(sum(1 for (_, fmt) in self.outputs if other == fmt))
+        return bool(sum(1 for (_, fmt) in self.get_outputs() if other == fmt))
 
     def has_text_output(self) -> bool:
         return self.has_output_format(OutputFormat.TEXT)
@@ -213,15 +216,19 @@ class OutputSettings(NamedTuple):
         )
 
     def normalize(self) -> NormalizedOutputSettings:
-        normalized_outputs: Tuple[Tuple[Optional[str], OutputFormat], ...] = ()
+        normalized_outputs: Dict[Optional[str], OutputFormat] = {}
         if self.output_format is None:
             if self.outputs is None:
                 raise RuntimeError(f"Invalid output configuration: No output specified")
-            normalized_outputs = self.outputs
+            normalized_outputs = self.outputs.copy()
         else:
             if self.outputs is not None:
-                normalized_outputs = self.outputs
-            normalized_outputs += ((self.output_destination, self.output_format),)
+                normalized_outputs = self.outputs.copy()
+            if self.output_destination in normalized_outputs:
+                raise RuntimeError(
+                    "Invalid output configuration: same output destination with multiple formats."
+                )
+            normalized_outputs[self.output_destination] = self.output_format
 
         return NormalizedOutputSettings(
             outputs=normalized_outputs,
@@ -599,7 +606,6 @@ class OutputHandler:
     def _build_output(
         self, output_destination: Optional[str], output_format: OutputFormat
     ) -> Tuple[Optional[str], str]:
-
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
             # This is incorrect when some rules are skipped by semgrep-core
@@ -641,7 +647,7 @@ class OutputHandler:
             )
             extra["verbose_errors"] = True
         if output_format == OutputFormat.TEXT:
-            wextra["color_output"] = (
+            extra["color_output"] = (
                 (output_destination is None and sys.stdout.isatty())
                 or os.environ.get("SEMGREP_FORCE_COLOR")
             ) and not os.environ.get("NO_COLOR")
@@ -700,4 +706,3 @@ class OutputHandler:
             is_ci_invocation=self.is_ci_invocation,
         )
         return (output_destination, output)
-
