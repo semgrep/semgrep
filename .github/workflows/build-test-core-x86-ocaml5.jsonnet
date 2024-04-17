@@ -6,6 +6,8 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 //TODO: currently fails because of conflicts with ocamlformat and jsoo
+// Usually we can do just "5.2.0" but since this is a beta release we can't
+// See: https://github.com/ocaml/setup-ocaml/issues/232
 local opam_switch = 'ocaml-base-compiler.5.2.0~beta2';
 
 // ----------------------------------------------------------------------------
@@ -21,6 +23,8 @@ local job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': opam_switch,
+        // Needed so we can install a beta verison of the compiler
+        // See: https://github.com/ocaml/setup-ocaml/issues/232
         'opam-repositories': |||
             default: https://github.com/ocaml/opam-repository.git
             beta: https://github.com/ocaml/ocaml-beta-repository.git
