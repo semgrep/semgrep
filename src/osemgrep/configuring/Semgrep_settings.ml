@@ -82,27 +82,26 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 
 let load ?(maturity = Maturity.Default) ?(include_env = true) () =
   let settings = !Semgrep_envvars.v.user_settings_file in
-  Logs.info (fun m -> m "Loading settings from %a" Fpath.pp settings);
+  Logs.info (fun m -> m "Loading settings from %s" !!settings);
   try
-    if
-      Sys.file_exists (Fpath.to_string settings)
-      && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
+    if Sys.file_exists !!settings && Unix.(stat !!settings).st_kind = Unix.S_REG
     then
       let data = UFile.read_file settings in
       let decoded =
         match Yaml.of_string data with
         | Error _ ->
             Logs.warn (fun m ->
-                m "Bad settings format; %a will be overriden. Contents:\n%s"
-                  Fpath.pp settings data);
+                m "Bad settings format; %s will be overriden. Contents:\n%s"
+                  !!settings data);
             default_settings
         | Ok value -> (
             match of_yaml value with
             | Error (`Msg msg) ->
                 Logs.warn (fun m ->
-                    m "Bad settings format; %a will be overriden. Contents:\n%s"
-                      Fpath.pp settings data);
-                Logs.info (fun m -> m "Decode error: %s" msg);
+                    m
+                      "Bad settings format; %s will be overriden. Contents:\n\
+                       %s\n\
+                       Decode error: %s" !!settings data msg);
                 default_settings
             | Ok s -> s)
       in
@@ -118,8 +117,8 @@ let load ?(maturity = Maturity.Default) ?(include_env = true) () =
       (match maturity with
       | Maturity.Develop ->
           Logs.warn (fun m ->
-              m "Settings file %a does not exist or is not a regular file"
-                Fpath.pp settings)
+              m "Settings file %s does not exist or is not a regular file"
+                !!settings)
       | _else_ -> ());
       default_settings)
   with
@@ -143,7 +142,8 @@ let save setting =
     UFile.write_file (Fpath.v tmp) str;
     (* Create a temporary file and rename to have a consistent settings file,
        even if the power fails (or a Ctrl-C happens) during the write_file. *)
-    Unix.rename tmp (Fpath.to_string settings);
+    Unix.rename tmp !!settings;
+    Logs.info (fun m -> m "Saved the settings in %s" !!settings);
     true
   with
   | Sys_error e ->

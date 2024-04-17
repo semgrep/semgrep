@@ -622,6 +622,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       mk_scan_func (caps :> < Cap.tmp >) conf file_match_results_hook errors
     in
     (* step 3': call the engine! *)
+    Logs.info (fun m -> m "running the semgrep engine");
     let exn_and_matches =
       (* TODO: this long code block should not be here!
          Please create and use a function with a descriptive name and
@@ -632,6 +633,8 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
+          Logs.info (fun m ->
+              m "running differential scan on base commit %s" baseline_commit);
           Metrics_.g.payload.environment.isDiffScan <- true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
           let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
@@ -706,6 +709,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     in
 
     (* step 5: report the matches *)
+    Logs.info (fun m -> m "reporting matches if any");
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
       let runtime_params =
@@ -786,7 +790,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
 
-  (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
+  (* Print The logo ASAP to minimize time to first meaningful content paint *)
   if new_cli_ux then print_logo ();
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
@@ -809,7 +813,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     |> Profiler.record profiler ~name:"config_time"
   in
 
-  (* Print feature section for enabled products if pattern mode is not being used.
+  (* Print feature section for enabled products if pattern mode is not used.
      Ideally, pattern mode should be a different subcommand, but for now we will
      conditionally print the feature section.
   *)
@@ -865,6 +869,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     ignore (Semgrep_settings.save settings));
 
   (* step1: getting the rules *)
+  Logs.info (fun m -> m "Getting the rules");
 
   (* Display a message to denote rule fetching that is made interactive when
    * possible *)
@@ -878,6 +883,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       conf.rules_source
   in
   (* step2: getting the targets *)
+  Logs.info (fun m -> m "Computing the targets");
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
