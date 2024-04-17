@@ -8,13 +8,13 @@ jobs:
           submodules: true
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 5.1.0
+          ocaml-compiler: 5.2.0~beta2
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         name: Set GHA cache for OPAM in _opam
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-5.1.0-_opam-${{ hashFiles('semgrep.opam') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-5.2.0~beta2-_opam-${{ hashFiles('semgrep.opam') }}
           path: _opam
       - name: Install semgrep dependencies
         run: |
