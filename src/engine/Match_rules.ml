@@ -172,9 +172,9 @@ let check ~match_hook ~timeout ~timeout_threshold
           m ~tags "forcing parsing of AST outside of rules, for better profile");
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
-  let per_rule_boilerplate_fn =
+  let per_rule_boilerplate_fn rule =
     per_rule_boilerplate_fn ~timeout ~timeout_threshold
-      !!internal_path_to_content
+      !!internal_path_to_content rule
   in
 
   (* We separate out the taint rules specifically, because we may want to
