@@ -14,10 +14,10 @@ from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.base import rule_match_to_CliMatch
 from semgrep.formatter.sarif import SarifFormatter
-from semgrep.metrics import Metrics
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_interfaces.semgrep_metrics import OsemgrepFormatOutput
+from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 
@@ -25,11 +25,6 @@ logger = getLogger(__name__)
 
 
 class OsemgrepSarifFormatter(BaseFormatter):
-    def __init__(self, metrics: Metrics) -> None:
-        # Metrics is temporarily needed so we can keep track of cases
-        # where we fail to format in osemgrep in production.
-        self.metrics = metrics
-
     def _osemgrep_format(
         self,
         rules: Iterable[Rule],
@@ -151,7 +146,7 @@ class OsemgrepSarifFormatter(BaseFormatter):
         format_metrics.osemgrep_format_time_seconds = o_elapse
         format_metrics.pysemgrep_format_time_seconds = py_elapse
         format_metrics.validation_time_seconds = validate_elapse
-        self.metrics.add_osemgrep_format_output_metrics(format_metrics)
+        get_state().metrics.add_osemgrep_format_output_metrics(format_metrics)
 
         if succeeded and is_match:
             return o_output
