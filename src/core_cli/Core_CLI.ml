@@ -729,6 +729,8 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
    * The PYTEST_XXX env vars allows modifying the logging behavior of pytest
    * tests since pytest clears the environment except for variables starting
    * with "PYTEST_".
+   * LATER: once we remove pysemgrep and switch from pytest to Testo, we
+   * can get rid of those PYTEST_xxx env vars.
    *)
   Logs_.setup ?log_to_file:config.log_to_file ?require_one_of_these_tags:None
     ~read_level_from_env_vars:
