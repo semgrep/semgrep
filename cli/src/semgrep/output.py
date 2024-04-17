@@ -120,8 +120,8 @@ def _build_time_json(
 
 
 # This class is the internal representation of OutputSettings below.
-# Since it is internal it can change as much as necisarry to make
-# typchecking more accurate and enforce invariants.
+# Since it is internal it can change as much as necesarry to make
+# typechecking more accurate and enforce invariants.
 class NormalizedOutputSettings(NamedTuple):
     # Immutable List of OutputDestination x OutputFormat
     outputs: Tuple[Tuple[Optional[str], OutputFormat], ...]
