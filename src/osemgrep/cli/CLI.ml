@@ -323,14 +323,15 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
      *)
   *)
 
-  (* The precise Logs_helpers.setup_logging() is done in Scan_subcommand.ml,
+  (* The precise Logs_.setup() is done in CLI_Common.setup_logging()
+   * called from the different Xxx_subcommand.ml
    * because that's when we have a conf object which contains
-   * the --quiet/--verbose/--debug options. In the mean time we still
-   * enable some default basic logging so you can call logging functions
+   * the --quiet/--verbose/--debug options. In the mean time, we still
+   * enable some basic logging so you can call logging functions
    * even before we fully parse the command-line arguments.
    * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
-  Logs_.enable_logging ();
+  Logs_.setup_basic ();
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;

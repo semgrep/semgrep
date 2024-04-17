@@ -142,13 +142,13 @@ let main (caps : Cap.all_caps) : unit =
       Core_CLI.register_exception_printers ();
       (* Show log messages produced when building the list of tests *)
       Std_msg.setup ~highlight_setting:On ();
-      Logs_.setup_logging ~level:(Some Logs.Info) ();
+      Logs_.setup ~level:(Some Logs.Info) ();
       let reset () =
         (* Some tests change this configuration so we have to reset
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
         Std_msg.setup ~highlight_setting:On ();
-        Logs_.setup_logging ~highlight_setting:On ~level:(Some Logs.Debug) ()
+        Logs_.setup ~highlight_setting:On ~level:(Some Logs.Debug) ()
       in
       Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
           tests_with_delayed_error caps |> cleanup_before_each_test reset))

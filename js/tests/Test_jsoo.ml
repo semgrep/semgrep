@@ -144,7 +144,7 @@ let () =
                  (Testo.to_alcotest lwt_tests)
                  ~and_exit:false ~argv
              in
-             Logs_.setup_logging ~level:(Some Logs.Info) ();
+             Logs_.setup ~level:(Some Logs.Info) ();
              (* Some gymnastics are needed here because we need to
                 produce a top level promise, in order to properly transform the
                 lwt promise into a Javascript promise, and run it on the Node.js
