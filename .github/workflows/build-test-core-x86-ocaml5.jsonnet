@@ -21,6 +21,10 @@ local job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': opam_switch,
+        'ocaml-repositories': |||
+            default: https://github.com/ocaml/opam-repository.git
+            beta: https://github.com/ocaml/ocaml-beta-repository.git
+        |||,
       },
     },
     semgrep.cache_opam.step(
