@@ -46,6 +46,7 @@ Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 [<MASKED>][DEBUG](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED>][DEBUG](default): Skipping logs for networking.http
 [<MASKED>][DEBUG](default): Skipping logs for cohttp.lwt.client
 [<MASKED>][DEBUG](default): Skipping logs for cohttp.lwt.io
 [<MASKED>][DEBUG](default): Skipping logs for conduit_lwt_server
@@ -56,6 +57,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Skipping logs for tls.config
 [<MASKED>][DEBUG](default): Skipping logs for tls.tracing
 [<MASKED>][DEBUG](default): Skipping logs for x509
+[<MASKED>][DEBUG](default): Skipping logs for ojsonnet.eval
 [<MASKED>][DEBUG](default): Skipping logs for git.value
 [<MASKED>][DEBUG](default): Skipping logs for git.tree
 [<MASKED>][DEBUG](default): Skipping logs for git.stream
@@ -155,6 +157,7 @@ Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 [<MASKED>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for networking.http
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.client
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.io
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for conduit_lwt_server
@@ -165,6 +168,7 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for tls.config
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for tls.tracing
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for x509
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for ojsonnet.eval
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.value
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.tree
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.stream

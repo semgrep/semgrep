@@ -102,7 +102,7 @@ let log_cli_feature (flag : string) : unit =
 *)
 let send_metrics (caps : < Cap.network ; .. >) : unit =
   if Metrics_.is_enabled () then Semgrep_Metrics.send caps
-  else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
+  else Logs.info (fun m -> m "Metrics not enabled, skip sending metrics")
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
