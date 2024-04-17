@@ -46,3 +46,7 @@ make install-deps-MACOS-for-semgrep-core
 # austin: Why can't we use make homebrew-setup here? It doesn't seem to work
 #         because of something with how tree-sitter is installed.
 LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
+
+# Allow pkg-config to pick up tree-sitter. Perhaps export this in the tree
+# sitter install script? But not persistent. Hmm.
+export PKG_CONFIG_PATH="libs/ocaml-tree-sitter-core/tree-sitter/lib/pkgconfig:$PKG_CONFIG_PATH"
