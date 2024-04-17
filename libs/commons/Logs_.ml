@@ -17,7 +17,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Small wrapper around the Logs library.
+(* A few helpers for the Logs library.
  *)
 
 (*****************************************************************************)
@@ -124,11 +124,12 @@ let has_nonempty_intersection tag_str_list tag_set =
     tag_set false
 
 (* Consult environment variables from left-to-right in order of precedence. *)
-let read_from_env_vars (vars : string list) : string option =
+let read_str_from_env_vars (vars : string list) : string option =
   List.find_map (fun var -> USys.getenv_opt var) vars
 
-let read_csv_from_env_vars (vars : string list) : string list option =
-  vars |> read_from_env_vars |> Option.map (String.split_on_char ',')
+let read_comma_sep_strs_from_env_vars (vars : string list) : string list option
+    =
+  vars |> read_str_from_env_vars |> Option.map (String.split_on_char ',')
 
 (* Note that writing to a freshly-opened file path can still write to
    a terminal. Such an example is '/dev/stderr'. *)
@@ -161,7 +162,7 @@ let create_formatter opt_file =
 let mk_reporter ~dst ~require_one_of_these_tags
     ~read_tags_from_env_vars:(env_vars : string list) () =
   let require_one_of_these_tags =
-    match read_csv_from_env_vars env_vars with
+    match read_comma_sep_strs_from_env_vars env_vars with
     | Some tags -> tags
     | None -> require_one_of_these_tags
   in
@@ -184,7 +185,7 @@ let mk_reporter ~dst ~require_one_of_these_tags
       msgf (fun ?header ?(tags = default_tag_set) fmt ->
           let pp_w_time ~tags =
             let current = now () in
-            (* Add a header *)
+            (* Add a header that will look like [00.02][ERROR](lib): *)
             Format.kfprintf k dst
               ("@[[%05.2f]%a%a%s: " ^^ fmt ^^ "@]@.")
               (current -. time_program_start)
@@ -230,8 +231,7 @@ let log_level_of_string_opt (str : string) : Logs.level option option =
   | _ -> None
 
 let read_level_from_env (vars : string list) : Logs.level option option =
-  (* from more specific to least specific *)
-  match read_from_env_vars vars with
+  match read_str_from_env_vars vars with
   | None -> None
   | Some str -> log_level_of_string_opt str
 
@@ -262,7 +262,7 @@ let setup ?(highlight_setting = Std_msg.get_highlight_setting ())
     | None -> level
   in
   let show_srcs : Re.re list =
-    read_csv_from_env_vars read_srcs_from_env_vars
+    read_comma_sep_strs_from_env_vars read_srcs_from_env_vars
     |> List_.optlist_to_list |> List_.map Re.Pcre.regexp
   in
   let isatty, dst = create_formatter opt_file in
@@ -304,15 +304,9 @@ let setup ?(highlight_setting = Std_msg.get_highlight_setting ())
                (if show_log then "Showing" else "Skipping")
                src_name))
 
-(*****************************************************************************)
-(* Missing basic functions *)
-(*****************************************************************************)
-
-let sdebug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
-let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
-let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
-let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
-
+(* Masking functions useful to be used with Testo.
+ * coupling: the regexp must match the format in mk_reporter above
+ *)
 let mask_time =
   Testo.mask_pcre_pattern
     ~replace:(fun _ -> "<MASKED TIMESTAMP>")
@@ -322,6 +316,15 @@ let mask_log_lines =
   Testo.mask_pcre_pattern
     ~replace:(fun _ -> "<MASKED LOG LINE>")
     {|\[[0-9]{2}\.[0-9]{2}\][^\n]*|}
+
+(*****************************************************************************)
+(* Missing basic functions *)
+(*****************************************************************************)
+
+let sdebug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
+let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
+let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
+let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
 
 let list to_string xs =
   Printf.sprintf "[%s]" (xs |> List_.map to_string |> String.concat ";")

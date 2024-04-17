@@ -1,10 +1,11 @@
-(* Small wrapper around the Logs library.
+(* A few helpers for the Logs library.
 
-   Here are the usage conventions for the Logs library level,
-   augmented from https://erratique.ch/software/logs/doc/Logs/index.html#usage
+   Here are the usage conventions for the Logs library "level"
+   from https://erratique.ch/software/logs/doc/Logs/index.html#usage
+   (slightly augmented).
 
    Attention: Any log message that can't be understood without context
-   will be moved to the Debug level!
+   should be moved to the Debug level!
 
    - App: unlike the other levels, this prints ordinary messages without any
      special formatting.
@@ -20,27 +21,28 @@
      program from running normally but may eventually lead to an error
      condition.
 
-   - Info: condition that allows the program user to get a better
+   - Info: condition that allows the program *user* to get a better
      understanding of what the program is doing.
      Log messages at this level and above may not clutter up the log
      output not should they reduce performance significantly. If that's
      the case, log at the Debug level.
-     Semgrep: activated with --verbose
+     This is usually activated with a --verbose flag.
 
-   - Debug: condition that allows the program developer to get a
+   - Debug: condition that allows the program *developer* to get a
      better understanding of what the program is doing.
      It may reduce the performance of the application or result in
      unreadable logs unless they're filtered. Use tags for filtering.
-     Semgrep: activated with --debug
+     This is usually activated with a --debug flag.
 *)
 
 (* Enable basic logging (level = Logs.Warning) so you can use Logging calls
- * even before a precise call to setup_logging().
+ * even before a precise call to setup().
  *)
 val setup_basic : unit -> unit
 
 (* Setup the Logs library. This call is necessary before any logging
-   calls, otherwise your log will not go anywhere (not even on stderr).
+   calls, otherwise your log will not go anywhere (not even on stderr,
+   unless you used setup_basic() below).
 
    'highlight_setting': whether the output should be formatted with color
    and font effects. It defaults to the current setting we have for stderr
@@ -66,7 +68,8 @@ val setup_basic : unit -> unit
    is set, in which case the list of tags will override any value set
    via 'require_one_of_these_tags'. This variable is "LOG_TAGS"
    by default.
-   To disable it, set it to None. The following shell command shows how
+
+   The following shell command shows how
    to make semgrep run at the debug level but only show lines tagged with
    'Match_rules' or 'Core_scan'.
 
