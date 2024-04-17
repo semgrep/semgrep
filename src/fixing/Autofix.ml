@@ -15,7 +15,6 @@
 open Common
 module OutJ = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__; "autofix" ]
 let ( let/ ) = Result.bind
 
 (*****************************************************************************)
@@ -151,7 +150,7 @@ let transform_fix lang ast =
 
 (* Check whether the proposed fix results in syntactically valid code *)
 let validate_fix lang target_contents edit =
-  Logs.debug (fun m -> m ~tags "validate fix %s" (Textedit.show edit));
+  Logs.debug (fun m -> m "validate fix %s" (Textedit.show edit));
   let fail err =
     Error
       (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s"
@@ -272,7 +271,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
       (* Print line-by-line so that each line is preceded by the logging header.
          Looks nicer and makes it easier to mask in e2e test output.
          TODO: make the Logs_ library do this by default. *)
-      String.split_on_char '\n' msg |> List.iter (Logs_.swarn ~tags);
+      String.split_on_char '\n' msg |> List.iter Logs_.swarn;
       None
 
 let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
@@ -386,7 +385,7 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
   (match modified_files with
   | _ :: _ ->
       Logs.info (fun m ->
-          m ~tags "%smodified %s."
+          m "%smodified %s."
             (match failed_fixes with
             | [] -> "successfully "
             | _ -> "")
@@ -396,7 +395,7 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
   | [] -> ()
   | _ ->
       Logs.warn (fun m ->
-          m ~tags "failed to apply %i fix(es)." (List.length failed_fixes))
+          m "failed to apply %i fix(es)." (List.length failed_fixes))
 
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
   matches
