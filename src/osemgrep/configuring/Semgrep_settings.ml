@@ -82,7 +82,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 
 let load ?(maturity = Maturity.Default) ?(include_env = true) () =
   let settings = !Semgrep_envvars.v.user_settings_file in
-  Logs.debug (fun m -> m "Loading settings from %a" Fpath.pp settings);
+  Logs.info (fun m -> m "Loading settings from %a" Fpath.pp settings);
   try
     if
       Sys.file_exists (Fpath.to_string settings)
