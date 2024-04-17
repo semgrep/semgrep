@@ -124,7 +124,7 @@ def _build_time_json(
 # typechecking more accurate and enforce invariants.
 class NormalizedOutputSettings(NamedTuple):
     # Immutable List of OutputDestination x OutputFormat
-    outputs: Tuple[Tuple[Optional[str], OutputFormat], ...]
+    outputs: Dict[Optional[str], OutputFormat]
     output_per_finding_max_lines_limit: Optional[int]
     output_per_line_max_chars_limit: Optional[int]
     error_on_findings: bool
@@ -134,8 +134,11 @@ class NormalizedOutputSettings(NamedTuple):
     timeout_threshold: int
     dataflow_traces: bool
 
+    def get_outputs(self) -> Iterator[Tuple[Optional[str], OutputFormat]]:
+        return self.outputs.items().__iter__()
+
     def has_output_format(self, other: OutputFormat) -> bool:
-        return bool(sum(1 for (_, fmt) in self.outputs if other == fmt))
+        return bool(sum(1 for (_, fmt) in self.get_outputs() if other == fmt))
 
     def has_text_output(self) -> bool:
         return self.has_output_format(OutputFormat.TEXT)
@@ -148,7 +151,7 @@ class OutputSettings(NamedTuple):
     # Immutable List of OutputDestination x OutputFormat.
     # It is optional to maintain backwards compatibility.
     # Calling normalize produces the internal representation used by output.py.
-    outputs: Optional[Tuple[Tuple[Optional[str], OutputFormat], ...]] = None
+    outputs: Optional[Dict[Optional[str], OutputFormat]] = None
     output_format: Optional[OutputFormat] = None
     output_destination: Optional[str] = None
     output_per_finding_max_lines_limit: Optional[int] = None
@@ -162,15 +165,19 @@ class OutputSettings(NamedTuple):
     use_osemgrep_to_format: Optional[Set[OutputFormat]] = None
 
     def normalize(self) -> NormalizedOutputSettings:
-        normalized_outputs: Tuple[Tuple[Optional[str], OutputFormat], ...] = ()
+        normalized_outputs: Dict[Optional[str], OutputFormat] = {}
         if self.output_format is None:
             if self.outputs is None:
                 raise RuntimeError(f"Invalid output configuration: No output specified")
-            normalized_outputs = self.outputs
+            normalized_outputs = self.outputs.copy()
         else:
             if self.outputs is not None:
-                normalized_outputs = self.outputs
-            normalized_outputs += ((self.output_destination, self.output_format),)
+                normalized_outputs = self.outputs.copy()
+            if self.output_destination in normalized_outputs:
+                raise RuntimeError(
+                    "Invalid output configuration: same output destination with multiple formats."
+                )
+            normalized_outputs[self.output_destination] = self.output_format
 
         return NormalizedOutputSettings(
             outputs=normalized_outputs,
@@ -225,7 +232,7 @@ class OutputHandler:
 
         self._formatters: Dict[Optional[str], BaseFormatter] = {}
 
-        for output_destination, output_format in self.settings.outputs:
+        for output_destination, output_format in self.settings.get_outputs():
             formatter: Optional[BaseFormatter] = None
             # If configured to use osemgrep to format the output, use the osemgrep formatter.
             if (
@@ -378,7 +385,7 @@ class OutputHandler:
         return bool(
             sum(
                 1
-                for dest, _ in self.settings.outputs
+                for dest, _ in self.settings.get_outputs()
                 if self._formatters[dest].keep_ignores()
             )
         )
@@ -459,7 +466,7 @@ class OutputHandler:
             self.ignore_log.core_failure_lines_by_file = failed_to_analyze_lines_by_path
 
         if self.has_output:
-            for output_destination, output in self._build_output():
+            for output_destination, output in self._build_outputs():
                 if output_destination:
                     self._save_output(output_destination, output)
                 else:
@@ -541,105 +548,110 @@ class OutputHandler:
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
-    def _build_output(self) -> Iterator[Tuple[Optional[str], str]]:
-        for output_destination, output_format in self.settings.outputs:
-            # CliOutputExtra members
-            cli_paths = out.ScannedAndSkipped(
-                # This is incorrect when some rules are skipped by semgrep-core
-                # e.g. proprietary rules.
-                # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
-                scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
-                skipped=None,
+    def _build_outputs(self) -> Iterator[Tuple[Optional[str], str]]:
+        for output_destination, output_format in self.settings.get_outputs():
+            yield self._build_output(output_destination, output_format)
+
+    def _build_output(
+        self, output_destination: Optional[str], output_format: OutputFormat
+    ) -> Tuple[Optional[str], str]:
+        # CliOutputExtra members
+        cli_paths = out.ScannedAndSkipped(
+            # This is incorrect when some rules are skipped by semgrep-core
+            # e.g. proprietary rules.
+            # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
+            scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
+            skipped=None,
+        )
+        cli_timing: Optional[out.Profile] = None
+
+        explanations: Optional[List[out.MatchingExplanation]] = self.explanations
+
+        # Extra, extra! This just in! 🗞️
+        # The extra dict is for blatantly skipping type checking and function signatures.
+        # - The text formatter uses it to store settings
+        # You should use CliOutputExtra for better type checking
+        extra: Dict[str, Any] = {}
+        if self.settings.output_time and self.extra and self.extra.core.time:
+            cli_timing = _build_time_json(
+                self.filtered_rules,
+                self.all_targets,
+                self.extra.core.time,
+                self.profiler,
             )
-            cli_timing: Optional[out.Profile] = None
-
-            explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-
-            # Extra, extra! This just in! 🗞️
-            # The extra dict is for blatantly skipping type checking and function signatures.
-            # - The text formatter uses it to store settings
-            # You should use CliOutputExtra for better type checking
-            extra: Dict[str, Any] = {}
-            if self.settings.output_time and self.extra and self.extra.core.time:
-                cli_timing = _build_time_json(
-                    self.filtered_rules,
-                    self.all_targets,
-                    self.extra.core.time,
-                    self.profiler,
-                )
-            if self.settings.verbose_errors:
-                # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
-                skipped = sorted(
-                    self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
-                )
-                cli_paths = dataclasses.replace(
-                    cli_paths,
-                    skipped=[
-                        out.SkippedTarget(
-                            path=out.Fpath(x["path"]),
-                            reason=out.SkipReason.from_json(x["reason"]),
-                        )
-                        for x in skipped
-                    ],
-                )
-                extra["verbose_errors"] = True
-            if output_format == OutputFormat.TEXT:
-                extra["color_output"] = (
-                    (output_destination is None and sys.stdout.isatty())
-                    or os.environ.get("SEMGREP_FORCE_COLOR")
-                ) and not os.environ.get("NO_COLOR")
-                extra[
-                    "per_finding_max_lines_limit"
-                ] = self.settings.output_per_finding_max_lines_limit
-                extra[
-                    "per_line_max_chars_limit"
-                ] = self.settings.output_per_line_max_chars_limit
-                extra["dataflow_traces"] = self.settings.dataflow_traces
-            if output_format == OutputFormat.SARIF:
-                extra["dataflow_traces"] = self.settings.dataflow_traces
-
-            state = get_state()
-            # If users are not using our registry, we will not nudge them to login
-            extra["is_using_registry"] = (
-                state.metrics.is_using_registry or state.env.mock_using_registry
+        if self.settings.verbose_errors:
+            # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
+            skipped = sorted(
+                self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
-            extra["is_logged_in"] = state.app_session.token is not None
-
-            # as opposed to below, we need to distinguish the various kinds of pro engine
-            extra["engine_requested"] = self.engine_type
-
-            # TODO: I thought we could guard this code with 'if self.extra:', and raise
-            # a SemgrepError otherwise, but it seems that when semgrep got an error
-            # (for example in tests/default/e2e/test_ci.py::test_bad_config),
-            # then this code still get called and self.extra is not set but we still want
-            # to output things. This is why I have those ugly 'if self.extra' below
-            # that possibly return None.
-
-            cli_output_extra = out.CliOutputExtra(
-                # TODO: almost like self.extra.core.paths, but not there yet
-                paths=cli_paths,
-                # TODO: almost like self.extra.core.time, but not there yet
-                time=cli_timing,
-                # TODO: would like t ouse self.extra.core.explanations byt regressions
-                explanations=explanations,
-                rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
-                # this flattens the information into just distinguishing "pro" and "not-pro"
-                engine_requested=self.engine_type.to_engine_kind(),
-                interfile_languages_used=self.extra.core.interfile_languages_used
-                if self.extra
-                else None,
-                # TODO, should just be self.extra.core.skipped_rules
-                skipped_rules=[],
+            cli_paths = dataclasses.replace(
+                cli_paths,
+                skipped=[
+                    out.SkippedTarget(
+                        path=out.Fpath(x["path"]),
+                        reason=out.SkipReason.from_json(x["reason"]),
+                    )
+                    for x in skipped
+                ],
             )
+            extra["verbose_errors"] = True
+        if output_format == OutputFormat.TEXT:
+            extra["color_output"] = (
+                (output_destination is None and sys.stdout.isatty())
+                or os.environ.get("SEMGREP_FORCE_COLOR")
+            ) and not os.environ.get("NO_COLOR")
+            extra[
+                "per_finding_max_lines_limit"
+            ] = self.settings.output_per_finding_max_lines_limit
+            extra[
+                "per_line_max_chars_limit"
+            ] = self.settings.output_per_line_max_chars_limit
+            extra["dataflow_traces"] = self.settings.dataflow_traces
+        if output_format == OutputFormat.SARIF:
+            extra["dataflow_traces"] = self.settings.dataflow_traces
 
-            formatter = self._formatters[output_destination]
-            output = formatter.output(  # the rules are used only by the SARIF formatter
-                self.rules,
-                self.rule_matches,
-                self.semgrep_structured_errors,
-                cli_output_extra,
-                extra,
-                self.severities,
-                is_ci_invocation=self.is_ci_invocation,
-            )
-            yield (output_destination, output)
+        state = get_state()
+        # If users are not using our registry, we will not nudge them to login
+        extra["is_using_registry"] = (
+            state.metrics.is_using_registry or state.env.mock_using_registry
+        )
+        extra["is_logged_in"] = state.app_session.token is not None
+
+        # as opposed to below, we need to distinguish the various kinds of pro engine
+        extra["engine_requested"] = self.engine_type
+
+        # TODO: I thought we could guard this code with 'if self.extra:', and raise
+        # a SemgrepError otherwise, but it seems that when semgrep got an error
+        # (for example in tests/default/e2e/test_ci.py::test_bad_config),
+        # then this code still get called and self.extra is not set but we still want
+        # to output things. This is why I have those ugly 'if self.extra' below
+        # that possibly return None.
+
+        cli_output_extra = out.CliOutputExtra(
+            # TODO: almost like self.extra.core.paths, but not there yet
+            paths=cli_paths,
+            # TODO: almost like self.extra.core.time, but not there yet
+            time=cli_timing,
+            # TODO: would like t ouse self.extra.core.explanations byt regressions
+            explanations=explanations,
+            rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
+            # this flattens the information into just distinguishing "pro" and "not-pro"
+            engine_requested=self.engine_type.to_engine_kind(),
+            interfile_languages_used=self.extra.core.interfile_languages_used
+            if self.extra
+            else None,
+            # TODO, should just be self.extra.core.skipped_rules
+            skipped_rules=[],
+        )
+
+        formatter = self._formatters[output_destination]
+        output = formatter.output(  # the rules are used only by the SARIF formatter
+            self.rules,
+            self.rule_matches,
+            self.semgrep_structured_errors,
+            cli_output_extra,
+            extra,
+            self.severities,
+            is_ci_invocation=self.is_ci_invocation,
+        )
+        return (output_destination, output)
