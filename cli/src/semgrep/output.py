@@ -70,6 +70,11 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
 }
 
 
+OSEMGREP_FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
+    OutputFormat.SARIF: OsemgrepSarifFormatter,
+}
+
+
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
     {
         out.MatchSeverity(out.Info()),
@@ -127,7 +132,7 @@ class OutputSettings(NamedTuple):
     output_time: bool = False
     timeout_threshold: int = 0
     dataflow_traces: bool = False
-    use_osemgrep_format_output: bool = False
+    use_osemgrep_to_format: Optional[Set[OutputFormat]] = None
 
 
 class OutputHandler:
@@ -170,12 +175,14 @@ class OutputHandler:
 
         formatter: Optional[BaseFormatter] = None
         # If configured to use osemgrep to format the output, use the osemgrep formatter.
-        if self.settings.use_osemgrep_format_output:
-            if self.settings.output_format == OutputFormat.SARIF:
-                metrics = get_state().metrics
-                formatter = OsemgrepSarifFormatter(metrics)
+        if (
+            self.settings.use_osemgrep_to_format
+            and self.settings.output_format in self.settings.use_osemgrep_to_format
+        ):
+            if self.settings.output_format in OSEMGREP_FORMATTERS:
+                formatter = OSEMGREP_FORMATTERS[self.settings.output_format]()
             else:
-                logger.warning(
+                logger.verbose(
                     f"Osemgrep formatter for {self.settings.output_format} is not supported yet. "
                     "Falling back to pysemgrep formatter."
                 )
