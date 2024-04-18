@@ -1,36 +1,36 @@
-[0m[01.47][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
-[01.47][[32mDEBUG[0m](default): Skipping logs for networking.http
-[01.47][[32mDEBUG[0m](default): Skipping logs for semgrep.targeting
-[01.47][[32mDEBUG[0m](default): Skipping logs for ojsonnet.eval
-[01.47][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.client
-[01.47][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.io
-[01.47][[32mDEBUG[0m](default): Skipping logs for conduit_lwt_server
-[01.47][[32mDEBUG[0m](default): Skipping logs for ca-certs
-[01.47][[32mDEBUG[0m](default): Skipping logs for mirage-crypto-rng-lwt
-[01.47][[32mDEBUG[0m](default): Skipping logs for mirage-crypto-rng.unix
-[01.47][[32mDEBUG[0m](default): Skipping logs for handshake
-[01.47][[32mDEBUG[0m](default): Skipping logs for tls.config
-[01.47][[32mDEBUG[0m](default): Skipping logs for tls.tracing
-[01.47][[32mDEBUG[0m](default): Skipping logs for x509
-[01.47][[32mDEBUG[0m](default): Skipping logs for git.value
-[01.47][[32mDEBUG[0m](default): Skipping logs for git.tree
-[01.47][[32mDEBUG[0m](default): Skipping logs for git.stream
-[01.47][[32mDEBUG[0m](default): Skipping logs for git.blob
-[01.47][[32mDEBUG[0m](default): Skipping logs for paths
-[01.47][[32mDEBUG[0m](default): Skipping logs for commons.pcre
-[01.47][[32mDEBUG[0m](default): Skipping logs for bos
-[01.47][[32mDEBUG[0m](default): Showing logs for application
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for networking.http
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for semgrep.targeting
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for ojsonnet.eval
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.client
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.io
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for conduit_lwt_server
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for ca-certs
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for mirage-crypto-rng-lwt
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for mirage-crypto-rng.unix
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for handshake
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for tls.config
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for tls.tracing
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for x509
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.value
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.tree
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.stream
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.blob
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for paths
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for commons.pcre
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for bos
+[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Showing logs for application
 --- begin input files ---
 rules.yml
 stupid.py
 --- end input files ---
-[01.47][[34mINFO[0m]: Running external command: 'git' 'init' '-b' 'main'
-Initialized empty Git repository in /tmp/test-fa632a8/.git/
-[01.47][[34mINFO[0m]: Running external command: 'git' 'config' 'user.name' 'Tester'
-[01.47][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
-[01.47][[34mINFO[0m]: Running external command: 'git' 'add' '.'
-[01.47][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
-[main (root-commit) a2fae4e] Add files
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'init' '-b' 'main'
+Initialized empty Git repository in /tmp/test-8b14327/.git/
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.name' 'Tester'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'add' '.'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
+[main (root-commit) 8db7ed4] Add files
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml
  create mode 100644 stupid.py
@@ -39,6 +39,7 @@ Initialized empty Git repository in /tmp/test-fa632a8/.git/
 │ Semgrep CLI │
 └─────────────┘
 
+fatal: No remote configured to list refs from.
 [32m✔[39m [1mSemgrep OSS[0m
   [32m✔[39m Basic security coverage for first-party code vulnerabilities.
 

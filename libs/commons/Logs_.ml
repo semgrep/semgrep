@@ -185,7 +185,10 @@ let mk_reporter ~dst ~require_one_of_these_tags
       msgf (fun ?header ?(tags = default_tag_set) fmt ->
           let pp_w_time ~tags =
             let current = now () in
-            (* Add a header that will look like [00.02][ERROR](lib): *)
+            (* Add a header that will look like [00.02][ERROR](lib):
+             * coupling: if you modify the format, please update
+             * the Testutil_logs.mask* regexps.
+             *)
             Format.kfprintf k dst
               ("@[[%05.2f]%a%a%s: " ^^ fmt ^^ "@]@.")
               (current -. time_program_start)
