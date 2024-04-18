@@ -1,35 +1,13 @@
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for networking.http
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for semgrep.targeting
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for ojsonnet.eval
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.client
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.io
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for conduit_lwt_server
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for ca-certs
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for mirage-crypto-rng-lwt
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for mirage-crypto-rng.unix
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for handshake
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for tls.config
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for tls.tracing
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for x509
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.value
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.tree
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.stream
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for git.blob
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for paths
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for commons.pcre
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Skipping logs for bos
-[<MASKED TIMESTAMP>][[32mDEBUG[0m](default): Showing logs for application
 --- begin input files ---
 rules.yml
 stupid.py
 --- end input files ---
-[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'init' '-b' 'main'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'init' '-b' 'main'
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
-[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.name' 'Tester'
-[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
-[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'add' '.'
-[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.name' 'Tester'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'add' '.'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'commit' '-m' 'Add files'
 [main (root-commit) <MASKED>] Add files
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml

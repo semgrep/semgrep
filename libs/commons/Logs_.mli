@@ -37,10 +37,10 @@
    See also Testutil_logs.mli if you need to mask logs in tests.
 *)
 
-(* Enable basic logging (level = Logs.Warning) so you can use Logging calls
- * even before a precise call to setup().
+(* Enable basic logging (default level = Logs.Warning) so you can use Logging
+ * calls even before a precise call to setup().
  *)
-val setup_basic : unit -> unit
+val setup_basic : ?level:Logs.level option -> unit -> unit
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr,

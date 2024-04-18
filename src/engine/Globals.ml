@@ -50,6 +50,8 @@ let reset () =
   Pro_hooks.reset_pro_hooks ();
   (* TODO?
    * - Http_helpers.client_ref ?
+   * - Std_msg.hightlig_xxx
+   * - Logs library state
    * - many more
    *)
   ()

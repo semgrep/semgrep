@@ -242,11 +242,11 @@ let read_level_from_env (vars : string list) : Logs.level option option =
 (* Entry points *)
 (*****************************************************************************)
 
-(* Enable basic logging (level = Logs.Warning) so that you can use Logging
- * calls even before a precise call to setup_logging.
+(* Enable basic logging so that you can use Logging calls even before a
+ * precise call to setup_logging.
  *)
-let setup_basic () =
-  Logs.set_level ~all:true (Some Logs.Warning);
+let setup_basic ?(level = Some Logs.Warning) () =
+  Logs.set_level ~all:true level;
   Logs.set_reporter
     (mk_reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
        ~read_tags_from_env_vars:[] ());

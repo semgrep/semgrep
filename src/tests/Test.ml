@@ -151,7 +151,7 @@ let main (caps : Cap.all_caps) : unit =
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
         Std_msg.setup ~highlight_setting:On ();
-        Logs_.setup ~highlight_setting:On ~level:(Some Logs.Debug) ()
+        Logs_.setup_basic ~level:(Some Logs.Debug) ()
       in
       (* Show log messages produced when building the list of tests *)
       reset ();
