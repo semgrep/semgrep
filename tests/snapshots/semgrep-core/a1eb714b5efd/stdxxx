@@ -43,11 +43,17 @@ fatal: No remote configured to list refs from.
 [32m✔[39m [1mSemgrep OSS[0m
   [32m✔[39m Basic security coverage for first-party code vulnerabilities.
 
-[32m✔[39m [1mSemgrep Code (SAST)[0m
-  [32m✔[39m Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
+[31m✘[39m [1mSemgrep Code (SAST)[0m
+  [31m✘[39m Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
 
 [31m✘[39m [1mSemgrep Secrets[0m
   [31m✘[39m Detect and validate potential secrets in your code.
+
+METRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev.
+To disable Registry rule metrics, use "--metrics=off".
+Using configs only from local files (like --config=xyz.yml) does not enable metrics.
+
+More information: https://semgrep.dev/docs/metrics
 
 [1m  Loading rules from local config...[0m
 
@@ -55,8 +61,8 @@ fatal: No remote configured to list refs from.
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 2 files tracked by git with 1 Code rule:
-  Scanning 2 files.
+  Scanning 3 files tracked by git with 1 Code rule:
+  Scanning 3 files.
 
 
 ┌────────────────┐

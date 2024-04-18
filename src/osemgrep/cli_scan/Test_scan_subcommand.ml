@@ -61,6 +61,9 @@ let normalize =
     Testutil_git.mask_temp_git_hash;
   ]
 
+let without_settings f =
+  Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE" "nosettings.yaml" f
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
@@ -74,8 +77,11 @@ let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
       in
       Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
           let exit_code =
-            Scan_subcommand.main caps
-              [| "semgrep-scan"; "--experimental"; "--config"; "rules.yml" |]
+            without_settings (fun () ->
+                Scan_subcommand.main caps
+                  [|
+                    "semgrep-scan"; "--experimental"; "--config"; "rules.yml";
+                  |])
           in
           Exit_code.Check.ok exit_code))
 
@@ -89,14 +95,15 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.test =
       in
       Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
           let exit_code =
-            Scan_subcommand.main caps
-              [|
-                "semgrep-scan";
-                "--experimental";
-                "--config";
-                "rules.yml";
-                "--verbose";
-              |]
+            without_settings (fun () ->
+                Scan_subcommand.main caps
+                  [|
+                    "semgrep-scan";
+                    "--experimental";
+                    "--config";
+                    "rules.yml";
+                    "--verbose";
+                  |])
           in
           Exit_code.Check.ok exit_code))
 
