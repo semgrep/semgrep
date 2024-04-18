@@ -14,7 +14,6 @@
  *)
 open Common
 module F = Testutil_files
-module TL = Test_login_subcommand
 
 let t = Testo.create
 
@@ -30,7 +29,7 @@ let t = Testo.create
 (* alt: define Show_subcommand.caps *)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
-(* for --dump-config test *)
+(* for dump-config test *)
 let eqeq_basic_content =
   {|
 rules:
@@ -42,7 +41,7 @@ rules:
     severity: ERROR
 |}
 
-(* for --dump-rule-v2 test *)
+(* for dump-rule-v2 test *)
 let eqeq_basic_content_v2 =
   {|
 rules:
@@ -57,6 +56,37 @@ let foo_py_content = {|
 def foo():
     return 42
 |}
+
+(* for dump-identity *)
+let with_fake_identity_response return_value f =
+  let make_response_fn (req : Cohttp.Request.t) _body =
+    match Uri.path (Cohttp.Request.uri req) with
+    | "/api/agent/identity" ->
+        Http_mock_client.check_method `GET req.meth;
+        let response_body = return_value |> Cohttp_lwt.Body.of_string in
+        Lwt.return Http_mock_client.(basic_response response_body)
+    | url -> Alcotest.fail (spf "unexpected request: %s" url)
+  in
+  Http_mock_client.with_testing_client make_response_fn f ()
+
+let fake_identity = {|{"identity":"cli_fake_user_valid-from-fake-date"}|}
+
+(* for dump-deployment
+ * coupling: copy-paste of Test_login_subcommand.with_fake_deployment ...
+ * but simpler to avoid a dependency to cli_login/ here.
+ *)
+let with_fake_deployment_response return_value f =
+  let make_response_fn (req : Cohttp.Request.t) _body =
+    match Uri.path (Cohttp.Request.uri req) with
+    | "/api/agent/deployments/current" ->
+        Http_mock_client.check_method `GET req.meth;
+        let response_body = return_value |> Cohttp_lwt.Body.of_string in
+        Lwt.return Http_mock_client.(basic_response response_body)
+    | url -> Alcotest.fail (spf "unexpected request: %s" url)
+  in
+  Http_mock_client.with_testing_client make_response_fn f ()
+
+let fake_deployment = {|{"deployment":{"id":42,"name":"fake_deployment"}}|}
 
 (*****************************************************************************)
 (* Tests *)
@@ -130,7 +160,12 @@ let test_dump_ast (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
-        (* because of the use of GenSym.MkId *)
+        (* because of the use of GenSym.MkId.
+         * TODO? note that it may not be enough to make the test
+         * stable across multiple runs because if the id counter vary a lot,
+         * and takes lots of integers, this could cause a reindentation
+         * of the AST
+         *)
         Testo.mask_line ~after:"id_info_id=" ~before:";" ();
       ]
     __FUNCTION__
@@ -168,7 +203,8 @@ let test_identity (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
-        Show_subcommand.main caps [| "semgrep-show"; "identity" |]
+        with_fake_identity_response fake_identity (fun () ->
+            Show_subcommand.main caps [| "semgrep-show"; "identity" |])
       in
       Exit_code.Check.ok exit_code)
 
@@ -176,7 +212,7 @@ let test_deployment (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
-        TL.with_fake_deployment_response TL.fake_deployment (fun () ->
+        with_fake_deployment_response fake_deployment (fun () ->
             Show_subcommand.main caps [| "semgrep-show"; "deployment" |])
       in
       Exit_code.Check.ok exit_code)
