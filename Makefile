@@ -117,7 +117,7 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	$(eval $@_TMP := $(shell mktemp -t dune-output))
+	$(eval $@_TMP := $(shell mktemp -t dune-output.XXXXX))
 	@# Save the output of dune so we can provide more helpful error messages in
 	@# some cases
 	2>&1 dune build _build/install/default/bin/semgrep-core | tee $($@_TMP)
