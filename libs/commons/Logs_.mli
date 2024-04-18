@@ -33,6 +33,8 @@
      It may reduce the performance of the application or result in
      unreadable logs unless they're filtered. Use tags for filtering.
      This is usually activated with a --debug flag.
+
+   See also Testutil_logs.mli if you need to mask logs in tests.
 *)
 
 (* Enable basic logging (level = Logs.Warning) so you can use Logging calls
@@ -54,10 +56,9 @@ val setup_basic : unit -> unit
 
    'read_level_from_env_var': environment variables that override the
    'level' argument. The default is ["LOG_LEVEL"].
-    See also 'read_tags_from_env_vars'.
 
    'read_srcs_from_env_vars': specifies environment variables
-   from which a list of comma-separated (PCRE compliant) regexps will be
+   from which a list of comma-separated pcre-compliant regexps will be
    read if the variable is set, in which case the list of regexps will be
    used to enable logging for third-party libraries whose src is matching
    one of the regexp.
@@ -69,8 +70,8 @@ val setup_basic : unit -> unit
    via 'require_one_of_these_tags'. This variable is "LOG_TAGS"
    by default.
 
-   The following shell command shows how
-   to make semgrep run at the debug level but only show lines tagged with
+   The following shell command shows for example how to
+   make semgrep run at the debug level but only show lines tagged with
    'Match_rules' or 'Core_scan'.
 
      $ LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
@@ -120,34 +121,18 @@ val create_tags : string list -> Logs.Tag.set
 
 (*
    Log a string directly.
+
+   Those functions are useful because 'Log.debug (fun m -> m "%s" str)' is a
+   bit heavy. Note that the Logs library use closures by default for the logs
+   so one can have heavy computation in the closure and this will
+   not slow-down the app if the log is not shown. However, if
+   the log is a constant string, there is no need for the closure
+   hence the shorcuts below.
 *)
 val sdebug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
-
-(*
-   A function that masks the timestamps in log output so that we can compare
-   logs from one run to another. To be used as:
-
-     Testo.create ~checked_output:(Testo.stderr ()) ~mask_output:[Logs_.mask_time] ...
-
-   This is crude. Beware false positives.
-*)
-val mask_time : string -> string
-
-(*
-   Mask all lines that look like log lines. This won't work for multiline
-   logs:
-
-     Testo.create
-        ~checked_output:(Testo.stderr ())
-        ~mask_output:[Logs_.mask_log_lines]
-        ...
-
-   This is crude. Beware false positives.
-*)
-val mask_log_lines : string -> string
 
 (*
    Formatting utilities for common containers:

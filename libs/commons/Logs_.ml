@@ -304,19 +304,6 @@ let setup ?(highlight_setting = Std_msg.get_highlight_setting ())
                (if show_log then "Showing" else "Skipping")
                src_name))
 
-(* Masking functions useful to be used with Testo.
- * coupling: the regexp must match the format in mk_reporter above
- *)
-let mask_time =
-  Testo.mask_pcre_pattern
-    ~replace:(fun _ -> "<MASKED TIMESTAMP>")
-    {|\[([0-9]{2}\.[0-9]{2})\]|}
-
-let mask_log_lines =
-  Testo.mask_pcre_pattern
-    ~replace:(fun _ -> "<MASKED LOG LINE>")
-    {|\[[0-9]{2}\.[0-9]{2}\][^\n]*|}
-
 (*****************************************************************************)
 (* Missing basic functions *)
 (*****************************************************************************)

@@ -17,7 +17,7 @@ val run : string -> (unit -> 'a) -> 'a
    Extension of Testo.mask_temp_paths that also masks the physical path
    to the temporary folder in case the original is a symlink.
 
-   This is not done in Testo becauseit uses Unix.realpath which
+   This is not done in Testo because it uses Unix.realpath which
    requires ocaml >= 4.13 and for now, Testo is meant to work starting with
    ocaml 4.08.
 *)

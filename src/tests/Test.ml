@@ -87,6 +87,8 @@ let tests (caps : Cap.all_caps) =
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
+      Test_scan_subcommand.tests
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >);
       Test_publish_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_osemgrep.tests (caps :> CLI.caps);
