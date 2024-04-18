@@ -212,6 +212,13 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
+        help="Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.",
+    ),
+    optgroup.option(
+        "--trace-endpoint",
+        envvar="SEMGREP_OTEL_ENDPOINT",
+        default=None,
+        help="Url to send OpenTelemetry traces to, if `--trace` is present. This feature is meant for internal use and may be changed or removed wihtout warning.",
     ),
     optgroup.option(
         "--matching-explanations",
@@ -412,6 +419,13 @@ def scan_options(func: Callable) -> Callable:
     hidden=True,
     help="Contact support@semgrep.com for more informationon this.",
 )
+@optgroup.group("Osemgrep migration options")
+@optgroup.option(
+    "--use-osemgrep-sarif",
+    "use_osemgrep_sarif",
+    is_flag=True,
+    default=False,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -463,7 +477,9 @@ def scan(
     timeout_threshold: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    trace_endpoint: Optional[str],
     use_git_ignore: bool,
+    use_osemgrep_sarif: bool,
     validate: bool,
     verbose: bool,
     version: bool,
@@ -489,7 +505,7 @@ def scan(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
-            "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
+            "The flags --beta-testing-secrets-enabled and --oss-only are incompatible. Semgrep Secrets is a proprietary extension."
         )
 
     state = get_state()
@@ -552,6 +568,9 @@ def scan(
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
 
+    use_osemgrep_to_format: Set[OutputFormat] = set()
+    if use_osemgrep_sarif:
+        use_osemgrep_to_format.add(OutputFormat.SARIF)
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -563,6 +582,7 @@ def scan(
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
+        use_osemgrep_to_format=use_osemgrep_to_format,
     )
 
     if test:
@@ -619,6 +639,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             trace=trace,
+                            trace_endpoint=trace_endpoint,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
@@ -684,6 +705,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     trace=trace,
+                    trace_endpoint=trace_endpoint,
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,

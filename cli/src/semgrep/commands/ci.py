@@ -209,6 +209,7 @@ def ci(
     timeout: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    trace_endpoint: str,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -358,12 +359,15 @@ def ci(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         logger.info(
-            "The --secrets and --oss flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
+            "The --secrets and --oss-only flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
         )
         sys.exit(FATAL_EXIT_CODE)
 
     run_secrets = run_secrets_flag or bool(
-        scan_handler and "secrets" in scan_handler.enabled_products
+        # Run without secrets, regardless of the enabled products, if the --oss-only flag was passed.
+        (not requested_engine is EngineType.OSS)
+        and scan_handler
+        and "secrets" in scan_handler.enabled_products
     )
 
     if not run_secrets and historical_secrets:
@@ -452,6 +456,7 @@ def ci(
         "max_memory": max_memory,
         "interfile_timeout": interfile_timeout,
         "trace": trace,
+        "trace_endpoint": trace_endpoint,
         "timeout_threshold": timeout_threshold,
         "skip_unknown_extensions": (not scan_unknown_extensions),
         "allow_untrusted_validators": allow_untrusted_validators,

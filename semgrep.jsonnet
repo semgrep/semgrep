@@ -84,6 +84,19 @@ local semgrep_rules = [
       `Hashtbl.find_all`.
     |||,
   },
+  {
+    id: 'mask-all-temp-paths',
+    pattern: 'Testo.mask_temp_paths',
+    fix: 'Testutil.mask_temp_paths',
+    message: |||
+      Semgrep applies `Unix.realpath` to some paths resulting in
+      the temporary folder being rewritten to its physical path if it
+      was a symlink (MacOS). Use `Testutil.mask_temp_paths` to mask all known
+      temporary folder paths in Semgrep test output.
+    |||,
+    languages: ['ocaml'],
+    severity: 'ERROR',
+  },
 ];
 
 // ----------------------------------------------------------------------------

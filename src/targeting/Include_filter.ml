@@ -3,8 +3,7 @@
 *)
 
 open Ppath.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_targeting.Log
 
 type t = {
   project_root : Fpath.t;
@@ -93,8 +92,8 @@ let rec find_first func xs =
    patterns.
 *)
 let select t (full_git_path : Ppath.t) =
-  Logs.debug (fun m ->
-      m ~tags "Include_filter.select %s ppath:%s" (show t)
+  Log.debug (fun m ->
+      m "Include_filter.select %s ppath:%s" (show t)
         (Ppath.to_string_for_tests full_git_path));
   let rec scan_segments matcher parent_path segments =
     (* add a segment to the path and check if it's selected *)

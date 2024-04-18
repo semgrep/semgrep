@@ -1,6 +1,0 @@
-The environment variable `LOG_LEVEL` (as well as `PYTEST_LOG_LEVEL`) is
-no longer consulted by Semgrep to determine the log level. Only
-`SEMGREP_LOG_LEVEL` is consulted. `PYTEST_SEMGREP_LOG_LEVEL` is also
-consulted in the current implementation but should not be used outside of
-Semgrep's Pytest tests. This is to avoid accidentally affecting Semgrep
-when inheriting the `LOG_LEVEL` destined to another application.

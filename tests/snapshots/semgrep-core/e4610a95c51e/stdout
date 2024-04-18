@@ -4,6 +4,8 @@ Test name: without git > semgrepignore file takes precedence over --include
 c.c
 dir/a.c
 dir/b.c
+--- begin input files ---
+--- end input files ---
 --- '--include' patterns ---
 *.c
 --- Selected targets ---

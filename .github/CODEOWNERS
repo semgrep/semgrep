@@ -1,5 +1,2 @@
-
-# Matches all files in the .github/ dir, recursively.
-.github/ @aryx
 src/analyzing @IagoAbal
 src/tainting @IagoAbal

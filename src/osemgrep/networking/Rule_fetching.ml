@@ -115,7 +115,7 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
 let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
     string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
-  Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
+  Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
     let headers =
       match token_opt with
@@ -130,7 +130,7 @@ let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
-  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
+  Logs.info (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
 
 let fetch_content_from_registry_url_async ~token_opt caps url =
@@ -146,7 +146,7 @@ let fetch_content_from_registry_url ~token_opt caps url =
 (*****************************************************************************)
 
 let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
-  Logs.debug (fun m -> m "loading yaml file %s, converting to jsonnet" !!file);
+  Logs.info (fun m -> m "loading yaml file %s, converting to jsonnet" !!file);
   (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
    * to be used to parse semgrep rules?
    *)
@@ -206,7 +206,8 @@ let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
               * header mimetype when downloading the URL to decide how to
               * convert it further?
               *)
-             CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
+             CapTmp.with_temp_file caps#tmp ~str:content ~ext:"yaml"
+               (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
 [@@profiling]
@@ -307,11 +308,11 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
  *)
 let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     (rules_and_origin, Rule.error) Result.t =
-  Logs.debug (fun m -> m "loading local config from %s" !!file);
+  Logs.info (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
     | Ok (rules, errors) ->
-        Logs.debug (fun m -> m "Done loading local config from %s" !!file);
+        Logs.info (fun m -> m "Done loading local config from %s" !!file);
         Ok { rules; errors; origin = Local_file file }
     | Error err -> Error err
   else
@@ -337,7 +338,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
       | _failure -> (ext, content)
     else (ext, content)
   in
-  CapTmp.with_tmp_file caps#tmp ~str:content ~ext (fun file ->
+  CapTmp.with_temp_file caps#tmp ~str:content ~ext (fun file ->
       load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
   |> Lwt.return
 
@@ -386,7 +387,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       let%lwt content =
         fetch_content_from_registry_url_async ~token_opt caps url
       in
-      CapTmp.with_tmp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
+      CapTmp.with_temp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition_result Fun.id
       |> Lwt.return
@@ -423,11 +424,9 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
 (* Entry point *)
 (*****************************************************************************)
 
-let rules_from_pattern pattern : rules_and_origin list =
-  let pat, xlang_opt, fix = pattern in
-  let fk = Tok.unsafe_fake_tok "" in
-  let rules_and_origin_for_xlang xlang =
-    let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
+  let xlang_compatible_with_pat xlang =
+    let xpat = Parse_rule.parse_fake_xpattern xlang pat in
     (* force the parsing of the pattern to get the parse error if any *)
     (match xpat.XP.pat with
     | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
@@ -435,15 +434,13 @@ let rules_from_pattern pattern : rules_and_origin list =
     | XP.Aliengrep _
     | XP.Regexp _ ->
         ());
-    let rule = Rule.rule_of_xpattern xlang xpat in
-    let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-    { rules = [ rule ]; errors = []; origin = CLI_argument }
+    xlang
   in
   match xlang_opt with
   | Some xlang ->
       (* TODO? capture also parse errors here? and transform the pattern
          * parse error in invalid_rule_error to return in rules_and_origin? *)
-      [ rules_and_origin_for_xlang xlang ]
+      [ xlang_compatible_with_pat xlang ]
   (* osemgrep-only: better: can use -e without -l! we try all languages *)
   | None ->
       (* We need uniq_by because Lang.assoc contain multiple times the
@@ -464,15 +461,17 @@ let rules_from_pattern pattern : rules_and_origin list =
       all_langs
       |> List_.map_filter (fun l ->
              try
-               let xlang = Xlang.of_lang l in
-               let r = rules_and_origin_for_xlang xlang in
+               let xlang = Xlang.of_lang l |> xlang_compatible_with_pat in
                Logs.debug (fun m ->
                    m "language %s valid for the pattern" (Lang.show l));
-               Some r
+               Some xlang
              with
              | R.Error _
              | Failure _ ->
                  None)
+
+let rules_and_origin_of_rule rule =
+  { rules = [ rule ]; errors = []; origin = CLI_argument }
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
@@ -520,7 +519,16 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
        * better: '-e foo -l generic' was not handled in semgrep-core
     *)
     | Pattern (pat, xlang_opt, fix) ->
-        Lwt.return (rules_from_pattern (pat, xlang_opt, fix), [])
+        let valid_langs = langs_of_pattern (pat, xlang_opt) in
+        let rules_and_origins =
+          List_.map
+            (fun xlang ->
+              let xpat = Parse_rule.parse_fake_xpattern xlang pat in
+              let rule = Rule.rule_of_xpattern ~fix xlang xpat in
+              rules_and_origin_of_rule rule)
+            valid_langs
+        in
+        Lwt.return (rules_and_origins, [])
   in
 
   (* error handling: *)

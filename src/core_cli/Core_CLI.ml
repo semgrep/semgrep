@@ -60,6 +60,7 @@ let debug = ref Core_scan_config.default.debug
 let error_recovery = ref Core_scan_config.default.error_recovery
 let profile = ref Core_scan_config.default.profile
 let trace = ref Core_scan_config.default.trace
+let trace_endpoint = ref Core_scan_config.default.trace_endpoint
 
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
@@ -238,6 +239,7 @@ let mk_config () =
     test = !test;
     debug = !debug;
     trace = !trace;
+    trace_endpoint = !trace_endpoint;
     profile = !profile;
     report_time = !report_time;
     error_recovery = !error_recovery;
@@ -584,6 +586,9 @@ let options caps actions =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-trace", Arg.Set trace, " output tracing information");
+    ( "-trace_endpoint",
+      Arg.String (fun url -> trace_endpoint := Some url),
+      " url endpoint for collecting tracing information" );
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -599,7 +604,7 @@ let options caps actions =
         " output profiling information" );
       ( "-keep_tmp_files",
         (* nosemgrep: forbid-tmp *)
-        Arg.Set UTmp.save_tmp_files,
+        Arg.Set UTmp.save_temp_files,
         " keep temporary generated files" );
     ]
   @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
@@ -710,13 +715,33 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   let config = mk_config () in
 
   Core_profiling.profiling := config.debug || config.report_time;
+
+  (* coupling: CLI_common.setup_logging *)
   Std_msg.setup ~highlight_setting:On ();
-  Logs_.setup_logging ?log_to_file:config.log_to_file
-    ?require_one_of_these_tags:None
+  (* We override the default use of LOG_XXX env var in Logs_.setup() with
+   * SEMGREP_LOG_XXX env vars because Gitlab was reporting perf problems due
+   * to all the logging produced by Semgrep. Indeed, Gitlab CI itself is running
+   * jobs with LOG_LEVEL=debug, so better to use a different name for now.
+   * LATER: once we migrate most of our logs to use Logs.src, we should have
+   * far less logging by default, even in debug level, so we can restore
+   * LOG_LEVEL.
+   *
+   * The PYTEST_XXX env vars allows modifying the logging behavior of pytest
+   * tests since pytest clears the environment except for variables starting
+   * with "PYTEST_".
+   * LATER: once we remove pysemgrep and switch from pytest to Testo, we
+   * can get rid of those PYTEST_xxx env vars.
+   *)
+  Logs_.setup ?log_to_file:config.log_to_file ?require_one_of_these_tags:None
+    ~read_level_from_env_vars:
+      [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
+    ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]
+    ~read_tags_from_env_vars:[ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]
     ~level:
       (* TODO: command-line option or env variable to choose the log level *)
       (if config.debug then Some Debug else Some Info)
     ();
+
   Logs.info (fun m -> m ~tags "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m ~tags "Version: %s" version);
   let config =
@@ -769,8 +794,8 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
                 (Trace_data.no_analysis_features ())
             in
             Tracing.configure_tracing "semgrep-oss";
-            Tracing.with_tracing "Core_command.semgrep_core_dispatch" trace_data
-              (fun sp ->
+            Tracing.with_tracing "Core_command.semgrep_core_dispatch"
+              config.trace_endpoint trace_data (fun sp ->
                 Core_command.semgrep_core_dispatch caps
                   { config with top_level_span = Some sp }))
           else Core_command.semgrep_core_dispatch caps config)

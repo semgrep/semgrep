@@ -107,15 +107,16 @@ val with_tempdir : ?persist:bool -> ?chdir:bool -> (Fpath.t -> 'a) -> 'a
 (*
    Create files under a temporary root and execute a function in this
    context. See 'with_tempdir' for the meaning of the options.
+
+   'verbose' prints the list of files.
 *)
 val with_tempfiles :
-  ?persist:bool -> ?chdir:bool -> t list -> (Fpath.t -> 'a) -> 'a
+  ?chdir:bool ->
+  ?persist:bool ->
+  ?verbose:bool ->
+  t list ->
+  (Fpath.t -> 'a) ->
+  'a
 
 (* Debugging function which can be used inside an alcotest *)
 val print_files : t list -> unit
-
-(* Similar to with_tempfiles but internally use print_files
-   and show the output of the 'tree' command for a more
-   output
-*)
-val with_tempfiles_verbose : t list -> (Fpath.t -> 'a) -> 'a

@@ -181,6 +181,7 @@ let default_payload =
         version = None;
         ty = None;
       };
+    osemgrep = None;
   }
 
 let default =

@@ -5,8 +5,7 @@
 
 open Common
 open Fpath_.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_targeting.Log
 
 (****************************************************************************)
 (* Types *)
@@ -157,7 +156,7 @@ let get_shebang_command path = get_first_line path |> parse_shebang_line
 
 let uses_shebang_command_name cmd_names =
   let f path =
-    Logs.debug (fun m -> m ~tags "checking for a #! in %s" !!path);
+    Log.info (fun m -> m "checking for a #! in %s" !!path);
     match get_shebang_command path with
     | Some ("/usr/bin/env" :: cmd_name :: _) -> List.mem cmd_name cmd_names
     | Some (cmd_path :: _) ->

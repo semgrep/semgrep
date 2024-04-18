@@ -8,7 +8,7 @@
  * you can call erase_temp_files() before exiting your program to
  * clean things up.
  *
- * Note: You should use with_tmp_file() instead in most cases.
+ * Note: You should use with_temp_file() instead in most cases.
  *)
 val new_temp_file :
   ?temp_dir:Fpath.t -> string (* prefix *) -> string (* suffix *) -> Fpath.t
@@ -20,7 +20,7 @@ val erase_temp_files : unit -> unit
 
 (* To not erase tmp files after they have been used (can be useful to
  * help debug failures). Usually set via a -keep_tmp_files CLI flag. *)
-val save_tmp_files : bool ref
+val save_temp_files : bool ref
 
 (* Erase the tmp file created by new_temp_file() and remove it from
  * the global, so erase_temp_files() will not try to delete an already
@@ -33,9 +33,9 @@ val erase_this_temp_file : Fpath.t -> unit
  * file once done (using erase_this_temp_file()).
  * You can also setup cleanup hooks, see below.
  *)
-val with_tmp_file : str:string -> ext:string -> (Fpath.t -> 'a) -> 'a
+val with_temp_file : str:string -> ext:string -> (Fpath.t -> 'a) -> 'a
 
-(* The hooks below are run just before a tmp file created by with_tmp_file()
+(* The hooks below are run just before a tmp file created by with_temp_file()
  * is deleted. Multiple hooks can be added, but the order in which they are
  * called is unspecified.
  *
@@ -52,7 +52,7 @@ val with_tmp_file : str:string -> ext:string -> (Fpath.t -> 'a) -> 'a
  *
  * See https://github.com/returntocorp/semgrep/issues/5277 for more info.
  *)
-val register_tmp_file_cleanup_hook : (Fpath.t -> unit) -> unit
+val register_temp_file_cleanup_hook : (Fpath.t -> unit) -> unit
 
 (* If the file is a named pipe (e.g., created with <(echo 'foo')), copy it
    into a temporary regular file (with prefix [prefix]) and return the path

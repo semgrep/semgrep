@@ -102,7 +102,7 @@ let parse_program file =
 
 let parse_string (caps : < Cap.tmp >) (w : string) :
     (Ast_java.program, Parser_java.token) Parsing_result.t =
-  CapTmp.with_tmp_file caps#tmp ~str:w ~ext:"java" parse
+  CapTmp.with_temp_file caps#tmp ~str:w ~ext:"java" parse
 
 (*****************************************************************************)
 (* Sub parsers *)

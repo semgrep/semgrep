@@ -1,6 +1,7 @@
 open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
+module Log = Log_targeting.Log
 
 (*************************************************************************)
 (* Prelude *)
@@ -29,8 +30,6 @@ module Out = Semgrep_output_v1_t
      not understood by semgrep will always be returned by get_files. Else will
      discard targets with unknown extensions
 *)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*************************************************************************)
 (* Types *)
@@ -178,8 +177,8 @@ let apply_include_filter status selection_events include_filter ppath =
       | Some include_filter -> Include_filter.select include_filter ppath)
 
 let ignore_path selection_events fpath =
-  Logs.debug (fun m ->
-      m ~tags "Ignoring path %s:\n%s" !!fpath
+  Log.debug (fun m ->
+      m "Ignoring path %s:\n%s" !!fpath
         (Gitignore.show_selection_events selection_events));
   let reason = get_reason_for_exclusion selection_events in
   Skip
@@ -275,9 +274,8 @@ let filter_regular_file_paths
 let walk_skip_and_collect (ign : Gitignore.filter)
     (include_filter : Include_filter.t option) (scan_root : Fppath.t) :
     Fppath.t list * Out.skipped_target list =
-  Logs.debug (fun m ->
-      m ~tags "scanning file system starting from root %s"
-        (Fppath.show scan_root));
+  Log.info (fun m ->
+      m "scanning file system starting from root %s" (Fppath.show scan_root));
   (* Imperative style! walk and collect.
      This is for the sake of readability so let's try to make this as
      readable as possible.
@@ -289,8 +287,8 @@ let walk_skip_and_collect (ign : Gitignore.filter)
 
   (* mostly a copy-paste of List_files.list_regular_files() *)
   let rec aux (dir : Fppath.t) =
-    Logs.debug (fun m ->
-        m ~tags "listing dir %s (ppath = %s)" !!(dir.fpath)
+    Log.debug (fun m ->
+        m "listing dir %s (ppath = %s)" !!(dir.fpath)
           (Ppath.to_string_for_tests dir.ppath));
     (* TODO? should we sort them first? *)
     let entries = List_files.read_dir_entries dir.fpath in
@@ -333,8 +331,8 @@ let walk_skip_and_collect (ign : Gitignore.filter)
 let git_list_files ~exclude_standard
     (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : project_roots) : Fppath_set.t option =
-  Logs.debug (fun m ->
-      m ~tags "Find_targets.git_list_files for project %s"
+  Log.debug (fun m ->
+      m "Find_targets.git_list_files for project %s"
         (Project.show project_roots.project));
   let project = project_roots.project in
   match project.kind with
@@ -343,9 +341,8 @@ let git_list_files ~exclude_standard
       Some
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
-               Logs.debug (fun m ->
-                   m ~tags "List git files for scanning root %S"
-                     !!(sc_root.fpath));
+               Log.info (fun m ->
+                   m "List git files for scanning root %S" !!(sc_root.fpath));
                let project_root = Rfpath.to_rpath project.path in
                (* The path prefix we want for all the target file paths
                   that we return *)
@@ -403,8 +400,11 @@ let git_list_files ~exclude_standard
                             (cwd // target_relative_to_cwd_or_absolute)
                         with
                         | None ->
+                            (* TODO: return an Error instead and let the
+                             * caller decide instead of assert false
+                             *)
                             Logs.err (fun m ->
-                                m ~tags
+                                m
                                   "Internal error: cannot obtain path relative \
                                    to project root from project_root=%s, \
                                    cwd=%S, path_relative_to_cwd=%S"
@@ -488,8 +488,8 @@ let group_scanning_roots_by_project (conf : conf)
 
      TODO: revise the above. 'force_root' is the project root.
   *)
-  Logs.debug (fun m ->
-      m ~tags "group_scanning_roots_by_project %s"
+  Log.debug (fun m ->
+      m "group_scanning_roots_by_project %s"
         (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root =
     match conf.project_root with
@@ -620,7 +620,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
    4. Take the union of (2) and (3).
 *)
 let get_targets_for_project conf (project_roots : project_roots) =
-  Logs.debug (fun m -> m ~tags "Find_target.get_targets_for_project");
+  Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
   let git_tracked = git_list_tracked_files project_roots in
@@ -628,9 +628,8 @@ let get_targets_for_project conf (project_roots : project_roots) =
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
     | Some tracked, Some untracked ->
-        Logs.debug (fun m ->
-            m ~tags
-              "target file candidates from git: tracked: %i, untracked: %i"
+        Log.debug (fun m ->
+            m "target file candidates from git: tracked: %i, untracked: %i"
               (Fppath_set.cardinal tracked)
               (Fppath_set.cardinal untracked));
         let all_files = Fppath_set.union tracked untracked in
@@ -646,8 +645,8 @@ let clone_if_remote_project_root conf =
   match conf.project_root with
   | Some (Git_remote { url }) ->
       let cwd = Fpath.v (Unix.getcwd ()) in
-      Logs.debug (fun m ->
-          m ~tags "Sparse cloning %a into CWD: %a" Uri.pp url Fpath.pp cwd);
+      Log.info (fun m ->
+          m "Sparse cloning %a into CWD: %a" Uri.pp url Fpath.pp cwd);
       (match Git_wrapper.sparse_shallow_filtered_checkout url (Fpath.v ".") with
       | Ok () -> ()
       | Error msg ->
@@ -655,7 +654,7 @@ let clone_if_remote_project_root conf =
             (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
                (Fpath.to_string cwd) msg));
       Git_wrapper.checkout ();
-      Logs.debug (fun m -> m ~tags "Sparse cloning done")
+      Log.info (fun m -> m "Sparse cloning done")
   | Some (Filesystem _)
   | None ->
       ()

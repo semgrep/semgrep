@@ -21,7 +21,9 @@
     ; TODO: I've tried this, but this does not work so I've added --table in
     ; the few dune files using menhir
     ;(menhir_flags (--table))
-    ))
+    ; js_of_ocaml has a bug w/ shortvars after 5.5.2 so let's disable it
+    (js_of_ocaml (flags :standard --disable shortvar)))
+)
 
 ; List of relevant directories to look for dune files for building. By omitting
 ; tests/ and stats/, which contain many files, we can speedup a little bit dune.

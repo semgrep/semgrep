@@ -204,7 +204,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   in
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
-                  UTmp.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                  UTmp.with_temp_file ~str:content ~ext:"mvar-pattern"
                     (fun (file : Fpath.t) ->
                       let mast' =
                         AST_generic_helpers.fix_token_locations_program
@@ -275,7 +275,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* We re-parse the matched text as `xlang`. *)
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
-                  UTmp.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                  UTmp.with_temp_file ~str:content ~ext:"mvar-pattern"
                     (fun file ->
                       let ast_and_errors_res =
                         match xlang with

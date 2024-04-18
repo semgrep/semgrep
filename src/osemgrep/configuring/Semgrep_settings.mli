@@ -1,4 +1,4 @@
-(* Content of the the ~/.semgrep/settings.yml file.
+(* Content of the ~/.semgrep/settings.yml file.
  * See also Semgrep_envvars.user_settings_file
  *)
 type t = {

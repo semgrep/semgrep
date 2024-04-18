@@ -15,6 +15,10 @@ open Cohttp
  * Lwt_main.run
  *)
 
+let src = Logs.Src.create "networking.http"
+
+module Log = (val Logs.src_log src : Logs.LOG)
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -63,7 +67,7 @@ struct
     let proxy_uri = Option.bind proxy_uri_env Sys.getenv_opt in
     match proxy_uri with
     | Some proxy_uri ->
-        Logs.debug (fun m -> m "Using proxy %s for request" proxy_uri);
+        Log.info (fun m -> m "Using proxy %s for request" proxy_uri);
         Some (Uri.of_string proxy_uri)
     | None -> None
 
@@ -94,6 +98,15 @@ struct
            | None -> failwith "HTTP client not initialized")
     in
     (* Send the request to the proxy, not the original url, if it's set *)
+    let%lwt content_length_header =
+      match meth with
+      | `POST ->
+          let%lwt length, _ = Cohttp_lwt.Body.length body in
+          (* Not added when using callv :(, so we gotta add it here *)
+          Lwt.return [ ("content-length", Int64.to_string length) ]
+      | _ -> Lwt.return []
+    in
+    let headers = content_length_header @ headers in
     let headers = Header.of_list headers in
     let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
     let req, url =
@@ -116,7 +129,7 @@ struct
     | _ -> failwith "Multiple responses from a single request"
 
   let rec get_async ?(headers = []) caps url =
-    Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
+    Log.info (fun m -> m "GET on %s" (Uri.to_string url));
     (* This checks to make sure a client has been set *)
     (* Instead of defaulting to a client, as that can cause *)
     (* Hard to debug build and runtime issues *)
@@ -134,23 +147,23 @@ struct
         | None ->
             let code_str = Code.string_of_status response.status in
             let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
-            Logs.debug (fun m -> m "%s" err);
+            Log.err (fun m -> m "%s" err);
             Lwt.return (Error (err, { code; response }))
         | Some url -> get_async caps (Uri.of_string url))
     | _ when Code.is_error code ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
-        Logs.debug (fun m -> m "%s" err);
+        Log.err (fun m -> m "%s" err);
         Lwt.return (Error (err, { code; response }))
     | _ ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP GET unexpected response: " ^ code_str ^ ":\n" ^ body in
-        Logs.debug (fun m -> m "%s" err);
+        Log.err (fun m -> m "%s" err);
         Lwt.return (Error (err, { code; response }))
 
   let post_async ~body ?(headers = [ ("content-type", "application/json") ])
       ?(chunked = false) _caps url =
-    Logs.debug (fun m -> m "POST on %s" (Uri.to_string url));
+    Log.info (fun m -> m "POST on %s" (Uri.to_string url));
     let%lwt response, body =
       call_client
         ~body:(Cohttp_lwt.Body.of_string body)
@@ -162,12 +175,12 @@ struct
     | _ when Code.is_error code ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP POST failed: " ^ code_str ^ ":\n" ^ body in
-        Logs.debug (fun m -> m "%s" err);
+        Log.err (fun m -> m "%s" err);
         Lwt.return (Error (code, err))
     | _ ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP POST unexpected response: " ^ code_str ^ ":\n" ^ body in
-        Logs.debug (fun m -> m "%s" err);
+        Log.err (fun m -> m "%s" err);
         Lwt.return (Error (code, err))
 
   (*****************************************************************************)
@@ -206,10 +219,7 @@ struct
          (fun () -> post_async ~body ~headers ~chunked caps url)
          (fun exn ->
            let err = Printexc.to_string exn in
-           (* NOTE: the caller will have the responsibility to handle and log the error
-              with the appropriate log level serverity (e.g. warn / error / app)
-           *)
-           Logs.debug (fun m ->
+           Log.err (fun m ->
                m "send to '%s' failed: %s" (Uri.to_string url) err);
            Lwt.return (Error (0, err))))
   [@@profiling]

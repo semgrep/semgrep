@@ -56,6 +56,7 @@ type conf = {
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
   trace : bool;
+  trace_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]
@@ -120,6 +121,7 @@ let default : conf =
     validate = None;
     test = None;
     trace = false;
+    trace_endpoint = None;
     ls = false;
   }
 
@@ -446,8 +448,20 @@ let o_time : bool Term.t =
 let o_trace : bool Term.t =
   H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
     ~default:default.trace
-    ~doc:{|Upload a trace of the scan to our endpoint (rule, target).
+    ~doc:
+      {|Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.
 |}
+
+let o_trace_endpoint : string option Term.t =
+  let info =
+    Arg.info [ "trace-endpoint" ]
+      ~doc:
+        "Endpoint to send OpenTelemetry traces to, if `--trace` is present. \
+         The value may be `semgrep-prod` (default), `semgrep-dev`, \
+         `semgrep-local`, or any valid URL.  This feature is meant for \
+         internal use and may be changed or removed wihtout warning."
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_nosem : bool Term.t =
   H.negatable_flag ~default:true [ "enable-nosem" ]
@@ -524,6 +538,12 @@ let o_gitlab_secrets : bool Term.t =
 let o_junit_xml : bool Term.t =
   let info =
     Arg.info [ "junit-xml" ] ~doc:{|Output results in JUnit XML format.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_use_osemgrep_sarif : bool Term.t =
+  let info =
+    Arg.info [ "use-osemgrep-sarif" ] ~doc:{|Output results using osemgrep.|}
   in
   Arg.value (Arg.flag info)
 
@@ -914,14 +934,11 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold trace validate version version_check vim =
-    (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
-     * correctly *)
-    Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
-    Logs_.setup_logging ~level:common.CLI_common.logging_level ();
+      timeout_threshold trace trace_endpoint _use_osemgrep_sarif validate
+      version version_check vim =
     let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed caps
-        ~experimental:(common.maturity =*= Maturity.Experimental)
+        ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
         target_roots
     in
     let project_root =
@@ -1249,6 +1266,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       validate;
       test;
       trace;
+      trace_endpoint;
       ls;
     }
   in
@@ -1270,8 +1288,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
-    $ o_version $ o_version_check $ o_vim)
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
+    $ o_use_osemgrep_sarif $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
