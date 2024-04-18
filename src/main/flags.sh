@@ -171,6 +171,7 @@ else
             "-lparmap_stubs"
             "-lpbrt_stubs"
             "-lpcre_stubs"
+            "-lpcre2_stubs"
             "-lptime_clock_stubs"
             "-lstdc++"
             "-lterminal_size_stubs"
@@ -186,6 +187,7 @@ else
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
             "$(brew --prefix libev)/lib/libev.a"
             "$(brew --prefix pcre)/lib/libpcre.a"
+            "$(brew --prefix pcre2)/lib/libpcre2-8.a"
             "-lpthread")
         for lang in ${LANGS[@]+"${LANGS[@]}"}; do
             CCLIB+=("-ltree_sitter_${lang}_stubs")
