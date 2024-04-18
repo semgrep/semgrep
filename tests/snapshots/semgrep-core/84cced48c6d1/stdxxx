@@ -25,12 +25,12 @@ rules.yml
 stupid.py
 --- end input files ---
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'init' '-b' 'main'
-Initialized empty Git repository in /tmp/test-296a340/.git/
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.name' 'Tester'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'add' '.'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
-[main (root-commit) 8db7ed4] Add files
+[main (root-commit) bddc80d] Add files
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml
  create mode 100644 stupid.py
@@ -58,8 +58,8 @@ fatal: No remote configured to list refs from.
 [<MASKED TIMESTAMP>][INFO]: Done loading local config from rules.yml
 [<MASKED TIMESTAMP>][INFO]: Computing the targets
 [<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '.' 'rev-parse' '--show-toplevel'
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '/tmp/test-296a340' 'ls-files' '--cached' '/tmp/test-296a340/'
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '/tmp/test-296a340' 'ls-files' '--others' '--exclude-standard' '/tmp/test-296a340/'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--cached' '<TMP>/<MASKED>/'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--others' '--exclude-standard' '<TMP>/<MASKED>/'
 [<MASKED TIMESTAMP>][INFO]: running 1 rules from 1 config rules.yml
 Rules:
 - eqeq-bad

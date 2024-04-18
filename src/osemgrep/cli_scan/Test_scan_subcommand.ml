@@ -53,12 +53,14 @@ def foo(a, b):
     return a + b == a + b
 |}
 
+(* coupling: subset of cli/tests/conftest.py ALWAYS_MASK *)
+let normalize = [ Testutil_logs.mask_time; Testutil.mask_temp_paths () ]
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
-  t ~checked_output:(Testo.stdxxx ()) ~normalize:[ Testutil_logs.mask_time ]
-    __FUNCTION__ (fun () ->
+  t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
       let repo_files =
         [
           F.File ("rules.yml", eqeq_basic_content);
@@ -73,8 +75,7 @@ let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
           Exit_code.Check.ok exit_code))
 
 let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.test =
-  t ~checked_output:(Testo.stdxxx ()) ~normalize:[ Testutil_logs.mask_time ]
-    __FUNCTION__ (fun () ->
+  t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
       let repo_files =
         [
           F.File ("rules.yml", eqeq_basic_content);

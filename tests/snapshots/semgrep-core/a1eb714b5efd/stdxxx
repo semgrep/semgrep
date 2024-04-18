@@ -25,12 +25,12 @@ rules.yml
 stupid.py
 --- end input files ---
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'init' '-b' 'main'
-Initialized empty Git repository in /tmp/test-8b14327/.git/
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.name' 'Tester'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'add' '.'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
-[main (root-commit) 8db7ed4] Add files
+[main (root-commit) bddc80d] Add files
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml
  create mode 100644 stupid.py
