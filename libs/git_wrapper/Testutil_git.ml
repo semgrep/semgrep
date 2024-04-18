@@ -40,6 +40,19 @@ let create_git_repo ?(honor_gitignore = true)
   Git_wrapper.commit msg
 
 (*****************************************************************************)
+(* Masks *)
+(*****************************************************************************)
+(* TODO? do all of that in with_git_repo so we don't expose
+ * those git command output to users of with_git_repo?
+ *)
+
+(* Mask lines like this one:
+   [main (root-commit) 45e8b46] Add all the files
+*)
+let mask_temp_git_hash =
+  Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ()
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 

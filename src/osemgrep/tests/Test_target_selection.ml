@@ -105,7 +105,7 @@ let repos_with_tests : repo_with_tests list =
 let normalize =
   [
     Testo.mask_line ~after:"Initialized empty Git repository in" ();
-    Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ();
+    Testutil_git.mask_temp_git_hash;
     Testo.mask_pcre_pattern "/test-[a-f0-9]+";
     Testutil.mask_temp_paths ();
   ]

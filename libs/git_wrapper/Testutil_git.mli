@@ -25,3 +25,10 @@ val with_git_repo :
   Testutil_files.t list ->
   (Fpath.t -> 'a) ->
   'a
+
+(* A few masks to use in Testo.create ~normalize *)
+
+(* Mask lines like this one:
+   [main (root-commit) 45e8b46] Add all the files
+*)
+val mask_temp_git_hash : string -> string

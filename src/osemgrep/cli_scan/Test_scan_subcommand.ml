@@ -54,7 +54,12 @@ def foo(a, b):
 |}
 
 (* coupling: subset of cli/tests/conftest.py ALWAYS_MASK *)
-let normalize = [ Testutil_logs.mask_time; Testutil.mask_temp_paths () ]
+let normalize =
+  [
+    Testutil_logs.mask_time;
+    Testutil.mask_temp_paths ();
+    Testutil_git.mask_temp_git_hash;
+  ]
 
 (*****************************************************************************)
 (* Tests *)

@@ -30,7 +30,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'add' '.'
 [<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
-[main (root-commit) bddc80d] Add files
+[main (root-commit) <MASKED>] Add files
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml
  create mode 100644 stupid.py

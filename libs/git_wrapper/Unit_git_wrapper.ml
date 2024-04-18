@@ -6,12 +6,6 @@ open Common
 open Printf
 open Fpath_.Operators
 
-(* Mask lines like this one:
-   [main (root-commit) 45e8b46] Add all the files
-*)
-let mask_temp_git_hash =
-  Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ()
-
 (* Precisely mask the hexadecimal part in a temp folder name
    such as 'test-1e92745e'. This is printed by some tests as a relative
    path that is not automatically detected by Testo.mask_temp_paths. *)
@@ -19,7 +13,11 @@ let mask_test_dirname =
   Testo.mask_pcre_pattern ~replace:(fun _ -> "<HEX>") "test-([a-f0-9]{1,8})"
 
 let normalize =
-  [ mask_temp_git_hash; Testutil.mask_temp_paths (); mask_test_dirname ]
+  [
+    Testutil_git.mask_temp_git_hash;
+    Testutil.mask_temp_paths ();
+    mask_test_dirname;
+  ]
 
 let t = Testo.create
 let capture = Testo.create ~checked_output:(Testo.stdout ()) ~normalize

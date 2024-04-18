@@ -50,7 +50,7 @@ let test_find_targets ?includes ?(excludes = [])
         printf "--- Files not added to git ---\n";
         F.print_files non_git_files);
 
-    Testutil_git.with_git_repo ~honor_gitignore:true
+    Testutil_git.with_git_repo ~verbose:true ~honor_gitignore:true
       ~really_create_git_repo:with_git git_files (fun root ->
         F.write root non_git_files;
 
