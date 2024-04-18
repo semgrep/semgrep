@@ -13,7 +13,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml
  create mode 100644 stupid.py
-[<MASKED TIMESTAMP>][INFO]: Semgrep version: 1.69.0
+[<MASKED TIMESTAMP>][INFO]: Semgrep version: <MASKED>
 
 ┌──── [32m○○○[39m ────┐
 │ Semgrep CLI │

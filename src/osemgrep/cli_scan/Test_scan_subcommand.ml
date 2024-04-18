@@ -59,6 +59,7 @@ let normalize =
     Testutil_logs.mask_time;
     Testutil.mask_temp_paths ();
     Testutil_git.mask_temp_git_hash;
+    Testo.mask_line ~after:"Semgrep version: " ();
   ]
 
 let without_settings f =
