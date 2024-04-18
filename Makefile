@@ -117,7 +117,16 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core
+	$(eval $@_TMP := $(shell mktemp -t dune-output))
+	@# Save the output of dune so we can provide more helpful error messages in
+	@# some cases
+	2>&1 dune build _build/install/default/bin/semgrep-core | tee $($@_TMP)
+	@grep -q "Error during linking" $($@_TMP) && ( \
+		tput bold; \
+		tput setaf 1; \
+		echo "Dune reported a linker error. This probably means you need to add additional flags to src/main/flags.sh"; \
+		tput sgr 0) || echo "no error"
+	$(RM) $($@_TMP)
 
 
 .PHONY: minimal-build-bc
