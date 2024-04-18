@@ -67,7 +67,7 @@ let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
           F.File ("stupid.py", stupid_py_content);
         ]
       in
-      Testutil_git.with_git_repo repo_files (fun _cwd ->
+      Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
           let exit_code =
             Scan_subcommand.main caps
               [| "semgrep-scan"; "--experimental"; "--config"; "rules.yml" |]
@@ -82,7 +82,7 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.test =
           F.File ("stupid.py", stupid_py_content);
         ]
       in
-      Testutil_git.with_git_repo repo_files (fun _cwd ->
+      Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
           let exit_code =
             Scan_subcommand.main caps
               [|

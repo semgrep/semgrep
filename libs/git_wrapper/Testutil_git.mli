@@ -1,7 +1,8 @@
 (*
    Create a temporary git repo for testing purposes, cd into it,
    call a function, tear down the repo, and restore the original cwd.
-   This is an extension of commons/Testutil_files
+   This is an extension of commons/Testutil_files and its verbose
+   option is reused.
 
    At least one regular file must be specified for the operation to succeed
    e.g. [File ("empty", "")].
@@ -16,6 +17,7 @@
    Default is true.
 *)
 val with_git_repo :
+  ?verbose:bool ->
   ?honor_gitignore:bool ->
   ?really_create_git_repo:bool ->
   ?user_email:string ->

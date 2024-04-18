@@ -43,9 +43,9 @@ let create_git_repo ?(honor_gitignore = true)
 (* Entry point *)
 (*****************************************************************************)
 
-let with_git_repo ?honor_gitignore ?(really_create_git_repo = true) ?user_email
-    ?user_name (files : Testutil_files.t list) func =
-  Testutil_files.with_tempfiles ~verbose:true ~chdir:true files (fun cwd ->
+let with_git_repo ?verbose ?honor_gitignore ?(really_create_git_repo = true)
+    ?user_email ?user_name (files : Testutil_files.t list) func =
+  Testutil_files.with_tempfiles ?verbose ~chdir:true files (fun cwd ->
       if really_create_git_repo then
         create_git_repo ?honor_gitignore ?user_email ?user_name ();
       func cwd)
