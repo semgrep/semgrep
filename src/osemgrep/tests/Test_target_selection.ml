@@ -122,6 +122,6 @@ let tests caps : Testo.test list =
                   ~category:[ "target selection on real git repos"; repo_name ]
                   ~checked_output:(Testo.stdout ()) ~normalize test_name
                   (fun () ->
-                    Git_wrapper.with_git_repo ~honor_gitignore:false repo_files
+                    Testutil_git.with_git_repo ~honor_gitignore:false repo_files
                       (fun _cwd -> test_func caps))))
   |> List_.flatten

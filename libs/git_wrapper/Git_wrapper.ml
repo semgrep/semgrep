@@ -761,30 +761,3 @@ let cat_file_blob ?cwd (hash : hash) =
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
-
-(*****************************************************************************)
-(* Combination of git commands (for testing etc.) *)
-(*****************************************************************************)
-
-let create_git_repo ?(honor_gitignore = true)
-    ?(user_email = "tester@example.com") ?(user_name = "Tester") () =
-  flush stdout;
-  flush stderr;
-  init ();
-  (* We set user name and email to avoid warnings in some git
-     versions. *)
-  config_set "user.name" user_name;
-  config_set "user.email" user_email;
-  add ~force:(not honor_gitignore) [ Fpath.v "." ];
-  let msg =
-    if honor_gitignore then "Add files"
-    else "Add all the files (including gitignored files)"
-  in
-  commit msg
-
-let with_git_repo ?honor_gitignore ?(really_create_git_repo = true) ?user_email
-    ?user_name (files : Testutil_files.t list) func =
-  Testutil_files.with_tempfiles ~verbose:true ~chdir:true files (fun cwd ->
-      if really_create_git_repo then
-        create_git_repo ?honor_gitignore ?user_email ?user_name ();
-      func cwd)
