@@ -69,6 +69,7 @@ let without_settings f =
 (*****************************************************************************)
 let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
+      Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
       let repo_files =
         [
           F.File ("rules.yml", eqeq_basic_content);
@@ -87,6 +88,7 @@ let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
 
 let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.test =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
+      Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
       let repo_files =
         [
           F.File ("rules.yml", eqeq_basic_content);
