@@ -24,6 +24,7 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
+from semgrep.commands.scan import collect_additional_outputs
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
@@ -196,6 +197,14 @@ def ci(
     dataflow_traces: Optional[bool],
     output: Optional[str],
     output_format: OutputFormat,
+    outputs_text: List[str],
+    outputs_emacs: List[str],
+    outputs_json: List[str],
+    outputs_vim: List[str],
+    outputs_gitlab_sast: List[str],
+    outputs_gitlab_secrets: List[str],
+    outputs_junit_xml: List[str],
+    outputs_sarif: List[str],
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -411,7 +420,18 @@ def ci(
         else:
             run_install_semgrep_pro()
 
+        outputs = collect_additional_outputs(
+            outputs_text=outputs_text,
+            outputs_emacs=outputs_emacs,
+            outputs_json=outputs_json,
+            outputs_vim=outputs_vim,
+            outputs_gitlab_sast=outputs_gitlab_sast,
+            outputs_gitlab_secrets=outputs_gitlab_secrets,
+            outputs_junit_xml=outputs_junit_xml,
+            outputs_sarif=outputs_sarif,
+        )
     output_settings = OutputSettings(
+        outputs=outputs,
         output_format=output_format,
         output_destination=output,
         verbose_errors=verbose,
