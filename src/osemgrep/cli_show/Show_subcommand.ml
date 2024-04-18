@@ -62,6 +62,7 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (*****************************************************************************)
 
 let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let stdout = caps#stdout in
   match conf.show_kind with
   | Version ->

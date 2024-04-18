@@ -1,0 +1,3 @@
+Snapshot for Test_show_subcommand.test_identity.(fun)
+ SUCCESS  You are logged in as {"identity":"cli_aryx_valid-from-2024-04-16T09:16:07.699883"}
+ASSERT exit code

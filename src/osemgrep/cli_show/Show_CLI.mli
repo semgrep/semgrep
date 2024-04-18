@@ -9,6 +9,7 @@
    new 'semgrep show supported-languages'
 *)
 type conf = {
+  common : CLI_common.conf;
   (* mix of --dump-ast/--dump-rule/... *)
   show_kind : show_kind;
   json : bool;

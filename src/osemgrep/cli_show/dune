@@ -17,6 +17,9 @@
     osemgrep_core
     osemgrep_configuring
     osemgrep_networking
+
+    ; for the with_fake_deployment helper in Test_login_subcommand.ml
+    osemgrep_cli_login
   )
  (preprocess
    (pps
