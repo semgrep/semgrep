@@ -6,8 +6,9 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 //TODO: currently fails because of conflicts with ocamlformat and jsoo
-//TODO: local opam_switch = '5.2.0~alpha1';
-local opam_switch = '5.1.0';
+// Usually we can do just "5.2.0" but since this is a beta release we can't
+// See: https://github.com/ocaml/setup-ocaml/issues/232
+local opam_switch = 'ocaml-base-compiler.5.2.0~beta2';
 
 // ----------------------------------------------------------------------------
 // The job
@@ -22,6 +23,12 @@ local job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': opam_switch,
+        // Needed so we can install a beta verison of the compiler
+        // See: https://github.com/ocaml/setup-ocaml/issues/232
+        'opam-repositories': |||
+            default: https://github.com/ocaml/opam-repository.git
+            beta: https://github.com/ocaml/ocaml-beta-repository.git
+        |||,
       },
     },
     semgrep.cache_opam.step(
@@ -48,12 +55,12 @@ local job = {
         make
       |||,
     },
-    // TODO: some tests are currently failing with OCaml5! but at least
-    // we can still check whether it builds
+    // TODO: Upload artifacts
     {
       name: 'Test semgrep',
       run: |||
-        echo TODO
+        eval $(opam env)
+        make test
       |||,
     },
   ],
