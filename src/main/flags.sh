@@ -23,13 +23,18 @@ else
     case "$OS" in
     linux)
         if [[ -e /etc/alpine-release ]]; then
-            # The -cclib statically link in libcurl's dependencies.
-            # This can be removed when we transition away from the ocurl otel collector
-            #old: was just '--copt -static --copy -no-pie' before we dependended on libcurl
+            # The CCLIB flags statically (since we have CCOPT include -static)
+            # link in libcurl's dependencies.
+            # This can be removed when we transition away from the ocurl otel
+            # collector.
+            # old: was just '--copt -static --copy -no-pie' before we depended
+            # on libcurl
             FLAGS=()
             CCLIB=("-lssl" "-lcrypto" "-lz")
             CCOPT=("-static" "-no-pie")
         else
+            # On non-Alpine Linux distros (e.g., Ubunut), we just dynamically
+            # link for dev. Note that Alpine is used for our Docker builds.
             FLAGS=()
             CCLIB=()
             CCOPT=()
