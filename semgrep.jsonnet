@@ -96,6 +96,9 @@ local semgrep_rules = [
     |||,
     languages: ['ocaml'],
     severity: 'ERROR',
+    paths: {
+      exclude: ['Testutil.ml']
+    }
   },
 ];
 

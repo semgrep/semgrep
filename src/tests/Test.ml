@@ -87,6 +87,8 @@ let tests (caps : Cap.all_caps) =
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
+      Test_scan_subcommand.tests
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >);
       Test_publish_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_osemgrep.tests (caps :> CLI.caps);
@@ -149,7 +151,7 @@ let main (caps : Cap.all_caps) : unit =
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
         Std_msg.setup ~highlight_setting:On ();
-        Logs_.setup ~highlight_setting:On ~level:(Some Logs.Debug) ()
+        Logs_.setup_basic ~level:(Some Logs.Debug) ()
       in
       (* Show log messages produced when building the list of tests *)
       reset ();

@@ -523,10 +523,6 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
 
 (*****************************************************************************)
 (* Conduct the scan *)
-(* What scan? It takes the list as target files as argument! Call it a scan
-   only if takes scanning roots as argument (a mix of folders and regular
-   files).
-*)
 (*****************************************************************************)
 let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
