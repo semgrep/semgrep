@@ -33,7 +33,7 @@ else
             CCLIB=("-lssl" "-lcrypto" "-lz")
             CCOPT=("-static" "-no-pie")
         else
-            # On non-Alpine Linux distros (e.g., Ubunut), we just dynamically
+            # On non-Alpine Linux distros (e.g., Ubuntu), we just dynamically
             # link for dev. Note that Alpine is used for our Docker builds.
             FLAGS=()
             CCLIB=()
