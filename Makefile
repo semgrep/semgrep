@@ -124,7 +124,12 @@ minimal-build:
 	@grep -q "Error during linking" $($@_TMP) && ( \
 		tput bold; \
 		tput setaf 1; \
-		echo "Dune reported a linker error. This probably means you need to add additional flags to src/main/flags.sh"; \
+		echo "Dune reported a linker error. If you ran into this after adding \
+	a new dependency, then this probably means that that dependency relies on \
+	a library that needs to be linked. See src/main/flags.sh on how to \
+	do that. If you didn't add a new dependency, you may not have every \
+	dependency needed for installation. Try running make dev-setup and \
+	building again" | fold -s; \
 		tput sgr 0) || echo "no error"
 	$(RM) $($@_TMP)
 
@@ -370,6 +375,9 @@ UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
 
 #TODO: ARCH_DEPS=??
 
+# NOTE: Additional packages here likely require additional linking flags in
+# src/main/flags.sh as part of how we statically link binaries on MacOS.
+#
 # Here is why we need those external packages:
 # - pkg-config?
 # - coreutils?

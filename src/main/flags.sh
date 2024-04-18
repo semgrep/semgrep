@@ -2,6 +2,40 @@
 #
 # Use static linking if platform allows.
 #
+# How to update this file
+# =======================
+#
+# When adding a new dependency, you may need to update this file. This is
+# required when additional objects must be linked. Examples include: a new
+# language using tree-sitter, a package with C bindings or system dependency.
+#
+# - If you are adding a new LANGUAGE (using tree-sitter):
+#
+#   - In the macosx case below, add the language name in the LANGS array.
+#
+#   - Other cases should not typically require changes.
+#
+#
+# - If you are adding a new OCAML PACKAGE:
+#
+#   - In the macosx case below, add any STUBS the library relies on. These are
+#     normally called something like <LIBRARY>_stubs. The name can be found in
+#     the package's dune file as the value of the `names` field of the
+#     `foreign_stubs` field under the library.
+#
+#   - In the macosx case below, add any SYSTEM LIBRARIES the library relies on.
+#     This would be anything you needed to add to BREW_DEPS or have as a
+#     conf-lib<SYSLIB> opam dependency.
+#
+#     If it would be installed by `brew`, specify the path using pkg-config
+#     (see, e.g., gmp), or, if the package doesn't include a .pc file, use the
+#     brew prefix. In these cases, you should specifically specify the static
+#     archive (`.a`).
+#
+#   - Other cases should not typically require changes. If you have made
+#     non-standard changes to the Dockerfile or Alpine build (e.g., building a
+#     library from source), Alpine may require tweaks.
+
 set -eu
 
 OS="$1"
