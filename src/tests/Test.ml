@@ -1,27 +1,38 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Unit tests entry point.
+(* semgrep-core and osemgrep tests suite entry point.
  *
- * From semgrep-core you can do
+ * From the root of the semgrep repo you can do
  *
- *   $./test foo
+ *   $ ./test -s foo
  *
- * to run all the tests containing foo in their description.
+ * to run all the OCaml tests containing foo in their test name.
  *
  * This file used to contain lots of tests, but it's better to now
  * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
 
+let t = Testo.create
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let t = Testo.create
-
 let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
+
+(* alt: could be in Testutil_files.ml or even Testo library *)
+let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.test list) :
+    Testo.test list =
+  tests
+  |> List_.map (fun (test : Testo.test) ->
+         Testo.update
+           ~func:(fun () ->
+             reset ();
+             test.func ())
+           test)
 
 (*****************************************************************************)
 (* All tests *)
@@ -78,7 +89,8 @@ let tests (caps : Cap.all_caps) =
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_publish_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
-      Osemgrep_tests.tests (caps :> CLI.caps);
+      Test_osemgrep.tests (caps :> CLI.caps);
+      Test_target_selection.tests (caps :> CLI.caps);
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
@@ -115,15 +127,6 @@ let tests_with_delayed_error caps =
             Exception.reraise exn);
       ]
 
-let cleanup_before_each_test reset tests =
-  tests
-  |> List_.map (fun (test : Testo.test) ->
-         Testo.update
-           ~func:(fun () ->
-             reset ();
-             test.func ())
-           test)
-
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
@@ -133,16 +136,14 @@ let main (caps : Cap.all_caps) : unit =
     | None ->
         failwith
           "You must run the test program from within the semgrep repo and not \
-           one of its submodules."
+           one of its subfolders or submodules."
   in
   Testutil_files.with_chdir repo_root (fun () ->
-      Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
+      (* coupling: partial copy of the content of CLI.main() *)
+      Core_CLI.register_exception_printers ();
       Parsing_init.init ();
       Data_init.init ();
-      Core_CLI.register_exception_printers ();
-      (* Show log messages produced when building the list of tests *)
-      Std_msg.setup ~highlight_setting:On ();
-      Logs_.setup ~level:(Some Logs.Info) ();
+      Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
       let reset () =
         (* Some tests change this configuration so we have to reset
            it before each test. In particular, tests that check the semgrep
@@ -150,6 +151,9 @@ let main (caps : Cap.all_caps) : unit =
         Std_msg.setup ~highlight_setting:On ();
         Logs_.setup ~highlight_setting:On ~level:(Some Logs.Debug) ()
       in
+      (* Show log messages produced when building the list of tests *)
+      reset ();
+      (* let's go *)
       Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
           tests_with_delayed_error caps |> cleanup_before_each_test reset))
 
