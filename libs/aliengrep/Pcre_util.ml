@@ -1,6 +1,7 @@
 (*
    PCRE-related code used both for parsing patterns and for scanning targets.
 *)
+[@@@alert "-deprecated"]
 
 open Printf
 
@@ -66,4 +67,4 @@ let quote =
     | '\t' -> {|\t|}
     | c (* other whitespace or '#' *) -> sprintf {|\x%02X|} (Char.code c)
   in
-  fun str -> Pcre.quote str |> Pcre_.substitute ~rex ~subst
+  fun str -> Pcre_.quote str |> Pcre_.substitute ~rex ~subst
