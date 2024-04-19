@@ -710,8 +710,11 @@ def run_scan(
             except Exception as e:
                 raise SemgrepError(e)
 
+    # If there are multiple outputs and any request to keep_ignores
+    # then all outputs keep the ignores. The only output format that
+    # keep ignored matches currently is sarif.
     ignores_start_time = time.time()
-    keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
+    keep_ignored = disable_nosem or output_handler.keep_ignores()
     filtered_matches_by_rule = filter_ignored(
         rule_matches_by_rule, keep_ignored=keep_ignored
     )
@@ -810,4 +813,8 @@ def run_scan_and_return_json(
     output_handler.explanations = output_extra.core.explanations
     output_handler.extra = output_extra
 
-    return json.loads(output_handler._build_output())  # type: ignore
+    outputs = tuple(output_handler._build_outputs())
+    if len(outputs) != 1:
+        raise RuntimeError("run_scan_and_return_json: expects a single output")
+
+    return json.loads(outputs[0][1])  # type: ignore

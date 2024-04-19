@@ -603,9 +603,12 @@ def ci(
         if (not rule.from_transient_scan)
     }
 
-    # Since we keep nosemgrep disabled for the actual scan, we have to apply
-    # that flag here
-    keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
+    # Since we keep nosemgrep disabled for the actual scan, we have to
+    # apply that flag here.
+    # If there are multiple outputs and any request to keep_ignores
+    # then all outputs keep the ignores. The only output format that
+    # keep ignored matches currently is sarif.
+    keep_ignored = not enable_nosem or output_handler.keep_ignores()
     for rule, matches in removed_prev_scan_matches.items():
         # Filter out any matches that are triaged as ignored on the app
         if scan_handler:
