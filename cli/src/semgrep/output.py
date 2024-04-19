@@ -120,31 +120,6 @@ def _build_time_json(
 
 
 # This class is the internal representation of OutputSettings below.
-# Since it is internal it can change as much as necisarry to make
-# typchecking more accurate and enforce invariants.
-class NormalizedOutputSettings(NamedTuple):
-    # Immutable List of OutputDestination x OutputFormat
-    outputs: Dict[Optional[str], OutputFormat]
-    output_per_finding_max_lines_limit: Optional[int]
-    output_per_line_max_chars_limit: Optional[int]
-    error_on_findings: bool
-    verbose_errors: bool
-    strict: bool
-    output_time: bool
-    timeout_threshold: int
-    dataflow_traces: bool
-
-    def get_outputs(self) -> Iterator[Tuple[Optional[str], OutputFormat]]:
-        return self.outputs.items().__iter__()
-
-    def has_output_format(self, other: OutputFormat) -> bool:
-        return bool(sum(1 for (_, fmt) in self.get_outputs() if other == fmt))
-
-    def has_text_output(self) -> bool:
-        return self.has_output_format(OutputFormat.TEXT)
-
-
-# This class is the internal representation of OutputSettings below.
 # Since it is internal it can change as much as necesarry to make
 # typechecking more accurate and enforce invariants.
 class NormalizedOutputSettings(NamedTuple):
@@ -172,9 +147,8 @@ class NormalizedOutputSettings(NamedTuple):
 # WARNING: this class is unofficially part of our external API. It can be passed
 # as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
 # changes to this API, and make them backwards compatible, if possible.
+# Calling normalize produces the internal representation used by OutputHandler.
 class OutputSettings(NamedTuple):
-    # It is optional to maintain backwards compatibility.
-    # Calling normalize produces the internal representation used by OutputHandler.
     outputs: Optional[Dict[Optional[str], OutputFormat]] = None
     output_format: Optional[OutputFormat] = None
     output_destination: Optional[str] = None
@@ -187,33 +161,6 @@ class OutputSettings(NamedTuple):
     timeout_threshold: int = 0
     dataflow_traces: bool = False
     use_osemgrep_to_format: Optional[Set[OutputFormat]] = None
-
-    def normalize(self) -> NormalizedOutputSettings:
-        normalized_outputs: Dict[Optional[str], OutputFormat] = {}
-        if self.output_format is None:
-            if self.outputs is None:
-                raise RuntimeError(f"Invalid output configuration: No output specified")
-            normalized_outputs = self.outputs.copy()
-        else:
-            if self.outputs is not None:
-                normalized_outputs = self.outputs.copy()
-            if self.output_destination in normalized_outputs:
-                raise RuntimeError(
-                    "Invalid output configuration: same output destination with multiple formats."
-                )
-            normalized_outputs[self.output_destination] = self.output_format
-
-        return NormalizedOutputSettings(
-            outputs=normalized_outputs,
-            output_per_finding_max_lines_limit=self.output_per_finding_max_lines_limit,
-            output_per_line_max_chars_limit=self.output_per_line_max_chars_limit,
-            error_on_findings=self.error_on_findings,
-            verbose_errors=self.verbose_errors,
-            strict=self.strict,
-            output_time=self.output_time,
-            timeout_threshold=self.timeout_threshold,
-            dataflow_traces=self.dataflow_traces,
-        )
 
     def normalize(self) -> NormalizedOutputSettings:
         normalized_outputs: Dict[Optional[str], OutputFormat] = {}

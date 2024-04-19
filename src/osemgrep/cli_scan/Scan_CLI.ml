@@ -970,7 +970,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       sarif_outputs scan_unknown_extensions secrets severity
       show_supported_languages strict target_roots test test_ignore_todo text
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      trace trace_endpoint _use_osemgrep_sarif validate version version_check vim vim_outputs =
+      trace trace_endpoint _use_osemgrep_sarif validate version version_check
+      vim vim_outputs =
     let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed caps
         ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
@@ -1352,8 +1353,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
     $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time
     $ o_timeout $ o_timeout_interfile $ o_timeout_threshold $ o_trace
-    $ o_trace_endpoint $ o_use_osemgrep_sarif $ o_validate $ o_version $ o_version_check $ o_vim
-    $ o_vim_outputs)
+    $ o_trace_endpoint $ o_use_osemgrep_sarif $ o_validate $ o_version
+    $ o_version_check $ o_vim $ o_vim_outputs)
 
 let doc = "run semgrep rules on files"
 
