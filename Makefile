@@ -117,7 +117,21 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core
+	$(eval $@_TMP := $(shell mktemp -t dune-output.XXXXX))
+	@# Save the output of dune so we can provide more helpful error messages in
+	@# some cases
+	2>&1 dune build _build/install/default/bin/semgrep-core | tee $($@_TMP)
+	@grep -q "Error during linking" $($@_TMP) && ( \
+		tput bold; \
+		tput setaf 1; \
+		echo "Dune reported a linker error. If you ran into this after adding \
+	a new dependency, then this probably means that that dependency relies on \
+	a library that needs to be linked. See src/main/flags.sh on how to \
+	do that. If you didn't add a new dependency, you may not have every \
+	dependency needed for installation. Try running make dev-setup and \
+	building again" | fold -s; \
+		tput sgr 0) || echo "no error"
+	$(RM) $($@_TMP)
 
 
 .PHONY: minimal-build-bc
@@ -349,27 +363,53 @@ install-deps: install-deps-for-semgrep-core
 # - zlib: ??
 
 # - openssl-libs-static: dependency of curl-static
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
+ALPINE_APK_DEPS_CORE=pcre-dev \
+					 pcre2-dev \
+					 gmp-dev \
+					 libev-dev \
+					 curl-dev \
+					 openssl-libs-static \
+					 zlib-static
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests
-ALPINE_APK_DEPS_PYSEMGREP=python3
+ALPINE_APK_DEPS_PYSEMGREP= python3
 
 # Here is why we need those external packages:
 # - pkg-config?
-UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
+# NOTE: libpcre3 is actually libpcre
+UBUNTU_DEPS=pkg-config \
+			libpcre3-dev \
+			libpcre2-dev \
+			libgmp-dev \
+			libev-dev \
+			libcurl4-gnutls-dev
 
 #TODO: ARCH_DEPS=??
 
+# NOTE: Additional packages here likely require additional linking flags in
+# src/main/flags.sh as part of how we statically link binaries on MacOS.
+#
 # Here is why we need those external packages:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp libev curl pkg-config coreutils gettext
+BREW_DEPS=pkg-config \
+		  pcre \
+		  pcre2 \
+		  gmp \
+		  libev \
+		  curl \
+		  coreutils \
+		  gettext
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?
-WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libcurl
+WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config \
+						 conf-gmp \
+						 conf-libpcre \
+						 conf-libpcre2-8 \
+						 conf-libcurl
 
 # -------------------------------------------------
 # Alpine
@@ -402,7 +442,7 @@ install-deps-UBUNTU-for-semgrep-core:
 # macOS (brew)
 # -------------------------------------------------
 
-# see also scripts/osx-setup-*-for-release.sh that adjust those
+# see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
 	brew install $(BREW_DEPS)

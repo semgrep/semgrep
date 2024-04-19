@@ -14,7 +14,6 @@
 
 open Printf
 open Fpath_.Operators
-open Testutil_files (* file/dir/symlink *)
 module F = Testutil_files
 module Out = Semgrep_output_v1_t
 
@@ -44,14 +43,14 @@ let test_find_targets ?includes ?(excludes = [])
     | [] -> ()
     | _ ->
         printf "--- Files added before 'git add' ---\n";
-        print_files git_files);
+        F.print_files git_files);
     (match non_git_files with
     | [] -> ()
     | _ ->
         printf "--- Files not added to git ---\n";
-        print_files non_git_files);
+        F.print_files non_git_files);
 
-    Git_wrapper.with_git_repo ~honor_gitignore:true
+    Testutil_git.with_git_repo ~verbose:true ~honor_gitignore:true
       ~really_create_git_repo:with_git git_files (fun root ->
         F.write root non_git_files;
 

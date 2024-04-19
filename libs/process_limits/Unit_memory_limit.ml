@@ -84,10 +84,17 @@ let test_memory_limit_with_stack () =
   with
   | Memory_limit.ExceededMemoryLimit _ -> (* success *) ()
 
+let skip_if_ocaml_5 tests =
+  tests
+  |> List_.map (fun test ->
+         if Sys.ocaml_release.major = 5 then Testo.update ~skipped:true test
+         else test)
+
 let tests =
-  Testo.categorize "memory limits"
-    [
-      t "stack warning" test_stack_warning;
-      t "memory limit (heap)" test_memory_limit_with_heap;
-      t "memory limit (stack)" test_memory_limit_with_stack;
-    ]
+  [
+    t "stack warning" test_stack_warning;
+    t "memory limit (heap)" test_memory_limit_with_heap;
+    t "memory limit (stack)" test_memory_limit_with_stack;
+  ]
+  |> Testo.categorize "memory limits"
+  |> skip_if_ocaml_5

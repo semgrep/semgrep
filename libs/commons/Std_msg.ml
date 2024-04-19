@@ -5,8 +5,8 @@
 type highlight_setting = Auto | On | Off [@@deriving show]
 type highlight = On | Off [@@deriving show]
 
-let highlight_setting = ref Auto
-let highlight = ref (Off : highlight)
+let highlight_setting : highlight_setting ref = ref Auto
+let highlight : highlight ref = ref (Off : highlight)
 
 let isatty () =
   !ANSITerminal.isatty UUnix.stdout && !ANSITerminal.isatty UUnix.stderr
