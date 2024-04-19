@@ -58,7 +58,7 @@ let find_targets_conf_of_t settings : Find_targets.conf =
     diff_depth = 0;
     always_select_explicit_targets = false;
     explicit_targets = Find_targets.Explicit_targets.empty;
-    project_root = None;
+    force_project_root = None;
   }
 
 let core_runner_conf_of_t settings : Core_runner.conf =

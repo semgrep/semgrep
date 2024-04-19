@@ -104,7 +104,7 @@ let test_absolute_target_path caps =
   let func () =
     UFile.with_temp_file ~contents:"hello\n" ~suffix:".py" (fun path ->
         assert (Fpath.is_abs path);
-        (* We want 'path' to be in a file in a folder other than the current
+        (* We want 'path' to be in a folder other than the current
            folder. *)
         assert (!!(Fpath.parent path) <> Unix.getcwd ());
         Scan_subcommand.main caps

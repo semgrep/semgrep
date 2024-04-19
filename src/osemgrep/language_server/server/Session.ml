@@ -101,7 +101,7 @@ let get_targets session (root : Fpath.t) =
   Find_targets.get_target_fpaths
     {
       targets_conf with
-      project_root = Some (Find_targets.Filesystem proj_root);
+      force_project_root = Some (Find_targets.Filesystem proj_root);
     }
     [ Scanning_root.of_fpath root ]
   |> fst

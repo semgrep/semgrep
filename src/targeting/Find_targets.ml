@@ -97,7 +97,7 @@ type conf = {
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : project_root option;
+  force_project_root : project_root option;
 }
 [@@deriving show]
 
@@ -116,12 +116,7 @@ type force_root = (Project.kind * Rfpath.t) option
 
 let default_conf : conf =
   {
-    (* the project root is inferred from the presence of .git, otherwise
-       falls back to the current directory. Should it be offered as
-       a command-line option? In osemgrep, a .semgrepignore at the
-       git project root will be honored unlike in legacy semgrep
-       if we're in a subfolder. *)
-    project_root = None;
+    force_project_root = None;
     exclude = [];
     include_ = None;
     baseline_commit = None;
@@ -492,7 +487,7 @@ let group_scanning_roots_by_project (conf : conf)
       m "group_scanning_roots_by_project %s"
         (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root =
-    match conf.project_root with
+    match conf.force_project_root with
     | Some (Filesystem proj_root) ->
         (* This is when --project-root is specified on the command line.
            It doesn't use 'git ls-files' to list files. This is required
@@ -642,7 +637,7 @@ let get_targets_for_project conf (project_roots : project_roots) =
 
 (* for semgrep query console *)
 let clone_if_remote_project_root conf =
-  match conf.project_root with
+  match conf.force_project_root with
   | Some (Git_remote { url }) ->
       let cwd = Fpath.v (Unix.getcwd ()) in
       Log.info (fun m ->
