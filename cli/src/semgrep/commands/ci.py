@@ -420,16 +420,16 @@ def ci(
         else:
             run_install_semgrep_pro()
 
-        outputs = collect_additional_outputs(
-            outputs_text=outputs_text,
-            outputs_emacs=outputs_emacs,
-            outputs_json=outputs_json,
-            outputs_vim=outputs_vim,
-            outputs_gitlab_sast=outputs_gitlab_sast,
-            outputs_gitlab_secrets=outputs_gitlab_secrets,
-            outputs_junit_xml=outputs_junit_xml,
-            outputs_sarif=outputs_sarif,
-        )
+    outputs = collect_additional_outputs(
+        outputs_text=outputs_text,
+        outputs_emacs=outputs_emacs,
+        outputs_json=outputs_json,
+        outputs_vim=outputs_vim,
+        outputs_gitlab_sast=outputs_gitlab_sast,
+        outputs_gitlab_secrets=outputs_gitlab_secrets,
+        outputs_junit_xml=outputs_junit_xml,
+        outputs_sarif=outputs_sarif,
+    )
     output_settings = OutputSettings(
         outputs=outputs,
         output_format=output_format,
