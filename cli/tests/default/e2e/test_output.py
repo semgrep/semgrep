@@ -176,6 +176,7 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -214,6 +215,7 @@ def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, snapshot):
     "format",
     ["--json", "--emacs", "--vim", "--sarif", "--gitlab-sast", "--gitlab-secrets"],
 )
+@pytest.mark.osemfail
 def test_additional_outputs_with_format_flag(
     run_semgrep_in_tmp: RunSemgrep, snapshot, format
 ):
@@ -237,6 +239,7 @@ def test_additional_outputs_with_format_flag(
     "format",
     ["--json", "--emacs", "--vim", "--sarif", "--gitlab-sast", "--gitlab-secrets"],
 )
+@pytest.mark.osemfail
 def test_additional_outputs_with_format_output_flag(
     run_semgrep_in_tmp: RunSemgrep, snapshot, format
 ):
