@@ -7,9 +7,9 @@ from typing import Dict
 from xml.etree import cElementTree
 
 import pytest
+from tests.conftest import mask_variable_text
 from tests.conftest import RULES_PATH
 from tests.conftest import TARGETS_PATH
-from tests.conftest import mask_variable_text
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -200,14 +200,19 @@ def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, snapshot):
     with open("two.json") as two_json:
         snapshot.assert_match(mask_variable_text(two_json.read()), "two.json.expected")
     with open("emacs.txt") as emacs_txt:
-        snapshot.assert_match(mask_variable_text(emacs_txt.read()), "emacs.txt.expected")
+        snapshot.assert_match(
+            mask_variable_text(emacs_txt.read()), "emacs.txt.expected"
+        )
     with open("vim.txt") as vim_txt:
         snapshot.assert_match(mask_variable_text(vim_txt.read()), "vim.txt.expected")
     with open("gitlab_sast.json") as gitlab_sast_json:
-        snapshot.assert_match(mask_variable_text(gitlab_sast_json.read()), "gitlab_sast.json.expected")
+        snapshot.assert_match(
+            mask_variable_text(gitlab_sast_json.read()), "gitlab_sast.json.expected"
+        )
     with open("gitlab_secrets.json") as gitlab_secrets_json:
         snapshot.assert_match(
-            mask_variable_text(gitlab_secrets_json.read()), "gitlab_secrets.json.expected"
+            mask_variable_text(gitlab_secrets_json.read()),
+            "gitlab_secrets.json.expected",
         )
 
 
@@ -232,7 +237,9 @@ def test_additional_outputs_with_format_flag(
 
     snapshot.assert_match(stdout, "result.expected")
     with open("result.json") as result_json:
-        snapshot.assert_match(mask_variable_text(result_json.read()), "result.json.expected")
+        snapshot.assert_match(
+            mask_variable_text(result_json.read()), "result.json.expected"
+        )
 
 
 @pytest.mark.kinda_slow
@@ -252,9 +259,13 @@ def test_additional_outputs_with_format_output_flag(
     )
 
     with open("sarif.json") as serif_json:
-        snapshot.assert_match(mask_variable_text(serif_json.read()), "sarif.json.expected")
+        snapshot.assert_match(
+            mask_variable_text(serif_json.read()), "sarif.json.expected"
+        )
     with open("result.out") as result_out:
-        snapshot.assert_match(mask_variable_text(result_out.read()), "result.out.expected")
+        snapshot.assert_match(
+            mask_variable_text(result_out.read()), "result.out.expected"
+        )
 
 
 @pytest.mark.kinda_slow
