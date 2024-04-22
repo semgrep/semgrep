@@ -48,6 +48,27 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "help": {
+                "markdown": "possibly useless comparison but in eq function",
+                "text": "possibly useless comparison but in eq function"
+              },
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
                 "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
               "help": {
@@ -63,27 +84,6 @@
               },
               "shortDescription": {
                 "text": "Semgrep Finding: rules.eqeq-is-bad"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
-              },
-              "help": {
-                "markdown": "this function is only available on Python 3.7+",
-                "text": "this function is only available on Python 3.7+"
-              },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             },
             {
@@ -112,24 +112,24 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "this function is only available on Python 3.7+"
               },
               "help": {
-                "markdown": "possibly useless comparison but in eq function",
-                "text": "possibly useless comparison but in eq function"
+                "markdown": "this function is only available on Python 3.7+",
+                "text": "this function is only available on Python 3.7+"
               },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             }
           ],
-          "semanticVersion": "1.69.0"
+          "semanticVersion": "placeholder"
         }
       }
     }

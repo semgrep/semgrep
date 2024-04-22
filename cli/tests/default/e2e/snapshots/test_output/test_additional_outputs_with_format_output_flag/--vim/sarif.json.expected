@@ -48,27 +48,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison"
-              },
-              "help": {
-                "markdown": "useless comparison",
-                "text": "useless comparison"
-              },
-              "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "possibly useless comparison but in eq function"
               },
               "help": {
@@ -112,6 +91,27 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "useless comparison"
+              },
+              "help": {
+                "markdown": "useless comparison",
+                "text": "useless comparison"
+              },
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
                 "text": "this function is only available on Python 3.7+"
               },
               "help": {
@@ -129,7 +129,7 @@
               }
             }
           ],
-          "semanticVersion": "1.69.0"
+          "semanticVersion": "placeholder"
         }
       }
     }

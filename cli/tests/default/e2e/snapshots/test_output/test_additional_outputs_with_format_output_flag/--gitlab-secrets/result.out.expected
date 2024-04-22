@@ -8,9 +8,9 @@
       "vendor": {
         "name": "Semgrep"
       },
-      "version": "1.69.0"
+      "version": "<MASKED>"
     },
-    "end_time": "2024-04-21T21:28:22",
+    "end_time": "<MASKED>",
     "scanner": {
       "id": "semgrep",
       "name": "Semgrep",
@@ -18,19 +18,19 @@
       "vendor": {
         "name": "Semgrep"
       },
-      "version": "1.69.0"
+      "version": "<MASKED>"
     },
-    "start_time": "2024-04-21T21:28:22",
+    "start_time": "<MASKED>",
     "status": "success",
     "type": "sast",
-    "version": "1.69.0"
+    "version": "<MASKED>"
   },
   "version": "15.0.4",
   "vulnerabilities": [
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>",
         "sha": "0000000"
       },
       "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",

@@ -8,9 +8,9 @@
       "vendor": {
         "name": "Semgrep"
       },
-      "version": "1.69.0"
+      "version": "<MASKED>"
     },
-    "end_time": "2024-04-21T21:28:11",
+    "end_time": "<MASKED>",
     "scanner": {
       "id": "semgrep",
       "name": "Semgrep",
@@ -18,12 +18,12 @@
       "vendor": {
         "name": "Semgrep"
       },
-      "version": "1.69.0"
+      "version": "<MASKED>"
     },
-    "start_time": "2024-04-21T21:28:10",
+    "start_time": "<MASKED>",
     "status": "success",
     "type": "sast",
-    "version": "1.69.0"
+    "version": "<MASKED>"
   },
   "version": "15.0.4",
   "vulnerabilities": [

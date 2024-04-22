@@ -91,27 +91,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
-              },
-              "help": {
-                "markdown": "this function is only available on Python 3.7+",
-                "text": "this function is only available on Python 3.7+"
-              },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.python37-compatability-os-module"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "useless comparison"
               },
               "help": {
@@ -127,9 +106,30 @@
               "shortDescription": {
                 "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "markdown": "this function is only available on Python 3.7+",
+                "text": "this function is only available on Python 3.7+"
+              },
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
+              }
             }
           ],
-          "semanticVersion": "1.69.0"
+          "semanticVersion": "placeholder"
         }
       }
     }

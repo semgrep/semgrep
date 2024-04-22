@@ -48,41 +48,20 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
+                "text": "possibly useless comparison but in eq function"
               },
               "help": {
-                "markdown": "this function is only available on Python 3.7+",
-                "text": "this function is only available on Python 3.7+"
+                "markdown": "possibly useless comparison but in eq function",
+                "text": "possibly useless comparison but in eq function"
               },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.python37-compatability-os-module"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "useless comparison"
-              },
-              "help": {
-                "markdown": "useless comparison",
-                "text": "useless comparison"
-              },
-              "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
               }
             },
             {
@@ -112,24 +91,45 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "useless comparison"
               },
               "help": {
-                "markdown": "possibly useless comparison but in eq function",
-                "text": "possibly useless comparison but in eq function"
+                "markdown": "useless comparison",
+                "text": "useless comparison"
               },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "markdown": "this function is only available on Python 3.7+",
+                "text": "this function is only available on Python 3.7+"
+              },
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             }
           ],
-          "semanticVersion": "1.69.0"
+          "semanticVersion": "placeholder"
         }
       }
     }
