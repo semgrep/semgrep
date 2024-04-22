@@ -23,7 +23,7 @@
  (enabled_if (<> %{os_type} Win32))
  (action
   (with-stdout-to flags.sexp
-   (run %{workspace_root}/src/main/flags.sh %{ocaml-config:system}))))
+   (run ./flags.sh %{ocaml-config:system}))))
 
 ; flags.sh won't run properly in Windows, so simply hardcode to ( :standard )
 ; todo: is there an easy way to do static compilation in Windows?
