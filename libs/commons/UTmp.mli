@@ -1,5 +1,3 @@
-(* TODO: decide whether it's 'temp' or 'tmp' and use it consistently. *)
-
 (* Creation of /tmp files, a la gcc
  * ex: new_temp_file "cocci" ".c" will create a new tmp file and return
  * its name (e.g., "/tmp/cocci-3252-434465.c").
