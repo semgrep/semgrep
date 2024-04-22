@@ -20,6 +20,7 @@ type session_cache = {
   mutable rules : Rule.t list; [@opaque]
   mutable skipped_app_fingerprints : string list;
   mutable open_documents : Fpath.t list;
+  mutable initialized : bool;
   lock : Lwt_mutex.t; [@opaque]
 }
 [@@deriving show]
@@ -53,6 +54,7 @@ let create caps capabilities =
       skipped_app_fingerprints = [];
       lock = Lwt_mutex.create ();
       open_documents = [];
+      initialized = false;
     }
   in
   {
@@ -365,6 +367,7 @@ let cache_session session =
       session.cached_session.rules <- rules;
       session.cached_session.skipped_app_fingerprints <-
         skipped_app_fingerprints;
+      session.cached_session.initialized <- true;
       Lwt.return_unit)
 
 let add_skipped_fingerprint session fingerprint =
