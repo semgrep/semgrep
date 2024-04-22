@@ -48,20 +48,21 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
               "help": {
-                "markdown": "possibly useless comparison but in eq function",
-                "text": "possibly useless comparison but in eq function"
+                "markdown": "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "helpUri": "https://semgrep.dev/r/eqeq-bad",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+                "text": "Semgrep Finding: rules.eqeq-is-bad"
               }
             },
             {
@@ -111,21 +112,20 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+                "text": "possibly useless comparison but in eq function"
               },
               "help": {
-                "markdown": "useless comparison operation `$X == $X` or `$X != $X`\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/r/eqeq-bad)\n",
-                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+                "markdown": "possibly useless comparison but in eq function",
+                "text": "possibly useless comparison but in eq function"
               },
-              "helpUri": "https://semgrep.dev/r/eqeq-bad",
-              "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.eqeq-is-bad"
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
               }
             }
           ],
