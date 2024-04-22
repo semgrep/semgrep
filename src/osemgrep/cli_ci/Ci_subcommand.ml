@@ -144,7 +144,8 @@ let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
       Logs.app (fun m ->
           m
             "API token not valid. Try to run `semgrep logout` and `semgrep \
-             login` again.");
+             login` again. Or in CI, ensure your SEMGREP_APP_TOKEN variable is \
+             set correctly.");
       Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
   | Some deployment_config ->
       Logs.debug (fun m ->
