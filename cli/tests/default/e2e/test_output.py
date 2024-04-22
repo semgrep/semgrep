@@ -258,9 +258,9 @@ def test_additional_outputs_with_format_output_flag(
         output_format=OutputFormat.TEXT,  # disables json parsing
     )
 
-    with open("sarif.json") as serif_json:
+    with open("sarif.json") as sarif_json:
         snapshot.assert_match(
-            mask_variable_text(serif_json.read()), "sarif.json.expected"
+            mask_variable_text(sarif_json.read()), "sarif.json.expected"
         )
     with open("result.out") as result_out:
         snapshot.assert_match(
