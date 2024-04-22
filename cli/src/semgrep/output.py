@@ -147,10 +147,8 @@ class NormalizedOutputSettings(NamedTuple):
 # WARNING: this class is unofficially part of our external API. It can be passed
 # as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
 # changes to this API, and make them backwards compatible, if possible.
+# Calling normalize produces the internal representation used by OutputHandler.
 class OutputSettings(NamedTuple):
-    # Immutable List of OutputDestination x OutputFormat.
-    # It is optional to maintain backwards compatibility.
-    # Calling normalize produces the internal representation used by output.py.
     outputs: Optional[Dict[Optional[str], OutputFormat]] = None
     output_format: Optional[OutputFormat] = None
     output_destination: Optional[str] = None
@@ -385,7 +383,7 @@ class OutputHandler:
         return bool(
             sum(
                 1
-                for dest, _ in self.settings.get_outputs()
+                for dest in self.settings.outputs
                 if self._formatters[dest].keep_ignores()
             )
         )
