@@ -10,7 +10,7 @@
       },
       "version": "1.69.0"
     },
-    "end_time": "2024-04-21T21:28:21",
+    "end_time": "2024-04-22T05:02:45",
     "scanner": {
       "id": "semgrep",
       "name": "Semgrep",
@@ -20,7 +20,7 @@
       },
       "version": "1.69.0"
     },
-    "start_time": "2024-04-21T21:28:21",
+    "start_time": "2024-04-22T05:02:44",
     "status": "success",
     "type": "sast",
     "version": "1.69.0"
