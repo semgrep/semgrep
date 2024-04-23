@@ -168,7 +168,7 @@ let at_url_maybe ppf () : unit =
  * TODO: factorize with Session.decode_rules()
  *)
 let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
-  CapTmp.with_temp_file caps#tmp ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_temp_file caps#tmp ~contents:data ~suffix:".json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           caps file
