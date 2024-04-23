@@ -20,6 +20,7 @@ module Cmd = Cmdliner.Cmd
    new 'semgrep show supported-languages'
 *)
 type conf = {
+  common : CLI_common.conf;
   (* mix of --dump-ast/--dump-rule/... *)
   show_kind : show_kind;
   json : bool;
@@ -37,11 +38,11 @@ and show_kind =
   (* a.k.a whoami *)
   | Identity
   | Deployment
-  (* 'semgrep show ???'
+  (* 'semgrep show dump-pattern'
    * accessible also as 'semgrep scan --dump-ast -e <pattern>'
    * alt: we could accept XLang.t to dump extended patterns *)
   | DumpPattern of string * Lang.t
-  (* 'semgrep show ???'
+  (* 'semgrep show dump-ast
    * accessible also as 'semgrep scan --lang <lang> --dump-ast <target>
    * alt: we could accept multiple Files via multiple target_roots *)
   | DumpAST of Fpath.t * Lang.t
@@ -85,7 +86,7 @@ let o_args : string list Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine args json =
+  let combine args common json =
     let show_kind =
       (* coupling: if you add a command here, update also the man page
        * further below
@@ -94,6 +95,15 @@ let cmdline_term : conf Term.t =
       | [ "version" ] -> Version
       | [ "dump-config"; config_str ] -> DumpConfig config_str
       | [ "dump-rule-v2"; file ] -> DumpRuleV2 (Fpath.v file)
+      | [ "dump-ast"; file ] ->
+          let lang = failwith "TODO" in
+          DumpAST (Fpath.v file, lang)
+      | [ "dump-ast"; lang_str; file ] ->
+          let lang = Lang.of_string lang_str in
+          DumpAST (Fpath.v file, lang)
+      | [ "dump-pattern"; lang_str; pattern ] ->
+          let lang = Lang.of_string lang_str in
+          DumpPattern (pattern, lang)
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
       | [ "deployment" ] -> Deployment
@@ -105,10 +115,10 @@ let cmdline_term : conf Term.t =
           Error.abort
             (spf "show command not supported: %s" (String.concat " " args))
     in
-    { show_kind; json }
+    { show_kind; json; common }
   in
 
-  Term.(const combine $ o_args $ o_json)
+  Term.(const combine $ o_args $ CLI_common.o_common $ o_json)
 
 let doc = "Show various information"
 
@@ -131,6 +141,10 @@ let man : Cmdliner.Manpage.block list =
     `P "Dump the internal representation of the result of --config=<STRING>";
     `Pre "semgrep show dump-rule-v2 <FILE>";
     `P "Dump the internal representation of a rule using the new (v2) syntax";
+    `Pre "semgrep show dump-ast [<LANG>] <FILE>";
+    `P "Dump the abstract syntax tree of the file";
+    `Pre "semgrep show dump-pattern <LANG> <STRING>";
+    `P "Dump the abstract syntax tree of the pattern string";
   ]
   @ CLI_common.help_page_bottom
 

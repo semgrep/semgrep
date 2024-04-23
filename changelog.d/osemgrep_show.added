@@ -1,0 +1,2 @@
+The osemgrep show command supports 2 new options: `dump-ast` `dump-pattern`.
+See `osemgrep show --help` for more information.
