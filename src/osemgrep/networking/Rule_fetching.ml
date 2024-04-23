@@ -198,7 +198,7 @@ let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
               * import_callback either needs an additional parameter, or
               * parse_rule should take an import_callback as a parameter.
               *)
-             let content =
+             let contents =
                fetch_content_from_registry_url ~token_opt:None caps url
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
@@ -206,7 +206,7 @@ let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
               * header mimetype when downloading the URL to decide how to
               * convert it further?
               *)
-             CapTmp.with_temp_file caps#tmp ~str:content ~ext:"yaml"
+             CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml"
                (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
@@ -323,22 +323,22 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
 
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
     (rules_and_origin, Rule.error) Result.t Lwt.t =
-  let%lwt content = fetch_content_from_url_async ?token_opt caps url in
-  let ext, content =
+  let%lwt contents = fetch_content_from_url_async ?token_opt caps url in
+  let ext, contents =
     if ext = "policy" then
       (* project rule_config, from config_resolver.py in _make_config_request *)
       try
-        match Yojson.Basic.from_string content with
+        match Yojson.Basic.from_string contents with
         | `Assoc e -> (
             match List.assoc "rule_config" e with
             | `String e -> ("json", e)
-            | _else -> (ext, content))
-        | _else -> (ext, content)
+            | _else -> (ext, contents))
+        | _else -> (ext, contents)
       with
-      | _failure -> (ext, content)
-    else (ext, content)
+      | _failure -> (ext, contents)
+    else (ext, contents)
   in
-  CapTmp.with_temp_file caps#tmp ~str:content ~ext (fun file ->
+  CapTmp.with_temp_file caps#tmp ~contents ~suffix:("." ^ ext) (fun file ->
       load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
   |> Lwt.return
 
@@ -384,10 +384,10 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       [ rules ] |> Result_.partition_result Fun.id |> Lwt.return
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let%lwt content =
+      let%lwt contents =
         fetch_content_from_registry_url_async ~token_opt caps url
       in
-      CapTmp.with_temp_file caps#tmp ~str:content ~ext:"yaml" (fun file ->
+      CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition_result Fun.id
       |> Lwt.return

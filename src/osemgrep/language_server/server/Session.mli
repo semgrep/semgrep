@@ -2,22 +2,28 @@ open Lsp
 open Types
 
 val scan_config_parser_ref : (string -> Semgrep_output_v1_t.scan_config) ref
-(** [scan_config_parser_ref] is a reference to a function that parses a scan config from a string *)
+(** [scan_config_parser_ref] is a reference to a function that parses a scan
+    config from a string *)
 
 type session_cache = {
   mutable rules : Rule.t list;
-      (* Rules can take a long time to fetch + load, so we want to minimize it *)
+  (* Rules can take a long time to fetch + load, so we want to minimize it *)
   mutable skipped_app_fingerprints : string list;
-  (* Skipped fingerprints need to be fetched from the app, so we only want to do this every so often.
-   * These come from the same place ci rules do, so we fetch them at the same time as the above rules
-   *)
+  (* Skipped fingerprints need to be fetched from the app, so we only want to do
+     this every so often. * These come from the same place ci rules do, so we
+     fetch them at the same time as the above rules *)
   mutable open_documents : Fpath.t list;
+  (* keep track of if the cache is initialized so we can let users know if they
+     try to do something that need the rules downloaded like a full workspace
+     scan *)
+  mutable initialized : bool;
   (* Files open in the session *)
   lock : Lwt_mutex.t;
 }
-(** Cache of rules that will be run, and skipped fingerprints. Protected by mutex as [cache_session] below
-  * can be called asynchronously, and so this cache needs to be safe
-  *)
+(** Cache of rules that will be run, and skipped fingerprints. Protected by
+    mutex as [cache_session] below * can be called asynchronously, and so this
+    cache needs to be safe
+*)
 
 type t = {
   capabilities : ServerCapabilities.t;
