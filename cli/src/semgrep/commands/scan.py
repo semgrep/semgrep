@@ -475,11 +475,10 @@ def scan_options(func: Callable) -> Callable:
 # rely on their existence, or their output being stable
 @click.option("--dump-engine-path", is_flag=True, hidden=True)
 @click.option(
-    "--beta-testing-secrets-enabled",
+    "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    hidden=True,
-    help="Contact support@semgrep.com for more informationon this.",
+    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @optgroup.group("Osemgrep migration options")
 @optgroup.option(
@@ -575,7 +574,7 @@ def scan(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
-            "The flags --beta-testing-secrets-enabled and --oss-only are incompatible. Semgrep Secrets is a proprietary extension."
+            "Cannot run secrets scan with OSS engine (--oss specified). Semgrep Secrets is a proprietary extension."
         )
 
     state = get_state()

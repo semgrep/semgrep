@@ -83,23 +83,6 @@ let o_code : bool Term.t =
   let info = Arg.info [ "code" ] ~doc:{|Run Semgrep Code (SAST) product.|} in
   Arg.value (Arg.flag info)
 
-let o_beta_testing_secrets : bool Term.t =
-  let info =
-    Arg.info [ "beta-testing-secrets" ]
-      ~doc:{|Please use --secrets instead of --beta-testing-secrets.|}
-  in
-  Arg.value (Arg.flag info)
-
-let o_secrets : bool Term.t =
-  let info =
-    Arg.info [ "secrets" ]
-      ~doc:
-        {|Run Semgrep Secrets product, including support for secret validation.
-          Requires access to Secrets, contact support@semgrep.com for more
-          information.|}
-  in
-  Arg.value (Arg.flag info)
-
 let o_suppress_errors : bool Term.t =
   H.negatable_flag_with_env [ "suppress-errors" ]
     ~neg_options:[ "no-suppress-errors" ]
@@ -121,11 +104,10 @@ let cmdline_term caps : conf Term.t =
    * it below so we can get a nice man page documenting those environment
    * variables (Romain's idea).
    *)
-  let combine scan_conf audit_on beta_testing_secrets code dry_run
-      _internal_ci_scan_results secrets supply_chain suppress_errors _git_meta
-      _github_meta =
+  let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
+      supply_chain suppress_errors _git_meta _github_meta =
     let products =
-      (if beta_testing_secrets || secrets then [ `Secrets ] else [])
+      (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
       @ if supply_chain then [ `SCA ] else []
     in
@@ -134,9 +116,9 @@ let cmdline_term caps : conf Term.t =
   Term.(
     const combine
     $ Scan_CLI.cmdline_term caps ~allow_empty_config:true
-    $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run
-    $ o_internal_ci_scan_results $ o_secrets $ o_supply_chain
-    $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
+    $ o_audit_on $ o_code $ Scan_CLI.o_secrets $ o_dry_run
+    $ o_internal_ci_scan_results $ o_supply_chain $ o_suppress_errors
+    $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 
