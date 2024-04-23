@@ -132,6 +132,7 @@ let respond packet =
   Logs.debug (fun m ->
       m "Sending response %s"
         (Packet.yojson_of_t packet |> Yojson.Safe.pretty_to_string));
+  UCommon.pr2 (Common.spf "about to resppond!!!!!!!!!\n\n");
   let%lwt () = Io.write packet in
   Io.flush ()
 
@@ -166,6 +167,13 @@ let notify_show_message ~kind s =
       { ShowMessageParams.message = s; type_ = kind }
   in
   batch_notify [ notif ]
+
+let partial_progress ~method_ ~params =
+  let notif =
+    Server_notification.UnknownNotification
+      (Jsonrpc.Notification.create ~params ~method_ ())
+  in
+  Lwt.async (fun () -> notify notif)
 
 (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
 let create_progress title message =

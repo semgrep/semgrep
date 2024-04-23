@@ -1,4 +1,6 @@
 val run_semgrep :
+  ?file_match_results_hook:
+    (Fpath.t -> Core_result.matches_single_file -> unit) option ->
   ?targets:Fpath.t list ->
   ?rules:Rule.rules ->
   ?git_ref:string ->

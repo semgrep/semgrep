@@ -60,6 +60,8 @@ val notify_show_message : kind:Lsp.Types.MessageType.t -> string -> unit
     type [kind] as a window to the extension
   *)
 
+val partial_progress : method_:string -> params:Jsonrpc.Structured.t -> unit
+
 val create_progress : string -> string -> Lsp.Types.ProgressToken.t
 (** [create_progress t title message] creates a progress token. *)
 

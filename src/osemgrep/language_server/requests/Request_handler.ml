@@ -34,11 +34,7 @@ let handle_custom_request server (meth : string)
     =
   match
     (* Methods which can alter the server *)
-    [
-      (Search.start_meth, Search.start_search);
-      (Search.ongoing_meth, Search.search_next_file);
-    ]
-    |> List.assoc_opt meth
+    [ (Search.start_meth, Search.start_search) ] |> List.assoc_opt meth
   with
   | Some handler -> handler server params
   | None -> (

@@ -47,7 +47,8 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
 
 (* This is the entry point for scanning, returns /relevant/ matches,
    and all files scanned. *)
-let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
+let run_semgrep ?(file_match_results_hook = None)
+    ?(targets : Fpath.t list option) ?rules ?git_ref
     ({ session; state = _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
   match (rules, targets) with
@@ -112,7 +113,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         in
 
         let res =
-          core_run_func.run ~file_match_results_hook:None runner_conf
+          core_run_func.run ~file_match_results_hook runner_conf
             Find_targets.default_conf rules [] targets
         in
         Core_runner.create_core_result rules res

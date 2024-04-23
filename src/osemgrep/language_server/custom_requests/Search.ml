@@ -424,15 +424,15 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
   let after = Str.string_after line end_col in
   ((if is_cut_off then "..." ^ before else before), inside, after)
 
-let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
+let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
         let uri = !!path |> Uri.of_path |> Uri.to_string in
         let matches =
           matches
-          |> List_.map (fun (m : OutJ.cli_match) ->
-                 let range = Conv.range_of_cli_match m in
+          |> List_.map (fun (m : Pattern_match.t) ->
+                 let range = Conv.range_of_toks m.range_loc in
                  let range_json = Range.yojson_of_t range in
                  let line = List.nth (UFile.cat path) range.start.line in
                  let before, inside, after =
@@ -444,7 +444,7 @@ let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
                        ~col_range:(range.start.character, String.length line)
                  in
                  let fix_json =
-                   match m.extra.fix with
+                   match m.rule_id.fix with
                    | None -> `Null
                    | Some s -> `String s
                  in
@@ -460,61 +460,65 @@ let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
         `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
       matches_by_file
   in
-  Some (`Assoc [ ("locations", `List json) ])
+  `Assoc [ ("locations", `List json) ]
 
 (*****************************************************************************)
 (* Running Semgrep! *)
 (*****************************************************************************)
 
-let next_rules_and_file (server : RPC_server.t) =
-  match server.session.search_config with
-  | None
-  | Some { files = []; _ } ->
-      None
-  | Some ({ files = file :: rest; _ } as config) ->
-      let new_session =
-        {
-          server.session with
-          search_config = Some { config with files = rest };
-        }
-      in
-      Some ((config.rules, file), { server with session = new_session })
+let file_match_results_hook =
+  let r = ref [] in
+  fun file (matches : Core_result.matches_single_file) ->
+    match matches.matches with
+    | [] -> ()
+    | _ ->
+        (* TODO: handle the rest on the last invocation *)
+        r := (file, matches.matches) :: !r;
+        if List.length !r > 10 then (
+          let json : Yojson.Safe.t =
+            `Assoc [ ("token", `String "token"); ("value", json_of_matches !r) ]
+          in
+          r := [];
+          UCommon.pr2
+            (Common.spf "sending file match results hook with %d"
+               (List.length matches.matches));
+          RPC_server.partial_progress ~method_:"foo/bar"
+            ~params:(Jsonrpc.Structured.t_of_yojson json))
 
-let rec search_single_target (server : RPC_server.t) =
-  match next_rules_and_file server with
-  | None ->
-      (* Since we are done with our searches (no more targets), reset our internal state to
-         no longer have this scan config.
-      *)
-      ( Some (`Assoc [ ("locations", `List []) ]),
-        { server with session = { server.session with search_config = None } }
-      )
-  | Some ((rules, file), server) -> (
-      try
-        let run_server =
+let do_search (files : Fpath.t list) (rules : Rule.search_rule list)
+    (server : RPC_server.t) =
+  let send_nullary () =
+    (* Since we are done with our searches (no more targets), reset our internal state to
+       no longer have this scan config.
+    *)
+    Some (`Assoc [ ("locations", `List []) ])
+  in
+  try
+    let run_server =
+      {
+        server with
+        session =
           {
-            server with
-            session =
+            server.session with
+            user_settings =
               {
-                server.session with
-                user_settings =
-                  { server.session.user_settings with only_git_dirty = false };
+                server.session.user_settings with
+                only_git_dirty = false;
+                jobs = 1;
               };
-          }
-        in
-        let matches, _scanned =
-          (* !!calling the engine!! *)
-          Scan_helpers.run_semgrep
-            ~rules:(List_.map (fun r -> (r :> Rule.rule)) rules)
-            ~targets:[ file ] run_server
-        in
-        match matches with
-        | [] -> search_single_target server
-        | _ ->
-            let json = json_of_matches [ (file, matches) ] in
-            (json, server)
-      with
-      | Parsing_error.Syntax_error _ -> search_single_target server)
+          };
+      }
+    in
+    (* !!calling the engine!! *)
+    Scan_helpers.run_semgrep
+      ~file_match_results_hook:(Some file_match_results_hook)
+      ~rules:(List_.map (fun r -> (r :> Rule.rule)) rules)
+      ~targets:files run_server
+    |> ignore;
+    UCommon.pr2 "done with run_semgrep";
+    send_nullary ()
+  with
+  | Parsing_error.Syntax_error _ -> send_nullary ()
 
 (*****************************************************************************)
 (* Entry point *)
@@ -533,16 +537,4 @@ let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
       let env = mk_env server params in
       let rules = get_relevant_rules env in
       (* !!calling the engine!! *)
-      search_single_target
-        {
-          server with
-          session =
-            {
-              server.session with
-              search_config = Some { rules; files = env.initial_files };
-            };
-        }
-
-let search_next_file (server : RPC_server.t) _params =
-  (* The params are nullary, so we don't actually need to check them. *)
-  search_single_target server
+      (do_search env.initial_files rules server, server)
