@@ -128,24 +128,35 @@ let on_notification notification (server : RPC_server.t) =
           |> member "full" |> to_bool_option
           |> Option.value ~default:false
         in
-        if server.session.metrics.isNewAppInstall && full then
+        if server.session.user_settings.only_git_dirty && full then
           RPC_server.notify_show_message ~kind:MessageType.Info
-            "Scanning all files regardless of git status. These diagnostics \
-             will persist until a file is edited. To default to always \
-             scanning regardless of git status, please disable 'Only Git \
-             Dirty' in settings";
+            "Semgrep is now always scanning all files and lines regardless of \
+             if they have been changed since the last commit, until the editor \
+             restarts. If you want this to be permanent disable \"Only Git \
+             Dirty\" in settings. To go back to only scanning files that have \
+             been changed since the last commit run \"Scan changed files in \
+             workspace\" or restart the editor."
+        else if not (server.session.user_settings.only_git_dirty || full) then
+          RPC_server.notify_show_message ~kind:MessageType.Info
+            "Semgrep is now always scanning only files and lines that have \
+             been changed since the last commit, until the editor restarts. If \
+             you want this to be permanent enable \"Only Git Dirty\" in \
+             settings. To go back to scanning all files and lines regardless \
+             of if they've been changed, run \"Scan all files in workspace\" \
+             or restart the editor.";
         Logs.debug (fun m -> m "Scanning workspace, full: %b" full);
-        let scan_server =
-          let session =
-            {
-              server.session with
-              user_settings =
-                { server.session.user_settings with only_git_dirty = not full };
-            }
-          in
-          { server with session }
+        let session =
+          {
+            server.session with
+            user_settings =
+              { server.session.user_settings with only_git_dirty = not full };
+          }
         in
-        Scan_helpers.scan_workspace scan_server;
+        Logs.debug (fun m ->
+            m "Only git dirty is now %b"
+              server.session.user_settings.only_git_dirty);
+        let server = { server with session } in
+        Scan_helpers.scan_workspace server;
         Logs.debug (fun m -> m "Scanning workspace complete");
         server
     | CN.UnknownNotification { method_; params } ->
