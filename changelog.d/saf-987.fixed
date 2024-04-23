@@ -1,0 +1,10 @@
+Constant propagation: Constants that are being type-casted will now
+propagate properly, e.g. in the following example:
+```
+const x = "source" as TypeName;
+sink(x);
+```
+will now match
+```
+sink("source")
+```
