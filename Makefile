@@ -63,6 +63,7 @@
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
+SHELL := /bin/bash
 LINK_HELP_TEXT="Dune reported a linker error. If you ran into this after adding \
 	a new dependency, then this probably means that that dependency relies on \
 	a library that needs to be linked. See src/main/flags.sh on how to \
