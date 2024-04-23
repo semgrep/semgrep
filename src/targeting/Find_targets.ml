@@ -96,7 +96,8 @@ type conf = {
   diff_depth : int;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
-  (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
+  (* osemgrep-only: option
+     (see Git_project.find_any_project_root and the force_root parameter) *)
   force_project_root : project_root option;
 }
 [@@deriving show]
