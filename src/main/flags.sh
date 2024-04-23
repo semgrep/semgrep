@@ -185,10 +185,14 @@ else
             "-lcurl"
             "$(pkg-config gmp --variable libdir)/libgmp.a"
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
-            "$(brew --prefix libev)/lib/libev.a"
-            "$(brew --prefix pcre)/lib/libpcre.a"
-            "$(brew --prefix pcre2)/lib/libpcre2-8.a"
+            "$(pkg-config libpcre --variable libdir)/libpcre.a"
+            "$(pkg-config libpcre2-8 --variable libdir)/libpcre2-8.a"
             "-lpthread")
+        if [[ -v SEMGREP_LIBEV_ARCHIVE_PATH ]]; then
+            CCLIB+=("${SEMGREP_LIBEV_ARCHIVE_PATH}")
+        else
+            CCLIB+=("$(brew --prefix libev)/lib/libev.a")
+        fi
         for lang in ${LANGS[@]+"${LANGS[@]}"}; do
             CCLIB+=("-ltree_sitter_${lang}_stubs")
         done
