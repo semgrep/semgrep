@@ -51,7 +51,6 @@ let full_lang_info =
     (Lang.Ts, "ts", ".ts");
     (Lang.Json, "json", ".json");
     (Lang.Java, "java", ".java");
-    (Lang.C, "c", ".c");
     (Lang.Cpp, "cpp", ".cpp");
     (Lang.Go, "go", ".go");
     (Lang.Ocaml, "ocaml", ".ml");
@@ -217,7 +216,6 @@ let language_exceptions =
     (* Experimental languages *)
 
     (* TODO: dots_nested_stmts to fix for C and C++ *)
-    (Lang.C, [ "dots_nested_stmts" ]);
     (Lang.Cpp, [ "dots_nested_stmts" ]);
     (* good boy *)
     (Lang.Lua, []);
@@ -285,7 +283,6 @@ let maturity_tests () =
 
       (* Experimental *)
       make_maturity_tests Lang.Bash "bash" ".bash" Experimental;
-      make_maturity_tests Lang.C "c" ".c" Experimental;
       make_maturity_tests Lang.Cpp "cpp" ".cpp" Experimental;
       (* TODO
          make_maturity_tests Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;

@@ -91,7 +91,6 @@ let token ?(d = "TODO") tok =
 type lang_kind = CLikeSemiColon | Other
 
 let _lang_kind = function
-  | Lang.C
   | Lang.Cpp
   | Lang.Java
   | Lang.Apex
@@ -236,7 +235,6 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Apex
     | Lang.Java
     | Lang.Go
-    | Lang.C
     | Lang.Cpp
     | Lang.Csharp
     | Lang.Json
@@ -312,7 +310,6 @@ and while_stmt env (tok, e, s) =
         python_while
     | Lang.Apex
     | Lang.Java
-    | Lang.C
     | Lang.Cpp
     | Lang.Csharp
     | Lang.Kotlin
@@ -359,7 +356,6 @@ and do_while stmt env (s, e) =
         raise Todo
     | Lang.Apex
     | Lang.Java
-    | Lang.C
     | Lang.Cpp
     | Lang.Csharp
     | Lang.Kotlin
@@ -408,7 +404,6 @@ and for_stmt env (for_tok, hdr, s) =
         raise Todo
     | Lang.Apex
     | Lang.Java
-    | Lang.C
     | Lang.Cpp
     | Lang.Csharp
     | Lang.Kotlin
@@ -506,7 +501,6 @@ and def_stmt env (entity, def_kind) =
           raise Todo
       | Lang.Apex
       | Lang.Java
-      | Lang.C
       | Lang.Cpp
       | Lang.Csharp
       | Lang.Kotlin ->

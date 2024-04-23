@@ -17,7 +17,6 @@
 type t = Language.t =
   | Apex
   | Bash
-  | C
   | Cairo
   | Clojure
   | Cpp

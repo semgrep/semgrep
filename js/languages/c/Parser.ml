@@ -22,4 +22,4 @@ let parse_pattern print_errors _ str =
 let _ =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
-  Semgrep_js_shared.make_js_module [ Lang.C ] parse_target parse_pattern
+  Semgrep_js_shared.make_js_module [ Lang.Cpp ] parse_target parse_pattern

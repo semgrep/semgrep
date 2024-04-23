@@ -85,7 +85,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Go "go" ".go";
       pack_parsing_tests_for_lang Lang.Ruby "ruby" ".rb";
       pack_parsing_tests_for_lang Lang.Js "js" ".js";
-      pack_parsing_tests_for_lang Lang.C "c" ".c";
+      pack_parsing_tests_for_lang Lang.Cpp "c" ".c";
       pack_parsing_tests_for_lang Lang.Cpp "cpp" ".cpp";
       pack_parsing_tests_for_lang Lang.Php "php" ".php";
       pack_parsing_tests_for_lang Lang.Ocaml "ocaml" ".ml";

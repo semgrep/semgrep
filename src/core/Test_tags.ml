@@ -30,11 +30,11 @@ let tags_of_lang (lang : Lang.t) =
   let todo_js_tags =
     match lang with
     | Cpp (* TODO: investigate C++ test issues *)
+    (* TODO: investigate c_array_inits pattern parse error*)
     | Julia (* TODO: re-enable once we fix Julia build slowness *)
     | Ruby (* TODO: re-enable once we fix Ruby build slowness *)
     | Go (* TODO: re-enable this when we fix the jsoo int overflow bug *)
-    | Ql (* TODO: Doesn't work in js for some reason *)
-    | C (* TODO: investigate c_array_inits pattern parse error*) ->
+    | Ql (* TODO: Doesn't work in js for some reason *) ->
         [ todo_js ]
     | _ -> []
   in

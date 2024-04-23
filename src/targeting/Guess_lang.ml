@@ -239,7 +239,6 @@ let inspect_file_p (lang : Lang.t) path =
         Or (is_named [ "Dockerfile"; "dockerfile" ], has_lang_extension lang)
     | Apex
     | Bash
-    | C
     | Cairo
     | Clojure
     | Cpp

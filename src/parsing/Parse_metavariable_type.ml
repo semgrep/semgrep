@@ -28,7 +28,6 @@ let wrap_type_expr lang str =
   | Lang.Rust -> Some (spf "x as %s" str)
   | Lang.Julia -> Some (spf "x :: %s" str)
   | Lang.Cpp -> Some (spf "(%s) x" str)
-  | Lang.C -> Some (spf "(%s) x" str)
   | _ -> None
 
 let unwrap_type_expr lang expr =
@@ -56,5 +55,4 @@ let unwrap_type_expr lang expr =
   | Lang.Rust, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Julia, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Cpp, G.E { e = G.Cast (t, _, _); _ } -> Some t
-  | Lang.C, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | _ -> None

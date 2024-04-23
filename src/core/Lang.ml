@@ -43,7 +43,6 @@ module FT = File_type
 type t = Language.t =
   | Apex
   | Bash
-  | C
   | Cairo
   | Clojure
   | Cpp
@@ -130,8 +129,8 @@ let langs_of_filename filename =
   | FT.PL (FT.Web FT.Vue) -> [ Vue ]
   | FT.PL FT.Python -> [ Python; Python2; Python3 ]
   (* .h could also be Cpp at some point *)
-  | FT.PL (FT.C "c") -> [ C ]
-  | FT.PL (FT.C "h") -> [ C; Cpp ]
+  | FT.PL (FT.C "c") -> [ Cpp ]
+  | FT.PL (FT.C "h") -> [ Cpp ]
   | FT.PL (FT.Cplusplus _) -> [ Cpp ]
   | FT.PL (FT.OCaml ("ml" | "mli")) -> [ Ocaml ]
   | FT.PL FT.Java -> [ Java ]

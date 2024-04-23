@@ -9,7 +9,6 @@ let lang_has_no_dollar_ids =
     | Python3
     | Java
     | Go
-    | C
     | Cpp
     | Dart
     | Julia
