@@ -24,6 +24,21 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+# Rules may be ordered differently in python and ocaml, but it
+# shouldn't matter to the user, so we will sort the rules by rule id
+# just for validating purposes.
+def normalize_sarif_findings(findings: Mapping, mode: str) -> Mapping:
+    try:
+        for run in findings["runs"]:
+            sorted_rules = sorted(
+                run["tool"]["driver"]["rules"], key=lambda rule: rule["id"]
+            )
+            run["tool"]["driver"]["rules"] = sorted_rules
+    except KeyError as e:
+        logger.verbose(f"Invalid SARIF format ({mode}): key not found {e}")
+    return findings
+
+
 class OsemgrepSarifFormatter(BaseFormatter):
     def _osemgrep_format(
         self,
@@ -132,8 +147,8 @@ class OsemgrepSarifFormatter(BaseFormatter):
             # Validate results and time it to make sure it's not expensive.
             validate_start = timeit.default_timer()
             o_output = rpc_result.output
-            o_json = json.loads(o_output)
-            py_json = json.loads(py_output)
+            o_json = normalize_sarif_findings(json.loads(o_output), "osemgrep")
+            py_json = normalize_sarif_findings(json.loads(py_output), "pysemgrep")
             is_match = o_json == py_json
             validate_elapse = timeit.default_timer() - validate_start
 
