@@ -188,11 +188,18 @@ else
             "$(pkg-config libpcre --variable libdir)/libpcre.a"
             "$(pkg-config libpcre2-8 --variable libdir)/libpcre2-8.a"
             "-lpthread")
+
+        # Libev does not support pkg-config. See, e.g.,
+        # <https://www.mail-archive.com/libev@lists.schmorp.de/msg02088.html>,
+        # <http://lists.schmorp.de/pipermail/libev/2024q1/002940.html>. As a
+        # result we still use the brew prefix, but with the option of an
+        # environment variable for the build to override the location.
         if [[ -v SEMGREP_LIBEV_ARCHIVE_PATH ]]; then
             CCLIB+=("${SEMGREP_LIBEV_ARCHIVE_PATH}")
         else
             CCLIB+=("$(brew --prefix libev)/lib/libev.a")
         fi
+
         for lang in ${LANGS[@]+"${LANGS[@]}"}; do
             CCLIB+=("-ltree_sitter_${lang}_stubs")
         done
