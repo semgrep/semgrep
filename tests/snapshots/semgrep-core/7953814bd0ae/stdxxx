@@ -1,3 +1,6 @@
 Snapshot for Test_show_subcommand.test_identity.(fun)
  SUCCESS  You are logged in as {"identity":"cli_fake_user_valid-from-fake-date"}
+--- begin input files ---
+settings.yml
+--- end input files ---
 ASSERT exit code

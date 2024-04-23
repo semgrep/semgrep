@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module F = Testutil_files
 
 let t = Testo.create
@@ -55,6 +56,21 @@ rules:
 let foo_py_content = {|
 def foo():
     return 42
+|}
+
+(* for dump-identity *)
+let with_fake_login settings_content f =
+  let files = [ F.File ("settings.yml", settings_content) ] in
+  F.with_tempfiles ~chdir:true ~verbose:true files (fun cwd ->
+      Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
+        !!(cwd / "settings.yml")
+        f)
+
+let fake_settings =
+  {|
+has_shown_metrics_notification: true
+anonymous_user_id: f96a240e-13df-40d6-93a8-44b7fed7a569
+api_token: deaddead007
 |}
 
 (* for dump-identity *)
@@ -197,14 +213,17 @@ let test_dump_pattern (caps : caps) : Testo.test =
       Exit_code.Check.ok exit_code)
 
 let test_identity (caps : caps) : Testo.test =
-  (* TODO: use stdxxx here because we're using Logs.app for some of the output
-   * instead of CapConsole in Whoami.ml
+  (* TODO: we use stdxxx here because we're using Logs.app for some of the output
+   * instead of CapConsole in Whoami.ml, but we should really use CapConsole
+   * and just capture stdout here.
    *)
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
-        with_fake_identity_response fake_identity (fun () ->
-            Show_subcommand.main caps [| "semgrep-show"; "identity" |])
+        (* we need to be logged in otherwise we will not contact the server *)
+        with_fake_login fake_settings (fun () ->
+            with_fake_identity_response fake_identity (fun () ->
+                Show_subcommand.main caps [| "semgrep-show"; "identity" |]))
       in
       Exit_code.Check.ok exit_code)
 
