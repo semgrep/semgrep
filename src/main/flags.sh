@@ -194,10 +194,10 @@ else
         # <http://lists.schmorp.de/pipermail/libev/2024q1/002940.html>. As a
         # result we still use the brew prefix, but with the option of an
         # environment variable for the build to override the location.
-        if [[ -v SEMGREP_LIBEV_ARCHIVE_PATH ]]; then
-            CCLIB+=("${SEMGREP_LIBEV_ARCHIVE_PATH}")
-        else
+        if [ -z ${SEMGREP_LIBEV_ARCHIVE_PATH+set} ]; then
             CCLIB+=("$(brew --prefix libev)/lib/libev.a")
+        else
+            CCLIB+=("${SEMGREP_LIBEV_ARCHIVE_PATH}")
         fi
 
         for lang in ${LANGS[@]+"${LANGS[@]}"}; do
