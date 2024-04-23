@@ -6,12 +6,6 @@ open Common
 open Printf
 open Fpath_.Operators
 
-(* Mask lines like this one:
-   [main (root-commit) 45e8b46] Add all the files
-*)
-let mask_temp_git_hash =
-  Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ()
-
 (* Precisely mask the hexadecimal part in a temp folder name
    such as 'test-1e92745e'. This is printed by some tests as a relative
    path that is not automatically detected by Testo.mask_temp_paths. *)
@@ -19,7 +13,11 @@ let mask_test_dirname =
   Testo.mask_pcre_pattern ~replace:(fun _ -> "<HEX>") "test-([a-f0-9]{1,8})"
 
 let normalize =
-  [ mask_temp_git_hash; Testutil.mask_temp_paths (); mask_test_dirname ]
+  [
+    Testutil_git.mask_temp_git_hash;
+    Testutil.mask_temp_paths ();
+    mask_test_dirname;
+  ]
 
 let t = Testo.create
 let capture = Testo.create ~checked_output:(Testo.stdout ()) ~normalize
@@ -38,7 +36,7 @@ let test_ls_files_relative ~mk_cwd ~mk_scanning_root () =
         dir "a" [ dir "b" [ file "target" ] ]; dir "x" [ dir "y" [ file "z" ] ];
       ]
   in
-  Git_wrapper.with_git_repo repo_files (fun () ->
+  Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
       let project_root = Rpath.getcwd () in
       let cwd = mk_cwd ~project_root in
       Testutil_files.with_chdir (Rpath.to_fpath cwd) (fun () ->
@@ -54,8 +52,25 @@ let test_ls_files_relative ~mk_cwd ~mk_scanning_root () =
           file_list
           |> List.iter (fun path -> printf "  %s\n" (Fpath.to_string path))))
 
+let test_user_identity () =
+  Testutil_git.with_git_repo ~verbose:true
+    [ File ("empty", "") ]
+    (fun _cwd ->
+      let not_found = Git_wrapper.config_get "xxxxxxxxxxxxxxxxxxxxxxxxxxx" in
+      Alcotest.(check (option string)) "missing entry" None not_found;
+      let user_name = Git_wrapper.config_get "user.name" in
+      Alcotest.(check (option string))
+        "default user name" (Some "Tester") user_name;
+      let user_email = Git_wrapper.config_get "user.email" in
+      Alcotest.(check (option string))
+        "default user email" (Some "tester@example.com") user_email;
+      Git_wrapper.config_set "user.name" "nobody";
+      let nobody = Git_wrapper.config_get "user.name" in
+      Alcotest.(check (option string)) "new user name" (Some "nobody") nobody)
+
 let tests =
   [
+    t "user identity" test_user_identity;
     capture "ls-files from project root"
       (test_ls_files_relative
          ~mk_cwd:(fun ~project_root -> project_root)

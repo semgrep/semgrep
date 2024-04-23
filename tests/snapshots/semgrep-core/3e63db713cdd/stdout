@@ -4,6 +4,12 @@ Test name: with git > gitignore file takes precedence over --include
 c
 dir/a
 dir/b
+--- begin input files ---
+.gitignore
+c
+dir/a
+dir/b
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  2 files changed, 1 insertion(+)

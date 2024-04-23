@@ -1,4 +1,6 @@
 [tool.pytest.ini_options]
+# coupling: if you add a dep here it would be great if you added it to the top
+# level flake.nix in devPipInputs
 minversion = "7.0"
 # The default folders where pytest looks for tests when none is specified
 # on the command line. Don't extend this list so as to minimize surprises.

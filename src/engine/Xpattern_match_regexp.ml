@@ -19,6 +19,9 @@ module MV = Metavariable
 
 let tags = Logs_.create_tags [ __MODULE__ ]
 
+(* This is generic so that internal uses of regex can still use PCRE (instead
+   of PCRE2) to get the old semantics. Notably, this is used by generic mode.
+*)
 type ('regex, 'libregex, 'substring) re_functions = {
   get_pattern : 'regex -> string;
   get_regex : 'regex -> 'libregex;

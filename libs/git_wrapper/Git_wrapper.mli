@@ -135,11 +135,14 @@ val is_tracked_by_git : ?cwd:Fpath.t -> Fpath.t -> bool
 (** [is_tracked_by_git path] Returns true if the file is tracked by git *)
 
 (* precondition: cwd must be a directory *)
-val dirty_files : ?cwd:Fpath.t -> unit -> Fpath.t list
-(** [dirty_files ()] is the list of files which are dirty in a git repo, i.e.,
-    files which differ at all from the current index to the HEAD commit, plus
-    untracked files. Note that this means this list includes files which were
-    deleted. *)
+val dirty_paths : ?cwd:Fpath.t -> unit -> Fpath.t list
+(** [dirty_paths ()] is the list of paths which are dirty in a git repo, i.e.,
+    paths which differ at all from the current index to the HEAD commit, plus
+    untracked files. Note that this means this list includes paths which were
+    deleted.
+    We use "paths" instead of "files" here because it may include directories,
+    for newly created directories!
+  *)
 
 val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
 (** [init ()] creates an empty git repository in the current directory. If
@@ -152,6 +155,12 @@ val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
     The branch is set by default to 'main' to avoid warnings that depend
     on the git version.
 *)
+
+(* Set or replace an entry in the user's config tied to the repo. *)
+val config_set : ?cwd:Fpath.t -> string -> string -> unit
+
+(* Get the value of an entry in the user's config. *)
+val config_get : ?cwd:Fpath.t -> string -> string option
 
 val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
 (** [add files] adds the [files] to the git index. *)
@@ -216,14 +225,3 @@ val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
 
 val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
-
-(*****************************************************************************)
-(* For testing *)
-(*****************************************************************************)
-
-(*
-   Create a temporary git repo for testing purposes, cd into it,
-   call a function, tear down the repo, and restore the original cwd.
-   This is an extension of Testutil_files.
-*)
-val with_git_repo : Testutil_files.t list -> (unit -> 'a) -> 'a

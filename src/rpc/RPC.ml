@@ -1,5 +1,5 @@
 open Common
-open Semgrep_output_v1_t
+open Semgrep_output_v1_j
 
 let ( let* ) = Result.bind
 
@@ -38,10 +38,57 @@ let handle_autofix dryrun edits =
     in
     (List.length modified_files, [])
 
-let handle_call : function_call -> (function_return, string) result = function
+let handle_sarif_format caps hide_nudge engine_label (rules : fpath)
+    (cli_matches : cli_match list) (cli_errors : cli_error list) =
+  let core_scan_conf =
+    {
+      Core_scan_config.default with
+      rule_source = Some (Core_scan_config.Rule_file rules);
+    }
+  in
+  let rules, _invalid_rules =
+    Core_scan.rules_from_rule_source caps core_scan_conf
+  in
+  let hrules = Rule.hrules_of_rules rules in
+  let cli_output =
+    {
+      results = cli_matches;
+      errors = cli_errors;
+      (* The only fields that matter for sarif are cli_output.results and cli_output.errors,
+       * so the rest of the fields are just populated with the minimal amount of info
+       *)
+      version = None;
+      paths = { scanned = []; skipped = None };
+      time = None;
+      explanations = None;
+      rules_by_engine = None;
+      engine_requested = None;
+      interfile_languages_used = None;
+      skipped_rules = [];
+    }
+  in
+  let output, format_time_seconds =
+    Common.with_time (fun () ->
+        let sarif_json =
+          Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
+        in
+        Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
+  in
+  (output, format_time_seconds)
+
+let handle_call caps : function_call -> (function_return, string) result =
+  function
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = handle_autofix dryrun edits in
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
+  | `CallSarifFormat
+      { hide_nudge; engine_label; rules; cli_matches; cli_errors } ->
+      let output, format_time_seconds =
+        handle_sarif_format
+          (caps :> < Cap.tmp >)
+          hide_nudge engine_label rules cli_matches cli_errors
+      in
+      Ok (`RetSarifFormat { output; format_time_seconds })
 
 let read_packet chan =
   let* size_str =
@@ -70,7 +117,7 @@ let write_packet chan str =
 
 (* Blocks until a request comes in, then handles it and sends the result back.
  * *)
-let handle_single_request () =
+let handle_single_request caps () =
   let res =
     let* call_str = read_packet stdin in
     let* call =
@@ -82,7 +129,7 @@ let handle_single_request () =
           let e = Exception.catch e in
           Error (spf "Error parsing RPC request:\n%s" (Exception.to_string e))
     in
-    try handle_call call with
+    try handle_call caps call with
     (* Catch-all here. No matter what happens while handling this request, we
      * need to send a response back. *)
     | e ->
@@ -97,6 +144,6 @@ let handle_single_request () =
   let res_str = Semgrep_output_v1_j.string_of_function_return func_return in
   write_packet stdout res_str
 
-let main _caps =
+let main caps =
   (* For now, just handle one request and then exit. *)
-  handle_single_request ()
+  handle_single_request caps ()

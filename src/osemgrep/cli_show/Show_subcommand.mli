@@ -1,7 +1,7 @@
 (*
    Parse a semgrep-show command, execute it and exit.
 
-   Usage: main [| "semgrep-show"; ... |]
+   Usage: main caps [| "semgrep-show"; ... |]
 
    This function returns an exit code to be passed to the 'exit' function.
    we need the network for the 'semgrep show identity/deployment'

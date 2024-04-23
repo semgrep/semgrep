@@ -1,1 +1,0 @@
-Secrets historical scans: fixed a bug where historical scans could run on differential scans.

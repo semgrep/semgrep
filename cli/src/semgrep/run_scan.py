@@ -360,6 +360,7 @@ def run_scan(
     max_memory: int = 0,
     interfile_timeout: int = 0,
     trace: bool = False,
+    trace_endpoint: Optional[str] = None,
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
@@ -550,6 +551,7 @@ def run_scan(
         interfile_timeout=interfile_timeout,
         timeout_threshold=timeout_threshold,
         trace=trace,
+        trace_endpoint=trace_endpoint,
         optimizations=optimizations,
         allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
@@ -635,13 +637,24 @@ def run_scan(
                     baseline_target_strings = target_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
+                        scanned = [
+                            # Conducting the inter-file diff scan twice with the exact same configuration,
+                            # both on the current commit and the baseline commit, could result in the absence
+                            # of a newly added file and its dependencies from the baseline run. Consequently,
+                            # this may lead to the failure to remove pre-existing findings. A more effective
+                            # approach would involve utilizing the same set of scanned diff targets from the
+                            # first run in the baseline run. This approach ensures the safe elimination of any
+                            # existing findings in the dependency files, even if the original file does not
+                            # exist in the baseline commit.
+                            Path(t.value)
+                            for t in output_extra.core.paths.scanned
+                        ]
+                        scanned.extend(baseline_handler.status.renamed.values())
                         baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
                             frozenset(
-                                Path(t)
-                                for t in target_mode_config.get_diff_targets()
-                                if t.exists() and not t.is_symlink()
+                                t for t in scanned if t.exists() and not t.is_symlink()
                             ),
-                            target_mode_config.get_diff_depth(),
+                            0,  # scanning the same set of files in the second run
                         )
                     else:
                         baseline_target_strings = frozenset(
@@ -697,8 +710,11 @@ def run_scan(
             except Exception as e:
                 raise SemgrepError(e)
 
+    # If there are multiple outputs and any request to keep_ignores
+    # then all outputs keep the ignores. The only output format that
+    # keep ignored matches currently is sarif.
     ignores_start_time = time.time()
-    keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
+    keep_ignored = disable_nosem or output_handler.keep_ignores()
     filtered_matches_by_rule = filter_ignored(
         rule_matches_by_rule, keep_ignored=keep_ignored
     )
@@ -797,4 +813,8 @@ def run_scan_and_return_json(
     output_handler.explanations = output_extra.core.explanations
     output_handler.extra = output_extra
 
-    return json.loads(output_handler._build_output())  # type: ignore
+    outputs = tuple(output_handler._build_outputs())
+    if len(outputs) != 1:
+        raise RuntimeError("run_scan_and_return_json: expects a single output")
+
+    return json.loads(outputs[0][1])  # type: ignore

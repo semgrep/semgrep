@@ -24,6 +24,7 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
+from semgrep.commands.scan import collect_additional_outputs
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
@@ -196,6 +197,14 @@ def ci(
     dataflow_traces: Optional[bool],
     output: Optional[str],
     output_format: OutputFormat,
+    outputs_text: List[str],
+    outputs_emacs: List[str],
+    outputs_json: List[str],
+    outputs_vim: List[str],
+    outputs_gitlab_sast: List[str],
+    outputs_gitlab_secrets: List[str],
+    outputs_junit_xml: List[str],
+    outputs_sarif: List[str],
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -209,6 +218,7 @@ def ci(
     timeout: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    trace_endpoint: str,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -358,12 +368,15 @@ def ci(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         logger.info(
-            "The --secrets and --oss flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
+            "The --secrets and --oss-only flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
         )
         sys.exit(FATAL_EXIT_CODE)
 
     run_secrets = run_secrets_flag or bool(
-        scan_handler and "secrets" in scan_handler.enabled_products
+        # Run without secrets, regardless of the enabled products, if the --oss-only flag was passed.
+        (not requested_engine is EngineType.OSS)
+        and scan_handler
+        and "secrets" in scan_handler.enabled_products
     )
 
     if not run_secrets and historical_secrets:
@@ -407,7 +420,18 @@ def ci(
         else:
             run_install_semgrep_pro()
 
+    outputs = collect_additional_outputs(
+        outputs_text=outputs_text,
+        outputs_emacs=outputs_emacs,
+        outputs_json=outputs_json,
+        outputs_vim=outputs_vim,
+        outputs_gitlab_sast=outputs_gitlab_sast,
+        outputs_gitlab_secrets=outputs_gitlab_secrets,
+        outputs_junit_xml=outputs_junit_xml,
+        outputs_sarif=outputs_sarif,
+    )
     output_settings = OutputSettings(
+        outputs=outputs,
         output_format=output_format,
         output_destination=output,
         verbose_errors=verbose,
@@ -452,6 +476,7 @@ def ci(
         "max_memory": max_memory,
         "interfile_timeout": interfile_timeout,
         "trace": trace,
+        "trace_endpoint": trace_endpoint,
         "timeout_threshold": timeout_threshold,
         "skip_unknown_extensions": (not scan_unknown_extensions),
         "allow_untrusted_validators": allow_untrusted_validators,
@@ -598,9 +623,12 @@ def ci(
         if (not rule.from_transient_scan)
     }
 
-    # Since we keep nosemgrep disabled for the actual scan, we have to apply
-    # that flag here
-    keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
+    # Since we keep nosemgrep disabled for the actual scan, we have to
+    # apply that flag here.
+    # If there are multiple outputs and any request to keep_ignores
+    # then all outputs keep the ignores. The only output format that
+    # keep ignored matches currently is sarif.
+    keep_ignored = not enable_nosem or output_handler.keep_ignores()
     for rule, matches in removed_prev_scan_matches.items():
         # Filter out any matches that are triaged as ignored on the app
         if scan_handler:

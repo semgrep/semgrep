@@ -29,8 +29,6 @@ module SS = Set.Make (String)
    from semgrep_main.py and core_runner.py.
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -50,11 +48,14 @@ type caps =
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
+(* Note that basic logging (Logs_.setup_basic()) was done in CLI.ml before, but
+ * in CLI_common.setup_logging() we do the full setup (Logs_.setup()) now
+ * that we have a conf object.
+ *)
 let setup_logging (conf : Scan_CLI.conf) =
-  Logs_.sdebug ~tags "CLI_common.setup_logging";
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
-  Logs.debug (fun m -> m ~tags "Semgrep version: %s" Version.version);
+  Logs.info (fun m -> m "Semgrep version: %s" Version.version);
   ()
 
 (* ugly: also partially done in CLI.ml *)
@@ -66,8 +67,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
   *)
   if conf.common.profile then (
     (* ugly: no need to set Common.profile, this was done in CLI.ml *)
-    Logs.debug (fun m -> m ~tags "Profile mode On");
-    Logs.debug (fun m -> m ~tags "disabling -j when in profiling mode");
+    Logs.info (fun m -> m "Profile mode On (running one job, ignoring -j)");
     { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
@@ -192,7 +192,7 @@ let print_logo () : unit =
 └─────────────┘
 |}
   in
-  Logs.app (fun m -> m ~tags "%s" logo);
+  Logs.app (fun m -> m "%s" logo);
   ()
 
 let feature_status_str ~(enabled : bool) : string =
@@ -233,11 +233,11 @@ let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
   List.iter
     (fun (feature_name, desc, is_enabled) ->
       Logs.app (fun m ->
-          m ~tags "%s %s"
+          m "%s %s"
             (feature_status_str ~enabled:is_enabled)
             (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name));
       Logs.app (fun m ->
-          m ~tags "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
+          m "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
     features;
   ()
 
@@ -262,7 +262,7 @@ let display_rule_source ~(rule_source : Rules_source.t) : unit =
           "Loading rules from local config..."
     | Pattern _ -> Ocolor_format.asprintf {|@{  %s@}|} "Using custom pattern."
   in
-  Logs.app (fun m -> m ~tags "%s" msg);
+  Logs.app (fun m -> m "%s" msg);
   ()
 
 (*************************************************************************)
@@ -424,7 +424,7 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
              else x_end_range.pos.bytepos - y_end_range.pos.bytepos))
   in
   Logs.app (fun m ->
-      m ~tags "Removed %s that were in baseline scan"
+      m "Removed %s that were in baseline scan"
         (String_.unit_str !removed "finding"));
   { head with processed_matches }
 
@@ -523,10 +523,6 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
 
 (*****************************************************************************)
 (* Conduct the scan *)
-(* What scan? It takes the list as target files as argument! Call it a scan
-   only if takes scanning roots as argument (a mix of folders and regular
-   files).
-*)
 (*****************************************************************************)
 let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
@@ -571,18 +567,18 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     let filtered_rules =
       Rule_filtering.filter_rules conf.rule_filtering_conf rules
     in
-    Logs.debug (fun m ->
-        m ~tags "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
+    Logs.info (fun m ->
+        m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
     (* step 2: printing the skipped targets *)
     let targets, skipped = targets_and_skipped in
-    Logs.debug (fun m ->
-        m ~tags "%a" Targets_report.pp_targets_debug
+    Log_targeting.Log.debug (fun m ->
+        m "%a" Targets_report.pp_targets_debug
           (conf.target_roots, skipped, targets));
-    Logs.debug (fun m ->
+    Log_targeting.Log.debug (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
-               m ~tags "Ignoring %s due to %s (%s)"
+               m "Ignoring %s due to %s (%s)"
                  !!(x.Semgrep_output_v1_t.path)
                  (Semgrep_output_v1_t.show_skip_reason
                     x.Semgrep_output_v1_t.reason)
@@ -622,6 +618,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       mk_scan_func (caps :> < Cap.tmp >) conf file_match_results_hook errors
     in
     (* step 3': call the engine! *)
+    Logs.info (fun m -> m "running the semgrep engine");
     let exn_and_matches =
       (* TODO: this long code block should not be here!
          Please create and use a function with a descriptive name and
@@ -632,6 +629,8 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
+          Logs.info (fun m ->
+              m "running differential scan on base commit %s" baseline_commit);
           Metrics_.g.payload.environment.isDiffScan <- true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
           let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
@@ -706,6 +705,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     in
 
     (* step 5: report the matches *)
+    Logs.info (fun m -> m "reporting matches if any");
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
       let runtime_params =
@@ -740,8 +740,8 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       Metrics_.add_profiling profiler);
 
     let skipped_groups = Skipped_report.group_skipped skipped in
-    Logs.debug (fun m ->
-        m ~tags "%a" Skipped_report.pp_skipped
+    Logs.info (fun m ->
+        m "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_gitignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
@@ -750,7 +750,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
      * prefix), and is filtered when using --quiet.
      *)
     Logs.app (fun m ->
-        m ~tags "%a"
+        m "%a"
           (Summary_report.pp_summary
              ~respect_gitignore:conf.targeting_conf.respect_gitignore
              ~maturity:conf.common.maturity
@@ -758,7 +758,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
              ~skipped_groups)
           ());
     Logs.app (fun m ->
-        m ~tags "Ran %s on %s: %s."
+        m "Ran %s on %s: %s."
           (String_.unit_str (List.length rules_with_targets) "rule")
           (String_.unit_str (List.length cli_output.paths.scanned) "file")
           (String_.unit_str (List.length cli_output.results) "finding"));
@@ -786,7 +786,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
 
-  (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
+  (* Print The logo ASAP to minimize time to first meaningful content paint *)
   if new_cli_ux then print_logo ();
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
@@ -809,7 +809,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     |> Profiler.record profiler ~name:"config_time"
   in
 
-  (* Print feature section for enabled products if pattern mode is not being used.
+  (* Print feature section for enabled products if pattern mode is not used.
      Ideally, pattern mode should be a different subcommand, but for now we will
      conditionally print the feature section.
   *)
@@ -817,7 +817,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
      match conf.rules_source with
      | Pattern _ ->
          Logs.app (fun m ->
-             m ~tags "%s"
+             m "%s"
                (Ocolor_format.asprintf {|@{<bold>  %s@}|}
                   "Code scanning at ludicrous speed.\n"))
      | _ ->
@@ -855,7 +855,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
            configs only from local files (like --config=xyz.yml) does not \
            enable metrics.@.@.More information: \
            https://semgrep.dev/docs/metrics");
-    Logs.app (fun m -> m ~tags "%s" pysemgrep_hack2);
+    Logs.app (fun m -> m "%s" pysemgrep_hack2);
     let settings =
       {
         settings with
@@ -865,6 +865,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     ignore (Semgrep_settings.save settings));
 
   (* step1: getting the rules *)
+  Logs.info (fun m -> m "Getting the rules");
 
   (* Display a message to denote rule fetching that is made interactive when
    * possible *)
@@ -878,6 +879,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       conf.rules_source
   in
   (* step2: getting the targets *)
+  Logs.info (fun m -> m "Computing the targets");
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
@@ -934,7 +936,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   setup_logging conf;
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
-  Logs.debug (fun m -> m ~tags "conf = %s" (Scan_CLI.show_conf conf));
+  Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
 
   match () with
   (* "alternate modes" where no search is performed.

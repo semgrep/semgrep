@@ -63,10 +63,7 @@ local build_core_job = {
       + semgrep.cache_opam.if_cache_inputs,
     {
       name: 'Install dependencies',
-      run: |||
-        ./scripts/osx-setup-opam-for-release.sh "%s"
-        ./scripts/osx-setup-post-opam-for-release.sh
-      ||| % semgrep.opam_switch,
+      run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
     },
     {
       name: 'Compile semgrep',

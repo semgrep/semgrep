@@ -1,0 +1,11 @@
+--- begin input files ---
+.gitignore
+a
+--- end input files ---
+Initialized empty Git repository in<MASKED>
+[main (root-commit) <MASKED>] Add all the files (including gitignored files)
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .gitignore
+ create mode 100644 a
+Target files:
+  .gitignore

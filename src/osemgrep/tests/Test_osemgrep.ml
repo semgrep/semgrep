@@ -102,7 +102,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
 (*****************************************************************************)
 
 let tests (caps : CLI.caps) =
-  Testo.categorize "Osemgrep (e2e)"
+  Testo.categorize "Osemgrep multi subcommands (e2e)"
     [
       test_scan_config_registry_no_token caps;
       test_scan_config_registry_with_invalid_token

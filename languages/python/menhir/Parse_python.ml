@@ -170,7 +170,7 @@ let parse_program ?parsing_mode file =
 (*****************************************************************************)
 
 let program_of_string (caps : < Cap.tmp >) (s : string) : AST_python.program =
-  CapTmp.with_tmp_file caps#tmp ~str:s ~ext:"py" parse_program
+  CapTmp.with_temp_file caps#tmp ~str:s ~ext:"py" parse_program
 
 let type_of_string ?(parsing_mode = Python) s =
   let lexbuf = Lexing.from_string s in

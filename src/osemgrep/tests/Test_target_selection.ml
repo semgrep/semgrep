@@ -105,8 +105,9 @@ let repos_with_tests : repo_with_tests list =
 let normalize =
   [
     Testo.mask_line ~after:"Initialized empty Git repository in" ();
-    Testo.mask_line ~after:"[main (root-commit) " ~before:"]" ();
+    Testutil_git.mask_temp_git_hash;
     Testo.mask_pcre_pattern "/test-[a-f0-9]+";
+    Testutil.mask_temp_paths ();
   ]
 
 (*
@@ -121,6 +122,7 @@ let tests caps : Testo.test list =
                   ~category:[ "target selection on real git repos"; repo_name ]
                   ~checked_output:(Testo.stdout ()) ~normalize test_name
                   (fun () ->
-                    Git_wrapper.with_git_repo repo_files (fun () ->
+                    Testutil_git.with_git_repo ~verbose:true
+                      ~honor_gitignore:false repo_files (fun _cwd ->
                         test_func caps))))
   |> List_.flatten

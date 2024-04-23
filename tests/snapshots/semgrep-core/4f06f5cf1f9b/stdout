@@ -1,0 +1,26 @@
+Snapshot for Test_show_subcommand.test_dump_config.(fun)
+--- begin input files ---
+rule.yml
+--- end input files ---
+{ Rule_fetching.rules =
+  [{ Rule.id = ("eqeq-bad", ());
+     mode =
+     `Search ({ Rule.f =
+                (Rule.And ((),
+                   [{ Rule.f =
+                      (Rule.P
+                         { Xpattern.pat =
+                           (Xpattern.Sem (<not evaluated>, Python));
+                           pstr = ("$X == $X", ()); pid = <MASKED> });
+                      conditions = []; focus = [] }
+                     ]
+                   ));
+                conditions = []; focus = [] });
+     message = "useless comparison"; severity = `Error;
+     target_selector = (Some [Python]);
+     target_analyzer = (Xlang.L (Python, [])); options = None;
+     equivalences = None; fix = None; fix_regexp = None; paths = None;
+     product = `SAST; metadata = None; validators = None; min_version = None;
+     max_version = None; dependency_formula = None }
+    ];
+  errors = []; origin = (Rule_fetching.Local_file rule.yml) }

@@ -68,7 +68,8 @@ let is_logged_in () =
   Option.is_some settings.api_token
 
 let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
-    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) caps shared_secret =
+    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> Lwt.return_unit) caps
+    shared_secret =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -132,7 +133,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
         | Error (status_code, err) -> (
             match status_code with
             | 404 ->
-                wait_hook (min_wait_ms + next_wait_ms');
+                let%lwt () = wait_hook (min_wait_ms + next_wait_ms') in
                 fetch_token' (apply_backoff next_wait_ms') (n - 1)
             | _ ->
                 let msg =
@@ -153,5 +154,8 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
     ?(wait_hook = fun _delay_ms -> ()) caps shared_secret =
   Lwt_platform.run
-    (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries ~wait_hook caps
-       shared_secret)
+    (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries
+       ~wait_hook:(fun delay_ms ->
+         wait_hook delay_ms;
+         Lwt.return_unit)
+       caps shared_secret)

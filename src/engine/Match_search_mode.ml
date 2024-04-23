@@ -912,7 +912,12 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
           in
 
           let expl =
-            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
+            (* We reverse these negation explanations, because we folded across them from
+               the left, meaning they are in the opposite order as in the original rule.
+            *)
+            if_explanations env ranges
+              (posrs_expls @ List.rev negs_expls)
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"

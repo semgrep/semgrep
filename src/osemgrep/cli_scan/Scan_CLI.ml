@@ -56,6 +56,7 @@ type conf = {
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
   trace : bool;
+  trace_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]
@@ -120,6 +121,7 @@ let default : conf =
     validate = None;
     test = None;
     trace = false;
+    trace_endpoint = None;
     ls = false;
   }
 
@@ -446,8 +448,20 @@ let o_time : bool Term.t =
 let o_trace : bool Term.t =
   H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
     ~default:default.trace
-    ~doc:{|Upload a trace of the scan to our endpoint (rule, target).
+    ~doc:
+      {|Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.
 |}
+
+let o_trace_endpoint : string option Term.t =
+  let info =
+    Arg.info [ "trace-endpoint" ]
+      ~doc:
+        "Endpoint to send OpenTelemetry traces to, if `--trace` is present. \
+         The value may be `semgrep-prod` (default), `semgrep-dev`, \
+         `semgrep-local`, or any valid URL.  This feature is meant for \
+         internal use and may be changed or removed wihtout warning."
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_nosem : bool Term.t =
   H.negatable_flag ~default:true [ "enable-nosem" ]
@@ -526,6 +540,46 @@ let o_junit_xml : bool Term.t =
     Arg.info [ "junit-xml" ] ~doc:{|Output results in JUnit XML format.|}
   in
   Arg.value (Arg.flag info)
+
+let o_use_osemgrep_sarif : bool Term.t =
+  let info =
+    Arg.info [ "use-osemgrep-sarif" ] ~doc:{|Output results using osemgrep.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
+(* Write additional outputs *)
+(* ------------------------------------------------------------------ *)
+
+let make_o_format_outputs : ?fancy:string -> string -> string list Term.t =
+ fun ?fancy format ->
+  let fancy_format =
+    match fancy with
+    | None -> format
+    | Some str -> str
+  in
+  let info =
+    Arg.info
+      [ format ^ "-output" ]
+      ~doc:
+        ("Write a copy of the " ^ fancy_format
+       ^ " output to a file or post to or post to URL.")
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
+let o_text_outputs = make_o_format_outputs "text"
+let o_json_outputs = make_o_format_outputs "json"
+let o_emacs_outputs = make_o_format_outputs "emacs"
+let o_vim_outputs = make_o_format_outputs "vim"
+let o_sarif_outputs = make_o_format_outputs ~fancy:"SARIF" "sarif"
+
+let o_gitlab_sast_outputs =
+  make_o_format_outputs ~fancy:"GitLab SAST" "gitlab-sast"
+
+let o_gitlab_secrets_outputs =
+  make_o_format_outputs ~fancy:"GitLab Secrets" "gitlab-secrets"
+
+let o_junit_xml_outputs = make_o_format_outputs ~fancy:"JUnit XML" "junit-xml"
 
 (* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
@@ -905,23 +959,22 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators autofix baseline_commit common config
       dataflow_traces diff_depth dryrun dump_ast dump_command_for_core
-      dump_engine_path emacs error exclude_ exclude_rule_ids files_with_matches
-      force_color gitlab_sast gitlab_secrets _historical_secrets include_
-      incremental_output json junit_xml lang ls matching_explanations
-      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
-      metrics num_jobs no_secrets_validation nosem optimizations oss output
-      pattern pro project_root pro_intrafile pro_lang remote replacement
-      respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold trace validate version version_check vim =
-    (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
-     * correctly *)
-    Std_msg.setup ?highlight_setting:(if force_color then Some On else None) ();
-    Logs_.setup_logging ~level:common.CLI_common.logging_level ();
+      dump_engine_path emacs emacs_outputs error exclude_ exclude_rule_ids
+      files_with_matches force_color gitlab_sast gitlab_sast_outputs
+      gitlab_secrets gitlab_secrets_outputs _historical_secrets include_
+      incremental_output json json_outputs junit_xml junit_xml_outputs lang ls
+      matching_explanations max_chars_per_line max_lines_per_finding
+      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang remote replacement respect_gitignore rewrite_rule_ids sarif
+      sarif_outputs scan_unknown_extensions secrets severity
+      show_supported_languages strict target_roots test test_ignore_todo text
+      text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
+      trace trace_endpoint _use_osemgrep_sarif validate version version_check
+      vim vim_outputs =
     let target_roots, imply_always_select_explicit_targets =
       replace_target_roots_by_regular_files_where_needed caps
-        ~experimental:(common.maturity =*= Maturity.Experimental)
+        ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
         target_roots
     in
     let project_root =
@@ -979,6 +1032,32 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       | _ when gitlab_secrets -> Output_format.Gitlab_secrets
       | _ when junit_xml -> Output_format.Junit_xml
       | _else_ -> default.output_conf.output_format
+    in
+    (* TODO: Actually handle additional output files *)
+    (* _outputs is currently just parsed to support pysemgrep *)
+    let _outputs =
+      [
+        (Output_format.Text, text_outputs);
+        (Output_format.Json, json_outputs);
+        (Output_format.Emacs, emacs_outputs);
+        (Output_format.Vim, vim_outputs);
+        (Output_format.Sarif, sarif_outputs);
+        (Output_format.Gitlab_sast, gitlab_sast_outputs);
+        (Output_format.Gitlab_secrets, gitlab_secrets_outputs);
+        (Output_format.Junit_xml, junit_xml_outputs);
+      ]
+      |> List.fold_left
+           (fun outputs (output_format, outputs_for_specific_format) ->
+             outputs_for_specific_format
+             |> List.fold_left
+                  (fun outputs output_destination ->
+                    let key = Some output_destination in
+                    if Map_.mem key outputs then
+                      (* TODO: Should probably error here. *)
+                      outputs
+                    else Map_.add key output_format outputs)
+                  outputs)
+           Map_.empty
     in
     let output_conf : Output.conf =
       {
@@ -1142,6 +1221,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
                   Show.show_kind =
                     Show.DumpPattern (str, Lang.of_string lang_str);
                   json;
+                  common;
                 }
           | None, Some lang_str, [ file ] ->
               Some
@@ -1150,6 +1230,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
                     Show.DumpAST
                       (Scanning_root.to_fpath file, Lang.of_string lang_str);
                   json;
+                  common;
                 }
           | _, None, _ ->
               Error.abort "--dump-ast and -l/--lang must both be specified"
@@ -1163,11 +1244,11 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
           | Some _, _, _ :: _ ->
               Error.abort "Can't specify both -e and a target for --dump-ast")
       | _ when dump_engine_path ->
-          Some { Show.show_kind = Show.DumpEnginePath pro; json }
+          Some { Show.show_kind = Show.DumpEnginePath pro; json; common }
       | _ when dump_command_for_core ->
-          Some { Show.show_kind = Show.DumpCommandForCore; json }
+          Some { Show.show_kind = Show.DumpCommandForCore; json; common }
       | _ when show_supported_languages ->
-          Some { Show.show_kind = Show.SupportedLanguages; json }
+          Some { Show.show_kind = Show.SupportedLanguages; json; common }
       | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.
@@ -1249,6 +1330,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       validate;
       test;
       trace;
+      trace_endpoint;
       ls;
     }
   in
@@ -1259,19 +1341,22 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     const combine $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_diff_depth
     $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
-    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_files_with_matches
-    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_historical_secrets
-    $ o_include $ o_incremental_output $ o_json $ o_junit_xml $ o_lang $ o_ls
+    $ o_emacs $ o_emacs_outputs $ o_error $ o_exclude $ o_exclude_rule_ids
+    $ o_files_with_matches $ o_force_color $ o_gitlab_sast
+    $ o_gitlab_sast_outputs $ o_gitlab_secrets $ o_gitlab_secrets_outputs
+    $ o_historical_secrets $ o_include $ o_incremental_output $ o_json
+    $ o_json_outputs $ o_junit_xml $ o_junit_xml_outputs $ o_lang $ o_ls
     $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
     $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
     $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output
     $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
     $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
-    $ o_sarif $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_validate
-    $ o_version $ o_version_check $ o_vim)
+    $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions $ o_secrets
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time
+    $ o_timeout $ o_timeout_interfile $ o_timeout_threshold $ o_trace
+    $ o_trace_endpoint $ o_use_osemgrep_sarif $ o_validate $ o_version
+    $ o_version_check $ o_vim $ o_vim_outputs)
 
 let doc = "run semgrep rules on files"
 

@@ -648,7 +648,7 @@ let is_tracked_by_git ?cwd file =
   | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
-let dirty_files ?cwd () =
+let dirty_paths ?cwd () =
   let cmd =
     (git, cd cwd @ [ "status"; "--porcelain"; "--ignore-submodules" ])
   in
@@ -667,6 +667,19 @@ let init ?cwd ?(branch = "main") () =
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
+
+let config_set ?cwd key value =
+  let cmd = (git, cd cwd @ [ "config"; key; value ]) in
+  match UCmd.status_of_run cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Error setting git config entry")
+
+let config_get ?cwd key =
+  let cmd = (git, cd cwd @ [ "config"; key ]) in
+  match UCmd.string_of_run ~trim:true cmd with
+  | Ok (data, (_, `Exited 0)) -> Some data
+  | Ok (_empty, (_, `Exited 1)) -> None
+  | _ -> raise (Error "Error getting git config entry")
 
 let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
@@ -748,11 +761,3 @@ let cat_file_blob ?cwd (hash : hash) =
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
-
-let with_git_repo (files : Testutil_files.t list) func =
-  Testutil_files.with_tempfiles_verbose files (fun path ->
-      Testutil_files.with_chdir path (fun () ->
-          init ();
-          add ~force:true [ Fpath.v "." ];
-          commit "Add all the files";
-          func ()))

@@ -3,6 +3,11 @@ Test name: with git > basic semgrepignore
 .semgrepignore
 a
 b
+--- begin input files ---
+.semgrepignore
+a
+b
+--- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  3 files changed, 1 insertion(+)
