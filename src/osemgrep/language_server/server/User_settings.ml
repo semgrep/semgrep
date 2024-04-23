@@ -28,7 +28,7 @@ type t = {
   configuration : string list; [@default []]
   exclude : string list; [@default []]
   include_ : string list; [@key "include"] [@default []]
-  jobs : int; [@default 2]
+  jobs : int; [@default Parmap.get_ncores ()]
   max_memory : int; [@key "maxMemory"] [@default 0]
   max_target_bytes : int; [@key "maxTargetBytes"] [@default 1000000]
   timeout : int; [@default 30]

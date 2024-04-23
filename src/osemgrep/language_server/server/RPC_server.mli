@@ -52,6 +52,9 @@ end
 
 type t = { session : Session.t; state : State.t }
 
+val notify : Lsp.Server_notification.t -> unit Lwt.t
+(** [notify t notif] sends a notification to the client. *)
+
 val batch_notify : Lsp.Server_notification.t list -> unit
 (** [batch_notify t notifs] sends a batch of notifications to the client. *)
 
