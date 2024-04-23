@@ -214,7 +214,8 @@ class ScanHandler:
 
         if response.status_code == 401:
             logger.info(
-                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again. "
+                "Or in CI, ensure your SEMGREP_APP_TOKEN variable is set correctly.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
 
