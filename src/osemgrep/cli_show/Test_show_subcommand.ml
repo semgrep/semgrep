@@ -231,8 +231,9 @@ let test_deployment (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
-        with_fake_deployment_response fake_deployment (fun () ->
-            Show_subcommand.main caps [| "semgrep-show"; "deployment" |])
+        with_fake_login fake_settings (fun () ->
+            with_fake_deployment_response fake_deployment (fun () ->
+                Show_subcommand.main caps [| "semgrep-show"; "deployment" |]))
       in
       Exit_code.Check.ok exit_code)
 
