@@ -1,5 +1,5 @@
 rules:
-- id: rule_template_id
+- id: ellipsis-metavar-extended-match
   languages:
   - python
   patterns:

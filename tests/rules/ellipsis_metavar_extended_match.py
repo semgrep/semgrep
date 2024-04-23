@@ -1,5 +1,5 @@
 
 def foo():
   x = 1
-  # ERROR:
+  # ruleid: ellipsis-metavar-extended-match
   y = 2
