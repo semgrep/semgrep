@@ -230,6 +230,7 @@ let rec eval (env : G.svalue Dataflow_var_env.t) (exp : IL.exp) : G.svalue =
   match exp.e with
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
+  | Cast (_, e) -> eval env e
   (* Python: cond and <then-exp> or <else-exp> *)
   | Operator
       ( ((Or, _) as op),
@@ -247,7 +248,6 @@ let rec eval (env : G.svalue Dataflow_var_env.t) (exp : IL.exp) : G.svalue =
   | Operator (op, args) -> eval_op env op args
   | Composite _
   | Record _
-  | Cast _
   | FixmeExp _ ->
       G.NotCst
 
