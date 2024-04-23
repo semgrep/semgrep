@@ -12,7 +12,7 @@ maintainer: ["Yoann Padioleau <pad@semgrep.com>"]
 authors: ["Yoann Padioleau <pad@semgrep.com>"]
 license: "LGPL-2.1"
 homepage: "https://semgrep.dev"
-bug-reports: "https://github.com/returntocorp/semgrep/issues"
+bug-reports: "https://github.com/semgrep/semgrep/issues"
 depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "3.7" & >= "2.7.0"}
@@ -96,4 +96,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/returntocorp/semgrep.git"
+dev-repo: "git+https://github.com/semgrep/semgrep.git"
