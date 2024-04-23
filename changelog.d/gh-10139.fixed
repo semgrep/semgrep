@@ -1,0 +1,1 @@
+The Semgrep Language Server now will toggle "Only Git Dirty" to disabled when "Scan all files in workspace" is ran, and toggle it to enabled if "Scan all changed files in workspace" is ran
