@@ -2,7 +2,7 @@ const SemgrepEngine = require("./dist/semgrep-engine");
 
 const languages = [
   "bash",
-  "c",
+  "cpp",
   "cairo",
   "csharp",
   "dart",
