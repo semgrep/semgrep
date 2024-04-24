@@ -142,12 +142,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
 )
 @click.option("--code", is_flag=True, hidden=True)
-@click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    hidden=True,
+    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -168,9 +167,6 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
-    # TODO: Remove after October 2023. Left for a error message
-    # redirect to `--secrets` aka run_secrets_flag.
-    beta_testing_secrets: bool,
     historical_secrets: bool,
     internal_ci_scan_results: bool,
     code: bool,
@@ -255,10 +251,6 @@ def ci(
         scan_handler = ScanHandler(dry_run=dry_run)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
-
-    if beta_testing_secrets:
-        logger.info("Please use --secrets instead of --beta-testing-secrets")
-        sys.exit(FATAL_EXIT_CODE)
 
     metadata = generate_meta_from_environment(baseline_commit)
 
