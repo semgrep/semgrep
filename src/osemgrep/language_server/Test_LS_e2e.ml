@@ -662,7 +662,8 @@ let check_startup info folders (files : Fpath.t list) =
   in
   send_initialized info;
   let%lwt () = assert_progress info "Refreshing Rules" in
-
+  let%lwt rulesRefreshedNotif = receive_notification info in
+  let%lwt () = assert_notif rulesRefreshedNotif "semgrep/rulesRefreshed" in
   let%lwt () = assert_progress info "Scanning Open Documents" in
 
   let%lwt scan_notifications =

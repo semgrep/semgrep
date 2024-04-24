@@ -263,6 +263,8 @@ let refresh_rules server =
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
       end_progress token;
+      RPC_server.notify_custom "semgrep/rulesRefreshed";
+
       (* We used to scan ALL files in the workspace *)
       (* Now we just scan open documents so we aren't killing *)
       (* CPU cycles for no reason *)
