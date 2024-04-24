@@ -1,6 +1,6 @@
-(* Yoann Padioleau, Cooper Pierce, Martin Jambon
+(* Cooper Pierce, Martin Jambon
 
-   (c) 2019 Semgrep, Inc.
+   (c) 2024 Semgrep, Inc.
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU Lesser General Public License version 2.1 as
@@ -10,18 +10,21 @@
    This library is distributed in the hope that it will be useful, but WITHOUT
    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
    FITNESS FOR A PARTICULAR PURPOSE. See the file LICENSE for more details.
+*)
+
+(*
+   Shared settings for using the Pcre2 module (pcre-ocaml library).
 
    This file is mostly a port of Pcre_.ml (and the previous Regexp_engine.ml)
    for PCRE2.
 *)
 
-(*
-   Shared settings for using the Pcre2 module (pcre-ocaml library).
-*)
-
 open Printf
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* we reuse the one in Pcre_.ml, no need to differentiate *)
+let src = Pcre_.src [@@alert "-deprecated"]
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (* Keep the regexp source around for better error reporting and
    troubleshooting. *)
@@ -119,8 +122,8 @@ let log_error rex subj err =
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  Logs.warn (fun m ->
-      m ~tags "PCRE error: %a on input %S. Source regexp: %S" pp_error err
+  Log.warn (fun m ->
+      m "PCRE error: %a on input %S. Source regexp: %S" pp_error err
         string_fragment rex.pattern)
 
 let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
