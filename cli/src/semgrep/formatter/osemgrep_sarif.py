@@ -1,4 +1,5 @@
 import contextlib
+import difflib
 import json
 import tempfile
 import timeit
@@ -150,6 +151,11 @@ class OsemgrepSarifFormatter(BaseFormatter):
             o_json = normalize_sarif_findings(json.loads(o_output), "osemgrep")
             py_json = normalize_sarif_findings(json.loads(py_output), "pysemgrep")
             is_match = o_json == py_json
+            if not is_match and get_state().terminal.is_debug:
+                o_lines = json.dumps(o_json, sort_keys=True, indent=4).split("\n")
+                py_lines = json.dumps(py_json, sort_keys=True, indent=4).split("\n")
+                diffs = difflib.unified_diff(o_lines, py_lines, n=10)
+                logger.debug("diff osemgrep vs pysemgrep:\n" + "\n".join(diffs))
             validate_elapse = timeit.default_timer() - validate_start
 
         # Update metrics so we can keep track of how well the migration is going.

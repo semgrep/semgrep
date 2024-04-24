@@ -5,14 +5,16 @@ from semgrep.constants import OutputFormat
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.parametrize("output_format", [OutputFormat.SARIF])
 @pytest.mark.parametrize(
-    "output_format",
-    [OutputFormat.SARIF],
+    "rule_and_target",
+    [("rules/eqeq.yaml", "basic/stupid.py"), ("rules/cwe_tag.yaml", "basic/stupid.py")],
 )
-def test_sarif_output(run_semgrep_in_tmp: RunSemgrep, output_format):
+def test_sarif_output(run_semgrep_in_tmp: RunSemgrep, output_format, rule_and_target):
+    rule, target = rule_and_target
     _out, err = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        target_name="basic/stupid.py",
+        rule,
+        target_name=target,
         options=["--verbose", "--use-osemgrep-sarif"],
         output_format=output_format,
         assert_exit_code=0,
