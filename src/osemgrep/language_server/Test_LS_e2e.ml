@@ -1148,7 +1148,12 @@ let tests caps =
   let sync_promise_tests, _ = promise_tests caps in
   Testo.categorize "Language Server (e2e)" sync_promise_tests
 
-(* Asynchronous tests for JS tests *)
+(*
+   Asynchronous tests for JS tests. We can't turn them into synchronous
+   tests because the JavaScript environment doesn't support 'Lwt_main.run'
+   or an equivalent call that starts/ends the event loop. This is in fact
+   the only reason why Alcotest_lwt and Testo_lwt must exist.
+*)
 let lwt_tests caps =
   let _, async_promise_tests = promise_tests caps in
   Testo.categorize "Language Server (e2e)"
