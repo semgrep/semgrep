@@ -1116,37 +1116,39 @@ let test_search_includes_excludes caps () =
 (* Entry point *)
 (*****************************************************************************)
 
-module Test = Testo
-module Test_lwt = Testo_lwt
+let sync f () = Lwt_platform.run (f ())
+
+(* Create an lwt test and a synchronous test right away because we run
+   both and it's hard to convert from one to the other. *)
+let pair ?tolerate_chdir name func =
+  let func = with_timeout func in
+  ( Testo.create ?tolerate_chdir name (sync func),
+    Testo_lwt.create ?tolerate_chdir name func )
 
 let promise_tests caps =
   [
-    Test_lwt.create "Test LS" (test_ls_specs caps) ~tolerate_chdir:true;
-    Test_lwt.create "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
-    Test_lwt.create "Test LS multi-workspaces" (test_ls_multi caps)
-      ~tolerate_chdir:true;
+    pair "Test LS" (test_ls_specs caps) ~tolerate_chdir:true;
+    pair "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
+    pair "Test LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.
        Test_lwt.create "Test LS login" (test_login caps)
        ~expected_outcome:
          (Should_fail "TODO: currently failing in js tests in CI"); *)
-    Test_lwt.create "Test LS with no folders" (test_ls_no_folders caps);
-    Test_lwt.create "Test LS /semgrep/search includes/excludes"
+    pair "Test LS with no folders" (test_ls_no_folders caps);
+    pair "Test LS /semgrep/search includes/excludes"
       (test_search_includes_excludes caps)
       ~tolerate_chdir:true;
   ]
-  |> List_.map (fun (test : _ Test.t) ->
-         Test.update test ~func:(with_timeout test.func))
+  |> List.split
 
 let tests caps =
-  let prepare f () = Lwt_platform.run (f ()) in
-  let promise_tests = promise_tests caps in
-  Test.categorize "Language Server (e2e)"
-    (promise_tests
-    |> List_.map (fun (test : _ Test.t) ->
-           Test.update_func test Test.Mona.sync (prepare test.func)))
+  let sync_promise_tests, _ = promise_tests caps in
+  Testo.categorize "Language Server (e2e)" sync_promise_tests
 
+(* Asynchronous tests for JS tests *)
 let lwt_tests caps =
-  Test.categorize "Language Server (e2e)"
-    (Test_lwt.create "Test LS with libev" test_ls_libev :: promise_tests caps)
+  let _, async_promise_tests = promise_tests caps in
+  Testo.categorize "Language Server (e2e)"
+    (Testo_lwt.create "Test LS with libev" test_ls_libev :: async_promise_tests)
