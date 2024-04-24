@@ -19,7 +19,7 @@ type t = {
    * for semgrep_with_raw_results_and_exn_handler (now scan_with_exn_handler)
    * but I'm not sure we're doing it.
    *)
-  scanned : Fpath.t list;
+  scanned : Target.t list;
   (* extra information useful to also give to the user (in JSON or
    * in textual reports) or for tools (e.g., the playground).
    *)
@@ -63,7 +63,7 @@ val make_final_result :
   Core_profiling.file_profiling match_result list ->
   (Rule.rule * Engine_kind.t) list ->
   Rule.invalid_rule_error list ->
-  Fpath.t list ->
+  Target.t list ->
   Xlang.t list ->
   rules_parse_time:float ->
   t
