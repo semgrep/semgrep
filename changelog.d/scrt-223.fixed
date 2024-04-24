@@ -1,1 +1,0 @@
-Fix `semgrep ci --oss-only` when secrets product is enabled.
