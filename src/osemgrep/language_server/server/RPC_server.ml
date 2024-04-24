@@ -155,6 +155,14 @@ let notify notification =
   let%lwt () = Io.write packet in
   Io.flush ()
 
+let notify_custom ?params method_ =
+  let jsonrpc_notif = Jsonrpc.Notification.create ~method_ ?params () in
+  let server_notif = SN.of_jsonrpc jsonrpc_notif in
+  match server_notif with
+  | Ok notif -> Lwt.async (fun () -> notify notif)
+  | Error e ->
+      Logs.err (fun m -> m "Error creating notification %s: %s" method_ e)
+
 (** Send a bunch of notifications to the client *)
 let batch_notify notifications =
   Logs.debug (fun m -> m "Sending notifications");

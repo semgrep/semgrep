@@ -263,17 +263,7 @@ let refresh_rules server =
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
       end_progress token;
-      let refresh_rules_notif =
-        Jsonrpc.Notification.create ~method_:"semgrep/rulesRefreshed" ()
-      in
-
-      let%lwt () =
-        match Lsp.Server_notification.of_jsonrpc refresh_rules_notif with
-        | Ok notif -> RPC_server.notify notif
-        | Error e ->
-            Logs.err (fun m -> m "Failed to send semgrep/rulesRefreshed: %s" e);
-            Lwt.return_unit
-      in
+      RPC_server.notify_custom "semgrep/rulesRefreshed";
 
       (* We used to scan ALL files in the workspace *)
       (* Now we just scan open documents so we aren't killing *)
