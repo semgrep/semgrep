@@ -277,11 +277,6 @@ _scan_options: List[Callable] = [
         flag_value=OutputFormat.GITLAB_SECRETS,
     ),
     optgroup.option(
-        "--historical-secrets",
-        "historical_secrets",
-        is_flag=True,
-    ),
-    optgroup.option(
         "--junit-xml",
         "output_format",
         type=OutputFormat,
@@ -359,6 +354,11 @@ _scan_options: List[Callable] = [
         "disable_secrets_validation_flag",
         is_flag=True,
         hidden=True,
+    ),
+    optgroup.option(
+        "--historical-secrets",
+        "historical_secrets",
+        is_flag=True,
     ),
     optgroup.option(
         "--allow-untrusted-validators",
