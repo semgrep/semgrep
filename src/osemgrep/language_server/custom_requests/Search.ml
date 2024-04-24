@@ -424,15 +424,15 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
   let after = Str.string_after line end_col in
   ((if is_cut_off then "..." ^ before else before), inside, after)
 
-let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
+let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
         let uri = !!path |> Uri.of_path |> Uri.to_string in
         let matches =
           matches
-          |> List_.map (fun (m : OutJ.cli_match) ->
-                 let range = Conv.range_of_cli_match m in
+          |> List_.map (fun (m : Pattern_match.t) ->
+                 let range = Conv.range_of_toks m.range_loc in
                  let range_json = Range.yojson_of_t range in
                  let line = List.nth (UFile.cat path) range.start.line in
                  let before, inside, after =
@@ -444,7 +444,7 @@ let json_of_matches (matches_by_file : (Fpath.t * OutJ.cli_match list) list) =
                        ~col_range:(range.start.character, String.length line)
                  in
                  let fix_json =
-                   match m.extra.fix with
+                   match m.rule_id.fix with
                    | None -> `Null
                    | Some s -> `String s
                  in
@@ -471,14 +471,14 @@ let next_rules_and_file (server : RPC_server.t) =
   | None
   | Some { files = []; _ } ->
       None
-  | Some ({ files = file :: rest; _ } as config) ->
+  | Some ({ files = file :: rest; xconf; _ } as config) ->
       let new_session =
         {
           server.session with
           search_config = Some { config with files = rest };
         }
       in
-      Some ((config.rules, file), { server with session = new_session })
+      Some ((config.rules, file, xconf), { server with session = new_session })
 
 let rec search_single_target (server : RPC_server.t) =
   match next_rules_and_file server with
@@ -489,24 +489,15 @@ let rec search_single_target (server : RPC_server.t) =
       ( Some (`Assoc [ ("locations", `List []) ]),
         { server with session = { server.session with search_config = None } }
       )
-  | Some ((rules, file), server) -> (
+  | Some ((rules, file, xconf), server) -> (
       try
-        let run_server =
-          {
-            server with
-            session =
-              {
-                server.session with
-                user_settings =
-                  { server.session.user_settings with only_git_dirty = false };
-              };
-          }
-        in
-        let matches, _scanned =
-          (* !!calling the engine!! *)
-          Scan_helpers.run_semgrep
-            ~rules:(List_.map (fun r -> (r :> Rule.rule)) rules)
-            ~targets:[ file ] run_server
+        let matches =
+          List_.map_filter
+            (fun rule ->
+              (* !!calling the engine!! *)
+              Scan_helpers.run_core_search xconf rule file)
+            rules
+          |> List.concat
         in
         match matches with
         | [] -> search_single_target server
@@ -532,6 +523,12 @@ let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
   | Some params ->
       let env = mk_env server params in
       let rules = get_relevant_rules env in
+      let xconf =
+        {
+          Match_env.default_xconfig with
+          filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
+        }
+      in
       (* !!calling the engine!! *)
       search_single_target
         {
@@ -539,7 +536,7 @@ let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
           session =
             {
               server.session with
-              search_config = Some { rules; files = env.initial_files };
+              search_config = Some { rules; files = env.initial_files; xconf };
             };
         }
 
