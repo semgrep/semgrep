@@ -233,3 +233,6 @@ val get_named_substring_and_ofs :
   ((string * (int * int)) option, string) Result.t
 
 val quote : string -> string
+
+(* internals, reused in Pcre2_.ml *)
+val src : Logs.src
