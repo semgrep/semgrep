@@ -1104,11 +1104,9 @@ let scan ?match_hook (caps : < Cap.tmp >) config
      * the extracted targets
      *)
     targets
-    |> List_.map_filter (fun (x : Target.t) ->
+    |> List.filter (fun (x : Target.t) ->
            let internal_path = Target.internal_path x in
-           if Hashtbl.mem scanned_target_table !!internal_path then
-             Some internal_path
-           else None)
+           Hashtbl.mem scanned_target_table !!internal_path)
   in
   (* Since the OSS engine was invoked, there were no interfile languages
      requested *)
