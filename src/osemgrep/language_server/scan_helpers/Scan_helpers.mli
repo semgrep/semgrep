@@ -11,7 +11,11 @@ val run_semgrep :
   * used as the git ref for what matches are filtered out based on git diff.
   *)
 
-val run_core_search : Rule.search_rule -> Fpath.t -> Pattern_match.t list option
+val run_core_search :
+  Match_env.xconfig ->
+  Rule.search_rule ->
+  Fpath.t ->
+  Pattern_match.t list option
 (** [run_core_search] runs a search intended for the /semgrep/search IDE
     search command, by hooking lower into the Match_search_mode matching
     process, bypassing the CLI.
