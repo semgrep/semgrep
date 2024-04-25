@@ -45,6 +45,7 @@
 This repository contains the source code for Semgrep OSS (open-source software). Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time. Semgrep is a semantic grep for code: where `grep "2"` would only match the exact string _2_, Semgrep would [match `x = 1; y = x + 1` when searching for _2_](https://semgrep.dev/playground/s/5rKgj). And it does this in 30+ languages! Semgrep rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs: read more below.
 
 For companies who need SAST, SCA, and Secret scanning, we provide a product suite on top of Semgrep OSS that scans code and package dependencies for known issues, software vulnerabilities, and finds secrets with high accuracy:
+
 - [**Semgrep Code**](https://semgrep.dev/products/semgrep-code/) to find bugs & vulnerabilities using the deeper, interfile-analysis enabled [Pro engine](https://semgrep.dev/products/pro-engine/) and high-accuracy Pro rules in addition to the community rules
 - [**Semgrep Supply Chain**](https://semgrep.dev/products/semgrep-supply-chain/) to find dependencies with known vulnerabilities function-level reachability analysis
 - [**Semgrep Secrets**](https://semgrep.dev/products/semgrep-secrets/) to find hard-coded credentials that shouldn't be checked into source code
@@ -68,12 +69,12 @@ For more information, see [Supported languages](https://semgrep.dev/docs/support
 
 ### Getting started 🚀
 
-1. [From the Semgrep Cloud Platform](#option-1-getting-started-from-the-semgrep-cloud-platform-recommended)
+1. [From the Semgrep AppSec Platform](#option-1-getting-started-from-the-semgrep-appsec-platform-recommended)
 2. [From the CLI](#option-2-getting-started-from-the-cli)
 
-For new users, we recommend starting with the [Semgrep Cloud Platform](#option-1-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a visual interface, a demo project, result triaging and exploration workflows, and makes setup in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively, you can also start with the CLI and navigate the terminal output to run one-off searches.
+For new users, we recommend starting with the [Semgrep AppSec Platform](#option-1-getting-started-from-the-semgrep-appsec-platform-recommended) because it provides a visual interface, a demo project, result triaging and exploration workflows, and makes setup in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively, you can also start with the CLI and navigate the terminal output to run one-off searches.
 
-### Option 1: Getting started from the Semgrep Cloud Platform (Recommended)
+### Option 1: Getting started from the Semgrep Appsec Platform (Recommended)
 
 <a href="https://go.semgrep.dev/login-ghrmgo"  target="_blank"><img src="https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-main-image.jpg" alt="Semgrep platform image"/> </a>
 
@@ -118,7 +119,7 @@ Logging into Semgrep gets you access to:
 3.  Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
 
 4.  Try writing your own query interactively with `-e`. For example, a check for Python == where the left and right hand sides are the same (potentially a bug):
-`$ semgrep -e '$X == $X' --lang=py path/to/src`
+    `$ semgrep -e '$X == $X' --lang=py path/to/src`
 
 ### Semgrep Ecosystem
 
@@ -127,7 +128,7 @@ The Semgrep ecosystem includes the following products:
 - [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's proprietary rules (written by our Security Research team) using our cross-file and cross-function analysis. Designed to find OWASP Top 10 vulnerabilities and protect against critical security risks. Semgrep Code is available on both [free and paid tiers](https://semgrep.dev/pricing).
 - [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on both [free and paid tiers](https://semgrep.dev/pricing).
 - [Semgrep Secrets [NEW!]](https://semgrep.dev/blog/2023/introducing-semgrep-secrets/) - Secrets detection that uses semantic analysis, improved entropy analysis, and validation together to accurately detect sensitive credentials in developer workflows. [Book a demo](https://get.semgrep.dev/secrets-beta-request.html) to request early access to the product.
-- [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor Semgrep at scale, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
+- [Semgrep AppSec Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor Semgrep at scale, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
 - [Semgrep OSS Engine](https://semgrep.dev/docs/cli-reference/) - The open-source engine and community-contributed rules at the heart of everything (this project).
 
 To learn more about Semgrep, visit:
