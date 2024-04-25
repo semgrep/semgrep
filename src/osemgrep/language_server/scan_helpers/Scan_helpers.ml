@@ -24,6 +24,17 @@ module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
+    AST_generic.program * Tok.location list =
+  let { Parsing_result2.ast; skipped_tokens; _ } =
+    Parse_target.parse_and_resolve_name lang fpath
+  in
+  (ast, skipped_tokens)
+
+(*****************************************************************************)
 (* Semgrep helpers *)
 (*****************************************************************************)
 
@@ -34,9 +45,10 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
     This means like some matches, such as those that appear in committed
     files/lines, will be filtered out*)
 
-(** This is the entry point for scanning, returns /relevant/ matches, and all files scanned*)
-let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
-    ({ session; _ } : RPC_server.t) =
+(* This is the entry point for scanning, returns /relevant/ matches,
+   and all files scanned. *)
+let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
+    ({ session; state = _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
   match (rules, targets) with
   | [], _ ->
@@ -50,22 +62,32 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
           m "Running Semgrep with %d rules" (List.length rules));
       (* !!!Dispatch to the Semgrep engine!!! *)
       let res =
-        let targets = Option.value ~default:(Session.targets session) targets in
+        let targets =
+          match targets with
+          | None -> Session.targets session
+          | Some targets -> targets
+        in
         let runner_conf = Session.runner_conf session in
         (* This is currently just ripped from Scan_subcommand. *)
-        let scan_func =
+        let core_run_func =
           let pro_intrafile = session.user_settings.pro_intrafile in
-          match !Core_runner.hook_pro_scan_func_for_osemgrep with
+          match !Core_runner.hook_pro_core_run_for_osemgrep with
           | Some pro_scan_func when pro_intrafile ->
-              (* THINK: files or folders? *)
-              let roots = targets in
+              (* THINK: files or folders?
+                 Note that converting many target files to scanning roots
+                 is expensive due to having to find the project root
+                 for each of them. If they're all regular files, we might
+                 want to create a way to pass them directly as "target files"
+                 rather than "scanning roots".
+              *)
+              let roots = List_.map Scanning_root.of_fpath targets in
               (* For now, we're going to just hard-code it at a whole scan, and
                  using the intrafile pro engine.
                  Interfile would likely be too intensive (and require us to target
                  folders, not the affected files)
               *)
               let diff_config = Differential_scan_config.WholeScan in
-              pro_scan_func roots ~diff_config
+              pro_scan_func ~diff_config ~roots
                 Engine_type.(
                   PRO
                     {
@@ -85,13 +107,13 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
                    requires the pro engine, but do not have the pro engine. \
                    You may need to acquire a different binary."
                 |> ignore;
-              Core_runner.mk_scan_func_for_osemgrep
-                Core_scan.scan_with_exn_handler
+              Core_runner.mk_core_run_for_osemgrep
+                (Core_scan.scan_with_exn_handler (session.caps :> < Cap.tmp >))
         in
 
         let res =
-          scan_func ~respect_git_ignore:true ~file_match_results_hook:None
-            runner_conf rules [] targets
+          core_run_func.run ~file_match_results_hook:None runner_conf
+            Find_targets.default_conf rules [] targets
         in
         Core_runner.create_core_result rules res
       in
@@ -122,6 +144,47 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
       Logs.debug (fun m -> m "Found %d matches" (List.length matches));
       Session.send_metrics session;
       (matches, scanned)
+
+(* This function runs a search by hooking into Match_search_mode, which bypasses
+   some of the CLI.
+   We do this instead of using run_semgrep above. Why?
+   We want to support streaming searches. This means that we want a hook which
+   can activate on a certain granularity, in our case, the matches associated to
+   each file.
+   This is cool, because we have a file_match_results_hook. The problem is that
+   for some reason, when sending mass notifications from each invocation of the
+   file_match_results_hook, there is a massive delay (maybe about six seconds
+   on django) before the notifications are received by the extension.
+   In the interim, we will just continue to hook into core.
+*)
+let run_core_search xconf rule (file : Fpath.t) =
+  let hook _file _pm = () in
+  let xlang = rule.Rule.target_analyzer in
+  (* We have to look at all the initial files again when we do this.
+     TODO: Maybe could be better to infer languages from each file,
+     so we only have to look at each file once.
+  *)
+  if Filter_target.filter_target_for_xlang xlang file then
+    let xtarget =
+      Xtarget.resolve parse_and_resolve_name
+        (Target.mk_regular xlang Product.all (File file))
+    in
+    try
+      let is_relevant_rule =
+        Match_rules.is_relevant_rule_for_xtarget
+          (rule :> Rule.rule)
+          xconf xtarget
+      in
+      if is_relevant_rule then
+        (* !!calling the engine!! *)
+        let ({ Core_result.matches; _ } : _ Core_result.match_result) =
+          Match_search_mode.check_rule rule hook xconf xtarget
+        in
+        Some matches
+      else None
+    with
+    | Parsing_error.Syntax_error _ -> None
+  else None
 
 (** Scan all folders in the workspace *)
 let scan_workspace server =
@@ -156,7 +219,7 @@ let scan_open_documents server =
     let token =
       create_progress "Semgrep Scan in Progress" "Scanning Open Documents"
     in
-    let results, files = run_semgrep ~targets:(Some open_documents) server in
+    let results, files = run_semgrep ~targets:open_documents server in
     Session.record_results server.session results files;
     (* LSP expects empty diagnostics to clear problems *)
     let diagnostics =
@@ -187,7 +250,6 @@ let scan_file server uri =
             Fpath.pp file);
       Session.cache_workspace_targets server.session);
     let targets = if List.mem file session_targets then targets else [] in
-    let targets = Some targets in
     let results, _ = run_semgrep ~targets server in
     let results =
       List_.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
@@ -208,6 +270,8 @@ let refresh_rules server =
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
       end_progress token;
+      RPC_server.notify_custom "semgrep/rulesRefreshed";
+
       (* We used to scan ALL files in the workspace *)
       (* Now we just scan open documents so we aren't killing *)
       (* CPU cycles for no reason *)

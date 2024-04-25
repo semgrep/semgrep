@@ -1,0 +1,35 @@
+{
+  "check_id": "rule.id",
+  "column": 0,
+  "commit_date": "1970-01-01T00:00:00",
+  "end_column": 0,
+  "end_line": 0,
+  "engine_kind": [
+    "PRO_REQUIRED",
+    {
+      "interfile_taint": true,
+      "interproc_taint": true,
+      "proprietary_language": false
+    }
+  ],
+  "hashes": {
+    "code_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "end_line_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pattern_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "start_line_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "historical_info": {
+    "git_blob": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "git_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "git_commit_timestamp": "2020-12-09T16:09:53Z"
+  },
+  "index": 0,
+  "is_blocking": true,
+  "line": 0,
+  "match_based_id": "ac39ef6548f7e4407744659d806fdcd7ed74bff05adf3663a15a6f58a0207a628bf9bc7dd83c598afda27a848c236df8d179557e064e82d8bd776020635992ad_0",
+  "message": "message",
+  "metadata": {},
+  "path": "foo.py",
+  "severity": 2,
+  "syntactic_id": "0639a4883ba9b83e767a5dc4c09e001a"
+}

@@ -199,6 +199,7 @@ let rec expr_to_pattern e =
   | Container (List, (t1, xs, t2)) ->
       PatList (t1, xs |> List_.map expr_to_pattern, t2)
   | Ellipsis t -> PatEllipsis t
+  | Cast (ty, _tok, expr) -> PatTyped (expr_to_pattern expr, ty)
   (* TODO:  PatKeyVal and more *)
   | _ -> OtherPat (("ExprToPattern", fake ""), [ E e ])
 
@@ -314,16 +315,21 @@ let vardef_to_assign (ent, def) =
   in
   Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
-let assign_to_vardef_opt ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
+(* TODO: pass also semicolon tok? not just the equal tok *)
+let assign_to_vardef_opt ((e1, _teq, e2) : G.expr * G.tok * G.expr) =
   match e1.G.e with
   | Cast (ty, _, e) ->
       let* name = expr_to_entity_name_opt e in
       let ent = { name; attrs = []; tparams = None } in
-      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s)
+      Some
+        (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty; vtok = no_sc })
+        |> G.s)
   | _ ->
       let* name = expr_to_entity_name_opt e1 in
       let ent = { name; attrs = []; tparams = None } in
-      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s)
+      Some
+        (DefStmt (ent, VarDef { vinit = Some e2; vtype = None; vtok = no_sc })
+        |> G.s)
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
@@ -715,3 +721,29 @@ let fix_token_locations_visitor =
  * an mli and allowing direct access to it. *)
 let fix_token_locations_any = fix_token_locations_visitor#visit_any
 let fix_token_locations_program = fix_token_locations_visitor#visit_program
+
+(*****************************************************************************)
+(* Add semicolons *)
+(*****************************************************************************)
+
+let add_semicolon_to_last_var_def_and_convert_to_stmts (sc : sc)
+    (xs : (entity * variable_definition) list) : stmt list =
+  let ys =
+    match List.rev xs with
+    (* Impossible in principle *)
+    | [] -> []
+    | (ent, vardef) :: xs -> (ent, { vardef with vtok = Some sc }) :: xs
+  in
+  ys |> List_.map (fun (ent, vardef) -> DefStmt (ent, VarDef vardef) |> G.s)
+
+let add_semicolon_to_last_def_and_convert_to_stmts (sc : sc)
+    (xs : definition list) : stmt list =
+  let ys =
+    match List.rev xs with
+    (* Impossible in principle *)
+    | [] -> []
+    | (ent, VarDef vardef) :: xs ->
+        (ent, VarDef { vardef with vtok = Some sc }) :: xs
+    | xs -> xs
+  in
+  ys |> List_.map (fun (ent, def) -> DefStmt (ent, def) |> G.s)

@@ -1,10 +1,11 @@
-(* Small helpers around the Logs library.
+(* A few helpers for the Logs library.
 
-   Here are the usage conventions for the Logs library level,
-   augmented from https://erratique.ch/software/logs/doc/Logs/index.html#usage
+   Here are the usage conventions for the Logs library "level"
+   from https://erratique.ch/software/logs/doc/Logs/index.html#usage
+   (slightly augmented).
 
    Attention: Any log message that can't be understood without context
-   will be moved to the Debug level!
+   should be moved to the Debug level!
 
    - App: unlike the other levels, this prints ordinary messages without any
      special formatting.
@@ -20,31 +21,30 @@
      program from running normally but may eventually lead to an error
      condition.
 
-   - Info: condition that allows the program user to get a better
+   - Info: condition that allows the program *user* to get a better
      understanding of what the program is doing.
      Log messages at this level and above may not clutter up the log
      output not should they reduce performance significantly. If that's
      the case, log at the Debug level.
-     Semgrep: activated with --verbose
+     This is usually activated with a --verbose flag.
 
-   - Debug: condition that allows the program developer to get a
+   - Debug: condition that allows the program *developer* to get a
      better understanding of what the program is doing.
      It may reduce the performance of the application or result in
      unreadable logs unless they're filtered. Use tags for filtering.
-     Semgrep: activated with --debug
+     This is usually activated with a --debug flag.
+
+   See also Testutil_logs.mli if you need to mask logs in tests.
 *)
 
-(* Enable basic logging (level = Logs.Warning) so that
-   you can use Logging calls even before a precise call
-   to setup_logging.
-*)
-val enable_logging : unit -> unit
-
-(* list of Logs.src we don't want to enable logging for (third-party libs) *)
-val default_skip_libs : string list
+(* Enable basic logging (default level = Logs.Warning) so you can use Logging
+ * calls even before a precise call to setup().
+ *)
+val setup_basic : ?level:Logs.level option -> unit -> unit
 
 (* Setup the Logs library. This call is necessary before any logging
-   calls, otherwise your log will not go anywhere (not even on stderr).
+   calls, otherwise your log will not go anywhere (not even on stderr,
+   unless you used setup_basic() below).
 
    'highlight_setting': whether the output should be formatted with color
    and font effects. It defaults to the current setting we have for stderr
@@ -54,12 +54,24 @@ val default_skip_libs : string list
    'require_one_of_these_tags': if a list of tags is provided, at least one
    of these tags must be set for a log instruction to be printed.
 
-   'read_tags_from_env_var': specifies an environment variable
+   'read_level_from_env_var': environment variables that override the
+   'level' argument. The default is ["LOG_LEVEL"].
+
+   'read_srcs_from_env_vars': specifies environment variables
+   from which a list of comma-separated pcre-compliant regexps will be
+   read if the variable is set, in which case the list of regexps will be
+   used to enable logging for third-party libraries whose src is matching
+   one of the regexp.
+   This variable is "LOG_SRCS" by default.
+
+   'read_tags_from_env_vars': specifies environment variables
    from which a list of comma-separated tags will be read if the variable
    is set, in which case the list of tags will override any value set
-   via 'require_one_of_these_tags'. This variable is "LOG_TAGS" by default.
-   To disable it, set it to None. The following shell command shows how
-   to make semgrep run at the debug level but only show lines tagged with
+   via 'require_one_of_these_tags'. This variable is "LOG_TAGS"
+   by default.
+
+   The following shell command shows for example how to
+   make semgrep run at the debug level but only show lines tagged with
    'Match_rules' or 'Core_scan'.
 
      $ LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
@@ -79,12 +91,13 @@ val default_skip_libs : string list
      [00.45][DEBUG](Match_rules): checking tests/parsing/ocaml/basic.mli with 1 rules
      ...
 *)
-val setup_logging :
+val setup :
   ?highlight_setting:Std_msg.highlight_setting ->
   ?log_to_file:Fpath.t ->
-  ?skip_libs:string list ->
   ?require_one_of_these_tags:string list ->
-  ?read_tags_from_env_var:string option ->
+  ?read_level_from_env_vars:string list ->
+  ?read_srcs_from_env_vars:string list ->
+  ?read_tags_from_env_vars:string list ->
   level:Logs.level option ->
   unit ->
   unit
@@ -108,34 +121,18 @@ val create_tags : string list -> Logs.Tag.set
 
 (*
    Log a string directly.
+
+   Those functions are useful because 'Log.debug (fun m -> m "%s" str)' is a
+   bit heavy. Note that the Logs library use closures by default for the logs
+   so one can have heavy computation in the closure and this will
+   not slow-down the app if the log is not shown. However, if
+   the log is a constant string, there is no need for the closure
+   hence the shorcuts below.
 *)
 val sdebug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
-
-(*
-   A function that masks the timestamps in log output so that we can compare
-   logs from one run to another. To be used as:
-
-     Testo.create ~checked_output:Stderr ~mask_output:[Logs_.mask_time] ...
-
-   This is crude. Beware false positives.
-*)
-val mask_time : string -> string
-
-(*
-   Mask all lines that look like log lines. This won't work for multiline
-   logs:
-
-     Testo.create
-        ~checked_output:Stderr
-        ~mask_output:[Logs_.mask_log_lines]
-        ...
-
-   This is crude. Beware false positives.
-*)
-val mask_log_lines : string -> string
 
 (*
    Formatting utilities for common containers:

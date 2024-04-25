@@ -45,30 +45,44 @@ module Otel = Opentelemetry
  * function. The results are sent to the default endpoint (see constants below),
  * which collects them to send to a viewer.
  *
- * If you want to send traces to a different endpoint, prepend your command with
- * `SEMGREP_OTEL_ENDPOINT=<url>`
- *
- * TODO we'll probably need instructions for some system of tags?
+ * If you want to send traces to a different endpoint, append your command with
+ * the `--trace-endpoint=<url> argument
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type span = Trace_core.span
+
+(* Implement the show and pp functions manually since we know
+   Trace_core.span is int64*)
+let show_span = Int64.to_string
+let pp_span fmt = Format.fprintf fmt "%Ldl"
+
+type user_data = Trace_core.user_data
 
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
-let default_endpoint = "https://telemetry.dev2.semgrep.dev"
-let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
+let default_endpoint = "https://telemetry.semgrep.dev"
+let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
+let default_local_endpoint = "http://localhost:4318"
 
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-
 let with_span = Trace_core.with_span
 let add_data_to_span = Trace_core.add_data_to_span
+
+(* This function is helpful for Semgrep, which stores an optional span *)
+let add_data_to_opt_span sp data =
+  Option.iter (fun sp -> Trace_core.add_data_to_span sp data) sp
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
-
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let configure_tracing service_name =
   Otel.Globals.service_name := service_name;
@@ -78,7 +92,7 @@ let configure_tracing service_name =
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_setup f =
+let with_tracing fname trace_endpoint data f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -87,13 +101,19 @@ let with_setup f =
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
   let url =
-    match Sys.getenv_opt endpoint_env_var with
-    | Some url -> url
+    match trace_endpoint with
+    | Some url -> (
+        match url with
+        | "semgrep-prod" -> default_endpoint
+        | "semgrep-dev" -> default_dev_endpoint
+        | "semgrep-local" -> default_local_endpoint
+        | _ -> url)
     | None -> default_endpoint
   in
+  let data () = data in
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
-  with_span ~__FILE__ ~__LINE__ "All time" @@ fun _sp -> f ()
+  with_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp -> f sp
 
 (* Alt: using cohttp_lwt
 

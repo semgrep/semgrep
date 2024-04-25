@@ -22,7 +22,7 @@ type env = {
 val env : env Cmdliner.Term.t
 
 class meta :
-  < exec : Cap.Exec.t ; .. > ->
+  < Cap.exec > ->
   scan_environment:string ->
   baseline_ref:Digestif.SHA1.t option ->
   env ->

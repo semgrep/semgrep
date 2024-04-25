@@ -1,6 +1,9 @@
 (lang dune 3.7)
 (name semgrep)
 (using menhir 2.1)
+
+; set here so the semgrep package below can use it and we can easily bump it
+(version 1.70.0)
 ; disable mangling of of workspace root, to preserve debugging information
 ; needed to support earlybird debugger
 ; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
@@ -101,6 +104,7 @@ a few other projects developed at r2c.
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
     (pcre (>= "7.5.0" ))
+    (pcre2 (>= "7.5.3" ))
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
@@ -275,6 +279,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name parser_ql)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package (name parser_regexp)
   (synopsis "XXX")
   (description "XXX")
@@ -393,7 +401,6 @@ metrics
 )
 
 (package (name semgrep)
-  (version 1.38.0)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
   (description "\
 Semgrep is like grep but for searching patterns at the AST level.
@@ -410,13 +417,16 @@ For more information see https://semgrep.dev
 ; Development-only dependencies are in 'dev/dev.opam'.
 
 ;coupling: for semgrep CI to be fast, we try to pre-install these packages as
-; part of of the base docker image. When you add a new package or change a version
-; here, please also update the list of packages there:
+; part of of the base docker image. When you add a new package or change a
+; version here, please also update the list of packages there:
 ;
 ;   https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
 ;
 ; or ask Martin to do so.
 ; You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
+;coupling: because of the way we need to statically link on macOS, if
+; you add a library here, you'll probably need to update src/main/flags.sh
+; if this library has some C stubs.
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
     ; core deps
@@ -468,6 +478,7 @@ For more information see https://semgrep.dev
     ; regexps
     re
     pcre
+    (pcre2 (>= "7.5.2" ))
     ; misc
     ocamlgraph
     parmap
@@ -476,10 +487,12 @@ For more information see https://semgrep.dev
     uuidm
     (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
+    git
+    git-unix
     ; tracing
     trace
     ppx_trace
-    (opentelemetry (>= 0.6))
+    (opentelemetry (>= 0.9))
     opentelemetry-client-ocurl
     ambient-context-lwt
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
@@ -490,15 +503,16 @@ For more information see https://semgrep.dev
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))
+    (tls-mirage (= 0.17.3)) ; force older version of tls-mirage to make windows work
     ; concurrency
     lwt
     lwt_ppx
     (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
     ; jsoo
-    (js_of_ocaml (= 5.4.0))
-    (js_of_ocaml-compiler (= 5.4.0))
-    (js_of_ocaml-ppx (= 5.4.0))
-    (js_of_ocaml-lwt (= 5.4.0))
+    (js_of_ocaml (= 5.7.2))
+    (js_of_ocaml-compiler (= 5.7.2))
+    (js_of_ocaml-ppx (= 5.7.2))
+    (js_of_ocaml-lwt (= 5.7.2))
     ctypes_stubs_js
     integers_stubs_js
   )

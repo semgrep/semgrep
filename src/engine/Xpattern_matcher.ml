@@ -107,7 +107,8 @@ let hmemo : (Fpath.t, Pos.bytepos_linecol_converters) Hashtbl.t =
   Hashtbl.create 101
 
 let () =
-  UTmp.register_tmp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
+  (* nosemgrep: forbid-tmp *)
+  UTmp.register_temp_file_cleanup_hook (fun file -> Hashtbl.remove hmemo file)
 
 let line_col_of_charpos (file : Fpath.t) (charpos : int) : int * int =
   let conv =

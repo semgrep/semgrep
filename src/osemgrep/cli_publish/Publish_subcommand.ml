@@ -17,7 +17,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.stdout ; Cap.network >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -42,7 +42,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
     let rules_and_origins, errors =
       Rule_fetching.rules_from_dashdash_config ~token_opt:(Some caps#token)
         ~rewrite_rule_ids:true
-        (caps :> < Cap.network >)
+        (caps :> < Cap.network ; Cap.tmp >)
         (Rules_config.File (Fpath.v rule_file))
     in
     let rules, invalid_rule_errors =
@@ -163,6 +163,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
 (*****************************************************************************)
 
 let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | Some token -> (
@@ -174,16 +175,16 @@ let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
       | [], _ ->
           Logs.err (fun m ->
               m "No valid semgrep rules found in %s" conf.upload_target);
-          Exit_code.fatal
+          Exit_code.fatal ~__LOC__
       | _, Publish_CLI.Public when List.length config_filenames <> 1 ->
           Logs.err (fun m ->
               m
                 "Only one public rule can be uploaded at a time: specify a \
                  single Semgrep rule");
-          Exit_code.fatal
+          Exit_code.fatal ~__LOC__
       | _, Publish_CLI.Public when Option.is_none conf.registry_id ->
           Logs.err (fun m -> m "--visibility=public requires --registry-id");
-          Exit_code.fatal
+          Exit_code.fatal ~__LOC__
       | _ ->
           Logs.app (fun m ->
               m "Found %d configs to publish with visibility %s"
@@ -209,20 +210,20 @@ let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
                   | [] -> None
                   | first :: _ -> Some first
                 in
-                let caps = Auth.cap_token_and_network token caps in
+                let caps = Auth.cap_token_and_network_and_tmp token caps in
                 if not (upload_rule caps config_filename conf first_test_case)
                 then fail_count + 1
                 else fail_count)
               0 config_filenames
           in
 
-          if fail_count =*= 0 then Exit_code.ok
+          if fail_count =*= 0 then Exit_code.ok ~__LOC__
           else (
             Logs.err (fun m -> m "%d rules failed to upload" fail_count);
-            Exit_code.fatal))
+            Exit_code.fatal ~__LOC__))
   | _ ->
       Logs.err (fun m -> m "run `semgrep login` before using upload");
-      Exit_code.fatal
+      Exit_code.fatal ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

@@ -1,0 +1,23 @@
+Test name: with git > gitignore file takes precedence over --include
+--- Files added before 'git add' ---
+.gitignore
+c
+dir/a
+dir/b
+--- begin input files ---
+.gitignore
+c
+dir/a
+dir/b
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .gitignore
+ create mode 100644 c
+--- '--include' patterns ---
+a
+--- Selected targets ---
+--- Skipped targets ---
+ignored .gitignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
+ignored c [Semgrep_output_v1_t.Cli_include_flags_do_not_match]

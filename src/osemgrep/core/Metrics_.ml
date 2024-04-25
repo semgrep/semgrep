@@ -181,6 +181,7 @@ let default_payload =
         version = None;
         ty = None;
       };
+    osemgrep = None;
   }
 
 let default =
@@ -239,6 +240,7 @@ let is_enabled () =
 let add_user_agent_tag (str : string) =
   let str =
     str
+    (* TODO: don't use JaneStreet Base until we agree to do so *)
     |> Base.String.chop_prefix_if_exists ~prefix:"("
     |> Base.String.chop_suffix_if_exists ~suffix:")"
     |> String.trim |> spf "(%s)"
@@ -302,7 +304,7 @@ let add_engine_type (engine_type : Engine_type.t) =
                    Semgrep_metrics_t.secrets_config ->
                 {
                   permitted_origins =
-                    (if conf.allow_all_origins then `Any else `Semgrep);
+                    (if conf.allow_all_origins then `Any else `NoCommunity);
                 })
               secrets_config;
           supply_chain_config =

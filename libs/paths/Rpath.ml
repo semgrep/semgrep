@@ -1,6 +1,6 @@
 (* Brandon Wu, Yoann Padioleau
  *
- * Copyright (C) 2022-2023 Semgrep Inc.
+ * Copyright (C) 2022-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -34,18 +34,54 @@
    https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
 *)
 
+open Common
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Rpath of Fpath.t [@@deriving show, eq]
+type t = Rpath of Fpath.t [@@unboxed] [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
 (*****************************************************************************)
 
-let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
-let of_string s = Rpath (Unix.realpath s |> Fpath.v)
+let of_string path =
+  try
+    let rpath = Unix.realpath path in
+    Ok (Rpath (Fpath.v rpath))
+  with
+  | Unix.Unix_error (err, _, _) ->
+      let msg =
+        spf "Cannot determine physical path for %S: %s" path
+          (Unix.error_message err)
+      in
+      Error msg
+  | other_exn ->
+      let msg =
+        spf "Cannot determine physical path for %S: %s" path
+          (Printexc.to_string other_exn)
+      in
+      Error msg
+
+let of_string_exn path_str =
+  match of_string path_str with
+  | Ok rpath -> rpath
+  | Error msg -> failwith msg
+
+let of_fpath path = of_string (Fpath.to_string path)
+let of_fpath_exn fpath = of_string_exn (Fpath.to_string fpath)
 let to_fpath (Rpath x) = x
+let canonical_exn s = to_fpath (of_fpath_exn s)
+
+(* deprecated *)
 let to_string (Rpath x) = Fpath.to_string x
-let canonical s = to_string (of_string s)
+
+let getcwd () =
+  (* We could call 'Unix.getcwd' but it's not documented as returning
+     necessarily a physical path. Hopefully, this is fast enough. *)
+  of_string_exn "."
+
+let parent (Rpath path) =
+  let res = Fpath.parent path |> Fpath.rem_empty_seg in
+  if res <> path then Some (Rpath res) else None

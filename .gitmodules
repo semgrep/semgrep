@@ -64,9 +64,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hcl"]
 	path = languages/terraform/tree-sitter/semgrep-hcl
 	url = https://github.com/returntocorp/semgrep-hcl
-[submodule "semgrep/lang"]
-	path = cli/src/semgrep/lang
-	url = https://github.com/returntocorp/semgrep-langs
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-solidity"]
 	path = languages/solidity/tree-sitter/semgrep-solidity
 	url = https://github.com/returntocorp/semgrep-solidity.git
@@ -106,3 +103,9 @@
 [submodule "libs/testo"]
 	path = libs/testo
 	url = https://github.com/semgrep/testo.git
+[submodule "libs/pcre2"]
+	path = libs/pcre2
+	url = https://github.com/semgrep/pcre2-ocaml
+[submodule "languages/ql/tree-sitter/semgrep-ql"]
+	path = languages/ql/tree-sitter/semgrep-ql
+	url = https://github.com/semgrep/semgrep-ql

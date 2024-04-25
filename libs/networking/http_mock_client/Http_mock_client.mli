@@ -92,7 +92,7 @@ val get_header : Cohttp_lwt.Request.t -> string -> string option
   * Example: [get_header request "Authorization"]
   *)
 
-val with_testing_client : make_response_fn -> (unit -> unit) -> unit -> unit
+val with_testing_client : make_response_fn -> (unit -> 'a) -> unit -> 'a
 (** [with_testing_client make_fn f ()]
   * will modify the [http_helpers] client to not actually make
   * http requests, but instead will replace it with a client

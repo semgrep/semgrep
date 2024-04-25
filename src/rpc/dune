@@ -1,0 +1,30 @@
+(library
+ (public_name semgrep.rpc)
+ (name semgrep_rpc)
+ (wrapped false)
+ (libraries
+    str
+    ppx_deriving.runtime
+
+    ; in libs/
+    commons
+    lib_parsing
+    process_limits
+    ; we now also depends on spacegrep with full-rule-in-ocaml
+    spacegrep
+
+    ; internal deps in src/
+    semgrep.core
+    semgrep.running
+    semgrep.metachecking
+    semgrep.parsing.tests ; Test_parsing.parsing_stats
+    semgrep.analyzing.tests ; Test_analyze_generic.actions
+    semgrep.data
+    semgrep.osemgrep_reporting
+
+    ; experiments
+    semgrep.synthesizing
+    ojsonnet ; ojsonnet dumper
+    otarzan
+ )
+)

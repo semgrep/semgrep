@@ -169,8 +169,8 @@ let parse_program ?parsing_mode file =
 (* Sub parsers *)
 (*****************************************************************************)
 
-let (program_of_string : string -> AST_python.program) =
- fun s -> UTmp.with_tmp_file ~str:s ~ext:"py" parse_program
+let program_of_string (caps : < Cap.tmp >) (s : string) : AST_python.program =
+  CapTmp.with_temp_file caps#tmp ~contents:s ~suffix:".py" parse_program
 
 let type_of_string ?(parsing_mode = Python) s =
   let lexbuf = Lexing.from_string s in

@@ -1,19 +1,14 @@
+local common = import 'common.libsonnet';
+
 {
   rules: [
     {
       id: 'forbid-random',
       match: { any: [
-	'Random.$F',
+        'Random.$F',
       ] },
       languages: ['ocaml'],
-      paths: {
-        exclude: [
-           'TCB/*',
-           'tools/*', 'scripts/*',
-            '*_main.ml', 'Main.ml',
-            'Test*.ml', 'Unit*.ml',
-         ],
-      },
+      paths: common.exclude,
       severity: 'ERROR',
       message: |||
         Do not use directly Random; use the safer CapRandom module.
@@ -22,7 +17,7 @@
     {
       id: 'forbid-obj-magic',
       match: { any: [
-	'Obj.magic',
+        'Obj.magic',
       ] },
       languages: ['ocaml'],
       paths: {

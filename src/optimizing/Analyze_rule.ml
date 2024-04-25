@@ -128,23 +128,24 @@ let option_map f xs =
 
 (* less: move the Not to leaves, applying DeMorgan, and then filter them? *)
 let rec (remove_not : Rule.formula -> Rule.formula option) =
- fun f ->
+ fun ({ f; conditions; focus } as formula) ->
+  let reconstruct f = R.mk_formula ~conditions ~focus f in
   match f with
-  | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
+  | R.And (t, xs) ->
       let ys = List_.map_filter remove_not xs in
       if List_.null ys then (
         Logs.debug (fun m -> m ~tags "null And after remove_not");
         None)
-      else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
+      else Some (R.And (t, ys) |> reconstruct)
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
       if List_.null ys then (
         Logs.debug (fun m -> m ~tags "null Or after remove_not");
         None)
-      else Some (R.Or (t, ys))
-  | R.Not (_, f) -> (
-      match f with
+      else Some (R.Or (t, ys) |> reconstruct)
+  | R.Not (_, formula) -> (
+      match formula.f with
       | R.P _ -> None
       (* double negation *)
       | R.Not (_, f) -> remove_not f
@@ -167,11 +168,11 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
           None)
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
-      Some (R.Inside (t, formula))
+      Some (R.Inside (t, formula) |> reconstruct)
   | R.Anywhere (t, formula) ->
       let* formula = remove_not formula in
-      Some (R.Anywhere (t, formula))
-  | R.P pat -> Some (P pat)
+      Some (R.Anywhere (t, formula) |> reconstruct)
+  | R.P _ -> Some formula
 
 let remove_not_final f =
   let final_opt = remove_not f in
@@ -190,63 +191,77 @@ type cnf_step0 = step0 cnf [@@deriving show]
  * by List_.map, but we still get some Stack_overflow because of the many
  * calls to @.
  *)
-let rec (cnf : Rule.formula -> cnf_step0) =
- fun f ->
-  match f with
-  | R.P pat -> And [ Or [ LPat pat ] ]
-  | R.Not (_, _f) ->
-      (* should be filtered by remove_not *)
-      failwith "call remove_not before cnf"
-  (* old:
-   * (match f with
-   * | R.Leaf x -> And [Or [Not x]]
-   * (* double negation *)
-   * | R.Not f -> cnf f
-   * (* de Morgan's laws *)
-   * | R.Or _xs -> failwith "Not Or"
-   * | R.And _xs -> failwith "Not And"
-   * )
-   *)
-  | R.Inside (_, formula)
-  | R.Anywhere (_, formula) ->
-      cnf formula
-  | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
-      let ys = List_.map cnf xs in
-      let zs = List_.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
-      And (ys @ zs |> List.concat_map (function And ors -> ors))
-  | R.Or (_, xs) ->
-      let is_dangerously_large p q =
-        List.compare_length_with p 10_000 > 0
-        || List.compare_length_with q 10_000 > 0
-        ||
-        let p_len = List.length p in
-        let q_len = List.length q in
-        (* Divide rather than multiply to avoid integer overflow *)
-        p_len > Int.div 50_000 q_len
+let (cnf : Rule.formula -> cnf_step0) =
+ fun formula ->
+  let rec aux { Rule.f; conditions; _ } =
+    let augment_with_conditions (And x) =
+      let conditions =
+        List_.map (fun (_t, cond) -> Or [ LCond cond ]) conditions
       in
-      let ys = List_.map cnf xs in
-      List.fold_left
-        (fun (And ps) (And qs) ->
-          (* Abort before this starts consuming insane amounts of memory. *)
-          if is_dangerously_large ps qs then raise CNF_exploded;
-          (* Distributive law *)
-          And
-            (ps
-            |> List.concat_map (fun pi ->
-                   let ands =
-                     qs
-                     |> List_.map (fun qi ->
-                            let (Or pi_ors) = pi in
-                            let (Or qi_ors) = qi in
-                            (* `ps` is the accumulator so we expect it to be larger *)
-                            let ors = List.rev_append qi_ors pi_ors in
-                            Or ors)
-                   in
-                   ands)))
-        (* If `ys = []`, we have `Or []` which is the same as `false`. Note that
-         * the CNF is then `And [Or []]` rather than `And []` (the latter being
-         * the same `true`). *)
-        (And [ Or [] ]) ys
+      And (x @ conditions)
+    in
+    aux' f |> augment_with_conditions
+  and aux' kind =
+    match kind with
+    | R.P pat -> And [ Or [ LPat pat ] ]
+    | R.Not (_, _f) ->
+        (* should be filtered by remove_not *)
+        failwith "call remove_not before cnf"
+    (* old:
+       * (match f with
+       * | R.Leaf x -> And [Or [Not x]]
+       * (* double negation *)
+       * | R.Not f -> cnf f
+       * (* de Morgan's laws *)
+       * | R.Or _xs -> failwith "Not Or"
+       * | R.And _xs -> failwith "Not And"
+       * )
+    *)
+    | R.Inside (_, formula)
+    | R.Anywhere (_, formula) ->
+        aux formula
+    | R.And (_, xs) ->
+        let ys = List_.map aux xs in
+        And
+          (List.concat_map
+             (function
+               | And x -> x)
+             ys)
+    | R.Or (_, xs) ->
+        let is_dangerously_large p q =
+          List.compare_length_with p 10_000 > 0
+          || List.compare_length_with q 10_000 > 0
+          ||
+          let p_len = List.length p in
+          let q_len = List.length q in
+          (* Divide rather than multiply to avoid integer overflow *)
+          p_len > Int.div 50_000 q_len
+        in
+        let ys = List_.map aux xs in
+        List.fold_left
+          (fun (And ps) (And qs) ->
+            (* Abort before this starts consuming insane amounts of memory. *)
+            if is_dangerously_large ps qs then raise CNF_exploded;
+            (* Distributive law *)
+            And
+              (ps
+              |> List.concat_map (fun pi ->
+                     let ands =
+                       qs
+                       |> List_.map (fun qi ->
+                              let (Or pi_ors) = pi in
+                              let (Or qi_ors) = qi in
+                              (* `ps` is the accumulator so we expect it to be larger *)
+                              let ors = List.rev_append qi_ors pi_ors in
+                              Or ors)
+                     in
+                     ands)))
+          (* If `ys = []`, we have `Or []` which is the same as `false`. Note that
+             * the CNF is then `And [Or []]` rather than `And []` (the latter being
+             * the same `true`). *)
+          (And [ Or [] ]) ys
+  in
+  aux formula
 
 (*****************************************************************************)
 (* Step1: just collect strings, mvars, regexps *)
@@ -409,14 +424,14 @@ let or_step2 (Or xs) =
     List_.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
-      | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
+      | Regexp re_str -> Regexp2_search (Pcre2_.pcre_compile re_str)
       | MvarRegexp (_mvar, re_str, _const_prop) ->
           (* The original regexp is meant to apply on a substring.
               We rewrite them to remove end-of-string anchors if possible. *)
           let re =
             match
-              Regexp_engine.remove_end_of_string_assertions
-                (Regexp_engine.pcre_compile re_str)
+              Pcre2_.remove_end_of_string_assertions
+                (Pcre2_.pcre_compile re_str)
             with
             | None -> raise GeneralPattern
             | Some re -> re
@@ -443,7 +458,7 @@ let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
              |> List_.map (function
                   | Idents xs -> `Pred (`Idents xs)
                   | Regexp2_search re ->
-                      let re_str = Regexp_engine.show re in
+                      let re_str = Pcre2_.show re in
                       `Pred (`Regexp re_str))
            in
            match ys' with
@@ -546,12 +561,13 @@ let run_cnf_step2 cnf big_str =
                   Logs.debug (fun m ->
                       m ~tags "check for the presence of %S" id);
                   (* TODO: matching_exact_word does not work, why??
-                     because string literals and metavariables are put under Idents? *)
-                  let re = Regexp_engine.matching_exact_string id in
-                  (* Note that in case of a PCRE error, we want to assume that the
-                     rule is relevant, hence ~on_error:true! *)
-                  Regexp_engine.unanchored_match ~on_error:true re big_str)
-       | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
+                     because string literals and metavariables are put under
+                     Idents? *)
+                  let re = Pcre2_.matching_exact_string id in
+                  (* Note that in case of a PCRE error, we want to assume
+                     that the rule is relevant, hence ~on_error:true! *)
+                  Pcre2_.unanchored_match ~on_error:true re big_str)
+       | Regexp2_search re -> Pcre2_.unanchored_match re big_str)
 [@@profiling]
 
 (*****************************************************************************)
@@ -630,11 +646,8 @@ let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
      * analysis! *)
     R.And
       ( rule_tok,
-        {
-          conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
-          conditions = [];
-          focus = [];
-        } )
+        [ R.f (R.Or (rule_tok, sources)); R.f (R.Or (rule_tok, sinks)) ] )
+    |> R.f
   in
   regexp_prefilter_of_formula ~xlang f
 

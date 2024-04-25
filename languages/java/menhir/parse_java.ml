@@ -100,7 +100,9 @@ let parse_program file =
   let res = parse file in
   res.Parsing_result.ast
 
-let parse_string (w : string) = UTmp.with_tmp_file ~str:w ~ext:"java" parse
+let parse_string (caps : < Cap.tmp >) (w : string) :
+    (Ast_java.program, Parser_java.token) Parsing_result.t =
+  CapTmp.with_temp_file caps#tmp ~contents:w ~suffix:".java" parse
 
 (*****************************************************************************)
 (* Sub parsers *)

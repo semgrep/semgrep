@@ -84,4 +84,4 @@ let parse_config_string ~in_docker (config_str : config_string) : t =
         (E.Semgrep_error
            ( spf "unable to find a config; path `%s` does not exist%s" str
                addendum,
-             Some Exit_code.missing_config ))
+             Some (Exit_code.missing_config ~__LOC__) ))

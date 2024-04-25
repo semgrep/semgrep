@@ -1,5 +1,3 @@
-open Fpath_.Operators
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -8,7 +6,15 @@ open Fpath_.Operators
 
    The name of the module imitates Fpath.ml, but use Ppath.ml for
    Project path (instead of File path).
+
+   !!! The tests for this module are in the git_wrapper library because
+   they depend on git.
+   TODO: create a 'project' library that depends both on 'git_wrapper'
+   and 'paths'?
 *)
+
+open Common
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Types *)
@@ -20,33 +26,35 @@ open Fpath_.Operators
 
      in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
 
-    will return { segments = [""; "b"; "c"]; string = "/b/c"; }
+   will return { segments = [""; "b"; "c"]; string = "/b/c"; }
  *)
 type t = {
   (* Path segments within the project root.
-   * Invariant: the first element of the list should always be "",
-   * because all ppaths are absolute paths.
+   * Invariants:
+     - the first element of the list should always be "",
+       because all ppaths are absolute paths.
+     - no segment may be "." or "..".
+     - no segment may contain a "/".
    *)
   segments : string list;
-  (* String.concat "/" segments
-   * TODO: get rid of it? just compute it dynamically?
-   *)
+  (* The string representation of the ppath as used for matching file paths
+     with gitignore and semgrepignore implementation.
+     This path uses '/' as a separator regardless of the platform
+     and starts with one. *)
   string : string;
 }
+[@@deriving show]
 
-(* old: was of_string_for_tests "/" *)
-let root = { string = "/"; segments = [ ""; "" ] }
+let string_of_segments segments = String.concat "/" segments
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
-(* Useful to debug, to use in error messages, or when passing the ppath
- * to a regexp matcher (e.g., Glob.Match.run()).
- * However, you should prefer to_fpath() most of the time, and then
- * Fpath.to_string() if needed.
- *)
-let to_string x = x.string
+(* Fast access to the string representation is needed when matching a ppath
+   against many gitignore or semgrepignore patterns because they use regexps
+   on the string rather than working on string segments individually. *)
+let to_string_fast path = path.string
 
 (* TODO: make a rel_segments function so the caller does not have to do
    let rel_segments =
@@ -58,50 +66,99 @@ let to_string x = x.string
 
 let segments x = x.segments
 
+(* Return the list of segments of a ppath without the leading slash. *)
+let relative_segments (ppath : t) =
+  match ppath.segments with
+  | [] -> assert false
+  | [ "" ] -> assert false
+  | "" :: segs -> segs
+  | _ -> assert false
+
 (*****************************************************************************)
 (* Builder helpers (not exposed in Ppath.mli) *)
 (*****************************************************************************)
 
-let check_segment str =
+let rec normalize_aux (xs : string list) : string list =
+  match xs with
+  | ".." :: xs -> ".." :: normalize_aux xs
+  | [ "" ] as xs (* preserve trailing slash *) -> xs
+  | ("." | "") :: xs -> normalize_aux xs
+  | _ :: ".." :: xs -> normalize_aux xs
+  | x :: xs as orig ->
+      let res = normalize_aux xs in
+      (* If nothing changes via normalization, return the original list *)
+      if Stdlib.( == ) res xs then orig
+      else (* Something changed, make another pass *)
+        normalize_aux (x :: res)
+  | [] -> []
+
+let normalize_segments (segments : string list) =
+  match segments with
+  | "" :: xs -> (
+      match normalize_aux xs with
+      | ".." :: _ -> invalid_arg ("invalid ppath: " ^ String.concat "/" segments)
+      | [] -> [ ""; "" ]
+      | segments -> "" :: segments)
+  | _ ->
+      invalid_arg
+        ("Ppath.create: not an absolute ppath: " ^ String.concat "/" segments)
+
+let check_normalized_segment str =
   if String.contains str '/' then
     invalid_arg ("Ppath.create: path segment may not contain a slash: " ^ str)
+  else
+    match str with
+    | "."
+    | ".." ->
+        invalid_arg ("Ppath.create: unsupported path segment: " ^ str)
+    | _ -> ()
 
-let unsafe_create segments = { string = String.concat "/" segments; segments }
+let check_nonempty_normalized_segment str =
+  match str with
+  | "" -> invalid_arg "Ppath.create: misplaced empty segment"
+  | _ -> check_normalized_segment str
 
-(* Note that this does not ensure the segments represent an absolute path
- * and this does not normalize either those segments.
- * Use from_segments( or in_project() instead.
- *)
+let check_normalized_segments segments =
+  let rec iter segs =
+    match segs with
+    | [ "" ] (* trailing slash *) -> ()
+    | seg :: segs ->
+        check_nonempty_normalized_segment seg;
+        iter segs
+    | [] -> ()
+  in
+  match segments with
+  | []
+  | [ _ ] ->
+      invalid_arg
+        ("Ppath.create: ppath should have at least 2 segments: "
+       ^ String.concat "/" segments)
+  | "" :: segs -> iter segs
+  | _ ->
+      invalid_arg
+        ("Ppath.create: ppath must be absolute (start with '/'): "
+       ^ String.concat "/" segments)
+
+let unsafe_create segments = { segments; string = string_of_segments segments }
+
 let create segments =
-  List.iter check_segment segments;
-  unsafe_create segments
+  let norm_segments = normalize_segments segments in
+  check_normalized_segments norm_segments;
+  unsafe_create norm_segments
+
+let root = create [ ""; "" ]
 
 (*****************************************************************************)
 (* Append *)
 (*****************************************************************************)
 
-let append_segment xs x =
-  let rec loop xs =
-    match xs with
-    | [] -> [ x ]
-    | [ "" ] -> (* ignore trailing slash that's not a leading slash *) [ x ]
-    | x :: xs -> x :: loop xs
-  in
-  match xs with
-  | "" :: xs -> "" :: loop xs
-  (* TODO: this case should not happen anymore now *)
-  | xs -> loop xs
-
-(* use same terminology than in Fpath *)
-let add_seg path seg =
-  check_segment seg;
-  let segments = append_segment path.segments seg in
-  unsafe_create segments
+(* use same terminology as in Fpath *)
+let add_seg path seg = create (path.segments @ [ seg ])
 
 (* saving you 3 neurons *)
-let add_segs path segs = List.fold_left add_seg path segs
+let add_segs (path : t) segs = create (path.segments @ segs)
 
-let append_fpath path fpath =
+let append_fpath (path : t) fpath =
   match Fpath.segs fpath with
   | "" :: _ ->
       invalid_arg
@@ -113,68 +170,68 @@ module Operators = struct
 end
 
 (*****************************************************************************)
-(* Converter *)
+(* Export *)
 (*****************************************************************************)
-let to_fpath ~root path =
+
+let to_fpath ?root path =
   match path.segments with
-  | "" :: segments ->
+  | "" :: (seg :: other_segments as segments) ->
+      let root, segments =
+        match (root, seg) with
+        | None, "" -> (* '/' -> '.' *) (Fpath.v ".", [])
+        | Some root, "" when Fpath.is_current_dir root ->
+            (* '.' + '/' -> '.' *)
+            (Fpath.v ".", [])
+        | None, seg -> (Fpath.v seg, other_segments)
+        | Some root, seg when Fpath.is_current_dir root ->
+            (* If the project root is "." and the ppath is "/a",
+               produce "a" rather than "./a".
+               However, if the project root is "./b", then produce "./b/a". *)
+            (Fpath.v seg, other_segments)
+        | Some root, _ -> (root, segments)
+      in
       List.fold_left Fpath.add_seg root segments
-      |> (* remove leading "./" typically occuring when the project root
-            is "." *)
-      Fpath.normalize
   | _ -> assert false
+
+(*
+   Represent Ppaths as strings using '/' as the separator regardless
+   of the platform. These are not valid file system paths in general.
+   They may be used only in tests and in internal assertions
+   (assert or invalid_arg).
+*)
+let of_string_for_tests string = create (String.split_on_char '/' string)
+
+(* Show the ppath in string form. Doesn't need to be fast.
+   We use a different name to distinguish use cases more clearly. *)
+let to_string_for_tests = to_string_fast
+
+let relativize ~root:orig_root orig_ppath =
+  let rec aux root ppath =
+    match (root, ppath) with
+    | [ "" ], [ "" ] -> Fpath.v "."
+    | [ "" ], [] -> (* tolerate "/foo/" vs "/foo" *) Fpath.v "."
+    | [ "" ], segs -> Fpath_.of_relative_segments segs
+    | [], [] -> Fpath.v "."
+    | [], [ "" ] -> (* prefer "." over "./" *) Fpath.v "."
+    | [], segs -> Fpath_.of_relative_segments segs
+    | _ :: _, [] ->
+        invalid_arg
+          (spf "Ppath.relativize: %S is shorter than %S"
+             (to_string_for_tests orig_root)
+             (to_string_for_tests orig_ppath))
+    | x :: xs, y :: ys ->
+        if x = y then aux xs ys
+        else
+          invalid_arg
+            (spf "Ppath.relativize: %S is not a prefix of %S"
+               (to_string_for_tests orig_root)
+               (to_string_for_tests orig_ppath))
+  in
+  aux (relative_segments orig_root) (relative_segments orig_ppath)
 
 (*****************************************************************************)
 (* Project Builder *)
 (*****************************************************************************)
-
-(* TODO: delete *)
-(* A ppath should always be absolute! *)
-let is_absolute x =
-  match x.segments with
-  | "" :: _ -> true
-  | __else__ -> false
-
-(* TODO: delete *)
-let is_relative x = not (is_absolute x)
-
-(* TODO: delete *)
-let make_absolute x =
-  if is_relative x then { string = "/" ^ x.string; segments = "" :: x.segments }
-  else x
-
-let rec normalize (xs : string list) : string list =
-  match xs with
-  | ".." :: xs -> ".." :: normalize xs
-  | [ "" ] as xs (* preserve trailing slash *) -> xs
-  | ("." | "") :: xs -> normalize xs
-  | _ :: ".." :: xs -> normalize xs
-  | x :: xs as orig ->
-      let res = normalize xs in
-      (* If nothing changes via normalization, return the original list *)
-      if Stdlib.( == ) res xs then orig
-      else (* Something changed, make another pass *)
-        normalize (x :: res)
-  | [] -> []
-
-let normalize_ppath x =
-  match x.segments with
-  | "" :: xs -> (
-      match normalize xs with
-      | ".." :: _ -> Error ("invalid git path: " ^ x.string)
-      | [] -> Ok (create [ ""; "" ])
-      | segments -> Ok (create ("" :: segments)))
-  (* TODO: delete, this should not happen anymore *)
-  | xs ->
-      let segments =
-        match normalize xs with
-        | [] -> [ "." ]
-        | xs -> xs
-      in
-      Ok (create segments)
-
-let of_fpath path =
-  Fpath.segs path |> create |> make_absolute |> normalize_ppath
 
 (*
    Prepend "./" to relative paths so as to make "." a prefix.
@@ -201,6 +258,8 @@ let make_matchable_relative_path path =
      (./a, a/b) -> b
      (a, ./a/b) -> b
 
+   This returns a relative path.
+
    TODO: Move to File module?
 *)
 let remove_prefix root path =
@@ -216,13 +275,7 @@ let remove_prefix root path =
   let path = Fpath.to_dir_path path in
   (* now we can call this function to remove the root prefix from path *)
   match Fpath.rem_prefix root path with
-  | None ->
-      if
-        Fpath.equal root path
-        || Fpath.equal path (Fpath.v ".")
-        || Fpath.equal path (Fpath.v "./")
-      then Some (Fpath.v ".")
-      else None
+  | None -> if Fpath.equal root path then Some (Fpath.v ".") else None
   | Some rel_path ->
       (* remove the trailing slash if we added one *)
       let rel_path =
@@ -235,115 +288,49 @@ let remove_prefix root path =
 (* Builder entry points *)
 (*****************************************************************************)
 
-let in_project ~root path =
-  match remove_prefix root path with
+(*
+   Make a path absolute, using getcwd() if needed.
+   I hesitated to put this into Fpath_ since Fpath is purely syntactic.
+*)
+let make_absolute path =
+  if Fpath.is_rel path then Fpath.(v (Unix.getcwd ()) // path)
+  else
+    (* Here, we must make a syscall, bceause we are making an unnormalized path absolute
+       so that we can compare it to a normalized path.
+       However, in the presence of symlinks, certain relationships like prefixes and
+       naive string operations do not work properly, because they are not cognizant of
+       how certain paths are actually related on the filesystem.
+       For instance, on Mac systems, `/var/` is actually the same as `/private/var`, so
+       our absolute form for `/var/` would prefer to be `/private/var`.
+       So we turn our path into an rpath. *)
+    match Rpath.of_fpath path with
+    | Ok path -> Rpath.to_fpath path
+    | Error err ->
+        failwith
+          (Common.spf "Failed to make path %s absolute: %s"
+             (Fpath.to_string path) err)
+
+let of_relative_fpath (fpath : Fpath.t) =
+  if Fpath.is_rel fpath then create ("" :: Fpath.segs fpath)
+  else invalid_arg ("Ppath.of_relative_fpath: " ^ Fpath.to_string fpath)
+
+(*
+   This assumes the input paths are normalized. We use this
+   in tests to avoid having to create actual files.
+*)
+let in_project_unsafe_for_tests ~(phys_root : Fpath.t) (path : Fpath.t) =
+  let abs_path = make_absolute path in
+  match remove_prefix phys_root abs_path with
   | None ->
       Error
-        (Common.spf "cannot make path %S relative to project root %S" !!path
-           !!root)
-  | Some path -> path |> of_fpath
+        (Common.spf
+           "cannot make path %S relative to project root %S.\n\
+            cwd: %s\n\
+            realpath for .: %s\n\
+            Sys.argv: %s" !!path !!phys_root (Sys.getcwd ())
+           (Rfpath.of_string_exn "." |> Rfpath.show)
+           (Sys.argv |> Array.to_list |> String.concat " "))
+  | Some rel_path -> Ok (of_relative_fpath rel_path)
 
-let from_segments segs =
-  match segs with
-  | "" :: _ ->
-      let ppath = create segs in
-      normalize_ppath ppath
-  | _ -> Error "segments do not represent an absolute path"
-
-(*****************************************************************************)
-(* Tests helpers *)
-(*****************************************************************************)
-
-let of_string_for_tests string =
-  let segments =
-    match String.split_on_char '/' string with
-    | [ "" ] -> (* should be an error? *) [ "." ]
-    | [] -> assert false
-    | x -> x
-  in
-  { string; segments }
-
-(*****************************************************************************)
-(* Inline tests *)
-(*****************************************************************************)
-
-let () =
-  Testo.test "Ppath" (fun () ->
-      let test_str f input expected_output =
-        Alcotest.(check string) "equal" expected_output (f input)
-      in
-      let rewrite str = to_string (of_string_for_tests str) in
-      test_str rewrite "/" "/";
-      test_str rewrite "//" "//";
-      test_str rewrite "" "";
-      test_str rewrite "a/" "a/";
-
-      let norm str =
-        match of_string_for_tests str |> normalize_ppath with
-        | Ok x -> to_string x
-        | Error s -> failwith s
-      in
-      let norm_err str =
-        match of_string_for_tests str |> normalize_ppath with
-        | Ok _ -> false
-        | Error _ -> true
-      in
-      test_str norm "a" "a";
-      test_str norm "a/b" "a/b";
-      test_str norm "ab/cd" "ab/cd";
-      test_str norm "/" "/";
-      test_str norm "/a" "/a";
-      test_str norm "/a/b" "/a/b";
-      test_str norm "" ".";
-      test_str norm "." ".";
-      test_str norm "." ".";
-      test_str norm ".." "..";
-      assert (norm_err "/..");
-      test_str norm "a/../b" "b";
-      test_str norm "a/.." ".";
-      test_str norm "a/../.." "..";
-      assert (norm_err "/a/../..");
-      test_str norm "a/b/../c/d/e/../.." "a/c";
-      test_str norm "/a/b/../c/d/e/../.." "/a/c";
-      test_str norm "a/" "a/";
-      test_str norm "/a/" "/a/";
-      test_str norm "/a/b/" "/a/b/";
-
-      let test_add_seg a b ab =
-        Alcotest.(check string)
-          "equal" ab
-          (add_seg (of_string_for_tests a) b |> to_string)
-      in
-      test_add_seg "/" "a" "/a";
-      test_add_seg "/a" "b" "/a/b";
-      test_add_seg "/a/" "c" "/a/c";
-
-      let test_in_project_ok root path expected =
-        match in_project ~root:(Fpath.v root) (Fpath.v path) with
-        | Ok res -> Alcotest.(check string) "equal" expected (to_string res)
-        | Error msg -> Alcotest.fail msg
-      in
-      let test_in_project_fail root path =
-        match in_project ~root:(Fpath.v root) (Fpath.v path) with
-        | Ok res -> Alcotest.fail (to_string res)
-        | Error _ -> ()
-      in
-      test_in_project_ok "/a" "/a/b" "/b";
-      test_in_project_ok "/a" "/a" "/";
-      test_in_project_ok "/a" "/a/b/c" "/b/c";
-      test_in_project_ok "/a" "/a/b/c/d" "/b/c/d";
-      test_in_project_ok "/a/b" "/a/b/c/d" "/c/d";
-      test_in_project_ok "/a/" "/a/b" "/b";
-      test_in_project_ok "/a" "/a/b/" "/b/";
-      test_in_project_ok "/a/b" "/a/b/c/.." "/";
-      test_in_project_ok "/a/b" "/a/b/c/../" "/";
-      test_in_project_ok "/a/b" "/a/b/./c/." "/c/";
-      test_in_project_ok "a/b" "a/b/c" "/c";
-      test_in_project_ok "." "a/b" "/a/b";
-      test_in_project_ok "a" "./a/b" "/b";
-      test_in_project_ok "." "." "/";
-      test_in_project_ok "a/b" "a/b" "/";
-      test_in_project_ok "/a/b" "/a/b" "/";
-      test_in_project_fail "/a/b" "/a";
-      test_in_project_fail "/a/b" "/b";
-      test_in_project_fail "/a/b" "a")
+let in_project ~(root : Rfpath.t) (path : Fpath.t) =
+  in_project_unsafe_for_tests ~phys_root:(root.rpath |> Rpath.to_fpath) path

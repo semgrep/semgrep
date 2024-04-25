@@ -109,7 +109,7 @@ val redirect_stdout_opt : filename option -> (unit -> 'a) -> 'a
 val redirect_stdout_stderr : filename -> (unit -> unit) -> unit
 val redirect_stdin : filename -> (unit -> unit) -> unit
 val redirect_stdin_opt : filename option -> (unit -> unit) -> unit
-val with_pr2_to_string : (unit -> unit) -> string list
+val with_pr2_to_string : Cap.FS.tmp -> (unit -> unit) -> string list
 
 (* default = stderr *)
 val _chan : out_channel ref

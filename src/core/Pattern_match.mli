@@ -37,6 +37,7 @@ and rule_id = {
   id : Rule_ID.t;
   (* extra info useful for Core_json_output *)
   message : string;
+  metadata : JSON.t option;
   fix : string option;
   fix_regexp : Rule.fix_regexp option;
   langs : Lang.t list;

@@ -219,9 +219,8 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = List_.map UFile.fullpath root_paths in
   let paths, _skipped_paths =
-    Find_targets_old.files_of_dirs_or_files (Some lang) paths
+    Find_targets_old.files_of_dirs_or_files (Some lang) root_paths
   in
   let stat_list = ref [] in
   paths |> Fpath_.to_strings
@@ -347,10 +346,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
   Logs.info (fun m ->
       m ~tags "running with a memory limit of %d MiB" mem_limit_mb);
 
-  let paths =
-    (* = absolute paths *)
-    List_.map UFile.fullpath files_or_dirs
-  in
+  (* less: use realpath? *)
+  let paths = files_or_dirs in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
@@ -555,8 +552,8 @@ let diff_pfff_tree_sitter xs =
          in
          let s1 = AST_generic.show_program ast1 in
          let s2 = AST_generic.show_program ast2 in
-         UTmp.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-             UTmp.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+         UTmp.with_temp_file ~contents:s1 ~suffix:".x" (fun file1 ->
+             UTmp.with_temp_file ~contents:s2 ~suffix:".x" (fun file2 ->
                  let xs = Common2.unix_diff !!file1 !!file2 in
                  xs |> List.iter UCommon.pr2)))
 

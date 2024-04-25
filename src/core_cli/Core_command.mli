@@ -5,11 +5,11 @@
  *)
 val semgrep_core_dispatch : Cap.all_caps -> Core_scan_config.t -> unit
 
-val semgrep_core_with_one_pattern : Core_scan_config.t -> unit
+val semgrep_core_with_one_pattern : < Cap.tmp > -> Core_scan_config.t -> unit
 (** this is the function used when running semgrep-core with -e or -f *)
 
 val semgrep_core_with_rules_and_formatted_output :
-  Cap.all_caps -> Core_scan_config.t -> unit
+  < Cap.tmp ; Cap.exit > -> Core_scan_config.t -> unit
 (** [semgrep_core_with_rules_and_formatted_output config] calls
     [scan_with_exn_handler] and then [output_core_results] on the results
     This is the function used when running semgrep-core with -rules.

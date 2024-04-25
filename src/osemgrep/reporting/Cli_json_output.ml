@@ -100,7 +100,7 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   | ParseError
   | LexicalError
   | PartialParsing _ ->
-      Exit_code.invalid_code
+      Exit_code.invalid_code ~__LOC__
   | OtherParseError
   | AstBuilderError
   | RuleParseError
@@ -118,13 +118,13 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   (* TODO? really? fatal for SemgrepWarning? *)
   | SemgrepWarning
   | SemgrepError ->
-      Exit_code.fatal
-  | InvalidRuleSchemaError -> Exit_code.invalid_pattern
-  | UnknownLanguageError -> Exit_code.invalid_language
+      Exit_code.fatal ~__LOC__
+  | InvalidRuleSchemaError -> Exit_code.invalid_pattern ~__LOC__
+  | UnknownLanguageError -> Exit_code.invalid_language ~__LOC__
   | IncompatibleRule _
   | IncompatibleRule0
   | MissingPlugin ->
-      Exit_code.ok
+      Exit_code.ok ~__LOC__
 
 (* Skipping the intermediate python SemgrepCoreError for now.
  * TODO: should we return an Error.Semgrep_core_error instead? like we
@@ -227,38 +227,15 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let make_fixed_lines ?applied_fixes lines fix path (start : OutJ.position)
+let make_fixed_lines fixes_env fix path (start : OutJ.position)
     (end_ : OutJ.position) =
-  let fix_overlaps, add_fix =
-    match applied_fixes with
-    | None -> (false, fun () -> ())
-    | Some table ->
-        let v =
-          match Hashtbl.find_opt table !!path with
-          | Some xs -> xs
-          | None -> []
-        in
-        ( List.exists
-            (fun (st, en) -> st <= start.offset && en >= start.offset)
-            v,
-          fun () ->
-            Hashtbl.replace table !!path ((start.offset, end_.offset) :: v) )
+  let edit =
+    Textedit.
+      { path; start = start.offset; end_ = end_.offset; replacement_text = fix }
   in
-  if String.equal fix "" then None
-  else if fix_overlaps then None
-  else
-    match (lines, List.rev lines) with
-    | line :: _, last_line :: _ ->
-        let first_line_part = Str.first_chars line (start.col - 1)
-        and last_line_part = Str.string_after last_line (end_.col - 1) in
-        add_fix ();
-        Some
-          (String.split_on_char '\n' (first_line_part ^ fix ^ last_line_part))
-    | [], _
-    | _, [] ->
-        None
+  Autofix.make_fixed_lines fixes_env edit
 
-let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
+let cli_match_of_core_match ~dryrun fixes_env (hrules : Rule.hrules)
     (m : OutJ.core_match) : OutJ.cli_match =
   match m with
   | {
@@ -295,31 +272,27 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
       in
       let check_id = rule_id in
       let metavars = Some metavars in
+      let metadata =
+        match metadata with
+        | None -> `Assoc []
+        | Some json -> json
+      in
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
       let severity = severity ||| rule.severity in
-      let metadata =
-        match rule.metadata with
-        | None -> `Assoc []
-        | Some json -> (
-            JSON.to_yojson json |> fun rule_metadata ->
-            match metadata with
-            | Some metadata -> JSON.update rule_metadata metadata
-            | None -> rule_metadata)
-      in
-      (* TODO? at this point why not using content_of_file_at_range since
-       * we concatenate the lines after? *)
-      let lines =
-        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
-      in
       let fixed_lines =
         match (fix, dryrun) with
         | None, _
         | _, false ->
             None
-        | Some fix, true ->
-            make_fixed_lines ?applied_fixes lines fix path start end_
+        | Some fix, true -> make_fixed_lines fixes_env fix path start end_
+      in
+      (* Can't use content_of_file_at_range because we want to include the
+       * entirety of every line involved in the match, not just the text that
+       * matched. *)
+      let lines =
+        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
       in
       let lines = lines |> String.concat "\n" in
       {
@@ -352,22 +325,6 @@ let cli_match_of_core_match ~dryrun ?applied_fixes (hrules : Rule.hrules)
             extra_extra;
           };
       }
-
-(*
- # Sort results so as to guarantee the same results across different
- # runs. Results may arrive in a different order due to parallelism
- # (-j option).
-*)
-let dedup_and_sort (xs : OutJ.cli_match list) : OutJ.cli_match list =
-  let seen = Hashtbl.create 101 in
-  xs
-  |> List.filter (fun x ->
-         let key = Semgrep_hashing_functions.cli_unique_key x in
-         if Hashtbl.mem seen key then false
-         else (
-           Hashtbl.replace seen key true;
-           true))
-  |> Semgrep_output_utils.sort_cli_matches
 
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
 (* match based ids have an index appended at the end which indicates what
@@ -490,16 +447,15 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
         ignore skipped_rules;
         []
       in
-      let applied_fixes = Hashtbl.create 13 in
+      let fixes_env = Autofix.make_fixed_lines_env () in
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
-         * TODO: handle the rule_match.cli_unique_key to dedup matches
          *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match ~dryrun ~applied_fixes hrules)
-          |> dedup_and_sort;
+          |> List_.map (cli_match_of_core_match ~dryrun fixes_env hrules)
+          |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;
         skipped_rules;

@@ -1,0 +1,19 @@
+--- begin input files ---
+.gitignore
+.semgrepignore
+a
+b
+c
+--- end input files ---
+Initialized empty Git repository in<MASKED>
+[main (root-commit) <MASKED>] Add all the files (including gitignored files)
+ 5 files changed, 2 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 .semgrepignore
+ create mode 100644 a
+ create mode 100644 b
+ create mode 100644 c
+Target files:
+  .gitignore
+  .semgrepignore
+  c

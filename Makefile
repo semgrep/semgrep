@@ -29,8 +29,8 @@
 # See also https://semgrep.dev/docs/contributing/contributing-code/
 #
 # Most of the targets in this Makefile should work equally under
-# Linux (Alpine, Ubuntu, Arch linux), macOS, from a Dockerfile, and
-# hopefully also under Windows WSL.
+# Linux (Alpine, Ubuntu, Arch), macOS (x86 and arm64), Windows (WSL, Cygwin),
+# and from a Dockerfile.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
 # macros like the one below to have a portable Makefile.
@@ -63,6 +63,14 @@
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
+SHELL := /bin/bash
+LINK_HELP_TEXT="Dune reported a linker error. If you ran into this after adding \
+	a new dependency, then this probably means that that dependency relies on \
+	a library that needs to be linked. See src/main/flags.sh on how to \
+	do that. If you didn't add a new dependency, you may not have every \
+	dependency needed for installation. Try running make dev-setup and \
+	building again"
+
 # First (and default) target.
 .PHONY: default
 default: core
@@ -71,12 +79,12 @@ default: core
 # place and correct.
 .PHONY: all
 all:
-	# OCaml compilation
+# OCaml compilation
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
 	$(MAKE) build-semgrep-jsoo
 	$(MAKE) unused-libs
-	# Python setup
+# Python setup
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
@@ -92,16 +100,14 @@ unused-libs:
 .PHONY: core
 core:
 	$(MAKE) minimal-build
-	# make executables easily accessible for manual testing:
 	ln -s semgrep-core bin/osemgrep
-	# Remove all symbols with GNU strip. It saves 10-25% on the executable
-	# size and it doesn't seem to reduce the functionality or
-	# debuggability of OCaml executables.
-	# See discussion at https://github.com/semgrep/semgrep/pull/9471
+# Remove all symbols with GNU strip. It saves 10-25% on the executable
+# size and it doesn't seem to reduce the functionality or
+# debuggability of OCaml executables.
+# See discussion at https://github.com/semgrep/semgrep/pull/9471
 	chmod +w bin/semgrep-core
 	strip bin/semgrep-core
 
-#history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core-bc
 core-bc:
 	$(MAKE) minimal-build-bc
@@ -119,7 +125,23 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core
+	$(eval $@_TMP := $(shell mktemp -t dune-output.XXXXX))
+	@# Save the output of dune so we can provide more helpful error messages in
+	@# some cases
+	@#
+	@# Just display the dune command, instead of the whole unwieldy pipeline:
+	@echo 'dune build _build/install/default/bin/semgrep-core'
+	@( set -o pipefail;                                                         \
+	   2>&1 CLICOLOR_FORCE=1 dune build _build/install/default/bin/semgrep-core \
+	      | tee $($@_TMP))                                                      \
+	   ||                                                                       \
+	 ( grep -q "Error during linking" $($@_TMP)                                 \
+	   && (tput bold;                                                           \
+	       tput setaf 1;                                                        \
+	       echo $(LINK_HELP_TEXT) | fold -s;                                    \
+	       tput sgr 0)                                                          \
+	   && false)
+	@$(RM) $($@_TMP)
 
 
 .PHONY: minimal-build-bc
@@ -153,6 +175,7 @@ build-pfff:
 build-parse-cairo:
 	dune build _build/install/default/bin/parse-cairo
 
+# This takes a long time
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
@@ -173,9 +196,9 @@ clean:
 .PHONY: core-clean
 core-clean:
 	dune clean
-	# We still need to keep the nonempty opam files in git for
-	# 'make setup', so we should only remove the empty opam files.
-	# This removes the gitignored opam files.
+# We still need to keep the nonempty opam files in git for
+# 'make setup', so we should only remove the empty opam files.
+# This removes the gitignored opam files.
 	git clean -fX *.opam
 
 ###############################################################################
@@ -188,7 +211,7 @@ core-clean:
 .PHONY: install
 install:
 	$(MAKE) copy-core-for-cli
-	# Install semgrep and semgrep-core in a place known to pip.
+# Install semgrep and semgrep-core in a place known to pip.
 	python3 -m pip install ./cli
 
 .PHONY: uninstall
@@ -220,8 +243,8 @@ test-all:
 .PHONY: core-test
 core-test:
 	$(MAKE) build-core-test
-	# The following command ensures that we can call 'test.exe --help'
-	# from the directory of the checkout
+# The following command ensures that we can call 'test.exe --help'
+# from the directory of the checkout
 	./test --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
@@ -232,12 +255,11 @@ core-test:
 # './test <filter>' where <filter> selects the tests to run.
 .PHONY: build-core-test
 build-core-test:
-	# Invoke the test program with './test'. Check out './test --help'.
 	dune build ./_build/default/src/tests/test.exe
 
+# Bytecode version of the test for debugging
 .PHONY: test-bc
 test-bc:
-	# Bytecode version of the test for debugging
 	dune build ./_build/default/src/tests/test.bc
 
 
@@ -291,7 +313,7 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 .PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core: semgrep.opam
 	opam update -y
-	# Fetch, build and install the tree-sitter runtime library locally.
+# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
@@ -309,7 +331,7 @@ install-opam-deps:
 # 'opam install dune' to get started.
 semgrep.opam: dune-project
 	dune build $@
-	# Foolproofing
+# Foolproofing
 	chmod a-w semgrep.opam
 
 # The bytecode version of semgrep-core needs dlls for tree-sitter
@@ -343,32 +365,61 @@ install-deps: install-deps-for-semgrep-core
 # -------------------------------------------------
 
 # Here is why we need those external packages to compile semgrep-core:
-# - pkg-config: ??
 # - pcre: for ocaml-pcre now used in semgrep-core
 # - gmp: for osemgrep and its use of cohttp
 # - libev: ??
 # - curl: for opentelemetry, which we use for tracing
+# - openssl: ??
+# - zlib: ??
 
 # - openssl-libs-static: dependency of curl-static
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev curl-dev openssl-libs-static zlib-static
+ALPINE_APK_DEPS_CORE=pcre-dev \
+					 pcre2-dev \
+					 gmp-dev \
+					 libev-dev \
+					 curl-dev \
+					 openssl-libs-static \
+					 zlib-static
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests
-# - python-dev: for compiling jsonnet for pysemgrep
-ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
+ALPINE_APK_DEPS_PYSEMGREP= python3
 
-UBUNTU_DEPS=pkg-config libpcre3-dev libgmp-dev libev-dev libcurl4-gnutls-dev
+# Here is why we need those external packages:
+# - pkg-config?
+# NOTE: libpcre3 is actually libpcre
+UBUNTU_DEPS=pkg-config \
+			libpcre3-dev \
+			libpcre2-dev \
+			libgmp-dev \
+			libev-dev \
+			libcurl4-gnutls-dev
 
 #TODO: ARCH_DEPS=??
 
+# NOTE: Additional packages here likely require additional linking flags in
+# src/main/flags.sh as part of how we statically link binaries on MacOS.
+#
+# Here is why we need those external packages:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pkg-config pcre gmp libev curl coreutils gettext
+BREW_DEPS=pkg-config \
+		  pcre \
+		  pcre2 \
+		  gmp \
+		  libev \
+		  curl \
+		  coreutils \
+		  gettext
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?
-WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config conf-gmp conf-libpcre conf-libcurl
+WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config \
+						 conf-gmp \
+						 conf-libpcre \
+						 conf-libpcre2-8 \
+						 conf-libcurl
 
 # -------------------------------------------------
 # Alpine
@@ -418,12 +469,12 @@ install-deps-MACOS-for-semgrep-core:
 homebrew-setup:
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure --prefix "$$(brew --prefix tree-sitter)"
-	# We pass --no-depexts so as to disable the check for pkg-config
-	# (which is present due to brew dependencies)
-	# because this check was failing on some platform.
-	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
-	# This workaround may no longer be necessary.
-	# LIBRARY_PATH is set here so we build lwt w/libev
+# We pass --no-depexts so as to disable the check for pkg-config
+# (which is present due to brew dependencies)
+# because this check was failing on some platform.
+# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
+# This workaround may no longer be necessary.
+# LIBRARY_PATH is set here so we build lwt w/libev
 	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
 
 # -------------------------------------------------
@@ -432,7 +483,12 @@ homebrew-setup:
 #TODO: pacman -S ...
 
 # -------------------------------------------------
-# Windows (native, via mingw)
+# Nix
+# -------------------------------------------------
+#TODO: see flake.nix
+
+# -------------------------------------------------
+# Windows (native, via mingw and cygwin)
 # -------------------------------------------------
 
 # used in build-test-windows-x86.jsonnet
@@ -567,6 +623,7 @@ check:
 check_for_emacs:
 	./bin/osemgrep $(SEMGREP_ARGS) --emacs --quiet
 
+#TODO: switch to semgrep/semgrep:develop at some point
 DOCKER_IMAGE=returntocorp/semgrep:develop
 
 # If you get parsing errors while running this command, maybe you have an old

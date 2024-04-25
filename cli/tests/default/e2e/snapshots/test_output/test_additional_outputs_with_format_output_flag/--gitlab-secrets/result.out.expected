@@ -1,0 +1,68 @@
+{
+  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+  "scan": {
+    "analyzer": {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "url": "https://semgrep.dev",
+      "vendor": {
+        "name": "Semgrep"
+      },
+      "version": "<MASKED>"
+    },
+    "end_time": "<MASKED>",
+    "scanner": {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "url": "https://semgrep.dev",
+      "vendor": {
+        "name": "Semgrep"
+      },
+      "version": "<MASKED>"
+    },
+    "start_time": "<MASKED>",
+    "status": "success",
+    "type": "sast",
+    "version": "<MASKED>"
+  },
+  "version": "15.0.4",
+  "vulnerabilities": [
+    {
+      "category": "secret_detection",
+      "commit": {
+        "date": "<MASKED>",
+        "sha": "0000000"
+      },
+      "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",
+      "description": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
+      "details": {},
+      "flags": [],
+      "id": "30b0accd-52fb-52b0-995b-f1a7f094320f",
+      "identifiers": [
+        {
+          "name": "Semgrep - rules.eqeq-is-bad",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/eqeq-bad",
+          "value": "rules.eqeq-is-bad"
+        }
+      ],
+      "location": {
+        "end_line": 3,
+        "file": "targets/basic/stupid.py",
+        "start_line": 3
+      },
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
+      "raw_source_code_extract": [
+        "    return a + b == a + b\n"
+      ],
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
+      },
+      "severity": "High"
+    }
+  ]
+}

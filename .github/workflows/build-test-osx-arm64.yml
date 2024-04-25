@@ -30,7 +30,7 @@ jobs:
         run: ./scripts/osx-setup-for-release.sh "4.14.0"
       - name: Compile semgrep
         run: opam exec -- make core
-      - name: Make artifact
+      - name: Make artifact for ./bin/semgrep-core
         run: |
           mkdir artifacts
           cp ./bin/semgrep-core artifacts/
@@ -39,6 +39,8 @@ jobs:
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
           path: artifacts.tgz
+      - name: Test semgrep-core
+        run: opam exec -- make core-test
   build-wheels:
     needs:
       - build-core
@@ -87,10 +89,10 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: osx-arm64-wheel
-      - run: unzip ./osx-arm64-wheel/dist.zip
+      - run: unzip dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version
@@ -111,7 +113,7 @@ jobs:
           fi;
         shell: bash {0}
 name: build-test-osx-arm64
-"on":
+on:
   workflow_call:
     inputs:
       use-cache:

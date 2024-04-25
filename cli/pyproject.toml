@@ -1,12 +1,11 @@
 [tool.pytest.ini_options]
+# coupling: if you add a dep here it would be great if you added it to the top
+# level flake.nix in devPipInputs
 minversion = "7.0"
-# note that we dont't put tests/qa here
+# The default folders where pytest looks for tests when none is specified
+# on the command line. Don't extend this list so as to minimize surprises.
 testpaths = [
-    "tests/unit",
-    "tests/e2e",
-    "tests/e2e-pysemgrep",
-    "tests/e2e-pro",
-    "tests/consistency",
+    "tests/default",
 ]
 addopts = "--strict-markers"
 markers = [

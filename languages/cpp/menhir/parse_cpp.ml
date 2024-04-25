@@ -166,7 +166,7 @@ let parse_fuzzy file =
 (* Extract macros *)
 (*****************************************************************************)
 
-(* It can be used to to parse the macros defined in a macro.h file. It
+(* It can be used to parse the macros defined in a macro.h file. It
  * can also be used to try to extract the macros defined in the file
  * that we try to parse *)
 let extract_macros file =

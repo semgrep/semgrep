@@ -23,7 +23,7 @@ let t = Testo.create
 (*****************************************************************************)
 (* Port of test_publish.py to OCaml.
  *
- * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
+ * Note that unlike most cli/tests/default/e2e/test_xxx.py tests, we can't reuse
  * test_publish.py to test osemgrep because of the use of mocking
  * and 'use_click+runner=True' in test_publish.py
  *)
@@ -88,7 +88,7 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-let test_publish (caps : < Cap.network ; Cap.stdout >) () =
+let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -103,32 +103,28 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
               (caps :> < Cap.stdout >)
               [| "semgrep-logout" |]
           in
-          assert (exit_code =*= Exit_code.ok);
+          Exit_code.Check.ok exit_code;
 
           (* should require login *)
           let exit_code =
             Publish_subcommand.main caps [| "semgrep-publish"; !!valid_target |]
           in
-          assert (exit_code =*= Exit_code.fatal);
-
-          (*
-          assert (
-            String_.contains res.logs
-              ~term:"run `semgrep login` before using upload");
-          *)
+          Exit_code.Check.fatal exit_code;
 
           (* log back in *)
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               let exit_code =
-                Login_subcommand.main caps [| "semgrep-login" |]
+                Login_subcommand.main
+                  (caps :> < Cap.network ; Cap.stdout >)
+                  [| "semgrep-login" |]
               in
-              assert (exit_code =*= Exit_code.ok));
+              Exit_code.Check.ok exit_code);
 
           (* fails if no rule specified *)
           let exit_code =
             Publish_subcommand.main caps [| "semgrep-publish" |]
           in
-          assert (exit_code =*= Exit_code.fatal);
+          Exit_code.Check.fatal exit_code;
 
           (* fails if invalid rule specified *)
           let exit_code =
@@ -137,11 +133,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
             in
             Publish_subcommand.main caps [| "semgrep-publish"; !!path |]
           in
-          assert (exit_code =*= Exit_code.fatal);
-
-          (*
-          assert (String_.contains res.logs ~term:"Invalid rule definition:");
-          *)
+          Exit_code.Check.fatal exit_code;
 
           (* fails if a yaml with more than one rule is specified *)
           let exit_code =
@@ -150,28 +142,14 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
             in
             Publish_subcommand.main caps [| "semgrep-publish"; !!path |]
           in
-          assert (exit_code =*= Exit_code.fatal);
+          Exit_code.Check.fatal exit_code;
 
-          (*
-          assert (
-                String_.contains res.logs
-                  ~term:
-                    "Rule contains more than one rule: only yaml files with a \
-                     single can be published");
-          *)
           let exit_code =
             Publish_subcommand.main caps
               [| "semgrep-publish"; "--visibility=public"; !!valid_target |]
           in
-          assert (exit_code =*= Exit_code.fatal);
+          Exit_code.Check.fatal exit_code;
 
-          (*
-              assert (
-                String_.contains res.logs
-                  ~term:
-                    "Only one public rule can be uploaded at a time: specify a \
-                     single Semgrep rule"));
-          *)
           let exit_code =
             Publish_subcommand.main caps
               [|
@@ -180,18 +158,13 @@ let test_publish (caps : < Cap.network ; Cap.stdout >) () =
                 !!valid_single_file_target;
               |]
           in
-          assert (exit_code =*= Exit_code.fatal)
-          (*
-              assert (
-                String_.contains res.logs
-                  ~term:"--visibility=public requires --registry-id"));
-          *)))
+          Exit_code.Check.fatal exit_code))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Cap.network ; Cap.stdout >) =
+let tests (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) =
   Testo.categorize "Osemgrep Publish (e2e)"
     [
       t
@@ -199,7 +172,7 @@ let tests (caps : < Cap.network ; Cap.stdout >) =
           (Should_fail
              "TODO: something calls 'Error.exit 2' which raises an exception \
               that makes the test fail where it shouldn't.")
-        ~checked_output:Stderr
+        ~checked_output:(Testo.stderr ())
         ~normalize:
           [
             (* We expect all these substrings, in this order *)

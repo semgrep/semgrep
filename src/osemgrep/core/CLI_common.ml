@@ -59,23 +59,32 @@ let o_debug : bool Term.t =
 let o_logging : Logs.level option Term.t =
   let combine debug quiet verbose =
     match (verbose, debug, quiet) with
-    | false, false, false -> Some Logs.Warning
-    | true, false, false -> Some Logs.Info
-    | false, true, false -> Some Logs.Debug
-    | false, false, true -> None
-    | _else_ ->
+    | false, false, false -> (* default *) Some Logs.Warning
+    | true, false, false -> (* --verbose *) Some Logs.Info
+    | false, true, false -> (* --debug *) Some Logs.Debug
+    | false, false, true -> (* --quiet *) None
+    | _ ->
         (* TOPORT: list the possibilities *)
         Error.abort "mutually exclusive options --quiet/--verbose/--debug"
   in
   Term.(const combine $ o_debug $ o_quiet $ o_verbose)
 
-(* ugly: also partially done in CLI.ml *)
 let setup_logging ~force_color ~level =
   Logs.debug (fun m ->
       m ~tags "Logging setup for osemgrep: force_color=%B level=%s" force_color
         (Logs.level_to_string level));
   Std_msg.setup ~highlight_setting:(if force_color then On else Auto) ();
-  Logs_.setup_logging ~level ();
+  (* coupling: See also the call to Logs_.setup() in Core_CLI.ml and the
+   * comments in it about the environment variables.
+   * TODO: add --semgrep-log-xxx flags for those so this can be set
+   * also with CLI flags and will be part of the man page.
+   *)
+  Logs_.setup
+    ~read_level_from_env_vars:
+      [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
+    ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]
+    ~read_tags_from_env_vars:[ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]
+    ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist
@@ -121,7 +130,7 @@ let help_page_bottom =
     `S Manpage.s_bugs;
     `P
       "If you encounter an issue, please report it at\n\
-      \      https://github.com/returntocorp/semgrep/issues";
+      \      https://github.com/semgrep/semgrep/issues";
   ]
 
 (* Small wrapper around Cmdliner.Cmd.eval_value.
@@ -134,7 +143,7 @@ let eval_value ~argv cmd =
    *)
   match Cmd.eval_value ~catch:false ~argv cmd with
   (* alt: could define a new Exit_code for those kinds of errors *)
-  | Error (`Term | `Parse) -> Error.exit Exit_code.fatal
+  | Error (`Term | `Parse) -> Error.exit_code_exn (Exit_code.fatal ~__LOC__)
   (* this should never happen, because of the ~catch:false above *)
   | Error `Exn -> assert false
   | Ok ok -> (
@@ -142,4 +151,4 @@ let eval_value ~argv cmd =
       | `Ok config -> config
       | `Version
       | `Help ->
-          Error.exit Exit_code.ok)
+          Error.exit_code_exn (Exit_code.ok ~__LOC__))

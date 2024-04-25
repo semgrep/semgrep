@@ -12,6 +12,7 @@ from semdep.parsers.composer import parse_composer_lock
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
+from semdep.parsers.mix import parse_mix
 from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.packages_lock_c_sharp import (
     parse_packages_lock as parse_packages_lock_c_sharp,
@@ -89,6 +90,7 @@ NEW_LOCKFILE_PARSERS: Dict[
     "packages.lock.json": parse_packages_lock_c_sharp,  # C#
     "pubspec.lock": parse_pubspec_lock,  # Dart / Flutter
     "package.resolved": parse_package_resolved,  # SwiftPM
+    "mix.lock": parse_mix,  # Elixir (Mix)
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -108,6 +110,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "packages.lock.json": None,
     "pubspec.lock": "pubspec.yaml",
     "Package.resolved": "Package.swift",
+    "mix.lock": "mix.exs",
 }
 
 

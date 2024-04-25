@@ -127,6 +127,10 @@ let parse_pattern print_errors options lang str =
       let res = Parse_terraform_tree_sitter.parse_pattern str in
       let pattern = extract_pattern_from_tree_sitter_result res print_errors in
       Terraform_to_generic.any pattern
+  | Lang.Ql ->
+      let res = Parse_ql_tree_sitter.parse_pattern str in
+      let pattern = extract_pattern_from_tree_sitter_result res print_errors in
+      QL_to_generic.any pattern
   (* Tree-sitter only and directly to generic AST *)
   | Lang.Csharp ->
       let res = Parse_csharp_tree_sitter.parse_pattern str in

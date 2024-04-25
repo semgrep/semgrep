@@ -8,17 +8,21 @@ jobs:
           submodules: true
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 5.1.0
+          ocaml-compiler: ocaml-base-compiler.5.2.0~beta2
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git
+            beta: https://github.com/ocaml/ocaml-beta-repository.git
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         name: Set GHA cache for OPAM in _opam
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-5.1.0-_opam-${{ hashFiles('semgrep.opam') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-ocaml-base-compiler.5.2.0~beta2-_opam-${{ hashFiles('semgrep.opam') }}
           path: _opam
       - name: Install semgrep dependencies
         run: |
           eval $(opam env)
+          sudo make install-deps-UBUNTU-for-semgrep-core
           make install-deps-for-semgrep-core
       - name: Build semgrep
         run: |
@@ -26,9 +30,10 @@ jobs:
           make
       - name: Test semgrep
         run: |
-          echo TODO
+          eval $(opam env)
+          make test
 name: build-test-core-x86-ocaml5
-"on":
+on:
   pull_request: null
   push:
     branches:

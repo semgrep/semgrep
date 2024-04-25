@@ -1,6 +1,7 @@
 (*
    Unit tests for Pcre_
 *)
+[@@@alert "-deprecated"]
 
 let t = Testo.create
 

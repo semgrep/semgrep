@@ -307,15 +307,12 @@ let parse_program file =
   let res = parse file in
   res.Parsing_result.ast
 
-let parse_string (w : string) : Ast.a_program =
-  UTmp.with_tmp_file ~str:w ~ext:"js" parse_program
+let program_of_string (caps : < Cap.tmp >) (w : string) : Ast.a_program =
+  CapTmp.with_temp_file caps#tmp ~contents:w ~suffix:".js" parse_program
 
 (*****************************************************************************)
 (* Sub parsers *)
 (*****************************************************************************)
-
-let (program_of_string : string -> Ast_js.a_program) =
- fun s -> UTmp.with_tmp_file ~str:s ~ext:"js" (fun file -> parse_program file)
 
 let type_of_string s =
   let lexbuf = Lexing.from_string s in

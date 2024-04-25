@@ -8,6 +8,8 @@
     aliengrep
     spacegrep_tests
     graph_code
+    paths
+    git_wrapper
 
     ; unix platform stuff
     lwt_platform.unix
@@ -32,7 +34,7 @@
     osemgrep_language_server
     osemgrep_cli_login
     osemgrep_cli_publish
-    osemgrep_tests
+    semgrep.osemgrep_tests
   )
  (modes native byte) ; bytecode here for debugging
  (preprocess

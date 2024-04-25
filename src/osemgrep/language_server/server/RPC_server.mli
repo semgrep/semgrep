@@ -52,6 +52,9 @@ end
 
 type t = { session : Session.t; state : State.t }
 
+val notify_custom : ?params:Jsonrpc.Structured.t -> string -> unit
+(** [notify_custom ?params ~method_] sends a custom notification to the client. *)
+
 val batch_notify : Lsp.Server_notification.t list -> unit
 (** [batch_notify t notifs] sends a batch of notifications to the client. *)
 
@@ -79,5 +82,5 @@ end) : sig
   val handle_client_message :
     Jsonrpc.Packet.t -> t -> (t * Jsonrpc.Packet.t option) Lwt.t
 
-  val create : < Cap.random ; Cap.network > -> t
+  val create : < Cap.random ; Cap.network ; Cap.tmp > -> t
 end

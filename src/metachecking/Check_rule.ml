@@ -107,8 +107,39 @@ let check_mvars_of_focus env bound_mvs (t, mv_list) =
          if not (mvar_is_ok mv bound_mvs) then mv_error env mv t)
 
 let unknown_metavar_in_comparison env f =
-  let rec collect_metavars parent_mvs f : MV.mvar Set.t =
-    match f with
+  let rec collect_metavars parent_mvs { f; conditions; focus } : MV.mvar Set.t =
+    (* Check the metavariables in the conditions (e.g. metavariable-pattern).
+       From here on, both the metavariables from the conjuncts and the
+       metavariables from the parent are already bound *)
+    let inner_mvs = collect_metavars' parent_mvs f in
+    let bound_mvs_for_conds = Set.union inner_mvs parent_mvs in
+    conditions |> List.iter (check_mvars_of_condition env bound_mvs_for_conds);
+    (* Now collect the metavariables defined in the conditions, which could
+       be used in the focus-metavariable clauses, and check nested formulas *)
+    let cond_mvs =
+      conditions
+      |> List_.map (fun (_, condition) ->
+             match condition with
+             | CondEval _
+             | CondType _
+             | CondAnalysis _ ->
+                 Set.empty
+             | CondRegexp (_, regex, _) ->
+                 Metavariable.mvars_of_regexp_string regex |> Set_.of_list
+             | CondNestedFormula (_, _, formula) ->
+                 collect_metavars bound_mvs_for_conds formula)
+      |> List.fold_left Set.union Set.empty
+    in
+
+    (* Check the focus-metavariable clauses last since they can use metavariables
+       in any clause within the And *)
+    let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
+    focus |> List.iter (check_mvars_of_focus env bound_mvs_for_focus);
+    (* Return only the metavariables that were newly bound in this node *)
+    let mvs = Set.union cond_mvs inner_mvs in
+    mvs
+  and collect_metavars' parent_mvs kind : MV.mvar Set.t =
+    match kind with
     | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
@@ -136,7 +167,10 @@ let unknown_metavar_in_comparison env f =
     | Anywhere (_, f) ->
         collect_metavars parent_mvs f
     | Not (_, _) -> Set.empty
+    | And (_, xs)
     | Or (_, xs) ->
+        (* Collect and check from the conjuncts. Pass down the metavariables
+           from the parent *)
         let mv_sets = List_.map (collect_metavars parent_mvs) xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
@@ -149,46 +183,6 @@ let unknown_metavar_in_comparison env f =
            *)
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
-    | And (_, { conjuncts; conditions; focus }) ->
-        (* Collect and check from the conjuncts. Pass down the metavariables
-           from the parent *)
-        let mv_sets = List_.map (collect_metavars parent_mvs) conjuncts in
-        let conj_mvs =
-          List.fold_left
-            (fun acc mv_set -> Set.union acc mv_set)
-            Set.empty mv_sets
-        in
-
-        (* Check the metavariables in the conditions (e.g. metavariable-pattern).
-           From here on, both the metavariables from the conjuncts and the
-           metavariables from the parent are already bound *)
-        let bound_mvs_for_conds = Set.union conj_mvs parent_mvs in
-        conditions
-        |> List.iter (check_mvars_of_condition env bound_mvs_for_conds);
-        (* Now collect the metavariables defined in the conditions, which could
-           be used in the focus-metavariable clauses, and check nested formulas *)
-        let cond_mvs =
-          conditions
-          |> List_.map (fun (_, condition) ->
-                 match condition with
-                 | CondEval _
-                 | CondType _
-                 | CondAnalysis _ ->
-                     Set.empty
-                 | CondRegexp (_, regex, _) ->
-                     Metavariable.mvars_of_regexp_string regex |> Set_.of_list
-                 | CondNestedFormula (_, _, formula) ->
-                     collect_metavars bound_mvs_for_conds formula)
-          |> List.fold_left Set.union Set.empty
-        in
-
-        (* Check the focus-metavariable clauses last since they can use metavariables
-           in any clause within the And *)
-        let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
-        focus |> List.iter (check_mvars_of_focus env bound_mvs_for_focus);
-        (* Return only the metavariables that were newly bound in this node *)
-        let mvs = Set.union cond_mvs conj_mvs in
-        mvs
   in
   let _ = collect_metavars Set.empty f in
   ()
@@ -228,7 +222,8 @@ let check r =
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
 
-let semgrep_check config metachecks rules : Core_error.t list =
+let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
+    Core_error.t list =
   let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
@@ -244,10 +239,10 @@ let semgrep_check config metachecks rules : Core_error.t list =
       rule_source = Some (Rule_file metachecks);
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
-      roots = rules;
+      roots = List_.map Scanning_root.of_fpath rules;
     }
   in
-  let res = Core_scan.scan_with_exn_handler config in
+  let res = Core_scan.scan_with_exn_handler caps config in
   match res with
   | Ok result ->
       result.processed_matches
@@ -261,7 +256,7 @@ let semgrep_check config metachecks rules : Core_error.t list =
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
  *)
-let run_checks config fparser metachecks xs =
+let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
   let yaml_xs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -280,7 +275,7 @@ let run_checks config fparser metachecks xs =
             "no valid yaml rules to run on (.test.yaml files are excluded)");
       []
   | _ ->
-      let semgrep_found_errs = semgrep_check config metachecks rules in
+      let semgrep_found_errs = semgrep_check caps config metachecks rules in
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
@@ -300,7 +295,7 @@ let run_checks config fparser metachecks xs =
       semgrep_found_errs @ ocaml_found_errs
 
 (* for semgrep-core -check_rules *)
-let check_files mk_config fparser input =
+let check_files (caps : < Cap.tmp >) mk_config fparser input =
   let config = mk_config () in
   let errors =
     match input with
@@ -310,7 +305,7 @@ let check_files mk_config fparser input =
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \
               on")
-    | metachecks :: xs -> run_checks config fparser metachecks xs
+    | metachecks :: xs -> run_checks caps config fparser metachecks xs
   in
   match config.output_format with
   | Text -> List.iter (fun err -> UCommon.pr2 (E.string_of_error err)) errors

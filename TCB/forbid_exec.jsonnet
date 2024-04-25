@@ -1,3 +1,5 @@
+local common = import 'common.libsonnet';
+
 // helpers
 local unix_funcs = [
   'system',
@@ -38,13 +40,7 @@ local unix_funcs = [
           [],
       },
       languages: ['ocaml'],
-      paths: {
-        exclude: [
-           'TCB/*',
-           'tools/*', 'scripts/*', 'stats/*',
-           'Test*.ml',  'Unit_*.ml',
-        ],
-      },
+      paths: common.exclude,
       severity: 'ERROR',
       message: |||
         Do not invoke directly external commands. Use the safer CapExec.ml module.

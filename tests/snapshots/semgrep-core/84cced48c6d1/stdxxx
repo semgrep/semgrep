@@ -1,0 +1,121 @@
+Snapshot for Test_scan_subcommand.test_basic_verbose_output.(fun)
+--- begin input files ---
+rules.yml
+stupid.py
+--- end input files ---
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'init' '-b' 'main'
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.name' 'Tester'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'add' '.'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'commit' '-m' 'Add files'
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 11 insertions(+)
+ create mode 100644 rules.yml
+ create mode 100644 stupid.py
+[<MASKED TIMESTAMP>][INFO]: Semgrep version: <MASKED>
+
+┌──── [32m○○○[39m ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+[<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'ls-remote' '--get-url'
+fatal: No remote configured to list refs from.
+[32m✔[39m [1mSemgrep OSS[0m
+  [32m✔[39m Basic security coverage for first-party code vulnerabilities.
+
+[31m✘[39m [1mSemgrep Code (SAST)[0m
+  [31m✘[39m Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
+
+[31m✘[39m [1mSemgrep Secrets[0m
+  [31m✘[39m Detect and validate potential secrets in your code.
+
+METRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev.
+To disable Registry rule metrics, use "--metrics=off".
+Using configs only from local files (like --config=xyz.yml) does not enable metrics.
+
+More information: https://semgrep.dev/docs/metrics
+
+[<MASKED TIMESTAMP>][INFO]: Saved the settings in nosettings.yaml
+[<MASKED TIMESTAMP>][INFO]: Getting the rules
+[1m  Loading rules from local config...[0m
+[<MASKED TIMESTAMP>][INFO]: loading local config from rules.yml
+[<MASKED TIMESTAMP>][INFO]: Done loading local config from rules.yml
+[<MASKED TIMESTAMP>][INFO]: Computing the targets
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '.' 'rev-parse' '--show-toplevel'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--cached' '<TMP>/<MASKED>/'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--others' '--exclude-standard' '<TMP>/<MASKED>/'
+[<MASKED TIMESTAMP>][INFO]: running 1 rules from 1 config rules.yml
+Rules:
+- eqeq-bad
+
+[<MASKED TIMESTAMP>][INFO]: running the semgrep engine
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 1 Code rule:
+  Scanning 3 files.
+[<MASKED TIMESTAMP>][INFO]: reporting matches if any
+[<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
+
+
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+
+    stupid.py
+   ❯❯❱ eqeq-bad
+          useless comparison
+
+            3┆ return a + b == a + b
+
+[<MASKED TIMESTAMP>][INFO]: 
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+  Partially analyzed due to parsing or internal Semgrep errors
+
+   • <none>
+
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+Ran 1 rule on 1 file: 1 finding.
+ASSERT exit code

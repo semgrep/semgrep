@@ -89,8 +89,8 @@ let dump_il file =
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
 
-let dump_v1_json file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_v1_json caps file =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise !!file (fun () ->
@@ -131,14 +131,14 @@ let dump_ext_of_lang () =
        (String.concat "\n" lang_to_exts))
 [@@action]
 
-let dump_equivalences file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_equivalences (caps : < Cap.tmp >) file =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let xs = Parse_equivalences.parse file in
   UCommon.pr2_gen xs
 [@@action]
 
-let dump_rule file =
-  let file = Core_scan.replace_named_pipe_by_regular_file file in
+let dump_rule (caps : < Cap.tmp >) file =
+  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> UCommon.pr (Rule.show r))
 [@@action]

@@ -34,6 +34,7 @@ type t = {
   debug : bool;
   profile : bool;
   trace : bool;
+  trace_endpoint : string option;
   report_time : bool;
   error_recovery : bool;
   profile_start : float;
@@ -44,7 +45,8 @@ type t = {
   rule_source : rule_source option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
-  roots : Fpath.t list;
+  (* Scanning roots. They are mutually exclusive with target_source! *)
+  roots : Scanning_root.t list;
   output_format : output_format;
   match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
@@ -71,6 +73,8 @@ type t = {
   action : string;
   (* Other *)
   version : string;
+  (* To add data to our opentelemetry top span, which makes it easier to filter *)
+  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 
@@ -95,6 +99,7 @@ let default =
     debug = false;
     profile = false;
     trace = false;
+    trace_endpoint = None;
     report_time = false;
     error_recovery = false;
     profile_start = 0.;
@@ -128,4 +133,5 @@ let default =
     action = "";
     (* Other *)
     version = "";
+    top_level_span = None;
   }

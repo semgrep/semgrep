@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 module TL = Test_login_subcommand
 
 (*****************************************************************************)
@@ -47,11 +46,11 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
                 "r/python.lang.correctness.useless-eqeq.useless-eqeq";
               |]
           in
-          assert (exit_code =*= Exit_code.ok)))
+          Exit_code.Check.ok exit_code))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Testo.test =
-  Testo.create ~checked_output:Stderr __FUNCTION__
+  Testo.create ~checked_output:(Testo.stderr ()) __FUNCTION__
     ~normalize:[ Testo.mask_not_substrings [ "Saved access token" ] ]
     (TL.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token
@@ -67,7 +66,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
                      (caps :> < Cap.stdout ; Cap.network >)
                      [| "semgrep-login" |]
                  in
-                 assert (exit_code =*= Exit_code.ok)));
+                 Exit_code.Check.ok exit_code));
 
          (* Even if we are allowed to login with a fake token (because
           * of the with_fake_deployment_response), outside of it
@@ -103,9 +102,9 @@ let test_scan_config_registry_with_invalid_token caps : Testo.test =
 (*****************************************************************************)
 
 let tests (caps : CLI.caps) =
-  Testo.categorize "Osemgrep (e2e)"
+  Testo.categorize "Osemgrep multi subcommands (e2e)"
     [
       test_scan_config_registry_no_token caps;
       test_scan_config_registry_with_invalid_token
-        (caps :> < Cap.stdout ; Cap.network >);
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >);
     ]

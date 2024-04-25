@@ -32,8 +32,9 @@ let json_of_validation_state_actions ~valid ~invalid ~error =
 
 (* Helper to create JSON for findings with direct actions and validation state actions using named arguments *)
 let cli_match_of_finding_with_actions
-    ~validation_state:(vs : OutJ.validation_state) ~direct_action ~valid
-    ~invalid ~error =
+    ?(validation_state : OutJ.validation_state option)
+    ?(direct_action = "monitor") ?(valid = "monitor") ?(invalid = "monitor")
+    ?(error = "monitor") () =
   let metadata_str =
     Printf.sprintf
       {|{"dev.semgrep.actions": ["%s"], "dev.semgrep.validation_state.actions": {"valid": "%s", "invalid": "%s", "error":"%s"}}|}
@@ -61,7 +62,7 @@ let cli_match_of_finding_with_actions
         sca_info = None;
         dataflow_trace = None;
         engine_kind = None;
-        validation_state = Some vs;
+        validation_state;
         historical_info = None;
         extra_extra = None;
       };
@@ -132,35 +133,35 @@ let tests =
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_valid
                       ~direct_action:"monitor" ~valid:"block" ~invalid:"monitor"
-                      ~error:"comment",
+                      ~error:"comment" (),
                     true );
                   ( "confirmed invalid should block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_invalid
                       ~direct_action:"monitor" ~valid:"monitor" ~invalid:"block"
-                      ~error:"comment",
+                      ~error:"comment" (),
                     true );
                   ( "validation error should block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Validation_error
                       ~direct_action:"monitor" ~valid:"monitor"
-                      ~invalid:"comment" ~error:"block",
+                      ~invalid:"comment" ~error:"block" (),
                     true );
                   ( "no validator (treated as valid) should block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`No_validator ~direct_action:"monitor"
-                      ~valid:"block" ~invalid:"monitor" ~error:"comment",
+                      ~valid:"block" ~invalid:"monitor" ~error:"comment" (),
                     true );
-                  ( "direct action should block",
+                  ( "direct action for validated finding should not block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_valid ~direct_action:"block"
-                      ~valid:"monitor" ~invalid:"monitor" ~error:"comment",
-                    true );
+                      ~valid:"monitor" ~invalid:"monitor" ~error:"comment" (),
+                    false );
                   ( "no blocking action or state should not block",
                     cli_match_of_finding_with_actions
                       ~validation_state:`Confirmed_valid
                       ~direct_action:"monitor" ~valid:"monitor"
-                      ~invalid:"monitor" ~error:"comment",
+                      ~invalid:"monitor" ~error:"comment" (),
                     false );
                 ]
               in

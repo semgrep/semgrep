@@ -108,6 +108,10 @@ install_requires = [
     # 3. ~=x.0 if you don't know the earliest version that works with Semgrep
     #
     # Try to go from option 3 to 1 over time as you learn more about the codebase.
+    #
+    # coupling: if you add a dep here, it would be appreciated if you could add
+    # it to the top level flake.nix file as well, in
+    # pysemgrep.propagatedBuildInputs
     "attrs>=21.3",
     "boltons~=21.0",
     "click-option-group~=0.5",
@@ -131,7 +135,7 @@ install_requires = [
 
 setuptools.setup(
     name="semgrep",
-    version="1.63.0",
+    version="1.70.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

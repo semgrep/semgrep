@@ -175,6 +175,15 @@ class ScanHandler:
             return [p.to_json() for p in self.scan_response.info.enabled_products]
         return []
 
+    @property
+    def historical_config(self) -> out.HistoricalConfiguration:
+        config = None
+        if self.scan_response:
+            config = self.scan_response.engine_params.historical_config
+        if config:
+            return config
+        return out.HistoricalConfiguration(enabled=False)
+
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
     ) -> None:
@@ -205,7 +214,8 @@ class ScanHandler:
 
         if response.status_code == 401:
             logger.info(
-                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again. "
+                "Or in CI, ensure your SEMGREP_APP_TOKEN variable is set correctly.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
 
@@ -423,7 +433,11 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
         complete_task = progress_bar.add_task("Finalizing scan")
-        try_until = datetime.utcnow() + timedelta(minutes=20)
+        # The largest scans we've seen so far can take up to 30
+        # minutes to wait for completion. Eventually, this wait may
+        # be configurable as we see larger scans and increased backend
+        # load.
+        try_until = datetime.utcnow() + timedelta(minutes=30)
         slow_down_after = datetime.utcnow() + timedelta(minutes=2)
 
         while True:

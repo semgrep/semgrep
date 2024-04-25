@@ -21,6 +21,7 @@ module H = Cmdliner_
  * them to the minimum; if you want flexibility, use semgrep scan,
  * otherwise semgrep ci should be minimalist and take no
  * args at all in most cases.
+ *
  * We probably still want though conf_runner flags like:
  *  - --max-memory, -j, --timeout (even though iago want to remove it)
  *  - the pro-engine flags --pro, --oss-only, etc (even though again
@@ -29,6 +30,9 @@ module H = Cmdliner_
  *  - --include, --exclude
  *  - maybe also --output? (even though I don't understand why people
  *    just don't simply use shell redirection)
+ *
+ * Note though that now osemgrep is called first by cli/bin/semgrep, so
+ * we must accept here all flags and then fallback to pysemgrep.
  *)
 type conf = {
   (* TODO? is this still used? *)
@@ -37,7 +41,10 @@ type conf = {
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
   products : OutJ.product list;
-  (* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
+  (* BIG ONE: 'semgrep ci' shares most of its flags with 'semgrep scan'
+   * TODO: we should reduce it actually, maybe just accept the core_runner
+   * opti flags.
+   *)
   scan_conf : Scan_CLI.conf;
 }
 [@@deriving show]
@@ -76,23 +83,6 @@ let o_code : bool Term.t =
   let info = Arg.info [ "code" ] ~doc:{|Run Semgrep Code (SAST) product.|} in
   Arg.value (Arg.flag info)
 
-let o_beta_testing_secrets : bool Term.t =
-  let info =
-    Arg.info [ "beta-testing-secrets" ]
-      ~doc:{|Please use --secrets instead of --beta-testing-secrets.|}
-  in
-  Arg.value (Arg.flag info)
-
-let o_secrets : bool Term.t =
-  let info =
-    Arg.info [ "secrets" ]
-      ~doc:
-        {|Run Semgrep Secrets product, including support for secret validation.
-          Requires access to Secrets, contact support@semgrep.com for more
-          information.|}
-  in
-  Arg.value (Arg.flag info)
-
 let o_suppress_errors : bool Term.t =
   H.negatable_flag_with_env [ "suppress-errors" ]
     ~neg_options:[ "no-suppress-errors" ]
@@ -108,17 +98,16 @@ If false, encountered errors are not suppressed and the exit code is non-zero
 (* Turn argv into conf *)
 (*************************************************************************)
 
-let cmdline_term : conf Term.t =
+let cmdline_term caps : conf Term.t =
   (* Note that we ignore the _xxx_meta; The actual environment variables
    * grabbing is done in Ci_subcommand.generate_meta_from_env, but we pass
    * it below so we can get a nice man page documenting those environment
    * variables (Romain's idea).
    *)
-  let combine scan_conf audit_on beta_testing_secrets code dry_run
-      _internal_ci_scan_results secrets supply_chain suppress_errors _git_meta
-      _github_meta =
+  let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
+      supply_chain suppress_errors _git_meta _github_meta =
     let products =
-      (if beta_testing_secrets || secrets then [ `Secrets ] else [])
+      (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
       @ if supply_chain then [ `SCA ] else []
     in
@@ -126,10 +115,10 @@ let cmdline_term : conf Term.t =
   in
   Term.(
     const combine
-    $ Scan_CLI.cmdline_term ~allow_empty_config:true
-    $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run
-    $ o_internal_ci_scan_results $ o_secrets $ o_supply_chain
-    $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
+    $ Scan_CLI.cmdline_term caps ~allow_empty_config:true
+    $ o_audit_on $ o_code $ Scan_CLI.o_secrets $ o_dry_run
+    $ o_internal_ci_scan_results $ o_supply_chain $ o_suppress_errors
+    $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 
@@ -152,7 +141,7 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : conf =
+let parse_argv (caps : < Cap.tmp >) (argv : string array) : conf =
   (* mostly a copy of Scan_CLI.parse_argv with different doc and man *)
-  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
+  let cmd : conf Cmd.t = Cmd.v cmdline_info (cmdline_term caps) in
   CLI_common.eval_value ~argv cmd

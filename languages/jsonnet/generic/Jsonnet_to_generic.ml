@@ -295,7 +295,7 @@ and map_bind env v : G.definition =
       let _teq = map_tok env v2 in
       let e = map_expr env v3 in
       let ent = G.basic_entity id in
-      let def = G.VarDef { G.vinit = Some e; vtype = None } in
+      let def = G.VarDef { G.vinit = Some e; vtype = None; vtok = G.no_sc } in
       (ent, def)
 
 and map_function_definition env v : G.function_definition =
@@ -358,7 +358,9 @@ and map_field env v : G.definition =
   let fld_value = map_expr env fld_value in
   let ent = { G.name = entname; tparams = None; attrs = [] } in
   (* alt? FldDefColon? *)
-  let def = G.VarDef { G.vinit = Some fld_value; vtype = None } in
+  let def =
+    G.VarDef { G.vinit = Some fld_value; vtype = None; vtok = G.no_sc }
+  in
   (ent, def)
 
 and map_field_name env v : G.entity_name =
@@ -401,7 +403,7 @@ and map_obj_comprehension env v =
     let e = map_expr env v3 in
     let entname = G.EDynamic e1 in
     let ent = { G.name = entname; tparams = None; attrs = [] } in
-    let def = G.VarDef { G.vinit = Some e; vtype = None } in
+    let def = G.VarDef { G.vinit = Some e; vtype = None; vtok = G.no_sc } in
     (ent, def)
   in
   let def, for_if_comps = (map_comprehension2 map_tuple) env oc_comp in

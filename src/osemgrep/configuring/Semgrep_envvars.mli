@@ -36,7 +36,6 @@ type t = {
   user_log_file : Fpath.t;
   (* $SEMGREP_SETTINGS_FILE ~/.semgrep/settings.yml *)
   user_settings_file : Fpath.t;
-  remote_clone_dir : Fpath.t option;
   (* TODO: Reconcile $SEMGREP_FORCE_COLOR via o_force_color *)
   (* ($NO_COLOR | $SEMGREP_COLOR_NO_COLOR) *)
   no_color : bool;

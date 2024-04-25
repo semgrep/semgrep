@@ -13,8 +13,16 @@ let auth_header_of_token (Token str) = ("Authorization", "Bearer " ^ str)
 
 type cap_token = < token : token >
 
+(* ugly: can't factorize *)
 let cap_token_and_network token caps =
   object
     method network = caps#network
     method token = token
+  end
+
+let cap_token_and_network_and_tmp token caps =
+  object
+    method network = caps#network
+    method token = token
+    method tmp = caps#tmp
   end

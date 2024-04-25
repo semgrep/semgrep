@@ -1,0 +1,14 @@
+--- begin input files ---
+a/b/target
+x/y/z
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a/b/target
+ create mode 100644 x/y/z
+project root: <TMP>/<MASKED>
+cwd: <TMP>/<MASKED>/x
+scanning root: <TMP>/<MASKED>/a
+file list:
+  ../a/b/target

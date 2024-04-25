@@ -25,9 +25,24 @@
 val of_strings : string list -> Fpath.t list
 val to_strings : Fpath.t list -> string list
 
+(*
+   Take a nonempty list of path segments and turn them in to relative path.
+   Only the last segment may by empty, representing a trailing slash.
+   For example, ["a"; "b"; ""] becomes "/a/b/" and
+   ["a"; "b"] becomes "a/b".
+   Raises Invalid_argument.
+*)
+val of_relative_segments : string list -> Fpath.t
+
 (* Fpath.to_string. Like for the other operators, we recommend using it
    with 'open File.Operators'. *)
 val ( !! ) : Fpath.t -> string
+
+(* Same as Fpath.append or Fpath.(//) but if the first argument is ".",
+   the second argument is returned as-is.
+   For example, 'append_no_dot (Fpath.v ".") (Fpath.v "a")'
+   equals 'Fpath.v "a"' rather than 'Fpath.v "./a"'. *)
+val append_no_dot : Fpath.t -> Fpath.t -> Fpath.t
 
 (*
    Operators on files or file paths or anything related to files.

@@ -25,6 +25,7 @@ val parse_and_filter_invalid_rules :
  * force evaluate XPattern.Sem (lpat_lazy, _).
  *)
 val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
+val parse_fake_xpattern : Xlang.t -> string -> Xpattern.t
 
 (* This should be used mostly in testing code. Otherwise you should
  * use parse_and_filter_invalid_rules.

@@ -1,0 +1,13 @@
+(library
+ (public_name parser_ql.ast_generic)
+ (name parser_ql_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing
+   parser_ql.ast
+   tree-sitter-lang.ql
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

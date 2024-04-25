@@ -29,12 +29,12 @@ let origin rule =
 (* Entry point *)
 (*****************************************************************************)
 
-let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
+let pp_status ~num_rules ~num_targets ~respect_gitignore lang_jobs ppf =
   Fmt_.pp_heading ppf "Scan Status";
   Fmt.pf ppf "  Scanning %s%s with %s"
     (String_.unit_str num_targets "file")
     (* TODO: validate if target is actually within a git repo *)
-    (if respect_git_ignore then " tracked by git" else "")
+    (if respect_gitignore then " tracked by git" else "")
     (String_.unit_str num_rules "Code rule");
 
   (* TODO if sca_rules ...

@@ -15,7 +15,6 @@
 open Common
 module OutJ = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__; "autofix" ]
 let ( let/ ) = Result.bind
 
 (*****************************************************************************)
@@ -93,9 +92,13 @@ let parse_pattern lang pattern =
       let e = Exception.catch e in
       Error e
 
+(* TODO: should not rely on tmp file, have Parse_target accept a
+ * more flexible origin/source
+ *)
 let parse_target lang text =
   (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
-  UTmp.with_tmp_file ~str:text ~ext:"check" (fun file ->
+  (* nosemgrep: forbid-tmp *)
+  UTmp.with_temp_file ~contents:text ~suffix:".check" (fun file ->
       try Ok (Parse_target.just_parse_with_lang lang file) with
       | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       | e ->
@@ -147,7 +150,7 @@ let transform_fix lang ast =
 
 (* Check whether the proposed fix results in syntactically valid code *)
 let validate_fix lang target_contents edit =
-  Logs.debug (fun m -> m ~tags "validate fix %s" (Textedit.show edit));
+  Logs.debug (fun m -> m "validate fix %s" (Textedit.show edit));
   let fail err =
     Error
       (spf "Rendered autofix does not parse. Aborting: `%s`:\n%s"
@@ -268,7 +271,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
       (* Print line-by-line so that each line is preceded by the logging header.
          Looks nicer and makes it easier to mask in e2e test output.
          TODO: make the Logs_ library do this by default. *)
-      String.split_on_char '\n' msg |> List.iter (Logs_.swarn ~tags);
+      String.split_on_char '\n' msg |> List.iter Logs_.swarn;
       None
 
 let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
@@ -288,7 +291,7 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
 
 let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
     (pm : Pattern_match.t) =
-  let rex = Pcre_.regexp regexp in
+  let rex = Pcre2_.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
     Range.content_at_range pm.path.internal_path_to_content
@@ -305,7 +308,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
      '\1', we will try to replace it instead with '$1', etc.
   *)
   let replaced_replacement =
-    let capture_group_rex = Pcre_.regexp capture_group_regex in
+    let capture_group_rex = Pcre2_.regexp capture_group_regex in
     (* Confusingly, this $1 in the template is separate from the literal
        capture group it is replacing. It is simply a dollar sign in front of
        the capture group's number, which is captured in the `capture_group_regex`
@@ -313,15 +316,15 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
        This lets us essentially capture everything matched by \<num> with
        $<num>.
     *)
-    Pcre_.replace ~rex:capture_group_rex ~template:"$$1" replacement
+    Pcre2_.replace ~rex:capture_group_rex ~template:"$$1" replacement
   in
   let replacement_text =
     match count with
-    | None -> Pcre_.replace ~rex ~template:replaced_replacement content
+    | None -> Pcre2_.replace ~rex ~template:replaced_replacement content
     | Some count ->
         Common2.foldn
           (fun content _i ->
-            Pcre_.replace_first ~rex ~template:replaced_replacement content)
+            Pcre2_.replace_first ~rex ~template:replaced_replacement content)
           content count
     (* TODO: We could align text here, but the problem is that we need the
        start column of the area being replaced.
@@ -382,7 +385,7 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
   (match modified_files with
   | _ :: _ ->
       Logs.info (fun m ->
-          m ~tags "%smodified %s."
+          m "%smodified %s."
             (match failed_fixes with
             | [] -> "successfully "
             | _ -> "")
@@ -392,7 +395,7 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
   | [] -> ()
   | _ ->
       Logs.warn (fun m ->
-          m ~tags "failed to apply %i fix(es)." (List.length failed_fixes))
+          m "failed to apply %i fix(es)." (List.length failed_fixes))
 
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
   matches
@@ -402,3 +405,45 @@ let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
          let end_ = m.end_.offset in
          Some Textedit.{ path = m.path; start; end_; replacement_text })
   |> apply_fixes ?dryrun
+
+(* Mapping of file path to a list of ranges affected by previous autofixes. *)
+type fixed_lines_env = (Fpath.t, (int * int) list) Hashtbl.t
+
+let make_fixed_lines_env () = Hashtbl.create 13
+
+let make_fixed_lines_of_string env file_contents (edit : Textedit.t) =
+  let previous_edits =
+    match Hashtbl.find_opt env edit.path with
+    | Some xs -> xs
+    | None -> []
+  in
+  let fix_overlaps =
+    (* O(n). But realistically the list will probably be short. We're reading
+     * the whole file contents in anyway each time, too. *)
+    List.exists
+      (fun (st, en) -> st < edit.end_ && en > edit.start)
+      previous_edits
+  in
+  if fix_overlaps then None
+  else
+    (* First, apply the edit *)
+    let updated_contents = Textedit.apply_edit_to_text file_contents edit in
+    (* Now, compute the range in the updated string that was affected by the
+     * edit. *)
+    let start = edit.start in
+    let end_ = start + String.length edit.replacement_text in
+    (* Then, get the lines in the updated string that were affected by the edit.
+     * *)
+    let lines = String_.lines_of_range (start, end_) updated_contents in
+    (* Record that we did this edit, so that subsequent overlapping edits can be
+     * omitted. *)
+    Hashtbl.replace env edit.path ((edit.start, edit.end_) :: previous_edits);
+    match lines with
+    (* If we are deleting whole line(s) only, we omit fixed_lines. This is odd
+     * behavior, but it matches pysemgrep and is exercised by e2e tests. *)
+    | [ "" ] -> None
+    | _ -> Some lines
+
+let make_fixed_lines env (edit : Textedit.t) =
+  let file_contents = UFile.read_file edit.path in
+  make_fixed_lines_of_string env file_contents edit
