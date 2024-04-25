@@ -303,6 +303,10 @@ def parse_dependency_file(
                 line + 1,
                 col + 1,
             )
+    except Exception as e:
+        return DependencyParserError(
+            file_to_parse.path.name, file_to_parse.parser_name, str(e)
+        )
 
 
 def safe_parse_lockfile_and_manifest(
