@@ -19,8 +19,11 @@ module G2 = Graph_code_opti
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
- * See http://en.wikipedia.org/wiki/Design_structure_matrix
+(* A Dependency Structure Matrix (DSM) in OCaml.
+ *
+ * See http://en.wikipedia.org/wiki/Design_structure_matrix for more info.
+ * See also the code in codegrap (https://github.com/aryx/codegraph)
+ * which uses this module.
  *)
 
 (*****************************************************************************)
@@ -106,6 +109,7 @@ type cell_coord = int * int
 (*****************************************************************************)
 (* Globals *)
 (*****************************************************************************)
+(* TODO: switch to Logs or Log_graph_code in this file *)
 let verbose = ref false
 
 (*****************************************************************************)

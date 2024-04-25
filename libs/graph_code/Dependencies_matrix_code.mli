@@ -1,4 +1,6 @@
-(* dependency structure matrix *)
+(* A Dependency Structure Matrix (DSM).
+ * See http://en.wikipedia.org/wiki/Design_structure_matrix for more info.
+ *)
 type dm = {
   matrix : int array array;
   i_to_name : Graph_code.node array;

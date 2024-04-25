@@ -1,5 +1,13 @@
-(* the main types *)
-type node = entity_name * Entity_code.entity_kind
+(* A "code database" data structure represented as a graph of code entities.
+ * This module is used mostly by https://github.com/aryx/codegraph and
+ * https://github.com/aryx/codemap but is now also used in semgrep-pro.
+ *)
+
+(* The entity_name string must be unique, so it usually contains
+ * the "fully qualified name" (FQN) of the entity (e.g., "Foo.Bar.foo_method").
+ * See gensym() also below to help define unique enties.
+ *)
+type node = entity_name * Entity_code.kind
 and entity_name = string
 
 type nodeinfo = {
@@ -7,11 +15,25 @@ type nodeinfo = {
    * TODO: use an actual Pos.t? otherwise rename to loc.
    *)
   pos : Tok.location;
+  (* extra info about an entity *)
   props : Entity_code.property list;
   typ : string option;
 }
 
+(* A code entity can be related to another entity either via containment (Has),
+ * such as a field contained inside a class (itself contained inside a package),
+ * or via reference (Use), such as a function calling another function or
+ * a class inheriting from another class.
+ *
+ * In theory we just need those two kinds of edges; the source and destination of
+ * an edge should be enough to understand the relation. For example,
+ * a Use between two functions is probably a call, an Has between two
+ * functions is probably the definition of a nested function, a Use between two
+ * classes is probably an inheritance.
+ *)
 type edge = Has | Use
+
+(* extra info about an edge, can be useful for fancy analysis *)
 type edgeinfo = { write : bool; read : bool }
 
 (* !! the main type!! the graph!! really an hypergraph actually *)
@@ -25,7 +47,7 @@ exception Error of error
 val string_of_error : error -> string
 
 type statistics = {
-  parse_errors : string (* filename *) list ref;
+  parse_errors : Fpath.t list ref;
   (* could be Parse_info.token_location*)
   lookup_fail : (Tok.t * node) list ref;
   method_calls : (Tok.t * resolved) list ref;
@@ -34,31 +56,25 @@ type statistics = {
   unresolved_calls : Tok.t list ref;
 }
 
+(* ?? *)
 and resolved = bool
 
 val empty_statistics : unit -> statistics
-
-(* moving around directories to have less backward dependencies *)
-type adjust = string * string
-
-(* skip certain edges that are marked as ok regarding backward dependencies *)
-type dependency = node * node
-type whitelist = dependency list
 
 (* to bump when change of format. load() should detect when loading old graphs*)
 val version : int
 
 (* IO *)
-val load : string (* filename *) -> t
-val save : t -> string (* filename *) -> unit
-val default_filename : string
+val load : Fpath.t -> t
+val save : t -> Fpath.t -> unit
+val default_filename : Fpath.t
 val root : node
 val pb : node
 val not_found : node
 val dupe : node
 (* val stdlib: node *)
 
-(* similar API to graph.ml *)
+(* similar API to Graphe.ml *)
 
 (* graph construction *)
 val create : unit -> t
@@ -112,9 +128,13 @@ val nodeinfo_opt : node -> t -> nodeinfo option
 val edgeinfo_opt : node * node -> edge -> t -> edgeinfo option
 
 (* should be in readable path if you want your codegraph to be "portable" *)
-val file_of_node : node -> t -> string (* filename *)
+val file_of_node : node -> t -> Fpath.t
 val privacy_of_node : node -> t -> Entity_code.privacy
 val shortname_of_node : node -> string
+
+(* Helper to generate unique enties by suffix the first parameter
+ * with __<counter>
+ *)
 val gensym : string -> string
 
 (* iteration *)
@@ -128,13 +148,13 @@ val all_nodes : t -> node list
 (* statistics *)
 val nb_nodes : t -> int
 val nb_use_edges : t -> int
-val print_statistics : statistics -> t -> unit
+
+(* use Logs.info() (and not Log_graph_code.info) to log statistics *)
+val log_statistics : statistics -> t -> unit
 
 (* algorithms *)
 val group_edges_by_files_edges :
-  (node * node) list ->
-  t ->
-  ((string (* filename *) * string (* filename *)) * (node * node) list) list
+  (node * node) list -> t -> ((Fpath.t * Fpath.t) * (node * node) list) list
 
 val strongly_connected_components_use_graph :
   t -> node list array * (node, int) Hashtbl.t
@@ -146,16 +166,8 @@ val bottom_up_numbering : t -> (node, int) Hashtbl.t
 val top_down_numbering : t -> (node, int) Hashtbl.t
 
 (* example builder *)
-val graph_of_dotfile : string (* filename *) -> t
+val graph_of_dotfile : Fpath.t -> t
 
-(* debugging support *)
+(* debugging support, to be used in Logs *)
 val string_of_node : node -> string
 val display_with_gv : t -> unit
-
-(* adjustments *)
-val load_adjust : string (* filename *) -> adjust list
-val load_whitelist : string (* filename *) -> whitelist
-val save_whitelist : whitelist -> string (* filename *) -> t -> unit
-
-(* does side effect on the graph *)
-val adjust_graph : t -> adjust list -> whitelist -> unit

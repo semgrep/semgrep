@@ -1,4 +1,7 @@
-type entity_kind =
+(* Information about code entities (e.g., their kind) *)
+
+(* The code entity "kind" *)
+type kind =
   (* very high level entities *)
   | Package
   | Dir
@@ -17,17 +20,19 @@ type entity_kind =
   | Field
   | Method
   | ClassConstant
-  (* ocaml variants (not oo ctor, see Method for that *)
+  (* OCaml variants (not OO constructor, see Method for that *)
   | Constructor
   (* misc *)
   | Prototype
   | GlobalExtern
   | MultiDirs (* computed on the fly from many Dir by codemap *)
   | Other of string
+[@@deriving show]
 
-val string_of_entity_kind : entity_kind -> string
-val entity_kind_of_string : string -> entity_kind
+val string_of_entity_kind : kind -> string
+val entity_kind_of_string : string -> kind
 
+(* Some property about a code entity *)
 type property =
   (* mostly for Function|Method kind, for codemap to highlight! *)
   | ContainDynamicCall
@@ -54,7 +59,8 @@ and class_kind =
   | Class_
   | Interface
   | Trait
-  (* in Scala, Java, and now PHP enums are actually closer to class
+  (* in Scala and Java (and now even PHP) enums are actually closer to class
    * than C enums.
    *)
   | Enum
+[@@deriving show]

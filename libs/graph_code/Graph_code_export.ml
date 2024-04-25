@@ -12,13 +12,17 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
+open Fpath_.Operators
 module G = Graph_code
 module J = JSON
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Export the graph_code to JSON (with an adhoc format).
+ *
+ * TODO: export to LSIF, SCIP.proto
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -35,7 +39,7 @@ let json_of_node g (str, kind) =
       ( "location",
         J.String
           (try
-             G.file_of_node (str, kind) g
+             !!(G.file_of_node (str, kind) g)
              (* 'Dir' entities have no location for example *)
            with
           | Not_found -> "UNKNOWN LOCATION") );
