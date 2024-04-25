@@ -1,6 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2012 Facebook
+ * Copyright (C) 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,37 +14,40 @@
  * license.txt for more details.
  *)
 open Common
+open Fpath_.Operators
 module E = Entity_code
 module G = Graphe
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_graph_code.Log
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
+(* A "code database" data structure.
+ *
  * A program can be seen as a hierarchy of entities
  * (directory/package/module/file/class/function/method/field/...)
  * linked to each other through different mechanisms
  * (import/reference/extend/implement/instantiate/call/access/...).
  * This module is the basis for 'codegraph', a tool to help
- * visualize code dependencies or code relationships.
- * It provides one of the core data structure of codegraph
+ * visualize code dependencies or code relationships
+ * See https://github.com/aryx/codegraph for more info.
+ *
+ * This module provides one of the core data structure of codegraph:
  * an (hyper)graph of all the entities in a program linked
  * either via a 'has-a' relation, which represent the
  * hierarchies (in the sense of containment, not inheritance), or
  * 'use-a', which represent the dependencies
  * (the other core data structure of codegraph is in
- * dependencies_matrix_code.ml).
+ * Dependencies_matrix_code.ml).
  *
- * Is this yet another code database? For PHP we already have
- * database_php.ml, tags_php.ml, database_light_php.ml,
+ * history: Is this yet another code database in pfff at Facebook? For PHP
+ * we already have database_php.ml, tags_php.ml, database_light_php.ml,
  * and now even a Prolog database, ... that's a lot of code database.
  * They all have things in common, but by focusing here on one thing,
  * by just having a single graph, it's then
  * easier to reason and implement certain features.
- * I could have probably done the DSM using database_php.ml
- * but it was not made for that. Here the graph is
+ * I could have probably done the DSM (dependency structure matrix) using
+ * database_php.ml, but it was not made for that. Here the graph is
  * the core and simplest data structure that is needed.
  *
  * This graph also unifies many things. For instance there is no
@@ -53,7 +57,34 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  * this file is language independent so one can have one tool
  * that can handle ML, PHP, C++, etc.
  *
- * todo:
+ * history and related work:
+ *  - "CIA, the C Information Abstraction System" (1990)
+ *    https://www.proquest.com/docview/195583113
+ *  - database_code_php.ml, database_light_php.ml, tags_php.ml (2010)
+ *    and a few other lang-specific "code databases" I did at Facebook
+ *  - Graph_code (this module) and codegraph (the tool around it) (2012)
+ *    inspired by CIA and https://www.ndepend.com/ dependency structure matrix
+ *  - Grok by Steve Yegge at Google
+ *    http://www.youtube.com/watch?v=KTJs-0EInW8 (2012)
+ *    update: he later joined sourcegraph (in 2023)
+ *  - Kythe at Google (an open source descendent of Grok) (2018?)
+ *    https://kythe.io/ which probably defines its own code database data
+ *    structure
+ *  - Glean at Facebook (2020?)
+ *    (not sure if was influenced by my own prolog database at Facebook)
+ *    https://glean.software/docs/introduction/
+ *  - Stackgraph by github, inspired by Scope graph by Elco Visser (2021?)
+ *  - LSIF by sourcegraph and Microsoft (inspired by LSP) (2022?)
+ *    https://microsoft.github.io/language-server-protocol/specifications/lsif/0.4.0/specification/
+ *  - SCIP by sourcegraph, an evolution of LSIF (2023?)
+ *    which even have its formal protobuf spec:
+ *    https://github.com/sourcegraph/scip/blob/main/scip.proto
+ *
+ * TODO:
+ *  - We probably want to imitate more SCIP. It looks like a pretty
+ *    good spec, very complete, and at least export to SCIP or
+ *    import from SCIP.
+ *
  *  - how to handle duplicate entities (e.g. we can have two different
  *    files with the same module name, or two functions with the same
  *    name but one in a library and the other in a script).
@@ -76,22 +107,25 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  *    further modifications on Has but then provide optimized operations
  *    like parent the precompute or memoize the parent relation
  *
- * related work:
- *  - grok: by steve yegge http://www.youtube.com/watch?v=KTJs-0EInW8
- *  - scopegraph by github
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type node = entity_name * E.entity_kind
+type node = entity_name * E.kind
 
 (* TODO: at some point we might want a 'string list' here, to better represent
- * entities like "Package1.Subpackage.FooClass.BarMethod"
+ * entities like "Package1.Subpackage.FooClass.BarMethod" ?
+ * TODO: or even better, switch to the SCIP "symbol" syntax
+ * see https://github.com/sourcegraph/scip/blob/v0.3.3/scip.proto#L147
+ * with symbol (entity_name) like "com/example/MyClass#myMethod(+1)."
  *)
 and entity_name = string
 
+(* TODO: SCIP supports more precise edges with its "Occurence" and "SymbolRole"
+ * at https://github.com/sourcegraph/scip/blob/v0.3.3/scip.proto#L500
+ *)
 type edge =
   (* a package Has subpackages, a subpackage Has classes, a class Has members,
    * etc *)
@@ -149,7 +183,7 @@ exception Error of error
 
 (* coupling: see print_statistics below *)
 type statistics = {
-  parse_errors : string (* filename *) list ref;
+  parse_errors : Fpath.t list ref;
   (* could be Parse_info.token_location*)
   lookup_fail : (Tok.t * node) list ref;
   method_calls : (Tok.t * resolved) list ref;
@@ -170,19 +204,6 @@ let empty_statistics () =
     field_access = ref [];
   }
 
-(* we sometimes want to collapse unimportant directories under a "..."
- * fake intermediate directory. So one can create an adjust file with
- * for instance:
- *   api -> extra/
- * and we will delete the current parent of 'api' and relink it to the
- * extra/ entity (possibly newly created)
- *)
-type adjust = string * string
-
-(* skip certain edges that are marked as ok regarding backward dependencies *)
-type dependency = node * node
-type whitelist = dependency list
-
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
@@ -200,12 +221,6 @@ let string_of_node (s, kind) = E.string_of_entity_kind kind ^ ": " ^ s
 
 let string_of_error = function
   | NodeAlreadyPresent n -> "Node already present: " ^ string_of_node n
-
-let node_of_string s =
-  if s =~ "\\([^:]*\\):\\(.*\\)" then
-    let s1, s2 = Common.matched2 s in
-    (s2, E.entity_kind_of_string s1)
-  else failwith (spf "node_of_string: wrong format '%s'" s)
 
 let display_with_gv g =
   (* TODO? use different colors for the different kind of edges? *)
@@ -260,19 +275,19 @@ let add_edgeinfo (n1, n2) e info g = Hashtbl.replace g.edgeinfo (n1, n2, e) info
 let version = 5
 
 let save g file =
-  Logs.debug (fun m -> m ~tags "saving %s" file);
+  Log.info (fun m -> m "saving %s" !!file);
   (* see ocamlgraph FAQ *)
-  Common2.write_value (g, !Graph.Blocks.cpt_vertex, version) file
+  Common2.write_value (g, !Graph.Blocks.cpt_vertex, version) !!file
 
 let load file =
-  Logs.debug (fun m -> m ~tags "loading %s" file);
-  let g, serialized_cpt_vertex, version2 = Common2.get_value file in
+  Log.info (fun m -> m "loading %s" !!file);
+  let g, serialized_cpt_vertex, version2 = Common2.get_value !!file in
   if version <> version2 then
     failwith (spf "your marshalled file has an old version, delete it");
   Graph.Blocks.after_unserialization serialized_cpt_vertex;
   g
 
-let default_filename = "graph_code.marshall"
+let default_filename = Fpath.v "graph_code.marshall"
 
 (*****************************************************************************)
 (* Iteration *)
@@ -360,11 +375,11 @@ let edgeinfo_opt (n1, n2) e g =
 let file_of_node n g =
   try
     let info = nodeinfo n g in
-    info.pos.Tok.pos.Pos.file
+    Fpath.v info.pos.Tok.pos.Pos.file
   with
   | Not_found -> (
       match n with
-      | str, E.File -> str
+      | str, E.File -> Fpath.v str
       | _ ->
           raise Not_found
           (* todo: BAD no? *)
@@ -393,15 +408,6 @@ let shortname_of_node (s, _kind) =
     else s
   in
   s
-
-let cnt = ref 0
-
-(* when we have static entities, or main(), we rename them locally
- * and add a unique __xxx suffix, to avoid DUPES.
- *)
-let gensym s =
-  incr cnt;
-  spf "%s__%d" s !cnt
 
 (*****************************************************************************)
 (* Helpers *)
@@ -451,6 +457,15 @@ let basename_to_readable_disambiguator xs ~root =
   xs |> List.iter (fun file -> Hashtbl_.push h (Filename.basename file) file);
   fun file -> Hashtbl_.get_stack h file
 
+let cnt = ref 0
+
+(* When we have static entities, or main(), we rename them locally
+ * and add a unique __xxx suffix, to avoid DUPES.
+ *)
+let gensym s =
+  incr cnt;
+  spf "%s__%d" s !cnt
+
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
@@ -495,64 +510,11 @@ let bottom_up_numbering g =
   hres
 
 (*****************************************************************************)
-(* Graph adjustments *)
-(*****************************************************************************)
-let load_adjust file =
-  UFile.Legacy.cat file
-  |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
-  |> List.map (fun s ->
-         match s with
-         | _ when s =~ "\\([^ ]+\\)[ ]+->[ ]*\\([^ ]+\\)" -> Common.matched2 s
-         | _ -> failwith ("wrong line format in adjust file: " ^ s))
-
-let load_whitelist file =
-  UFile.Legacy.cat file
-  |> List.map (fun s ->
-         if s =~ "\\(.*\\) --> \\(.*\\) " then
-           let s1, s2 = Common.matched2 s in
-           (node_of_string s1, node_of_string s2)
-         else failwith (spf "load_whitelist: wrong line: %s" s))
-
-let save_whitelist xs file g =
-  UFile.Legacy.with_open_outfile file (fun (pr_no_nl, _chan) ->
-      xs
-      |> List.iter (fun (n1, n2) ->
-             let file = file_of_node n2 g in
-             pr_no_nl
-               (spf "%s --> %s (%s)\n" (string_of_node n1) (string_of_node n2)
-                  file)))
-
-(* Used mainly to collapse many entries under a "..." intermediate fake
- * parent. Maybe this could be done automatically in codegraph at some point,
- * like ndepend does I think.
- *)
-let adjust_graph g xs whitelist =
-  let mapping = Hashtbl.create 101 in
-  g |> iter_nodes (fun (s, kind) -> Hashtbl_.push mapping s (s, kind));
-  xs
-  |> List.iter (fun (s1, s2) ->
-         let nodes = Hashtbl_.get_stack mapping s1 in
-
-         let new_parent = (s2, E.Dir) in
-         create_intermediate_directories_if_not_present g s2;
-         match nodes with
-         | [ n ] ->
-             let old_parent = parent n g in
-             remove_edge (old_parent, n) Has g;
-             add_edge (new_parent, n) Has g
-         | [] -> failwith (spf "could not find entity %s" s1)
-         | _ -> failwith (spf "multiple entities with %s as a name" s1));
-  whitelist
-  |> (*|> Console.progress ~show:true (fun k -> *)
-  List.iter (fun (n1, n2) -> (*k (); *)
-                             remove_edge (n1, n2) Use g)
-
-(*****************************************************************************)
-(* Example *)
+(* Loading graph code from dot file *)
 (*****************************************************************************)
 (* assumes a "path/to/file.x" -> "path/to/file2.x" format *)
 let graph_of_dotfile dotfile =
-  let xs = UFile.Legacy.cat dotfile in
+  let xs = UFile.cat dotfile in
   let deps =
     xs
     |> List_.map_filter (fun s ->
@@ -593,32 +555,35 @@ let graph_of_dotfile dotfile =
 (*****************************************************************************)
 (* Statistics *)
 (*****************************************************************************)
-let print_statistics stats g =
-  UCommon.pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
-  UCommon.pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
-  UCommon.pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
+let log_statistics stats g =
+  Logs.info (fun m ->
+      m "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
+  Logs.info (fun m ->
+      m "parse errors = %d" (!(stats.parse_errors) |> List.length));
+  Logs.info (fun m ->
+      m "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
 
-  UCommon.pr
-    (spf "unresolved method calls = %d"
-       (!(stats.method_calls)
-       |> List.filter (fun (_, x) -> not x)
-       |> List.length));
-  UCommon.pr
-    (spf "(resolved method calls = %d)"
-       (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
+  Logs.info (fun m ->
+      m "unresolved method calls = %d"
+        (!(stats.method_calls)
+        |> List.filter (fun (_, x) -> not x)
+        |> List.length));
+  Logs.info (fun m ->
+      m "(resolved method calls = %d)"
+        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  UCommon.pr
-    (spf "unresolved field access = %d"
-       (!(stats.field_access)
-       |> List.filter (fun (_, x) -> not x)
-       |> List.length));
-  UCommon.pr
-    (spf "(resolved field access) = %d)"
-       (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
+  Logs.info (fun m ->
+      m "unresolved field access = %d"
+        (!(stats.field_access)
+        |> List.filter (fun (_, x) -> not x)
+        |> List.length));
+  Logs.info (fun m ->
+      m "(resolved field access) = %d)"
+        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  UCommon.pr
-    (spf "unresolved class access = %d"
-       (!(stats.unresolved_class_access) |> List.length));
-  UCommon.pr
-    (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
+  Logs.info (fun m ->
+      m "unresolved class access = %d"
+        (!(stats.unresolved_class_access) |> List.length));
+  Logs.info (fun m ->
+      m "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
   ()

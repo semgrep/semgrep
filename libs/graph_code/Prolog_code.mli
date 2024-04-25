@@ -5,7 +5,7 @@ type fact =
         (* filename *)
         (* readable path *)
       * int (* line *)
-  | Kind of entity * Entity_code.entity_kind
+  | Kind of entity * Entity_code.kind
   | Type of entity * string
   | Extends of string * string
   | Implements of string * string
@@ -23,4 +23,4 @@ val string_of_fact : fact -> string
 val entity_of_str : string -> entity
 
 (* reused in other modules which generate prolog facts *)
-val string_of_entity_kind : Entity_code.entity_kind -> string
+val string_of_entity_kind : Entity_code.kind -> string

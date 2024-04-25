@@ -17,7 +17,8 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
+(* A polymorphic defunctorized ocamlgraph wrapper.
+ *
  * There are multiple libraries for graphs in OCaml, incorporating each
  * different graph algorithms:
  *

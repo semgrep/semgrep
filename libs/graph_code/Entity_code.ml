@@ -1,6 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2009, 2010 Facebook
+ * Copyright (C) 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,21 +18,23 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
- * The code in this module used to be in database_code.ml but many stuff
+(* Information about a code entity.
+ *
+ * history: The code in this module used to be in database_code.ml but many stuff
  * now have their own view on how to represent a code database
- * (database_code.ml but also graph_code.ml, prolog_code.ml, etc)
+ * (database_code.ml but also Graph_code.ml, Prolog_code.ml, etc)
  *)
 
 (*****************************************************************************)
 (* Type *)
 (*****************************************************************************)
-(*
- * Code entities.
+(* Kind of a code entity.
  *
  * See also http://ctags.sourceforge.net/FORMAT and the doc on 'kind'
- * note: if you change this, you may want to bump graph_code.version.
+ * See also the 'kind' enum in the SCIP spec at
+ * https://github.com/sourcegraph/scip/blob/v0.3.3/scip.proto#L261
  *
+ * coupling: if you change this, you must bump Graph_code.version.
  * coupling: If you add a constructor modify also entity_kind_of_string()!
  * coupling: if you add a new kind of entity, then don't forget to modify
  *  also size_font_multiplier_of_categ in code_map/.
@@ -39,7 +42,7 @@ open Common
  * less: could perhaps factorize code with highlight_code.ml? see
  *  entity_kind_of_highlight_category_def|use
  *)
-type entity_kind =
+type kind =
   | Package
   (* when we use the database for completion purpose, then files/dirs
    * are also useful "entities" to get completion for.
@@ -48,19 +51,24 @@ type entity_kind =
   | Module
   | File
   | Function
-  | Class (* Less: Obj, because in JS it differs from Class *)
+  (* TODO: Obj, because in Scala/JS/OCaml/... it differs from Class *)
+  | Class
   | Type
   | Constant
   | Global
   | Macro
   | Exception
   | TopStmts
-  (* nested entities *)
+  (* nested entities
+   * alt: just use Constant/Function for nested entities too and use
+   * the parent of the node to determine whether its a field or method.
+   *)
   | Field
   | Method
   | ClassConstant
-  | Constructor (* for ml *)
-  (* forward decl *)
+  (* OCaml constructors (not C++ constructors) *)
+  | Constructor
+  (* forward decl (in C) *)
   | Prototype
   | GlobalExtern
   (* people often spread the same component in multiple dirs with the same
@@ -68,13 +76,13 @@ type entity_kind =
    *)
   | MultiDirs
   | Other of string
+[@@deriving show { with_path = false }]
 
 (* todo: IsInlinedMethod, ...
  * todo: IsOverriding, IsOverriden
  *)
 type property =
   (* mostly function properties *)
-
   (* todo: could also say which argument is dataflow involved in the
    * dynamic call if any
    *)
@@ -98,7 +106,9 @@ type property =
 
 (* todo: git info, e.g. Age, Authors, Age_profile (range) *)
 and privacy = Public | Protected | Private
+
 and class_kind = Struct | Class_ | Interface | Trait | Enum
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* String of *)

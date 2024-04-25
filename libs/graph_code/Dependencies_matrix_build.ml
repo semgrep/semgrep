@@ -22,8 +22,7 @@ module DM = Dependencies_matrix_code
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
- * Module to create a Dependency Structure Matrix (DSM) based on
+(* Module to create a Dependency Structure Matrix (DSM) based on
  * a code graph.
  * See http://en.wikipedia.org/wiki/Design_structure_matrix
  * See also main_codegraph.ml
@@ -40,6 +39,8 @@ module DM = Dependencies_matrix_code
  *  - better layout algorithm, minimize more backward dependencies
  *  - packing in "..." intermediate directories
  *  - TODO even better layout algorithm, hill climbing
+ *
+ * TODO: Switch to Log_graph_code.Log instead of UCommon.pr2
  *)
 
 (*****************************************************************************)
