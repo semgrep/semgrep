@@ -1,0 +1,12 @@
+Pro: const-prop: Previously inter-procedural const-prop could only infer whether
+a function returned an arbitrary string constant. Now it is now able to infer
+whether a function returns a concrete constant value, e.g.:
+
+```python
+def bar():
+  return "bar"
+
+def test():
+  x = bar()
+  foo(x) # now also matches pattern `foo("bar")`, previously only `foo("...")`
+```
