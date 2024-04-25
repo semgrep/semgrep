@@ -11,10 +11,8 @@ Rules:
 └─────────────┘
   Scanning 1 file tracked by git with 3 Code rules:
   Scanning 1 file with 3 python rules.
-[31m[22m[24mWarning: 2 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
-[rules.forcetimeout, rules.forcetimeout2]
-Semgrep stopped running rules on targets/equivalence/open_redirect.py after 2 timeout error(s). See `--timeout-
-threshold` for more info.[0m
+[31m[22m[24mWarning: 3 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
+[rules.forcetimeout, rules.forcetimeout2, rules.forcetimeout3][0m
 
 ========================================
 Files skipped:
@@ -49,7 +47,7 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24mtargets/equivalence/open_redirect.py with 2 rules (e.g. rules.forcetimeout)[0m
+   • [36m[22m[24mtargets/equivalence/open_redirect.py with 3 rules (e.g. rules.forcetimeout)[0m
 
 
 
