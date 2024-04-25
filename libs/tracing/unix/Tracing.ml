@@ -69,7 +69,7 @@ type user_data = Trace_core.user_data
 let default_endpoint = "https://telemetry.semgrep.dev"
 let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
 let default_local_endpoint = "http://localhost:4318"
-let trace_level_var = "TRACE_LEVEL"
+let trace_level_var = "SEMGREP_TRACE_LEVEL"
 
 (*****************************************************************************)
 (* Levels *)
