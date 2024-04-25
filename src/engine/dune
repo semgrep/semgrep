@@ -8,6 +8,7 @@
    calendar
 
    commons
+   tracing
    pfff-lang_GENERIC-analyze
 
    parser_regexp
@@ -28,5 +29,5 @@
    semgrep_reporting; for Test_engine.ml, we should split in tests/ separate dir
  )
  (inline_tests)
- (preprocess (pps ppx_deriving.show ppx_profiling ppx_inline_test))
+ (preprocess (pps ppx_deriving.show ppx_profiling ppx_inline_test tracing.ppx))
 )
