@@ -1,0 +1,2 @@
+Python: const-prop: Semgrep will now recognize "..." * N expression as arbitrary
+constant string literals (thus matching the pattern "...").

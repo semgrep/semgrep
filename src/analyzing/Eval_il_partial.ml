@@ -29,7 +29,9 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type env = G.svalue Dataflow_var_env.t
+type env = { lang : Lang.t; vars : G.svalue Dataflow_var_env.t }
+
+let mk_env lang vars = { lang; vars }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -226,7 +228,7 @@ let eval_binop_string ?tok op s1 s2 =
 (* Entry point *)
 (*****************************************************************************)
 
-let rec eval (env : G.svalue Dataflow_var_env.t) (exp : IL.exp) : G.svalue =
+let rec eval (env : env) (exp : IL.exp) : G.svalue =
   match exp.e with
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
@@ -254,7 +256,9 @@ let rec eval (env : G.svalue Dataflow_var_env.t) (exp : IL.exp) : G.svalue =
 and eval_lval env lval =
   match lval with
   | { base = Var x; rev_offset = [] } -> (
-      let opt_c = Dataflow_var_env.VarMap.find_opt (IL.str_of_name x) env in
+      let opt_c =
+        Dataflow_var_env.VarMap.find_opt (IL.str_of_name x) env.vars
+      in
       match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
       | Some c, None
@@ -270,8 +274,12 @@ and eval_op env wop args =
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
   | op, [ G.Lit (G.Int _ as li) ] -> eval_unop_int op (int_of_literal li)
-  | G.And, [ G.Lit (G.Bool (true, _)); c ] -> c (* Python: True and 42 -> 42 *)
-  | G.Or, [ G.Lit (G.Bool (false, _)); c ] -> c (* Python: False or 42 -> 42 *)
+  | G.And, [ G.Lit (G.Bool (true, _)); c ] when Lang.equal env.lang Lang.Python
+    ->
+      c (* Python: True and 42 -> 42 *)
+  | G.Or, [ G.Lit (G.Bool (false, _)); c ] when Lang.equal env.lang Lang.Python
+    ->
+      c (* Python: False or 42 -> 42 *)
   | op, [ G.Lit (G.Bool (b1, _)); G.Lit (G.Bool (b2, _)) ] ->
       eval_binop_bool op b1 b2
   | op, [ G.Lit (G.Int _ as li1); G.Lit (G.Int _ as li2) ] ->
@@ -279,6 +287,11 @@ and eval_op env wop args =
   | op, [ G.Lit (G.String (_, (s1, _), _)); G.Lit (G.String (_, (s2, _), _)) ]
     ->
       eval_binop_string ~tok op s1 s2
+  | G.Mult, [ (G.Lit (G.String _) | G.Cst G.Cstr); _N ]
+    when Lang.equal env.lang Lang.Python ->
+      (* Python: "..." * N, NOTE that we don't check the type of N, partly because
+         * we lack good type inference for Python, but should be fine. *)
+      G.Cst G.Cstr
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
   | _op, [ G.Lit l1; G.Cst t2 ]
