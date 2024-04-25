@@ -1,7 +1,0 @@
-
-(library
- (name tracing_ppx_tests)
-  (preprocess (pps
-      tracing.ppx
-   ))
-)
