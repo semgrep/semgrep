@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 from typing import List
 from typing import Optional
 from typing import Set
@@ -14,7 +13,6 @@ from semdep.parsers.util import colon
 from semdep.parsers.util import comma
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
-from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import lbrace
 from semdep.parsers.util import lbrack
 from semdep.parsers.util import mark_line
@@ -65,7 +63,7 @@ many_independency_blocks = inner_dependency_block.sep_by(comma)
 #     "hexpm",
 #     "98767a5d1c6c3e3d20497b03293be7f83b46f89a6f3987cc1f9262d299f1eaa7"
 #   }
-def package_entry_hex_value_block(package: str) -> Parser:
+def package_entry_hex_value_block(package: str) -> Parser[Tuple[int, Tuple[str, str]]]:
     return (
         whitespace
         >> lbrace
@@ -92,7 +90,7 @@ def package_entry_hex_value_block(package: str) -> Parser:
 
 
 # {:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]},
-def package_entry_git_value_block(package: str) -> Parser:
+def package_entry_git_value_block(package: str) -> Parser[Tuple[int, Tuple[str, str]]]:
     return (
         whitespace
         >> lbrace
@@ -177,7 +175,7 @@ manifest_parser = (
 )
 
 
-def _parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
+def _parse_manifest_deps(manifest: List[Tuple[int, str]]) -> Set[str]:
     result = set()
     for _line_number, package in manifest:
         result.add(package.lower())
@@ -186,10 +184,13 @@ def _parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
 
 
 def _build_found_dependencies(
-    direct_deps: Set[str], lockfile_deps: List[Any]
+    direct_deps: Set[str], lockfile_deps: List[Optional[Tuple[int, Tuple[str, str]]]]
 ) -> List[FoundDependency]:
     result = []
-    for line_number, (package, version) in lockfile_deps:
+    for dep in lockfile_deps:
+        if dep is None:
+            continue
+        line_number, (package, version) = dep
         result.append(
             FoundDependency(
                 package=package,
@@ -217,7 +218,9 @@ def parse_mix(
     if not parsed_lockfile or not parsed_manifest:
         return [], errors
 
-    direct_deps = _parse_manifest_deps(filter_on_marked_lines(parsed_manifest))
+    direct_deps = _parse_manifest_deps(
+        [x for x in parsed_manifest if isinstance(x, tuple)]
+    )
     found_deps = _build_found_dependencies(direct_deps, parsed_lockfile)
 
     return found_deps, errors
