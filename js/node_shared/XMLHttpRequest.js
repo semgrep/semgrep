@@ -406,7 +406,7 @@ XMLHttpRequest = function () {
     }
 
     // get if HTTP_PROXY or HTTPS_PROXY is set
-    var proxy = process.env[ssl ? "HTTPS_PROXY" : "HTTP_PROXY"];
+    const proxy = process.env[ssl ? "HTTPS_PROXY" : "HTTP_PROXY"];
     if (proxy) {
       // set host to proxy
       const proxyUrl = Url.parse(proxy);
