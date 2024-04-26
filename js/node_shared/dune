@@ -9,10 +9,15 @@
 (library
  (public_name semgrep.semgrep_node_js_shared)
  (name semgrep_node_js_shared)
+ (libraries
+   cohttp-lwt-jsoo
+   networking.http_helpers
+ )
  (wrapped false)
  (js_of_ocaml
   (javascript_files
     unix.js
+    XMLHttpRequest.js ; for making HTTP requests
  ))
  (preprocess
   (pps js_of_ocaml-ppx lwt_ppx)))
