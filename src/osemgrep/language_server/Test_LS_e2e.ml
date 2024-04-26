@@ -430,7 +430,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
       (InitializeParams.create ~processId:1234
          ~clientInfo:
            (InitializeParams.create_clientInfo ~name:"Visual Studio Code"
-              ~version:"1.68.1" ())
+              ~version:Version.version ())
          ~locale:"en-us" ~rootPath:(Some "") (* THINK? *)
          ?rootUri (* THINK? *)
          ~workspaceFolders ~initializationOptions
@@ -664,6 +664,9 @@ let check_startup info folders (files : Fpath.t list) =
   let%lwt () = assert_progress info "Refreshing Rules" in
   let%lwt rulesRefreshedNotif = receive_notification info in
   let%lwt () = assert_notif rulesRefreshedNotif "semgrep/rulesRefreshed" in
+  let rules_length = List.length info.server.session.cached_session.rules in
+  Alcotest.(check bool)
+    "rules refreshed greater than 1" (rules_length > 20) true;
   let%lwt () = assert_progress info "Scanning Open Documents" in
 
   let%lwt scan_notifications =
@@ -735,7 +738,6 @@ let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
 let test_ls_specs caps () =
   with_session caps (fun info ->
       let root, files = mock_files () in
-      let%lwt () = Lwt.return_unit in
       let%lwt () = check_startup info [ root ] files in
       let%lwt () =
         files
@@ -1032,10 +1034,6 @@ let test_ls_no_folders caps () =
       send_exit info;
       Lwt.return_unit)
 
-let test_ls_libev () =
-  Lwt_platform.set_engine ();
-  Lwt.return_unit
-
 let test_search_includes_excludes caps () =
   with_session caps (fun info ->
       let root, files = mock_search_files () in
@@ -1151,5 +1149,4 @@ let tests caps =
 (* Asynchronous tests for JS tests *)
 let lwt_tests caps =
   let _, async_promise_tests = promise_tests caps in
-  Testo.categorize "Language Server (e2e)"
-    (Testo_lwt.create "Test LS with libev" test_ls_libev :: async_promise_tests)
+  Testo.categorize "Language Server (e2e)" async_promise_tests
