@@ -61,6 +61,7 @@ struct
   (* What do we have to do to support a proxy? *)
   (* On Native OCaml (not js), the certificate MUST be in a path listed in
      https://github.com/mirage/ca-certs/blob/fa4ff942f1ac980e2502a0783ef10ade5ba497f2/lib/ca_certs.ml#L34-L50 *)
+  (* Or set SSL_CERT_FILE=path/to/cert. But note setting this means no default certs will be included *)
   (* HTTP(s)_PROXY MUST have a scheme, http:// or https://, and must have a port
      if it isn't on port 80/443 *)
   (* So HTTP_PROXY=http://localhost:8080 or
