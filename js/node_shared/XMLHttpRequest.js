@@ -385,6 +385,17 @@ XMLHttpRequest = function () {
       headers["Content-Length"] = 0;
     }
 
+    // get if HTTP_PROXY or HTTPS_PROXY is set
+    var proxy = process.env[ssl ? "HTTPS_PROXY" : "HTTP_PROXY"];
+    if (proxy) {
+      // set host to proxy
+      const proxyUrl = Url.parse(proxy);
+      host = proxyUrl.hostname;
+      port = proxyUrl.port;
+      // set path to full URL
+      uri = url.href;
+
+    }
     var options = {
       host: host,
       port: port,
