@@ -13,6 +13,7 @@
  (js_of_ocaml
   (javascript_files
     unix.js
+    XMLHttpRequest.js ; for making HTTP requests
  ))
  (preprocess
   (pps js_of_ocaml-ppx lwt_ppx)))
