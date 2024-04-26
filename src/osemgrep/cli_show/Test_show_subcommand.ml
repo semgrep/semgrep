@@ -123,7 +123,7 @@ let test_error_no_arguments (caps : caps) : Testo.t =
  * have to mask.
  *)
 (*
-let test_version (caps : caps) : Testo.test =
+let test_version (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let exit_code =
         Show_subcommand.main caps [| "semgrep-show"; "version" |]
