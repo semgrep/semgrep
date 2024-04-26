@@ -14,7 +14,9 @@
  *)
 
 (* Commentary *)
-(*  *)
+(* Callv isn't supported via cohttp jsoo for some reason!  But we use it for proxying *)
+(* So here we patch it so it works, and then in XMLHttpRequest we *)
+(* support proxies *)
 
 (*****************************************************************************)
 (* Prelude *)

@@ -17,7 +17,8 @@
  (js_of_ocaml
   (javascript_files
     unix.js
-    XMLHttpRequest.js ; for making HTTP requests
+    ; Custom XMLHttpRequest implementation that doesn't preset the User-Agent header and supports proxy
+    XMLHttpRequest.js
  ))
  (preprocess
   (pps js_of_ocaml-ppx lwt_ppx)))

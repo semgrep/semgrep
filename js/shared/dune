@@ -13,7 +13,6 @@
    semgrep.data
    semgrep.language_server
    lwt_platform.js
-   cohttp-lwt-jsoo
    tracing.js
  )
  (js_of_ocaml

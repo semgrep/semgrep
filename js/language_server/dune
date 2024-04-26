@@ -23,7 +23,6 @@
  (modes js)
  (js_of_ocaml
   (javascript_files
-   ;; Custom XMLHttpRequest implementation that doesn't preset the User-Agent header
    semgrep.js
  ))
  (preprocess

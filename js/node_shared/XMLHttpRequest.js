@@ -2,6 +2,9 @@
 // Semgrep LSP.js. This removes the default user agent
 // and modifies how the module is exported, so it can
 // be included in the Jsoo built file
+// It also adds support for proxying requests through
+// HTTP_PROXY and HTTPS_PROXY environment variables
+// But the rest of the code is the same as the original
 /**
  * Wrapper for built-in http.js to emulate the browser XMLHttpRequest object.
  *
