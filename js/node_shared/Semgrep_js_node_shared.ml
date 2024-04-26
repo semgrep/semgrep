@@ -26,10 +26,9 @@ module Patched_cohttp_lwt_jsoo : Cohttp_lwt.S.Client = struct
   include Cohttp_lwt_jsoo.Client
 
   (* Callv isn't currently supported on the JS side so we have to provide it ourselves :( *)
-  let callv ?ctx (uri : Uri.t) stream =
+  let callv ?ctx _ stream =
     (* Differs from request uri if HTTP(S)_PROXY is set. But we handle this in
        the node_shared XHR*)
-    ignore uri;
     Lwt.return
       (Lwt_stream.map_s
          (fun ((req, body) : Cohttp.Request.t * Cohttp_lwt.Body.t) ->
