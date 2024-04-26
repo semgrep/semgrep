@@ -134,7 +134,7 @@ let test_version (caps : caps) : Testo.test =
 (* similar to test_misc.py test_cli_test_show_supported_languages *)
 let test_supported_languages (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         Show_subcommand.main caps [| "semgrep-show"; "supported-languages" |]
       in
@@ -149,7 +149,7 @@ let test_dump_config (caps : caps) : Testo.test =
       ]
     __FUNCTION__
     (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("rule.yml", eqeq_basic_content) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -161,7 +161,7 @@ let test_dump_config (caps : caps) : Testo.test =
 
 let test_dump_rule_v2 (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("rule.yml", eqeq_basic_content_v2) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -186,7 +186,7 @@ let test_dump_ast (caps : caps) : Testo.test =
       ]
     __FUNCTION__
     (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("foo.py", foo_py_content) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -205,7 +205,7 @@ let test_dump_pattern (caps : caps) : Testo.test =
       ]
     __FUNCTION__
     (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         Show_subcommand.main caps
           [| "semgrep-show"; "dump-pattern"; "python"; "foo(..., $X == $X)" |]
@@ -218,7 +218,7 @@ let test_identity (caps : caps) : Testo.test =
    * and just capture stdout here.
    *)
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         (* we need to be logged in otherwise we will not contact the server *)
         with_fake_login fake_settings (fun () ->
@@ -229,7 +229,7 @@ let test_identity (caps : caps) : Testo.test =
 
 let test_deployment (caps : caps) : Testo.test =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
-      CapConsole.out caps#stdout (spf "Snapshot for %s" __FUNCTION__);
+      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         with_fake_login fake_settings (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->

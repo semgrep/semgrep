@@ -98,7 +98,7 @@ let install_gh_cli () : unit =
   | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
   | _ ->
       Logs.err (fun m ->
-          m "%s Github cli failed to install" (Std_msg.error_tag ()));
+          m "%s Github cli failed to install" (Console.error_tag ()));
       (* TODO? we could instead just remove the last step of 'install-ci'
        * and let the user commit the workflow by himself?
        *)
@@ -451,7 +451,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
-            (Std_msg.error_tag ()));
+            (Console.error_tag ()));
       Exit_code.fatal ~__LOC__
   | Some token ->
       (* setup gh *)
@@ -462,7 +462,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
       add_semgrep_workflow caps ~token conf;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
-            (Std_msg.success_tag ()));
+            (Console.success_tag ()));
       Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
