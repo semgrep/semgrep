@@ -77,6 +77,7 @@ let _ =
       Js.export_all
         (object%js
            method init wasm_module =
+             Semgrep_js_node_shared.init_cohttp ();
              init_jsoo wasm_module;
              set_parser_wasm_module wasm_module;
              Parsing_init.init ()

@@ -29,22 +29,6 @@ external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 (* Helpers *)
 (*****************************************************************************)
 
-module Patched_cohttp_lwt_jsoo : Cohttp_lwt.S.Client = struct
-  include Cohttp_lwt_jsoo.Client
-
-  (* Callv isn't currently supported on the JS side so we have to provide it ourselves :( *)
-  let callv ?ctx (uri : Uri.t) stream =
-    (* Differs from request uri if HTTP(S)_PROXY is set. But we handle this in
-       the node_shared XHR*)
-    ignore uri;
-    Lwt.return
-      (Lwt_stream.map_s
-         (fun ((req, body) : Cohttp.Request.t * Cohttp_lwt.Body.t) ->
-           call ?ctx ~headers:req.headers ~body ~chunked:false req.meth
-             Cohttp.Request.(uri req))
-         stream)
-end
-
 let wrap_with_js_error ?(hook = None) f =
   try f () with
   | e ->
@@ -66,8 +50,6 @@ let init_jsoo yaml_wasm_module =
   Tree_sitter_run.Util_file.jsoo := true;
   Metrics_.g.payload.environment.isTranspiledJS <- true;
   (* NOTE: HTTP stuff won't work on node unless node_shared is included *)
-  Http_helpers.client_ref :=
-    Some (module Patched_cohttp_lwt_jsoo : Cohttp_lwt.S.Client);
   (* Using semgrep.parsing_languages makes the JS goes
      from 16MB to 7MB (in release mode) and from 110MB to 50MB (in dev mode)
      TODO: we should add language parsers dynamically, loading language "bundles"
