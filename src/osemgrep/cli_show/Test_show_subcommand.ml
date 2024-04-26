@@ -107,7 +107,7 @@ let fake_deployment = {|{"deployment":{"id":42,"name":"fake_deployment"}}|}
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
-let test_error_no_arguments (caps : caps) : Testo.test =
+let test_error_no_arguments (caps : caps) : Testo.t =
   t __FUNCTION__ (fun () ->
       try
         let _exit = Show_subcommand.main caps [| "semgrep-show" |] in
@@ -132,7 +132,7 @@ let test_version (caps : caps) : Testo.test =
 *)
 
 (* similar to test_misc.py test_cli_test_show_supported_languages *)
-let test_supported_languages (caps : caps) : Testo.test =
+let test_supported_languages (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
@@ -140,7 +140,7 @@ let test_supported_languages (caps : caps) : Testo.test =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_config (caps : caps) : Testo.test =
+let test_dump_config (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -159,7 +159,7 @@ let test_dump_config (caps : caps) : Testo.test =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_rule_v2 (caps : caps) : Testo.test =
+let test_dump_rule_v2 (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("rule.yml", eqeq_basic_content_v2) ] in
@@ -172,7 +172,7 @@ let test_dump_rule_v2 (caps : caps) : Testo.test =
       Exit_code.Check.ok exit_code)
 
 (* less: could also test the dump-ast -json *)
-let test_dump_ast (caps : caps) : Testo.test =
+let test_dump_ast (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -196,7 +196,7 @@ let test_dump_ast (caps : caps) : Testo.test =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_pattern (caps : caps) : Testo.test =
+let test_dump_pattern (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -212,7 +212,7 @@ let test_dump_pattern (caps : caps) : Testo.test =
       in
       Exit_code.Check.ok exit_code)
 
-let test_identity (caps : caps) : Testo.test =
+let test_identity (caps : caps) : Testo.t =
   (* TODO: we use stdxxx here because we're using Logs.app for some of the output
    * instead of CapConsole in Whoami.ml, but we should really use CapConsole
    * and just capture stdout here.
@@ -227,7 +227,7 @@ let test_identity (caps : caps) : Testo.test =
       in
       Exit_code.Check.ok exit_code)
 
-let test_deployment (caps : caps) : Testo.test =
+let test_deployment (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =

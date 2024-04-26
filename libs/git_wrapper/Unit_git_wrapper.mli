@@ -2,4 +2,4 @@
    Unit tests for Git_wrapper
 *)
 
-val tests : Testo.test list
+val tests : Testo.t list

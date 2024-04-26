@@ -213,7 +213,7 @@ let read_rules_file ~get_xlang ?fail_callback rule_file =
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
     ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
-    (rule_file : Fpath.t) : unit Testo.t =
+    (rule_file : Fpath.t) : Testo.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!rule_file);
     match read_rules_file ~get_xlang ~fail_callback rule_file with
@@ -295,6 +295,6 @@ let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
          Some (rule_file, target, xlang))
 
 let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
-    unit Testo.t list =
+    Testo.t list =
   xs |> find_rule_files
   |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)
