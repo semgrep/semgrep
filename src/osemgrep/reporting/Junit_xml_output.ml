@@ -1,5 +1,23 @@
 module OutT = Semgrep_output_v1_t
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Output findings compatible with Junix XML format using the Xmlm OPAM
+ * library.
+ *
+ * Information about the format can be found here:
+ *  - https://github.com/testmoapp/junitxml
+ *  - https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* This is put in the "type" field of the "failure" XML element,
+ * which does not have much constraint; it must just be a string
+ *)
 let string_of_severity = function
   | `Info -> "INFO"
   | `Warning -> "WARNING"
@@ -35,7 +53,11 @@ let junit_test_cases out (results : OutT.cli_match list) =
          output out `El_end;
          output out `El_end)
 
-let junit_xml_output (cli_output : OutT.cli_output) =
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let junit_xml_output (cli_output : OutT.cli_output) : string =
   let b = Buffer.create 1024 in
   let open Xmlm in
   let out = Xmlm.make_output (`Buffer b) in
