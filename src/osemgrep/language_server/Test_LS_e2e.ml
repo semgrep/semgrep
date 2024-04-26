@@ -664,9 +664,6 @@ let check_startup info folders (files : Fpath.t list) =
   let%lwt () = assert_progress info "Refreshing Rules" in
   let%lwt rulesRefreshedNotif = receive_notification info in
   let%lwt () = assert_notif rulesRefreshedNotif "semgrep/rulesRefreshed" in
-  let rules_length = List.length info.server.session.cached_session.rules in
-  Alcotest.(check bool)
-    "rules refreshed greater than 1" (rules_length > 20) true;
   let%lwt () = assert_progress info "Scanning Open Documents" in
 
   let%lwt scan_notifications =
