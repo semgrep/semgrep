@@ -418,10 +418,17 @@ let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
 let severity_to_int (severity : Rule.severity) =
   match severity with
   | `Experiment -> `Int 4
-  | `Warning -> `Int 1
-  | `Error -> `Int 2
+  | `Warning
+  | `Medium ->
+      `Int 1
+  | `Error
+  | `High ->
+      `Int 2
+  (* TODO: use `Int 5 here? *)
+  | `Critical -> `Int 2
   | `Inventory
-  | `Info ->
+  | `Info
+  | `Low ->
       `Int 0
 
 (* this is used for sorting matches for findings *)
@@ -429,9 +436,16 @@ let ord_of_severity (severity : Rule.severity) : int =
   match severity with
   | `Experiment -> 0
   | `Inventory -> 1
-  | `Info -> 2
-  | `Warning -> 3
-  | `Error -> 4
+  | `Info
+  | `Low ->
+      2
+  | `Warning
+  | `Medium ->
+      3
+  | `Error
+  | `High ->
+      4
+  | `Critical -> 5
 
 let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
     =

@@ -16,10 +16,17 @@ let range_of_toks ((l1 : Tok.location), (l2 : Tok.location)) =
 
 let convert_severity (severity : OutJ.match_severity) : DiagnosticSeverity.t =
   match severity with
-  | `Error -> Error
-  | `Warning -> Warning
-  | `Experiment
+  (* no notion of Critical in LSP *)
+  | `Error
+  | `Critical
+  | `High ->
+      Error
+  | `Warning
+  | `Medium ->
+      Warning
   | `Info
+  | `Low
+  | `Experiment
   | `Inventory ->
       Information
 

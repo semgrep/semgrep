@@ -1,0 +1,7 @@
+rules:
+- id: critical
+  languages:
+  - python
+  match: stuff($ARG);
+  message: rule_template_message
+  severity: CRITICAL  

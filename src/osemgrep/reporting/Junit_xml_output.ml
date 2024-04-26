@@ -6,6 +6,10 @@ let string_of_severity = function
   | `Error -> "ERROR"
   | `Experiment -> "EXPERIMENT"
   | `Inventory -> "INVENTORY"
+  | `Critical -> "CRITICAL"
+  | `High -> "HIGH"
+  | `Medium -> "MEDIUM"
+  | `Low -> "LOW"
 
 let junit_test_cases out (results : OutT.cli_match list) =
   results

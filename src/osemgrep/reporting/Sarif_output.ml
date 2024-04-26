@@ -2,10 +2,32 @@ open Common
 module OutT = Semgrep_output_v1_t
 module Sarif_v = Sarif.Sarif_v_2_1_0_v
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Formats the CLI output to the SARIF format using the sarif OPAM package.
+ *
+ * The sarif spec is available at:
+ * https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* See the "level" property in the spec *)
 let sarif_severity_of_severity : _ -> Sarif_v.notification_level = function
-  | `Info -> `Note
-  | `Warning -> `Warning
-  | `Error -> `Error
+  | `Info
+  | `Low ->
+      `Note
+  | `Warning
+  | `Medium ->
+      `Warning
+  (* both critical and high are mapped to the same `Error *)
+  | `Error
+  | `Critical
+  | `High ->
+      `Error
   | `Experiment
   | `Inventory ->
       raise Todo
@@ -361,6 +383,10 @@ let error_to_sarif_notification (e : OutT.cli_error) =
       ()
   in
   Sarif_v.create_notification ~message ~descriptor ~level ()
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
     =
