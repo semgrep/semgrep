@@ -75,10 +75,15 @@ let rule_files_and_rules_of_config_string caps
 let combine_checks (xs : OutJ.checks list) : OutJ.checks =
   OutJ.{ checks = xs |> List.concat_map (fun x -> x.checks) }
 
-let report_tests_result ~json (res : OutJ.tests_result) : unit =
+(*****************************************************************************)
+(* Reporting *)
+(*****************************************************************************)
+
+let report_tests_result (caps : < Cap.stdout >) ~json (res : OutJ.tests_result)
+    : unit =
   if json then
     let s = OutJ.string_of_tests_result res in
-    UConsole.print s
+    CapConsole.print caps#stdout s
   else
     let passed = ref 0 in
     let total = ref 0 in
@@ -88,11 +93,11 @@ let report_tests_result ~json (res : OutJ.tests_result) : unit =
            |> List.iter (fun (_rule_id, (rule_res : OutJ.rule_result)) ->
                   incr total;
                   if rule_res.passed then incr passed));
-    UConsole.print
+    CapConsole.print caps#stdout
       (spf "%d/%d: %s" !passed !total
          (if !passed =|= !total then "✓ All tests passed" else "TODO failure"));
     (* TODO *)
-    UConsole.print "No tests for fixes found."
+    CapConsole.print caps#stdout "No tests for fixes found."
 
 (*****************************************************************************)
 (* Calling the engine *)
@@ -103,7 +108,10 @@ let report_tests_result ~json (res : OutJ.tests_result) : unit =
  *  - 2: engine/Match_search_mode.check_rule(), 1 (search) rule vs 1 target,
  *       but just search rule
  *  - 3: engine/Match_rules.check(), many rules vs 1 target,
- *       but just checking part, and for just one target
+ *       but just the checking part, and for just one target
+ *  - 3': engine/Test_engine.check(), which is used by semgrep-core -test_rules,
+ *       and make core-test, and which calls Match_rules.check(),
+ *       but too tied to our semgrep-core test infra (Testo)
  *  - 4: core_scan/Core_scan.scan(), many rules vs many targets in //, and
  *       also handle nosemgrep, and errors, and cache, and many other things
  *  - 5: core_scan/Pre_post_core_scan.call_with_pre_and_post_processor()
@@ -113,7 +121,7 @@ let report_tests_result ~json (res : OutJ.tests_result) : unit =
  *  - 7: osemgrep/cli_scan/Scan_subcommand.run_scan_conf()
  *
  * For 'semgrep test', it's probably better to call directly
- * Check_rules.check() (and some helpers in Test_engine.ml)
+ * Match_rules.check() (with some helpers from Test_engine.ml)
  *
  * See also semgrep-server/src/.../Studio_service.ml comment
  * on where to plug to the semgrep engine.
@@ -187,7 +195,12 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
 (*****************************************************************************)
 let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
-  (* Metrics_.configure Metrics_.On; *)
+  (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
+   * semgrep-rules/Makefile is running semgrep --test with metrics=off
+   * (and also --disable-version-check), but maybe because it is used from
+   *  'semgrep scan'; in 'osemgrep test' context, we should not even have
+   *  those options and disable metrics (and version-check) by default.
+   *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
   let total_mismatch = ref 0 in
@@ -202,7 +215,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         rule_files
         |> List_.map (fun rule_file ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-               (* TODO? sanity check? call Check_rule.check()? *)
+               (* TODO? sanity check? call metachecker Check_rule.check()? *)
                let rules = Parse_rule.parse rule_file in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
@@ -263,7 +276,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         config_with_errors = [];
       }
   in
-  report_tests_result ~json:conf.json res;
+  report_tests_result (caps :> < Cap.stdout >) ~json:conf.json res;
   if !total_mismatch > 0 then Exit_code.fatal ~__LOC__
   else Exit_code.ok ~__LOC__
 
