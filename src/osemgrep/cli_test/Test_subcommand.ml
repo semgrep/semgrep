@@ -30,6 +30,9 @@ let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
   match xlangs with
   | [] -> failwith ("no language found in rules " ^ rules_origin)
   | [ x ] -> x
+  (* Note that this test whether we have multiple Xlang, but
+   * remember that one Xlang.L can contain itself multiple languages
+   *)
   | _ :: _ :: _ ->
       let fst = Test_engine.first_xlang_of_rules rules in
       Logs.warn (fun m ->
@@ -185,7 +188,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                        |> List_.map (fun (pm : Pattern_match.t) ->
                               pm.range_loc |> fst |> fun (loc : Loc.t) ->
                               loc.pos.line)
-                       |> List.sort Int.compare
+                       |> List.sort_uniq Int.compare
                      in
                      let expected_lines = reported_lines in
                      (* TODO: not sure why but pysemgrep uses realpaths here *)
@@ -233,6 +236,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                let rules = Parse_rule.parse rule_file in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
+                   (* stricter: *)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
                    (rule_file, OutJ.{ checks = [] })
