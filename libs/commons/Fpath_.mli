@@ -71,3 +71,6 @@ module Operators : sig
 end
 
 val readable : root:Fpath.t -> Fpath.t -> Fpath.t
+
+(* Fpath.v "." *)
+val current_dir : Fpath.t

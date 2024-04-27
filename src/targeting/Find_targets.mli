@@ -82,7 +82,7 @@ type conf = {
   *)
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : project_root option;
+  force_project_root : project_root option;
 }
 [@@deriving show]
 

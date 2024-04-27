@@ -135,7 +135,7 @@ let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let repo_root =
-    match Git_wrapper.get_project_root () with
+    match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
     | Some path -> path
     | None ->
         failwith

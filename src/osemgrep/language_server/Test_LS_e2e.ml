@@ -98,7 +98,7 @@ let create_info caps =
    Be careful.
 *)
 let get_rule_path () =
-  match Git_wrapper.get_project_root () with
+  match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
   | Some root -> root // Fpath.v "cli/tests/default/e2e/targets/ls/rules.yaml"
   | None ->
       failwith "The test program must run from within the semgrep git project"
