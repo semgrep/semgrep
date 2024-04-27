@@ -132,7 +132,9 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   (* actual matches *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   let xconf = Match_env.default_xconfig in
-  (* TODO? extract rules *)
+  (* LATER: extract rules? not part of semgrep OSS anymore, and
+   * not added back to semgrep Pro yet, so we should be good for now.
+   *)
   let (res : Core_result.matches_single_file) =
     Match_rules.check
       ~match_hook:(fun _ _ -> ())
@@ -155,7 +157,16 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   in
 
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
-    res.matches |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+    if List_.null res.matches then (
+      (* maybe some files with todoruleid: without any match yet, but we
+       * still want to include them in the json output like pysemgrep
+       *)
+      (* stricter: *)
+      Logs.warn (fun m -> m "nothing matched in %s" !!target);
+      rules |> List_.map (fun (r : Rule.t) -> (fst r.id, [])))
+    else
+      res.matches
+      |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
   in
   match
     Core_error.compare_actual_to_expected actual_errors expected_error_lines
