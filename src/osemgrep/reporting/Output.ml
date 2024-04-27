@@ -67,7 +67,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
   match output_format with
   | Json ->
       let s = OutJ.string_of_cli_output cli_output in
-      Out.put s
+      UConsole.print s
   | Vim ->
       cli_output.results
       |> List.iter (fun (m : OutJ.cli_match) ->
@@ -84,7 +84,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 Out.put (String.concat ":" parts))
+                 UConsole.print (String.concat ":" parts))
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
@@ -131,7 +131,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 Out.put (String.concat ":" parts))
+                 UConsole.print (String.concat ":" parts))
   | Text ->
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
@@ -153,23 +153,24 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
       let sarif_json =
         Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
       in
-      Out.put (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
+      UConsole.print
+        (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->
       let junit_xml = Junit_xml_output.junit_xml_output cli_output in
-      Out.put junit_xml
+      UConsole.print junit_xml
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
-      Out.put (Yojson.Basic.to_string gitlab_sast_json)
+      UConsole.print (Yojson.Basic.to_string gitlab_sast_json)
   | Gitlab_secrets ->
       let gitlab_secrets_json =
         Gitlab_output.secrets_output cli_output.results
       in
-      Out.put (Yojson.Basic.to_string gitlab_secrets_json)
+      UConsole.print (Yojson.Basic.to_string gitlab_secrets_json)
   | Files_with_matches ->
       cli_output.results
       |> List_.map (fun (x : OutT.cli_match) -> !!(x.path))
       |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
-      |> Out.put
+      |> UConsole.print
 
 (*****************************************************************************)
 (* Entry points *)

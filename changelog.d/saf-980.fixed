@@ -1,9 +1,0 @@
-When semgrep ci finishes scanning and uploads findings, it tells the
-app to mark the scan as completed.
-
-For large findings, this may take a while and marking the scan as
-completed may timeout. When a scan is not marked as completed, the app
-may show that the repo is still processing, and confuses the user.
-
-This change increases the timeout (previously 20 minutes) to 30
-minutes.

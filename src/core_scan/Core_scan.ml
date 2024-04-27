@@ -271,7 +271,7 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
 let print_cli_additional_targets (config : Core_scan_config.t) (n : int) : unit
     =
   match config.output_format with
-  | Json true -> Out.put (string_of_int n)
+  | Json true -> UConsole.print (string_of_int n)
   | _ -> ()
 
 (* TODO: suspicious: this runs in a child process. Please explain how it's
@@ -281,7 +281,7 @@ let print_cli_additional_targets (config : Core_scan_config.t) (n : int) : unit
 let print_cli_progress (config : Core_scan_config.t) : unit =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
-  | Json true -> Out.put "."
+  | Json true -> UConsole.print "."
   | _ -> ()
 
 (*****************************************************************************)
@@ -296,27 +296,28 @@ let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
-      Out.put (spaces_string ^ "call to");
+      UConsole.print (spaces_string ^ "call to");
       Core_text_output.print_match ~format ~spaces call_toks;
       if intermediate_vars <> [] then
-        Out.put
+        UConsole.print
           (spf "%sthese intermediate values are tainted: %s" spaces_string
              (string_of_toks intermediate_vars));
-      Out.put (spaces_string ^ "then");
+      UConsole.print (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
   if format =*= Core_text_output.Normal then
     taint_trace |> Lazy.force
     |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
-           if idx =*= 0 then Out.put "  * Taint may come from this source:"
-           else Out.put "  * Taint may also come from this source:";
+           if idx =*= 0 then
+             UConsole.print "  * Taint may come from this source:"
+           else UConsole.print "  * Taint may also come from this source:";
            print_taint_call_trace ~format ~spaces:4 source_trace;
            if tokens <> [] then
-             Out.put
+             UConsole.print
                (spf "  * These intermediate values are tainted: %s"
                   (string_of_toks tokens));
-           Out.put "  * This is how taint reaches the sink:";
+           UConsole.print "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
@@ -362,11 +363,12 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
-     Out.put (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
+     UConsole.print
+       (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
      ());
   dep_toks_and_version
   |> Option.iter (fun (toks, version) ->
-         Out.put ("with dependency match at version " ^ version);
+         UConsole.print ("with dependency match at version " ^ version);
          Core_text_output.print_match ~format:config.match_format toks);
   Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 

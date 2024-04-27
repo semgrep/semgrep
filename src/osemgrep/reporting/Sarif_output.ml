@@ -33,10 +33,11 @@ let tags_of_metadata metadata =
     | JSON.String s -> s
     | non_string -> JSON.string_of_json non_string
   in
+  (* Also add the "security" tag when the rule has CWE tags. *)
   let cwe =
     match JSON.member "cwe" metadata with
-    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe
-    | Some single_cwe -> [ best_effort_string single_cwe ]
+    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe @ [ "security" ]
+    | Some single_cwe -> [ best_effort_string single_cwe; "security" ]
     | None -> []
   in
   let owasp =
@@ -68,7 +69,8 @@ let tags_of_metadata metadata =
     | None ->
         []
   in
-  cwe @ owasp @ confidence @ semgrep_policy_slug @ tags
+  let all_tags = cwe @ owasp @ confidence @ semgrep_policy_slug @ tags in
+  List.sort_uniq String.compare all_tags
 
 (* We want to produce a json object? with the following shape:
    { id; name;

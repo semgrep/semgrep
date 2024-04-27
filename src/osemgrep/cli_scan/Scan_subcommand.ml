@@ -866,7 +866,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
          1: make the line yellow using pysemgrep's exact escape sequence
          2: ???
       *)
-      match Std_msg.get_highlight () with
+      match Console.get_highlight () with
       | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
       | Off -> ("", "")
     in
@@ -975,7 +975,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Out.put Version.version;
+      CapConsole.print caps#stdout Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->

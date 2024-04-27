@@ -1,0 +1,5 @@
+The SARIF output format should have the tag "security" when the "cwe"
+section is present in the rule. Moreover, duplicate tags should be
+de-duped.
+
+Osemgrep wasn't doing this before, but with this fix, now it does.

@@ -1,5 +1,0 @@
-The main regex engine is now PCRE2 (was PCRE). While the syntax is mostly
-compatible, there are some minor instances where updates to rules may be
-needed, since PCRE2 is slightly more strict in some cases. For example, while
-we previously accepted `[\w-.]`, such a pattern would now need to be written
-`[\w.-]` or `[\w\-.]` since PCRE2 rejects the first as having an invalid range.

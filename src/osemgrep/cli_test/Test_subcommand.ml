@@ -78,7 +78,7 @@ let combine_checks (xs : OutJ.checks list) : OutJ.checks =
 let report_tests_result ~json (res : OutJ.tests_result) : unit =
   if json then
     let s = OutJ.string_of_tests_result res in
-    Out.put s
+    UConsole.print s
   else
     let passed = ref 0 in
     let total = ref 0 in
@@ -88,11 +88,11 @@ let report_tests_result ~json (res : OutJ.tests_result) : unit =
            |> List.iter (fun (_rule_id, (rule_res : OutJ.rule_result)) ->
                   incr total;
                   if rule_res.passed then incr passed));
-    Out.put
+    UConsole.print
       (spf "%d/%d: %s" !passed !total
          (if !passed =|= !total then "✓ All tests passed" else "TODO failure"));
     (* TODO *)
-    Out.put "No tests for fixes found."
+    UConsole.print "No tests for fixes found."
 
 (*****************************************************************************)
 (* Calling the engine *)

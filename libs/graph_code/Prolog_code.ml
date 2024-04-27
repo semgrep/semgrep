@@ -35,7 +35,7 @@ type fact =
         (* filename *)
         (* readable path *)
       * int (* line *)
-  | Kind of entity * Entity_code.entity_kind
+  | Kind of entity * Entity_code.kind
   | Type of entity * string (* could be more structured ... *)
   | Extends of string * string
   | Implements of string * string
