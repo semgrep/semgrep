@@ -1,1 +1,1 @@
-val tests : < network : Cap.Network.t ; .. > -> Testo.test list
+val tests : < network : Cap.Network.t ; .. > -> Testo.t list

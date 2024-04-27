@@ -24,10 +24,10 @@ let any_gen_of_string str =
   Python_to_generic.any any
 
 (* alt: could be in Testutil_files.ml or even Testo library *)
-let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.test list) :
-    Testo.test list =
+let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
+    Testo.t list =
   tests
-  |> List_.map (fun (test : Testo.test) ->
+  |> List_.map (fun (test : Testo.t) ->
          Testo.update
            ~func:(fun () ->
              reset ();

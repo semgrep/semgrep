@@ -5,4 +5,4 @@
    and on glob patterns semantic thanks to many examples of use.
 *)
 
-val tests : Testo.test list
+val tests : Testo.t list
