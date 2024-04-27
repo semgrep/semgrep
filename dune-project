@@ -3,7 +3,7 @@
 (using menhir 2.1)
 
 ; set here so the semgrep package below can use it and we can easily bump it
-(version 1.69.0)
+(version 1.70.0)
 ; disable mangling of of workspace root, to preserve debugging information
 ; needed to support earlybird debugger
 ; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
@@ -417,13 +417,16 @@ For more information see https://semgrep.dev
 ; Development-only dependencies are in 'dev/dev.opam'.
 
 ;coupling: for semgrep CI to be fast, we try to pre-install these packages as
-; part of of the base docker image. When you add a new package or change a version
-; here, please also update the list of packages there:
+; part of of the base docker image. When you add a new package or change a
+; version here, please also update the list of packages there:
 ;
 ;   https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
 ;
 ; or ask Martin to do so.
 ; You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
+;coupling: because of the way we need to statically link on macOS, if
+; you add a library here, you'll probably need to update src/main/flags.sh
+; if this library has some C stubs.
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
     ; core deps

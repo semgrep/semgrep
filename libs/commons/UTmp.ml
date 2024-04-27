@@ -28,7 +28,8 @@ let tags = Logs_.create_tags [ __MODULE__ ]
 (* Globals *)
 (*****************************************************************************)
 
-let _temp_files_created = Hashtbl.create 101
+(* TODO: eliminate this global and enforce the use of 'with_temp_file' *)
+let temp_files_created : (Fpath.t, unit) Hashtbl.t = Hashtbl.create 101
 
 (* old: was in Common2.cmdline_flags_devel()
     ( "-keep_tmp_files",
@@ -40,11 +41,11 @@ let save_temp_files = ref false
 
 let erase_temp_files () =
   if not !save_temp_files then (
-    _temp_files_created
-    |> Hashtbl.iter (fun s () ->
-           Logs.debug (fun m -> m ~tags "erasing: %s" s);
-           USys.remove s);
-    Hashtbl.clear _temp_files_created)
+    temp_files_created
+    |> Hashtbl.iter (fun path () ->
+           Logs.debug (fun m -> m ~tags "deleting: %s" !!path);
+           USys.remove !!path);
+    Hashtbl.clear temp_files_created)
 
 (* hooks for with_temp_file() *)
 let temp_file_cleanup_hooks = ref []
@@ -62,52 +63,43 @@ let temp_file_cleanup_hooks = ref []
  *)
 let register_temp_file_cleanup_hook f = Stack_.push f temp_file_cleanup_hooks
 
-(*****************************************************************************)
-(* Legacy API using 'string' for filenames *)
-(*****************************************************************************)
+(* ex: new_temp_file ~prefix:"cocci-" ".c"
+   will give "/tmp/cocci-3252-434465.c" *)
 
-module Legacy = struct
-  (* ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c" *)
-  let new_temp_file ?temp_dir prefix suffix =
-    let pid = if !Common.jsoo then 42 else UUnix.getpid () in
-    let processid = i_to_s pid in
-    let temp_file =
-      UFilename.temp_file ?temp_dir (prefix ^ "-" ^ processid ^ "-") suffix
-    in
-    Hashtbl.add _temp_files_created temp_file ();
-    temp_file
+let default_temp_file_prefix = USys.argv.(0) |> Filename.basename
 
-  let erase_this_temp_file f =
-    if not !save_temp_files then (
-      Hashtbl.remove _temp_files_created f;
-      Logs.debug (fun m -> m ~tags "erasing: %s" f);
-      USys.remove f)
+let new_temp_file ?(prefix = default_temp_file_prefix) ?(suffix = "") ?temp_dir
+    () =
+  let pid = if !Common.jsoo then 42 else UUnix.getpid () in
+  let temp_file =
+    UFilename.temp_file
+      ?temp_dir:(Option.map Fpath.to_string temp_dir)
+      (spf "%s%d-" prefix pid) suffix
+    |> Fpath.v
+  in
+  Hashtbl.add temp_files_created temp_file ();
+  temp_file
 
-  let with_temp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
-    let tmpfile = new_temp_file "tmp" ("." ^ ext) in
-    UFile.Legacy.write_file ~file:tmpfile str;
-    Common.finalize
-      (fun () -> f tmpfile)
-      (fun () ->
+let erase_this_temp_file f =
+  if not !save_temp_files then (
+    Hashtbl.remove temp_files_created f;
+    Logs.debug (fun m -> m ~tags "deleting: %s" !!f);
+    USys.remove !!f)
+
+let with_temp_file ?(contents = "") ?(persist = false) ?prefix ?suffix ?temp_dir
+    (f : Fpath.t -> 'a) : 'a =
+  let temp_file_path = new_temp_file ?prefix ?suffix ?temp_dir () in
+  Common.finalize
+    (fun () ->
+      (match contents with
+      | "" -> ()
+      | contents -> UFile.write_file ~file:temp_file_path contents);
+      f temp_file_path)
+    (fun () ->
+      if not persist then (
         !temp_file_cleanup_hooks
-        |> List.iter (fun cleanup -> cleanup (Fpath.v tmpfile));
-        erase_this_temp_file tmpfile)
-end
-
-(*****************************************************************************)
-(* API using Fpath.t for filenames *)
-(*****************************************************************************)
-
-let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())
-
-let new_temp_file ?(temp_dir = get_temp_dir_name ()) prefix suffix =
-  let temp_dir = !!temp_dir in
-  Legacy.new_temp_file ~temp_dir prefix suffix |> Fpath.v
-
-let erase_this_temp_file path = Legacy.erase_this_temp_file !!path
-
-let with_temp_file ~str ~ext f =
-  Legacy.with_temp_file ~str ~ext (fun file -> f (Fpath.v file))
+        |> List.iter (fun cleanup -> cleanup temp_file_path);
+        erase_this_temp_file temp_file_path))
 
 let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
   let tmp_path, oc =
@@ -141,3 +133,5 @@ let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   let data = In_channel.input_all UStdlib.stdin in
   Logs.debug (fun m -> m ~tags "stdin data: %s" (*String_.show*) data);
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data
+
+let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())

@@ -157,7 +157,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
    on django) before the notifications are received by the extension.
    In the interim, we will just continue to hook into core.
 *)
-let run_core_search rule (file : Fpath.t) =
+let run_core_search xconf rule (file : Fpath.t) =
   let hook _file _pm = () in
   let xlang = rule.Rule.target_analyzer in
   (* We have to look at all the initial files again when we do this.
@@ -170,11 +170,18 @@ let run_core_search rule (file : Fpath.t) =
         (Target.mk_regular xlang Product.all (File file))
     in
     try
-      (* !!calling the engine!! *)
-      let ({ Core_result.matches; _ } : _ Core_result.match_result) =
-        Match_search_mode.check_rule rule hook Match_env.default_xconfig xtarget
+      let is_relevant_rule =
+        Match_rules.is_relevant_rule_for_xtarget
+          (rule :> Rule.rule)
+          xconf xtarget
       in
-      Some matches
+      if is_relevant_rule then
+        (* !!calling the engine!! *)
+        let ({ Core_result.matches; _ } : _ Core_result.match_result) =
+          Match_search_mode.check_rule rule hook xconf xtarget
+        in
+        Some matches
+      else None
     with
     | Parsing_error.Syntax_error _ -> None
   else None
@@ -263,6 +270,8 @@ let refresh_rules server =
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
       end_progress token;
+      RPC_server.notify_custom "semgrep/rulesRefreshed";
+
       (* We used to scan ALL files in the workspace *)
       (* Now we just scan open documents so we aren't killing *)
       (* CPU cycles for no reason *)

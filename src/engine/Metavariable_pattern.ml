@@ -199,12 +199,12 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* Note that due to symbolic propagation, `mast` may be
                    * outside of the current file/AST, so we must get
                    * `mval_range` from `mval_file` and not from `env.file`! *)
-                  let content =
+                  let contents =
                     Range.content_at_range (Fpath.v mval_file) mval_range
                   in
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
-                  UTmp.with_temp_file ~str:content ~ext:"mvar-pattern"
+                  UTmp.with_temp_file ~contents ~suffix:".mvar-pattern"
                     (fun (file : Fpath.t) ->
                       let mast' =
                         AST_generic_helpers.fix_token_locations_program
@@ -219,7 +219,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                               internal_path_to_content = file;
                             };
                           lazy_ast_and_errors = lazy (mast', []);
-                          lazy_content = lazy content;
+                          lazy_content = lazy contents;
                         }
                       in
                       (* Persist the bindings from inside the `metavariable-pattern`
@@ -267,15 +267,15 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                          is not text: %s"
                         mvar (MV.show_mvalue mval));
                   []
-              | Some content ->
-                  let content = adjust_content_for_language xlang content in
+              | Some contents ->
+                  let contents = adjust_content_for_language xlang contents in
                   Logs.debug (fun m ->
                       m ~tags "nested analysis of |||%s||| with lang '%s'"
-                        content (Xlang.to_string xlang));
+                        contents (Xlang.to_string xlang));
                   (* We re-parse the matched text as `xlang`. *)
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
-                  UTmp.with_temp_file ~str:content ~ext:"mvar-pattern"
+                  UTmp.with_temp_file ~contents ~suffix:".mvar-pattern"
                     (fun file ->
                       let ast_and_errors_res =
                         match xlang with
@@ -331,7 +331,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                 };
                               xlang;
                               lazy_ast_and_errors;
-                              lazy_content = lazy content;
+                              lazy_content = lazy contents;
                             }
                           in
                           (* Persist the bindings from inside the `metavariable-pattern`

@@ -28,8 +28,8 @@ let tests (caps : < Cap.tmp >) =
        * sub-sub expressions inside parenthesis).
        *)
       t "visitor" (fun () ->
-          CapTmp.with_temp_file caps#tmp ~ext:".ml"
-            ~str:"open Foo1\nmodule A = Foo2\n" (fun file ->
+          CapTmp.with_temp_file caps#tmp ~suffix:".ml"
+            ~contents:"open Foo1\nmodule A = Foo2\n" (fun file ->
               let _ast = Parse_ml.parse_program file in
               let _cnt = ref 0 in
               (* TODO use Visitor_AST of ml_to_generic

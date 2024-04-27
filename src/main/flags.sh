@@ -185,10 +185,21 @@ else
             "-lcurl"
             "$(pkg-config gmp --variable libdir)/libgmp.a"
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
-            "$(brew --prefix libev)/lib/libev.a"
-            "$(brew --prefix pcre)/lib/libpcre.a"
-            "$(brew --prefix pcre2)/lib/libpcre2-8.a"
+            "$(pkg-config libpcre --variable libdir)/libpcre.a"
+            "$(pkg-config libpcre2-8 --variable libdir)/libpcre2-8.a"
             "-lpthread")
+
+        # Libev does not support pkg-config. See, e.g.,
+        # <https://www.mail-archive.com/libev@lists.schmorp.de/msg02088.html>,
+        # <http://lists.schmorp.de/pipermail/libev/2024q1/002940.html>. As a
+        # result we still use the brew prefix, but with the option of an
+        # environment variable for the build to override the location.
+        if [ -z ${SEMGREP_LIBEV_ARCHIVE_PATH+set} ]; then
+            CCLIB+=("$(brew --prefix libev)/lib/libev.a")
+        else
+            CCLIB+=("${SEMGREP_LIBEV_ARCHIVE_PATH}")
+        fi
+
         for lang in ${LANGS[@]+"${LANGS[@]}"}; do
             CCLIB+=("-ltree_sitter_${lang}_stubs")
         done

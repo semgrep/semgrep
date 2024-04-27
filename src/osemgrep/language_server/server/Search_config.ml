@@ -28,5 +28,9 @@ module OutJ = Semgrep_output_v1_t
 (* Types *)
 (*****************************************************************************)
 
-type t = { rules : Rule.search_rule list; files : Fpath.t list }
+type t = {
+  rules : Rule.search_rule list;
+  files : Fpath.t list;
+  xconf : Match_env.xconfig; [@opaque]
+}
 [@@deriving show]

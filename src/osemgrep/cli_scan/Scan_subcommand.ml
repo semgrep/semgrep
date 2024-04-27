@@ -490,7 +490,10 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
                     |> prepare_targets
                   in
                   let paths_in_scanned =
-                    r.scanned |> List_.map Fpath.to_string |> prepare_targets
+                    r.scanned
+                    |> List_.map (fun p ->
+                           p |> Target.internal_path |> Fpath.to_string)
+                    |> prepare_targets
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
@@ -641,8 +644,6 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             in
             match conf.engine_type with
             | PRO Engine_type.{ analysis = Interfile; _ } ->
-                Metrics_.g.payload.value.proFeatures <-
-                  Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)
             | _ -> (added_or_modified, [])
           in
@@ -653,6 +654,31 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
                    (Differential_scan_config.Depth (diff_targets, diff_depth))
                  filtered_rules)
           in
+          (match (head_scan_result, conf.engine_type) with
+          | Ok r, PRO Engine_type.{ analysis = Interfile; _ } ->
+              let count_by_lang = Hashtbl.create 10 in
+              r.scanned
+              |> List.iter (function
+                   | Target.Regular { analyzer = L (lang, _); _ } ->
+                       let count =
+                         match Hashtbl.find_opt count_by_lang lang with
+                         | Some c -> c
+                         | None -> 0
+                       in
+                       Hashtbl.replace count_by_lang lang (count + 1)
+                   | _ -> ());
+              Metrics_.g.payload.value.proFeatures <-
+                Some
+                  {
+                    diffDepth = Some diff_depth;
+                    numInterfileDiffScanned =
+                      Some
+                        (count_by_lang |> Hashtbl.to_seq
+                        |> Seq.map (fun (lang, count) ->
+                               (Lang.to_string lang, count))
+                        |> List.of_seq);
+                  }
+          | _ -> ());
           scan_baseline_and_remove_duplicates
             (caps :> < Cap.chdir ; Cap.tmp >)
             conf profiler head_scan_result filtered_rules commit status
@@ -840,7 +866,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
          1: make the line yellow using pysemgrep's exact escape sequence
          2: ???
       *)
-      match Std_msg.get_highlight () with
+      match Console.get_highlight () with
       | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
       | Off -> ("", "")
     in
@@ -949,7 +975,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Out.put Version.version;
+      CapConsole.print caps#stdout Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->

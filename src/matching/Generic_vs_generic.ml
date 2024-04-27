@@ -2440,11 +2440,20 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
         | (inits, rest) :: xs ->
             envf (s, tok) (MV.Ss inits)
             >>= (fun () ->
-                  (* less: env_add_matched_stmt ?? *)
-                  (* when we use { $...BODY }, we don't have an implicit
-                   * ... after, so we use less_is_ok:false here
-                   *)
-                  m_list__m_stmt ~less_is_ok:false xsa rest)
+                  (* If we don't do this, patterns ending in an ellipsis metavariable, like:
+                     x = 1
+                     $...STMTS
+                     will not properly extend the range of the match with whatever $...STMTS
+                     matches.
+                  *)
+                  match List_.last_opt inits with
+                  | None -> m_list__m_stmt ~less_is_ok:false xsa rest
+                  | Some last ->
+                      env_add_matched_stmt last >>= fun () ->
+                      (* when we use { $...BODY }, we don't have an implicit
+                         * ... after, so we use less_is_ok:false here
+                      *)
+                      m_list__m_stmt ~less_is_ok:false xsa rest)
             >||> aux xs
       in
       aux candidates

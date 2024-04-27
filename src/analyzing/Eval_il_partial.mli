@@ -1,5 +1,6 @@
-type env = AST_generic.svalue Dataflow_var_env.t
+type env
 
+val mk_env : Lang.t -> AST_generic.svalue Dataflow_var_env.t -> env
 val eval : env -> IL.exp -> AST_generic.svalue
 
 (* internals used also in Dataflow_svalue.ml *)

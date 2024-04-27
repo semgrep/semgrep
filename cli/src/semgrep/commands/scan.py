@@ -5,6 +5,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -276,11 +277,6 @@ _scan_options: List[Callable] = [
         flag_value=OutputFormat.GITLAB_SECRETS,
     ),
     optgroup.option(
-        "--historical-secrets",
-        "historical_secrets",
-        is_flag=True,
-    ),
-    optgroup.option(
         "--junit-xml",
         "output_format",
         type=OutputFormat,
@@ -298,6 +294,30 @@ _scan_options: List[Callable] = [
         type=OutputFormat,
         flag_value=OutputFormat.VIM,
     ),
+    # Names of this group are "outputs_<format>" so that they end up
+    # next to "output" and "output_format" in argument lists.
+    optgroup.group(
+        "Write additional outputs to file",
+    ),
+    optgroup.option(
+        "--text-output",
+        "outputs_text",
+        multiple=True,
+        default=[],
+    ),
+    optgroup.option("--emacs-output", "outputs_emacs", multiple=True, default=[]),
+    optgroup.option("--json-output", "outputs_json", multiple=True, default=[]),
+    optgroup.option(
+        "--gitlab-sast-output", "outputs_gitlab_sast", multiple=True, default=[]
+    ),
+    optgroup.option(
+        "--gitlab-secrets-output", "outputs_gitlab_secrets", multiple=True, default=[]
+    ),
+    optgroup.option(
+        "--junit-xml-outputl", "outputs_junit_xml", multiple=True, default=[]
+    ),
+    optgroup.option("--sarif-output", "outputs_sarif", multiple=True, default=[]),
+    optgroup.option("--vim-output", "outputs_vim", multiple=True, default=[]),
     optgroup.group("Semgrep Pro Engine options"),
     optgroup.option(
         "--pro",
@@ -336,11 +356,53 @@ _scan_options: List[Callable] = [
         hidden=True,
     ),
     optgroup.option(
+        "--historical-secrets",
+        "historical_secrets",
+        is_flag=True,
+    ),
+    optgroup.option(
         "--allow-untrusted-validators",
         "allow_untrusted_validators",
         is_flag=True,
     ),
 ]
+
+
+def collect_additional_outputs(
+    outputs_text: List[str],
+    outputs_emacs: List[str],
+    outputs_json: List[str],
+    outputs_vim: List[str],
+    outputs_gitlab_sast: List[str],
+    outputs_gitlab_secrets: List[str],
+    outputs_junit_xml: List[str],
+    outputs_sarif: List[str],
+) -> Dict[Optional[str], OutputFormat]:
+    output_formats = [
+        (OutputFormat.TEXT, outputs_text),
+        (OutputFormat.EMACS, outputs_emacs),
+        (OutputFormat.VIM, outputs_vim),
+        (OutputFormat.JSON, outputs_json),
+        (OutputFormat.GITLAB_SAST, outputs_gitlab_sast),
+        (OutputFormat.GITLAB_SECRETS, outputs_gitlab_secrets),
+        (OutputFormat.JUNIT_XML, outputs_junit_xml),
+        (OutputFormat.SARIF, outputs_sarif),
+    ]
+    outputs: Dict[Optional[str], OutputFormat] = {}
+
+    for output_format, output_destinations in output_formats:
+        for output_destination in output_destinations:
+            if output_destination in outputs:
+                other_format = outputs[output_destination]
+                if other_format != output_format:
+                    abort(
+                        f"Can't write multiple outputs to the same desitination: "
+                        f"{other_format} and {output_format} "
+                        f"both output to {output_destination}."
+                    )
+            else:
+                outputs[output_destination] = output_format
+    return outputs
 
 
 def scan_options(func: Callable) -> Callable:
@@ -413,11 +475,10 @@ def scan_options(func: Callable) -> Callable:
 # rely on their existence, or their output being stable
 @click.option("--dump-engine-path", is_flag=True, hidden=True)
 @click.option(
-    "--beta-testing-secrets-enabled",
+    "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    hidden=True,
-    help="Contact support@semgrep.com for more informationon this.",
+    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @optgroup.group("Osemgrep migration options")
 @optgroup.option(
@@ -461,6 +522,14 @@ def scan(
     dataflow_traces: bool,
     output: Optional[str],
     output_format: OutputFormat,
+    outputs_text: List[str],
+    outputs_emacs: List[str],
+    outputs_json: List[str],
+    outputs_vim: List[str],
+    outputs_gitlab_sast: List[str],
+    outputs_gitlab_secrets: List[str],
+    outputs_junit_xml: List[str],
+    outputs_sarif: List[str],
     pattern: Optional[str],
     quiet: bool,
     replacement: Optional[str],
@@ -505,7 +574,7 @@ def scan(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
-            "The flags --beta-testing-secrets-enabled and --oss-only are incompatible. Semgrep Secrets is a proprietary extension."
+            "Cannot run secrets scan with OSS engine (--oss specified). Semgrep Secrets is a proprietary extension."
         )
 
     state = get_state()
@@ -571,7 +640,20 @@ def scan(
     use_osemgrep_to_format: Set[OutputFormat] = set()
     if use_osemgrep_sarif:
         use_osemgrep_to_format.add(OutputFormat.SARIF)
+
+    outputs = collect_additional_outputs(
+        outputs_text=outputs_text,
+        outputs_emacs=outputs_emacs,
+        outputs_json=outputs_json,
+        outputs_vim=outputs_vim,
+        outputs_gitlab_sast=outputs_gitlab_sast,
+        outputs_gitlab_secrets=outputs_gitlab_secrets,
+        outputs_junit_xml=outputs_junit_xml,
+        outputs_sarif=outputs_sarif,
+    )
+
     output_settings = OutputSettings(
+        outputs=outputs,
         output_format=output_format,
         output_destination=output,
         error_on_findings=error_on_findings,
@@ -586,8 +668,11 @@ def scan(
     )
 
     if test:
-        # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
-        # uses managed_output internally
+        if len(outputs) > 0:
+            abort("The --test option doesn't support additional outputs to files.")
+        # the test code (which isn't a "test" per se but is actually
+        # machinery to evaluate semgrep performance) uses
+        # managed_output internally
         semgrep.test.test_main(
             target=targets,
             config=config,

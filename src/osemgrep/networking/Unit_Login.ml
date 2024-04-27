@@ -72,7 +72,8 @@ let with_mock_four_o_four_responses =
   Http_mock_client.with_testing_client make_fn
 
 let with_mock_envvars f () =
-  UTmp.with_temp_file ~str:fake_settings ~ext:"yml" (fun tmp_settings_file ->
+  UTmp.with_temp_file ~contents:fake_settings ~suffix:".yml"
+    (fun tmp_settings_file ->
       let new_settings =
         { !Semgrep_envvars.v with user_settings_file = tmp_settings_file }
       in

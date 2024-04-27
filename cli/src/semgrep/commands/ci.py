@@ -24,6 +24,7 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
+from semgrep.commands.scan import collect_additional_outputs
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
@@ -141,12 +142,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
 )
 @click.option("--code", is_flag=True, hidden=True)
-@click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    hidden=True,
+    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -167,9 +167,6 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
-    # TODO: Remove after October 2023. Left for a error message
-    # redirect to `--secrets` aka run_secrets_flag.
-    beta_testing_secrets: bool,
     historical_secrets: bool,
     internal_ci_scan_results: bool,
     code: bool,
@@ -196,6 +193,14 @@ def ci(
     dataflow_traces: Optional[bool],
     output: Optional[str],
     output_format: OutputFormat,
+    outputs_text: List[str],
+    outputs_emacs: List[str],
+    outputs_json: List[str],
+    outputs_vim: List[str],
+    outputs_gitlab_sast: List[str],
+    outputs_gitlab_secrets: List[str],
+    outputs_junit_xml: List[str],
+    outputs_sarif: List[str],
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -246,10 +251,6 @@ def ci(
         scan_handler = ScanHandler(dry_run=dry_run)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
-
-    if beta_testing_secrets:
-        logger.info("Please use --secrets instead of --beta-testing-secrets")
-        sys.exit(FATAL_EXIT_CODE)
 
     metadata = generate_meta_from_environment(baseline_commit)
 
@@ -411,7 +412,18 @@ def ci(
         else:
             run_install_semgrep_pro()
 
+    outputs = collect_additional_outputs(
+        outputs_text=outputs_text,
+        outputs_emacs=outputs_emacs,
+        outputs_json=outputs_json,
+        outputs_vim=outputs_vim,
+        outputs_gitlab_sast=outputs_gitlab_sast,
+        outputs_gitlab_secrets=outputs_gitlab_secrets,
+        outputs_junit_xml=outputs_junit_xml,
+        outputs_sarif=outputs_sarif,
+    )
     output_settings = OutputSettings(
+        outputs=outputs,
         output_format=output_format,
         output_destination=output,
         verbose_errors=verbose,

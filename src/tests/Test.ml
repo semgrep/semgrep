@@ -24,10 +24,10 @@ let any_gen_of_string str =
   Python_to_generic.any any
 
 (* alt: could be in Testutil_files.ml or even Testo library *)
-let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.test list) :
-    Testo.test list =
+let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
+    Testo.t list =
   tests
-  |> List_.map (fun (test : Testo.test) ->
+  |> List_.map (fun (test : Testo.t) ->
          Testo.update
            ~func:(fun () ->
              reset ();
@@ -89,6 +89,8 @@ let tests (caps : Cap.all_caps) =
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_scan_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >);
+      Test_show_subcommand.tests
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_publish_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_osemgrep.tests (caps :> CLI.caps);
@@ -150,7 +152,7 @@ let main (caps : Cap.all_caps) : unit =
         (* Some tests change this configuration so we have to reset
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
-        Std_msg.setup ~highlight_setting:On ();
+        UConsole.setup ~highlight_setting:On ();
         Logs_.setup_basic ~level:(Some Logs.Debug) ()
       in
       (* Show log messages produced when building the list of tests *)

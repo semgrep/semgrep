@@ -123,31 +123,40 @@ let on_notification notification (server : RPC_server.t) =
           server)
     | CN.UnknownNotification
         { method_ = "semgrep/scanWorkspace"; params = Some json } ->
-        let full =
-          Structured.yojson_of_t json
-          |> member "full" |> to_bool_option
-          |> Option.value ~default:false
-        in
-        if server.session.metrics.isNewAppInstall && full then
-          RPC_server.notify_show_message ~kind:MessageType.Info
-            "Scanning all files regardless of git status. These diagnostics \
-             will persist until a file is edited. To default to always \
-             scanning regardless of git status, please disable 'Only Git \
-             Dirty' in settings";
-        Logs.debug (fun m -> m "Scanning workspace, full: %b" full);
-        let scan_server =
-          let session =
-            {
-              server.session with
-              user_settings =
-                { server.session.user_settings with only_git_dirty = not full };
-            }
+        if not server.session.cached_session.initialized then (
+          RPC_server.notify_show_message ~kind:MessageType.Warning
+            "The Semgrep Extension is still loading rules. Please wait a \
+             moment and try again.";
+          server)
+        else
+          let full =
+            Structured.yojson_of_t json
+            |> member "full" |> to_bool_option
+            |> Option.value ~default:false
           in
-          { server with session }
-        in
-        Scan_helpers.scan_workspace scan_server;
-        Logs.debug (fun m -> m "Scanning workspace complete");
-        server
+          if server.session.metrics.isNewAppInstall && full then
+            RPC_server.notify_show_message ~kind:MessageType.Info
+              "Scanning all files regardless of git status. These diagnostics \
+               will persist until a file is edited. To default to always \
+               scanning regardless of git status, please disable 'Only Git \
+               Dirty' in settings";
+          Logs.debug (fun m -> m "Scanning workspace, full: %b" full);
+          let scan_server =
+            let session =
+              {
+                server.session with
+                user_settings =
+                  {
+                    server.session.user_settings with
+                    only_git_dirty = not full;
+                  };
+              }
+            in
+            { server with session }
+          in
+          Scan_helpers.scan_workspace scan_server;
+          Logs.debug (fun m -> m "Scanning workspace complete");
+          server
     | CN.UnknownNotification { method_; params } ->
         handle_custom_notification server method_ params
     | _ ->

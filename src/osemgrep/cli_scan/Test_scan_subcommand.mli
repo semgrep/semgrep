@@ -1,1 +1,1 @@
-val tests : Scan_subcommand.caps -> Testo.test list
+val tests : Scan_subcommand.caps -> Testo.t list

@@ -1,12 +1,19 @@
 (* Capability aware wrappers to UTmp.ml *)
 
 val with_temp_file :
-  Cap.FS.tmp -> str:string -> ext:string -> (Fpath.t -> 'a) -> 'a
+  ?contents:string ->
+  ?persist:bool ->
+  ?prefix:string ->
+  ?suffix:string ->
+  ?temp_dir:Fpath.t ->
+  Cap.FS.tmp ->
+  (Fpath.t -> 'a) ->
+  'a
 
 val get_temp_dir_name : Cap.FS.tmp -> Fpath.t
 
 val new_temp_file :
-  ?temp_dir:Fpath.t -> Cap.FS.tmp -> string -> string -> Fpath.t
+  ?prefix:string -> ?suffix:string -> ?temp_dir:Fpath.t -> Cap.FS.tmp -> Fpath.t
 
 val replace_named_pipe_by_regular_file_if_needed :
   Cap.FS.tmp -> ?prefix:string -> Fpath.t -> Fpath.t option

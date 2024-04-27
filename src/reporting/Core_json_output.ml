@@ -596,7 +596,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
            should update this section to output the results
            specifically for pysemgrep. *)
         skipped = None;
-        scanned = res.scanned;
+        scanned = res.scanned |> List_.map Target.internal_path;
       };
     skipped_rules =
       res.skipped_rules

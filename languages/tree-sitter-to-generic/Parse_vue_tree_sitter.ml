@@ -391,9 +391,9 @@ let map_component (env : env) (xs : CST.component) : stmt list =
 (*****************************************************************************)
 
 (* TODO: move in Parse_tree_sitter_helpers.ml and avoid using tmp file *)
-let parse_string_and_adjust_wrt_base content tbase fparse =
+let parse_string_and_adjust_wrt_base contents tbase fparse =
   (* nosemgrep: forbid-tmp *)
-  UTmp.with_temp_file ~str:content ~ext:"js" (fun file ->
+  UTmp.with_temp_file ~contents ~suffix:".js" (fun file ->
       let x = fparse file in
 
       let visitor =

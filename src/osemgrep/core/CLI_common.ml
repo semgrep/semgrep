@@ -73,7 +73,7 @@ let setup_logging ~force_color ~level =
   Logs.debug (fun m ->
       m ~tags "Logging setup for osemgrep: force_color=%B level=%s" force_color
         (Logs.level_to_string level));
-  Std_msg.setup ~highlight_setting:(if force_color then On else Auto) ();
+  UConsole.setup ~highlight_setting:(if force_color then On else Auto) ();
   (* coupling: See also the call to Logs_.setup() in Core_CLI.ml and the
    * comments in it about the environment variables.
    * TODO: add --semgrep-log-xxx flags for those so this can be set
@@ -130,7 +130,7 @@ let help_page_bottom =
     `S Manpage.s_bugs;
     `P
       "If you encounter an issue, please report it at\n\
-      \      https://github.com/returntocorp/semgrep/issues";
+      \      https://github.com/semgrep/semgrep/issues";
   ]
 
 (* Small wrapper around Cmdliner.Cmd.eval_value.
