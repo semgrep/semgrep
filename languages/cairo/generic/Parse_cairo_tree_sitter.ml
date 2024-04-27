@@ -124,7 +124,7 @@ let rec map_qualified_name (env : env) (x : CST.qualified_name) :
 
   {
     name_last = (last_name, type_arguments);
-    name_middle = Some (G.QDots path);
+    name_middle = Some (G.QDots (path, G.empty_id_info ()));
     name_top = None;
     name_info = G.empty_id_info ();
   }

@@ -611,7 +611,7 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   | Some _t -> "::")
   ^
   match name_middle with
-  | Some (QDots dot_ids) ->
+  | Some (QDots (dot_ids, _)) ->
       (* TODO: do not do fst, look also at type qualification *)
       F.sprintf "%s.%s" (dotted_access env (List_.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"

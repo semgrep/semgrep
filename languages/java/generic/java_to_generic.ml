@@ -113,7 +113,7 @@ and class_type v =
            {
              G.name_last = (id, None);
              name_top = None;
-             name_middle = Some (G.QDots (List.rev xs));
+             name_middle = Some (G.QDots (List.rev xs, G.empty_id_info ()));
              name_info = G.empty_id_info ();
            })
       |> G.t

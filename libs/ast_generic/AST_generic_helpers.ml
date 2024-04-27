@@ -39,7 +39,10 @@ let name_of_ids_with_opt_typeargs xs =
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
   | [ (x, None) ] -> Id (x, empty_id_info ())
   | (x, topt) :: xs ->
-      let qualif = if xs =*= [] then None else Some (QDots (xs |> List.rev)) in
+      let qualif =
+        if xs =*= [] then None
+        else Some (QDots (xs |> List.rev, empty_id_info ()))
+      in
       IdQualified
         {
           name_last = (x, topt);
@@ -55,7 +58,7 @@ let name_to_qualifier = function
       let rest =
         match qu with
         | None -> []
-        | Some (QDots xs) -> xs
+        | Some (QDots (xs, _idinfo)) -> xs
         (* TODO, raise exn? *)
         | Some (QExpr _) -> []
       in
@@ -68,7 +71,7 @@ let add_id_opt_type_args_to_name name (id, topt) =
   IdQualified
     {
       name_last = (id, topt);
-      name_middle = Some (QDots qdots);
+      name_middle = Some (QDots (qdots, empty_id_info ()));
       name_top = None;
       name_info = empty_id_info () (* TODO reuse from name?*);
     }
@@ -108,7 +111,11 @@ let name_of_ids ?(case_insensitive = false) xs =
   | x :: xs ->
       let qualif =
         if xs =*= [] then None
-        else Some (QDots (xs |> List.rev |> List_.map (fun id -> (id, None))))
+        else
+          Some
+            (QDots
+               ( xs |> List.rev |> List_.map (fun id -> (id, None)),
+                 empty_id_info () ))
       in
       IdQualified
         {
@@ -124,10 +131,11 @@ let add_suffix_to_name suffix name =
   | IdQualified ({ name_last; name_middle; _ } as q_info) ->
       let new_name_middle =
         match name_middle with
-        | Some (QDots qualifiers) -> Some (G.QDots (qualifiers @ [ name_last ]))
+        | Some (QDots (qualifiers, _)) ->
+            Some (G.QDots (qualifiers @ [ name_last ], empty_id_info ()))
         | Some (QExpr (expr, tok)) ->
             Some (G.QExpr ({ expr with e = N name }, tok))
-        | None -> Some (G.QDots [ name_last ])
+        | None -> Some (G.QDots ([ name_last ], empty_id_info ()))
       in
       IdQualified
         {
@@ -146,7 +154,7 @@ let name_of_dot_access e =
         let* name_middle =
           match name_middle with
           | None -> Some []
-          | Some (QDots xs) -> Some (List.map (fun (id, _) -> id) xs)
+          | Some (QDots (xs, _)) -> Some (List.map (fun (id, _) -> id) xs)
           | Some (QExpr _) -> None
         in
         let name_last = fst name_last in
@@ -171,7 +179,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       let before =
         match name_middle with
         (* we skip the type parts in ds ... *)
-        | Some (QDots ds) -> ds |> List_.map fst
+        | Some (QDots (ds, _)) -> ds |> List_.map fst
         | Some (QExpr _) ->
             Logs.err (fun m -> m ~tags "unexpected qualifier type");
             []

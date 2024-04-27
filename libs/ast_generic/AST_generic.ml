@@ -581,7 +581,7 @@ and qualified_info = {
 
 and qualifier =
   (* Java/C++/Rust *)
-  | QDots of (ident * type_arguments option) list
+  | QDots of (ident * type_arguments option) list * id_info
   (* Ruby/Lua *)
   | QExpr of expr * tok
 

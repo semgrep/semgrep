@@ -77,9 +77,11 @@ let eval_builtin_func lang env func args =
               name_middle =
                 Some
                   (QDots
-                    ( [ (("String", _), _) ]
-                    | [ (("java", _), _); (("lang", _), _); (("String", _), _) ]
-                      ));
+                    ( ( [ (("String", _), _) ]
+                      | [
+                          (("java", _), _); (("lang", _), _); (("String", _), _);
+                        ] ),
+                      _ ));
               _;
             } ) ->
           Some (eval_format env args)

@@ -187,7 +187,8 @@ let rec map_name env (v1, v2, v3) : G.name =
         {
           G.name_last = v3;
           name_top = v1;
-          name_middle = (if v2 =*= [] then None else Some (QDots v2));
+          name_middle =
+            (if v2 =*= [] then None else Some (QDots (v2, G.empty_id_info ())));
           name_info = G.empty_id_info ();
         }
 

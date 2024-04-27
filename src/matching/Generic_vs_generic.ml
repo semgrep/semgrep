@@ -208,15 +208,24 @@ let m_dotted_name a b =
 (* This is for languages like Python where foo.arg.func is not parsed
  * as a qualified name but as a chain of DotAccess.
  *)
-let make_dotted xs =
-  match xs with
+let make_dotted ?(id_info = None) xs =
+  (* attach id_info to the last ident component *)
+  let ids =
+    match List.rev xs with
+    | [] -> []
+    | x :: xs ->
+        (x, id_info |> Option.value ~default:(B.empty_id_info ()))
+        :: (xs |> List_.map (fun x -> (x, B.empty_id_info ())))
+        |> List.rev
+  in
+  match ids with
   | [] -> raise Impossible
-  | x :: xs ->
-      let base = B.N (B.Id (x, B.empty_id_info ())) |> G.e in
+  | (id, id_info) :: xs ->
+      let base = B.N (B.Id (id, id_info)) |> G.e in
       List.fold_left
-        (fun acc e ->
-          let tok = Tok.fake_tok (snd x) "." in
-          B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
+        (fun acc (e, e_info) ->
+          let tok = Tok.fake_tok (snd id) "." in
+          B.DotAccess (acc, tok, B.FN (B.Id (e, e_info))) |> G.e)
         base xs
 
 (* similar to m_list_prefix but binding $X to the whole list *)
@@ -474,7 +483,7 @@ let rec m_name_inner a b =
         let new_middle =
           match new_qualifier with
           | [] -> None
-          | xs -> Some (B.QDots xs)
+          | xs -> Some (B.QDots (xs, B.empty_id_info ()))
         in
         m_name a
           (B.IdQualified
@@ -620,9 +629,12 @@ and m_ident_and_type_arguments (a1, a2) (b1, b2) =
 and m_qualifier a b =
   match (a, b) with
   (* Like for m_dotted_name, [$X] should match anything *)
-  | G.QDots [ ((str, t), _) ], B.QDots b when MV.is_metavar_name str ->
-      envf (str, t) (MV.E (make_dotted (List_.map fst b)))
-  | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
+  | G.QDots ([ ((str, t), _) ], a2), B.QDots (b1, b2)
+    when MV.is_metavar_name str ->
+      m_id_info a2 b2 >>= fun () ->
+      envf (str, t) (MV.E (make_dotted ~id_info:(Some b2) (List_.map fst b1)))
+  | G.QDots (a1, a2), B.QDots (b1, b2) ->
+      m_id_info a2 b2 >>= fun () -> m_list m_ident_and_type_arguments a1 b1
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
   | G.QExpr _, _ ->
@@ -850,14 +862,14 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
         (G.IdQualified
           {
             G.name_last = alabel, None;
-            name_middle = Some (G.QDots names);
+            name_middle = Some (G.QDots (names, _));
             name_top = None;
-            _;
+            name_info;
           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
       let full = (names |> List_.map fst) @ [ alabel ] in
-      m_expr (make_dotted full) b
+      m_expr (make_dotted ~id_info:(Some name_info) full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
        * a,b,c are all identifiers. Note that something like a.b.c could get

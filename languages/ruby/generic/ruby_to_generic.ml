@@ -320,20 +320,20 @@ and scope_resolution x : G.name =
       let e = expr e in
       let qualif =
         match e with
-        | { G.e = G.N (G.Id (id, _info)); _ } -> G.QDots [ (id, None) ]
+        | { G.e = G.N (G.Id (id, info)); _ } -> G.QDots ([ (id, None) ], info)
         | {
          G.e =
            G.N
              (G.IdQualified
                {
                  name_last;
-                 name_middle = Some (G.QDots middle);
+                 name_middle = Some (G.QDots (middle, _info));
                  name_top = None;
-                 _;
+                 name_info;
                });
          _;
         } ->
-            G.QDots (middle @ [ name_last ])
+            G.QDots (middle @ [ name_last ], name_info)
         | _ -> G.QExpr (e, t)
       in
       IdQualified
@@ -718,7 +718,7 @@ and pattern pat =
             G.IdQualified
               {
                 G.name_last = (last, None);
-                name_middle = Some (G.QDots qualifier);
+                name_middle = Some (G.QDots (qualifier, G.empty_id_info ()));
                 name_top = None;
                 name_info = G.empty_id_info ();
               }

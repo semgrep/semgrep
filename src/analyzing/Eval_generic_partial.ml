@@ -259,8 +259,10 @@ and eval_call env name args =
           name_middle =
             Some
               (QDots
-                ( [ (("String", _), _) ]
-                | [ (("java", _), _); (("lang", _), _); (("String", _), _) ] ));
+                ( ( [ (("String", _), _) ]
+                  | [ (("java", _), _); (("lang", _), _); (("String", _), _) ]
+                    ),
+                  _ ));
           _;
         },
       _args ) ->

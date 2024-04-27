@@ -202,7 +202,7 @@ and map_qualified_info { name_last; name_middle; name_top; name_info } =
   { B.name_last; name_middle; name_top; name_info }
 
 and map_qualifier = function
-  | QDots v1 ->
+  | QDots (v1, v2) ->
       let v1 =
         map_of_list
           (fun (v1, v2) ->
@@ -211,6 +211,7 @@ and map_qualifier = function
             (v1, v2))
           v1
       in
+      let _v2 = map_id_info v2 in
       `QDots v1
   | QExpr (e, t) ->
       let e = map_expr e in

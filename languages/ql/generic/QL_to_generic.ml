@@ -59,7 +59,8 @@ and qualified_info { name_last = v1, v2; name_middle } =
   let name_middle =
     Some
       (G.QDots
-         (list (fun (x, y) -> (ident x, option type_arguments y)) name_middle))
+         ( list (fun (x, y) -> (ident x, option type_arguments y)) name_middle,
+           G.empty_id_info () ))
   in
   G.{ name_last; name_middle; name_top = None; name_info = G.empty_id_info () }
 

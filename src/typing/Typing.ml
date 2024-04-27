@@ -278,7 +278,8 @@ let name_and_targs_of_named_type lang = function
   | Type.UnresolvedName (str, targs) ->
       Some (str, targs)
   | Type.N
-      ( ( G.IdQualified { G.name_last; name_middle = Some (QDots middle); _ },
+      ( ( G.IdQualified
+            { G.name_last; name_middle = Some (QDots (middle, _)); _ },
           targs ),
         _ ) ->
       let (str_last, _), _ = name_last in

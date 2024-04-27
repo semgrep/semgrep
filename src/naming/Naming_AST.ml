@@ -854,7 +854,7 @@ let resolve lang prog =
               name_top = None;
             } ->
             (match name_middle with
-            | Some (QDots ((m, None) :: rest_of_middle)) -> (
+            | Some (QDots ((m, None) :: rest_of_middle, _)) -> (
                 match lookup_scope_opt m env with
                 (* Resolve modules for OCaml *)
                 | Some { entname = ImportedModule xs, _sidm; _ }
