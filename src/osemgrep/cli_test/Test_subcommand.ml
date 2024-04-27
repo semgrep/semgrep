@@ -169,19 +169,22 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                      (* alt: we could group by filename in matches, but all those
                       * matches should have the same file
                       *)
-                     let reported_lines =
+                     let (reported_lines : int list) =
                        matches
                        |> List_.map (fun (pm : Pattern_match.t) ->
                               pm.range_loc |> fst |> fun (loc : Loc.t) ->
                               loc.pos.line)
+                       |> List.sort Int.compare
                      in
                      let expected_lines = reported_lines in
+                     (* TODO: not sure why but pysemgrep uses realpaths here *)
+                     let filename = Unix.realpath !!target in
                      let (rule_result : OutJ.rule_result) =
                        OutJ.
                          {
                            passed = true;
                            matches =
-                             [ (!!target, { reported_lines; expected_lines }) ];
+                             [ (filename, { reported_lines; expected_lines }) ];
                            errors = [];
                          }
                      in
