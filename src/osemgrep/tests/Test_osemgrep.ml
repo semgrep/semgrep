@@ -102,7 +102,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
 
 let test_absolute_target_path caps =
   let func () =
-    UFile.with_temp_file ~contents:"hello\n" ~suffix:".py" (fun path ->
+    UTmp.with_temp_file ~contents:"hello\n" ~suffix:".py" (fun path ->
         assert (Fpath.is_abs path);
         (* We want 'path' to be in a folder other than the current
            folder. *)
@@ -143,7 +143,7 @@ let with_read_from_named_pipe ~data func =
   Common.protect
     (fun () ->
       (* Start another process to write to the pipe in parallel *)
-      UFile.with_temp_file (fun reg_file ->
+      UTmp.with_temp_file (fun reg_file ->
           (* We go through a regular file so as to avoid quoting issues. *)
           UFile.write_file ~file:reg_file data;
           let writer_command =

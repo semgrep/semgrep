@@ -66,26 +66,6 @@ val read_file : ?max_len:int -> Fpath.t -> string
 val with_open_out : Fpath.t -> ((string -> unit) * out_channel -> 'a) -> 'a
 val with_open_in : Fpath.t -> (in_channel -> 'a) -> 'a
 
-(* Create a temporary file, run the user function, and clean up.
-
-   Options:
-   - dir: folder containing the temporary file. Defaults to the system-defined
-          temporary folder e.g. '/tmp'
-   - prefix: a prefix for the file name. Default: derived from argv[0].
-   - persist: keep the file instead of deleting it when done. This can
-              be useful for debugging.
-   - suffix: an optional suffix for the file name e.g. '.py'. Default: empty.
-   - contents: optional data to write into the file. Default: none.
-*)
-val with_temp_file :
-  ?contents:string ->
-  ?dir:Fpath.t ->
-  ?persist:bool ->
-  ?prefix:string ->
-  ?suffix:string ->
-  (Fpath.t -> 'a) ->
-  'a
-
 val find_first_match_with_whole_line :
   Fpath.t -> ?split:char -> string -> string option
 (** [find_first_match_with_whole_line path ~split term] opens [path], split it
