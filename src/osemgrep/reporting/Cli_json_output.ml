@@ -233,7 +233,7 @@ let make_fixed_lines fixes_env fix path (start : OutJ.position)
     Textedit.
       { path; start = start.offset; end_ = end_.offset; replacement_text = fix }
   in
-  Autofix.make_fixed_lines fixes_env edit
+  Fixed_lines.make_fixed_lines fixes_env edit
 
 let cli_match_of_core_match ~dryrun fixes_env (hrules : Rule.hrules)
     (m : OutJ.core_match) : OutJ.cli_match =
@@ -447,7 +447,7 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
         ignore skipped_rules;
         []
       in
-      let fixes_env = Autofix.make_fixed_lines_env () in
+      let fixes_env = Fixed_lines.mk_env () in
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
