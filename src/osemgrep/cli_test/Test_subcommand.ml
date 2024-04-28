@@ -116,20 +116,25 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : OutJ.tests_result)
  *       and make core-test, and which calls Match_rules.check(),
  *       but too tied to our semgrep-core test infra (Testo)
  *  - 4: core_scan/Core_scan.scan(), many rules vs many targets in //, and
- *       also handle nosemgrep, and errors, and cache, and many other things
+ *       also handle nosemgrep, and errors, and cache, and many other things,
+ *       but require complex arguments (a Core_scan_config)
  *  - 5: core_scan/Pre_post_core_scan.call_with_pre_and_post_processor()
  *       to handle autofix and secrets validations
  *  - 6: osemgrep/core_runner/Core_runner.mk_scan_func_for_osemgrep()
- *       to fit osemgrep
+ *       to fit osemgrep,
+ *       but it requires even more complex arguments than Core_scan.scan()
  *  - 7: osemgrep/cli_scan/Scan_subcommand.run_scan_conf()
+ *       but requires a dependency to cli_scan/, and is a bit heavyweight
+ *       for our need which is just to run a few rules on a target test file.
  *
  * For 'semgrep test', it's probably better to call directly
- * Match_rules.check() (with some helpers from Test_engine.ml)
+ * Match_rules.check() (with some helpers from Test_engine.ml).
  *
  * See also semgrep-server/src/.../Studio_service.ml comment
  * on where to plug to the semgrep engine.
  *)
 
+(* This returns the JSON checks data structure and the number of mismatch *)
 let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
     (target : Fpath.t) : OutJ.checks * int =
   (* actual matches *)
