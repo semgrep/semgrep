@@ -198,10 +198,10 @@ and xml { xml_kind = xml_tag; xml_attrs; xml_body } =
 
 and xml_kind = function
   | XmlClassic (v0, v1, v2, v3) ->
-      let v1 = ident v1 in
+      let v1 = (ident v1, G.empty_id_info ()) in
       G.XmlClassic (v0, v1, v2, v3)
   | XmlSingleton (v0, v1, v2) ->
-      let v1 = ident v1 in
+      let v1 = (ident v1, G.empty_id_info ()) in
       XmlSingleton (v0, v1, v2)
   | XmlFragment (v1, v2) -> XmlFragment (v1, v2)
 

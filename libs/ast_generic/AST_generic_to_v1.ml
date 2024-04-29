@@ -141,13 +141,13 @@ and map_xml
   { B.xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body }
 
 and map_xml_kind = function
-  | XmlClassic (v0, v1, v2, v3) ->
+  | XmlClassic (v0, (v1, _info), v2, v3) ->
       let v0 = map_tok v0 in
       let v1 = map_ident v1 in
       let v2 = map_tok v2 in
       let v3 = map_tok v3 in
       `XmlClassic (v0, v1, v2, v3)
-  | XmlSingleton (v0, v1, v2) ->
+  | XmlSingleton (v0, (v1, _info), v2) ->
       let v0 = map_tok v0 in
       let v1 = map_ident v1 in
       let v2 = map_tok v2 in
