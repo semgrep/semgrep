@@ -18,6 +18,13 @@ module Out = Semgrep_output_v1_j
 (* Types and constants *)
 (*****************************************************************************)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+
+(* In theory, we should not return the Fpath.t associated with fixtest_result
+ * because it is the same than the target parameter of run_rules_against_target,
+ * but it is convenient for the caller of this function as the Out.fix_results
+ * field in Out.test_results except the a target name.
+ * TODO? add diff between .fixed and actual?
+ *)
 type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
 
 (* TODO: define clearly in semgrep_output_v1.atd config_with_errors type
@@ -161,7 +168,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
           (spf "%d/%d: ✓ All tests passed" !passed !total)
     | _else_ ->
         CapConsole.print caps#stdout
-          (spf "%d/%d: %dunit tests did not pass:" !passed !total
+          (spf "%d/%d: %d unit tests did not pass:" !passed !total
              (!total - !passed));
         () (* TODO print(check_output_lines) *));
     (* fix tests *)
@@ -183,9 +190,9 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
 (*****************************************************************************)
 (* Calling the engine *)
 (*****************************************************************************)
-(* There are multiple entry points to the engine:
+(* There are multiple entry points to the "engine":
  *  - 1: matching/Match_patterns.check(), many patterns vs 1 target,
- *       but no rule
+ *       but no rule (no formula)
  *  - 2: engine/Match_search_mode.check_rule(), 1 (search) rule vs 1 target,
  *       but just search rule
  *  - 3: engine/Match_rules.check(), many rules vs 1 target,
@@ -205,56 +212,44 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  *       but requires a dependency to cli_scan/, and is a bit heavyweight
  *       for our need which is just to run a few rules on a target test file.
  *
- * For 'semgrep test', it's probably better to call directly
- * Match_rules.check() (with some helpers from Test_engine.ml).
+ * For 'osemgrep test', it's better to call directly
+ * Match_rules.check() and use a few helpers from Test_engine.ml.
+ *
+ * LATER: what about extract rules? They are not handled by Match_rules.check().
+ * But they are not part of semgrep OSS anymore, and were not added back to
+ * semgrep Pro yet, so we should be good for now. If we want to write
+ * extract-mode rule tests, we'll need to adjust things.
  *
  * See also semgrep-server/src/.../Studio_service.ml comment
  * on where to plug to the semgrep engine.
  *)
 
-(* In theory, we should not return the Fpath.t associated with Out.fixtest_result
- * because it is the same than the target parameter, but it is convenient
- * for the caller as the Out.fix_results field in Out.test_results except the
- * a target name.
- * TODO: return
- *)
 let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
     (target : Fpath.t) : Out.checks * fixtest_result option =
-  (* actual matches *)
+  (* running the engine *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   let xconf = Match_env.default_xconfig in
-  (* LATER: extract rules? not part of semgrep OSS anymore, and
-   * not added back to semgrep Pro yet, so we should be good for now.
-   *)
   let (res : Core_result.matches_single_file) =
     Match_rules.check
       ~match_hook:(fun _ _ -> ())
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
   in
 
-  (* fixtest *)
-  let fixtest_res = fixtest_result_for_target target res.matches in
-
-  let actual_errors =
-    Common.save_excursion Core_error.g_errors [] (fun () ->
-        res.matches |> List.iter Core_json_output.match_to_push_error;
-        !Core_error.g_errors)
-  in
-
   (* expected matches *)
   (* not tororuleid! not ok:! not todook:
-     see https://semgrep.dev/docs/writing-rules/testing-rules/
-      for the meaning of those labels.
+      see https://semgrep.dev/docs/writing-rules/testing-rules/
+       for the meaning of those labels.
+     TODO: extract the rule id after the colon, need split [ ,]
   *)
   let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
-  let expected_error_lines =
-    Core_error.expected_error_lines_of_files ~regexp [ target ]
+  let (expected_error_lines : int list) =
+    Core_error.expected_error_lines_of_files ~regexp [ target ] |> List_.map snd
   in
 
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
     if List_.null res.matches then (
       (* maybe some files with todoruleid: without any match yet, but we
-       * still want to include them in the json output like pysemgrep
+       * still want to include them in the JSON output like pysemgrep
        *)
       (* stricter: *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
@@ -263,42 +258,49 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
       res.matches
       |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
   in
-  match
-    Core_error.compare_actual_to_expected actual_errors expected_error_lines
-  with
-  | Ok () ->
-      ( Out.
-          {
-            checks =
-              matches_by_ruleid
-              |> List_.map (fun (id, matches) ->
-                     (* alt: we could group by filename in matches, but all those
-                      * matches should have the same file
-                      *)
-                     let (reported_lines : int list) =
-                       matches
-                       |> List_.map (fun (pm : Pattern_match.t) ->
-                              pm.range_loc |> fst |> fun (loc : Loc.t) ->
-                              loc.pos.line)
-                       |> List.sort_uniq Int.compare
-                     in
-                     let expected_lines = reported_lines in
-                     (* TODO: not sure why but pysemgrep uses realpaths here *)
-                     let filename = Unix.realpath !!target in
-                     let (rule_result : Out.rule_result) =
-                       Out.
-                         {
-                           passed = true;
-                           matches =
-                             [ (filename, { reported_lines; expected_lines }) ];
-                           errors = [];
-                         }
-                     in
-                     (Rule_ID.to_string id, rule_result));
-          },
-        fixtest_res )
-  (* TODO, need passed = false above!! *)
-  | Error (_num_errors, _msg) -> (Out.{ checks = [] }, fixtest_res)
+  (* regular ruleid tests *)
+  let (checks : (string (* rule_id *) * Out.rule_result) list) =
+    matches_by_ruleid
+    |> List_.map (fun (id, (matches : Pattern_match.t list)) ->
+           (* alt: use Core_error.compare_actual_to_expected  *)
+           (* alt: we could group by filename in matches, but all those
+            * matches should have the same file
+            *)
+           let (reported_lines : int list) =
+             matches
+             |> List_.map (fun (pm : Pattern_match.t) ->
+                    pm.range_loc |> fst |> fun (loc : Loc.t) -> loc.pos.line)
+             |> List.sort_uniq Int.compare
+           in
+           (* TODO: get the expected_lines for this rule id *)
+           let expected_lines =
+             expected_error_lines |> List.sort_uniq Int.compare
+           in
+           let passed = reported_lines =*= expected_lines in
+           if not passed then
+             Logs.err (fun m ->
+                 m "one test did not pass for rule id %s, target %s"
+                   (Rule_ID.to_string id) !!target);
+           (* TODO: not sure why but pysemgrep uses realpaths here *)
+           let filename = Unix.realpath !!target in
+           let (rule_result : Out.rule_result) =
+             Out.
+               {
+                 passed;
+                 matches = [ (filename, { reported_lines; expected_lines }) ];
+                 (* TODO: error from the engine ? *)
+                 errors = [];
+               }
+           in
+           (Rule_ID.to_string id, rule_result))
+  in
+  (* optional fixtest *)
+  let (fixtest_res : (Fpath.t (* target *) * Out.fixtest_result) option) =
+    fixtest_result_for_target target res.matches
+  in
+
+  (* both together *)
+  (Out.{ checks }, fixtest_res)
 
 (*****************************************************************************)
 (* Pad's temporary version *)
