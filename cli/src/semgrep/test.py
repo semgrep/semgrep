@@ -1,7 +1,9 @@
 """
-For each directory containing YAML rules, run those rules on the file in the same directory with the same name but different extension.
+For each directory containing YAML rules, run those rules on the file in the
+same directory with the same name but different extension.
 E.g. eqeq.yaml runs on eqeq.py.
-Validate that the output is annotated in the source file with by looking for a comment like:
+Validate that the output is annotated in the source file with by looking for a
+comment like:
 
  ```
  # ruleid:eqeq-is-bad
@@ -633,6 +635,7 @@ def generate_test_results(
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
 
+    # else text ouput
     num_tests = 0
     num_tests_passed = 0
     check_output_lines: str = ""

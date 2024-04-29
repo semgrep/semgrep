@@ -18,6 +18,12 @@ module Out = Semgrep_output_v1_j
 (* Types and constants *)
 (*****************************************************************************)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
+
+(* TODO: define clearly in semgrep_output_v1.atd config_with_errors type
+ * and also the errors in rule_result.
+ * type config_with_error_output = ...
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -77,7 +83,7 @@ let combine_checks (xs : Out.checks list) : Out.checks =
   Out.{ checks = xs |> List.concat_map (fun x -> x.checks) }
 
 let fixtest_result_for_target (target : Fpath.t) (pms : Pattern_match.t list) :
-    (Fpath.t * Out.fixtest_result) option =
+    fixtest_result option =
   let fixtest_target_opt =
     (* TODO? Use Fpath instead? Move to Rule_tests.ml?  *)
     let d, b, e = Filename_.dbe_of_filename !!target in
@@ -144,16 +150,35 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
            incr fixtest_total;
            if fixtest_result.passed then incr fixtest_passed);
 
-    CapConsole.print caps#stdout
-      (spf "%d/%d: %s" !passed !total
-         (if !passed =|= !total then "✓ All tests passed" else "TODO failure"));
-    if List_.null res.fixtest_results then
-      CapConsole.print caps#stdout "No tests for fixes found."
-    else
-      CapConsole.print caps#stdout
-        (spf "%d/%d: %s" !fixtest_passed !fixtest_total
-           (if !fixtest_passed =|= !fixtest_total then "✓ All fix tests passed"
-            else "TODO failure"))
+    (* unit tests *)
+    (match () with
+    | _ when !total =|= 0 ->
+        CapConsole.print caps#stdout
+          "No unit tests found. See \
+           https://semgrep.dev/docs/writing-rules/testing-rules"
+    | _ when !passed =|= !total ->
+        CapConsole.print caps#stdout
+          (spf "%d/%d: ✓ All tests passed" !passed !total)
+    | _else_ ->
+        CapConsole.print caps#stdout
+          (spf "%d/%d: %dunit tests did not pass:" !passed !total
+             (!total - !passed));
+        () (* TODO print(check_output_lines) *));
+    (* fix tests *)
+    (match () with
+    | _ when List_.null res.fixtest_results ->
+        CapConsole.print caps#stdout "No tests for fixes found."
+    | _ when !fixtest_passed =|= !fixtest_total ->
+        CapConsole.print caps#stdout
+          (spf "%d/%d: ✓ All fix tests passed" !fixtest_passed !fixtest_total)
+    | _else_ ->
+        CapConsole.print caps#stdout
+          (spf "%d/%d: %d fix tests did not pass:" !fixtest_passed
+             !fixtest_total
+             (!fixtest_total - !fixtest_passed))
+        (* TODO print(fixtest_file_diffs) *));
+    (* TODO: if config_with_errors_output: ... *)
+    ()
 
 (*****************************************************************************)
 (* Calling the engine *)
@@ -187,10 +212,14 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  * on where to plug to the semgrep engine.
  *)
 
-(* This returns the JSON checks data structure and the number of mismatch *)
+(* In theory, we should not return the Fpath.t associated with Out.fixtest_result
+ * because it is the same than the target parameter, but it is convenient
+ * for the caller as the Out.fix_results field in Out.test_results except the
+ * a target name.
+ * TODO: return
+ *)
 let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
-    (target : Fpath.t) :
-    Out.checks * (Fpath.t * Out.fixtest_result) option * int =
+    (target : Fpath.t) : Out.checks * fixtest_result option =
   (* actual matches *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   let xconf = Match_env.default_xconfig in
@@ -267,9 +296,9 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                      in
                      (Rule_ID.to_string id, rule_result));
           },
-        fixtest_res,
-        0 )
-  | Error (num_errors, _msg) -> (Out.{ checks = [] }, fixtest_res, num_errors)
+        fixtest_res )
+  (* TODO, need passed = false above!! *)
+  | Error (_num_errors, _msg) -> (Out.{ checks = [] }, fixtest_res)
 
 (*****************************************************************************)
 (* Pad's temporary version *)
@@ -280,11 +309,10 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    * semgrep-rules/Makefile is running semgrep --test with metrics=off
    * (and also --disable-version-check), but maybe because it is used from
    *  'semgrep scan'; in 'osemgrep test' context, we should not even have
-   *  those options and disable metrics (and version-check) by default.
+   *  those options and we should disable metrics (and version-check) by default.
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
-  let total_mismatch = ref 0 in
   (* The first Fpath is a rule file, the one before fixtest_result is a target *)
   let (results
         : (Fpath.t * Out.checks * (Fpath.t * Out.fixtest_result) list) list) =
@@ -311,11 +339,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                    let xlang =
                      xlang_for_rules_and_target !!rule_file rules target
                    in
-                   let checks, fixtest_res, num_errors =
+                   let checks, fixtest_res =
                      run_rules_against_target xlang rules target
                    in
-                   (* TODO? increment mismatch if fixtest not passed? *)
-                   total_mismatch := !total_mismatch + num_errors;
                    (rule_file, checks, fixtest_res |> Option.to_list))
     | Test_CLI.File (path, config_str)
     | Test_CLI.Dir (path, Some config_str) ->
@@ -341,16 +367,14 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                         let xlang =
                           xlang_for_rules_and_target config_str rules target
                         in
-                        let checks, fixtest_res, num_errors =
+                        let checks, fixtest_res =
                           run_rules_against_target xlang rules target
                         in
-                        total_mismatch := !total_mismatch + num_errors;
                         (checks, fixtest_res |> Option.to_list))
                  |> List.split
                in
                (rule_file, combine_checks all_checks, List.flatten all_fixtest))
   in
-  Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
   let res : Out.tests_result =
     Out.
       {
@@ -377,7 +401,22 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
 
   (* final report *)
   report_tests_result (caps :> < Cap.stdout >) ~json:conf.json res;
-  if !total_mismatch > 0 then Exit_code.fatal ~__LOC__
+  (* TODO: strict  and bool(config_with_errors_output) *)
+  let strict_error = false in
+  let any_failures =
+    res.results
+    |> List.exists (fun (_rule_file, (checks : Out.checks)) ->
+           checks.checks
+           |> List.exists (fun (_rule_id, (res : Out.rule_result)) ->
+                  not res.passed))
+  in
+  let any_fixtest_failures =
+    res.fixtest_results
+    |> List.exists (fun (_target_file, (res : Out.fixtest_result)) ->
+           not res.passed)
+  in
+  if strict_error || any_failures || any_fixtest_failures then
+    Exit_code.findings ~__LOC__
   else Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
