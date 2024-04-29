@@ -67,7 +67,6 @@ let _ =
       RPC_server.io_ref := (module Io);
       Logs.set_level (Some Logs.Debug);
       Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
-      Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
       Session.scan_config_parser_ref := scan_config_parser;
 
       let server =
@@ -78,6 +77,7 @@ let _ =
       Js.export_all
         (object%js
            method init wasm_module =
+             Semgrep_js_node_shared.init_cohttp ();
              init_jsoo wasm_module;
              set_parser_wasm_module wasm_module;
              Parsing_init.init ()

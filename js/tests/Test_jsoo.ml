@@ -85,7 +85,10 @@ let () =
       Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
       Js.export_all
         (object%js
-           method init = Semgrep_js_shared.init_jsoo
+           method init =
+             Semgrep_js_node_shared.init_cohttp ();
+             Semgrep_js_shared.init_jsoo
+
            method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
            method setParsePattern = Semgrep_js_shared.setParsePattern
            method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
