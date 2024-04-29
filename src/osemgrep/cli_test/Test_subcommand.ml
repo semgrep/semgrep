@@ -5,7 +5,9 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* There was no 'pysemgrep test' subcommand. Tests were run via
+(* Parse a semgrep-test command, execute it and exit.
+ *
+ * There was no 'pysemgrep test' subcommand. Tests were run via
  * 'semgrep scan --test ...' but it's better to have a separate
  * subcommand. Note that the legacy 'semgrep scan --test' is redirected
  * to this file after having built a compatible Test_CLI.conf.
@@ -313,7 +315,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   (Out.{ checks }, fixtest_res)
 
 (*****************************************************************************)
-(* Pad's temporary version *)
+(* Run the conf *)
 (*****************************************************************************)
 let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
