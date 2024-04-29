@@ -187,12 +187,15 @@ let top_func () =
         | None -> G.Param pclassic
         | Some tok -> G.ParamRest (tok, pclassic))
   and struct_field (v1, v2) =
-    let v1 = struct_field_kind v1 and _v2TODO = option tag v2 in
-    v1
-  and struct_field_kind = function
+    let attrs = option tag v2 |> Option.value ~default:[] in
+    struct_field_kind attrs v1
+  and struct_field_kind attrs = function
     | Field (v1, v2) ->
-        let v1 = ident v1 and v2 = type_ v2 in
-        G.basic_field v1 None (Some v2)
+        let id = ident v1 and vtype = Some (type_ v2) in
+        let entity =
+          G.{ name = EN (Id (id, empty_id_info ())); attrs; tparams = None }
+        in
+        G.(fld (entity, VarDef { vinit = None; vtype; vtok = no_sc }))
     | EmbeddedField (v1, v2) ->
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
@@ -201,7 +204,9 @@ let top_func () =
         let st = G.exprstmt e in
         G.F st
     | FieldEllipsis t -> G.fieldEllipsis t
-  and tag v = wrap string v
+  and tag v =
+    let attr = G.(E (e (L (String (fb v))))) in
+    [ G.OtherAttribute (("GoTag", snd v), [ attr ]) ]
   and interface_field = function
     | Method (v1, v2) ->
         let v1 = ident v1 in
