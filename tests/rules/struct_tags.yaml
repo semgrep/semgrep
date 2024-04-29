@@ -1,5 +1,5 @@
 rules:
-  - id: go-json-tag
+  - id: match
     patterns:
       - pattern: |
          type $STRUCT struct {
