@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -73,34 +73,87 @@ let rule_files_and_rules_of_config_string caps
                    (Rule_fetching.show_origin x.origin));
              None)
 
-(* TODO: have run_rules_against_target to take multiple targets instead
-*)
-let combine_checks (xs : OutJ.checks list) : OutJ.checks =
-  OutJ.{ checks = xs |> List.concat_map (fun x -> x.checks) }
+let combine_checks (xs : Out.checks list) : Out.checks =
+  Out.{ checks = xs |> List.concat_map (fun x -> x.checks) }
+
+let fixtest_result_for_target (target : Fpath.t) (pms : Pattern_match.t list) :
+    (Fpath.t * Out.fixtest_result) option =
+  let fixtest_target_opt =
+    (* TODO? Use Fpath instead? Move to Rule_tests.ml?  *)
+    let d, b, e = Filename_.dbe_of_filename !!target in
+    let fixtest = Filename_.filename_of_dbe (d, b, "fixed." ^ e) in
+    if Sys.file_exists fixtest then Some (Fpath.v fixtest) else None
+  in
+  let (textedits : Textedit.t list) =
+    pms |> List.concat_map (fun pm -> Autofix.render_fix pm |> Option.to_list)
+  in
+  match (fixtest_target_opt, textedits) with
+  | None, [] -> None
+  | None, _ :: _ ->
+      (* stricter: *)
+      Logs.warn (fun m ->
+          m "no fixtest for test %s but the matches had fixes" !!target);
+      None
+  | Some fixtest_target, _ :: _ ->
+      Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
+      let expected_content = UFile.read_file fixtest_target in
+      let actual_res =
+        Textedit.apply_edits_to_text target (UFile.read_file target) textedits
+      in
+      let passed =
+        match actual_res with
+        | Textedit.Success actual_content ->
+            let passed = expected_content = actual_content in
+            (* TODO: print the diff *)
+            if not passed then
+              Logs.err (fun m -> m "fixtest differ for %s" !!fixtest_target);
+            passed
+        | Overlap _ ->
+            Logs.err (fun m -> m "fixes overlap for %s" !!target);
+            (* TODO? return an error instead ?*)
+            false
+      in
+      Some (target, Out.{ passed })
+  | Some _, [] ->
+      (* stricter? *)
+      Logs.err (fun m -> m "no autofix generated for %s" !!target);
+      Some (target, Out.{ passed = false })
 
 (*****************************************************************************)
 (* Reporting *)
 (*****************************************************************************)
 
-let report_tests_result (caps : < Cap.stdout >) ~json (res : OutJ.tests_result)
-    : unit =
+let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
+    unit =
   if json then
-    let s = OutJ.string_of_tests_result res in
+    let s = Out.string_of_tests_result res in
     CapConsole.print caps#stdout s
   else
     let passed = ref 0 in
     let total = ref 0 in
+    let fixtest_passed = ref 0 in
+    let fixtest_total = ref 0 in
     res.results
-    |> List.iter (fun (_rule_file, (checks : OutJ.checks)) ->
+    |> List.iter (fun (_rule_file, (checks : Out.checks)) ->
            checks.checks
-           |> List.iter (fun (_rule_id, (rule_res : OutJ.rule_result)) ->
+           |> List.iter (fun (_rule_id, (rule_res : Out.rule_result)) ->
                   incr total;
                   if rule_res.passed then incr passed));
+    res.fixtest_results
+    |> List.iter (fun (_target_file, (fixtest_result : Out.fixtest_result)) ->
+           incr fixtest_total;
+           if fixtest_result.passed then incr fixtest_passed);
+
     CapConsole.print caps#stdout
       (spf "%d/%d: %s" !passed !total
          (if !passed =|= !total then "✓ All tests passed" else "TODO failure"));
-    (* TODO *)
-    CapConsole.print caps#stdout "No tests for fixes found."
+    if List_.null res.fixtest_results then
+      CapConsole.print caps#stdout "No tests for fixes found."
+    else
+      CapConsole.print caps#stdout
+        (spf "%d/%d: %s" !fixtest_passed !fixtest_total
+           (if !fixtest_passed =|= !fixtest_total then "✓ All fix tests passed"
+            else "TODO failure"))
 
 (*****************************************************************************)
 (* Calling the engine *)
@@ -136,7 +189,8 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : OutJ.tests_result)
 
 (* This returns the JSON checks data structure and the number of mismatch *)
 let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
-    (target : Fpath.t) : OutJ.checks * int =
+    (target : Fpath.t) :
+    Out.checks * (Fpath.t * Out.fixtest_result) option * int =
   (* actual matches *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   let xconf = Match_env.default_xconfig in
@@ -148,6 +202,10 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
       ~match_hook:(fun _ _ -> ())
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
   in
+
+  (* fixtest *)
+  let fixtest_res = fixtest_result_for_target target res.matches in
+
   let actual_errors =
     Common.save_excursion Core_error.g_errors [] (fun () ->
         res.matches |> List.iter Core_json_output.match_to_push_error;
@@ -180,7 +238,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
     Core_error.compare_actual_to_expected actual_errors expected_error_lines
   with
   | Ok () ->
-      ( OutJ.
+      ( Out.
           {
             checks =
               matches_by_ruleid
@@ -198,8 +256,8 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                      let expected_lines = reported_lines in
                      (* TODO: not sure why but pysemgrep uses realpaths here *)
                      let filename = Unix.realpath !!target in
-                     let (rule_result : OutJ.rule_result) =
-                       OutJ.
+                     let (rule_result : Out.rule_result) =
+                       Out.
                          {
                            passed = true;
                            matches =
@@ -209,8 +267,9 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                      in
                      (Rule_ID.to_string id, rule_result));
           },
+        fixtest_res,
         0 )
-  | Error (num_errors, _msg) -> (OutJ.{ checks = [] }, num_errors)
+  | Error (num_errors, _msg) -> (Out.{ checks = [] }, fixtest_res, num_errors)
 
 (*****************************************************************************)
 (* Pad's temporary version *)
@@ -226,7 +285,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
   let total_mismatch = ref 0 in
-  let (results : (Fpath.t * OutJ.checks) list) =
+  (* The first Fpath is a rule file, the one before fixtest_result is a target *)
+  let (results
+        : (Fpath.t * Out.checks * (Fpath.t * Out.fixtest_result) list) list) =
     match conf.target with
     | Test_CLI.Dir (dir, None) ->
         (* coupling: similar to Test_engine.test_rules() *)
@@ -235,7 +296,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
           |> List.filter Rule_file.is_valid_rule_filename
         in
         rule_files
-        |> List_.map (fun rule_file ->
+        |> List_.map (fun (rule_file : Fpath.t) ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
                (* TODO? sanity check? call metachecker Check_rule.check()? *)
                let rules = Parse_rule.parse rule_file in
@@ -244,17 +305,18 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                    (* stricter: *)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
-                   (rule_file, OutJ.{ checks = [] })
+                   (rule_file, Out.{ checks = [] }, [])
                | Some target ->
                    Logs.info (fun m -> m "processing target %s" !!target);
                    let xlang =
                      xlang_for_rules_and_target !!rule_file rules target
                    in
-                   let checks, num_errors =
+                   let checks, fixtest_res, num_errors =
                      run_rules_against_target xlang rules target
                    in
+                   (* TODO? increment mismatch if fixtest not passed? *)
                    total_mismatch := !total_mismatch + num_errors;
-                   (rule_file, checks))
+                   (rule_file, checks, fixtest_res |> Option.to_list))
     | Test_CLI.File (path, config_str)
     | Test_CLI.Dir (path, Some config_str) ->
         let rule_files_and_rules =
@@ -272,33 +334,48 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         rule_files_and_rules
         |> List_.map (fun (rule_file, rules) ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-               let all_checks =
+               let all_checks, all_fixtest =
                  targets
                  |> List_.map (fun target ->
                         Logs.info (fun m -> m "processing target %s" !!target);
                         let xlang =
                           xlang_for_rules_and_target config_str rules target
                         in
-                        let checks, num_errors =
+                        let checks, fixtest_res, num_errors =
                           run_rules_against_target xlang rules target
                         in
                         total_mismatch := !total_mismatch + num_errors;
-                        checks)
+                        (checks, fixtest_res |> Option.to_list))
+                 |> List.split
                in
-               (rule_file, combine_checks all_checks))
+               (rule_file, combine_checks all_checks, List.flatten all_fixtest))
   in
   Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
-  let res : OutJ.tests_result =
-    OutJ.
+  let res : Out.tests_result =
+    Out.
       {
-        results = results |> List_.map (fun (file, checks) -> (!!file, checks));
+        results =
+          results
+          |> List_.map (fun (rule_file, checks, _fix) -> (!!rule_file, checks));
+        fixtest_results =
+          results
+          |> List.concat_map (fun (_rule_file, _checks, fixtest_results) ->
+                 fixtest_results
+                 |> List_.map (fun (target_file, passed) ->
+                        (!!target_file, passed)));
         (* TODO *)
-        fixtest_results = [];
         config_missing_tests = [];
         config_missing_fixtests = [];
         config_with_errors = [];
       }
   in
+  (* just to reproduce what pysemgrep is doing *)
+  res.fixtest_results
+  |> List.iter (fun (_target, (fixtest_res : Out.fixtest_result)) ->
+         if fixtest_res.passed then
+           Logs.app (fun m -> m "scucessfully modified 1 file."));
+
+  (* final report *)
   report_tests_result (caps :> < Cap.stdout >) ~json:conf.json res;
   if !total_mismatch > 0 then Exit_code.fatal ~__LOC__
   else Exit_code.ok ~__LOC__

@@ -279,7 +279,9 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
   match result with
   | Ok x -> Some x
   | Error err ->
-      let msg = spf "Failed to render fix `%s`:\n%s" fix_pattern err in
+      let msg =
+        spf "Failed to render AST-based fix `%s`:\n%s" fix_pattern err
+      in
       (* Print line-by-line so that each line is preceded by the logging header.
          Looks nicer and makes it easier to mask in e2e test output.
          TODO: make the Logs_ library do this by default. *)
@@ -392,7 +394,7 @@ let apply_fixes_to_file_exn path edits =
            (List_.hd_exn "unexpected empty list" conflicting_edits)
              .replacement_text)
 
-let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
+let apply_fixes ?(dryrun = false) (edits : Textedit.t list) : unit =
   let modified_files, failed_fixes = Textedit.apply_edits ~dryrun edits in
 
   (match modified_files with
@@ -410,7 +412,8 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) =
       Log.warn (fun m ->
           m "failed to apply %i fix(es)." (List.length failed_fixes))
 
-let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) =
+let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) : unit
+    =
   matches
   |> List_.map_filter (fun (m : OutJ.core_match) ->
          let* replacement_text = m.extra.fix in
