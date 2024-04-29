@@ -19,5 +19,3 @@ type Rectangle struct {
 ```
 will now match each field and the `$TAGS` metavariable will be
 instantiated when used in susequent patterns.
-
-
