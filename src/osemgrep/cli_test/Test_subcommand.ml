@@ -12,6 +12,8 @@ module Out = Semgrep_output_v1_j
  *
  * For more info on how to use Semgrep rule testing infrastructure, see
  * https://semgrep.dev/docs/writing-rules/testing-rules/.
+ *
+ * TODO: conf.ignore_todo? conf.strict?
  *)
 
 (*****************************************************************************)
@@ -22,7 +24,7 @@ type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 (* In theory, we should not return the Fpath.t associated with fixtest_result
  * because it is the same than the target parameter of run_rules_against_target,
  * but it is convenient for the caller of this function as the Out.fix_results
- * field in Out.test_results except the a target name.
+ * field in Out.test_results except a target name.
  * TODO? add diff between .fixed and actual?
  *)
 type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
@@ -31,6 +33,10 @@ type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
  * and also the errors in rule_result.
  * type config_with_error_output = ...
  *)
+
+(* TODO: move in core/ ? used in other files? was in constants.py in pysemgrep *)
+let break_line =
+  "--------------------------------------------------------------------------------"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -119,7 +125,7 @@ let fixtest_result_for_target (target : Fpath.t) (pms : Pattern_match.t list) :
             let passed = expected_content = actual_content in
             (* TODO: print the diff *)
             if not passed then
-              Logs.err (fun m -> m "fixtest differ for %s" !!fixtest_target);
+              Logs.err (fun m -> m "fixtest failed for %s" !!fixtest_target);
             passed
         | Overlap _ ->
             Logs.err (fun m -> m "fixes overlap for %s" !!target);
@@ -170,6 +176,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
         CapConsole.print caps#stdout
           (spf "%d/%d: %d unit tests did not pass:" !passed !total
              (!total - !passed));
+        CapConsole.print caps#stdout break_line;
         () (* TODO print(check_output_lines) *));
     (* fix tests *)
     (match () with
@@ -182,8 +189,9 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
         CapConsole.print caps#stdout
           (spf "%d/%d: %d fix tests did not pass:" !fixtest_passed
              !fixtest_total
-             (!fixtest_total - !fixtest_passed))
-        (* TODO print(fixtest_file_diffs) *));
+             (!fixtest_total - !fixtest_passed));
+        CapConsole.print caps#stdout break_line;
+        () (* TODO print(fixtest_file_diffs) *));
     (* TODO: if config_with_errors_output: ... *)
     ()
 
@@ -279,7 +287,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
            let passed = reported_lines =*= expected_lines in
            if not passed then
              Logs.err (fun m ->
-                 m "one test did not pass for rule id %s, target %s"
+                 m "test failed for rule id %s on target %s"
                    (Rule_ID.to_string id) !!target);
            (* TODO: not sure why but pysemgrep uses realpaths here *)
            let filename = Unix.realpath !!target in
@@ -395,16 +403,14 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         config_with_errors = [];
       }
   in
-  (* just to reproduce what pysemgrep is doing *)
-  res.fixtest_results
-  |> List.iter (fun (_target, (fixtest_res : Out.fixtest_result)) ->
-         if fixtest_res.passed then
-           Logs.app (fun m -> m "scucessfully modified 1 file."));
-
+  (* pysemgrep is reporting some "successfully modified 1 file."
+   * before the final report, but actually it reports that even on failing
+   * fixtests, so better to not imitate for now.
+   *)
   (* final report *)
   report_tests_result (caps :> < Cap.stdout >) ~json:conf.json res;
-  (* TODO: strict  and bool(config_with_errors_output) *)
-  let strict_error = false in
+  (* TODO: and bool(config_with_errors_output) *)
+  let strict_error = conf.strict && false in
   let any_failures =
     res.results
     |> List.exists (fun (_rule_file, (checks : Out.checks)) ->
