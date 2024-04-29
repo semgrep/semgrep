@@ -186,7 +186,7 @@ let test_rules caps (paths : Fpath.t list) : unit =
     total_mismatch := !total_mismatch + num_errors
   in
   let tests = Test_engine.make_tests ~fail_callback paths in
-  tests |> List.iter (fun (test : Testo.test) -> test.func ());
+  tests |> List.iter (fun (test : Testo.t) -> test.func ());
   UCommon.pr2 (spf "total mismatch: %d" !total_mismatch);
   if !total_mismatch > 0 then CapStdlib.exit caps#exit 1
 [@@action]

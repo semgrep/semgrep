@@ -319,7 +319,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
             pro_scan_func ~roots ~diff_config conf.engine_type)
   in
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
-    match conf.targeting_conf.project_root with
+    match conf.targeting_conf.force_project_root with
     | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
         | None ->

@@ -20,7 +20,7 @@ let mask_temp_paths ?depth ?replace () =
   let mask_original_path = Testo.mask_temp_paths ?depth ?replace () in
   let mask_physical_path =
     Testo.mask_temp_paths ?depth ?replace
-      ~tmpdir:(UFilename.get_temp_dir_name () |> UUnix.realpath)
+      ~temp_dir:(UFilename.get_temp_dir_name () |> UUnix.realpath |> Fpath.v)
       ()
   in
   fun text -> text |> mask_original_path |> mask_physical_path

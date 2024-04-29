@@ -2,4 +2,4 @@
    Tests for the Find_targets module.
 *)
 
-val tests : Testo.test list
+val tests : Testo.t list

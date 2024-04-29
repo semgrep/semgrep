@@ -97,13 +97,39 @@ type status = {
 (* git status *)
 val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
-(* precondition: cwd must be a directory *)
-val is_git_repo : ?cwd:Fpath.t -> unit -> bool
-(** Returns true if passed directory a git repo*)
+(*
+   Find the root of the git worktree for any files contained in the
+   specified folder.
 
-(* Find the root of the repository containing 'cwd', if any.
-   The result may be a submodule of another git repo. *)
-val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
+   For example, "/projects/my-git-project" will return
+   (Some "/projects/my-git-project")
+   if "/projects/my-git-project" is the root of a git repo (or worktree).
+
+   'None' is returned in case of an error.
+*)
+val get_project_root_for_files_in_dir : Fpath.t -> Fpath.t option
+
+(*
+   Determine the project root for a *member* of a git project.
+
+   If the argument is the root of git submodule, the root of the parent
+   project is returned.
+
+   For example, "/projects/my-git-project" will return None
+   even though "/projects/my-git-project" is the root of a git repo.
+*)
+val get_project_root_for_file : Fpath.t -> Fpath.t option
+
+(*
+   If the argument is a directory, return the project root associated with
+   the files it contains. If the argument is another kind of file
+   (normally a regular file or a symlink), then the root of the project
+   containing this file is returned.
+*)
+val get_project_root_for_file_or_files_in_dir : Fpath.t -> Fpath.t option
+
+(* Determine whether a path is tracked by git. *)
+val is_tracked_by_git : Fpath.t -> bool
 
 val checkout : ?cwd:Fpath.t -> ?git_ref:string -> unit -> unit
 (** Checkout the given optional ref *)
@@ -118,10 +144,6 @@ val sparse_shallow_filtered_checkout : Uri.t -> Fpath.t -> (unit, string) result
 val sparse_checkout_add : ?cwd:Fpath.t -> Fpath.t list -> (unit, string) result
 (** Add the given files to the sparse-checkout config *)
 
-(* Find the root of the git project containing 'cwd', if any.
-   The result is not a submodule of another git repo. *)
-val get_superproject_root : ?cwd:Fpath.t -> unit -> Fpath.t option
-
 (* precondition: cwd must be a directory *)
 val dirty_lines_of_file :
   ?cwd:Fpath.t -> ?git_ref:string -> Fpath.t -> (int * int) array option
@@ -129,10 +151,6 @@ val dirty_lines_of_file :
   * lines have been changed. An optional [git_ref] can be passed that will be used
   * to diff against. The default [git_ref] is ["HEAD"]
   *)
-
-(* precondition: cwd must be a directory *)
-val is_tracked_by_git : ?cwd:Fpath.t -> Fpath.t -> bool
-(** [is_tracked_by_git path] Returns true if the file is tracked by git *)
 
 (* precondition: cwd must be a directory *)
 val dirty_paths : ?cwd:Fpath.t -> unit -> Fpath.t list
