@@ -23,11 +23,22 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
+(* Intermediate type because semgrep_output_v1.atd does not have
+ * a good type name for those. Note that we can't easily change the .atd
+ * because we must remain backward compatible with pysemgrep and current
+ * users of semgrep --test.
+ * For example, the Out.checks type introduces a useless intermediate record
+ * and the rule ids are strings instead of a proper type, but because
+ * we use <json repr="object">, we can't even use a proper wrap rule_id type
+ * for it. At least here we use better types.
+ *)
+type test_result = Rule_ID.t * Out.rule_result
+
 (* In theory, we should not return the Fpath.t associated with fixtest_result
  * because it is the same than the target parameter of run_rules_against_target,
  * but it is convenient for the caller of this function as the Out.fix_results
  * field in Out.test_results except a target name.
- * TODO? add diff between .fixed and actual?
+ * TODO? add diff between .fixed and actual for error management?
  *)
 type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
 
@@ -93,9 +104,6 @@ let rule_files_and_rules_of_config_string caps
                  m "skipping rules not from local files: %s"
                    (Rule_fetching.show_origin x.origin));
              None)
-
-let combine_checks (xs : Out.checks list) : Out.checks =
-  Out.{ checks = xs |> List.concat_map (fun x -> x.checks) }
 
 let fixtest_result_for_target (target : Fpath.t) (pms : Pattern_match.t list) :
     fixtest_result option =
@@ -237,7 +245,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  *)
 
 let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
-    (target : Fpath.t) : Out.checks * fixtest_result option =
+    (target : Fpath.t) : test_result list * fixtest_result option =
   (* running the engine *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   let xconf = Match_env.default_xconfig in
@@ -271,7 +279,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
       |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
   in
   (* regular ruleid tests *)
-  let (checks : (string (* rule_id *) * Out.rule_result) list) =
+  let (checks : (Rule_ID.t * Out.rule_result) list) =
     matches_by_ruleid
     |> List_.map (fun (id, (matches : Pattern_match.t list)) ->
            (* alt: use Core_error.compare_actual_to_expected  *)
@@ -304,7 +312,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                  errors = [];
                }
            in
-           (Rule_ID.to_string id, rule_result))
+           (id, rule_result))
   in
   (* optional fixtest *)
   let (fixtest_res : (Fpath.t (* target *) * Out.fixtest_result) option) =
@@ -312,7 +320,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   in
 
   (* both together *)
-  (Out.{ checks }, fixtest_res)
+  (checks, fixtest_res)
 
 (*****************************************************************************)
 (* Run the conf *)
@@ -327,9 +335,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
-  (* The first Fpath is a rule file, the one before fixtest_result is a target *)
   let (results
-        : (Fpath.t * Out.checks * (Fpath.t * Out.fixtest_result) list) list) =
+        : (Fpath.t (* rule file *) * test_result list * fixtest_result list)
+          list) =
     match conf.target with
     | Test_CLI.Dir (dir, None) ->
         (* coupling: similar to Test_engine.test_rules() *)
@@ -340,14 +348,16 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         rule_files
         |> List_.map (fun (rule_file : Fpath.t) ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-               (* TODO? sanity check? call metachecker Check_rule.check()? *)
+               (* TODO? sanity check? call metachecker Check_rule.check()?
+                * TODO: error managementm parsing errors?
+                *)
                let rules = Parse_rule.parse rule_file in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
                    (* stricter: *)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
-                   (rule_file, Out.{ checks = [] }, [])
+                   (rule_file, [], [])
                | Some target ->
                    Logs.info (fun m -> m "processing target %s" !!target);
                    let xlang =
@@ -387,14 +397,20 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                         (checks, fixtest_res |> Option.to_list))
                  |> List.split
                in
-               (rule_file, combine_checks all_checks, List.flatten all_fixtest))
+               (rule_file, List.flatten all_checks, List.flatten all_fixtest))
   in
   let res : Out.tests_result =
     Out.
       {
         results =
           results
-          |> List_.map (fun (rule_file, checks, _fix) -> (!!rule_file, checks));
+          |> List_.map (fun (rule_file, checks, _fix) ->
+                 ( !!rule_file,
+                   {
+                     checks =
+                       checks
+                       |> List_.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
+                   } ));
         fixtest_results =
           results
           |> List.concat_map (fun (_rule_file, _checks, fixtest_results) ->
