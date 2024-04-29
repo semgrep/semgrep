@@ -19,9 +19,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     {
       "check_id": "rules.dependency_aware.js-yarn2-sca",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 58,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -61,17 +61,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/package-lock-v3/package-lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 58,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.js-yarn2-sca",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 112,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -111,9 +111,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/package-lock-v3/package-lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 112,
-        "offset": 0
+        "offset": 1
       }
     }
   ],

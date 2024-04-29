@@ -24,10 +24,10 @@ let any_gen_of_string str =
   Python_to_generic.any any
 
 (* alt: could be in Testutil_files.ml or even Testo library *)
-let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.test list) :
-    Testo.test list =
+let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
+    Testo.t list =
   tests
-  |> List_.map (fun (test : Testo.test) ->
+  |> List_.map (fun (test : Testo.t) ->
          Testo.update
            ~func:(fun () ->
              reset ();
@@ -135,7 +135,7 @@ let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let repo_root =
-    match Git_wrapper.get_project_root () with
+    match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
     | Some path -> path
     | None ->
         failwith
@@ -152,7 +152,7 @@ let main (caps : Cap.all_caps) : unit =
         (* Some tests change this configuration so we have to reset
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
-        Std_msg.setup ~highlight_setting:On ();
+        UConsole.setup ~highlight_setting:On ();
         Logs_.setup_basic ~level:(Some Logs.Debug) ()
       in
       (* Show log messages produced when building the list of tests *)

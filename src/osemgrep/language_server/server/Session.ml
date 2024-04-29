@@ -72,8 +72,8 @@ let create caps capabilities =
   }
 
 let dirty_paths_of_folder folder =
-  let git_repo = Git_wrapper.is_git_repo ~cwd:folder () in
-  if git_repo then
+  let git_repo = Git_wrapper.get_project_root_for_files_in_dir folder in
+  if Option.is_some git_repo then
     let dirty_paths = Git_wrapper.dirty_paths ~cwd:folder () in
     Some (List_.map (fun x -> folder // x) dirty_paths)
   else None
@@ -103,7 +103,7 @@ let get_targets session (root : Fpath.t) =
   Find_targets.get_target_fpaths
     {
       targets_conf with
-      project_root = Some (Find_targets.Filesystem proj_root);
+      force_project_root = Some (Find_targets.Filesystem proj_root);
     }
     [ Scanning_root.of_fpath root ]
   |> fst

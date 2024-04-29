@@ -98,7 +98,7 @@ let create_info caps =
    Be careful.
 *)
 let get_rule_path () =
-  match Git_wrapper.get_project_root () with
+  match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
   | Some root -> root // Fpath.v "cli/tests/default/e2e/targets/ls/rules.yaml"
   | None ->
       failwith "The test program must run from within the semgrep git project"
@@ -1143,7 +1143,12 @@ let tests caps =
   let sync_promise_tests, _ = promise_tests caps in
   Testo.categorize "Language Server (e2e)" sync_promise_tests
 
-(* Asynchronous tests for JS tests *)
+(*
+   Asynchronous tests for JS tests. We can't turn them into synchronous
+   tests because the JavaScript environment doesn't support 'Lwt_main.run'
+   or an equivalent call that starts/ends the event loop. This is in fact
+   the only reason why Alcotest_lwt and Testo_lwt must exist.
+*)
 let lwt_tests caps =
   let _, async_promise_tests = promise_tests caps in
   Testo.categorize "Language Server (e2e)" async_promise_tests

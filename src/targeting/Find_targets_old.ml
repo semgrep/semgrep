@@ -96,7 +96,7 @@ let group_by_project_root func paths =
 *)
 let group_roots_by_project conf (paths : Scanning_root.t list) =
   let force_root =
-    match conf.project_root with
+    match conf.force_project_root with
     | Some (Find_targets.Git_remote _)
     | None ->
         None

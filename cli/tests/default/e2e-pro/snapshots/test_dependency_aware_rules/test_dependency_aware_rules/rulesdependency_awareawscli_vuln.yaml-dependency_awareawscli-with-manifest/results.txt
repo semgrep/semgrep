@@ -20,9 +20,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     {
       "check_id": "rules.dependency_aware.unconditional-depends-on-only",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 20,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -62,17 +62,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 20,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.vulnerable-awscli-apr-2017-wrong-pattern",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 20,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -112,9 +112,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 20,
-        "offset": 0
+        "offset": 1
       }
     },
     {

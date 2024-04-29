@@ -417,9 +417,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "check_id": "supply-chain1",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 2,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -458,9 +458,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       },
       "path": "poetry.lock",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 2,
-        "offset": 0
+        "offset": 1
       }
     }
   ],

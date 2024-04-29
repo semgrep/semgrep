@@ -319,7 +319,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
             pro_scan_func ~roots ~diff_config conf.engine_type)
   in
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
-    match conf.targeting_conf.project_root with
+    match conf.targeting_conf.force_project_root with
     | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
         | None ->
@@ -866,7 +866,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
          1: make the line yellow using pysemgrep's exact escape sequence
          2: ???
       *)
-      match Std_msg.get_highlight () with
+      match Console.get_highlight () with
       | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
       | Off -> ("", "")
     in
@@ -975,7 +975,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Out.put Version.version;
+      CapConsole.print caps#stdout Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->

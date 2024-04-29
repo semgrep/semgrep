@@ -131,15 +131,15 @@ minimal-build:
 	@#
 	@# Just display the dune command, instead of the whole unwieldy pipeline:
 	@echo 'dune build _build/install/default/bin/semgrep-core'
-	@( set -o pipefail;                                                     \
-	   2>&1 dune build _build/install/default/bin/semgrep-core              \
-	      | tee $($@_TMP))                                                  \
-	   ||                                                                   \
-	 ( grep -q "Error during linking" $($@_TMP)                             \
-	   && (tput bold;                                                       \
-	       tput setaf 1;                                                    \
-	       echo $(LINK_HELP_TEXT) | fold -s;                                \
-	       tput sgr 0)                                                      \
+	@( set -o pipefail;                                                         \
+	   2>&1 CLICOLOR_FORCE=1 dune build _build/install/default/bin/semgrep-core \
+	      | tee $($@_TMP))                                                      \
+	   ||                                                                       \
+	 ( grep -q "Error during linking" $($@_TMP)                                 \
+	   && (tput bold;                                                           \
+	       tput setaf 1;                                                        \
+	       echo $(LINK_HELP_TEXT) | fold -s;                                    \
+	       tput sgr 0)                                                          \
 	   && false)
 	@$(RM) $($@_TMP)
 

@@ -236,6 +236,11 @@ and eval_special env (special, _) args =
   | (Op (Plus | Concat) | ConcatString _), args
     when find_type_args args = Some Cstr ->
       fold_args1 (concat_string_cst env) args
+  | Op Mult, [ Some (Lit (String _) | Cst Cstr); _N ]
+    when env.lang = Some Lang.Python ->
+      (* Python: "..." * N, NOTE that we don't check the type of N, partly because
+       * we lack good type inference for Python, but should be fine. *)
+      Some (Cst Cstr)
   | __else__ -> None
 
 and eval_call env name args =

@@ -545,12 +545,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                   "uriBaseId": "%SRCROOT%"
                 },
                 "region": {
-                  "endColumn": 0,
+                  "endColumn": 1,
                   "endLine": 2,
                   "snippet": {
                     "text": "name = \"badlib\""
                   },
-                  "startColumn": 0,
+                  "startColumn": 1,
                   "startLine": 2
                 }
               }
