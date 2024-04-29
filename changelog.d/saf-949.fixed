@@ -1,0 +1,23 @@
+Fixes matching for go struct field tags metadata.
+
+For example given the program:
+```
+type Rectangle struct {
+    Top    int `json:"top"`
+    Left   int `json:"left"`
+    Width  int `json:"width"`
+    Height int `json:"height"`
+}
+```
+The pattern,
+```
+type Rectangle struct {
+    ...
+    $NAME $TYPE $TAGS
+    ...
+}
+```
+will now match each field and the `$TAGS` metavariable will be
+instantiated when used in susequent patterns.
+
+
