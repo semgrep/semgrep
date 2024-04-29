@@ -1151,4 +1151,4 @@ let tests caps =
 *)
 let lwt_tests caps =
   let _, async_promise_tests = promise_tests caps in
-  Testo.categorize "Language Server (e2e)" async_promise_tests
+  Testo_lwt.categorize "Language Server (e2e)" async_promise_tests
