@@ -177,7 +177,8 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
           (spf "%d/%d: %d unit tests did not pass:" !passed !total
              (!total - !passed));
         CapConsole.print caps#stdout break_line;
-        () (* TODO print(check_output_lines) *));
+        (* TODO *)
+        CapConsole.print caps#stdout "TODO: print(check_output_lines)");
     (* fix tests *)
     (match () with
     | _ when List_.null res.fixtest_results ->
@@ -191,7 +192,8 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
              !fixtest_total
              (!fixtest_total - !fixtest_passed));
         CapConsole.print caps#stdout break_line;
-        () (* TODO print(fixtest_file_diffs) *));
+        (* TODO *)
+        CapConsole.print caps#stdout "TODO: print(fixtest_file_diffs)");
     (* TODO: if config_with_errors_output: ... *)
     ()
 
