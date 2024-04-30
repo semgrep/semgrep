@@ -22,9 +22,9 @@ module FileSet = Set.Make (String)
 
 (* Check if the taint trace of the pattern crosses functions *)
 
-let is_interprocedural_trace (trace : Pattern_match.taint_trace) =
+let is_interprocedural_trace (trace : Finding.taint_trace) =
   trace
-  |> List.exists (fun (trace_item : Pattern_match.taint_trace_item) ->
+  |> List.exists (fun (trace_item : Finding.taint_trace_item) ->
          match (trace_item.source_trace, trace_item.sink_trace) with
          | Call _, _ -> true
          | _, Call _ -> true
@@ -34,7 +34,7 @@ let is_interprocedural_trace (trace : Pattern_match.taint_trace) =
 
 let union3 a b c = FileSet.union a (FileSet.union b c)
 
-let files_of_toks (ts : Pattern_match.pattern_match_tokens) : FileSet.t =
+let files_of_toks (ts : Finding.pattern_match_tokens) : FileSet.t =
   ts
   |> List.fold_left
        (fun acc_files t ->
@@ -43,8 +43,8 @@ let files_of_toks (ts : Pattern_match.pattern_match_tokens) : FileSet.t =
          | Error _ -> acc_files)
        FileSet.empty
 
-let files_of_trace_item (trace_item : Pattern_match.taint_trace_item) =
-  let rec files_of_call_trace (call_trace : Pattern_match.taint_call_trace) =
+let files_of_trace_item (trace_item : Finding.taint_trace_item) =
+  let rec files_of_call_trace (call_trace : Finding.taint_call_trace) =
     match call_trace with
     | Toks ts -> files_of_toks ts
     | Call { call_toks; intermediate_vars; call_trace } ->
@@ -59,7 +59,7 @@ let files_of_trace_item (trace_item : Pattern_match.taint_trace_item) =
     (files_of_call_trace trace_item.sink_trace)
     (files_of_toks trace_item.tokens)
 
-let is_interfile_trace (trace : Pattern_match.taint_trace) =
+let is_interfile_trace (trace : Finding.taint_trace) =
   let files_in_trace =
     trace
     |> List.fold_left
@@ -83,12 +83,13 @@ let is_interfile_trace (trace : Pattern_match.taint_trace) =
     used) at the tokens in inferred types to detect other instances.
   *)
 let annotate_pro_findings (xtarget : Xtarget.t)
-    (res : Core_profiling.partial_profiling Core_result.match_result) =
+    (res :
+      (Finding.t, Core_profiling.partial_profiling) Core_result.match_result) =
   {
     res with
     matches =
       res.matches
-      |> List_.map (fun (x : Pattern_match.t) ->
+      |> List_.map (fun (x : Finding.t) ->
              let proprietary_language = Xlang.is_proprietary xtarget.xlang in
              let interproc_taint, interfile_taint =
                match x.taint_trace with

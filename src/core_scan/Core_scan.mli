@@ -34,7 +34,7 @@ val scan_with_exn_handler :
  * print_match() below.
  *)
 val scan :
-  ?match_hook:(string -> Pattern_match.t -> unit) ->
+  ?match_hook:(string -> Finding.t -> unit) ->
   < Cap.tmp > ->
   Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
@@ -47,7 +47,7 @@ val scan :
 val print_match :
   ?str:string ->
   Core_scan_config.t ->
-  Pattern_match.t ->
+  Finding.t ->
   (Metavariable.mvalue -> Tok.t list) ->
   unit
 

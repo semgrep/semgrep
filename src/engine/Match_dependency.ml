@@ -4,7 +4,7 @@ module D = Dependency
 module Out = Semgrep_output_v1_t
 
 type dependency_match_table =
-  (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
+  (Rule_ID.t, Finding.dependency_match list) Hashtbl.t
 
 type cmp = [ `EQ | `GT | `LT ]
 
@@ -34,7 +34,7 @@ let check_constraint D.{ version; constraint_ } v' =
   | _ -> false
 
 let match_dependency_pattern (deps : Dependency.t list)
-    (pat : Rule.dependency_pattern) : Pattern_match.dependency_match list =
+    (pat : Rule.dependency_pattern) : Finding.dependency_match list =
   deps
   |> List_.map_filter @@ fun (dep : Dependency.t) ->
      if
@@ -50,7 +50,7 @@ let match_dependency_pattern (deps : Dependency.t list)
 let match_dependency_formula :
     Lockfile_xtarget.t ->
     Rule.dependency_formula ->
-    Pattern_match.dependency_match list =
+    Finding.dependency_match list =
  fun { lazy_dependencies; _ } ->
   List.concat_map (fun pat ->
       match_dependency_pattern (Lazy.force lazy_dependencies) pat)
@@ -73,26 +73,33 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
   in
   let matches =
     matches
-    |> List_.map (fun ((dep, pat) : PM.dependency_match) ->
-           PM.
+    |> List_.map (fun ((dep, pat) : Finding.dependency_match) ->
+           let pm =
+             PM.
+               {
+                 rule_id =
+                   {
+                     id = fst rule.R.id;
+                     message = rule.R.message;
+                     metadata = rule.R.metadata;
+                     fix = rule.R.fix;
+                     fix_regexp = rule.R.fix_regexp;
+                     langs = Xlang.to_langs rule.R.target_analyzer;
+                     (* TODO: What should this be? *)
+                     pattern_string = "";
+                   };
+                 path = xtarget.target.path;
+                 (* TODO: should be pro if the pro engine is used in the match *)
+                 range_loc = dep.Dependency.loc;
+                 tokens = lazy dep.Dependency.toks;
+                 env = [];
+               }
+           in
+           Finding.
              {
-               rule_id =
-                 {
-                   id = fst rule.R.id;
-                   message = rule.R.message;
-                   metadata = rule.R.metadata;
-                   fix = rule.R.fix;
-                   fix_regexp = rule.R.fix_regexp;
-                   langs = Xlang.to_langs rule.R.target_analyzer;
-                   (* TODO: What should this be? *)
-                   pattern_string = "";
-                 };
-               path = xtarget.target.path;
+               pm;
                (* TODO: should be pro if the pro engine is used in the match *)
                engine_of_match = `OSS;
-               range_loc = dep.Dependency.loc;
-               tokens = lazy dep.Dependency.toks;
-               env = [];
                taint_trace = None;
                (* TODO: What if I have a secrets rule with a dependency pattern *)
                validation_state = `No_validator;
@@ -108,9 +115,9 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
       rule_id = fst rule.R.id;
     }
 
-let annotate_pattern_match dep_matches pm =
+let annotate_pattern_match dep_matches finding =
   match dep_matches with
-  | None -> [ pm ]
+  | None -> [ finding ]
   | Some dep_matches ->
       (* If there are two, transitive copies of a library, and no direct copies, and it's used in code, we produce TWO reachable matches *)
       dep_matches
@@ -133,6 +140,6 @@ let annotate_pattern_match dep_matches pm =
              else
                Some
                  {
-                   pm with
-                   Pattern_match.dependency = Some (CodeAndLockfileMatch dm);
+                   finding with
+                   Finding.dependency = Some (CodeAndLockfileMatch dm);
                  })

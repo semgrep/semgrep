@@ -553,7 +553,9 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
              E.g_errors := [];
              match fix with
              | NoFix -> ()
-             | _ -> compare_fixes ~polyglot_pattern_path ~file matches))
+             | _ ->
+                 compare_fixes ~polyglot_pattern_path ~file
+                   (List_.map Finding.of_pm matches)))
 
 let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in
@@ -686,7 +688,7 @@ let tainting_test lang rules_file file =
            in
            let results =
              Match_tainting_mode.check_rules
-               ~match_hook:(fun _ _ -> ())
+               ~match_hook:(fun _ m -> [ m ])
                ~per_rule_boilerplate_fn:(fun _rule f -> f ())
                [ rule ] xconf xtarget
            in
@@ -702,12 +704,12 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches
-    |> List_.map (fun m ->
+    |> List_.map (fun (m : Finding.t) ->
            {
-             rule_id = Some m.P.rule_id.id;
+             rule_id = Some m.pm.P.rule_id.id;
              E.typ = OutJ.SemgrepMatchFound;
-             loc = fst m.range_loc;
-             msg = m.P.rule_id.message;
+             loc = fst m.pm.range_loc;
+             msg = m.pm.P.rule_id.message;
              details = None;
            })
   in

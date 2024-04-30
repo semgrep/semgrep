@@ -365,7 +365,7 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
 let produce_autofixes (matches : Core_result.processed_match list) =
   List_.map
     (fun (m : Core_result.processed_match) ->
-      { m with autofix_edit = render_fix m.pm })
+      { m with autofix_edit = render_fix m.pm.pm })
     matches
 
 (* This is used for testing only. This is why it raises an exception. *)

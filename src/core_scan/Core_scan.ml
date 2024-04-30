@@ -293,7 +293,7 @@ let string_of_toks toks =
 
 (* TODO: use Logs.app instead of those Out.put? *)
 let rec print_taint_call_trace ~format ~spaces = function
-  | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
+  | Finding.Toks toks -> Core_text_output.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
       UConsole.print (spaces_string ^ "call to");
@@ -308,7 +308,7 @@ let rec print_taint_call_trace ~format ~spaces = function
 let print_taint_trace ~format taint_trace =
   if format =*= Core_text_output.Normal then
     taint_trace |> Lazy.force
-    |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
+    |> List.iteri (fun idx { Finding.source_trace; tokens; sink_trace } ->
            if idx =*= 0 then
              UConsole.print "  * Taint may come from this source:"
            else UConsole.print "  * Taint may also come from this source:";
@@ -320,16 +320,17 @@ let print_taint_trace ~format taint_trace =
            UConsole.print "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
-let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
+let print_match ?str (config : Core_scan_config.t) (match_ : Finding.t)
+    ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
-  let {
-    Pattern_match.env;
-    tokens = (lazy tokens_matched_code);
-    taint_trace;
-    dependency;
-    _;
-  } =
+  let Finding.
+        {
+          pm = { Pattern_match.env; tokens = (lazy tokens_matched_code); _ };
+          taint_trace;
+          dependency;
+          _;
+        } =
     match_
   in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
@@ -438,7 +439,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let per_files =
     matches
     |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-           (!!(pm.path.internal_path_to_content), pm))
+           (!!(pm.pm.path.internal_path_to_content), pm))
     |> Assoc.group_assoc_bykey_eff
   in
 
@@ -451,7 +452,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let new_matches =
     matches
     |> List_.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
-           Hashtbl.mem offending_files !!(pm.path.internal_path_to_content))
+           Hashtbl.mem offending_files !!(pm.pm.path.internal_path_to_content))
   in
   let new_errors, new_skipped =
     offending_file_list
@@ -462,8 +463,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
-             |> List_.map (fun m ->
-                    let rule_id = m.Pattern_match.rule_id in
+             |> List_.map (fun (m : Finding.t) ->
+                    let rule_id = m.pm.Pattern_match.rule_id in
                     ( ( rule_id.Pattern_match.id,
                         rule_id.Pattern_match.pattern_string ),
                       m ))
@@ -599,11 +600,13 @@ let handle_target_with_trace handle_target t =
 *)
 let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     (handle_target : target_handler) (targets : Target.t list) :
-    Core_profiling.file_profiling RP.match_result list * Fpath.t list =
+    (Finding.t, Core_profiling.file_profiling) RP.match_result list
+    * Fpath.t list =
   (* The path in match_and_path_list is None when the file was not scanned *)
   let (match_and_path_list
-        : (Core_profiling.file_profiling RP.match_result * Fpath.t option) list)
-      =
+        : ((Finding.t, Core_profiling.file_profiling) RP.match_result
+          * Fpath.t option)
+          list) =
     targets
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in

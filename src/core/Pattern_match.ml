@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -36,58 +36,10 @@
  * from a pattern:, we should not merge them!
  *)
 
-(* The locations of variables which taint propagates through *)
-type tainted_tokens = Tok.t list [@@deriving show, eq]
-
-(* The tokens associated with a single pattern match involved in a taint trace *)
-type pattern_match_tokens = Tok.t list [@@deriving show, eq]
-
-(* Simplified version of Taint.source_to_sink meant for finding reporting *)
-type taint_call_trace =
-  (* A direct match *)
-  | Toks of pattern_match_tokens
-  (* An indirect match through a function call *)
-  | Call of {
-      call_toks : pattern_match_tokens;
-      intermediate_vars : tainted_tokens;
-      call_trace : taint_call_trace;
-    }
-[@@deriving show, eq]
-
-(* The trace of a single source of taint, to the sink.
-   There may be many of these, taking different paths. For a single
-   sink, the fact that it produces a finding might be the product of
-   many taints, due to labels.
-   These taints may also take their own paths, because they might arrive
-   via different variables.
-*)
-type taint_trace_item = {
-  source_trace : taint_call_trace;
-      (** This is the path that the taint takes, from the source, to get to
-        the current function in which the taint finding is reported. *)
-  tokens : tainted_tokens;
-      (** This is the path taken within the current function, to link the
-        taint source obtained earlier with a sink. Both of these might
-        be done through a chain of function calls. *)
-  sink_trace : taint_call_trace;
-      (** This is the path that the taint takes, from the function context,
-        to get to the sink. *)
-}
-[@@deriving show, eq]
-
-type taint_trace = taint_trace_item list [@@deriving show, eq]
-
 (* ! main type ! *)
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
-  (* Indicates whether this match was produced during a run
-   * of Semgrep PRO. This will be overrided later by the Pro engine, on any
-   * matches which are produced from a Pro run.
-   * TODO? do we want to consider the same match but with different engine
-   * as separate matches? or better make them equal for dedup purpose?
-   *)
-  engine_of_match : Engine_kind.engine_of_finding; [@equal fun _a _b -> true]
   (* location info *)
   path : Target.path;
   (* less: redundant with location? *)
@@ -107,39 +59,8 @@ type t = {
               *)
               s1 = s2 && Metavariable.location_aware_equal_mvalue m1 m2)
             a b]
-  (* Lazy since construction involves forcing lazy token lists. *)
-  (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
-     multiple findings to the same sink (but different sources) being removed
-     in deduplication.
-     We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
-  *)
-  taint_trace : taint_trace Lazy.t option; (* secrets stuff *)
-  (* Indicates whether a postprocessor ran and validated this result. *)
-  validation_state : Rule.validation_state;
-  (* Indicates if the rule default severity should be modified to a different
-     severity. Currently this is just used by secrets validators in order to
-     modify severity based on information from the validation step. (E.g.,
-     validity, scope information) *)
-  severity_override : Rule.severity option;
-  (* Indicates if the rule default metadata should be modified. Currently this
-     is just used by secrets validators in order to
-     modify metadata based on information from the validation step. (E.g.,
-     validity, scope information)
-     NOTE: The whole metadata blob is _not_ changed; rather, fields present in
-     the override is applied on top of the default and only changes the fields
-     present in the override. *)
-  metadata_override : JSON.t option;
-  dependency : dependency option;
+      (* Lazy since construction involves forcing lazy token lists. *)
 }
-
-and dependency =
-  (* Rule had both code patterns and dependency patterns, got matches on *both*, the Pattern Match is in code, annotated with this dependency match *)
-  | CodeAndLockfileMatch of dependency_match
-  (* Rule had dependency patterns, they matched, the Pattern Match is in a lockfile *)
-  (* So the range_loc of the Dependency.t in this dependency_match should be *the same* as the range_loc in the PatternMatch.t *)
-  | LockfileOnlyMatch of dependency_match
-
-and dependency_match = Dependency.t * Rule.dependency_pattern
 
 (* This is currently a record, but really only the rule id should matter.
  *
@@ -227,33 +148,3 @@ let no_submatches pms =
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
 [@@profiling]
-
-let to_proprietary pm = { pm with engine_of_match = `PRO }
-
-(* DEAD ?
-
-   (* This special Set is used in the dataflow tainting code,
-      which manipulates sets of matches associated to each variables.
-      We only care about the metavariable environment carried by the pattern
-      matches at the moment.
-   *)
-   module Set = Set.Make (struct
-     type previous_t = t
-
-     (* alt: use type nonrec t = t, but this causes pad's codegraph to blowup *)
-     type t = previous_t
-
-     (* If the pattern matches are obviously different (have different ranges),
-        this is enough to compare them.
-        If their ranges are the same, compare their metavariable environments.
-        This is not robust to reordering metavariable environments.
-        [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This should
-        be ok but is potentially a source of duplicate findings in taint mode,
-        where these sets are used.
-     *)
-     let compare pm1 pm2 =
-       match compare pm1.range_loc pm2.range_loc with
-       | 0 -> compare pm1.env pm2.env
-       | c -> c
-   end)
-*)

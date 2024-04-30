@@ -127,7 +127,7 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
-    let (pms : Pattern_match.t list) = match_results.matches in
+    let (pms : Finding.t list) = match_results.matches in
     let (core_matches : OutJ.core_match list) =
       pms
       (* OK, because we don't need the postprocessing to report the matches. *)
@@ -396,13 +396,13 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
   Git_wrapper.run_with_worktree caps ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
-          pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
+          pm.pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
         baseline.processed_matches);
   let removed = ref 0 in
   let processed_matches =
     List_.map_filter
       (fun (pm : Core_result.processed_match) ->
-        let s = extract_sig (Some renamed) pm.pm in
+        let s = extract_sig (Some renamed) pm.pm.pm in
         if Hashtbl.mem sigs s then (
           Hashtbl.remove sigs s;
           incr removed;
@@ -415,8 +415,8 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
           beginning of the file. *)
       |> List.sort
            (fun ({ pm = x; _ } : Core_result.processed_match) { pm = y; _ } ->
-             let x_start_range, x_end_range = x.Pattern_match.range_loc in
-             let y_start_range, y_end_range = y.Pattern_match.range_loc in
+             let x_start_range, x_end_range = x.pm.Pattern_match.range_loc in
+             let y_start_range, y_end_range = y.pm.Pattern_match.range_loc in
              let start_compare =
                x_start_range.pos.bytepos - y_start_range.pos.bytepos
              in
@@ -455,7 +455,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
         let rules_in_match =
           r.processed_matches
           |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-                 pm.Pattern_match.rule_id.id |> Rule_ID.to_string)
+                 pm.pm.Pattern_match.rule_id.id |> Rule_ID.to_string)
           |> SS.of_list
         in
         (* only use the rules that have been identified within the existing
@@ -486,7 +486,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
                     r.processed_matches
                     |> List_.map
                          (fun ({ pm; _ } : Core_result.processed_match) ->
-                           !!(pm.path.internal_path_to_content))
+                           !!(pm.pm.path.internal_path_to_content))
                     |> prepare_targets
                   in
                   let paths_in_scanned =

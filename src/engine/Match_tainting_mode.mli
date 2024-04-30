@@ -88,17 +88,17 @@ val check_fundef :
   *)
 
 val check_rules :
-  ?get_dep_matches:(Rule_ID.t -> Pattern_match.dependency_match list option) ->
-  match_hook:(string -> Pattern_match.t -> unit) ->
+  match_hook:(string -> Finding.t -> Finding.t list) ->
   per_rule_boilerplate_fn:
     (Rule.rule ->
-    (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
-    Core_profiling.rule_profiling Core_result.match_result) ->
+    (unit ->
+    (Finding.t, Core_profiling.rule_profiling) Core_result.match_result) ->
+    (Finding.t, Core_profiling.rule_profiling) Core_result.match_result) ->
   Rule.taint_rule list ->
   Match_env.xconfig ->
   Xtarget.t ->
   (* timeout function *)
-  Core_profiling.rule_profiling Core_result.match_result list
+  (Finding.t, Core_profiling.rule_profiling) Core_result.match_result list
 (** Runs the engine on a group of taint rules, which should be for the
   * same language. Running on multiple rules at once enables inter-rule
   * optimizations.

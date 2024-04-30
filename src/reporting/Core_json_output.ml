@@ -19,7 +19,6 @@ module E = Core_error
 module J = JSON
 module MV = Metavariable
 module RP = Core_result
-module PM = Pattern_match
 open Pattern_match
 module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
@@ -315,7 +314,7 @@ let token_to_intermediate_var token : OutJ.match_intermediate_var option =
 let tokens_to_intermediate_vars tokens =
   List_.map_filter token_to_intermediate_var tokens
 
-let rec taint_call_trace (trace : PM.taint_call_trace) :
+let rec taint_call_trace (trace : Finding.taint_call_trace) :
     OutJ.match_call_trace option =
   match trace with
   | Toks toks ->
@@ -328,7 +327,7 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
       Some
         (OutJ.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
+let taint_trace_to_dataflow_trace (traces : Finding.taint_trace_item list) :
     OutJ.match_dataflow_trace =
   (* Here, we ignore all but the first taint trace, for source or sink.
      This is because we added support for multiple sources/sinks in a single
@@ -344,7 +343,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
   let source_call_trace, tokens, sink_call_trace =
     match traces with
     | [] -> raise Common.Impossible
-    | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
+    | { Finding.source_trace; tokens; sink_trace } :: _ ->
         (source_trace, tokens, sink_trace)
   in
   OutJ.
@@ -357,7 +356,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
 let unsafe_match_to_match
     ({ pm = x; is_ignored; autofix_edit } : Core_result.processed_match) :
     OutJ.core_match =
-  let min_loc, max_loc = x.range_loc in
+  let min_loc, max_loc = x.pm.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
     Option.map
@@ -365,9 +364,9 @@ let unsafe_match_to_match
         | (lazy trace) -> taint_trace_to_dataflow_trace trace)
       x.taint_trace
   in
-  let metavars = x.env |> List_.map (metavars startp) in
+  let metavars = x.pm.env |> List_.map (metavars startp) in
   let metadata =
-    let* json = x.rule_id.metadata in
+    let* json = x.pm.rule_id.metadata in
     let rule_metadata = JSON.to_yojson json in
     match x.metadata_override with
     | Some metadata_override ->
@@ -377,11 +376,11 @@ let unsafe_match_to_match
   (* message where the metavars have been interpolated *)
   (* TODO(secrets): apply masking logic here *)
   let message =
-    Metavar_replacement.interpolate_metavars x.rule_id.message
-      (Metavar_replacement.of_bindings x.env)
+    Metavar_replacement.interpolate_metavars x.pm.rule_id.message
+      (Metavar_replacement.of_bindings x.pm.env)
   in
   let path, historical_info =
-    match x.path.origin with
+    match x.pm.path.origin with
     (* We need to do this, because in Terraform, we may end up with a `file` which
        does not correspond to the actual location of the tokens. This `file` is
        erroneous, and should be replaced by the location of the code of the match,
@@ -398,7 +397,7 @@ let unsafe_match_to_match
      * file path here then we can stop doing this hack. *)
     | GitBlob { sha; paths } -> (
         match paths with
-        | [] -> (x.path.internal_path_to_content (* no better path *), None)
+        | [] -> (x.pm.path.internal_path_to_content (* no better path *), None)
         | (commit, path) :: _ ->
             let git_commit = Git_wrapper.commit_digest commit in
             let timestamp, offset = (Git_wrapper.commit_author commit).date in
@@ -418,7 +417,7 @@ let unsafe_match_to_match
                   : OutJ.historical_info) ))
   in
   {
-    check_id = x.rule_id.id;
+    check_id = x.pm.rule_id.id;
     (* inherited location *)
     path;
     start = startp;
@@ -451,11 +450,14 @@ let match_to_match (x : Core_result.processed_match) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file !!(x.pm.path.internal_path_to_content) in
-      let s =
-        spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
+      let loc =
+        Tok.first_loc_of_file !!(x.pm.pm.path.internal_path_to_content)
       in
-      let err = E.mk_error (Some x.pm.rule_id.id) loc s OutJ.MatchingError in
+      let s =
+        spf "NoTokenLocation with pattern %s, %s" x.pm.pm.rule_id.pattern_string
+          s
+      in
+      let err = E.mk_error (Some x.pm.pm.rule_id.id) loc s OutJ.MatchingError in
       Right err
 [@@profiling]
 
@@ -489,7 +491,8 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     matches =
       matches
       |> List_.map (fun pm ->
-             unsafe_match_to_match (Core_result.mk_processed_match pm));
+             let finding = Finding.of_pm pm in
+             unsafe_match_to_match (Core_result.mk_processed_match finding));
     loc = OutUtils.location_of_token_location tloc;
   }
 
@@ -629,6 +632,6 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
 let push_error loc (rule : Pattern_match.rule_id) =
   E.push_error rule.id loc rule.message OutJ.SemgrepMatchFound
 
-let match_to_push_error x =
-  let min_loc, _max_loc = x.range_loc in
-  push_error min_loc x.rule_id
+let match_to_push_error (x : Finding.t) =
+  let min_loc, _max_loc = x.pm.range_loc in
+  push_error min_loc x.pm.rule_id

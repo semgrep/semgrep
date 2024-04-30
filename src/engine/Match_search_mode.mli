@@ -1,11 +1,10 @@
 (* main entry point *)
 val check_rule :
-  ?dependency_matches:Pattern_match.dependency_match list ->
   Rule.search_rule ->
-  (string -> Pattern_match.t -> unit) ->
+  (string -> Pattern_match.t -> 'finding list) ->
   Match_env.xconfig ->
   Xtarget.t ->
-  Core_profiling.rule_profiling Core_result.match_result
+  ('finding, Core_profiling.rule_profiling) Core_result.match_result
 
 val hook_pro_entropy_analysis : (string -> bool) option ref
 
@@ -16,5 +15,5 @@ val matches_of_formula :
   Xtarget.t ->
   Rule.formula ->
   Range_with_metavars.t option ->
-  Core_profiling.rule_profiling Core_result.match_result
+  (Pattern_match.t, Core_profiling.rule_profiling) Core_result.match_result
   * Range_with_metavars.ranges

@@ -226,7 +226,7 @@ let debug_semgrep config mini_rules file lang ast =
 let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
-    Core_profiling.times Core_result.match_result =
+    (Pattern_match.t, Core_profiling.times) Core_result.match_result =
   let {
     path = { origin; internal_path_to_content };
     xlang;
@@ -392,12 +392,6 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                range_loc;
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
-               taint_trace = None;
-               engine_of_match = `OSS;
-               validation_state = `No_validator;
-               severity_override = None;
-               metadata_override = None;
-               dependency = None;
              })
     in
     let focused_ranges =
@@ -463,7 +457,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
-    Core_profiling.times Core_result.match_result =
+    (Pattern_match.t, Core_profiling.times) Core_result.match_result =
   let ({ path = { internal_path_to_content; origin }; lazy_content; _ }
         : Xtarget.t) =
     xtarget
@@ -923,7 +917,8 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and matches_of_formula xconf rule xtarget formula opt_context :
-    Core_profiling.rule_profiling Core_result.match_result * RM.ranges =
+    (Pattern_match.t, Core_profiling.rule_profiling) Core_result.match_result
+    * RM.ranges =
   let xpatterns = xpatterns_in_formula formula in
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context
@@ -963,8 +958,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
-    xconf xtarget =
+let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
   let rule_id = fst r.id in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
@@ -977,12 +971,8 @@ let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
-      |> List.concat_map
-           (Match_dependency.annotate_pattern_match dependency_matches)
-      |> before_return (fun v ->
-             v
-             |> List.iter (fun (m : Pattern_match.t) ->
-                    let str = spf "with rule %s" (Rule_ID.to_string rule_id) in
-                    hook str m));
+      |> List.concat_map (fun (m : Pattern_match.t) ->
+             let str = spf "with rule %s" (Rule_ID.to_string rule_id) in
+             hook str m);
     errors;
   }

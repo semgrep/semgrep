@@ -20,7 +20,7 @@ exception File_timeout of Rule_ID.t list
  * This can also raise File_timeout.
  *)
 val check :
-  match_hook:(string -> Pattern_match.t -> unit) ->
+  match_hook:(string -> Finding.t -> unit) ->
   timeout:float ->
   timeout_threshold:int ->
   ?dependency_match_table:Match_dependency.dependency_match_table ->

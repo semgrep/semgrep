@@ -14,7 +14,7 @@ val check_rule :
   Rule.rule ->
   Lockfile_xtarget.t ->
   Rule.dependency_formula ->
-  Core_profiling.rule_profiling Core_result.match_result
+  (Finding.t, Core_profiling.rule_profiling) Core_result.match_result
 
 (* Entry point for generating "reachable" matches,
    Takes a list of dependency matches from a lockfile and a pattern match
@@ -35,9 +35,7 @@ val check_rule :
 *)
 
 val annotate_pattern_match :
-  Pattern_match.dependency_match list option ->
-  Pattern_match.t ->
-  Pattern_match.t list
+  Finding.dependency_match list option -> Finding.t -> Finding.t list
 
 (* Used in [check_rule]
    Takes a lockfile target and a list rules, and associates each rule
@@ -48,8 +46,8 @@ val annotate_pattern_match :
 val match_all_dependencies :
   Lockfile_xtarget.t ->
   Rule.rule list ->
-  (Rule.rule * Pattern_match.dependency_match list option) list
+  (Rule.rule * Finding.dependency_match list option) list
 
 (* Used in match_rules.ml to pass down dependency match information to the pattern-match-generating functions *)
 type dependency_match_table =
-  (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
+  (Rule_ID.t, Finding.dependency_match list) Hashtbl.t

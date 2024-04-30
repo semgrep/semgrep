@@ -204,9 +204,9 @@ let get_expected_and_reported_lines result test_files =
     result.Core_result.processed_matches
     |> List.fold_left
          (fun reported_lines { Core_result.pm = result; _ } ->
-           let path = Unix.realpath !!(result.path.internal_path_to_content)
-           and check_id = Rule_ID.to_string result.rule_id.id
-           and start_line = (fst result.range_loc).pos.line in
+           let path = Unix.realpath !!(result.pm.path.internal_path_to_content)
+           and check_id = Rule_ID.to_string result.pm.rule_id.id
+           and start_line = (fst result.pm.range_loc).pos.line in
            let path_map =
              try Map_.find path reported_lines with
              | Not_found -> Map_.empty

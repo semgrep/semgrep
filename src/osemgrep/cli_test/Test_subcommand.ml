@@ -146,8 +146,8 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
     Core_error.expected_error_lines_of_files ~regexp [ target ]
   in
 
-  let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
-    res.matches |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+  let (matches_by_ruleid : (Rule_ID.t, Finding.t list) Assoc.t) =
+    res.matches |> Assoc.group_by (fun (pm : Finding.t) -> pm.pm.rule_id.id)
   in
   match
     Core_error.compare_actual_to_expected actual_errors expected_error_lines
@@ -163,8 +163,8 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
                       *)
                      let reported_lines =
                        matches
-                       |> List_.map (fun (pm : Pattern_match.t) ->
-                              pm.range_loc |> fst |> fun (loc : Loc.t) ->
+                       |> List_.map (fun (pm : Finding.t) ->
+                              pm.pm.range_loc |> fst |> fun (loc : Loc.t) ->
                               loc.pos.line)
                      in
                      let expected_lines = reported_lines in

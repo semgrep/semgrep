@@ -3,4 +3,4 @@ val matches_of_spacegrep :
   (Spacegrep.Pattern_AST.t * Xpattern.pattern_id * string) list ->
   Fpath.t ->
   Origin.t ->
-  Core_profiling.times Core_result.match_result
+  (Pattern_match.t, Core_profiling.times) Core_result.match_result

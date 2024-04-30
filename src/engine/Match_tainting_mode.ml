@@ -491,9 +491,9 @@ let preferred_label_of_sink ({ rule_sink; _ } : T.sink) =
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
       let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-      PM.Toks toks
+      Finding.Toks toks
   | Taint.Call (expr, toks, ct) ->
-      PM.Call
+      Finding.Call
         {
           call_toks =
             AST_generic_helpers.ii_of_any (G.E expr)
@@ -558,7 +558,7 @@ let sources_of_taints ?preferred_label taints =
 let trace_of_source source =
   let src, tokens, sink_trace = source in
   {
-    PM.source_trace = convert_taint_call_trace src.T.call_trace;
+    Finding.source_trace = convert_taint_call_trace src.T.call_trace;
     tokens;
     sink_trace = convert_taint_call_trace sink_trace;
   }
@@ -609,7 +609,14 @@ let pms_of_finding ~match_on finding =
                 * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
             *)
             let taint_trace = Some (lazy traces) in
-            [ { sink_pm with env = merged_env; taint_trace } ]
+            let finding = Finding.of_pm sink_pm in
+            [
+              {
+                finding with
+                pm = { finding.pm with env = merged_env };
+                taint_trace;
+              };
+            ]
         | `Source ->
             taint_sources
             |> List_.map (fun source ->
@@ -617,15 +624,16 @@ let pms_of_finding ~match_on finding =
                    let src_pm, _ = T.pm_of_trace src.T.call_trace in
                    let trace =
                      {
-                       PM.source_trace =
+                       Finding.source_trace =
                          convert_taint_call_trace src.T.call_trace;
                        tokens;
                        sink_trace = convert_taint_call_trace sink_trace;
                      }
                    in
+                   let finding = Finding.of_pm src_pm in
                    {
-                     src_pm with
-                     env = merged_env;
+                     finding with
+                     pm = { finding.pm with env = merged_env };
                      taint_trace = Some (lazy [ trace ]);
                    }))
 
@@ -914,8 +922,8 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   in
   (flow, mapping)
 
-let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
-    match_hook (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
+let check_rule ~match_hook ~per_file_formula_cache (rule : R.taint_rule)
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
   let { path = { internal_path_to_content; _ }; xlang; lazy_ast_and_errors; _ }
@@ -1012,16 +1020,13 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
   let matches =
     !matches
     (* same post-processing as for search-mode in Match_rules.ml *)
-    |> PM.uniq
-    |> PM.no_submatches (* see "Taint-tracking via ranges" *)
-    |> List.concat_map (Match_dependency.annotate_pattern_match dep_matches)
-    |> Common.before_return (fun v ->
-           v
-           |> List.iter (fun (m : Pattern_match.t) ->
-                  let str =
-                    Common.spf "with rule %s" (Rule_ID.to_string m.rule_id.id)
-                  in
-                  match_hook str m))
+    |> Finding.uniq
+    |> Finding.no_submatches (* see "Taint-tracking via ranges" *)
+    |> List.concat_map (fun (m : Finding.t) ->
+           let str =
+             Common.spf "with rule %s" (Rule_ID.to_string m.pm.rule_id.id)
+           in
+           match_hook str m)
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
@@ -1038,7 +1043,8 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
         {
           ME.op = OutJ.Taint;
           children = expls;
-          matches = report.matches;
+          matches =
+            report.matches |> List_.map (fun finding -> finding.Finding.pm);
           pos = snd rule.id;
         };
       ]
@@ -1047,14 +1053,15 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
   let report = { report with explanations } in
   report
 
-let check_rules ?get_dep_matches ~match_hook
+let check_rules ~match_hook
     ~(per_rule_boilerplate_fn :
        R.rule ->
-       (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
-       Core_profiling.rule_profiling Core_result.match_result)
+       (unit ->
+       (Finding.t, Core_profiling.rule_profiling) Core_result.match_result) ->
+       (Finding.t, Core_profiling.rule_profiling) Core_result.match_result)
     (rules : R.taint_rule list) (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) :
-    Core_profiling.rule_profiling Core_result.match_result list =
+    (_, Core_profiling.rule_profiling) Core_result.match_result list =
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks
      between rules.
@@ -1066,9 +1073,6 @@ let check_rules ?get_dep_matches ~match_hook
 
   rules
   |> List_.map (fun rule ->
-         let dep_matches =
-           Option.bind get_dep_matches (fun f -> f (fst rule.R.id))
-         in
          let xconf =
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
@@ -1079,5 +1083,4 @@ let check_rules ?get_dep_matches ~match_hook
          per_rule_boilerplate_fn
            (rule :> R.rule)
            (fun () ->
-             check_rule ?dep_matches per_file_formula_cache rule match_hook
-               xconf xtarget))
+             check_rule ~match_hook ~per_file_formula_cache rule xconf xtarget))

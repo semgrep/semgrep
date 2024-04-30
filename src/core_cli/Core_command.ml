@@ -204,7 +204,7 @@ let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
                    in
                    Match_patterns.check
                      ~hook:(fun match_ ->
-                       Core_scan.print_match config match_
+                       Core_scan.print_match config (Finding.of_pm match_)
                          Metavariable.ii_of_mval)
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )

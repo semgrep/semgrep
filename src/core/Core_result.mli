@@ -1,5 +1,5 @@
 type processed_match = {
-  pm : Pattern_match.t;
+  pm : Finding.t;
   (* semgrep-core is now responsible for the nosemgrep and autofix *)
   is_ignored : bool;
   autofix_edit : Textedit.t option;
@@ -35,7 +35,7 @@ type t = {
 
 type result_or_exn = (t, Exception.t * Core_error.t option) result
 
-val mk_processed_match : Pattern_match.t -> processed_match
+val mk_processed_match : Finding.t -> processed_match
 
 (* Intermediate match result.
  * The 'a below can be substituted with different profiling types
@@ -44,23 +44,24 @@ val mk_processed_match : Pattern_match.t -> processed_match
  * (possibly matches coming from more than one rule).
  *)
 
-type 'a match_result = {
-  matches : Pattern_match.t list;
+type ('m, 'p) match_result = {
+  matches : 'm list;
   errors : Core_error.ErrorSet.t;
-  profiling : 'a option;
+  profiling : 'p option;
   explanations : Matching_explanation.t list;
 }
 [@@deriving show]
 
 (* shortcut *)
-type matches_single_file = Core_profiling.partial_profiling match_result
+type matches_single_file =
+  (Finding.t, Core_profiling.partial_profiling) match_result
 [@@deriving show]
 
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result
  *)
 val make_final_result :
-  Core_profiling.file_profiling match_result list ->
+  (Finding.t, Core_profiling.file_profiling) match_result list ->
   (Rule.rule * Engine_kind.t) list ->
   Rule.invalid_rule_error list ->
   Target.t list ->
@@ -75,30 +76,31 @@ val make_final_result :
  * This is also used for semgrep-core metachecker (-check_rules)
  *)
 val mk_final_result_with_just_errors : Core_error.t list -> t
-val empty_match_result : Core_profiling.times match_result
+val empty_match_result : ('m, Core_profiling.times) match_result
 
 val mk_match_result :
-  Pattern_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
+  'm list -> Core_error.ErrorSet.t -> 'p -> ('m, 'p) match_result
 
 (* match results profiling adjustment helpers *)
-val map_profiling : ('a -> 'b) -> 'a match_result -> 'b match_result
+val map_profiling : ('a -> 'b) -> ('m, 'a) match_result -> ('m, 'b) match_result
 
 val add_run_time :
   float ->
-  Core_profiling.partial_profiling match_result ->
-  Core_profiling.file_profiling match_result
+  ('m, Core_profiling.partial_profiling) match_result ->
+  ('m, Core_profiling.file_profiling) match_result
 
 val add_rule :
   Rule.rule ->
-  Core_profiling.times match_result ->
-  Core_profiling.rule_profiling match_result
+  ('m, Core_profiling.times) match_result ->
+  ('m, Core_profiling.rule_profiling) match_result
 
 (* aggregate results *)
 val collate_pattern_results :
-  Core_profiling.times match_result list -> Core_profiling.times match_result
+  ('m, Core_profiling.times) match_result list ->
+  ('m, Core_profiling.times) match_result
 
 val collate_rule_results :
   Fpath.t ->
-  Core_profiling.rule_profiling match_result list ->
+  ('m, Core_profiling.rule_profiling) match_result list ->
   (* a.k.a matches_single_file *)
-  Core_profiling.partial_profiling match_result
+  ('m, Core_profiling.partial_profiling) match_result

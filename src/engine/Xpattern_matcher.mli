@@ -25,7 +25,7 @@ val matches_of_matcher :
   ('target_content, 'xpattern) t ->
   Fpath.t ->
   Origin.t ->
-  Core_profiling.times Core_result.match_result
+  (Pattern_match.t, Core_profiling.times) Core_result.match_result
 
 (* use an hmemo internally to speedup things *)
 val line_col_of_charpos : Fpath.t -> int -> int * int

@@ -20,7 +20,7 @@ val error_to_error : Core_error.t -> Semgrep_output_v1_t.core_error
 (* This is used only in the testing code, to reuse the
  * Semgrep_error_code.compare_actual_to_expected
  *)
-val match_to_push_error : Pattern_match.t -> unit
+val match_to_push_error : Finding.t -> unit
 
 val dedup_and_sort :
   Semgrep_output_v1_t.core_match list -> Semgrep_output_v1_t.core_match list

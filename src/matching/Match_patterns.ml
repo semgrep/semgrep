@@ -163,22 +163,7 @@ let match_rules_and_recurse m_env path hook matches rules matcher k any x =
                       in
                       let rule_id = rule_id_of_mini_rule rule in
                       let pm =
-                        {
-                          PM.rule_id;
-                          path;
-                          env = mv;
-                          range_loc;
-                          tokens;
-                          taint_trace = None;
-                          (* This will be overrided later on by the Pro engine, if this is
-                             from a Pro run.
-                          *)
-                          engine_of_match = `OSS;
-                          validation_state = `No_validator;
-                          severity_override = None;
-                          metadata_override = None;
-                          dependency = None;
-                        }
+                        { PM.rule_id; path; env = mv; range_loc; tokens }
                       in
                       Stack_.push pm matches;
                       hook pm));
@@ -343,12 +328,6 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   env = mv;
                                   range_loc;
                                   tokens;
-                                  taint_trace = None;
-                                  engine_of_match = `OSS;
-                                  validation_state = `No_validator;
-                                  severity_override = None;
-                                  metadata_override = None;
-                                  dependency = None;
                                 }
                               in
                               Stack_.push pm matches;
@@ -408,12 +387,6 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     env = mv;
                                     range_loc;
                                     tokens;
-                                    taint_trace = None;
-                                    engine_of_match = `OSS;
-                                    validation_state = `No_validator;
-                                    severity_override = None;
-                                    metadata_override = None;
-                                    dependency = None;
                                   }
                                 in
                                 Stack_.push pm matches;
@@ -458,12 +431,6 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       env = mv;
                                       range_loc;
                                       tokens;
-                                      taint_trace = None;
-                                      engine_of_match = `OSS;
-                                      validation_state = `No_validator;
-                                      severity_override = None;
-                                      metadata_override = None;
-                                      dependency = None;
                                     }
                                   in
                                   Stack_.push pm matches;
@@ -554,12 +521,6 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       env = mv;
                                       range_loc;
                                       tokens;
-                                      taint_trace = None;
-                                      engine_of_match = `OSS;
-                                      validation_state = `No_validator;
-                                      severity_override = None;
-                                      metadata_override = None;
-                                      dependency = None;
                                     }
                                   in
                                   Stack_.push pm matches;

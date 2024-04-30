@@ -60,7 +60,7 @@ let (matches_of_matcher :
       ('target_content, 'xpattern) t ->
       Fpath.t ->
       Origin.t ->
-      Core_profiling.times Core_result.match_result) =
+      (Pattern_match.t, Core_profiling.times) Core_result.match_result) =
  fun xpatterns matcher internal_path origin ->
   if xpatterns =*= [] then Core_result.empty_match_result
   else
@@ -91,13 +91,7 @@ let (matches_of_matcher :
                                 };
                               range_loc = (loc1, loc2);
                               env;
-                              taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
-                              engine_of_match = `OSS;
-                              validation_state = `No_validator;
-                              severity_override = None;
-                              metadata_override = None;
-                              dependency = None;
                             })))
         in
         RP.mk_match_result res Core_error.ErrorSet.empty

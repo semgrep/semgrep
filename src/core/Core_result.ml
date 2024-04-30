@@ -57,16 +57,17 @@ let fmt_errors fmt errors =
   Format.fprintf fmt "}"
 
 (* For each file, substitute in the profiling type we have *)
-type 'a match_result = {
-  matches : Pattern_match.t list;
+type ('m, 'p) match_result = {
+  matches : 'm list;
   errors : E.ErrorSet.t; [@printer fmt_errors]
-  profiling : 'a option;
+  profiling : 'p option;
   explanations : Matching_explanation.t list;
 }
 [@@deriving show]
 
 (* shortcut *)
-type matches_single_file = Core_profiling.partial_profiling match_result
+type matches_single_file =
+  (Finding.t, Core_profiling.partial_profiling) match_result
 [@@deriving show]
 
 (* What is a processsed match?
@@ -90,7 +91,7 @@ type matches_single_file = Core_profiling.partial_profiling match_result
    and `Nosemgrep` modules are not available from that directory.
 *)
 type processed_match = {
-  pm : Pattern_match.t;
+  pm : Finding.t;
   is_ignored : bool;
   autofix_edit : Textedit.t option;
 }
@@ -130,7 +131,7 @@ let mk_processed_match pm = { pm; is_ignored = false; autofix_edit = None }
 let empty_file_profiling : Core_profiling.file_profiling =
   { file = Fpath.v "TODO.fake_file"; rule_times = []; run_time = 0.0 }
 
-let empty_match_result : Core_profiling.times match_result =
+let empty_match_result : ('m, Core_profiling.times) match_result =
   {
     matches = [];
     errors = E.ErrorSet.empty;
@@ -166,19 +167,20 @@ let mk_match_result matches errors profiling =
 (* Augment reported information with profiling info *)
 (*****************************************************************************)
 
-let map_profiling (f : 'a -> 'b) (x : 'a match_result) : 'b match_result =
+let map_profiling (f : 'a -> 'b) (x : ('m, 'a) match_result) :
+    ('m, 'b) match_result =
   { x with profiling = Option.map f x.profiling }
 
 let add_run_time (run_time : float)
-    (match_result : Core_profiling.partial_profiling match_result) :
-    Core_profiling.file_profiling match_result =
+    (match_result : ('m, Core_profiling.partial_profiling) match_result) :
+    ('m, Core_profiling.file_profiling) match_result =
   match_result
   |> map_profiling (fun { Core_profiling.p_file; p_rule_times } ->
          { Core_profiling.file = p_file; rule_times = p_rule_times; run_time })
 
 let add_rule (rule : Rule.rule)
-    (match_result : Core_profiling.times match_result) :
-    Core_profiling.rule_profiling match_result =
+    (match_result : ('m, Core_profiling.times) match_result) :
+    ('m, Core_profiling.rule_profiling) match_result =
   match_result
   |> map_profiling (fun { Core_profiling.parse_time; match_time } ->
          {
@@ -195,8 +197,8 @@ let add_rule (rule : Rule.rule)
  * to a fold).
  *)
 let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
-    (final : 'c -> 'a option) (results : 'b match_result list) : 'a match_result
-    =
+    (final : 'c -> 'a option) (results : ('m, 'b) match_result list) :
+    ('m, 'a) match_result =
   let unzip_results l =
     let rec unzip all_matches all_errors all_profiling all_explanations
         (l : _ match_result list) =
@@ -230,8 +232,9 @@ let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
   }
 
 (* Aggregate a list of pattern results into one result *)
-let collate_pattern_results (results : Core_profiling.times match_result list) :
-    Core_profiling.times match_result =
+let collate_pattern_results
+    (results : ('m, Core_profiling.times) match_result list) :
+    ('m, Core_profiling.times) match_result =
   let init : Core_profiling.times = { parse_time = 0.0; match_time = 0.0 } in
   let combine extra all_profiling =
     match extra with
@@ -243,8 +246,8 @@ let collate_pattern_results (results : Core_profiling.times match_result list) :
 
 (* Aggregate a list of rule results into one result for the target *)
 let collate_rule_results (file : Fpath.t)
-    (results : Core_profiling.rule_profiling match_result list) :
-    Core_profiling.partial_profiling match_result =
+    (results : ('m, Core_profiling.rule_profiling) match_result list) :
+    ('m, Core_profiling.partial_profiling) match_result =
   let init = [] in
   let combine extra all_profiling =
     match extra with
@@ -265,7 +268,7 @@ let collate_rule_results (file : Fpath.t)
 
 (* Aggregate a list of target results into one final result *)
 let make_final_result
-    (results : Core_profiling.file_profiling match_result list)
+    (results : ('m, Core_profiling.file_profiling) match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Target.t list)
     (interfile_languages_used : Xlang.t list) ~rules_parse_time : t =
