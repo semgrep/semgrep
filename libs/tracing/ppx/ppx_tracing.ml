@@ -31,6 +31,15 @@ open Ast_helper
  *     underneath to use tracing, it rewrites foo. Using Ast_traverse.maps means
  *     the annotation works for nested functions
  *
+ * Additionally supported syntaxes:
+ * - `let%trace sp = "X.foo" in ...` (supported so that we can add data to spans)
+ * - let foo frm = body [@@trace_debug] (supported to add debug-level traces)
+ * - `let%trace_debug sp = "X.foo" in ...` (combination of previous two)
+ *
+ * TODO: A nicer syntax would be `let%trace sp = { name: "X.foo"; level: "debug" }
+ * but Ast_pattern is tricky to get started working with, so for the sake of time
+ * we went with this for now.
+ *
  * > Why does this exist when the maintainer of trace already has a ppx?
  * We might want to add things specific to our codebase like a `trace_debug`
  * option, which is much easier to do without having to go through the
@@ -54,8 +63,8 @@ let name_of_func_pat (pat : Parsetree.pattern) =
   | Ppat_var { txt; _ } -> txt
   | _ -> "<no func name>"
 
-let tracing_attr (attr : Parsetree.attribute) =
-  if attr.attr_name.txt = "trace" then
+let trace_attr (attr : Parsetree.attribute) =
+  if attr.attr_name.txt = "trace" || attr.attr_name.txt = "trace_debug" then
     let payload =
       match attr.attr_payload with
       | PStr
@@ -71,7 +80,10 @@ let tracing_attr (attr : Parsetree.attribute) =
           Some str
       | _ -> None
     in
-    Some payload
+    let level =
+      if attr.attr_name.txt = "trace_debug" then Tracing.Debug else Tracing.Info
+    in
+    Some (payload, level)
   else None
 
 (* borrowed from module_ml.ml *)
@@ -83,15 +95,9 @@ let module_name_of_loc loc =
 
 (* To produce arguments like `~__FILE__`*)
 let make_label loc l =
-  ( Labelled l,
-    {
-      pexp_desc = Pexp_ident { txt = Lident l; loc };
-      pexp_loc_stack = [];
-      pexp_loc = loc;
-      pexp_attributes = [];
-    } )
+  (Labelled l, Exp.mk (Pexp_ident { txt = Lident l; loc }) ~loc)
 
-let make_traced_expr loc action_name var_pat e =
+let make_traced_expr ~level loc action_name var_pat e =
   Exp.apply
     (Exp.ident { txt = Lident "@@"; loc })
     [
@@ -99,6 +105,14 @@ let make_traced_expr loc action_name var_pat e =
         Exp.apply
           (Exp.ident { txt = Ldot (Lident "Tracing", "with_span"); loc })
           [
+            ( Labelled "level",
+              Exp.mk ~loc
+                (Pexp_construct
+                   ( {
+                       txt = Ldot (Lident "Tracing", Tracing.show_level level);
+                       loc;
+                     },
+                     None )) );
             make_label loc "__FILE__";
             make_label loc "__LINE__";
             (Nolabel, Exp.constant (Pconst_string (action_name, loc, None)));
@@ -113,7 +127,7 @@ let make_traced_expr loc action_name var_pat e =
 (* Turn `let f args = body` into
    `let f args = Trace_core.with_span ~__FILE__ ~__LINE__ "<action_name>" @@
                  fun _sp -> body`*)
-let map_expr_add_tracing attr_payload pat e =
+let map_expr_add_tracing ~level attr_payload pat e =
   match e.pexp_desc with
   | Pexp_fun (arg_label, exp_opt, pattern, e) ->
       let loc = e.pexp_loc in
@@ -125,7 +139,9 @@ let map_expr_add_tracing attr_payload pat e =
             module_name_of_loc loc ^ "." ^ name_of_func_pat pat
       in
       let var_pat = Ast_builder.Default.ppat_var ~loc { txt = "_sp"; loc } in
-      let body_with_tracing = make_traced_expr loc action_name var_pat e in
+      let body_with_tracing =
+        make_traced_expr ~level loc action_name var_pat e
+      in
       {
         e with
         pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, body_with_tracing);
@@ -141,7 +157,7 @@ let map_expr_add_tracing attr_payload pat e =
  * I only copied `rule_let` because for top level annotations we're still
  * using [@@trace] as discussed later *)
 
-let expand_let ~ctxt var (action_name : string) e =
+let expand_let ~level ~ctxt var (action_name : string) e =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
   Ast_builder.Default.(
     let var_pat =
@@ -149,27 +165,34 @@ let expand_let ~ctxt var (action_name : string) e =
       | `Var v -> ppat_var ~loc:v.loc v
       | `Unit -> ppat_var ~loc { loc; txt = "_sp" }
     in
-    make_traced_expr loc action_name var_pat e)
+    make_traced_expr ~level loc action_name var_pat e)
+
+let let_payload =
+  let open! Ast_pattern in
+  single_expr_payload
+    (pexp_let nonrecursive
+       (value_binding
+          ~pat:
+            (let pat_var = ppat_var __' |> map ~f:(fun f v -> f (`Var v)) in
+             let pat_unit =
+               as__ @@ ppat_construct (lident (string "()")) none
+               |> map ~f:(fun f _ -> f `Unit)
+             in
+             alt pat_var pat_unit)
+          ~expr:(estring __)
+       ^:: nil)
+       __)
 
 let extension_let =
-  Extension.V3.declare "trace" Extension.Context.expression
-    (let open! Ast_pattern in
-     single_expr_payload
-       (pexp_let nonrecursive
-          (value_binding
-             ~pat:
-               (let pat_var = ppat_var __' |> map ~f:(fun f v -> f (`Var v)) in
-                let pat_unit =
-                  as__ @@ ppat_construct (lident (string "()")) none
-                  |> map ~f:(fun f _ -> f `Unit)
-                in
-                alt pat_var pat_unit)
-             ~expr:(estring __)
-          ^:: nil)
-          __))
-    expand_let
+  Extension.V3.declare "trace" Extension.Context.expression let_payload
+    (expand_let ~level:Tracing.Info)
+
+let extension_let_debug =
+  Extension.V3.declare "trace_debug" Extension.Context.expression let_payload
+    (expand_let ~level:Tracing.Debug)
 
 let rule_let = Ppxlib.Context_free.Rule.extension extension_let
+let rule_let_debug = Ppxlib.Context_free.Rule.extension extension_let_debug
 
 (*****************************************************************************)
 (* Main driver *)
@@ -189,9 +212,11 @@ let impl (xs : structure) : structure =
       method! value_binding vb =
         let vb = super#value_binding vb in
         let { pvb_expr; pvb_attributes; pvb_pat; _ } = vb in
-        match List.find_map tracing_attr pvb_attributes with
-        | Some attr_payload ->
-            let e' = map_expr_add_tracing attr_payload pvb_pat pvb_expr in
+        match List.find_map trace_attr pvb_attributes with
+        | Some (attr_payload, level) ->
+            let e' =
+              map_expr_add_tracing ~level attr_payload pvb_pat pvb_expr
+            in
             { vb with pvb_expr = e' }
         | None -> vb
     end
@@ -203,6 +228,7 @@ let impl (xs : structure) : structure =
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: add ~extensions so that `let%trace = ` is a possible transformation.
-   Copy https://github.com/c-cube/ocaml-trace/blob/main/src/ppx/ppx_trace.ml *)
-let () = Driver.register_transformation ~rules:[ rule_let ] ~impl "ppx_tracing"
+let () =
+  Driver.register_transformation
+    ~rules:[ rule_let; rule_let_debug ]
+    ~impl "ppx_tracing"
