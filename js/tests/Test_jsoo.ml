@@ -69,6 +69,15 @@ let skip_todo_tests tests =
            Testo.update ~skipped:true test
          else test)
 
+(* This duplicates the code above because Testo and Testo_lwt are
+   incompatible... but at least they share the Tag module. *)
+let lwt_skip_todo_tests tests =
+  tests
+  |> List_.map (fun test ->
+         if Testo_lwt.has_tag Test_tags.todo_js test then
+           Testo_lwt.update ~skipped:true test
+         else test)
+
 (* Stolen from Logs' logs_browser.ml *)
 let () =
   Cap.main (fun all_caps ->
@@ -76,7 +85,10 @@ let () =
       Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
       Js.export_all
         (object%js
-           method init = Semgrep_js_shared.init_jsoo
+           method init =
+             Semgrep_js_node_shared.init_cohttp ();
+             Semgrep_js_shared.init_jsoo
+
            method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
            method setParsePattern = Semgrep_js_shared.setParsePattern
            method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
@@ -107,7 +119,7 @@ let () =
              in
              let tests =
                List_.map
-                 (fun (test : Testo.test) ->
+                 (fun (test : Testo.t) ->
                    let f () =
                      Semgrep_js_shared.wrap_with_js_error
                        ~hook:
@@ -122,7 +134,7 @@ let () =
              in
              let lwt_tests =
                List_.map
-                 (fun (test : Testo_lwt.test) ->
+                 (fun (test : Testo_lwt.t) ->
                    let f () =
                      Semgrep_js_shared.wrap_with_js_error
                        ~hook:
@@ -131,9 +143,9 @@ let () =
                               Firebug.console##log (Js.string test.name)))
                        test.func
                    in
-                   Testo.update test ~func:f)
+                   Testo_lwt.update test ~func:f)
                  lwt_tests
-               |> skip_todo_tests
+               |> lwt_skip_todo_tests
              in
              let run () =
                Alcotest.run "semgrep-js" (Testo.to_alcotest tests)
@@ -141,7 +153,7 @@ let () =
              in
              let run_lwt () : unit Lwt.t =
                Alcotest_lwt.run "semgrep-js"
-                 (Testo.to_alcotest lwt_tests)
+                 (Testo_lwt.to_alcotest lwt_tests)
                  ~and_exit:false ~argv
              in
              Logs_.setup ~level:(Some Logs.Info) ();

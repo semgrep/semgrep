@@ -24,7 +24,7 @@ type caps = < Cap.stdout ; Cap.network >
 let print_success_message display_name : unit =
   let message =
     Ocolor_format.asprintf {|%s Successfully logged in as @{<cyan>%s@}! |}
-      (Std_msg.success_tag ()) display_name
+      (Console.success_tag ()) display_name
   in
   Logs.app (fun m -> m "%s" message)
 
@@ -83,7 +83,7 @@ let start_interactive_flow () : Uuidm.t option =
       Ocolor_format.asprintf
         {|%s @{<cyan>`semgrep login`@} is meant to be run in an interactive terminal.
 You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
-        (Std_msg.error_tag ())
+        (Console.error_tag ())
     in
     Logs.err (fun m -> m "%s" msg);
     None)
@@ -173,7 +173,7 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
           m
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
-            (Std_msg.error_tag ()));
+            (Console.error_tag ()));
       Exit_code.fatal ~__LOC__
 
 (*****************************************************************************)

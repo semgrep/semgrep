@@ -98,7 +98,7 @@ let create_info caps =
    Be careful.
 *)
 let get_rule_path () =
-  match Git_wrapper.get_project_root () with
+  match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
   | Some root -> root // Fpath.v "cli/tests/default/e2e/targets/ls/rules.yaml"
   | None ->
       failwith "The test program must run from within the semgrep git project"
@@ -430,7 +430,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
       (InitializeParams.create ~processId:1234
          ~clientInfo:
            (InitializeParams.create_clientInfo ~name:"Visual Studio Code"
-              ~version:"1.68.1" ())
+              ~version:Version.version ())
          ~locale:"en-us" ~rootPath:(Some "") (* THINK? *)
          ?rootUri (* THINK? *)
          ~workspaceFolders ~initializationOptions
@@ -735,7 +735,6 @@ let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
 let test_ls_specs caps () =
   with_session caps (fun info ->
       let root, files = mock_files () in
-      let%lwt () = Lwt.return_unit in
       let%lwt () = check_startup info [ root ] files in
       let%lwt () =
         files
@@ -1032,10 +1031,6 @@ let test_ls_no_folders caps () =
       send_exit info;
       Lwt.return_unit)
 
-let test_ls_libev () =
-  Lwt_platform.set_engine ();
-  Lwt.return_unit
-
 let test_search_includes_excludes caps () =
   with_session caps (fun info ->
       let root, files = mock_search_files () in
@@ -1148,8 +1143,12 @@ let tests caps =
   let sync_promise_tests, _ = promise_tests caps in
   Testo.categorize "Language Server (e2e)" sync_promise_tests
 
-(* Asynchronous tests for JS tests *)
+(*
+   Asynchronous tests for JS tests. We can't turn them into synchronous
+   tests because the JavaScript environment doesn't support 'Lwt_main.run'
+   or an equivalent call that starts/ends the event loop. This is in fact
+   the only reason why Alcotest_lwt and Testo_lwt must exist.
+*)
 let lwt_tests caps =
   let _, async_promise_tests = promise_tests caps in
-  Testo.categorize "Language Server (e2e)"
-    (Testo_lwt.create "Test LS with libev" test_ls_libev :: async_promise_tests)
+  Testo_lwt.categorize "Language Server (e2e)" async_promise_tests

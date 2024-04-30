@@ -12,7 +12,7 @@ val make_tests :
   (* default to false *)
   ?prepend_lang:bool ->
   Fpath.t list ->
-  Testo.test list
+  Testo.t list
 
 (* For Pro tests *)
 val collect_tests :

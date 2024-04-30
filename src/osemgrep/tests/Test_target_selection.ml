@@ -113,7 +113,7 @@ let normalize =
 (*
    Create a list of tests for each test repo.
 *)
-let tests caps : Testo.test list =
+let tests caps : Testo.t list =
   repos_with_tests
   |> List_.map (fun { repo_name; repo_files; tests } ->
          tests

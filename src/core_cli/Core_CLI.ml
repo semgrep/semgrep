@@ -719,7 +719,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   Core_profiling.profiling := config.debug || config.report_time;
 
   (* coupling: CLI_common.setup_logging *)
-  Std_msg.setup ~highlight_setting:On ();
+  UConsole.setup ~highlight_setting:On ();
   (* We override the default use of LOG_XXX env var in Logs_.setup() with
    * SEMGREP_LOG_XXX env vars because Gitlab was reporting perf problems due
    * to all the logging produced by Semgrep. Indeed, Gitlab CI itself is running

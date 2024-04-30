@@ -976,7 +976,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
         target_roots
     in
-    let project_root =
+    let force_project_root =
       let is_git_repo remote =
         remote |> Git_wrapper.remote_repo_name |> Option.is_some
       in
@@ -1182,7 +1182,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     in
     let targeting_conf : Find_targets.conf =
       {
-        project_root;
+        force_project_root;
         exclude = exclude_;
         include_;
         baseline_commit;

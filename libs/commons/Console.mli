@@ -1,15 +1,19 @@
 (*
-   Utilities for printing user-facing messages with optional color on stderr
-   and stdout.
+   Utilities to help printing user-facing messages with optional color on
+   stdout and stderr.
 
-   Semgrep uses both stdout and stderr to display human-readable messages.
+   Programs such as Semgrep use both stdout and stderr to display
+   human-readable messages.
 
-   The 'Logs_' module which depends on this one because logging
+   The 'Logs_' module depends on this module because logging
    is done on stderr by default.
 
    TODO: use this module for printing all user-facing messages.
    Maybe it's only possible once we drop pysemgrep because of bugs and
    quirks we have to reproduce for now.
+
+   See UConsole.ml (or better CapConsole.ml) to actually print messages.
+   This is the shared "safe" part of console management.
 *)
 
 (*
@@ -21,13 +25,10 @@ type highlight_setting = Auto | On | Off [@@deriving show]
 (* The result of applying 'highlight_setting' *)
 type highlight = On | Off [@@deriving show]
 
-(*
-   Set the global state indicating whether we want text to use color and
-   font highlighting. The default is 'Auto'.
-
-   Auto: if stdout or stderr is not a terminal, highlighting is turned off.
-*)
-val setup : ?highlight_setting:highlight_setting -> unit -> unit
+(* Note that this module use the globals at the end of this file to
+ * store the current settings but they should be manipulated only
+ * by UConsole.setup() (or CapConsole.setup())
+ *)
 
 (*
    Query the global state.
@@ -35,12 +36,6 @@ val setup : ?highlight_setting:highlight_setting -> unit -> unit
 *)
 val get_highlight_setting : unit -> highlight_setting
 val get_highlight : unit -> highlight
-
-(*
-   Set the 'highlight' setting temporary for the execution of the function.
-   This is intended for tests.
-*)
-val with_highlight : highlight_setting -> (unit -> 'a) -> 'a
 
 (*
    These functions turn a string into color (red, yellow, or green)
@@ -66,8 +61,6 @@ val error_tag : unit -> string
 val warning_tag : unit -> string
 val success_tag : unit -> string
 
-(* Print a string, print a newline, and flush the stdout channel. *)
-val print : string -> unit
-
-(* Print a string, print a newline, and flush the stderr channel. *)
-val eprint : string -> unit
+(* internals, you should not change that, only UConsole.setup can *)
+val highlight_setting : highlight_setting ref
+val highlight : highlight ref
