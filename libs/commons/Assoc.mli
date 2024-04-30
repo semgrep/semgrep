@@ -1,5 +1,7 @@
 type ('a, 'b) t = ('a * 'b) list
 
+val find_opt : 'a -> ('a, 'b) t -> 'b option
+
 (* sorts *)
 val sort_by_val_lowfirst : ('a, 'b) t -> ('a * 'b) list
 val sort_by_val_highfirst : ('a, 'b) t -> ('a * 'b) list

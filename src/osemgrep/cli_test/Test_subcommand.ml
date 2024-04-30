@@ -16,6 +16,7 @@ module Out = Semgrep_output_v1_j
  * https://semgrep.dev/docs/writing-rules/testing-rules/.
  *
  * TODO: conf.ignore_todo? conf.strict?
+ * LATER: factorize code with Unit_engine.ml and Test_engine.ml
  *)
 
 (*****************************************************************************)
@@ -50,6 +51,85 @@ type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
 (* TODO: move in core/ ? used in other files? was in constants.py in pysemgrep *)
 let break_line =
   "--------------------------------------------------------------------------------"
+
+(* See https://semgrep.dev/docs/writing-rules/testing-rules/
+ * TODO? extended for semgrep-pro annotations?
+ *)
+type annotation_kind =
+  (* The good one, should be reported (TP) *)
+  | Ruleid
+  (* Those should *not* be reported (TN) *)
+  | Ok
+  (* Should be reported but are not because of current engine limitations (FN) *)
+  | Todoruleid
+  (* Are reported but should not (FP) *)
+  | Todook
+
+(* TODO?
+ *  - support multi ruleids separated by commas?
+ *  - support pro/deep annotations?
+ *  - check comments?
+ *)
+let annotation_regex =
+  ".*\\b\\(ruleid\\|ok\\|todoruleid\\|todook\\):[ \t]*\\([^ ]+\\).*"
+
+(* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
+type annotation = annotation_kind * Rule_ID.t
+
+(* starts at 1 *)
+type linenb = int
+
+(*****************************************************************************)
+(* Annotation extractions *)
+(*****************************************************************************)
+
+let annotation_kind_of_string (str : string) : annotation_kind =
+  match str with
+  | "ruleid" -> Ruleid
+  | "ok" -> Ok
+  | "todoruleid" -> Todoruleid
+  | "todook" -> Todook
+  | s -> failwith (spf "not a valid annotation: %s" s)
+
+(* Note that this returns the line of the annotation itself. In practice,
+ * you must then add +1 to it if you want to compare it to where semgrep
+ * report matches.
+ *
+ * alt: use Core_error.expected_error_lines_of_files but it does not
+ * allow to extract the ruleID after the annotation_kind
+ *)
+let annotations (file : Fpath.t) : (annotation * linenb) list =
+  UFile.cat file |> List_.index_list_1
+  |> List_.map_filter (fun (s, idx) ->
+         if s =~ annotation_regex then
+           let kind_str, id_str = Common.matched2 s in
+           (* TODO? error management? those can throw exns *)
+           let kind = annotation_kind_of_string kind_str in
+           let id = Rule_ID.of_string id_str in
+           Some ((kind, id), idx)
+         else None)
+
+(* Keep only the Ruleid and Todook, group them by rule id, and adjust
+ * the linenb + 1 so it can be used to compare actual matches.
+ *)
+let group_positive_annotations (annots : (annotation * linenb) list) :
+    (Rule_ID.t, linenb list) Assoc.t =
+  annots
+  |> List_.map_filter (fun ((kind, id), line) ->
+         match kind with
+         | Ruleid
+         | Todook ->
+             Some (id, line)
+         | Ok
+         | Todoruleid ->
+             None)
+  |> Assoc.group_by (fun (id, _line) -> id)
+  |> List_.map (fun (id, xs) ->
+         ( id,
+           xs
+           |> List_.map (fun (_id, line) -> line + 1)
+           (* should not be needed given how annotations work but safer *)
+           |> List.sort_uniq Int.compare ))
 
 (*****************************************************************************)
 (* Helpers *)
@@ -173,7 +253,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
            incr fixtest_total;
            if fixtest_result.passed then incr fixtest_passed);
 
-    (* unit tests *)
+    (* "unit" tests *)
     (match () with
     | _ when !total =|= 0 ->
         CapConsole.print caps#stdout
@@ -255,17 +335,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
   in
 
-  (* expected matches *)
-  (* not tororuleid! not ok:! not todook:
-      see https://semgrep.dev/docs/writing-rules/testing-rules/
-       for the meaning of those labels.
-     TODO: extract the rule id after the colon, need split [ ,]
-  *)
-  let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
-  let (expected_error_lines : int list) =
-    Core_error.expected_error_lines_of_files ~regexp [ target ] |> List_.map snd
-  in
-
+  (* actual matches *)
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
     if List_.null res.matches then (
       (* maybe some files with todoruleid: without any match yet, but we
@@ -278,6 +348,12 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
       res.matches
       |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
   in
+  (* expected matches *)
+  let (expected_by_ruleid : (Rule_ID.t, linenb list) Assoc.t) =
+    let annots = annotations target in
+    group_positive_annotations annots
+  in
+
   (* regular ruleid tests *)
   let (checks : (Rule_ID.t * Out.rule_result) list) =
     matches_by_ruleid
@@ -286,15 +362,16 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
            (* alt: we could group by filename in matches, but all those
             * matches should have the same file
             *)
-           let (reported_lines : int list) =
+           let (reported_lines : linenb list) =
              matches
              |> List_.map (fun (pm : Pattern_match.t) ->
                     pm.range_loc |> fst |> fun (loc : Loc.t) -> loc.pos.line)
              |> List.sort_uniq Int.compare
            in
-           (* TODO: get the expected_lines for this rule id *)
-           let expected_lines =
-             expected_error_lines |> List.sort_uniq Int.compare
+           let (expected_lines : linenb list) =
+             match Assoc.find_opt id expected_by_ruleid with
+             | Some xs -> xs
+             | None -> []
            in
            let passed = reported_lines =*= expected_lines in
            if not passed then
