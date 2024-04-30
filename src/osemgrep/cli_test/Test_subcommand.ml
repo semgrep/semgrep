@@ -31,7 +31,7 @@ type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
  * For example, the Out.checks type introduces a useless intermediate record
  * and the rule ids are strings instead of a proper type, but because
  * we use <json repr="object">, we can't even use a proper wrap rule_id type
- * for it. At least here we use better types.
+ * for it. At least here we use Rule_ID.t.
  *)
 type test_result = Rule_ID.t * Out.rule_result
 
@@ -78,6 +78,20 @@ type annotation = annotation_kind * Rule_ID.t
 
 (* starts at 1 *)
 type linenb = int
+
+type error =
+  (* there is a rule but there is no target file *)
+  | MissingTest of Fpath.t (* rule file *)
+  (* the rule when applied produces fixes, but there is no .fixed file *)
+  | MissingFixtest of Fpath.t (* rule file *)
+
+(* Useful for error management *)
+type env = {
+  (* current processed rule file *)
+  rule_file : Fpath.t;
+  (* alt: get each functions returning different kind of errors *)
+  errors : error list ref;
+}
 
 (*****************************************************************************)
 (* Annotation extractions *)
@@ -189,8 +203,8 @@ let rule_files_and_rules_of_config_string caps
                    (Rule_fetching.show_origin x.origin));
              None)
 
-let fixtest_result_for_target (target : Fpath.t) (pms : Pattern_match.t list) :
-    fixtest_result option =
+let fixtest_result_for_target (env : env) (target : Fpath.t)
+    (pms : Pattern_match.t list) : fixtest_result option =
   let fixtest_target_opt =
     (* TODO? Use Fpath instead? Move to Rule_tests.ml?  *)
     let d, b, e = Filename_.dbe_of_filename !!target in
@@ -206,6 +220,7 @@ let fixtest_result_for_target (target : Fpath.t) (pms : Pattern_match.t list) :
       (* stricter: *)
       Logs.warn (fun m ->
           m "no fixtest for test %s but the matches had fixes" !!target);
+      Stack_.push (MissingFixtest env.rule_file) env.errors;
       None
   | Some fixtest_target, _ :: _ ->
       Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
@@ -328,7 +343,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  * on where to plug to the semgrep engine.
  *)
 
-let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
+let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
     (target : Fpath.t) : test_result list * fixtest_result option =
   (* running the engine *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
@@ -347,6 +362,11 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
        *)
       (* stricter: *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
+      (* TODO: inconsistency in pysemgrep, sometimes it filter those rule ids
+       * like in semgrep-rules/ocaml/, sometimes not,
+       * like in semgrep-rules/generic/, weird
+       *)
+      (* alt: rules |> List_.map (fun (r : Rule.t) -> (fst r.id, []))) *)
       [])
     else
       res.matches
@@ -397,7 +417,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   in
   (* optional fixtest *)
   let (fixtest_res : (Fpath.t (* target *) * Out.fixtest_result) option) =
-    fixtest_result_for_target target res.matches
+    fixtest_result_for_target env target res.matches
   in
 
   (* both together *)
@@ -416,7 +436,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
-  let config_missing_tests = ref [] in
+  let errors = ref [] in
 
   let (results
         : (Fpath.t (* rule file *) * test_result list * fixtest_result list)
@@ -440,15 +460,16 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                    (* stricter: *)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
-                   Stack_.push rule_file config_missing_tests;
+                   Stack_.push (MissingTest rule_file) errors;
                    None
                | Some target ->
                    Logs.info (fun m -> m "processing target %s" !!target);
                    let xlang =
                      xlang_for_rules_and_target !!rule_file rules target
                    in
+                   let env = { rule_file; errors } in
                    let checks, fixtest_res =
-                     run_rules_against_target xlang rules target
+                     run_rules_against_target env xlang rules target
                    in
                    Some (rule_file, checks, fixtest_res |> Option.to_list))
     | Test_CLI.File (path, config_str)
@@ -475,8 +496,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                         let xlang =
                           xlang_for_rules_and_target config_str rules target
                         in
+                        let env = { rule_file; errors } in
                         let checks, fixtest_res =
-                          run_rules_against_target xlang rules target
+                          run_rules_against_target env xlang rules target
                         in
                         (checks, fixtest_res |> Option.to_list))
                  |> List.split
@@ -501,9 +523,17 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                  fixtest_results
                  |> List_.map (fun (target_file, passed) ->
                         (!!target_file, passed)));
-        config_missing_tests = !config_missing_tests;
+        config_missing_tests =
+          !errors
+          |> List_.map_filter (function
+               | MissingTest rule_file -> Some rule_file
+               | _else_ -> None);
+        config_missing_fixtests =
+          !errors
+          |> List_.map_filter (function
+               | MissingFixtest rule_file -> Some rule_file
+               | _else_ -> None);
         (* TODO *)
-        config_missing_fixtests = [];
         config_with_errors = [];
       }
   in
