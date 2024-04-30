@@ -45,12 +45,8 @@ let level_to_trace_level level =
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
-let with_span ?level =
-  let level =
-    level
-    |> Option.fold ~none:Trace_core.Level.Info ~some:(fun l ->
-           level_to_trace_level l)
-  in
+let with_span ?(level = Info) =
+  let level = level_to_trace_level level in
   Trace_core.with_span ~level
 
 let add_data_to_span (_i : span) (_data : (string * Trace_core.user_data) list)
