@@ -16,8 +16,7 @@ open Common
 open AST_generic
 module MV = Metavariable
 module G = AST_generic
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_fixing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -136,8 +135,8 @@ let replace metavar_tbl pattern_ast =
  *)
 let mk_str_metavars_regexp metavar_tbl =
   if Hashtbl.length metavar_tbl =|= 0 then
-    Logs.warn (fun m ->
-        m ~tags "no metavariables, mk_str_metavars_regexp should not be called");
+    Log.warn (fun m ->
+        m "no metavariables, mk_str_metavars_regexp should not be called");
   lazy
     ((* List of metavars that were bound in this match, quoted so that they
         * can be used safely in a regex *)
@@ -214,9 +213,11 @@ let replace_metavars (metavars : MV.bindings) (pattern_ast : AST_generic.any) :
     match find_remaining_metavars metavar_tbl res with
     | [] -> Ok res
     | remaining ->
-        UCommon.pr2_gen remaining;
-        Error
-          (spf
-             "Did not successfully replace metavariable(s) in the fix pattern: \
-              %s"
-             (String.concat ", " remaining))
+        let err =
+          spf
+            "Did not successfully replace metavariable(s) in the fix pattern: \
+             %s"
+            (String.concat ", " remaining)
+        in
+        Log.warn (fun m -> m "%s" err);
+        Error err
