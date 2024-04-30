@@ -1032,9 +1032,23 @@ let source_file (env : env) (xs : CST.source_file) =
 (* Entry points *)
 (*****************************************************************************)
 
+(* tree-sitter-dockerfile parser requires a trailing newline.
+   Not sure if it's intentional but we add one to simplify user
+   experience.
+*)
+let ensure_trailing_newline str =
+  if str <> "" then
+    let len = String.length str in
+    match str.[len - 1] with
+    | '\n' -> str
+    | _ -> str ^ "\n"
+  else str
+
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_dockerfile.Parse.file !!file)
+    (fun () ->
+      let contents = UFile.read_file file |> ensure_trailing_newline in
+      Tree_sitter_dockerfile.Parse.string ~src_file:!!file contents)
     (fun cst ->
       let env =
         {
@@ -1045,21 +1059,10 @@ let parse file =
       in
       source_file env cst)
 
-let ensure_trailing_newline str =
-  if str <> "" then
-    let len = String.length str in
-    match str.[len - 1] with
-    | '\n' -> str
-    | _ -> str ^ "\n"
-  else str
-
 let parse_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () ->
-      (* tree-sitter-dockerfile parser requires a trailing newline.
-         Not sure if it's intentional but we add one to simplify user
-         experience. *)
       str |> ensure_trailing_newline |> Tree_sitter_dockerfile.Parse.string)
     (fun cst ->
       let file = Fpath.v "<pattern>" in
