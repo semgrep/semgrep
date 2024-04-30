@@ -81,7 +81,7 @@ let trace_attr (attr : Parsetree.attribute) =
       | _ -> None
     in
     let level =
-      if attr.attr_name.txt = "trace_debug" then "Debug" else "Info"
+      if attr.attr_name.txt = "trace_debug" then Tracing.Debug else Tracing.Info
     in
     Some (payload, level)
   else None
@@ -108,7 +108,11 @@ let make_traced_expr ~level loc action_name var_pat e =
             ( Labelled "level",
               Exp.mk ~loc
                 (Pexp_construct
-                   ({ txt = Ldot (Lident "Tracing", level); loc }, None)) );
+                   ( {
+                       txt = Ldot (Lident "Tracing", Tracing.show_level level);
+                       loc;
+                     },
+                     None )) );
             make_label loc "__FILE__";
             make_label loc "__LINE__";
             (Nolabel, Exp.constant (Pconst_string (action_name, loc, None)));
@@ -181,11 +185,11 @@ let let_payload =
 
 let extension_let =
   Extension.V3.declare "trace" Extension.Context.expression let_payload
-    (expand_let ~level:"Info")
+    (expand_let ~level:Tracing.Info)
 
 let extension_let_debug =
   Extension.V3.declare "trace_debug" Extension.Context.expression let_payload
-    (expand_let ~level:"Debug")
+    (expand_let ~level:Tracing.Debug)
 
 let rule_let = Ppxlib.Context_free.Rule.extension extension_let
 let rule_let_debug = Ppxlib.Context_free.Rule.extension extension_let_debug

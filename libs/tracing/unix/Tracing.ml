@@ -80,6 +80,11 @@ type level =
   | Debug  (** Traces to help profile a specific run *)
   | Trace  (** All traces *)
 
+let show_level = function
+  | Info -> "Info"
+  | Debug -> "Debug"
+  | Trace -> "Trace"
+
 let level_to_trace_level level =
   match level with
   | Info -> Trace_core.Level.Info
@@ -89,12 +94,8 @@ let level_to_trace_level level =
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-let with_span ?level =
-  let level =
-    level
-    |> Option.fold ~none:Trace_core.Level.Info ~some:(fun l ->
-           level_to_trace_level l)
-  in
+let with_span ?(level = Info) =
+  let level = level_to_trace_level level in
   Trace_core.with_span ~level
 
 let add_data_to_span = Trace_core.add_data_to_span

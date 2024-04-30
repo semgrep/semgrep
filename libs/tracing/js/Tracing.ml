@@ -36,6 +36,11 @@ type level =
   | Debug  (** Enable commonly used debug tracing *)
   | Trace  (** Enable everything *)
 
+let show_level = function
+  | Info -> "Info"
+  | Debug -> "Debug"
+  | Trace -> "Trace"
+
 let level_to_trace_level level =
   match level with
   | Info -> Trace_core.Level.Info

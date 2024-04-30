@@ -31,6 +31,8 @@ type level =
   | Debug  (** Enable commonly used debug tracing *)
   | Trace  (** Enable everything *)
 
+val show_level : level -> string
+
 (*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
