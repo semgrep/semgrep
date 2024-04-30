@@ -65,7 +65,8 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     if None in [protocol, result.resource, result.owner, result.name]:
         return sstp_url
 
-    return f"{protocol}://{result.resource}/{result.owner}/{result.name}"
+    extra_git = './_git' if result.azure_url else ''
+    return f"{protocol}://{result.resource}/{result.owner}{extra_git}/{result.name}"
 
 
 def get_repo_name_from_repo_url(repo_url: Optional[str]) -> Optional[str]:
