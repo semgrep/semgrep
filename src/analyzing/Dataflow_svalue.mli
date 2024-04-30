@@ -2,14 +2,8 @@
 
 type mapping = AST_generic.svalue Dataflow_var_env.mapping
 
-(* Indicates guarantees on the return value of a function *)
-(* TODO: This should be AST_generic.svalue, if we need something more complex,
- * then we build it on top of the svalue type. *)
-type constness = Constant of AST_generic.const_type | NotConstant
-[@@deriving show]
-
 val hook_constness_of_function :
-  (AST_generic.expr -> constness option) option ref
+  (AST_generic.expr -> AST_generic.svalue option) option ref
 
 val hook_transfer_of_assume :
   (bool ->

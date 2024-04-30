@@ -41,8 +41,6 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-type constness = Constant of G.const_type | NotConstant [@@deriving show]
-
 (*****************************************************************************)
 (* Hooks *)
 (*****************************************************************************)
@@ -108,16 +106,16 @@ let result_of_function_call_constant lang f args =
         _;
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
-      Some G.Cstr
+      Some (G.Cst G.Cstr)
   (* Pro/Interfile: Look up inferred constness of the function *)
   | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
       match !hook_constness_of_function with
       | Some constness_of_func -> (
           match constness_of_func eorig with
-          | Some (Constant kind) -> Some kind
-          | Some NotConstant
+          | Some G.NotCst
           | None ->
-              None)
+              None
+          | Some svalue -> Some svalue)
       | None -> None)
   | __else__ -> None
 
@@ -352,7 +350,7 @@ let transfer :
                 args
             in
             match result_of_function_call_constant lang func args_val with
-            | Some kind -> VarMap.add (IL.str_of_name var) (G.Cst kind) inp'
+            | Some svalue -> VarMap.add (IL.str_of_name var) svalue inp'
             | None -> (
                 match eval_builtin_func lang eval_env func args with
                 | None
