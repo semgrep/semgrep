@@ -31,6 +31,15 @@ open Ast_helper
  *     underneath to use tracing, it rewrites foo. Using Ast_traverse.maps means
  *     the annotation works for nested functions
  *
+ * Additionally supported syntaxes:
+ * - `let%trace sp = "X.foo" in ...` (supported so that we can add data to spans)
+ * - let foo frm = body [@@trace_debug] (supported to add debug-level traces)
+ * - `let%trace_debug sp = "X.foo" in ...` (combination of previous two)
+ *
+ * TODO: A nicer syntax would be `let%trace sp = { name: "X.foo"; level: "debug" }
+ * but Ast_pattern is tricky to get started working with, so for the sake of time
+ * we went with this for now.
+ *
  * > Why does this exist when the maintainer of trace already has a ppx?
  * We might want to add things specific to our codebase like a `trace_debug`
  * option, which is much easier to do without having to go through the
@@ -42,13 +51,6 @@ open Ast_helper
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-type level = Info | Debug
-
-let level_to_str level =
-  match level with
-  | Info -> "Info"
-  | Debug -> "Debug"
 
 let location_errorf ~loc fmt =
   Format.kasprintf
@@ -78,7 +80,9 @@ let trace_attr (attr : Parsetree.attribute) =
           Some str
       | _ -> None
     in
-    let level = if attr.attr_name.txt = "trace_debug" then Debug else Info in
+    let level =
+      if attr.attr_name.txt = "trace_debug" then "Debug" else "Info"
+    in
     Some (payload, level)
   else None
 
@@ -104,8 +108,7 @@ let make_traced_expr ~level loc action_name var_pat e =
             ( Labelled "level",
               Exp.mk ~loc
                 (Pexp_construct
-                   ( { txt = Ldot (Lident "Tracing", level_to_str level); loc },
-                     None )) );
+                   ({ txt = Ldot (Lident "Tracing", level); loc }, None)) );
             make_label loc "__FILE__";
             make_label loc "__LINE__";
             (Nolabel, Exp.constant (Pconst_string (action_name, loc, None)));
@@ -178,11 +181,11 @@ let let_payload =
 
 let extension_let =
   Extension.V3.declare "trace" Extension.Context.expression let_payload
-    (expand_let ~level:Info)
+    (expand_let ~level:"Info")
 
 let extension_let_debug =
   Extension.V3.declare "trace_debug" Extension.Context.expression let_payload
-    (expand_let ~level:Debug)
+    (expand_let ~level:"Debug")
 
 let rule_let = Ppxlib.Context_free.Rule.extension extension_let
 let rule_let_debug = Ppxlib.Context_free.Rule.extension extension_let_debug
