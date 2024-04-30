@@ -154,7 +154,7 @@ else
             "-lbase_stubs"
             "-lbigstringaf_stubs"
             "-lca_certs_stubs"
-            #"-lcamlstr"
+            "-lcamlstr"
             "-lcheckseum_c_stubs"
             "-lcstruct_stubs"
             "-lctypes_stubs"
