@@ -71,7 +71,7 @@ type annotation_kind =
  *  - check comments?
  *)
 let annotation_regex =
-  ".*\\b\\(ruleid\\|ok\\|todoruleid\\|todook\\):[ \t]*\\([^ ]+\\).*"
+  ".*\\b\\(ruleid\\|ok\\|todoruleid\\|todook\\):[ \t]*\\([^ \t]+\\).*"
 
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
 type annotation = annotation_kind * Rule_ID.t
@@ -101,12 +101,16 @@ let annotation_kind_of_string (str : string) : annotation_kind =
 let annotations (file : Fpath.t) : (annotation * linenb) list =
   UFile.cat file |> List_.index_list_1
   |> List_.map_filter (fun (s, idx) ->
-         if s =~ annotation_regex then
+         if s =~ annotation_regex then (
            let kind_str, id_str = Common.matched2 s in
-           (* TODO? error management? those can throw exns *)
            let kind = annotation_kind_of_string kind_str in
-           let id = Rule_ID.of_string id_str in
-           Some ((kind, id), idx)
+           match Rule_ID.of_string_opt id_str with
+           | Some id -> Some ((kind, id), idx)
+           | None ->
+               Logs.warn (fun m ->
+                   m "malformed rule ID '%s' in %s; skipping this annotation"
+                     id_str !!file);
+               None)
          else None)
 
 (* Keep only the Ruleid and Todook, group them by rule id, and adjust
