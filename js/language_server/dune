@@ -19,13 +19,10 @@
   lwt_platform.js
 
    networking.http_helpers
-   cohttp-lwt-jsoo
   )
  (modes js)
  (js_of_ocaml
   (javascript_files
-   ;; Custom XMLHttpRequest implementation that doesn't preset the User-Agent header
-   XMLHttpRequest.js
    semgrep.js
  ))
  (preprocess

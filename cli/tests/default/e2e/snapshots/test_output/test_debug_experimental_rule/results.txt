@@ -45,7 +45,7 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-[<MASKED>][DEBUG](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED>][DEBUG](default): setup_logging: highlight_setting=Console.On, highlight=true
 [<MASKED>][DEBUG](default): Skipping logs for networking.http
 [<MASKED>][DEBUG](default): Skipping logs for cohttp.lwt.client
 [<MASKED>][DEBUG](default): Skipping logs for cohttp.lwt.io
@@ -69,6 +69,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Showing logs for application
 [<MASKED>][INFO]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 [<MASKED>][INFO]: Version: semgrep-core version: <MASKED>
+[<MASKED>][DEBUG](default): size of returned JSON string: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
@@ -158,7 +159,7 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
-[<MASKED>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Std_msg.On, highlight=true
+[<MASKED>][[32mDEBUG[0m](default): setup_logging: highlight_setting=Console.On, highlight=true
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for networking.http
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.client
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for cohttp.lwt.io
@@ -182,6 +183,7 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Showing logs for application
 [<MASKED>][[34mINFO[0m]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 [<MASKED>][[34mINFO[0m]: Version: semgrep-core version: <MASKED>
+[<MASKED>][[32mDEBUG[0m](default): size of returned JSON string: <MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
