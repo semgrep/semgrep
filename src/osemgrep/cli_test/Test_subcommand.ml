@@ -347,7 +347,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
        *)
       (* stricter: *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
-      rules |> List_.map (fun (r : Rule.t) -> (fst r.id, [])))
+      [])
     else
       res.matches
       |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
@@ -416,6 +416,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
+  let config_missing_tests = ref [] in
+
   let (results
         : (Fpath.t (* rule file *) * test_result list * fixtest_result list)
           list) =
@@ -427,7 +429,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
           |> List.filter Rule_file.is_valid_rule_filename
         in
         rule_files
-        |> List_.map (fun (rule_file : Fpath.t) ->
+        |> List_.map_filter (fun (rule_file : Fpath.t) ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
                (* TODO? sanity check? call metachecker Check_rule.check()?
                 * TODO: error managementm parsing errors?
@@ -438,7 +440,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                    (* stricter: *)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
-                   (rule_file, [], [])
+                   Stack_.push rule_file config_missing_tests;
+                   None
                | Some target ->
                    Logs.info (fun m -> m "processing target %s" !!target);
                    let xlang =
@@ -447,7 +450,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                    let checks, fixtest_res =
                      run_rules_against_target xlang rules target
                    in
-                   (rule_file, checks, fixtest_res |> Option.to_list))
+                   Some (rule_file, checks, fixtest_res |> Option.to_list))
     | Test_CLI.File (path, config_str)
     | Test_CLI.Dir (path, Some config_str) ->
         let rule_files_and_rules =
@@ -498,8 +501,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                  fixtest_results
                  |> List_.map (fun (target_file, passed) ->
                         (!!target_file, passed)));
+        config_missing_tests = !config_missing_tests;
         (* TODO *)
-        config_missing_tests = [];
         config_missing_fixtests = [];
         config_with_errors = [];
       }
