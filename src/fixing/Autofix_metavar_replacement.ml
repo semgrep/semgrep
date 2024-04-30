@@ -213,9 +213,11 @@ let replace_metavars (metavars : MV.bindings) (pattern_ast : AST_generic.any) :
     match find_remaining_metavars metavar_tbl res with
     | [] -> Ok res
     | remaining ->
-        UCommon.pr2_gen remaining;
-        Error
-          (spf
-             "Did not successfully replace metavariable(s) in the fix pattern: \
-              %s"
-             (String.concat ", " remaining))
+        let err =
+          spf
+            "Did not successfully replace metavariable(s) in the fix pattern: \
+             %s"
+            (String.concat ", " remaining)
+        in
+        Log.warn (fun m -> m "%s" err);
+        Error err
