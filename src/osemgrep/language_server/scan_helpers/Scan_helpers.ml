@@ -158,7 +158,6 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
    In the interim, we will just continue to hook into core.
 *)
 let run_core_search xconf rule (file : Fpath.t) =
-  let hook _file pm = [ pm ] in
   let xlang = rule.Rule.target_analyzer in
   (* We have to look at all the initial files again when we do this.
      TODO: Maybe could be better to infer languages from each file,
@@ -178,7 +177,7 @@ let run_core_search xconf rule (file : Fpath.t) =
       if is_relevant_rule then
         (* !!calling the engine!! *)
         let ({ Core_result.matches; _ } : _ Core_result.match_result) =
-          Match_search_mode.check_rule rule hook xconf xtarget
+          Match_search_mode.check_rule rule ~match_hook:Fun.id xconf xtarget
         in
         Some matches
       else None

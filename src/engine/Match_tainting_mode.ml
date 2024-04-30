@@ -1021,12 +1021,7 @@ let check_rule ~match_hook ~per_file_formula_cache (rule : R.taint_rule)
     !matches
     (* same post-processing as for search-mode in Match_rules.ml *)
     |> Finding.uniq
-    |> Finding.no_submatches (* see "Taint-tracking via ranges" *)
-    |> List.concat_map (fun (m : Finding.t) ->
-           let str =
-             Common.spf "with rule %s" (Rule_ID.to_string m.pm.rule_id.id)
-           in
-           match_hook str m)
+    |> Finding.no_submatches (* see "Taint-tracking via ranges" *) |> match_hook
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =

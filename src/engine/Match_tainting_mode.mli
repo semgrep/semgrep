@@ -88,7 +88,7 @@ val check_fundef :
   *)
 
 val check_rules :
-  match_hook:(string -> Finding.t -> Finding.t list) ->
+  match_hook:(Finding.t list -> Finding.t list) ->
   per_rule_boilerplate_fn:
     (Rule.rule ->
     (unit ->

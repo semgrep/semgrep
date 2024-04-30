@@ -1,7 +1,7 @@
 (* main entry point *)
 val check_rule :
   Rule.search_rule ->
-  (string -> Pattern_match.t -> 'finding list) ->
+  match_hook:(Pattern_match.t list -> 'finding list) ->
   Match_env.xconfig ->
   Xtarget.t ->
   ('finding, Core_profiling.rule_profiling) Core_result.match_result

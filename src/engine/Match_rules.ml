@@ -190,13 +190,18 @@ let check ~match_hook ~timeout ~timeout_threshold
   in
 
   let res_taint_rules =
-    let match_hook str (finding : Finding.t) =
-      let dependency_matches = get_dep_matches finding.pm.rule_id.id in
-      let findings =
-        Match_dependency.annotate_pattern_match dependency_matches finding
-      in
-      findings |> List.iter (match_hook str);
+    let match_hook findings =
       findings
+      |> List.concat_map (fun (finding : Finding.t) ->
+             let rule_id = finding.pm.rule_id.id in
+             let dependency_matches = get_dep_matches rule_id in
+             let findings' =
+               Match_dependency.annotate_pattern_match dependency_matches
+                 finding
+             in
+             let str = Common.spf "with rule %s" (Rule_ID.to_string rule_id) in
+             findings' |> List.iter (match_hook str);
+             findings')
     in
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
@@ -208,13 +213,20 @@ let check ~match_hook ~timeout ~timeout_threshold
     relevant_nontaint_rules
     |> List_.map (fun r ->
            let dependency_matches = get_dep_matches (fst r.R.id) in
-           let match_hook str pm =
-             let findings =
-               Match_dependency.annotate_pattern_match dependency_matches
-                 (Finding.of_pm pm)
-             in
-             findings |> List.iter (match_hook str);
-             findings
+           let match_hook pms =
+             pms
+             |> List.concat_map (fun (pm : Pattern_match.t) ->
+                    let finding = Finding.of_pm pm in
+                    let rule_id = pm.rule_id.id in
+                    let findings' =
+                      Match_dependency.annotate_pattern_match dependency_matches
+                        finding
+                    in
+                    let str =
+                      Common.spf "with rule %s" (Rule_ID.to_string rule_id)
+                    in
+                    findings' |> List.iter (match_hook str);
+                    findings')
            in
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options

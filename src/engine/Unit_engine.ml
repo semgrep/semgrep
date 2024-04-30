@@ -687,8 +687,7 @@ let tainting_test lang rules_file file =
              }
            in
            let results =
-             Match_tainting_mode.check_rules
-               ~match_hook:(fun _ m -> [ m ])
+             Match_tainting_mode.check_rules ~match_hook:Fun.id
                ~per_rule_boilerplate_fn:(fun _rule f -> f ())
                [ rule ] xconf xtarget
            in
