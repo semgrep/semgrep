@@ -43,7 +43,7 @@ Parsed = collections.namedtuple('Parsed', [
     'port',
     'name',
     'owner',
-    'azure_url'
+    'azure_git_dir'
 ])
 
 POSSIBLE_REGEXES = (
@@ -111,7 +111,7 @@ class Parser(str):
             'port': None,
             'name': None,
             'owner': None,
-            'azure_url': False
+            'azure_git_dir': ''
         }
         # Parsing is super slow even after fixing obvious problems in regexps.
         # This mitigates the damage of quadratic behavior.
@@ -128,7 +128,7 @@ class Parser(str):
             raise ParserError(msg)
 
         if d['owner'] is not None and cast(str, d['owner']).endswith('/_git'):  # Azure DevOps Git URLs
-            d['azure_url'] = True
+            d['azure_git_dir'] = '/_git'
             d['owner'] = d['owner'][:-len('/_git')]
 
         return Parsed(**d)
