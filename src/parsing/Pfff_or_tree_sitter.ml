@@ -88,16 +88,25 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
          UCommon.pr2
            (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
+(*
+   Serious error = any parsing error that causes us to resort to an
+   alternate parser. Missing nodes aren't considered serious enough to
+   warrant another parsing attempt. Otherwise, doing so would result
+   in slowdowns due to the other parser being usually slower
+   (observed: 3 s -> 30 s parsing time on big JS file when retrying
+   due to missing/inserted tokens and falling back to the menhir
+   parser).
+*)
+let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  match err.kind with
+  | Internal
+  | Error_node ->
+      true
+  | Missing_node -> false
+
 let has_errors_other_than_missing_tokens
     (res : _ Tree_sitter_run.Parsing_result.t) =
-  List.exists
-    (fun (err : Tree_sitter_run.Tree_sitter_error.t) ->
-      match err.kind with
-      | Internal
-      | Error_node ->
-          true
-      | Missing_node -> false)
-    res.errors
+  List.exists is_serious_error res.errors
 
 let extract_pattern_from_tree_sitter_result
     (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
@@ -119,22 +128,6 @@ let extract_pattern_from_tree_sitter_result
 (*****************************************************************************)
 (* Run target parsers *)
 (*****************************************************************************)
-
-(*
-   Serious error = any parsing error that causes us to resort to an
-   alternate parser. Missing nodes aren't considered serious enough to
-   warrant another parsing attempt. Otherwise, doing so would result
-   in slowdowns due to the other parser being usually slower
-   (observed: 3 s -> 30 s parsing time on big JS file when retrying
-   due to missing/inserted tokens and falling back to the menhir
-   parser).
-*)
-let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
-  match err.kind with
-  | Internal
-  | Error_node ->
-      true
-  | Missing_node -> false
 
 (* Return the first serious error of the list to show as the reason
    for failure. *)
