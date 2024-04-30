@@ -64,12 +64,6 @@
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
 SHELL := /bin/bash
-LINK_HELP_TEXT="Dune reported a linker error. If you ran into this after adding \
-	a new dependency, then this probably means that that dependency relies on \
-	a library that needs to be linked. See src/main/flags.sh on how to \
-	do that. If you didn't add a new dependency, you may not have every \
-	dependency needed for installation. Try running make dev-setup and \
-	building again"
 
 # First (and default) target.
 .PHONY: default
@@ -125,24 +119,7 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	$(eval $@_TMP := $(shell mktemp -t dune-output.XXXXX))
-	@# Save the output of dune so we can provide more helpful error messages in
-	@# some cases
-	@#
-	@# Just display the dune command, instead of the whole unwieldy pipeline:
-	@echo 'dune build _build/install/default/bin/semgrep-core'
-	@( set -o pipefail;                                                         \
-	   2>&1 CLICOLOR_FORCE=1 dune build _build/install/default/bin/semgrep-core \
-	      | tee $($@_TMP))                                                      \
-	   ||                                                                       \
-	 ( grep -q "Error during linking" $($@_TMP)                                 \
-	   && (tput bold;                                                           \
-	       tput setaf 1;                                                        \
-	       echo $(LINK_HELP_TEXT) | fold -s;                                    \
-	       tput sgr 0)                                                          \
-	   && false)
-	@$(RM) $($@_TMP)
-
+	dune build _build/install/default/bin/semgrep-core
 
 .PHONY: minimal-build-bc
 minimal-build-bc:

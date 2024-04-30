@@ -40,7 +40,7 @@ set -eu
 
 OS="$1"
 
->&2 echo "Generating flags for OS ${OS}"
+>&2 echo "Generating linking flags for OS ${OS} (!!!in case of linking errors, adjust src/main/flags.sh!!!)"
 
 # Force the use of static linking in these scenarios:
 #
@@ -154,7 +154,7 @@ else
             "-lbase_stubs"
             "-lbigstringaf_stubs"
             "-lca_certs_stubs"
-            "-lcamlstr"
+            #"-lcamlstr"
             "-lcheckseum_c_stubs"
             "-lcstruct_stubs"
             "-lctypes_stubs"

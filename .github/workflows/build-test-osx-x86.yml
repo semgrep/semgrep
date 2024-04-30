@@ -16,7 +16,7 @@ jobs:
           path: ~/.opam
       - name: Install dependencies
         run: ./scripts/osx-setup-for-release.sh "4.14.0"
-      - name: Compile semgrep
+      - name: Compile semgrep (in case of linking errors, adjust src/main/flags.sh)
         run: opam exec -- make core
       - name: Make artifact for ./bin/semgrep-core
         run: |
