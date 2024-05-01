@@ -167,13 +167,14 @@ def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snaps
     )
 
 
-# ??
+# It should ignore the 'paths:' 'include:' directive in the rule so it
+# can be applied on a test file with a filename not satisfying the 'include:'.
 @pytest.mark.kinda_slow
 def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/ignore_rule_paths/",
+        "rules/cli_test/rule_with_paths_include_bar_xml.yaml",
         options=["--test"],
-        target_name="cli_test/ignore_rule_paths/",
+        target_name="cli_test/foo.xml",
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(

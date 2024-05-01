@@ -1,5 +1,5 @@
 rules:
-  - id: ATS-insecure-media-loads
+  - id: bar-inside-foo-element
     message: |
       dummy
     languages:
