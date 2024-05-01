@@ -1,9 +1,26 @@
 {
   "config_missing_fixtests": [],
-  "config_missing_tests": [
-    "rules/cli_test/error/long.yaml"
-  ],
+  "config_missing_tests": [],
   "config_with_errors": [],
   "fixtest_results": {},
-  "results": {}
+  "results": {
+    "rules/cli_test/rule_that_timeout.yaml": {
+      "checks": {
+        "open-redirect": {
+          "errors": [
+            {
+              "code": 2,
+              "level": "warn",
+              "message": "Timeout when running forcetimeout on targets/cli_test/long.py:\n ",
+              "path": "targets/cli_test/long.py",
+              "rule_id": "forcetimeout",
+              "type": "Timeout"
+            }
+          ],
+          "matches": "<masked in tests>",
+          "passed": false
+        }
+      }
+    }
+  }
 }
