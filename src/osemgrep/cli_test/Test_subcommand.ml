@@ -17,6 +17,8 @@ module Out = Semgrep_output_v1_j
  *
  * TODO: conf.ignore_todo? conf.strict?
  * LATER: factorize code with Unit_engine.ml and Test_engine.ml
+ *
+ * This is a port of test.py
  *)
 
 (*****************************************************************************)
