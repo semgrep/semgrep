@@ -16,9 +16,9 @@
   Semgrep-core time:
   Total CPU time: x.xxxs  File parse time: x.xxxs  Rule parse time: x.xxxs  Match time: x.xxxs
   Slowest x.xxx files
-  [32m[22m[24mtargets/basic.py                                  [0m ( 35B):  x.xxxs (x.xxxs to parse)
+  [32m[22m[24mtargets/basic.py                                  [0m ( 36B):  x.xxxs (x.xxxs to parse)
   Slowest 5 rules to match
   [33m[22m[24mrules.basic-test:                                          [0m x.xxxs
-  Analyzed: 1 python files ( 35B in x.xxx seconds)
+  Analyzed: 1 python files ( 36B in x.xxx seconds)
   Errors:   0 files with errors
 
