@@ -8,8 +8,6 @@ open Cmdliner
    semgrep CLI.
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
@@ -70,21 +68,10 @@ let o_logging : Logs.level option Term.t =
   Term.(const combine $ o_debug $ o_quiet $ o_verbose)
 
 let setup_logging ~force_color ~level =
+  Log_semgrep.setup ~force_color ~level ();
   Logs.debug (fun m ->
-      m ~tags "Logging setup for osemgrep: force_color=%B level=%s" force_color
+      m "Logging setup for osemgrep: force_color=%B level=%s" force_color
         (Logs.level_to_string level));
-  UConsole.setup ~highlight_setting:(if force_color then On else Auto) ();
-  (* coupling: See also the call to Logs_.setup() in Core_CLI.ml and the
-   * comments in it about the environment variables.
-   * TODO: add --semgrep-log-xxx flags for those so this can be set
-   * also with CLI flags and will be part of the man page.
-   *)
-  Logs_.setup
-    ~read_level_from_env_vars:
-      [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
-    ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]
-    ~read_tags_from_env_vars:[ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]
-    ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist
@@ -98,7 +85,7 @@ let setup_logging ~force_color ~level =
         logger.addHandler(file_handler)
   *)
   Logs.debug (fun m ->
-      m ~tags "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
+      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
 
 (*************************************************************************)
 (* Profiling options *)
