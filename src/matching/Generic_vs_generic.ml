@@ -1544,19 +1544,19 @@ and m_xml_kind a b =
         (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
-           let* () = m_ident a1 b1 in
+           let* () = m_ident_and_id_info a1 b1 in
            let* () = m_tok a2 b2 in
            return ())
         ~else_:(fail ())
   | G.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident a1 b1 in
+      let* () = m_ident_and_id_info a1 b1 in
       let* () = m_tok a2 b2 in
       let* () = m_tok a3 b3 in
       return ()
   | G.XmlSingleton (a0, a1, a2), B.XmlSingleton (b0, b1, b2) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident a1 b1 in
+      let* () = m_ident_and_id_info a1 b1 in
       let* () = m_tok a2 b2 in
       return ()
   | G.XmlFragment (a1, a2), B.XmlFragment (b1, b2) ->

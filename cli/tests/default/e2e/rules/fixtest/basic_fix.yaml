@@ -1,5 +1,5 @@
 rules:
-- id: test1
+- id: basic-fix
   pattern: exit($X)
   fix: sys.exit($X)
   message: |
