@@ -54,7 +54,6 @@ let pro_hooks_refs =
     Pro_hook_ref Match_tainting_mode.hook_setup_hook_function_taint_signature;
     Pro_hook_ref Taint.hook_offset_of_IL;
     Pro_hook_ref Taint_lval_env.hook_propagate_to;
-    Pro_hook_ref Taint_lval_env.hook_normalize_rev_offset;
     Pro_hook_ref Dataflow_tainting.hook_function_taint_signature;
     Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;

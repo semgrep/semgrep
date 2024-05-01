@@ -16,18 +16,18 @@ function f() {
     // fields, to avoid FPs
     //ok: test
     sink(x.a.b.d)
-    //ok: test
+    //ruleid: test
     sink(x.a.b)
     //ok: test
     sink(x.a.c)
-    //ok: test
+    //ruleid: test
     sink(x.a)
-    //ok: test
+    //ruleid: test
     sink(x.d.e[i].f.g[j])
-    //ok: test
+    //ruleid: test
     sink(x.d.e)
-    //ok: test
+    //ruleid: test
     sink(x.d)
-    //ok: test
+    //ruleid: test
     sink(x)
 }

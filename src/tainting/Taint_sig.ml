@@ -55,7 +55,7 @@ let compare_taints_to_sink
 
 type result =
   | ToSink of taints_to_sink
-  | ToReturn of T.taint list * G.tok
+  | ToReturn of T.taint list * S.shape * G.tok
   | ToLval of T.taint list * T.lval (* TODO: CleanArg ? *)
 
 let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
@@ -63,8 +63,10 @@ let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
 
 let show_result = function
   | ToSink x -> show_taints_to_sink x
-  | ToReturn (taints, _) ->
-      Printf.sprintf "return (%s)" (Common2.string_of_list T.show_taint taints)
+  | ToReturn (taints, shape, _) ->
+      Printf.sprintf "return (%s & %s)"
+        (Common2.string_of_list T.show_taint taints)
+        (S.show_shape shape)
   | ToLval (taints, lval) ->
       Printf.sprintf "%s ----> %s"
         (Common2.string_of_list T.show_taint taints)
@@ -73,8 +75,10 @@ let show_result = function
 let compare_result r1 r2 =
   match (r1, r2) with
   | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
-  | ToReturn (ts1, _tok1), ToReturn (ts2, _tok2) ->
-      List.compare T.compare_taint ts1 ts2
+  | ToReturn (ts1, shape1, _tok1), ToReturn (ts2, shape2, _tok2) -> (
+      match List.compare T.compare_taint ts1 ts2 with
+      | 0 -> S.compare_shape shape1 shape2
+      | other -> other)
   | ToLval (ts1, lv1), ToLval (ts2, lv2) -> (
       match List.compare T.compare_taint ts1 ts2 with
       | 0 -> T.compare_lval lv1 lv2

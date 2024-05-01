@@ -29,10 +29,3 @@ module NameOrdered : sig
 
   val compare : t -> t -> int
 end
-
-(** Useful to instantiate data strutures like Map and Set. *)
-module LvalOrdered : sig
-  type t = IL.lval
-
-  val compare : t -> t -> int
-end

@@ -258,7 +258,7 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
     (cont :
       dots:dots option -> env -> Loc.t -> Pattern_AST.node list -> match_result)
     : match_result =
-  if !debug then Print_match.print pat doc;
+  (* if !debug then Print_match.print pat doc; *)
   match (pat, doc) with
   | [], doc -> (
       match doc_matches_dots ~dots last_loc doc with

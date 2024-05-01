@@ -172,6 +172,8 @@ let offset_of_IL (o : IL.offset) =
           Oany)
   | Some offset_of_IL -> offset_of_IL o
 
+let offset_of_IL_rev_offset ~rev_offset = List.rev_map offset_of_IL rev_offset
+
 (*****************************************************************************)
 (* Taint *)
 (*****************************************************************************)

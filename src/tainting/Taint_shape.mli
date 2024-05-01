@@ -66,19 +66,26 @@ val compare_ref : ref -> ref -> int
 val compare_shape : shape -> shape -> int
 val show_ref : ref -> string
 val show_shape : shape -> string
+val tuple_like_obj : (Taint.taints * shape) list -> obj
 
 val union_ref : ref -> ref -> ref
 (** Merge refs at JOIN nodes of the CFG. *)
 
+val union_shape : shape -> shape -> shape
+
 val union_taints_in_ref : ref -> Taint.taints
 (** Collect and union all taints reachable via a ref. *)
 
-val find_xtaint_ref : IL.offset list -> ref -> Xtaint.t
+val union_taints_in_shape : shape -> Taint.taints
+val find_in_ref : Taint.offset list -> ref -> ref option
+val find_in_shape : Taint.offset list -> shape -> ref option
+val find_xtaint_ref : Taint.offset list -> ref -> Xtaint.t
+val unify_ref_shape : Taint.taints -> shape -> Taint.offset list -> ref -> ref
 
-val taint_ref : Taint.taints -> IL.offset list -> ref -> ref
+val taint_ref : Taint.taints -> Taint.offset list -> ref -> ref
 (** [taint_ref taints offset ref] adds 'taints' to the 'offset' in 'ref'.  *)
 
-val clean_ref : IL.offset list -> ref -> ref
+val clean_ref : Taint.offset list -> ref -> ref
 (** [clean_ref offset ref] marks the 'offset' in 'ref' as clean.  *)
 
 val enum_in_ref : ref -> (Taint.offset list * Taint.taints) Seq.t

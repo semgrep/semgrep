@@ -446,7 +446,7 @@ and assign env ~g_expr lhs tok rhs_exp =
           let fixme_lval = fresh_lval ~str:"_FIXME" env tok in
           add_instr env (mk_i (Assign (fixme_lval, rhs_exp)) eorig);
           fixme_exp kind any_generic (related_exp g_expr))
-  | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
+  | G.Container (((G.Tuple | G.List | G.Array) as ckind), (tok1, lhss, tok2)) ->
       (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)

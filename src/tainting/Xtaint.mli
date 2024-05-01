@@ -19,4 +19,4 @@ val show : t -> string
 val union : t -> t -> t
 (** Merge xtaints at JOIN nodes of the CFG. *)
 
-val to_taints : t_or_sanitized -> Taint.taints
+val to_taints : [< t | `Sanitized ] -> Taint.taints

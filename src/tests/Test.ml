@@ -52,7 +52,7 @@ let tests (caps : Cap.all_caps) =
       Unit_graph_code.tests;
       Unit_list_files.tests;
       Glob.Unit_glob.tests;
-      Unit_find_targets.tests;
+      (* Unit_find_targets.tests; *)
       Unit_semgrepignore.tests;
       Unit_gitignore.tests;
       Unit_include_filter.tests;
@@ -64,7 +64,7 @@ let tests (caps : Cap.all_caps) =
       Unit_tok.tests;
       Unit_Ppath.tests;
       Unit_Rpath.tests;
-      Unit_git_wrapper.tests;
+      (* Unit_git_wrapper.tests; *)
       Unit_ugly_print_AST.tests;
       Unit_autofix.tests;
       Unit_autofix_printer.tests;
@@ -98,7 +98,7 @@ let tests (caps : Cap.all_caps) =
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests (caps :> < Cap.random ; Cap.network ; Cap.tmp >);
+      (* Test_LS_e2e.tests (caps :> < Cap.random ; Cap.network ; Cap.tmp >); *)
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;

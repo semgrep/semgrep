@@ -51,6 +51,7 @@ type offset =
 val compare_offset : offset -> offset -> int
 val show_offset : offset -> string
 val offset_of_IL : IL.offset -> offset
+val offset_of_IL_rev_offset : rev_offset:IL.offset list -> offset list
 
 type lval = { base : base; offset : offset list }
 (** A restriction of 'IL.lval', the l-values that are in the scope of a

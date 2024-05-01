@@ -71,10 +71,9 @@ and string_of_exp e = string_of_exp_kind e.e
 
 let string_of_argument arg =
   match arg with
-  | Unnamed { e = Fetch lval; _ } -> string_of_lval lval
-  | Unnamed _
-  | Named _ ->
-      "_"
+  | Unnamed e
+  | Named (_, e) ->
+      string_of_exp e
 
 let string_of_arguments args =
   List_.map string_of_argument args |> String.concat ","

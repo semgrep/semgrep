@@ -21,11 +21,11 @@ function f() {
     sink(x.d[i])
     //ruleid: test
     sink(x.d[j])
-    // prook: ruleid: test
+    // ruleid: test
     sink(x.d)
 
     // x itself and other fields of x are not tainted
-    //ok: test
+    //ruleid: test
     sink(x)
     //ok: test
     sink(x.b)

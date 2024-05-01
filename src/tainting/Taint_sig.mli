@@ -38,7 +38,7 @@ type taints_to_sink = {
   *)
 type result =
   | ToSink of taints_to_sink  (** Taints reach a sink. *)
-  | ToReturn of Taint.taint list * AST_generic.tok
+  | ToReturn of Taint.taint list * Taint_shape.shape * AST_generic.tok
       (** Taints reach a `return` statement. *)
   | ToLval of Taint.taint list * Taint.lval
       (** Taints reach an l-value in the scope of the function/method. *)

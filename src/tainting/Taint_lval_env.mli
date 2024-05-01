@@ -41,11 +41,9 @@ val hook_propagate_to :
   ref
 (** Pro hook, this is a bit complicated to avoid exposing `t`s internals. *)
 
-val hook_normalize_rev_offset : (IL.offset list -> IL.offset list) option ref
-(** Pro index sensitivity *)
-
 val empty : env
 val empty_inout : env Dataflow_core.inout
+val add_shape : IL.lval -> Taint.taints -> Taint_shape.shape -> env -> env
 
 val add : add_fn
 (** Add taints to an l-value.
@@ -61,8 +59,10 @@ val add : add_fn
 (* THINK: Perhaps keep propagators outside of this environment? *)
 val propagate_to : Dataflow_var_env.var -> Taint.taints -> env -> env
 val find_var_opt : env -> IL.name -> Taint_shape.ref option
+val find_lval : env -> IL.lval -> Taint_shape.ref option
 
-val dumb_find : env -> IL.lval -> [ `Clean | `None | `Tainted of Taint.taints ]
+val find_lval_xtaint :
+  env -> IL.lval -> [ `Clean | `None | `Tainted of Taint.taints ]
 (** Look up an l-value on the environemnt and return whether it's tainted, clean,
     or we hold no info about it. It does not check sub-lvalues, e.g. if we record
     that 'x.a' is tainted but had no explicit info about 'x.a.b', checking for
