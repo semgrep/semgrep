@@ -7,6 +7,7 @@
 #  - test to detect wrong ruleid: in target file (missed an annotation)
 #    with passed=false in the JSON
 #  - test to detect invalid ruleid: (wrong ruleid syntax)
+#    like ruleid: without anything after, wrong character in rule id, etc.
 #  - test to take a single directory and iterate over (what we do
 #    in semgrep-rules/), but harder given how run_semgrep_in_tmp() was
 #    designed with always a 'config' and a 'target_name' parameter
@@ -127,8 +128,8 @@ def test_cli_test_from_entrypoint(snapshot):
     cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--test",
         "--config",
-        "rules/cli_test/multiple_annotations/multiple-annotations.yaml",
-        "targets/cli_test/multiple_annotations/multiple-annotations-bad.py",
+        "rules/basic.yaml",
+        "targets/cli_test/basic.py",
     ]
     result = subprocess.run(
         cmd,
