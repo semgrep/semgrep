@@ -79,13 +79,17 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# ??
+# It should look for a .test.yaml for test for rules about yaml.
+# Indeed we can't have both a foo.yaml for the rule and foo.yaml for the test
+# file in the same directory ... like we do for other languages like foo.yaml
+# and foo.c (even though in our test infra the rule and test are in different
+# directories so in theory we could).
 @pytest.mark.kinda_slow
 def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/language/",
+        "rules/cli_test/yaml_language/",
         options=["--test"],
-        target_name="cli_test/language/",
+        target_name="cli_test/yaml_language/",
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(
