@@ -48,8 +48,8 @@ def _etree_to_dict(t):
 @pytest.mark.kinda_slow
 def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
-        "rules/cli_test/basic/",
-        target_name="cli_test/basic/",
+        "rules/basic.yaml",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
         strict=False,
         force_color=True,
@@ -63,8 +63,8 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
-        "rules/cli_test/basic/",
-        target_name="cli_test/basic/",
+        "rules/basic.yaml",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
         strict=False,
         env={"NO_COLOR": "1"},
@@ -86,8 +86,8 @@ def test_output_highlighting__force_color_and_no_color(
     So when both are set, we should have color.
     """
     results, _errors = run_semgrep_in_tmp(
-        "rules/cli_test/basic/",
-        target_name="cli_test/basic/",
+        "rules/basic.yaml",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
         strict=False,
         force_color=True,
@@ -272,7 +272,7 @@ def test_additional_outputs_with_format_output_flag(
 def test_long_rule_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/cli_test/long_rule_id/long_rule_id.yaml",
-        target_name="cli_test/basic",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
     )
     snapshot.assert_match(stdout, "results.out")
