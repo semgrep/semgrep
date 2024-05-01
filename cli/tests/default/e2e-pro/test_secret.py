@@ -11,7 +11,7 @@ from semgrep.constants import OutputFormat
 def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/secrets.yaml",
-        target_name="cli_test/basic/",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
         force_color=True,
     )
