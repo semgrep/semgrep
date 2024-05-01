@@ -153,6 +153,7 @@ let main (caps : Cap.all_caps) : unit =
            it before each test. In particular, tests that check the semgrep
            output can or should change these settings. *)
         UConsole.setup ~highlight_setting:On ();
+        (* TODO? use Log_semgrep.setup? *)
         Logs_.setup_basic ~level:(Some Logs.Debug) ()
       in
       (* Show log messages produced when building the list of tests *)
