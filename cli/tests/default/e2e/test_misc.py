@@ -41,9 +41,9 @@ def test_basic_rule__relative(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_verbose(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/basic/",
+        "rules/basic.yaml",
         options=["--verbose"],
-        target_name="cli_test/basic/",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
         force_color=True,
     )
@@ -58,9 +58,9 @@ def test_cli_test_verbose(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_time(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/basic/",
+        "rules/basic.yaml",
         options=["--time"],
-        target_name="cli_test/basic/",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
         force_color=True,
     )
@@ -74,9 +74,9 @@ def test_cli_test_time(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_show_supported_languages(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/basic/",
+        "rules/basic.yaml",
         options=["--show-supported-languages"],
-        target_name="cli_test/basic/",
+        target_name="basic.py",
         output_format=OutputFormat.TEXT,
     )
 

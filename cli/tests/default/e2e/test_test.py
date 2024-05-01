@@ -56,6 +56,8 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# Test that the JSON output will contains an "error" field with the right
+# error message (timeout).
 # TODO: adding "--timeout", "1", does not seem to speedup things
 @pytest.mark.slow
 @pytest.mark.osemfail
