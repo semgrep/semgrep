@@ -16,6 +16,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
+from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
 
@@ -299,18 +300,28 @@ def test_explicit_path(tmp_path, monkeypatch):
         {foo_a},
     )
 
+    # Should respect excludes on a per-product basis
+    assert_path_sets_equal(
+        TargetManager(
+            ["foo/a.py", "foo/b.py"], excludes={SAST_PRODUCT: ["*.py"]}
+        ).get_files_for_rule(
+            python_language, ["a.py"], [], "dummy_rule_id", SECRETS_PRODUCT
+        ),
+        {foo_a},
+    )
+
 
 @pytest.mark.quick
 def test_ignores(tmp_path, monkeypatch):
-    def ignore(ignore_pats):
+    def ignore(ignore_pats, profile_product=SAST_PRODUCT, rule_product=SAST_PRODUCT):
         return TargetManager(
             [tmp_path],
             ignore_profiles={
-                SAST_PRODUCT.kind: FileIgnore.from_unprocessed_patterns(
+                profile_product: FileIgnore.from_unprocessed_patterns(
                     tmp_path, ignore_pats
                 )
             },
-        ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id", SAST_PRODUCT)
+        ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id", rule_product)
 
     monkeypatch.chdir(tmp_path)
     a = tmp_path / "a.py"
@@ -371,6 +382,13 @@ def test_ignores(tmp_path, monkeypatch):
     # Ingore nested double star
     files = ignore(["**/dir2/dir3/"])
     assert dir3_a not in files
+
+    # Confim secrets doesn't ignore SAST-ignored files
+    files = ignore(["dir/"], rule_product=SECRETS_PRODUCT)
+    assert dir_a in files
+    assert dir_b in files
+    assert dir_c in files
+    assert dir3_a in files
 
 
 @pytest.mark.quick
