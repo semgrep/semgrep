@@ -5,16 +5,18 @@ module Log = (val Logs.src_log src : Logs.LOG)
 let help_msg =
   {|
 If you want to show the logs of a particular library
-(e.g., the semgrep secrets library), you'll need to adjust the
+(e.g., the semgrep targeting library), you'll need to adjust the
 SEMGREP_LOG_SRCS environment variable as in
 
-  export SEMGREP_LOG_SRCS="semgrep.secrets" semgrep ... --debug
+  export SEMGREP_LOG_SRCS="semgrep.targeting" semgrep ... --debug
 
 or for osemgrep you can use it with any log level as in
 
-   export SEMGREP_LOG_SRCS="semgrep.secrets" ./bin/osemgrep ... --verbose
+   export SEMGREP_LOG_SRCS="semgrep.targeting" ./bin/osemgrep ... --verbose
 
 You can see the list of possible libraries above in this log as in
+...
+[00.04][DEBUG](default): Skipping logs for semgrep.targeting
 ...
 [00.04][DEBUG](default): Skipping logs for commons.pcre
 ...
