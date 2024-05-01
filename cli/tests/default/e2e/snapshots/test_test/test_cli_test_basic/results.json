@@ -4,7 +4,7 @@
   "config_with_errors": [],
   "fixtest_results": {},
   "results": {
-    "rules/cli_test/basic.yaml": {
+    "rules/basic.yaml": {
       "checks": {
         "basic-test": {
           "errors": [],

@@ -26,7 +26,7 @@ from semgrep.constants import OutputFormat
 @pytest.mark.kinda_slow
 def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/basic.yaml",
+        "rules/basic.yaml",
         options=["--test"],
         target_name="cli_test/basic.py",
         output_format=OutputFormat.JSON,

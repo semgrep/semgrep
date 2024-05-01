@@ -1,6 +1,0 @@
-rules:
-  - id: basic-test
-    pattern: $X == $X
-    message: Basic test
-    severity: ERROR
-    languages: [python]
