@@ -120,7 +120,7 @@ let fail_on_errors errors =
   | [] -> ()
   | errors ->
       let error_strs =
-        List.map (fun (Tree_sitter_error err : Res.error) -> err.msg) errors
+        List_.map (fun (Tree_sitter_error err : Res.error) -> err.msg) errors
       in
       failwith (String.concat "\n" error_strs)
 
