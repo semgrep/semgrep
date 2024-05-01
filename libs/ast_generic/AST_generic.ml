@@ -1100,8 +1100,13 @@ and xml = {
 }
 
 and xml_kind =
-  | XmlClassic of tok (*'<'*) * ident * tok (*'>'*) * tok (*'</foo>'*)
-  | XmlSingleton of tok (*'<'*) * ident * tok (* '/>', with xml_body = [] *)
+  (* <foo>...</foo> *)
+  (* TODO use `name`? JS/TS allows `<Foo.Bar>...` *)
+  | XmlClassic of
+      tok (*'<'*) * (ident * id_info) * tok (*'>'*) * tok (*'</foo>'*)
+  (* <foo/> *)
+  | XmlSingleton of
+      tok (*'<'*) * (ident * id_info) * tok (* '/>', with xml_body = [] *)
   (* React/JS specific *)
   | XmlFragment of tok (* '<>' *) * (* '</>', with xml_attrs = [] *) tok
 

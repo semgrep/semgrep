@@ -2873,7 +2873,7 @@ and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
   match x with
   | `Xhp_open_close (v1, v2, v3, v4) ->
       let v1 = (* "<" *) token env v1 in
-      let v2 = xhp_identifier_ env v2 in
+      let v2 = (xhp_identifier_ env v2, G.empty_id_info ()) in
       let v3 = List_.map (xhp_attribute env) v3 in
       let v4 = (* "/>" *) token env v4 in
       { xml_kind = G.XmlSingleton (v1, v2, v4); xml_attrs = v3; xml_body = [] }
@@ -2906,7 +2906,7 @@ and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
 
 and xhp_open (env : env) ((v1, v2, v3, v4) : CST.xhp_open) =
   let v1 = (* "<" *) token env v1 in
-  let v2 = xhp_identifier_ env v2 in
+  let v2 = (xhp_identifier_ env v2, G.empty_id_info ()) in
   let v3 = List_.map (xhp_attribute env) v3 in
   let v4 = (* ">" *) token env v4 in
   (v1, v2, v3, v4)
