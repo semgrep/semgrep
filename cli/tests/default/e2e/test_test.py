@@ -4,12 +4,13 @@
 # See also test_fixtest.py for the autofix "fixtest" tests.
 #
 # TODO:
-#  - test to detect wrong ruleid: in target file (missed an annotation)
-#    with passed=false in the JSON
-#  - test to detect invalid ruleid: (wrong ruleid syntax)
-#    like ruleid: without anything after, wrong character in rule id, etc.
-#  - test to take a single directory and iterate over (what we do
-#    in semgrep-rules/), but harder given how run_semgrep_in_tmp() was
+#  - test to detect wrong or missing ruleid: in a target/test file
+#    (e.g., missed an annotation), with passed=false in the JSON
+#  - test to detect invalid ruleid: annotation (wrong ruleid syntax)
+#    like ruleid: without anything after, or a wrong character in rule id
+#  - test to take a single directory and iterate over. This is actually
+#    the main use case for --test and what we use in semgrep-rules/. However,
+#    is is a bit harder to test here given how run_semgrep_in_tmp() was
 #    designed with always a 'config' and a 'target_name' parameter
 #    (and the fact that the e2e rules and targets are in different dirs)
 import os
@@ -23,7 +24,7 @@ from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 from semgrep.constants import OutputFormat
 
 
-# test the basic JSON output of --test reporting the passed checks
+# the basic JSON output of --test should report the passed checks
 @pytest.mark.kinda_slow
 def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -39,7 +40,7 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# The --test flag can accept a directory as a target
+# The --test flag should accept a directory as a target
 # TODO: this actually does not really test the ability to iterate over
 # a directory (ability heavily used in semgrep-rules/scripts/run-test.sh)
 @pytest.mark.kinda_slow
@@ -57,7 +58,7 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# Test that the JSON output will contains an "error" field with the right
+# the JSON output should contain an "error" field with the right
 # error message (timeout).
 # TODO: adding "--timeout", "1", does not seem to speedup things
 @pytest.mark.slow
@@ -76,6 +77,7 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# ??
 @pytest.mark.kinda_slow
 def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -90,6 +92,7 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# ??
 @pytest.mark.kinda_slow
 def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -104,6 +107,7 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should support multiple annotations as in '#ruleid: rule1, rule2'
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -120,6 +124,8 @@ def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot)
     )
 
 
+# TODO: Not sure what we're testing here
+# was added in https://github.com/semgrep/semgrep/pull/8427 By Austin
 @pytest.mark.slow
 def test_cli_test_from_entrypoint(snapshot):
     env = {}
@@ -143,6 +149,7 @@ def test_cli_test_from_entrypoint(snapshot):
     snapshot.assert_match(result.stdout, "output.txt")
 
 
+# ??
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -158,6 +165,7 @@ def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snaps
     )
 
 
+# ??
 @pytest.mark.kinda_slow
 def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
