@@ -527,12 +527,14 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
           !errors
           |> List_.map_filter (function
                | MissingTest rule_file -> Some rule_file
-               | _else_ -> None);
+               | _else_ -> None)
+          |> List.sort Fpath.compare;
         config_missing_fixtests =
           !errors
           |> List_.map_filter (function
                | MissingFixtest rule_file -> Some rule_file
-               | _else_ -> None);
+               | _else_ -> None)
+          |> List.sort Fpath.compare;
         (* TODO *)
         config_with_errors = [];
       }
