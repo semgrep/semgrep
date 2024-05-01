@@ -8,6 +8,8 @@
 #    (e.g., missed an annotation), with passed=false in the JSON
 #  - test to detect invalid ruleid: annotation (wrong ruleid syntax)
 #    like ruleid: without anything after, or a wrong character in rule id
+#  - test do detect correctly annotations in different languages, using
+#    different style of comments
 #  - test to take a single directory and iterate over. This is actually
 #    the main use case for --test and what we use in semgrep-rules/. However,
 #    is is a bit harder to test here given how run_semgrep_in_tmp() was
@@ -24,7 +26,7 @@ from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 from semgrep.constants import OutputFormat
 
 
-# the basic JSON output of --test should report the passed checks
+# It should report the passed checks in the JSON output
 @pytest.mark.kinda_slow
 def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -40,7 +42,7 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# The --test flag should accept a directory as a target
+# It should accept a directory as a target.
 # TODO: this actually does not really test the ability to iterate over
 # a directory (ability heavily used in semgrep-rules/scripts/run-test.sh)
 @pytest.mark.kinda_slow
@@ -58,8 +60,8 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# the JSON output should contain an "error" field with the right
-# error message (timeout).
+# It should output an "error" field with the right error message (timeout)
+# in the JSON output.
 # TODO: adding "--timeout", "1", does not seem to speedup things
 @pytest.mark.slow
 @pytest.mark.osemfail
