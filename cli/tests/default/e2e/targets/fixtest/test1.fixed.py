@@ -1,11 +1,11 @@
-# ruleid: test1
+# ruleid: basic-fix
 sys.exit(1)
 
-# ruleid: test1
+# ruleid: basic-fix
 sys.exit(2)
 
-# ok: test1
+# ok: basic-fix
 sys.exit(1)
 
-# ok: test1
+# ok: basic-fix
 sys.exit(2)
