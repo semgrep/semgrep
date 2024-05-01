@@ -45,7 +45,9 @@ type 'ast parser =
    internal_result).
 *)
 type 'ast internal_result =
-  | ResOk of ('ast * Parsing_stat.t)
+  | ResOk of
+      (* Some errors are tolerated. We need them for tests. *)
+      ('ast * Parsing_stat.t * Tree_sitter_run.Tree_sitter_error.t list)
   | ResPartial of
       ('ast * Parsing_stat.t * Tree_sitter_run.Tree_sitter_error.t list)
   | ResError of Exception.t
@@ -104,9 +106,13 @@ let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
       true
   | Missing_node -> false
 
-let has_errors_other_than_missing_tokens
-    (res : _ Tree_sitter_run.Parsing_result.t) =
+let has_serious_error (res : _ Tree_sitter_run.Parsing_result.t) =
   List.exists is_serious_error res.errors
+
+(* Return the first serious error of the list to show as the reason
+   for failure. *)
+let get_serious_error (res : _ Tree_sitter_run.Parsing_result.t) =
+  List.find_opt (fun err -> is_serious_error err) res.errors
 
 let extract_pattern_from_tree_sitter_result
     (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
@@ -115,7 +121,7 @@ let extract_pattern_from_tree_sitter_result
   | Some pat ->
       (* TODO: treat missing tokens as errors once we're confident that
          these new errors won't affect users negatively on a large scale. *)
-      if has_errors_other_than_missing_tokens res then (
+      if has_serious_error res then (
         if print_errors then
           res.errors
           |> List.iter (fun err ->
@@ -129,11 +135,6 @@ let extract_pattern_from_tree_sitter_result
 (* Run target parsers *)
 (*****************************************************************************)
 
-(* Return the first serious error of the list to show as the reason
-   for failure. *)
-let has_serious_errors (res : _ Tree_sitter_run.Parsing_result.t) =
-  List.find_opt (fun err -> is_serious_error err) res.errors
-
 let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
  fun parser file ->
   match parser with
@@ -142,8 +143,8 @@ let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
           Logs.debug (fun m ->
               m ~tags "trying to parse with Pfff parser %s" !!file);
           try
-            let res = f file in
-            ResOk res
+            let ast, stat = f file in
+            ResOk (ast, stat, [])
           with
           | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
           | exn ->
@@ -158,14 +159,14 @@ let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat !!file res.stat in
-        match (res.program, has_serious_errors res) with
+        match (res.program, get_serious_error res) with
         | None, None ->
             let msg =
               "internal error: failed to recover typed tree from tree-sitter's \
                untyped tree"
             in
             ResError (Exception.trace (Failure msg))
-        | Some ast, None -> ResOk (ast, stat)
+        | Some ast, None -> ResOk (ast, stat, res.errors)
         | None, Some ts_error ->
             let e = error_of_tree_sitter_error ts_error in
             Logs.err (fun m ->
@@ -258,7 +259,8 @@ let (run :
     | () -> xs
   in
   match run_either file xs with
-  | ResOk (ast, stat) -> Parsing_result2.ok (fconvert ast) stat
+  | ResOk (ast, stat, tolerable_errors) ->
+      Parsing_result2.ok (fconvert ast) stat tolerable_errors
   | ResPartial (ast, stat, errors) ->
       Parsing_result2.partial (fconvert ast) stat errors
   | ResError e -> Exception.reraise e

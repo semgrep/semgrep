@@ -21,6 +21,10 @@ val parse_and_resolve_name_warn_if_partial :
 val parse_and_resolve_name_fail_if_partial :
   Lang.t -> Fpath.t -> AST_generic.program
 
+(* raise Failure "..." if the file was not fully parsed or if the tree-sitter
+   parser inserted missing tokens (or any future kind of error or warning) *)
+val parse_and_resolve_name_strict : Lang.t -> Fpath.t -> AST_generic.program
+
 (* to be set dynamically with the right set of language parsers.
  * hack to reduce the size of the engine.js file.
  *)

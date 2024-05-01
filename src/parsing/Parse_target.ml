@@ -16,7 +16,7 @@
 open Common
 open Fpath_.Operators
 open Pfff_or_tree_sitter
-open Parsing_result2
+module Res = Parsing_result2
 module Flag = Flag_semgrep
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
@@ -58,7 +58,7 @@ let undefined_just_parse_with_lang _lang _file =
  *)
 let just_parse_with_lang_ref = ref undefined_just_parse_with_lang
 
-let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Parsing_result2.t =
+let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Res.t =
   match lang with
   (* TODO: ideally this should also be in Parse_target2.ml, but we
    * still have a few dependencies to the Js parser because of
@@ -79,7 +79,7 @@ let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Parsing_result2.t =
     ->
       (* skip tree-sitter for parsing JS if just_parse_with_lang hasn't been initialized yet *)
       run file [ Pfff (throw_tokens Parse_js.parse) ] Js_to_generic.program
-  | _else_ -> !just_parse_with_lang_ref lang file
+  | _ -> !just_parse_with_lang_ref lang file
 [@@profiling]
 
 (*****************************************************************************)
@@ -109,17 +109,31 @@ let parse_and_resolve_name lang file =
 
 (* used in test files *)
 let parse_and_resolve_name_warn_if_partial lang file =
-  let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
-  if skipped_tokens <> [] (* nosemgrep *) then
-    UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file);
+  let { ast; errors; _ } : Res.t = parse_and_resolve_name lang file in
+  (match errors with
+  | [] -> ()
+  | _ -> UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file));
   ast
 
+let fail_on_errors errors =
+  match errors with
+  | [] -> ()
+  | errors ->
+      let error_strs =
+        List.map (fun (Tree_sitter_error err : Res.error) -> err.msg) errors
+      in
+      failwith (String.concat "\n" error_strs)
+
 let parse_and_resolve_name_fail_if_partial lang file =
-  let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
-  if skipped_tokens <> [] then
-    failwith
-      (spf "fail to fully parse %s\n missing tokens:\n%s" !!file
-         (String.concat "\n" (List_.map Tok.show_location skipped_tokens)));
+  let { ast; errors; _ } : Res.t = parse_and_resolve_name lang file in
+  fail_on_errors errors;
+  ast
+
+let parse_and_resolve_name_strict lang file =
+  let { ast; errors; tolerated_errors; _ } : Res.t =
+    parse_and_resolve_name lang file
+  in
+  fail_on_errors (errors @ tolerated_errors);
   ast
 
 (*****************************************************************************)

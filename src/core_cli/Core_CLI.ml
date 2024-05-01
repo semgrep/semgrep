@@ -168,7 +168,7 @@ let dump_v_to_format (v : OCaml.v) =
 
 let dump_parsing_errors file (res : Parsing_result2.t) =
   UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file);
-  UCommon.pr2 (Parsing_result2.format_errors ~style:Auto res);
+  UCommon.pr2 (Parsing_result2.format_errors ~style:Auto res.errors);
   UCommon.pr2
     (List_.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
     |> String.concat "\n")
