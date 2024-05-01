@@ -561,8 +561,7 @@ class TargetManager:
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
-    # ignore_profiles range is str of product.kind
-    ignore_profiles: Dict[str, FileIgnore] = Factory(dict)
+    ignore_profiles: Mapping[out.Product, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -773,8 +772,8 @@ class TargetManager:
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
-        if product.kind in self.ignore_profiles:
-            file_ignore = self.ignore_profiles[product.kind]
+        if product in self.ignore_profiles:
+            file_ignore = self.ignore_profiles[product]
             files = file_ignore.filter_paths(candidates=files.kept)
             # TODO: Fix ignore_log to log which profile filtered which files.
             self.ignore_log.semgrepignored.update(files.removed)

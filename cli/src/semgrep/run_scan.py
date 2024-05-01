@@ -74,6 +74,9 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
+from semgrep.target_manager import SAST_PRODUCT
+from semgrep.target_manager import SCA_PRODUCT
+from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
@@ -122,13 +125,15 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
-def file_ignore_to_ignore_profiles(file_ignore: FileIgnore) -> Dict[str, FileIgnore]:
+def file_ignore_to_ignore_profiles(
+    file_ignore: FileIgnore,
+) -> Dict[Product, FileIgnore]:
     # TODO: This pattern encodes the default Targeting Profiles
     # of .semgrepignore. Don't hardcode this like it is.
     return {
-        out.SAST().kind: file_ignore,
-        out.SCA().kind: file_ignore,
-        out.Secrets().kind: FileIgnore(file_ignore.base_path, frozenset()),
+        SAST_PRODUCT: file_ignore,
+        SCA_PRODUCT: file_ignore,
+        SECRETS_PRODUCT: FileIgnore(file_ignore.base_path, frozenset()),
     }
 
 
