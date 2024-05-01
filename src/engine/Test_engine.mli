@@ -20,7 +20,9 @@ val collect_tests :
   Fpath.t list (* roots *) ->
   (Fpath.t (* rule file *) * Fpath.t (* target file *) * Xlang.t) list
 
-(* helpers used in Test_subcommand.ml *)
+(* helpers used in Test_subcommand.ml
+ * TODO? Move in Rule_tests.mli?
+ *)
 val find_target_of_yaml_file_opt : Fpath.t -> Fpath.t option
 val xlangs_of_rules : Rule.t list -> Xlang.t list
 val first_xlang_of_rules : Rule.t list -> Xlang.t
