@@ -89,6 +89,7 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
             errors = [];
             skipped_tokens = [];
             inserted_tokens = [];
+            tolerated_errors = [];
             stat = Parsing_stat.default_stat !!filename;
           }
       | _ ->
