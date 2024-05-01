@@ -1,0 +1,1 @@
+Fixed bug in mix.lock parser where it was possible to fail on a python None error. Added handler for arbitrary exceptions during lockfile parsing.

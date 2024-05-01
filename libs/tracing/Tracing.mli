@@ -23,11 +23,22 @@ type span = Trace_core.span [@@deriving show]
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)
+(* Levels *)
+(*****************************************************************************)
+
+type level =
+  | Info  (** Enable standard tracing (default level) *)
+  | Debug  (** Enable commonly used debug tracing *)
+  | Trace  (** Enable everything *)
+
+val show_level : level -> string
+
+(*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
 
 val with_span :
-  ?level:Trace_core__.Level.t ->
+  ?level:level ->
   ?__FUNCTION__:string ->
   __FILE__:string ->
   __LINE__:int ->

@@ -1,9 +1,9 @@
 {
   "config_missing_fixtests": [
-    "rules/fixtest/test5.yaml"
+    "rules/fixtest/basic_fix.yaml"
   ],
   "config_missing_tests": [
-    "rules/fixtest/test5.yaml"
+    "rules/fixtest/basic_fix.yaml"
   ],
   "config_with_errors": [],
   "fixtest_results": {},
