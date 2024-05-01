@@ -106,11 +106,11 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_cli_test_multiline_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/multiple_annotations/",
+        "rules/cli_test/overlapping_rules.yaml",
         options=["--test"],
-        target_name="cli_test/multiple_annotations/",
+        target_name="cli_test/multiple_annotations.py",
         output_format=OutputFormat.TEXT,
         force_color=True,
     )
