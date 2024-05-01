@@ -21,6 +21,7 @@ from typing import Any
 from typing import Collection
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -68,6 +69,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import SecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import Semgrep as SemgrepSecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
@@ -347,7 +349,7 @@ def run_scan(
     no_rewrite_rule_ids: bool = False,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
-    exclude: Optional[Sequence[str]] = None,
+    exclude: Optional[Mapping[Product, Sequence[str]]] = None,
     exclude_rule: Optional[Sequence[str]] = None,
     strict: bool = False,
     autofix: bool = False,
@@ -404,7 +406,7 @@ def run_scan(
         include = []
 
     if exclude is None:
-        exclude = []
+        exclude = {}
 
     if exclude_rule is None:
         exclude_rule = []

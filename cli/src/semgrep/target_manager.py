@@ -54,7 +54,7 @@ from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo, Product
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
@@ -74,6 +74,8 @@ PATHS_ALWAYS_SKIPPED = (".git",)
 
 SCA_PRODUCT = out.Product(out.SCA())
 SAST_PRODUCT = out.Product(out.SAST())
+SECRETS_PRODUCT = out.Product(out.Secrets())
+ALL_PRODUCTS = (SAST_PRODUCT, SCA_PRODUCT, SECRETS_PRODUCT)
 
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
@@ -553,7 +555,7 @@ class TargetManager:
 
     target_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
-    excludes: Sequence[str] = Factory(list)
+    excludes: Mapping[Product, Sequence[str]] = Factory(dict)
     max_target_bytes: int = -1
     respect_git_ignore: bool = False
     respect_rule_paths: bool = True
@@ -758,7 +760,9 @@ class TargetManager:
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)
 
-        files = self.filter_excludes(self.excludes, candidates=files.kept)
+        files = self.filter_excludes(
+            self.excludes.get(product, []), candidates=files.kept
+        )
         self.ignore_log.cli_excludes.update(files.removed)
 
         files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)

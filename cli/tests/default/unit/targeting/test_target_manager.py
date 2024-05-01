@@ -252,11 +252,11 @@ def test_explicit_path(tmp_path, monkeypatch):
     )
 
     # Should include explicitly passed python file even if is in excludes
-    assert foo_a not in TargetManager(["."], [], ["foo/a.py"]).get_files_for_rule(
-        python_language, [], [], "dummy_rule_id", SAST_PRODUCT
-    )
+    assert foo_a not in TargetManager(
+        ["."], [], {SAST_PRODUCT: ["foo/a.py"]}
+    ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
     assert foo_a in TargetManager(
-        [".", "foo/a.py"], [], ["foo/a.py"]
+        [".", "foo/a.py"], [], {SAST_PRODUCT: ["foo/a.py"]}
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
     # Should ignore expliclty passed .go file when requesting python

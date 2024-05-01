@@ -7,6 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -47,6 +48,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
+from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -82,12 +84,20 @@ def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
         yield pattern
 
 
-def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
-    patterns = [*yield_valid_patterns(requested_patterns), *ALWAYS_EXCLUDE_PATTERNS]
-    if Path(IGNORE_FILE_NAME).is_file() and not requested_patterns:
-        patterns.extend(DEFAULT_EXCLUDE_PATTERNS)
+def get_exclude_paths(
+    requested_patterns: Optional[Mapping[out.Product, Sequence[str]]]
+) -> Mapping[out.Product, Sequence[str]]:
+    patterns = {
+        product: list(requested_patterns.get(product, [])) if requested_patterns else []
+        for product in ALL_PRODUCTS
+    }
 
-    yield from patterns
+    for product in ALL_PRODUCTS:
+        patterns[product].extend(ALWAYS_EXCLUDE_PATTERNS)
+        if Path(IGNORE_FILE_NAME).is_file() and not requested_patterns:
+            patterns[product].extend(DEFAULT_EXCLUDE_PATTERNS)
+
+    return patterns
 
 
 def fix_head_if_github_action(metadata: GitMeta) -> None:
@@ -443,6 +453,18 @@ def ci(
     )
     output_handler = OutputHandler(output_settings)
 
+    per_product_excludes = {
+        product: [*exclude] if exclude else [] for product in ALL_PRODUCTS
+    }
+    excludes_from_app = (
+        {product: scan_handler.ignore_patterns for product in ALL_PRODUCTS}
+        if scan_handler
+        else None
+    )
+    additional_exclude_paths = get_exclude_paths(excludes_from_app)
+    for product in ALL_PRODUCTS:
+        per_product_excludes[product].extend(additional_exclude_paths[product])
+
     # Base arguments for actually running the scan. This is done here so we can
     # re-use this in the event we need to perform a second scan. Currently the
     # only case for this is a separate "historical" scan, where we scan the git
@@ -463,7 +485,7 @@ def ci(
         "dump_command_for_core": dump_command_for_core,
         "jobs": jobs,
         "include": include,
-        "exclude": exclude,
+        "exclude": per_product_excludes,
         "exclude_rule": exclude_rule,
         "max_target_bytes": max_target_bytes,
         "autofix": scan_handler.autofix if scan_handler else False,
@@ -488,11 +510,6 @@ def ci(
     }
 
     try:
-        excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
-
-        assert exclude is not None  # exclude is default empty tuple
-        run_scan_args["exclude"] = (*exclude, *yield_exclude_paths(excludes_from_app))
-        assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
 
         if scan_handler and not scan_handler.enabled_products:

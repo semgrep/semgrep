@@ -45,6 +45,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
+from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -777,7 +778,7 @@ def scan(
                     no_rewrite_rule_ids=(not rewrite_rule_ids),
                     jobs=jobs,
                     include=include,
-                    exclude=exclude,
+                    exclude={product: (exclude or ()) for product in ALL_PRODUCTS},
                     exclude_rule=exclude_rule,
                     max_target_bytes=max_target_bytes,
                     replacement=replacement,
