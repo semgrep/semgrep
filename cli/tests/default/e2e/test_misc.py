@@ -870,3 +870,18 @@ def test_sort_text_findings(run_semgrep_in_tmp: RunSemgrep, snapshot):
         ).stdout,
         "output.txt",
     )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/two_rules_same_message.yaml",
+        target_name="basic.py",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )

@@ -98,7 +98,8 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# ??
+# It should support rule filenames using multiple extensions/suffixes
+# (e.g., this.that.rule.yaml)
 @pytest.mark.kinda_slow
 def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -154,22 +155,6 @@ def test_cli_test_from_entrypoint(snapshot):
         timeout=15,
     )
     snapshot.assert_match(result.stdout, "output.txt")
-
-
-# ??
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/match_rules_same_message/rules.yml",
-        target_name="cli_test/basic.py",
-        output_format=OutputFormat.TEXT,
-        force_color=True,
-    )
-    snapshot.assert_match(
-        results,
-        "results.txt",
-    )
 
 
 # It should ignore the 'paths:' 'include:' directive in the rule so it
