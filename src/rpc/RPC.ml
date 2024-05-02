@@ -145,5 +145,6 @@ let handle_single_request caps () =
   write_packet stdout res_str
 
 let main caps =
+  Logs.info (fun m -> m "-> OCaml RPC in");
   (* For now, just handle one request and then exit. *)
   handle_single_request caps ()

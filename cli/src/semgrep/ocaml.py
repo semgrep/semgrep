@@ -93,6 +93,7 @@ T = TypeVar("T")
 
 def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
     semgrep_core_path = SemgrepCore.executable_path()
+    logger.debug(f"calling OCaml via rpc")
     with subprocess.Popen(
         [semgrep_core_path, "-rpc"],
         stdin=subprocess.PIPE,
