@@ -113,7 +113,8 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# It should support multiple annotations as in '#ruleid: rule1, rule2'
+# It should support multiple annotations per line in a test file as
+# in '#ruleid: rule1, rule2'
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):

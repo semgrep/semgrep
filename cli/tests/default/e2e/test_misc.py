@@ -1,3 +1,5 @@
+# TODO: extract regex related tests in a test_regex.py
+# TODO: extract metatavar-xxx related tests in a test_metavariable_condition.py
 import json
 import os
 import subprocess
@@ -461,7 +463,8 @@ def test_metavariable_multi_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot)
 def test_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-any-language.yaml", target_name="basic/regex-any-language.html"
+            "rules/regex/regex-any-language.yaml",
+            target_name="basic/regex-any-language.html",
         ).stdout,
         "results.json",
     )
@@ -473,7 +476,7 @@ def test_regex_with_any_language_multiple_rule(
 ):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-any-language-multiple.yaml",
+            "rules/regex/regex-any-language-multiple.yaml",
             target_name="basic/regex-any-language.html",
         ).stdout,
         "results.json",
@@ -484,7 +487,7 @@ def test_regex_with_any_language_multiple_rule(
 @pytest.mark.kinda_slow
 def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, stderr = run_semgrep_in_tmp(
-        "rules/regex-any-language-invalid.yaml",
+        "rules/regex/regex-any-language-invalid.yaml",
         target_name="basic/regex-any-language.html",
         assert_exit_code=7,
     )
@@ -498,7 +501,7 @@ def test_regex_with_any_language_rule_none_alias(
 ):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-any-language-alias-none.yaml",
+            "rules/regex/regex-any-language-alias-none.yaml",
             target_name="basic/regex-any-language.html",
         ).stdout,
         "results.json",
@@ -511,7 +514,7 @@ def test_regex_with_any_language_multiple_rule_none_alias(
 ):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-any-language-multiple-alias-none.yaml",
+            "rules/regex/regex-any-language-multiple-alias-none.yaml",
             target_name="basic/regex-any-language.html",
         ).stdout,
         "results.json",

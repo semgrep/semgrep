@@ -8,7 +8,7 @@
   },
   "results": [
     {
-      "check_id": "rules.template-autoescape-off",
+      "check_id": "rules.regex.template-autoescape-off",
       "end": {
         "col": 25,
         "line": 9,
