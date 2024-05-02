@@ -12,7 +12,7 @@ rule.yml
                          { Xpattern.pat =
                            (Xpattern.Sem (<not evaluated>, Python));
                            pstr = ("$X == $X", ()); pid = <MASKED> });
-                      conditions = []; focus = [] }
+                      conditions = []; focus = []; as_ = None }
                      ]
                    ));
                 conditions = []; focus = [] });
