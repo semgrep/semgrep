@@ -423,9 +423,11 @@ def get_config_fixtest_filenames(
 def config_contains_fix_key(config: Path) -> bool:
     with open(config) as file:
         yaml = YAML(typ="safe")  # default, if not specfied, is 'rt' (round-trip)
-        rule = yaml.load(file)
-        if rule.get("rules"):
-            return "fix" in rule["rules"][0]
+        rules = yaml.load(file)
+        if rules.get("rules"):
+            return any(
+                ("fix" in rule or "fix-regex" in rule) for rule in rules["rules"]
+            )
         else:
             return False
 
@@ -610,8 +612,8 @@ def generate_test_results(
         os.remove(tempcopy)
 
     output = {
-        "config_missing_tests": config_missing_tests_output,
-        "config_missing_fixtests": configs_missing_fixtests,
+        "config_missing_tests": sorted(config_missing_tests_output),
+        "config_missing_fixtests": sorted(configs_missing_fixtests),
         "config_with_errors": config_with_errors_output,
         "results": results_output,
         "fixtest_results": fixtest_results_output,
