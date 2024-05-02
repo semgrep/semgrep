@@ -191,6 +191,7 @@ def test_fixtest_test5_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # at whatever position (not just the first rule), and without an associated
 # target.fixed.ext file.
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_missing_fixtest_fix_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/basic_fix_regex.yaml",
