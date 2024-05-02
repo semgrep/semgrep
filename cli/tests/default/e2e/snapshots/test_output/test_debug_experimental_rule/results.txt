@@ -57,6 +57,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Skipping logs for tls.config
 [<MASKED>][DEBUG](default): Skipping logs for tls.tracing
 [<MASKED>][DEBUG](default): Skipping logs for x509
+[<MASKED>][DEBUG](default): Skipping logs for semgrep.core_scan
 [<MASKED>][DEBUG](default): Skipping logs for semgrep.engine
 [<MASKED>][DEBUG](default): Skipping logs for semgrep.fixing
 [<MASKED>][DEBUG](default): Skipping logs for semgrep.parsing
@@ -199,6 +200,7 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for tls.config
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for tls.tracing
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for x509
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.core_scan
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.engine
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.fixing
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.parsing
