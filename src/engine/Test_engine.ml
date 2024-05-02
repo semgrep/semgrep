@@ -239,7 +239,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
           try
             (* !!!!let's go!!!! *)
             Match_rules.check
-              ~match_hook:(fun _ _ -> ())
+              ~match_hook:(fun _pm -> ())
               ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
           with
           | exn ->

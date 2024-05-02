@@ -127,7 +127,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   (* TODO? extract rules *)
   let (res : Core_result.matches_single_file) =
     Match_rules.check
-      ~match_hook:(fun _ _ -> ())
+      ~match_hook:(fun _pm -> ())
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
   in
   let actual_errors =

@@ -148,17 +148,11 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 let scc_match_hook match_hook get_dep_matches pms =
   pms
   |> List.concat_map (fun (pm : Pattern_match.t) ->
-         let rule_id = pm.rule_id.id in
-         let dependency_matches = get_dep_matches rule_id in
+         let dependency_matches = get_dep_matches pm.rule_id.id in
          let pms' =
            Match_dependency.annotate_pattern_match dependency_matches pm
          in
-         pms'
-         |> List.iter (fun pm' ->
-                let str =
-                  Common.spf "with rule %s" (Rule_ID.to_string rule_id)
-                in
-                match_hook str pm');
+         pms' |> List.iter match_hook;
          pms')
 
 (*****************************************************************************)
