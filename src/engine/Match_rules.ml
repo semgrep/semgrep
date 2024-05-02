@@ -145,6 +145,16 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
+let scc_match_hook match_hook get_dep_matches pms =
+  pms
+  |> List.concat_map (fun (pm : Pattern_match.t) ->
+         let dependency_matches = get_dep_matches pm.rule_id.id in
+         let pms' =
+           Match_dependency.annotate_pattern_match dependency_matches pm
+         in
+         pms' |> List.iter match_hook;
+         pms')
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -158,6 +168,8 @@ let check ~match_hook ~timeout ~timeout_threshold
     | Some table -> Hashtbl.find_opt table
     | None -> fun _ -> None
   in
+  let match_hook = scc_match_hook match_hook get_dep_matches in
+
   let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
       : Xtarget.t =
     xtarget
@@ -192,13 +204,12 @@ let check ~match_hook ~timeout ~timeout_threshold
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
-           Match_tainting_mode.check_rules ~get_dep_matches ~match_hook
-             ~per_rule_boilerplate_fn relevant_taint_rules xconf xtarget)
+           Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
+             relevant_taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
     |> List_.map (fun r ->
-           let dependency_matches = get_dep_matches (fst r.R.id) in
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -208,8 +219,8 @@ let check ~match_hook ~timeout ~timeout_threshold
                (* dispatching *)
                match r.R.mode with
                | `Search _ as mode ->
-                   Match_search_mode.check_rule ?dependency_matches
-                     { r with mode } match_hook xconf xtarget
+                   Match_search_mode.check_rule { r with mode } match_hook xconf
+                     xtarget
                | `Extract extract_spec ->
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }

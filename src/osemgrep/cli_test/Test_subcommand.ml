@@ -363,7 +363,7 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
   let xconf = Match_env.default_xconfig in
   let (res : Core_result.matches_single_file) =
     Match_rules.check
-      ~match_hook:(fun _ _ -> ())
+      ~match_hook:(fun _pm -> ())
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
   in
 

@@ -88,8 +88,7 @@ val check_fundef :
   *)
 
 val check_rules :
-  ?get_dep_matches:(Rule_ID.t -> Pattern_match.dependency_match list option) ->
-  match_hook:(string -> Pattern_match.t -> unit) ->
+  match_hook:(Pattern_match.t list -> Pattern_match.t list) ->
   per_rule_boilerplate_fn:
     (Rule.rule ->
     (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
