@@ -8,9 +8,6 @@
 # It's totally opt-in and will not impact anyones work flow.
 # See https://shopify.engineering/what-is-nix for more information.
 #
-# What is the difference with a Dockerfile?
-# TODO
-#
 # Note that there is also a Nix(OS) file for semgrep here:
 # https://github.com/NixOS/nixpkgs/tree/master/pkgs/tools/security/semgrep
 # so people can install Semgrep on NixOS.
@@ -27,6 +24,23 @@
 #
 # To disallow all deps outside of Nix:
 # nix develop -i
+#
+# Then setup caching (optional, but recommended):
+#
+# Easy way:
+#   nix profile install --accept-flake-config nixpkgs#cachix
+#   cachix use semgrep
+#   cachix use nix-community
+#
+# Harder way:
+#   echo "trusted-users = <USERNAME>" | sudo tee -a /etc/nix/nix.conf && sudo pkill nix-daemon
+#   vim ~/.config/nix/nix.conf
+#   # then add the following lines to nix.conf:
+#   substituters = https://cache.nixos.org https://semgrep.cachix.org https://nix-community.cachix.org
+#   trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= semgrep.cachix.org-1:waxSNb3ism0Vkmfa31//YYrOC2eMghZmTwy9bvMAGBI= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+#
+# to get write access to the cache make an account on cachix.org and then
+# contact @ajbt200128 and he will add you to the cache
 
 # ## What is Nix?
 #
@@ -41,6 +55,34 @@
 # tools made with nix are built this way, nix knows exactly what any dependency
 # needs to build, and to run, meaning *all builds are easily reproducible, and
 # are not affected by what you may or may not have installed on your system*.
+
+# ### What is the difference with a Dockerfile?
+#
+# A Dockerfile is a great way to build an entire OS, and run a program in that
+# and can be used for development, but has many downsides.
+#
+# Docker still relies on Linux, and that Linux distro still relies on some
+# package manager. This means that even if you use Docker, your environment is
+# still not reproducible as packages are not built deterministically like Nix.
+# So you can create a Dockerfile building Semgrep, but you will need a different
+# build script + Dockerfile for every system, and you must determine what the
+# different distributions all ship and have package wise. Meanwhile this Nix
+# file will work (almost) exactly the same across any system.
+#
+# Docker on many systems like anything Apple Silicon will run an emulator, which
+# is very high perf overhead for day to day development. Then your tooling also
+# won't take advantage of system specific speedups.
+#
+# Docker also is a completely different system, so if you are testing/developing
+# for Macs, Docker can't help there. Additionally since it is a different system
+# you don't have access to any of your tools, such as your IDE, favorite shell
+# etc. unless you want to set up a mount + ssh everytime, which is a lot of
+# friction.
+#
+# Think: why is Rust's Cargo, Javascript's NPM, Python's Poetry so popular?
+# Because they explicitly declare the dependencies, instead of hoping you have
+# said dependencies installed already, or shipping a bash script/Makefile that
+# installs them for you.
 
 # ## Why should I care?
 #
@@ -230,7 +272,8 @@
         };
 
         # repos = opamRepos to force newest version of opam
-        scope = on.buildOpamProject' { repos = opamRepos; } ./. opamQuery;
+        # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
+        scope = on.buildOpamProject' { pkgs = pkgs; repos = opamRepos; } ./. opamQuery;
         scopeOverlay = final: prev: {
           # You can add overrides here
           ${package} = prev.${package}.overrideAttrs (prev: {
@@ -250,9 +293,9 @@
         # package with all opam deps but nothing else
         baseOpamPackage = scope'.${package}; # Packages from devPackagesQuery
 
-        osemgrep = baseOpamPackage.overrideAttrs (prev: rec {
-          pname = "osemgrep";
-          buildInputs = prev.buildInputs ++ osemgrepInputs;
+        # Special environment variables for osemgrep for linking stuff
+        osemgrepEnv = {
+          SEMGREP_NIX_BUILD = "1";
           # all the dune files of semgrep treesitter <LANG> are missing the
           # :standard field. Basically all compilers autodetct if something is c
           # or c++ based on file extension, and add the c stdlib based on that.
@@ -261,25 +304,33 @@
           # -xc++ if it detects a c++ file (again sane), but it's included in
           # the :standard var, which we don't add because ??? TODO add and
           # commit them instead of doing this
+          NIX_CFLAGS_COMPILE = "-I${pkgs.libcxx.dev}/include/c++/v1";
+        };
+        #
+        # osemgrep
+        #
+
+        osemgrep = baseOpamPackage.overrideAttrs (prev: rec {
+          pname = "osemgrep";
+          env = osemgrepEnv;
+          buildInputs = prev.buildInputs ++ osemgrepInputs;
           buildPhase' = ''
-            for f in $(find -type f -iname "dune");do
-              substituteInPlace $f \
-                --replace "flags -fPIC" "flags :standard -fPIC"
-            done
             make core
           '';
           buildPhaseFail = ''
-              echo "Derivation ${pname} won't build outside of a nix shell without submodules:"
-              echo "  nix build '.?submodules=1#' # build from local sources"
-              echo "  nix build '<uri>?submodules=1#' # build from remote sources"
-              echo "  nix run '.?submodules=1#osemgrep' # run osemgrep from local sources"
-              echo "  nix run '<uri>.?submodules=1#osemgrep' # run osemgrep from remote source"
-              exit 1
+            echo "Derivation ${pname} won't build outside of a nix shell without submodules:"
+            echo "  nix build '.?submodules=1#' # build from local sources"
+            echo "  nix build '<uri>?submodules=1#' # build from remote sources"
+            echo "  nix run '.?submodules=1#osemgrep' # run osemgrep from local sources"
+            echo "  nix run '<uri>.?submodules=1#osemgrep' # run osemgrep from remote source"
+            exit 1
           '';
           # make sure we have submodules
           # See https://github.com/NixOS/nix/pull/7862
           buildPhase = if self.submodules then osemgrep.buildPhase' else osemgrep.buildPhaseFail;
           # TODO check phase
+
+          checkTarget = "test";
 
           # DONE! Copy semgrep binaries!!!!
           installPhase = ''
@@ -289,6 +340,9 @@
 
         });
 
+        # TODO semgrep-js
+        # needs new emscripten: https://github.com/NixOS/nixpkgs/issues/306649
+        # for the special wasm pass
 
         # pysemgrep inputs
         # coupling: anything added to pysemgrep for testing should be added here
@@ -301,7 +355,10 @@
           types-freezegun
         ];
 
+        #
         # pysemgrep
+        #
+
         pysemgrep = with pythonPackages; buildPythonApplication {
           # thanks to @06kellyjac
           pname = "semgrep";
@@ -372,9 +429,9 @@
         devShells.default = pkgs.mkShell {
           # See comment above osemgrep.buildPhase for why we need this
           # This doesnt work there because idk
-          shellHook = with pkgs; ''
-            export NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE -I${pkgs.libcxx.dev}/include/c++/v1"
-          '';
+          env = {
+            # add env vars here
+          } // osemgrepEnv;
           inputsFrom = [ osemgrep pysemgrep ];
           buildInputs = devOpamPackages ++ devPipInputs ++ (with pkgs; [
             pre-commit

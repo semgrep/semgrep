@@ -462,7 +462,43 @@ homebrew-setup:
 # -------------------------------------------------
 # Nix
 # -------------------------------------------------
-#TODO: see flake.nix
+# See flake.nix top level comments for more information
+
+# Enter development environment with all dependencies installed
+nix-develop:
+	nix develop -c $SHELL
+
+# Build targets
+nix-osemgrep:
+	nix build ".?submodules=1#osemgrep"
+
+nix-semgrep-core:
+	nix build ".?submodules=1#semgrep-core"
+
+nix-pysemgrep:
+	nix build ".?submodules=1#pysemgrep"
+
+# Run tests
+nix-check:
+	nix flake check ".?submodules=1#check"
+
+# Update flake inputs
+nix-update:
+	nix flake update
+
+# Update nix cache with the latest dev shell and latest pysemgrep + build inputs
+# Since pysemgrep needs osemgrep this will also cache osemgrep related nix
+# derivations. If we want to cache anything else we will have to add it here
+#
+# coupling: see flake.nix quick start
+nix-cache:
+	nix develop --profile semgrep-profile -c true
+	cachix push semgrep semgrep-profile
+	rm semgrep-profile
+	rm semgrep-profile-1-link
+	nix build ".?submodules=1#" --json \
+	  | jq -r ".[].outputs | to_entries[].value" \
+	  | cachix push semgrep
 
 # -------------------------------------------------
 # Windows (native, via mingw and cygwin)
