@@ -36,8 +36,6 @@ let wrap_with_js_error ?(hook = None) f =
       (match hook with
       | Some hook -> hook ()
       | None -> ());
-      Firebug.console##error (Js.string (Printexc.to_string e));
-      Format.eprintf "\n%s\n%!" (Printexc.to_string e);
       (match e with
       | Js_error.Exn e ->
           let e = Js_error.to_error e in

@@ -4,9 +4,9 @@
   "config_with_errors": [],
   "fixtest_results": {},
   "results": {
-    "rules/test_test/rule_with_paths_include_bar_xml.yaml": {
+    "rules/test_test/directory/basic.yaml": {
       "checks": {
-        "bar-inside-foo-element": {
+        "basic-test": {
           "errors": [],
           "matches": "<masked in tests>",
           "passed": true

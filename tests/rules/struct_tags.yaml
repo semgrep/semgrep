@@ -1,0 +1,20 @@
+rules:
+  - id: match
+    patterns:
+      - pattern: |
+         type $STRUCT struct {
+           ...
+           $FIELD $TYPE `$TAGS`
+           ...
+         }
+      - metavariable-regex: 
+          metavariable: $TAGS
+          regex: .*json:\"[^"]*\".*
+      - metavariable-regex: 
+          metavariable: $TAGS
+          regex: .*bencode:\"[^"]*\".*
+      - focus-metavariable: $TAGS 
+    message: Field with JSON tag $FIELD -> $TAGS
+    languages:
+      - go
+    severity: INFO

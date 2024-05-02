@@ -59,6 +59,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Skipping logs for x509
 [<MASKED>][DEBUG](default): Skipping logs for semgrep.targeting
 [<MASKED>][DEBUG](default): Skipping logs for ojsonnet.eval
+[<MASKED>][DEBUG](default): Skipping logs for semgrep
 [<MASKED>][DEBUG](default): Skipping logs for git.value
 [<MASKED>][DEBUG](default): Skipping logs for git.tree
 [<MASKED>][DEBUG](default): Skipping logs for git.stream
@@ -67,6 +68,28 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Skipping logs for commons.pcre
 [<MASKED>][DEBUG](default): Skipping logs for bos
 [<MASKED>][DEBUG](default): Showing logs for application
+[<MASKED>][DEBUG](default): !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+[<MASKED>][DEBUG](default):
+If you want to show the logs of a particular library
+(e.g., the semgrep targeting library), you'll need to adjust the
+SEMGREP_LOG_SRCS environment variable as in
+
+  export SEMGREP_LOG_SRCS="semgrep.targeting" semgrep ... --debug
+
+or for osemgrep you can use it with any log level as in
+
+   export SEMGREP_LOG_SRCS="semgrep.targeting" <MASKED> ... --verbose
+
+You can see the list of possible libraries above in this log as in
+...
+[<MASKED>][DEBUG](default): Skipping logs for semgrep.targeting
+...
+[<MASKED>][DEBUG](default): Skipping logs for commons.pcre
+...
+For more information, See
+https:/<MASKED>
+
+[<MASKED>][DEBUG](default): !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 [<MASKED>][INFO]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 [<MASKED>][INFO]: Version: semgrep-core version: <MASKED>
 [<MASKED>][DEBUG](default): size of returned JSON string: <MASKED>
@@ -173,6 +196,7 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for x509
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.targeting
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for ojsonnet.eval
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.value
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.tree
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.stream
@@ -181,6 +205,28 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for commons.pcre
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for bos
 [<MASKED>][[32mDEBUG[0m](default): Showing logs for application
+[<MASKED>][[32mDEBUG[0m](default): !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+[<MASKED>][[32mDEBUG[0m](default):
+If you want to show the logs of a particular library
+(e.g., the semgrep targeting library), you'll need to adjust the
+SEMGREP_LOG_SRCS environment variable as in
+
+  export SEMGREP_LOG_SRCS="semgrep.targeting" semgrep ... --debug
+
+or for osemgrep you can use it with any log level as in
+
+   export SEMGREP_LOG_SRCS="semgrep.targeting" <MASKED> ... --verbose
+
+You can see the list of possible libraries above in this log as in
+...
+[<MASKED>][DEBUG](default): Skipping logs for semgrep.targeting
+...
+[<MASKED>][DEBUG](default): Skipping logs for commons.pcre
+...
+For more information, See
+https:/<MASKED>
+
+[<MASKED>][[32mDEBUG[0m](default): !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 [<MASKED>][[34mINFO[0m]: Executed as: <MASKED> -json -rules <MASKED> -j <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 3 -max_memory 0 -fast --debug
 [<MASKED>][[34mINFO[0m]: Version: semgrep-core version: <MASKED>
 [<MASKED>][[32mDEBUG[0m](default): size of returned JSON string: <MASKED>
