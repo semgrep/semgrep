@@ -13,6 +13,7 @@ from tests.fixtures import RunSemgrep
 from semgrep.constants import OutputFormat
 
 
+# It should report passing fixtests in the text output.
 # TODO: rename test_passed_text_output
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -30,6 +31,7 @@ def test_fixtest_test1_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should report passing fixtests in the JSON output.
 # TODO: rename test_passed_json_output
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -43,6 +45,7 @@ def test_fixtest_test1_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stdout, "test-results.json")
 
 
+# It should report no tests for fixes was found in the text output.
 # TODO: rename test_no_fixtest_text_output
 @pytest.mark.kinda_slow
 def test_fixtest_test2_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -59,6 +62,7 @@ def test_fixtest_test2_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should report config_missing_fixtests in the JSON output.
 # TODO: rename test_missing_fixtest_json_output aka test_config_missing_fixtests
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -72,6 +76,7 @@ def test_fixtest_test2_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stdout, "test-results.json")
 
 
+# It should show a diff when a fixtest does not pass in the text output.
 # TODO: rename test_fixtest_not_passed_show_diff
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -90,6 +95,7 @@ def test_fixtest_test3_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should report '"passed": false' for a bad fixtest in the JSON output.
 # TODO: rename test_fixtest_not_passed_json_output
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -104,6 +110,7 @@ def test_fixtest_test3_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stdout, "test-results.json")
 
 
+# It should report failing match and failing fixtest in the text output.
 # TODO: rename test_fixtest_not_matched_text_output
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -124,6 +131,7 @@ def test_fixtest_test4_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should report failing match and fixtest in the JSON output.
 # TODO: rename test_fixtest_not_matched_json_output
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -144,6 +152,7 @@ def test_fixtest_test4_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should report when a rule does not have a corresponding test file.
 # TODO: rename test_no_test_or_fixtest_found_text_output
 # TODO? pysemgrep test should really report an error actually when run
 # with an inexistent file
@@ -163,6 +172,8 @@ def test_fixtest_test5_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# It should remove a config_missing_tests and config_missing_fixtests
+# in the JSON output.
 # TODO: rename test_no_test_or_fixtest_found_json_output
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
