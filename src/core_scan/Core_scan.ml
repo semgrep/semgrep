@@ -332,6 +332,11 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
   } =
     match_
   in
+  let str =
+    match str with
+    | None -> Common.spf "with rule %s" (Rule_ID.to_string match_.rule_id.id)
+    | Some str -> str
+  in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   let dep_toks_and_version =
     (* Only print the extra data if it was a reachable finding *)
@@ -344,7 +349,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
     | _ -> None
   in
   (if config.mvars =*= [] then
-     Core_text_output.print_match ?str ~format:config.match_format toks
+     Core_text_output.print_match ~str ~format:config.match_format toks
    else
      (* similar to the code of Lib_matcher.print_match, maybe could
       * factorize code a bit.
@@ -989,9 +994,9 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
              Parse_lockfile.parse_lockfile)
           target.lockfile
       in
-      let default_match_hook str match_ =
+      let default_match_hook match_ =
         if config.output_format =*= Text then
-          print_match ~str config match_ Metavariable.ii_of_mval
+          print_match config match_ Metavariable.ii_of_mval
       in
       let match_hook = Option.value match_hook ~default:default_match_hook in
       let xconf =
