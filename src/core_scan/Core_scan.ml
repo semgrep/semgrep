@@ -575,8 +575,6 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
         (* TODO: ensure that this doesn't happen *)
         failwith "missing rules"
   in
-  Log.debug (fun m -> m "core scan rules = ");
-  rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
   (rules, rule_errors)
 [@@trace]
 

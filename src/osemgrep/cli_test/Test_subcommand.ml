@@ -487,7 +487,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                (* TODO? sanity check? call metachecker Check_rule.check()?
                 * TODO: error managementm parsing errors?
                 *)
-               let rules = Parse_rule.parse rule_file in
+               let rules, _errorsTODO =
+                 Parse_rule.parse_and_filter_invalid_rules rule_file
+               in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
                    (* stricter: (but reported via config_missing_tests in JSON)*)
