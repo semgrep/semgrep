@@ -565,14 +565,19 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
              (replace_named_pipe_by_regular_file caps file))
     | other -> other
   in
-  match rule_source with
-  | Some (Core_scan_config.Rule_file file) ->
-      Log.debug (fun m -> m "Parsing %s:\n%s" !!file (UFile.read_file file));
-      Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
-  | Some (Core_scan_config.Rules rules) -> (rules, [])
-  | None ->
-      (* TODO: ensure that this doesn't happen *)
-      failwith "missing rules"
+  let rules, rule_errors =
+    match rule_source with
+    | Some (Core_scan_config.Rule_file file) ->
+        Log.debug (fun m -> m "Parsing %s:\n%s" !!file (UFile.read_file file));
+        Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
+    | Some (Core_scan_config.Rules rules) -> (rules, [])
+    | None ->
+        (* TODO: ensure that this doesn't happen *)
+        failwith "missing rules"
+  in
+  Log.debug (fun m -> m "core scan rules = ");
+  rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
+  (rules, rule_errors)
 [@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
