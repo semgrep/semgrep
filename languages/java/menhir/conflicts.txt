@@ -102,7 +102,7 @@ expression:
  /*(* javaext: ? *)*/
  | lambda_expression { $1 }
 
-For example this is is not allowed 'a -> 1 + a -> 2'
+For example this is not allowed 'a -> 1 + a -> 2'
 because after 1 +, you can only have a multiplicative_expr, then
  unary_expr, then postfix_expr then primary, which imposes
  a LP expression RP.

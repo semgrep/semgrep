@@ -11,6 +11,7 @@
  * keep both the fpath and ppath for each target file as we walked
  * down the filesystem hierarchy.
  *)
-type t = { fpath : Fpath.t; ppath : Ppath.t }
+type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
 
+(* Compare based on the original fpath *)
 val compare : t -> t -> int

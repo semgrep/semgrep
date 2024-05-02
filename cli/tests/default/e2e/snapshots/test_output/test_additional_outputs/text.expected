@@ -1,0 +1,13 @@
+
+
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+
+    targets/basic/stupid.py
+   ❯❯❱ rules.eqeq-is-bad
+          useless comparison operation `a + b == a + b` or `a + b != a + b`
+          Details: https://sg.run/xyz1
+
+            3┆ return a + b == a + b
+

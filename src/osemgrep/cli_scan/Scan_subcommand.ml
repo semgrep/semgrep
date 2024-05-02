@@ -29,8 +29,6 @@ module SS = Set.Make (String)
    from semgrep_main.py and core_runner.py.
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -50,11 +48,14 @@ type caps =
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
+(* Note that basic logging (Logs_.setup_basic()) was done in CLI.ml before, but
+ * in CLI_common.setup_logging() we do the full setup (Logs_.setup()) now
+ * that we have a conf object.
+ *)
 let setup_logging (conf : Scan_CLI.conf) =
-  Logs_.sdebug ~tags "CLI_common.setup_logging";
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
-  Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
+  Logs.info (fun m -> m "Semgrep version: %s" Version.version);
   ()
 
 (* ugly: also partially done in CLI.ml *)
@@ -66,8 +67,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
   *)
   if conf.common.profile then (
     (* ugly: no need to set Common.profile, this was done in CLI.ml *)
-    Logs.debug (fun m -> m "Profile mode On");
-    Logs.debug (fun m -> m "disabling -j when in profiling mode");
+    Logs.info (fun m -> m "Profile mode On (running one job, ignoring -j)");
     { conf with core_runner_conf = { conf.core_runner_conf with num_jobs = 1 } })
   else conf
 
@@ -136,7 +136,7 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
-    let fixes_env = Autofix.make_fixed_lines_env () in
+    let fixes_env = Fixed_lines.mk_env () in
     core_matches
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
@@ -319,7 +319,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
             pro_scan_func ~roots ~diff_config conf.engine_type)
   in
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
-    match conf.targeting_conf.project_root with
+    match conf.targeting_conf.force_project_root with
     | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
         | None ->
@@ -490,7 +490,10 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
                     |> prepare_targets
                   in
                   let paths_in_scanned =
-                    r.scanned |> List_.map Fpath.to_string |> prepare_targets
+                    r.scanned
+                    |> List_.map (fun p ->
+                           p |> Target.internal_path |> Fpath.to_string)
+                    |> prepare_targets
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
@@ -523,10 +526,6 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
 
 (*****************************************************************************)
 (* Conduct the scan *)
-(* What scan? It takes the list as target files as argument! Call it a scan
-   only if takes scanning roots as argument (a mix of folders and regular
-   files).
-*)
 (*****************************************************************************)
 let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
@@ -576,10 +575,10 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 
     (* step 2: printing the skipped targets *)
     let targets, skipped = targets_and_skipped in
-    Logs.debug (fun m ->
+    Log_targeting.Log.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
           (conf.target_roots, skipped, targets));
-    Logs.info (fun m ->
+    Log_targeting.Log.debug (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
                m "Ignoring %s due to %s (%s)"
@@ -622,6 +621,7 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       mk_scan_func (caps :> < Cap.tmp >) conf file_match_results_hook errors
     in
     (* step 3': call the engine! *)
+    Logs.info (fun m -> m "running the semgrep engine");
     let exn_and_matches =
       (* TODO: this long code block should not be here!
          Please create and use a function with a descriptive name and
@@ -632,6 +632,8 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
+          Logs.info (fun m ->
+              m "running differential scan on base commit %s" baseline_commit);
           Metrics_.g.payload.environment.isDiffScan <- true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
           let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
@@ -642,8 +644,6 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             in
             match conf.engine_type with
             | PRO Engine_type.{ analysis = Interfile; _ } ->
-                Metrics_.g.payload.value.proFeatures <-
-                  Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)
             | _ -> (added_or_modified, [])
           in
@@ -654,6 +654,31 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
                    (Differential_scan_config.Depth (diff_targets, diff_depth))
                  filtered_rules)
           in
+          (match (head_scan_result, conf.engine_type) with
+          | Ok r, PRO Engine_type.{ analysis = Interfile; _ } ->
+              let count_by_lang = Hashtbl.create 10 in
+              r.scanned
+              |> List.iter (function
+                   | Target.Regular { analyzer = L (lang, _); _ } ->
+                       let count =
+                         match Hashtbl.find_opt count_by_lang lang with
+                         | Some c -> c
+                         | None -> 0
+                       in
+                       Hashtbl.replace count_by_lang lang (count + 1)
+                   | _ -> ());
+              Metrics_.g.payload.value.proFeatures <-
+                Some
+                  {
+                    diffDepth = Some diff_depth;
+                    numInterfileDiffScanned =
+                      Some
+                        (count_by_lang |> Hashtbl.to_seq
+                        |> Seq.map (fun (lang, count) ->
+                               (Lang.to_string lang, count))
+                        |> List.of_seq);
+                  }
+          | _ -> ());
           scan_baseline_and_remove_duplicates
             (caps :> < Cap.chdir ; Cap.tmp >)
             conf profiler head_scan_result filtered_rules commit status
@@ -706,12 +731,21 @@ let run_scan_files (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     in
 
     (* step 5: report the matches *)
+    Logs.info (fun m -> m "reporting matches if any");
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      let is_logged_in = Semgrep_login.is_logged_in () in
+      let runtime_params =
+        Output.
+          {
+            is_logged_in = Semgrep_login.is_logged_in ();
+            is_using_registry =
+              Metrics_.g.is_using_registry
+              || !Semgrep_envvars.v.mock_using_registry;
+          }
+      in
       Output.output_result
         { conf.output_conf with output_format }
-        profiler ~is_logged_in res
+        profiler runtime_params res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
@@ -778,7 +812,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
 
-  (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
+  (* Print The logo ASAP to minimize time to first meaningful content paint *)
   if new_cli_ux then print_logo ();
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
@@ -801,7 +835,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     |> Profiler.record profiler ~name:"config_time"
   in
 
-  (* Print feature section for enabled products if pattern mode is not being used.
+  (* Print feature section for enabled products if pattern mode is not used.
      Ideally, pattern mode should be a different subcommand, but for now we will
      conditionally print the feature section.
   *)
@@ -832,7 +866,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
          1: make the line yellow using pysemgrep's exact escape sequence
          2: ???
       *)
-      match Std_msg.get_highlight () with
+      match Console.get_highlight () with
       | On -> ("\027[33m\027[22m\027[24m", "\027[0m")
       | Off -> ("", "")
     in
@@ -857,6 +891,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     ignore (Semgrep_settings.save settings));
 
   (* step1: getting the rules *)
+  Logs.info (fun m -> m "Getting the rules");
 
   (* Display a message to denote rule fetching that is made interactive when
    * possible *)
@@ -870,6 +905,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       conf.rules_source
   in
   (* step2: getting the targets *)
+  Logs.info (fun m -> m "Computing the targets");
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
@@ -939,7 +975,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Out.put Version.version;
+      CapConsole.print caps#stdout Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->

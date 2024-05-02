@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -13,6 +12,7 @@ from semdep.parsers.util import comma
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
+from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import line
@@ -95,7 +95,7 @@ package_block = (
 
 comment = whitespace >> regex(r" *//") >> line
 
-multiple_package_blocks = (comment | package_block).sep_by(new_lines, max=5)
+multiple_package_blocks = (comment | package_block).sep_by(new_lines)
 
 dependencies_block = (
     regex(r"dependencies:\s*\[")
@@ -107,10 +107,6 @@ dependencies_block = (
 package_swift_parser = (
     any_char.until(regex(r"dependencies\s*:")) >> dependencies_block << any_char.many()
 )
-
-
-def filter_on_marked_lines(result: List[Any]) -> List[Tuple]:
-    return [x for x in result if isinstance(x, tuple)]
 
 
 def parse_swiftpm_v2(
@@ -130,14 +126,18 @@ def parse_swiftpm_v2(
         if package is None:
             continue
         package_name = package.as_str().lower()
+        repository_url = fields.get("location")
 
         state = fields.get("state")
         if state is None:
             continue
 
-        version = state.as_dict().get("version")
+        state_dict = state.as_dict()
+        version = state_dict.get("version")
         if version is None:
             continue
+
+        revision = state_dict.get("revision")
 
         result.append(
             FoundDependency(
@@ -147,6 +147,8 @@ def parse_swiftpm_v2(
                 allowed_hashes={},
                 transitivity=transitivity(direct_deps, [package_name]),
                 line_number=version.line_number,
+                git_ref=revision.as_str() if revision else None,
+                resolved_url=repository_url.as_str() if repository_url else None,
             )
         )
 
@@ -171,13 +173,18 @@ def parse_swiftpm_v1(
             continue
 
         package_name = package.as_str().lower()
+        repository_url = fields.get("repositoryURL")
+
         state = fields.get("state")
         if state is None:
             continue
 
-        version = state.as_dict().get("version")
+        state_dict = state.as_dict()
+        version = state_dict.get("version")
         if version is None:
             continue
+
+        revision = state_dict.get("revision")
 
         result.append(
             FoundDependency(
@@ -187,6 +194,8 @@ def parse_swiftpm_v1(
                 allowed_hashes={},
                 transitivity=transitivity(direct_deps, [package_name]),
                 line_number=version.line_number,
+                git_ref=revision.as_str() if revision else None,
+                resolved_url=repository_url.as_str() if repository_url else None,
             )
         )
 

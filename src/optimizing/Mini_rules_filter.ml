@@ -53,8 +53,8 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
             *)
            xs
            |> List.for_all (fun x ->
-                  let re = Regexp_engine.matching_exact_string x in
-                  Regexp_engine.unanchored_match re str)
+                  let re = Pcre2_.matching_exact_string x in
+                  Pcre2_.unanchored_match re str)
          in
 
          if not match_ then

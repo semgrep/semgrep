@@ -757,7 +757,10 @@ and map_enum_entry_suffix (env : env) (ent : G.entity)
               in
               let ty = map_type_ env ty in
               let ent = { G.name; attrs = []; tparams = None } in
-              G.DefStmt (ent, G.FieldDefColon { vinit = None; vtype = Some ty })
+              G.DefStmt
+                ( ent,
+                  G.FieldDefColon
+                    { vinit = None; vtype = Some ty; vtok = G.no_sc } )
             in
             let field_first = mk_field v1 v2 v3 in
             let field_rest =
@@ -2162,7 +2165,8 @@ and map_single_modifierless_property_declaration (env : env)
            in
            x)
   in
-  G.DefStmt (entity, G.VarDef { vinit = init; vtype = tannot }) |> G.s
+  G.DefStmt (entity, G.VarDef { vinit = init; vtype = tannot; vtok = G.no_sc })
+  |> G.s
 
 and map_modifierless_property_declaration (env : env) (attrs : G.attribute list)
     ((v1, v2, v3) : CST.modifierless_property_declaration) : G.stmt list =
@@ -2551,7 +2555,8 @@ and map_protocol_member_declaration (env : env)
       let _v5TODO = map_protocol_property_requirements env v5 in
       (* TODO desugar PatID? *)
       let stmt =
-        G.DefStmt (entity, G.VarDef { vinit = None; vtype = v3 }) |> G.s
+        G.DefStmt (entity, G.VarDef { vinit = None; vtype = v3; vtok = G.no_sc })
+        |> G.s
       in
       G.F stmt
   | `Typeas_decl x -> G.F (map_typealias_declaration env x)
@@ -2890,7 +2895,9 @@ and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
   in
   let _v2TODO = map_parameter_modifiers_opt env v2 in
   let v3 = map_type_ env v3 in
-  G.DefStmt (ent, G.FieldDefColon { vinit = None; vtype = Some v3 }) |> G.s
+  G.DefStmt
+    (ent, G.FieldDefColon { vinit = None; vtype = Some v3; vtok = G.no_sc })
+  |> G.s
 
 and map_type_ (env : env) (x : CST.type_) : G.type_ =
   match x with

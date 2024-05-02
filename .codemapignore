@@ -42,6 +42,7 @@ languages/typescript/tree-sitter/CST_tree_sitter_typescript.ml
 
 # big files
 /tests/semgrep-rules/libsonnet/metadata/cwe.libsonnet
+*.min.js
 /CHANGELOG.md
 /LICENSE
 

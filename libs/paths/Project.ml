@@ -10,4 +10,4 @@
 type kind = Git_project | Gitignore_project | Other_project [@@deriving show]
 
 (* A project has a kind and a root path. *)
-type t = { kind : kind; path : Rfpath.t }
+type t = { kind : kind; path : Rfpath.t } [@@deriving show]

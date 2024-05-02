@@ -78,3 +78,16 @@ echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
 result=$(docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X')
 echo "${result}" | grep -q "1 == 1"
 echo " -> OK"
+
+#TODO: learn how to write for loops in bash :)
+echo "Bash should be in the docker image"
+docker run "${docker_args[@]}" "$image" bash --version
+echo " -> OK"
+
+echo "Jq should be in the docker image"
+docker run "${docker_args[@]}" "$image" jq --version
+echo " -> OK"
+
+echo "Curl should be in the docker image"
+docker run "${docker_args[@]}" "$image" curl --version
+echo " -> OK"

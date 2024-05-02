@@ -60,7 +60,7 @@ For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/category/semgrep-cli/
 |}
 
 let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
-  CapConsole.out stdout
+  CapConsole.print stdout
     {|Usage: semgrep [OPTIONS] COMMAND [ARGS]...
 
   To get started quickly, run `semgrep scan --config auto`

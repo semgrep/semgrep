@@ -3,6 +3,8 @@
  (name osemgrep_language_server_scan_helpers)
  (wrapped false)
  (libraries
+   lsp
+
    semgrep.language_server.server
    semgrep.language_server.util
    semgrep.osemgrep_reporting

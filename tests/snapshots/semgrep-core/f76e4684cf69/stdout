@@ -1,0 +1,19 @@
+Test name: with git > basic include
+--- Files added before 'git add' ---
+a
+b
+--- begin input files ---
+a
+b
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a
+ create mode 100644 b
+--- '--include' patterns ---
+a
+--- Selected targets ---
+selected a
+--- Skipped targets ---
+ignored b [Semgrep_output_v1_t.Cli_include_flags_do_not_match]

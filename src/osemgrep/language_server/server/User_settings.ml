@@ -28,7 +28,7 @@ type t = {
   configuration : string list; [@default []]
   exclude : string list; [@default []]
   include_ : string list; [@key "include"] [@default []]
-  jobs : int; [@default 2]
+  jobs : int; [@default Parmap.get_ncores ()]
   max_memory : int; [@key "maxMemory"] [@default 0]
   max_target_bytes : int; [@key "maxTargetBytes"] [@default 1000000]
   timeout : int; [@default 30]
@@ -58,7 +58,7 @@ let find_targets_conf_of_t settings : Find_targets.conf =
     diff_depth = 0;
     always_select_explicit_targets = false;
     explicit_targets = Find_targets.Explicit_targets.empty;
-    project_root = None;
+    force_project_root = None;
   }
 
 let core_runner_conf_of_t settings : Core_runner.conf =

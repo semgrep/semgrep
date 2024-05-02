@@ -57,16 +57,16 @@ let with_fake_deployment_response return_value f =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_not_logged_in caps : Testo.test =
-  t ~checked_output:Stderr
+let test_logout_not_logged_in caps : Testo.t =
+  t ~checked_output:(Testo.stderr ())
     ~normalize:[ Testo.mask_not_substring "You are not logged in" ]
     __FUNCTION__
     (with_login_test_env (fun () ->
          let exit_code = Logout_subcommand.main caps [| "semgrep-logout" |] in
          Exit_code.Check.ok exit_code))
 
-let test_login_no_tty caps : Testo.test =
-  t ~checked_output:Stderr
+let test_login_no_tty caps : Testo.t =
+  t ~checked_output:(Testo.stderr ())
     ~normalize:
       [ Testo.mask_not_substring "meant to be run in an interactive terminal" ]
     __FUNCTION__
@@ -99,8 +99,8 @@ let fake_deployment =
   }
 |}
 
-let test_login_with_env_token caps : Testo.test =
-  t ~checked_output:Stderr
+let test_login_with_env_token caps : Testo.t =
+  t ~checked_output:(Testo.stderr ())
     ~normalize:
       [
         Testo.mask_not_substrings ~mask:"[...]\n"

@@ -1,19 +1,27 @@
-// Build and test our semgrep docker image.
+// Build and validate our (multi-arch) semgrep docker image defined in our
+// Dockerfile and save it as a GHA artifact.
+//
+// Note that the actual push to https://hub.docker.com/r/returntocorp/semgrep
+// is done in the push-docker.jsonnet workflow, not here.
+
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
 local inputs(default) = {
   inputs: {
+    // See https://github.com/docker/metadata-action#flavor-input
     'docker-flavor': {
       type: 'string',
-      description: 'A multi-line string in the format accepted by docker metadata tag action for the flavor of the image. See https://github.com/docker/metadata-action#flavor-input for more information',
+      description: 'Multi-line string for the metadata tag action for the flavor of the image. ',
       required: true,
     },
+    // See https://github.com/docker/metadata-action#tags-input
     'docker-tags': {
       type: 'string',
-      description: 'A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image. See https://github.com/docker/metadata-action#tags-input for more information',
+      description: 'Multi-line string for the metadata tag action for the tags to apply to the image. ',
       required: true,
     },
     'artifact-name': {
@@ -46,10 +54,6 @@ local inputs(default) = {
 };
 
 // ----------------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------------
-
-// ----------------------------------------------------------------------------
 // The Job
 // ----------------------------------------------------------------------------
 
@@ -58,6 +62,7 @@ local job = {
   permissions: gha.read_permissions,
   strategy: {
     matrix: {
+      // multi-arch!! https://docs.docker.com/build/building/multi-platform/
       architecture: [
         'amd64',
         'arm64',
@@ -82,6 +87,8 @@ local job = {
         tags: '${{ inputs.docker-tags }}',
       },
     },
+    // We're now using depot.dev to build our docker image which is
+    // more efficient, especially for arm64.
     {
       uses: 'depot/setup-action@v1',
     },
@@ -90,13 +97,22 @@ local job = {
       id: 'build-image',
       uses: 'depot/build-push-action@v1.9.0',
       with: {
-        project: 'fhmxj6w9z8',
+        project: semgrep.depot_project_id,
         platforms: 'linux/${{ matrix.architecture }}',
         outputs: 'type=docker,dest=/tmp/image.tar',
         tags: '${{ steps.meta.outputs.tags }}',
         labels: '${{ steps.meta.outputs.labels }}',
         file: '${{ inputs.file }}',
         target: '${{ inputs.target }}',
+        // This flag means that if for whatever reason depot fails to
+        // build the docker image on their fast native arm64 runners, it
+        // will fallback to docker-buildx which uses emulation (which is
+        // really slow). So if this job suddently takes more than 15min,
+        // it's probably because there is a problem somewhere and the
+        // fallback is activated. A common solution is to reset the depot.dev
+        // cache (especially useful when depot.dev gets confused by changes
+        // in submodules in a PR) by clicking "Reset cache" at the bottom of
+        // https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
         'buildx-fallback': true,
         secrets: 'SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }}',
       },

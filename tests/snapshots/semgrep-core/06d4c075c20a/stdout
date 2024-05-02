@@ -1,0 +1,10 @@
+--- begin input files ---
+a/b/target
+--- end input files ---
+Initialized empty Git repository in<MASKED>
+[main (root-commit) <MASKED>] Add all the files (including gitignored files)
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a/b/target
+cwd: <TMP><MASKED>/a/b
+Target files:
+  target

@@ -2,14 +2,14 @@
    Realpath + original user-friendly path
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_paths.Log
 
 type t = { fpath : Fpath.t; rpath : Rpath.t; cwd : Rpath.t }
 [@@deriving show, eq]
 
 let create ~fpath ~rpath =
   let res = { fpath; rpath; cwd = Rpath.getcwd () } in
-  Logs.debug (fun m ->
+  Log.debug (fun m ->
       m "[Unix.getcwd()=%s] new rfpath: %s" (Unix.getcwd ()) (show res));
   res
 
@@ -41,7 +41,7 @@ let of_fpaths paths =
          | Error msg -> Right (fpath, msg))
 
 let log_missing_path path msg =
-  Logs.err (fun m -> m ~tags "Cannot obtain realpath for %S: %s" path msg)
+  Log.warn (fun m -> m "Cannot obtain realpath for %S: %s" path msg)
 
 let of_strings_with_warnings paths =
   let res, missing = of_strings paths in

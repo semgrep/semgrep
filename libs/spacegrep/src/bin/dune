@@ -9,7 +9,7 @@
   (flags (:include flags.sexp))
 )
 
-; use cli/flags.sh to generate the OS specific build flags
+; use src/main/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
- (action (run %{workspace_root}/src/main/flags.sh)))
+ (action (run %{project_root}/src/main/flags.sh)))

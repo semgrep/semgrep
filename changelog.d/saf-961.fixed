@@ -1,0 +1,7 @@
+Matching: Patterns of statements ending in ellipsis metavariables, such as
+```
+x = 1
+$...STMTS
+```
+will now properly extend the match range to accommodate whatever is captured by
+the ellipsis metavariable ($...STMTS).

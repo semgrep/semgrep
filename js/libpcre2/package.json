@@ -1,0 +1,14 @@
+{
+  "name": "@semgrep/libpcre2",
+  "version": "0.0.1",
+  "description": "libpcre2 js bindings for pcre2-ocaml",
+  "main": "runtime.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Semgrep, Inc.",
+  "license": "LGPL-2.1",
+  "devDependencies": {
+    "jest": "^29.5.0"
+  }
+}

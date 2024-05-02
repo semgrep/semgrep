@@ -1022,14 +1022,14 @@ and v_variable_definitions
          | PatVarid id
          | PatName (Id id, []) ->
              let ent = G.basic_entity id ~attrs in
-             let vdef = { G.vinit = eopt; vtype = topt } in
+             let vdef = { G.vinit = eopt; vtype = topt; vtok = G.no_sc } in
              Some (ent, G.VarDef vdef)
          | _ ->
              (* TODO: some patterns may have tparams? *)
              let ent =
                { G.name = EPattern (v_pattern pat); attrs; tparams = None }
              in
-             let vdef = { G.vinit = eopt; vtype = topt } in
+             let vdef = { G.vinit = eopt; vtype = topt; vtok = G.no_sc } in
              Some (ent, G.VarDef vdef))
 
 and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =

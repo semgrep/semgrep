@@ -4,6 +4,6 @@
    - the path relative to the project root
 *)
 
-type t = { fpath : Fpath.t; ppath : Ppath.t }
+type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
 
 let compare a b = Fpath.compare a.fpath b.fpath

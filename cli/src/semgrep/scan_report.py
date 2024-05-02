@@ -116,7 +116,9 @@ def _print_scan_plan_header(
             evolve(target_manager, baseline_handler=None).get_all_files()
         )
         diff_file_count = len(target_mode_config.get_diff_targets())
-        summary_line = f"Pro Differential Scanning {diff_file_count}/{unit_str(total_file_count, 'file')}"
+        summary_line = (
+            f"Inter-file Differential Scanning {unit_str(diff_file_count, 'file')}"
+        )
     else:
         file_count = len(target_manager.get_all_files())
         summary_line = f"Scanning {unit_str(file_count, 'file')}"

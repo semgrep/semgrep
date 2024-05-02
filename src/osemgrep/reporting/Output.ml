@@ -33,6 +33,8 @@ type conf = {
 }
 [@@deriving show]
 
+type runtime_params = { is_logged_in : bool; is_using_registry : bool }
+
 let default : conf =
   {
     nosem = true;
@@ -45,6 +47,7 @@ let default : conf =
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
   }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -58,12 +61,13 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) is_logged_in (hrules : Rule.hrules) =
+    (cli_output : OutJ.cli_output) (runtime_params : runtime_params)
+    (hrules : Rule.hrules) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
       let s = OutJ.string_of_cli_output cli_output in
-      Out.put s
+      UConsole.print s
   | Vim ->
       cli_output.results
       |> List.iter (fun (m : OutJ.cli_match) ->
@@ -80,7 +84,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 Out.put (String.concat ":" parts))
+                 UConsole.print (String.concat ":" parts))
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
@@ -127,7 +131,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 Out.put (String.concat ":" parts))
+                 UConsole.print (String.concat ":" parts))
   | Text ->
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
@@ -135,21 +139,38 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
   (* matches have already been displayed in a file_match_results_hook *)
   | Incremental -> ()
   | Sarif ->
-      let sarif_json =
-        Sarif_output.sarif_output is_logged_in hrules cli_output
+      let engine_label, is_pro =
+        match cli_output.OutT.engine_requested with
+        | Some `OSS
+        | None ->
+            ("OSS", false)
+        | Some `PRO -> ("PRO", true)
       in
-      Out.put (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
+      let hide_nudge =
+        runtime_params.is_logged_in || is_pro
+        || not runtime_params.is_using_registry
+      in
+      let sarif_json =
+        Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
+      in
+      UConsole.print
+        (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->
       let junit_xml = Junit_xml_output.junit_xml_output cli_output in
-      Out.put junit_xml
+      UConsole.print junit_xml
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
-      Out.put (Yojson.Basic.to_string gitlab_sast_json)
+      UConsole.print (Yojson.Basic.to_string gitlab_sast_json)
   | Gitlab_secrets ->
       let gitlab_secrets_json =
         Gitlab_output.secrets_output cli_output.results
       in
-      Out.put (Yojson.Basic.to_string gitlab_secrets_json)
+      UConsole.print (Yojson.Basic.to_string gitlab_secrets_json)
+  | Files_with_matches ->
+      cli_output.results
+      |> List_.map (fun (x : OutT.cli_match) -> !!(x.path))
+      |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
+      |> UConsole.print
 
 (*****************************************************************************)
 (* Entry points *)
@@ -174,8 +195,9 @@ let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
  * output.output() all at once.
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : conf) (profiler : Profiler.t) ~is_logged_in
-    (res : Core_runner.result) : OutJ.cli_output =
+let output_result (conf : conf) (profiler : Profiler.t)
+    (runtime_params : runtime_params) (res : Core_runner.result) :
+    OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -184,7 +206,7 @@ let output_result (conf : conf) (profiler : Profiler.t) ~is_logged_in
   let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output is_logged_in
+  dispatch_output_format conf.output_format conf cli_output runtime_params
     res.hrules;
   cli_output
 [@@profiling]

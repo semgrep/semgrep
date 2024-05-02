@@ -248,6 +248,8 @@ ALWAYS_MASK: Maskers = (
     re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
+    re.compile(r"Using Semgrep Pro Version: (.*)"),
+    re.compile(r"Installed at (.*)"),
     # Dates
     re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:(?:\.\d+)?Z)?"),
     # Hide any substring that resembles a temporary file path.

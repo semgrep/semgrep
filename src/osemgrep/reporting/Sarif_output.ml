@@ -33,10 +33,11 @@ let tags_of_metadata metadata =
     | JSON.String s -> s
     | non_string -> JSON.string_of_json non_string
   in
+  (* Also add the "security" tag when the rule has CWE tags. *)
   let cwe =
     match JSON.member "cwe" metadata with
-    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe
-    | Some single_cwe -> [ best_effort_string single_cwe ]
+    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe @ [ "security" ]
+    | Some single_cwe -> [ best_effort_string single_cwe; "security" ]
     | None -> []
   in
   let owasp =
@@ -68,7 +69,8 @@ let tags_of_metadata metadata =
     | None ->
         []
   in
-  cwe @ owasp @ confidence @ semgrep_policy_slug @ tags
+  let all_tags = cwe @ owasp @ confidence @ semgrep_policy_slug @ tags in
+  List.sort_uniq String.compare all_tags
 
 (* We want to produce a json object? with the following shape:
    { id; name;
@@ -360,24 +362,12 @@ let error_to_sarif_notification (e : OutT.cli_error) =
   in
   Sarif_v.create_notification ~message ~descriptor ~level ()
 
-let sarif_output is_logged_in hrules (cli_output : OutT.cli_output) =
+let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
+    =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
-  let engine_label, is_pro =
-    match cli_output.OutT.engine_requested with
-    | Some `OSS
-    | None ->
-        ("OSS", false)
-    | Some `PRO -> ("PRO", true)
-  in
   let run =
-    let hide_nudge =
-      let is_using_registry =
-        Metrics_.g.is_using_registry || !Semgrep_envvars.v.mock_using_registry
-      in
-      is_logged_in || is_pro || not is_using_registry
-    in
     let rules = rules hide_nudge hrules in
     let tool =
       let driver =

@@ -1,0 +1,17 @@
+Snapshot for Test_show_subcommand.test_dump_rule_v2.(fun)
+--- begin input files ---
+rule.yml
+--- end input files ---
+{ rules =
+  [{ id = "eqeq-bad"; severity = `ERROR; message = "useless comparison";
+     language = None; languages = (Some [`Python]);
+     match_ =
+     (Some { pattern = (Some "$X == $X"); regex = None; all = None;
+             any = None; not = None; inside = None; anywhere = None;
+             where = None });
+     taint = None; steps = None; select = None; paths = None; fix = None;
+     fix_regex = None; project_depends_on = None; extract = None;
+     validators = None; options = None; metadata = None; min_version = None;
+     max_version = None }
+    ];
+  missed = None }

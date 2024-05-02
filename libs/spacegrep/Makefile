@@ -1,25 +1,10 @@
 #
 # Spacegrep's library and executables are built as part of semgrep-core.
-# This 'build' target is for building just the spacegrep stuff and having
-# 'spacegrep' and 'spacecat' handy in the local 'bin' folder.
+# Use './bin/spacegrep' and './bin/spacecat' after running 'make'.
 #
 .PHONY: build
 build:
-	dune build
-	$(MAKE) symlinks
-
-.PHONY: symlinks
-symlinks:
-	mkdir -p bin
-	ln -sf ../../../_build/install/default/bin/spacegrep bin/spacegrep
-	ln -sf spacegrep bin/spacecat
-
-.PHONY: test
-test:
-	dune exec -- src/test/test.exe -e
-	$(MAKE) symlinks
-	$(MAKE) examples > /dev/null
-	$(MAKE) show-perf > /dev/null
+	dune build .
 
 .PHONY: examples
 examples:

@@ -19,16 +19,17 @@ module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
 module G = AST_generic
 
+(*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Cairo parser using tree-sitter-lang/semgrep-cairo and converting directly
  * to AST_generic.ml
  *
- * Cairo is a language based on Rust, therefore this transformer has been inspired
- * by the Rust transformer The code below "entry points" has been copy-pasted from
- * the Rust transformer but everything else has been rewritten to accomodate the syntax
- * and semantic of the language which differ from Rust's.
- *
+ * Cairo is a language based on Rust, therefore this transformer has been
+ * inspired by the Rust transformer The code below "entry points" has been
+ * copy-pasted from the Rust transformer but everything else has been rewritten
+ * to accomodate the syntax and semantic of the language which differ from
+ * Rust's.
  *)
 
 type mode = Pattern | Target
@@ -696,26 +697,23 @@ and map_module_declaration (env : env) (x : CST.module_declaration) :
 
 and map_const_declaration (env : env) (x : CST.const_declaration) : G.definition
     =
-  let attributes, _, name, _, ttype, _, value, _ = x in
-
+  let attributes, tconst, name, _, ttype, _, value, sc = x in
+  let tconst = token env tconst in
   let name : G.entity =
     {
       name = G.EN (H2.name_of_id (map_name env name));
-      attrs = map_attributes env attributes;
+      attrs = map_attributes env attributes @ [ KeywordAttr (Const, tconst) ];
       tparams = None;
     }
   in
-
   let value = map_expression env value in
-
   let ttype = map_type env ttype in
-
-  (name, G.VarDef { vinit = Some value; vtype = Some ttype })
+  let sc = token env sc in
+  (name, G.VarDef { vinit = Some value; vtype = Some ttype; vtok = Some sc })
 
 and map_typealias_declaration (env : env) (x : CST.typealias_declaration) :
     G.definition =
-  let _, name, tparams, _, ttype, _ = x in
-
+  let _, name, tparams, _, ttype, sc = x in
   let name : G.entity =
     {
       name = map_name_to_entity_name env name;
@@ -723,9 +721,8 @@ and map_typealias_declaration (env : env) (x : CST.typealias_declaration) :
       tparams = Option.map (map_type_parameters env) tparams;
     }
   in
-
   let ttype = map_type env ttype in
-
+  let _sc = token env sc in
   (name, G.TypeDef { tbody = G.AliasType ttype })
 
 and map_trait_declaration (env : env) (x : CST.trait_declaration) : G.definition
@@ -803,7 +800,11 @@ and map_struct_declaration (env : env) (x : CST.struct_declaration) :
           let definition =
             ( entity,
               G.FieldDefColon
-                { vinit = None; vtype = Some (map_type env ttype) } )
+                {
+                  vinit = None;
+                  vtype = Some (map_type env ttype);
+                  vtok = G.no_sc;
+                } )
           in
 
           G.F (G.s (G.DefStmt definition))

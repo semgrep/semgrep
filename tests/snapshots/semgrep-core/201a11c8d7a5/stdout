@@ -1,0 +1,15 @@
+Snapshot for Test_show_subcommand.test_dump_ast.(fun)
+--- begin input files ---
+foo.py
+--- end input files ---
+Pr(
+  [DefStmt(
+     ({
+       name=EN(
+              Id(("foo", ()),
+                {id_info_id=<MASKED>; id_resolved=Ref(
+                 None); id_type=Ref(None); id_svalue=Ref(None); }));
+       attrs=[]; tparams=None; },
+      FuncDef(
+        {fkind=(Function, ()); fparams=[]; frettype=None; 
+         fbody=FBStmt(Block([Return((), Some(L(Int((Some(42), ())))), ())])); })))])

@@ -8,8 +8,6 @@ open Cmdliner
    semgrep CLI.
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
@@ -59,23 +57,21 @@ let o_debug : bool Term.t =
 let o_logging : Logs.level option Term.t =
   let combine debug quiet verbose =
     match (verbose, debug, quiet) with
-    | false, false, false -> Some Logs.Warning
-    | true, false, false -> Some Logs.Info
-    | false, true, false -> Some Logs.Debug
-    | false, false, true -> None
-    | _else_ ->
+    | false, false, false -> (* default *) Some Logs.Warning
+    | true, false, false -> (* --verbose *) Some Logs.Info
+    | false, true, false -> (* --debug *) Some Logs.Debug
+    | false, false, true -> (* --quiet *) None
+    | _ ->
         (* TOPORT: list the possibilities *)
         Error.abort "mutually exclusive options --quiet/--verbose/--debug"
   in
   Term.(const combine $ o_debug $ o_quiet $ o_verbose)
 
-(* ugly: also partially done in CLI.ml *)
 let setup_logging ~force_color ~level =
+  Log_semgrep.setup ~force_color ~level ();
   Logs.debug (fun m ->
-      m ~tags "Logging setup for osemgrep: force_color=%B level=%s" force_color
+      m "Logging setup for osemgrep: force_color=%B level=%s" force_color
         (Logs.level_to_string level));
-  Std_msg.setup ~highlight_setting:(if force_color then On else Auto) ();
-  Logs_.setup_logging ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist
@@ -89,7 +85,7 @@ let setup_logging ~force_color ~level =
         logger.addHandler(file_handler)
   *)
   Logs.debug (fun m ->
-      m ~tags "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
+      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
 
 (*************************************************************************)
 (* Profiling options *)
@@ -121,7 +117,7 @@ let help_page_bottom =
     `S Manpage.s_bugs;
     `P
       "If you encounter an issue, please report it at\n\
-      \      https://github.com/returntocorp/semgrep/issues";
+      \      https://github.com/semgrep/semgrep/issues";
   ]
 
 (* Small wrapper around Cmdliner.Cmd.eval_value.

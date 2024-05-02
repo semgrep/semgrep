@@ -913,7 +913,7 @@ block_statement:
  | class_declaration  { DeclStmt (Class $1) }
 
 local_variable_declaration_statement: local_variable_declaration ";"
-  { LocalVarList $1 }
+  { LocalVarList ($1, $2) }
 
 (* cant factorize with variable_modifier_opt, conflicts otherwise *)
 local_variable_declaration: modifiers_opt type_ listc(variable_declarator)

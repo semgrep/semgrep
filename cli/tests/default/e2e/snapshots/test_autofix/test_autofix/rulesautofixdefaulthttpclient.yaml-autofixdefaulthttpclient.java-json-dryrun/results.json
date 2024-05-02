@@ -10,14 +10,14 @@
     {
       "check_id": "rules.autofix.java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-deprecated",
       "end": {
-        "col": 46,
+        "col": 47,
         "line": 15,
-        "offset": 498
+        "offset": 499
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix": "HttpClient client = new SystemDefaultHttpClient()",
+        "fix": "HttpClient client = new SystemDefaultHttpClient();",
         "fixed_lines": [
           "\t\tHttpClient client = new SystemDefaultHttpClient();"
         ],

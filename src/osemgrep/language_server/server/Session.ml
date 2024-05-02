@@ -20,6 +20,7 @@ type session_cache = {
   mutable rules : Rule.t list; [@opaque]
   mutable skipped_app_fingerprints : string list;
   mutable open_documents : Fpath.t list;
+  mutable initialized : bool;
   lock : Lwt_mutex.t; [@opaque]
 }
 [@@deriving show]
@@ -35,6 +36,7 @@ type t = {
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
+  search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
   caps : < Cap.random ; Cap.network ; Cap.tmp >; [@opaque]
@@ -52,6 +54,7 @@ let create caps capabilities =
       skipped_app_fingerprints = [];
       lock = Lwt_mutex.create ();
       open_documents = [];
+      initialized = false;
     }
   in
   {
@@ -62,21 +65,22 @@ let create caps capabilities =
     cached_session;
     skipped_local_fingerprints = [];
     user_settings = User_settings.default;
+    search_config = None;
     metrics = LS_metrics.default;
     is_intellij = false;
     caps;
   }
 
-let dirty_files_of_folder folder =
-  let git_repo = Git_wrapper.is_git_repo ~cwd:folder () in
-  if git_repo then
-    let dirty_files = Git_wrapper.dirty_files ~cwd:folder () in
-    Some (List_.map (fun x -> folder // x) dirty_files)
+let dirty_paths_of_folder folder =
+  let git_repo = Git_wrapper.get_project_root_for_files_in_dir folder in
+  if Option.is_some git_repo then
+    let dirty_paths = Git_wrapper.dirty_paths ~cwd:folder () in
+    Some (List_.map (fun x -> folder // x) dirty_paths)
   else None
 
 (* TODO: registry caching is not anymore in semgrep-OSS! *)
 let decode_rules caps data =
-  CapTmp.with_tmp_file caps#tmp ~str:data ~ext:"json" (fun file ->
+  CapTmp.with_temp_file caps#tmp ~contents:data ~suffix:".json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           caps file
@@ -99,7 +103,7 @@ let get_targets session (root : Fpath.t) =
   Find_targets.get_target_fpaths
     {
       targets_conf with
-      project_root = Some (Find_targets.Filesystem proj_root);
+      force_project_root = Some (Find_targets.Filesystem proj_root);
     }
     [ Scanning_root.of_fpath root ]
   |> fst
@@ -174,14 +178,21 @@ let cache_workspace_targets session =
 (* This is dynamic so if the targets file is updated we don't have to restart
  *)
 let targets session =
-  let dirty_files =
-    List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
+  (* These are "dirty paths" because they may not necessarily be files. They may also be folders.
+   *)
+  let dirty_paths_by_workspace =
+    List_.map (fun f -> (f, dirty_paths_of_folder f)) session.workspace_folders
   in
   let member_folder_dirty_files file folder =
-    let dirty_files = List.assoc folder dirty_files in
-    match dirty_files with
+    let dirty_paths_opt = List.assoc folder dirty_paths_by_workspace in
+    match dirty_paths_opt with
     | None -> true
-    | Some files -> List.mem file files
+    | Some dirty_paths ->
+        List.exists
+          (fun dirty_path ->
+            if Fpath.is_dir_path dirty_path then Fpath.is_prefix dirty_path file
+            else file = dirty_path)
+          dirty_paths
   in
   let member_workspace_folder file (folder : Fpath.t) =
     Fpath.is_prefix folder file
@@ -356,6 +367,7 @@ let cache_session session =
       session.cached_session.rules <- rules;
       session.cached_session.skipped_app_fingerprints <-
         skipped_app_fingerprints;
+      session.cached_session.initialized <- true;
       Lwt.return_unit)
 
 let add_skipped_fingerprint session fingerprint =

@@ -101,6 +101,8 @@ def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         encoding=ENCODING,
     ) as proc:
         try:
+            # These need to be local variables because otherwise mypy doesn't
+            # trust the results of the None checks.
             proc_stdin = proc.stdin
             proc_stdout = proc.stdout
             if proc_stdin is None or proc_stdout is None:
@@ -149,3 +151,13 @@ def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
         # could cause this, and we log in the caller too.
         return None
     return ret.value
+
+
+def sarif_format(args: out.SarifFormatParams) -> Optional[out.RetSarifFormat]:
+    call = out.FunctionCall(out.CallSarifFormat(args))
+    ret: Optional[out.RetSarifFormat] = _call(call, out.RetSarifFormat)
+    if ret is None:
+        # No real point in logging here. We log for each of the conditions that
+        # could cause this, and we log in the caller too.
+        return None
+    return ret

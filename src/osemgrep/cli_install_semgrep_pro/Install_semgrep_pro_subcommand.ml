@@ -63,7 +63,8 @@ let download_semgrep_pro (caps : < Cap.network ; .. >) platform_kind dest =
           Logs.err (fun m ->
               m
                 "API token not valid. Try to run `semgrep logout` and `semgrep \
-                 login` again.");
+                 login` again. Or in CI, ensure your SEMGREP_APP_TOKEN \
+                 variable is set correctly.");
           false
       | Error (_, { code = 403; _ }) ->
           Logs.err (fun m ->

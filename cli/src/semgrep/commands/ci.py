@@ -24,6 +24,7 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
+from semgrep.commands.scan import collect_additional_outputs
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
@@ -141,13 +142,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
 )
 @click.option("--code", is_flag=True, hidden=True)
-@click.option("--beta-testing-secrets", is_flag=True, hidden=True)
-@click.option("--historical-secrets", is_flag=True, hidden=True)
 @click.option(
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    hidden=True,
+    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -168,16 +167,12 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
-    # TODO: Remove after October 2023. Left for a error message
-    # redirect to `--secrets` aka run_secrets_flag.
-    beta_testing_secrets: bool,
     historical_secrets: bool,
     internal_ci_scan_results: bool,
     code: bool,
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
-    disable_interfile_diff_scan_flag: bool,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -198,6 +193,14 @@ def ci(
     dataflow_traces: Optional[bool],
     output: Optional[str],
     output_format: OutputFormat,
+    outputs_text: List[str],
+    outputs_emacs: List[str],
+    outputs_json: List[str],
+    outputs_vim: List[str],
+    outputs_gitlab_sast: List[str],
+    outputs_gitlab_secrets: List[str],
+    outputs_junit_xml: List[str],
+    outputs_sarif: List[str],
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
@@ -211,6 +214,7 @@ def ci(
     timeout: int,
     interfile_timeout: Optional[int],
     trace: bool,
+    trace_endpoint: str,
     use_git_ignore: bool,
     verbose: bool,
 ) -> None:
@@ -248,20 +252,6 @@ def ci(
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
-    if beta_testing_secrets:
-        logger.info("Please use --secrets instead of --beta-testing-secrets")
-        sys.exit(FATAL_EXIT_CODE)
-
-    output_settings = OutputSettings(
-        output_format=output_format,
-        output_destination=output,
-        verbose_errors=verbose,
-        timeout_threshold=timeout_threshold,
-        output_time=time_flag,
-        output_per_finding_max_lines_limit=max_lines_per_finding,
-        output_per_line_max_chars_limit=max_chars_per_line,
-    )
-    output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
@@ -364,18 +354,21 @@ def ci(
 
     # Enable beta features
     if scan_handler and scan_handler.generic_slow_rollout:
-        # Add options for slow rollout here
-        pass
+        # slow rollout for pro diff scan
+        diff_depth = 2
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         logger.info(
-            "The --secrets and --oss flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
+            "The --secrets and --oss-only flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
         )
         sys.exit(FATAL_EXIT_CODE)
 
     run_secrets = run_secrets_flag or bool(
-        scan_handler and "secrets" in scan_handler.enabled_products
+        # Run without secrets, regardless of the enabled products, if the --oss-only flag was passed.
+        (not requested_engine is EngineType.OSS)
+        and scan_handler
+        and "secrets" in scan_handler.enabled_products
     )
 
     if not run_secrets and historical_secrets:
@@ -384,11 +377,12 @@ def ci(
 
     supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
-        requested_engine=requested_engine,
-        scan_handler=scan_handler,
-        git_meta=metadata,
+        logged_in=state.app_session.token is not None,
+        engine_flag=requested_engine,
         run_secrets=run_secrets,
-        enable_pro_diff_scan=not disable_interfile_diff_scan_flag,
+        interfile_diff_scan_enabled=diff_depth >= 0,
+        ci_scan_handler=scan_handler,
+        git_meta=metadata,
         supply_chain_only=supply_chain_only,
     )
 
@@ -417,6 +411,29 @@ def ci(
             )
         else:
             run_install_semgrep_pro()
+
+    outputs = collect_additional_outputs(
+        outputs_text=outputs_text,
+        outputs_emacs=outputs_emacs,
+        outputs_json=outputs_json,
+        outputs_vim=outputs_vim,
+        outputs_gitlab_sast=outputs_gitlab_sast,
+        outputs_gitlab_secrets=outputs_gitlab_secrets,
+        outputs_junit_xml=outputs_junit_xml,
+        outputs_sarif=outputs_sarif,
+    )
+    output_settings = OutputSettings(
+        outputs=outputs,
+        output_format=output_format,
+        output_destination=output,
+        verbose_errors=verbose,
+        timeout_threshold=timeout_threshold,
+        output_time=time_flag,
+        output_per_finding_max_lines_limit=max_lines_per_finding,
+        output_per_line_max_chars_limit=max_chars_per_line,
+        dataflow_traces=dataflow_traces,
+    )
+    output_handler = OutputHandler(output_settings)
 
     # Base arguments for actually running the scan. This is done here so we can
     # re-use this in the event we need to perform a second scan. Currently the
@@ -451,6 +468,7 @@ def ci(
         "max_memory": max_memory,
         "interfile_timeout": interfile_timeout,
         "trace": trace,
+        "trace_endpoint": trace_endpoint,
         "timeout_threshold": timeout_threshold,
         "skip_unknown_extensions": (not scan_unknown_extensions),
         "allow_untrusted_validators": allow_untrusted_validators,
@@ -512,7 +530,11 @@ def ci(
         run_secrets and scan_handler and scan_handler.historical_config.enabled
     ) or historical_secrets
 
-    if run_historical_secrets_scan:
+    if run_historical_secrets_scan and metadata.merge_base_ref:
+        logger.info(
+            f"Historical scanning was enabled, but is not yet supported on diff scans."
+        )
+    elif run_historical_secrets_scan:
         try:
             console.print(Title("Secrets Historical Scan"))
 
@@ -593,9 +615,12 @@ def ci(
         if (not rule.from_transient_scan)
     }
 
-    # Since we keep nosemgrep disabled for the actual scan, we have to apply
-    # that flag here
-    keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
+    # Since we keep nosemgrep disabled for the actual scan, we have to
+    # apply that flag here.
+    # If there are multiple outputs and any request to keep_ignores
+    # then all outputs keep the ignores. The only output format that
+    # keep ignored matches currently is sarif.
+    keep_ignored = not enable_nosem or output_handler.keep_ignores()
     for rule, matches in removed_prev_scan_matches.items():
         # Filter out any matches that are triaged as ignored on the app
         if scan_handler:

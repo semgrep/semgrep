@@ -23,10 +23,22 @@ type span = Trace_core.span [@@deriving show]
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)
+(* Levels *)
+(*****************************************************************************)
+
+type level =
+  | Info  (** Enable standard tracing (default level) *)
+  | Debug  (** Enable commonly used debug tracing *)
+  | Trace  (** Enable everything *)
+
+val show_level : level -> string
+
+(*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
 
 val with_span :
+  ?level:level ->
   ?__FUNCTION__:string ->
   __FILE__:string ->
   __LINE__:int ->
@@ -54,6 +66,10 @@ val configure_tracing : string -> unit
     backend with threads, HTTP connections, etc. when called *)
 
 val with_tracing :
-  string -> (string * Trace_core.user_data) list -> (span -> 'a) -> 'a
+  string ->
+  string option ->
+  (string * Trace_core.user_data) list ->
+  (span -> 'a) ->
+  'a
 (** Setup instrumentation and run the passed function.
    Stops instrumenting once that function is finished. *)

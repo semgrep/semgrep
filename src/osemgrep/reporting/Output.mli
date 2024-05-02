@@ -17,6 +17,13 @@ type conf = {
 }
 [@@deriving show]
 
+(* Some parameters that are determined at runtime can also affect
+ * the output. For example, if a user is not logged in, then in
+ * the SARIF output format, we include a message to nudge the user
+ * to log in and try Pro.
+ *)
+type runtime_params = { is_logged_in : bool; is_using_registry : bool }
+
 val default : conf
 
 val preprocess_result : conf -> Core_runner.result -> OutJ.cli_output
@@ -37,8 +44,4 @@ val preprocess_result : conf -> Core_runner.result -> OutJ.cli_output
  * ugly: this also apply autofixes depending on the configuration.
  *)
 val output_result :
-  conf ->
-  Profiler.t ->
-  is_logged_in:bool ->
-  Core_runner.result ->
-  OutJ.cli_output
+  conf -> Profiler.t -> runtime_params -> Core_runner.result -> OutJ.cli_output

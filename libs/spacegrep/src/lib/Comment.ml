@@ -2,6 +2,11 @@
    Strip comments and the like as a preprocessing phase.
 *)
 
+(* Suppresses warnings about PCRE; there appear to be some issues when moving
+   this to use PCRE2 on some versions, e.g., 10.34 (Debian stable as of
+   2024-04-18). *)
+[@@@alert "-deprecated"]
+
 open Printf
 
 type comment_syntax = End_of_line of string | Multiline of string * string

@@ -8,4 +8,4 @@
 val main : < Cap.stdout ; Cap.network > -> string array -> Exit_code.t
 
 (* internal *)
-val run : < Cap.stdout ; Cap.network > -> Login_CLI.conf -> Exit_code.t
+val run_conf : < Cap.stdout ; Cap.network > -> Login_CLI.conf -> Exit_code.t

@@ -1,0 +1,14 @@
+rules:
+- id: ellipsis-metavar-extended-match
+  languages:
+  - python
+  patterns:
+    - pattern: |
+        x = 1
+        $...STMTS
+    - pattern:
+        y = 2
+  message: |
+    This rule should be able to match, because the first pattern should have
+    its range extended to match whatever `$...STMTS` captures!
+  severity: ERROR

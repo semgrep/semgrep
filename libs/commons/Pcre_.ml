@@ -1,3 +1,17 @@
+(* Martin Jambon
+
+   (c) 2019 Semgrep, Inc.
+
+   This library is free software; you can redistribute it and/or modify it
+   under the terms of the GNU Lesser General Public License version 2.1 as
+   published by the Free Software Foundation, with the special exception on
+   linking described in file LICENSE.
+
+   This library is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+   FITNESS FOR A PARTICULAR PURPOSE. See the file LICENSE for more details.
+*)
+
 (*
    Shared settings for using the Pcre module (pcre-ocaml library).
 *)
@@ -12,7 +26,9 @@ type t = {
 }
 [@@deriving show, eq]
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let src = Logs.Src.create "commons.pcre"
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (*
    Provide missing error->string conversion
@@ -110,9 +126,9 @@ let log_error rex subj err =
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  Logs.warn (fun m ->
-      m ~tags "PCRE error: %s on input %S. Source regexp: %S"
-        (string_of_error err) string_fragment rex.pattern)
+  Log.err (fun m ->
+      m "PCRE error: %s on input %S. Source regexp: %S" (string_of_error err)
+        string_fragment rex.pattern)
 
 let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
   match pmatch ?iflags ?flags ~rex ?pos ?callout subj with
@@ -187,3 +203,5 @@ let get_named_substring_and_ofs rex name substrings =
   | Not_found -> Ok None
   | Invalid_argument msg ->
       Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)
+
+let quote = Pcre.quote

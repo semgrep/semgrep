@@ -15,7 +15,7 @@ let string_of_int_option = function
 
 let test_iter_with_view_into_neighbor_elements name list =
   Testo.create ~category:[ "List_.iter_with_view_into_neighbor_elements" ]
-    ~checked_output:Stdout name (fun () ->
+    ~checked_output:(Testo.stdout ()) name (fun () ->
       printf "input list: %s\n" (string_of_int_list list);
       list
       |> List_.iter_with_view_into_neighbor_elements (fun ~prev ~cur ~next ->

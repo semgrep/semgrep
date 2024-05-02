@@ -1,7 +1,7 @@
 (* Colleen Dai
  * Yoann Padioleau
  *
- * Copyright (c) 2021, 2022 R2C
+ * Copyright (c) 2021, 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -57,6 +57,22 @@ let vars_to_pattern (l, xs, r) =
   PatTuple (l, ys, r)
 
 (*****************************************************************************)
+(* Constants *)
+(*****************************************************************************)
+
+(* The fake name @@@PARTIAL_CLASS_DECLARATION is used to distinguish
+ * 1) two valid class declarations in a row vs
+ * 2) a class declaration followed by a partial class declaration
+ *
+ * Valid kotlin programs cannot have class names that have @@@, so we will
+ * know that this did not come from the source code.
+ *
+ * We will use this fake name to detect partial class
+ * declarations in the function merge_class_declarations below.
+ *)
+let fake_name_for_partial_class_decl = "@@@PARTIAL_CLASS_DECLARATION"
+
+(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-kotlin/Boilerplate.ml *)
@@ -76,21 +92,18 @@ let equality_operator (env : env) (x : CST.equality_operator) =
   | `BANGEQEQ tok -> (NotPhysEq, token env tok) (* "!==" *)
   | `EQEQ tok -> (Eq, token env tok) (* "==" *)
   | `EQEQEQ tok -> (PhysEq, token env tok)
-
 (* "===" *)
 
 let anon_choice_val_2833752 (env : env) (x : CST.anon_choice_val_2833752) =
   match x with
   | `Val tok -> (Const, token env tok) (* "val" *)
   | `Var tok -> (Mutable, token env tok)
-
 (* "var" *)
 
 let platform_modifier (env : env) (x : CST.platform_modifier) =
   match x with
   | `Expect tok -> G.unhandled_keywordattr (str env tok) (* "expect" *)
   | `Actual tok -> G.unhandled_keywordattr (str env tok)
-
 (* "actual" *)
 
 let real_literal (env : env) (tok : CST.real_literal) =
@@ -104,7 +117,6 @@ let comparison_operator (env : env) (x : CST.comparison_operator) =
   | `GT tok -> (Gt, token env tok) (* ">" *)
   | `LTEQ tok -> (LtE, token env tok) (* "<=" *)
   | `GTEQ tok -> (GtE, token env tok)
-
 (* ">=" *)
 
 let assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
@@ -114,7 +126,6 @@ let assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   | `STAREQ tok -> (Mult, token env tok) (* "*=" *)
   | `SLASHEQ tok -> (Div, token env tok) (* "/=" *)
   | `PERCEQ tok -> (Mod, token env tok)
-
 (* "%=" *)
 
 let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
@@ -122,7 +133,6 @@ let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
   | `Abst tok -> KeywordAttr (Abstract, token env tok) (* "abstract" *)
   | `Final tok -> KeywordAttr (Final, token env tok) (* "final" *)
   | `Open tok -> G.unhandled_keywordattr (str env tok)
-
 (* "open" *)
 
 let postfix_unary_operator (env : env) (x : CST.postfix_unary_operator) =
@@ -999,7 +1009,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         | Some x -> type_constraints env x
         | None -> []
       in
-      let v7 =
+      let vinit =
         match v7 with
         | Some x -> (
             match x with
@@ -1010,7 +1020,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
             | `Prop_dele x -> property_delegate env x)
         | None -> None
       in
-      let _v8 =
+      let vtok =
         match v8 with
         | Some tok -> (* ";" *) Some (token env tok)
         | None -> None
@@ -1030,7 +1040,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
                 Some (Either.Right x)
             | None -> None)
       in
-      let vdef = { vinit = v7; vtype = typopt } in
+      let vdef = { vinit; vtype = typopt; vtok } in
       let ent = { name = entname; attrs = v2 :: v1; tparams = v3 } in
       (ent, VarDef vdef)
   | `Type_alias (v0, v1, v2, v3, v4, v5) ->
@@ -1865,6 +1875,40 @@ and statement (env : env) (x : CST.statement) : stmt =
             G.exprstmt v1
       in
       v2
+  | `Part_class_decl (v1, v2, v3, v4, v5, v6, v7) ->
+      let tparams =
+        match v1 with
+        | Some x -> Some (type_parameters env x)
+        | None -> None
+      in
+      let cparams = primary_constructor env (Some (v2, v3), v4) in
+      let cextends =
+        match v5 with
+        | Some (v1, v2) ->
+            let _v1 = token env v1 (* ":" *) in
+            let v2 = delegation_specifiers env v2 in
+            v2
+        | None -> []
+      in
+      let _type_constraints_TODO =
+        match v6 with
+        | Some x -> type_constraints env x
+        | None -> []
+      in
+      let cbody =
+        match v7 with
+        | Some x -> class_body env x
+        | None -> fb []
+      in
+      let ckind = (Class, fake "class") in
+      (* See Constants section above why we use fake_name_for_partial_class_decl. *)
+      let fake_ident = (fake_name_for_partial_class_decl, fake "fake_tok") in
+      let ent = basic_entity fake_ident ~tparams in
+      let cdef =
+        { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
+      in
+      let def = (ent, ClassDef cdef) in
+      DefStmt def |> G.s
 
 and statements (env : env) ((v1, v2, v3) : CST.statements) =
   let v1 = statement env v1 in
@@ -2264,6 +2308,60 @@ let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
   let _semi = semi env v5 in
   ()
 
+let merge_class_declarations (xs : stmt list) : stmt list =
+  let rec merge rev_acc (xs : stmt list) =
+    match xs with
+    (* Merge two consecutive class declarations, if the second one
+     * is a partial class declaration.
+     *
+     * For the first class declaration, only the name, kind of class,
+     * attributes, and type parameters will/may be populated because
+     * it will come from the code
+     *   @SomeAttribute class SomeClassName < TypeParam >
+     * or
+     *   @SomeAttribute enum SomeClassName < TypeParam >
+     *
+     * The rest is populated by the second part which is a partial
+     * class declaration.
+     *
+     * We expect that each class declaration will have at most one
+     * corresponding partial class declaration that follows immediately.
+     *
+     * If we missed something and somehow this is not the case, we will
+     * let the partial class declaration remain in the Generic AST.
+     *)
+    | { s = DefStmt ({ name; attrs; tparams }, ClassDef { ckind; _ }); _ }
+      :: {
+           s =
+             DefStmt
+               ( {
+                   name = EN (Id ((class_name, _), _));
+                   attrs = [];
+                   tparams = new_tparams;
+                 },
+                 ClassDef
+                   { ckind = _; cextends; cimplements; cmixins; cparams; cbody }
+               );
+           _;
+         }
+      :: rest
+      when class_name = fake_name_for_partial_class_decl ->
+        let tparams =
+          match tparams with
+          | Some _ -> tparams
+          | None -> new_tparams
+        in
+        let ent = { name; attrs; tparams } in
+        let cdef =
+          ClassDef { ckind; cextends; cimplements; cmixins; cparams; cbody }
+        in
+        let stmt = DefStmt (ent, cdef) |> G.s in
+        merge (stmt :: rev_acc) rest
+    | x :: rest -> merge (x :: rev_acc) rest
+    | [] -> List.rev rev_acc
+  in
+  merge [] xs
+
 let source_file (env : env) (x : CST.source_file) : any =
   match x with
   | `Opt_sheb_line_rep_file_anno_opt_pack_header_rep_import_list_rep_stmt_semi
@@ -2288,8 +2386,9 @@ let source_file (env : env) (x : CST.source_file) : any =
             v1)
           v5
       in
+      let xs = merge_class_declarations v5 in
       let dirs = v3 @ v4 |> List_.map (fun d -> DirectiveStmt d |> G.s) in
-      Pr (dirs @ v5)
+      Pr (dirs @ xs)
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in
       E v2

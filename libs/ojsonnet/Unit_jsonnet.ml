@@ -19,7 +19,7 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-let test_maker_err dir : Testo.test list =
+let test_maker_err dir : Testo.t list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -35,7 +35,7 @@ let test_maker_err dir : Testo.test list =
                  Alcotest.(check bool) "this raised an error" true true))
 
 let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
-    Testo.test list =
+    Testo.t list =
   Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -91,7 +91,7 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                         failwith
                           (spf "this threw an error with %s" str_strategy))))
 
-let tests () : Testo.test list =
+let tests () : Testo.t list =
   Testo.categorize_suites "ojsonnet"
     [
       mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];

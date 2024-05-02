@@ -60,10 +60,10 @@ let mk_vars xs ys =
   let rec aux xs ys =
     match (xs, ys) with
     | [], [] -> []
-    | x :: xs, [] ->
-        (x, G.VarDef { G.vinit = None; G.vtype = None }) :: aux xs ys
+    | x :: xs, [] -> (x, G.VarDef G.empty_var) :: aux xs ys
     | x :: xs, y :: ys ->
-        (x, G.VarDef { G.vinit = Some y; G.vtype = None }) :: aux xs ys
+        (x, G.VarDef { G.vinit = Some y; vtype = None; vtok = G.no_sc })
+        :: aux xs ys
     | [], _y :: _ys -> []
   in
   aux xs ys
@@ -549,7 +549,7 @@ and map_loop_expression (env : env)
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let _v2 = token env v2 (* "=" *) in
   let _v3 = map_expression env v3 in
-  let var : G.variable_definition = { vinit = None; vtype = None } in
+  let var : G.variable_definition = G.empty_var in
   let for_init_var = G.ForInitVar (G.basic_entity v1, var) in
   let _v4 = token env v4 (* "," *) in
   let v5 = map_expression env v5 in

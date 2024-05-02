@@ -1,0 +1,15 @@
+Test name: without git > semgrepignore file takes precedence over --include
+--- Files not added to git ---
+.semgrepignore
+c.c
+dir/a.c
+dir/b.c
+--- begin input files ---
+--- end input files ---
+--- '--include' patterns ---
+*.c
+--- Selected targets ---
+selected c.c
+--- Skipped targets ---
+ignored .semgrepignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]
+ignored dir [Semgrep_output_v1_t.Semgrepignore_patterns_match]

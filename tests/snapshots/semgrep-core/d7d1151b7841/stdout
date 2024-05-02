@@ -1,0 +1,21 @@
+Test name: with git > gitignore file is always consulted
+--- Files added before 'git add' ---
+.gitignore
+c
+--- Files not added to git ---
+a
+b
+--- begin input files ---
+.gitignore
+c
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .gitignore
+ create mode 100644 c
+--- Selected targets ---
+selected .gitignore
+selected a
+selected c
+--- Skipped targets ---

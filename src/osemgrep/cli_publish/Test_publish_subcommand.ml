@@ -172,7 +172,7 @@ let tests (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) =
           (Should_fail
              "TODO: something calls 'Error.exit 2' which raises an exception \
               that makes the test fail where it shouldn't.")
-        ~checked_output:Stderr
+        ~checked_output:(Testo.stderr ())
         ~normalize:
           [
             (* We expect all these substrings, in this order *)

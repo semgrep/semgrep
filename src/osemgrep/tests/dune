@@ -1,6 +1,7 @@
 (library
   (public_name semgrep.osemgrep_tests)
   (name osemgrep_tests)
+  (wrapped false)
   (libraries
     commons
 

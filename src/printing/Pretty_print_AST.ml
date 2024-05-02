@@ -223,6 +223,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Php
     | Lang.Promql
     | Lang.Protobuf
+    | Lang.Ql
     | Lang.Hack
     | Lang.Yaml
     | Lang.Html
@@ -302,7 +303,8 @@ and while_stmt env (tok, e, s) =
     | Lang.Solidity
     | Lang.Swift
     | Lang.Html
-    | Lang.Terraform ->
+    | Lang.Terraform
+    | Lang.Ql ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -368,6 +370,7 @@ and do_while stmt env (s, e) =
     | Lang.Python
     | Lang.Python2
     | Lang.Python3
+    | Lang.Ql
     | Lang.Go
     | Lang.Json
     | Lang.Jsonnet
@@ -424,8 +427,9 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
     | Lang.Json
     | Lang.Jsonnet
-    | Lang.Ocaml ->
-        failwith "JSON/OCaml has for loops????"
+    | Lang.Ocaml
+    | Lang.Ql ->
+        failwith "JSON/OCaml/QL has for loops????"
   in
   let show_init = function
     | ForInitVar (ent, var_def) ->
@@ -520,7 +524,8 @@ and def_stmt env (entity, def_kind) =
       | Lang.Python
       | Lang.Python2
       | Lang.Python3
-      | Lang.Ruby ->
+      | Lang.Ruby
+      | Lang.Ql ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
       | Lang.Rust ->

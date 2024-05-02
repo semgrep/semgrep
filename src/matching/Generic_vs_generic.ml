@@ -1544,19 +1544,19 @@ and m_xml_kind a b =
         (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
-           let* () = m_ident a1 b1 in
+           let* () = m_ident_and_id_info a1 b1 in
            let* () = m_tok a2 b2 in
            return ())
         ~else_:(fail ())
   | G.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident a1 b1 in
+      let* () = m_ident_and_id_info a1 b1 in
       let* () = m_tok a2 b2 in
       let* () = m_tok a3 b3 in
       return ()
   | G.XmlSingleton (a0, a1, a2), B.XmlSingleton (b0, b1, b2) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident a1 b1 in
+      let* () = m_ident_and_id_info a1 b1 in
       let* () = m_tok a2 b2 in
       return ()
   | G.XmlFragment (a1, a2), B.XmlFragment (b1, b2) ->
@@ -2440,11 +2440,20 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
         | (inits, rest) :: xs ->
             envf (s, tok) (MV.Ss inits)
             >>= (fun () ->
-                  (* less: env_add_matched_stmt ?? *)
-                  (* when we use { $...BODY }, we don't have an implicit
-                   * ... after, so we use less_is_ok:false here
-                   *)
-                  m_list__m_stmt ~less_is_ok:false xsa rest)
+                  (* If we don't do this, patterns ending in an ellipsis metavariable, like:
+                     x = 1
+                     $...STMTS
+                     will not properly extend the range of the match with whatever $...STMTS
+                     matches.
+                  *)
+                  match List_.last_opt inits with
+                  | None -> m_list__m_stmt ~less_is_ok:false xsa rest
+                  | Some last ->
+                      env_add_matched_stmt last >>= fun () ->
+                      (* when we use { $...BODY }, we don't have an implicit
+                         * ... after, so we use less_is_ok:false here
+                      *)
+                      m_list__m_stmt ~less_is_ok:false xsa rest)
             >||> aux xs
       in
       aux candidates
@@ -3161,9 +3170,11 @@ and m_parameter_classic a b =
 and m_variable_definition a b =
   match (a, b) with
   (* boilerplate *)
-  | { G.vinit = a1; vtype = a2 }, { B.vinit = b1; vtype = b2 } ->
-      (m_option m_expr) a1 b1 >>= fun () ->
-      (m_option_none_can_match_some m_type_) a2 b2
+  | ( { G.vinit = a1; vtype = a2; vtok = _a3 },
+      { B.vinit = b1; vtype = b2; vtok = _b3 } ) ->
+      let* () = (m_option m_expr) a1 b1 in
+      let* () = (m_option_none_can_match_some m_type_) a2 b2 in
+      return ()
 
 (* ------------------------------------------------------------------------- *)
 (* Field definition and use *)
@@ -3543,7 +3554,7 @@ and m_directive_vs_def a b =
                             _ ) );
                     _;
                   };
-              vtype = _;
+              _;
             } ) ) ->
         (* Match the pattern `import "foo"` against `const x = require("foo")` *)
         m_wrap m_string filea fileb
@@ -3575,7 +3586,7 @@ and m_directive_vs_def a b =
                           } );
                     _;
                   };
-              vtype = _;
+              _;
             } ) )
       when id_str = B.special_multivardef_pattern ->
         let* () = m_wrap m_string filea fileb in

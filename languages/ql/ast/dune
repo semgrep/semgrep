@@ -1,0 +1,10 @@
+(library
+ (public_name parser_ql.ast)
+ (name parser_ql_ast)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing
+ )
+ (preprocess (pps ppx_deriving.show))
+)

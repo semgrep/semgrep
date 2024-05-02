@@ -1,5 +1,5 @@
 (* Capabilities implemented as simple abstract types and explicit
- * parameters ("Lambda the ultimate security tool").
+ * (object) arguments/parameters ("Lambda the ultimate security tool").
  *
  * Note that most of the types below are on purpose abstract and there is
  * no way to build/forge them except by calling the restricted (statically
@@ -76,12 +76,14 @@ module File : sig
 end
 
 module Network : sig
-  (* TODO? make specific host subcapability? like semgrep_url_capa ? *)
+  (* TODO? make specific host subcapability? like semgrep_url_capa ?
+   * imitate Rust cap-std project with a pool of allowed IPs?
+   *)
   type t
 end
 
-(* If your program does not use those capabilities, it has the nice property
- * of being deterministic.
+(* If your program does not use the capabilities below, it has the nice
+ * property of being deterministic!
  *)
 module Misc : sig
   type random

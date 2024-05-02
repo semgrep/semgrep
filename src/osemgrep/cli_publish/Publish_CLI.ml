@@ -34,6 +34,7 @@ type conf = {
 let default : conf =
   {
     common =
+      (* TODO? move to CLI_common.ml? *)
       {
         profile = false;
         logging_level = Some Logs.Warning;

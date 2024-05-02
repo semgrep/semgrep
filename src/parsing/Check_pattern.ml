@@ -28,7 +28,8 @@ let lang_has_no_dollar_ids =
     | R
     | Swift
     | Html
-    | Xml ->
+    | Xml
+    | Ql ->
         true
     | Js
     | Ts

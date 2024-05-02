@@ -38,6 +38,7 @@ type conf = {
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
   trace : bool;
+  trace_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]
@@ -68,3 +69,4 @@ val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
 val o_include : string list Cmdliner.Term.t
 val o_exclude : string list Cmdliner.Term.t
+val o_secrets : bool Cmdliner.Term.t

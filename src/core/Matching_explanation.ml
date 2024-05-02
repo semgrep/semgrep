@@ -55,10 +55,10 @@ let rec print_indent indent { op; children; matches; pos } =
       (Tok.bytepos_of_tok pos)
       (matches |> List_.map match_to_charpos_range |> String.concat " ")
   in
-  Out.put s;
+  UConsole.print s;
   children |> List.iter (print_indent (indent + 2))
 
 (* used by semgrep-core -matching_explanations in Text mode output *)
 let print x =
-  Out.put " Matching explanations:";
+  UConsole.print " Matching explanations:";
   print_indent 2 x

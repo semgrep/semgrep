@@ -20,9 +20,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     {
       "check_id": "rules.dependency_aware.swift-swiftpm-sca",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 72,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -42,8 +42,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "swiftpm",
+              "git_ref": "d029d9d39c87bed85b1c50adee7c41795261a192",
               "line_number": 72,
               "package": "swift-collections",
+              "resolved_url": "https://github.com/apple/swift-collections.git",
               "transitivity": "transitive",
               "version": "1.0.6"
             },
@@ -57,9 +59,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/swiftpm/v2/Package.resolved",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 72,
-        "offset": 0
+        "offset": 1
       }
     }
   ],

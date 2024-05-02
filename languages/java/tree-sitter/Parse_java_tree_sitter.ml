@@ -767,7 +767,7 @@ and stmt1 tok = function
 and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
   statement_aux env x |> stmt1 tok
 
-and statement_aux env x : Ast_java.stmt list =
+and statement_aux (env : env) (x : CST.statement) : Ast_java.stmt list =
   match x with
   | `Semg_ellips tok ->
       let tok = (* "..." *) token env tok in
@@ -809,7 +809,7 @@ and statement_aux env x : Ast_java.stmt list =
           let v3 =
             match v3 with
             | `Local_var_decl x ->
-                let xs = local_variable_declaration env x in
+                let xs, _sc = local_variable_declaration env x in
                 ForInitVars xs
             | `Opt_exp_rep_COMMA_exp_SEMI (v1, v2) ->
                 let v1 =
@@ -921,8 +921,8 @@ and statement_aux env x : Ast_java.stmt list =
           let v3 = block env v3 in
           [ Sync (v1, v2, v3) ]
       | `Local_var_decl x ->
-          let xs = local_variable_declaration env x in
-          [ LocalVarList xs ]
+          let xs, sc = local_variable_declaration env x in
+          [ LocalVarList (xs, sc) ]
       | `Throw_stmt (v1, v2, v3) ->
           let v1 = token env v1 (* "throw" *) in
           let v2 = expression env v2 in
@@ -1890,12 +1890,13 @@ and throws (env : env) ((v1, v2, v3) : CST.throws) : typ list =
   v2 :: v3
 
 and local_variable_declaration (env : env)
-    ((v1, v2, v3, v4) : CST.local_variable_declaration) : var_with_init list =
+    ((v1, v2, v3, v4) : CST.local_variable_declaration) :
+    var_with_init list * sc =
   let v1 = modifiers_opt env v1 in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_list env v3 in
-  let _v4 = token env v4 (* ";" *) in
-  decls (fun x -> x) v1 v2 v3
+  let sc = token env v4 (* ";" *) in
+  (decls (fun x -> x) v1 v2 v3, sc)
 
 and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
   let v1 = modifiers_opt env v1 in

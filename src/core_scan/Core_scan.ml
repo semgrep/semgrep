@@ -242,7 +242,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details =
                      Some
                        (spf "Issue creating a target from git blob %s"
-                          (Git_wrapper.show_sha sha));
+                          (Digestif.SHA1.to_hex sha));
                    rule_id = None;
                  })
 
@@ -271,7 +271,7 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
 let print_cli_additional_targets (config : Core_scan_config.t) (n : int) : unit
     =
   match config.output_format with
-  | Json true -> Out.put (string_of_int n)
+  | Json true -> UConsole.print (string_of_int n)
   | _ -> ()
 
 (* TODO: suspicious: this runs in a child process. Please explain how it's
@@ -281,7 +281,7 @@ let print_cli_additional_targets (config : Core_scan_config.t) (n : int) : unit
 let print_cli_progress (config : Core_scan_config.t) : unit =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
-  | Json true -> Out.put "."
+  | Json true -> UConsole.print "."
   | _ -> ()
 
 (*****************************************************************************)
@@ -296,27 +296,28 @@ let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
-      Out.put (spaces_string ^ "call to");
+      UConsole.print (spaces_string ^ "call to");
       Core_text_output.print_match ~format ~spaces call_toks;
       if intermediate_vars <> [] then
-        Out.put
+        UConsole.print
           (spf "%sthese intermediate values are tainted: %s" spaces_string
              (string_of_toks intermediate_vars));
-      Out.put (spaces_string ^ "then");
+      UConsole.print (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
   if format =*= Core_text_output.Normal then
     taint_trace |> Lazy.force
     |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
-           if idx =*= 0 then Out.put "  * Taint may come from this source:"
-           else Out.put "  * Taint may also come from this source:";
+           if idx =*= 0 then
+             UConsole.print "  * Taint may come from this source:"
+           else UConsole.print "  * Taint may also come from this source:";
            print_taint_call_trace ~format ~spaces:4 source_trace;
            if tokens <> [] then
-             Out.put
+             UConsole.print
                (spf "  * These intermediate values are tainted: %s"
                   (string_of_toks tokens));
-           Out.put "  * This is how taint reaches the sink:";
+           UConsole.print "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
@@ -331,6 +332,11 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
   } =
     match_
   in
+  let str =
+    match str with
+    | None -> Common.spf "with rule %s" (Rule_ID.to_string match_.rule_id.id)
+    | Some str -> str
+  in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   let dep_toks_and_version =
     (* Only print the extra data if it was a reachable finding *)
@@ -343,7 +349,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
     | _ -> None
   in
   (if config.mvars =*= [] then
-     Core_text_output.print_match ?str ~format:config.match_format toks
+     Core_text_output.print_match ~str ~format:config.match_format toks
    else
      (* similar to the code of Lib_matcher.print_match, maybe could
       * factorize code a bit.
@@ -362,11 +368,12 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
-     Out.put (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
+     UConsole.print
+       (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
      ());
   dep_toks_and_version
   |> Option.iter (fun (toks, version) ->
-         Out.put ("with dependency match at version " ^ version);
+         UConsole.print ("with dependency match at version " ^ version);
          Core_text_output.print_match ~format:config.match_format toks);
   Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 
@@ -606,8 +613,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let origin = Target.origin target in
-           Logs.info (fun m ->
-               m "Analyzing %s (contents in %s)" (Origin.to_string origin)
+           Logs.debug (fun m ->
+               m ~tags "Analyzing %s (contents in %s)" (Origin.to_string origin)
                  !!internal_path);
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -673,7 +680,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      let errors =
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
-                           Logs.info (fun m ->
+                           Logs.debug (fun m ->
                                m ~tags "Timeout on %s (contents in %s)"
                                  (Origin.to_string origin) !!internal_path);
                            (* TODO what happened here is several rules
@@ -987,9 +994,9 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
              Parse_lockfile.parse_lockfile)
           target.lockfile
       in
-      let default_match_hook str match_ =
+      let default_match_hook match_ =
         if config.output_format =*= Text then
-          print_match ~str config match_ Metavariable.ii_of_mval
+          print_match config match_ Metavariable.ii_of_mval
       in
       let match_hook = Option.value match_hook ~default:default_match_hook in
       let xconf =
@@ -1082,7 +1089,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
     ];
 
   (* Let's go! *)
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "processing %d files, skipping %d files" num_targets
         num_skipped_targets);
   let file_results, scanned_targets =
@@ -1104,11 +1111,9 @@ let scan ?match_hook (caps : < Cap.tmp >) config
      * the extracted targets
      *)
     targets
-    |> List_.map_filter (fun (x : Target.t) ->
+    |> List.filter (fun (x : Target.t) ->
            let internal_path = Target.internal_path x in
-           if Hashtbl.mem scanned_target_table !!internal_path then
-             Some internal_path
-           else None)
+           Hashtbl.mem scanned_target_table !!internal_path)
   in
   (* Since the OSS engine was invoked, there were no interfile languages
      requested *)
@@ -1122,7 +1127,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   let num_errors = List.length res.errors in
   Tracing.add_data_to_opt_span config.top_level_span
     [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "found %d matches, %d errors" num_matches num_errors);
 
   let processed_matches, new_errors, new_skipped =
@@ -1140,7 +1145,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 
   (* Concatenate all the skipped targets *)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m ~tags "there were %d skipped targets" (List.length skipped_targets));
   (* TODO: returning, or not skipped_targets does not seem to have any impact
    * on our testsuite, weird. We need to add more tests. Maybe because
@@ -1170,6 +1175,6 @@ let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
-      Logs.info (fun m ->
+      Logs.debug (fun m ->
           m ~tags "Uncaught exception: %s" (Exception.to_string e));
       Error (e, None)

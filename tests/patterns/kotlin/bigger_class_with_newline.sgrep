@@ -1,0 +1,4 @@
+class $X <$T1, $T2>
+constructor (arg:Int): $BASE_CLASS {
+  ...
+}

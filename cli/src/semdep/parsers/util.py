@@ -220,6 +220,10 @@ def parse_error_to_str(e: ParseError) -> str:
         return f"expected one of {expected_list}"
 
 
+def filter_on_marked_lines(result: list[Any]) -> list[tuple]:
+    return [x for x in result if isinstance(x, tuple)]
+
+
 @dataclass
 class DependencyFileToParse(Generic[A]):
     path: Path
@@ -299,6 +303,10 @@ def parse_dependency_file(
                 line + 1,
                 col + 1,
             )
+    except Exception as e:
+        return DependencyParserError(
+            file_to_parse.path.name, file_to_parse.parser_name, str(e)
+        )
 
 
 def safe_parse_lockfile_and_manifest(

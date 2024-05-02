@@ -1,13 +1,14 @@
 (executables
  (names Main)
  (flags
-   (:include flags.sexp)
+   (:standard (:include flags.sexp))
 ;   (:standard -open TCB -open Commons_TCB)
    )
  (libraries
     TCB
     semgrep_core_cli
     osemgrep_cli
+    ; implementations of dune virtual modules
     lwt_platform.unix
     tracing.unix
  )
@@ -21,7 +22,9 @@
 (rule
  (targets flags.sexp)
  (enabled_if (<> %{os_type} Win32))
- (action (run %{workspace_root}/src/main/flags.sh)))
+ (action
+  (with-stdout-to flags.sexp
+   (run ./flags.sh %{ocaml-config:system}))))
 
 ; flags.sh won't run properly in Windows, so simply hardcode to ( :standard )
 ; todo: is there an easy way to do static compilation in Windows?
@@ -29,7 +32,7 @@
 (rule
  (targets flags.sexp)
  (enabled_if (= %{os_type} Win32))
- (action (write-file %{targets} "( :standard )")))
+ (action (write-file %{targets} "( )")))
 
 (install
  (package semgrep)

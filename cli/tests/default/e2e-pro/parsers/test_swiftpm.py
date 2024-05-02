@@ -3,6 +3,12 @@ import textwrap
 import pytest
 
 from semdep.parsers import swiftpm
+from semdep.parsers.util import json_doc
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -256,3 +262,123 @@ def test_swift_dependencies_block_parser():
 
     result = swiftpm.dependencies_block.parse_partial(deps)
     assert result[0] == [(2, "package_1"), (3, "package_2"), (4, "package_3")]
+
+
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_swift_lockfile_v1_parser():
+    lockfile_v1 = json_doc.parse(
+        """
+    {
+      "object": {
+        "pins": [
+          {
+            "package": "Curry",
+            "repositoryURL": "https://github.com/thoughtbot/Curry.git",
+            "state": {
+              "branch": null,
+              "revision": "4331dd50bc1db007db664a23f32e6f3df93d4e1a",
+              "version": "4.0.2"
+            }
+          },
+          {
+            "package": "PrettyColors",
+            "repositoryURL": "https://github.com/jdhealy/PrettyColors.git",
+            "state": {
+              "branch": null,
+              "revision": "afd4553a4db6f656521cfe9b1f70bece2748c7d8",
+              "version": "5.0.2"
+            }
+          }
+        ]
+      },
+      "version": 1
+    }
+    """
+    ).as_dict()
+
+    found_deps = swiftpm.parse_swiftpm_v1(lockfile_v1, {""})
+    expected_deps = [
+        FoundDependency(
+            package="curry",
+            version="4.0.2",
+            ecosystem=Ecosystem(SwiftPM()),
+            allowed_hashes={},
+            transitivity=Transitivity(Transitive()),
+            line_number=11,
+            git_ref="4331dd50bc1db007db664a23f32e6f3df93d4e1a",
+            resolved_url="https://github.com/thoughtbot/Curry.git",
+        ),
+        FoundDependency(
+            package="prettycolors",
+            version="5.0.2",
+            ecosystem=Ecosystem(SwiftPM()),
+            allowed_hashes={},
+            transitivity=Transitivity(Transitive()),
+            line_number=20,
+            git_ref="afd4553a4db6f656521cfe9b1f70bece2748c7d8",
+            resolved_url="https://github.com/jdhealy/PrettyColors.git",
+        ),
+    ]
+
+    assert found_deps == expected_deps
+
+
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_swift_lockfile_v2_parser():
+    lockfile_v2 = json_doc.parse(
+        """
+    {
+      "pins" : [
+        {
+          "identity" : "bson",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/orlandos-nl/BSON.git",
+          "state" : {
+            "revision" : "944dfb3b0eb028f477c25ba6a071181de8ab903a",
+            "version" : "8.0.10"
+          }
+        },
+        {
+          "identity" : "dnsclient",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/orlandos-nl/DNSClient.git",
+          "state" : {
+            "revision" : "770249dcb7259c486f2d68c164091b115ccb765f",
+            "version" : "2.2.1"
+          }
+        }
+      ],
+      "version": 1
+    }
+    """
+    ).as_dict()
+
+    found_deps = swiftpm.parse_swiftpm_v2(lockfile_v2, {""})
+    expected_deps = [
+        FoundDependency(
+            package="bson",
+            version="8.0.10",
+            ecosystem=Ecosystem(SwiftPM()),
+            allowed_hashes={},
+            transitivity=Transitivity(Transitive()),
+            line_number=10,
+            git_ref="944dfb3b0eb028f477c25ba6a071181de8ab903a",
+            resolved_url="https://github.com/orlandos-nl/BSON.git",
+        ),
+        FoundDependency(
+            package="dnsclient",
+            version="2.2.1",
+            ecosystem=Ecosystem(SwiftPM()),
+            allowed_hashes={},
+            transitivity=Transitivity(Transitive()),
+            line_number=19,
+            git_ref="770249dcb7259c486f2d68c164091b115ccb765f",
+            resolved_url="https://github.com/orlandos-nl/DNSClient.git",
+        ),
+    ]
+
+    assert found_deps == expected_deps

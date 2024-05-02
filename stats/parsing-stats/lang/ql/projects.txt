@@ -1,0 +1,2 @@
+https://github.com/github/codeql
+https://github.com/trailofbits/codeql-queries

@@ -8,9 +8,9 @@
     }
   },
   "results": {
-    "rules/fixtest/test1.yaml": {
+    "rules/fixtest/basic_fix.yaml": {
       "checks": {
-        "test1": {
+        "basic-fix": {
           "errors": [],
           "matches": "<masked in tests>",
           "passed": true

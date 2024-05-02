@@ -43,6 +43,7 @@ type t = Language.t =
   | Python2
   | Python3
   | Python
+  | Ql
   | R
   | Ruby
   | Rust

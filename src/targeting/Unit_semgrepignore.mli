@@ -2,4 +2,4 @@
    Unit tests for semgrepignore file filtering
 *)
 
-val tests : Testo.test list
+val tests : Testo.t list

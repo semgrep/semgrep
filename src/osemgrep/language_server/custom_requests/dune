@@ -5,5 +5,9 @@
  (libraries
    semgrep.language_server.util
    osemgrep_language_server_server
+   semgrep.osemgrep_cli_scan
+   semgrep.language_server.scan_helpers
+   glob
+   semgrep_core
  )
 )

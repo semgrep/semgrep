@@ -38,7 +38,7 @@ let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
    * nosem and nosemgrep should be interchangeable
 *)
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let nosem_inline_re = Pcre_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
+let nosem_inline_re = Pcre2_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 
 (*
    A nosemgrep comment alone on its line.
@@ -53,7 +53,7 @@ let nosem_inline_re = Pcre_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
      print('nosemgrep');
 *)
 let nosem_previous_line_re =
-  Pcre_.regexp
+  Pcre2_.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
@@ -70,12 +70,12 @@ let recognise_and_collect ~rex (line_num, line) =
      than one match The above regex seems like it's recognizing a single instance
      of "nosemgrep: <ids>", which shouldn't occur more than once in a single line?
   *)
-  match Pcre_.exec_all ~rex line with
+  match Pcre2_.exec_all ~rex line with
   | Error _ -> None
   | Ok arr ->
       Array.to_list arr
       |> List.concat_map (fun subst ->
-             match Pcre_.get_named_substring_and_ofs rex "ids" subst with
+             match Pcre2_.get_named_substring_and_ofs rex "ids" subst with
              | Ok (Some (s, (begin_ofs, _end_ofs))) ->
                  (* TODO: This will associate each ID with the range of the entire ID list.
                     Fix later.

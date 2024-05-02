@@ -28,9 +28,31 @@ type span = int64 [@@deriving show]
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)
+(* Levels *)
+(*****************************************************************************)
+
+type level =
+  | Info  (** Enable standard tracing (default level) *)
+  | Debug  (** Enable commonly used debug tracing *)
+  | Trace  (** Enable everything *)
+
+let show_level = function
+  | Info -> "Info"
+  | Debug -> "Debug"
+  | Trace -> "Trace"
+
+let level_to_trace_level level =
+  match level with
+  | Info -> Trace_core.Level.Info
+  | Debug -> Trace_core.Level.Debug1
+  | Trace -> Trace_core.Level.Trace
+
+(*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
-let with_span = Trace_core.with_span
+let with_span ?(level = Info) =
+  let level = level_to_trace_level level in
+  Trace_core.with_span ~level
 
 let add_data_to_span (_i : span) (_data : (string * Trace_core.user_data) list)
     =
@@ -46,6 +68,6 @@ let add_data_to_opt_span (_i : span option)
 
 let configure_tracing (_service_name : string) = ()
 
-let with_tracing (_fname : string)
+let with_tracing (_fname : string) (_trace_endpoint : string option)
     (_data : (string * Trace_core.user_data) list) f =
   f 0L

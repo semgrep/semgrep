@@ -56,11 +56,11 @@ on:
         required: true
         type: string
       docker-flavor:
-        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image. See https://github.com/docker/metadata-action#flavor-input for more information
+        description: 'Multi-line string for the metadata tag action for the flavor of the image. '
         required: true
         type: string
       docker-tags:
-        description: A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image. See https://github.com/docker/metadata-action#tags-input for more information
+        description: 'Multi-line string for the metadata tag action for the tags to apply to the image. '
         required: true
         type: string
       enable-tests:
@@ -86,11 +86,11 @@ on:
         required: true
         type: string
       docker-flavor:
-        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image. See https://github.com/docker/metadata-action#flavor-input for more information
+        description: 'Multi-line string for the metadata tag action for the flavor of the image. '
         required: true
         type: string
       docker-tags:
-        description: A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image. See https://github.com/docker/metadata-action#tags-input for more information
+        description: 'Multi-line string for the metadata tag action for the tags to apply to the image. '
         required: true
         type: string
       enable-tests:

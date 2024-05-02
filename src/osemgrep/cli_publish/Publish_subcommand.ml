@@ -163,6 +163,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
 (*****************************************************************************)
 
 let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | Some token -> (
@@ -220,7 +221,7 @@ let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
           else (
             Logs.err (fun m -> m "%d rules failed to upload" fail_count);
             Exit_code.fatal ~__LOC__))
-  | _ ->
+  | None ->
       Logs.err (fun m -> m "run `semgrep login` before using upload");
       Exit_code.fatal ~__LOC__
 

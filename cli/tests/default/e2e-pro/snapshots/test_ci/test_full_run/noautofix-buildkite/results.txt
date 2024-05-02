@@ -36,6 +36,22 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
            27┆ sink(d2)
 
 
+          Taint comes from:
+
+           26┆ d2 = danger
+
+
+          Taint flows through these intermediate variables:
+
+           26┆ d2 = danger
+
+
+                This is how taint reaches the sink:
+
+           27┆ sink(d2)
+
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
@@ -80,6 +96,11 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
   CONNECTION
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
+
+  ENGINE
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
 
 ┌─────────────┐
 │ Scan Status │

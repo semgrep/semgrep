@@ -1,11 +1,7 @@
 (* Small wrapper around Cohttp data structures to access conveniently
  * all results (body, http code) from a GET http request.
  *)
-type get_info = {
-  response : Cohttp.Response.t;
-  body : Cohttp_lwt.Body.t;
-  code : int;
-}
+type get_info = { response : Cohttp.Response.t; code : int }
 
 (* This is functorized because we must run http requests differently
  * depending on the platform (native vs jsoo). To use this module do:

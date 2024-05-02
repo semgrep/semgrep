@@ -50,6 +50,10 @@ let reset () =
   Pro_hooks.reset_pro_hooks ();
   (* TODO?
    * - Http_helpers.client_ref ?
+   * - Std_msg.highlight_xxx
+   * - Logs library state
+   * - Xpattern.count
+   * - GenSym.MkId for AST_generic.SId and AST_generic.IdInfoId
    * - many more
    *)
   ()

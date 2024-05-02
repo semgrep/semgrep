@@ -293,7 +293,7 @@ let create_core_result (all_rules : Rule.rule list)
         let err = Core_error.exn_to_error None "" exn in
         Core_result.mk_final_result_with_just_errors [ err ]
   in
-  let scanned = Set_.of_list res.scanned in
+  let scanned = res.scanned |> List_.map Target.internal_path |> Set_.of_list in
   let match_results = Core_json_output.core_output_of_matches_and_errors res in
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:
@@ -385,7 +385,9 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
           }
         in
 
-        let scanned = Set_.of_list res.scanned in
+        let scanned =
+          res.scanned |> List_.map Target.internal_path |> Set_.of_list
+        in
 
         (* TODO(dinosaure): currently, we don't collect metrics when we invoke
            semgrep-core but we should. However, if we implement a way to collect

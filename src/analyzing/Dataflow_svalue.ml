@@ -41,8 +41,6 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-type constness = Constant of G.const_type | NotConstant [@@deriving show]
-
 (*****************************************************************************)
 (* Hooks *)
 (*****************************************************************************)
@@ -108,16 +106,16 @@ let result_of_function_call_constant lang f args =
         _;
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
-      Some G.Cstr
+      Some (G.Cst G.Cstr)
   (* Pro/Interfile: Look up inferred constness of the function *)
   | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
       match !hook_constness_of_function with
       | Some constness_of_func -> (
           match constness_of_func eorig with
-          | Some (Constant kind) -> Some kind
-          | Some NotConstant
+          | Some G.NotCst
           | None ->
-              None)
+              None
+          | Some svalue -> Some svalue)
       | None -> None)
   | __else__ -> None
 
@@ -337,22 +335,24 @@ let transfer :
     | TrueNode cond -> transfer_of_assume true cond.e inp'
     | FalseNode cond -> transfer_of_assume false cond.e inp'
     | NInstr instr -> (
+        let eval_env = Eval.mk_env lang inp' in
+
         (* TODO: For now we only handle the simplest cases. *)
         match instr.i with
         | Assign ({ base = Var var; rev_offset = [] }, exp) ->
             (* var = exp *)
-            let cexp = eval_or_sym_prop inp' exp in
+            let cexp = eval_or_sym_prop eval_env exp in
             update_env_with inp' var cexp
         | Call (Some { base = Var var; rev_offset = [] }, func, args) -> (
             let args_val =
               List_.map
-                (fun arg -> Eval.eval inp' (IL_helpers.exp_of_arg arg))
+                (fun arg -> Eval.eval eval_env (IL_helpers.exp_of_arg arg))
                 args
             in
             match result_of_function_call_constant lang func args_val with
-            | Some kind -> VarMap.add (IL.str_of_name var) (G.Cst kind) inp'
+            | Some svalue -> VarMap.add (IL.str_of_name var) svalue inp'
             | None -> (
-                match eval_builtin_func lang inp' func args with
+                match eval_builtin_func lang eval_env func args with
                 | None
                 | Some NotCst ->
                     (* symbolic propagation *)
@@ -371,7 +371,7 @@ let transfer :
               (* We try to evaluate the special function, if we know how. *)
               if special =*= Concat then
                 (* var = concat(args) *)
-                Eval.eval_concat inp' args
+                Eval.eval_concat eval_env args
               else G.NotCst
             in
             let cexp =

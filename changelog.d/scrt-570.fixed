@@ -1,0 +1,2 @@
+Moved `--historical-secrets` to the "Pro Engine" option group, instead of
+"Output formats", where it was previously (in error).

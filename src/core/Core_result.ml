@@ -100,7 +100,10 @@ type t = {
   (* old: matches : Pattern_match.t list *)
   processed_matches : processed_match list;
   errors : Core_error.t list;
-  scanned : Fpath.t list;
+  (* was simply [Fpath.t list] before, but for inter-file diff scan
+     metrics we also need to know the analyzer used on the target,
+     hence the use of [Target.t list] now *)
+  scanned : Target.t list;
   skipped_targets : Semgrep_output_v1_t.skipped_target list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -264,7 +267,7 @@ let collate_rule_results (file : Fpath.t)
 let make_final_result
     (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
-    (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
+    (skipped_rules : Rule.invalid_rule_error list) (scanned : Target.t list)
     (interfile_languages_used : Xlang.t list) ~rules_parse_time : t =
   (* concatenating information from the match_result list *)
   let unprocessed_matches =

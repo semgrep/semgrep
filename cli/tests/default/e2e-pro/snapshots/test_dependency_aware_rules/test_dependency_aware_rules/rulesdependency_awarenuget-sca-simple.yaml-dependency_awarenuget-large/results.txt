@@ -19,9 +19,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     {
       "check_id": "rules.dependency_aware.detect-CodePagesEncodingProvider",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 35,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -56,17 +56,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/nuget-large/packages.lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 35,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.System.Linq.Expressions-2023-08-14",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 88,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -101,17 +101,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/nuget-large/packages.lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 88,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.detect-CodePagesEncodingProvider",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 133,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -146,17 +146,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/nuget-large/packages.lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 133,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.System.Linq.Expressions-2023-08-14",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 186,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -191,17 +191,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/nuget-large/packages.lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 186,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.detect-CodePagesEncodingProvider",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 211,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -236,17 +236,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/nuget-large/packages.lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 211,
-        "offset": 0
+        "offset": 1
       }
     },
     {
       "check_id": "rules.dependency_aware.System.Linq.Expressions-2023-08-14",
       "end": {
-        "col": 0,
+        "col": 1,
         "line": 260,
-        "offset": 0
+        "offset": 1
       },
       "extra": {
         "engine_kind": "OSS",
@@ -281,9 +281,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       },
       "path": "targets/dependency_aware/nuget-large/packages.lock.json",
       "start": {
-        "col": 0,
+        "col": 1,
         "line": 260,
-        "offset": 0
+        "offset": 1
       }
     }
   ],

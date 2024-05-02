@@ -6,6 +6,8 @@
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+local wheel_name = 'osx-x86-wheel';
+
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -48,7 +50,6 @@ local test_semgrep_steps = [
 // ----------------------------------------------------------------------------
 
 local artifact_name = 'semgrep-osx-${{ github.sha }}';
-local wheel_name = 'osx-x86-wheel';
 
 local build_core_job = {
   'runs-on': runs_on,
@@ -65,7 +66,7 @@ local build_core_job = {
       run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
     },
     {
-      name: 'Compile semgrep',
+      name: 'Compile semgrep (in case of linking errors, adjust src/main/flags.sh)',
       run: 'opam exec -- make core',
     },
     actions.make_artifact_step("./bin/semgrep-core"),

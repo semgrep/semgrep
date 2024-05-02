@@ -359,23 +359,20 @@ and map_multi_assign ?(attrs = []) (env : env) x =
       let l_exp, _, r_exp = map_assignment env x in
       DefStmt
         ( { name = EDynamic l_exp; attrs; tparams = None },
-          VarDef { vinit = Some r_exp; vtype = None } )
+          VarDef { vinit = Some r_exp; vtype = None; vtok = G.no_sc } )
       |> G.s
   | `Id tok ->
       let id = map_identifier env tok in
-      DefStmt (basic_entity ~attrs id, VarDef { vinit = None; vtype = None })
-      |> G.s
+      DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s
   | `Typed_exp x ->
       let l_exp, _, ty = map_typed_expression env x in
       DefStmt
         ( { name = EDynamic l_exp; attrs; tparams = None },
-          VarDef { vinit = None; vtype = Some ty } )
+          VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc } )
       |> G.s
   | `Bare_tuple x ->
       let e = map_bare_tuple_exp env x in
-      DefStmt
-        ( { name = EDynamic e; attrs; tparams = None },
-          VarDef { vinit = None; vtype = None } )
+      DefStmt ({ name = EDynamic e; attrs; tparams = None }, VarDef G.empty_var)
       |> G.s
   | `Func_defi x -> map_function_definition env x
   | `Short_func_defi x -> map_short_function_definition env x
@@ -597,7 +594,7 @@ and map_anon_choice_id_c313bb1 (env : env) (x : CST.anon_choice_id_c313bb1) =
   | `Id tok ->
       let id = map_identifier env tok in
       let ent = basic_entity id in
-      DefStmt (ent, VarDef { vinit = None; vtype = None }) |> G.s
+      DefStmt (ent, VarDef G.empty_var) |> G.s
   | `Named_field x ->
       let either, _tok, exp = map_named_field env x in
       let ent =
@@ -605,7 +602,8 @@ and map_anon_choice_id_c313bb1 (env : env) (x : CST.anon_choice_id_c313bb1) =
         | Left id -> basic_entity id
         | Right e -> { name = EDynamic e; attrs = []; tparams = None }
       in
-      DefStmt (ent, VarDef { vinit = Some exp; vtype = None }) |> G.s
+      DefStmt (ent, VarDef { vinit = Some exp; vtype = None; vtok = G.no_sc })
+      |> G.s
 
 and map_anon_choice_id_f1f5a37 (env : env) (x : CST.anon_choice_id_f1f5a37) =
   match x with
@@ -2189,22 +2187,19 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
               [
                 DefStmt
                   ( { name = EDynamic l_exp; attrs; tparams = None },
-                    VarDef { vinit = Some r_exp; vtype = None } )
+                    VarDef { vinit = Some r_exp; vtype = None; vtok = G.no_sc }
+                  )
                 |> G.s;
               ]
           | `Id tok ->
               let id = map_identifier env tok in
-              [
-                DefStmt
-                  (basic_entity ~attrs id, VarDef { vinit = None; vtype = None })
-                |> G.s;
-              ]
+              [ DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s ]
           | `Typed_exp x ->
               let l_exp, _, ty = map_typed_expression env x in
               [
                 DefStmt
                   ( { name = EDynamic l_exp; attrs; tparams = None },
-                    VarDef { vinit = None; vtype = Some ty } )
+                    VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc } )
                 |> G.s;
               ])
       | `Local_stmt (v1, v2) ->

@@ -194,15 +194,16 @@ local slack = {
   // 'gha-notification' user.
   // The actual URL secret is stored in 1password in our Engineering vault
   // (look for "slack webhook") and configured by #team-techops to post to
-  // #semgrep-cli-release somewhere we have not access to.
+  // #semgrep-cli-release at
+  // https://semgrepinc.slack.com/apps/A0F7XDUAZ-incoming-webhooks?tab=settings&next_id=0
   curl_notify(message): |||
       curl --request POST \
        --url  ${{ secrets.NOTIFICATIONS_URL }} \
        --header 'content-type: application/json' \
        --data '{
-         "text": "%s"
+         "text": %s
        }'
-    ||| % message,
+    ||| % std.escapeStringJson(message),
 
   notify_failure_job(message): {
    'runs-on': 'ubuntu-20.04',
@@ -238,6 +239,8 @@ local slack = {
         'aws-region': 'us-west-2',
       },
     },
+  // See https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
+  depot_project_id: 'fhmxj6w9z8',
 
   // default one
   // coupling: with containers above

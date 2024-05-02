@@ -45,8 +45,8 @@ module Otel = Opentelemetry
  * function. The results are sent to the default endpoint (see constants below),
  * which collects them to send to a viewer.
  *
- * If you want to send traces to a different endpoint, prepend your command with
- * `SEMGREP_OTEL_ENDPOINT=<url>`
+ * If you want to send traces to a different endpoint, append your command with
+ * the `--trace-endpoint=<url> argument
  *)
 
 (*****************************************************************************)
@@ -66,13 +66,38 @@ type user_data = Trace_core.user_data
 (* Constants *)
 (*****************************************************************************)
 
-let default_endpoint = "https://telemetry.dev2.semgrep.dev"
-let endpoint_env_var = "SEMGREP_OTEL_ENDPOINT"
+let default_endpoint = "https://telemetry.semgrep.dev"
+let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
+let default_local_endpoint = "http://localhost:4318"
+let trace_level_var = "SEMGREP_TRACE_LEVEL"
+
+(*****************************************************************************)
+(* Levels *)
+(*****************************************************************************)
+
+type level =
+  | Info  (** Traces for timings we want to track regularly (default level) *)
+  | Debug  (** Traces to help profile a specific run *)
+  | Trace  (** All traces *)
+
+let show_level = function
+  | Info -> "Info"
+  | Debug -> "Debug"
+  | Trace -> "Trace"
+
+let level_to_trace_level level =
+  match level with
+  | Info -> Trace_core.Level.Info
+  | Debug -> Trace_core.Level.Debug1
+  | Trace -> Trace_core.Level.Trace
 
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-let with_span = Trace_core.with_span
+let with_span ?(level = Info) =
+  let level = level_to_trace_level level in
+  Trace_core.with_span ~level
+
 let add_data_to_span = Trace_core.add_data_to_span
 
 (* This function is helpful for Semgrep, which stores an optional span *)
@@ -91,7 +116,7 @@ let configure_tracing service_name =
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_tracing fname data f =
+let with_tracing fname trace_endpoint data f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -100,11 +125,27 @@ let with_tracing fname data f =
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
   let url =
-    match Sys.getenv_opt endpoint_env_var with
-    | Some url -> url
+    match trace_endpoint with
+    | Some url -> (
+        match url with
+        | "semgrep-prod" -> default_endpoint
+        | "semgrep-dev" -> default_dev_endpoint
+        | "semgrep-local" -> default_local_endpoint
+        | _ -> url)
     | None -> default_endpoint
   in
+  let level =
+    match Sys.getenv_opt trace_level_var with
+    | Some level -> (
+        match String.lowercase_ascii level with
+        | "info" -> Info
+        | "trace" -> Trace
+        | "debug" -> Debug
+        | _ -> Info)
+    | None -> Info
+  in
   let data () = data in
+  Trace_core.set_current_level (level_to_trace_level level);
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
   with_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp -> f sp

@@ -29,6 +29,8 @@ open Pattern
    and then execute it to match a path given as a string.
 *)
 
+let tags = Logs_.create_tags [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -43,13 +45,15 @@ type loc = {
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
 
-type compiled_pattern = { source : loc; re : Pcre_.t }
+let pp_loc fmt x = Format.pp_print_string fmt (show_loc x)
+
+type compiled_pattern = { source : loc; re : Pcre2_.t }
 
 let string_loc ?(source_name = "<pattern>") ~source_kind pat =
   { source_name; source_kind; line_number = 1; line_contents = pat }
 
 (*****************************************************************************)
-(* Compilation of a Glob_pattern.t to a PCRE pattern *)
+(* Compilation of a Glob_pattern.t to a PCRE2 pattern *)
 (*****************************************************************************)
 (*
    We used to use ocaml-re ('Re' module) to build directly a tree but
@@ -60,7 +64,7 @@ let string_loc ?(source_name = "<pattern>") ~source_kind pat =
 
 let add = Buffer.add_string
 let addc = Buffer.add_char
-let quote_char buf c = add buf (Pcre.quote (String.make 1 c))
+let quote_char buf c = add buf (Pcre2_.quote (String.make 1 c))
 
 let translate_frag buf pos (frag : Pattern.segment_fragment) =
   match frag with
@@ -130,23 +134,28 @@ let translate_root pat =
 (* Compile a pattern into an ocaml-re regexp for fast matching *)
 let compile ~source pat =
   let pcre = translate_root pat in
-  let re = Pcre_.regexp pcre in
+  let re = Pcre2_.regexp pcre in
   { source; re }
 [@@profiling "Glob.Match.compile"]
 
-(* This is used during unit testing. *)
-let debug = ref false
-
 let run matcher path =
-  let res = Pcre_.pmatch_noerr ~rex:matcher.re path in
-  if !debug then
-    (* expensive string concatenation; may not be suitable for logger#debug *)
-    Printf.eprintf "** glob: %S  pcre: %s  path: %S  matches: %B\n%!"
-      matcher.source.line_contents matcher.re.pattern path res;
+  let res = Pcre2_.pmatch_noerr ~rex:matcher.re path in
+  (* perf: this gets called a lot. The match-with is expected to make things
+     faster by creating a closure for the anonymous function only in debug
+     mode. *)
+  (match Logs.level () with
+  | Some Debug ->
+      Logs.debug (fun m ->
+          m ~tags "glob: %S  pcre: %s  path: %S  matches: %B"
+            matcher.source.line_contents matcher.re.pattern path res)
+  | _ -> ());
   res
 [@@profiling "Glob.Match.run"]
 
 let source matcher = matcher.source
 
-let show x =
+let show_compiled_pattern x =
   Printf.sprintf "pattern at %s:\n%s" (show_loc x.source) x.re.pattern
+
+let pp_compiled_pattern fmt x =
+  Format.pp_print_string fmt (show_compiled_pattern x)

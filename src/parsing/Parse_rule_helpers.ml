@@ -17,7 +17,8 @@ module R = Rule
 module G = AST_generic
 module J = JSON
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* use a separate Logs src? "semgrep.parsing.rule"? *)
+module Log = Log_parsing.Log
 
 (*****************************************************************************)
 (* Types *)
@@ -84,19 +85,16 @@ let error_at_expr rule_id (e : G.expr) s =
 let pcre_error_to_string s exn =
   let message =
     match exn with
-    | Pcre.Partial -> "String only matched the pattern partially"
-    | BadPartial ->
-        "Pattern contains items that cannot be used together with partial \
-         matching."
+    | Pcre2.Partial -> "String only matched the pattern partially"
     | BadPattern (msg, pos) -> spf "%s at position %d" msg pos
-    | BadUTF8 -> "UTF8 string being matched is invalid"
-    | BadUTF8Offset ->
+    | BadUTF -> "UTF8 string being matched is invalid"
+    | BadUTFOffset ->
         "Gets raised when a UTF8 string being matched with offset is invalid."
     | MatchLimit ->
         "Maximum allowed number of match attempts with\n\
         \                      backtracking or recursion is reached during \
          matching."
-    | RecursionLimit -> "Recursion limit reached"
+    | DepthLimit -> "Recursion limit reached"
     | WorkspaceSize -> "Workspace array size reached"
     | InternalError msg -> spf "Internal error: %s" msg
   in
@@ -128,8 +126,9 @@ let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
    *)
   rd.h |> Hashtbl_.hash_to_list
   |> List.iter (fun (k, _v) ->
+         (* Logs, not Log, on purpose *)
          Logs.warn (fun m ->
-             m ~tags "Skipping unknown field '%s' in rule %s" k
+             m "Skipping unknown field '%s' in rule %s" k
                (Rule_ID.to_string rule_id)))
 
 (*****************************************************************************)
@@ -413,14 +412,14 @@ let parse_regexp env (s, t) =
     Metavariable.mvars_of_regexp_string s
     |> List.iter (fun mvar ->
            if not (Metavariable.is_metavar_name mvar) then
-             Logs.warn (fun m ->
-                 m ~tags
+             Log.warn (fun m ->
+                 m
                    "Found invalid metavariable capture group name `%s` for \
                     regexp `%s` -- no binding produced"
                    mvar s));
     s
   with
-  | Pcre.Error exn ->
+  | Pcre2.Error exn ->
       Rule.raise_error (Some env.id)
         (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t))
 

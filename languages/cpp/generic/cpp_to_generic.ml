@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -1182,9 +1182,12 @@ and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
   (v1, v2)
 
-and map_condition_initializer env x =
+and map_condition_initializer (env : env) (x : condition_initializer) :
+    G.any list =
   match x with
-  | InitVarsDecl x -> map_vars_decl env x |> List_.map (fun def -> G.Def def)
+  | InitVarsDecl x ->
+      let xs, _sc = map_vars_decl env x in
+      xs |> List_.map (fun def -> G.Def def)
   | InitExprStmt x ->
       let eopt, sc = map_expr_stmt env x in
       [ G.S (G.ExprStmt (expr_option sc eopt, sc) |> G.s) ]
@@ -1232,14 +1235,15 @@ and map_for_header env = function
       (* less: or ForEach? *)
       G.ForEach (G.PatTyped (pat, ty) |> G.p, v2, v4)
 
-and map_a_expr_or_vars env v =
+and map_a_expr_or_vars (env : env) (v : a_expr_or_vars) : G.for_var_or_expr list
+    =
   match v with
   | Left (Some e, _sc) ->
       let e = map_expr env e in
       [ ForInitExpr e ]
   | Left (None, _) -> []
   | Right xs ->
-      let xs = map_vars_decl env xs in
+      let xs, _sc = map_vars_decl env xs in
       xs
       |> List_.map (fun (ent, def) ->
              match def with
@@ -1322,10 +1326,10 @@ and map_entity env { name = v_name; specs = v_specs } : G.entity =
 and map_decl env x : G.stmt list =
   match x with
   | DeclList v1 ->
-      let v1 = map_vars_decl env v1 in
+      let xs, sc = map_vars_decl env v1 in
       let defs = env.defs_toadd in
       env.defs_toadd <- [];
-      defs @ v1 |> List_.map (fun def -> G.DefStmt def |> G.s)
+      defs @ xs |> H.add_semicolon_to_last_def_and_convert_to_stmts sc
   | UsingDecl v1 ->
       let v1 = map_using env v1 in
       [ v1 ]
@@ -1423,10 +1427,10 @@ and map_decl env x : G.stmt list =
       let v1 = map_todo_category env v1 in
       [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
 
-and map_vars_decl env (v1, v2) : G.definition list =
-  let v1 = map_of_list (map_onedecl env) v1 |> List.flatten
-  and _v2 = map_sc env v2 in
-  v1
+and map_vars_decl env (v1, v2) : G.definition list * G.sc =
+  let defs = map_of_list (map_onedecl env) v1 |> List.flatten in
+  let sc = map_sc env v2 in
+  (defs, sc)
 
 and map_asmbody env (v1, v2) : G.any list =
   let _v1 = map_of_list (map_wrap env map_of_string) v1
@@ -1474,7 +1478,7 @@ and map_onedecl env x : G.definition list =
       let pat = G.PatTyped (pat, v1) in
       let ent = { G.name = G.EPattern pat; attrs = []; tparams = None } in
       (* TODO? use v1 for vtype? *)
-      let def = G.VarDef { G.vinit = Some v3; vtype = None } in
+      let def = G.VarDef { G.vinit = Some v3; vtype = None; vtok = G.no_sc } in
       [ (ent, def) ]
   | BitField (v1, v2, v3, v4) ->
       let v1 = map_of_option (map_ident env) v1
@@ -1499,7 +1503,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
     let ent = map_entity env ent in
     let v_v_type = map_type_ env v_v_type in
     let v_v_init = map_of_option (map_init env) v_v_init in
-    (ent, { G.vtype = Some v_v_type; vinit = v_v_init })
+    (ent, { G.vtype = Some v_v_type; vinit = v_v_init; vtok = G.no_sc })
   in
   let fun_def_as_var_def_with_ctor () =
     match (v_v_init, v_v_type) with
@@ -1522,7 +1526,10 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
         if List.length params <> List.length args then None
         else
           let v_v_init = map_init env (ObjInit (Args (p1, args, p2))) in
-          Some (ent, { G.vtype = Some v_v_type; vinit = Some v_v_init })
+          Some
+            ( ent,
+              { G.vtype = Some v_v_type; vinit = Some v_v_init; vtok = G.no_sc }
+            )
     | _ -> None
   in
   let var_def_with_ctor_as_fun_def () =
@@ -1558,7 +1565,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
                     ft_requires = None;
                   } )
           in
-          Some (ent, { G.vtype = Some v_v_type; vinit = None })
+          Some (ent, { G.vtype = Some v_v_type; vinit = None; vtok = G.no_sc })
     | _ -> None
   in
   let result =
