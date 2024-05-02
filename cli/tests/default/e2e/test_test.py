@@ -32,7 +32,7 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/basic.yaml",
         options=["--test"],
-        target_name="cli_test/basic.py",
+        target_name="test_test/basic.py",
         output_format=OutputFormat.JSON,
     )
 
@@ -48,9 +48,9 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/directory/",
+        "rules/test_test/directory/",
         options=["--test"],
-        target_name="cli_test/directory/",
+        target_name="test_test/directory/",
         output_format=OutputFormat.JSON,
     )
 
@@ -67,9 +67,9 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.osemfail
 def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/rule_that_timeout.yaml",
+        "rules/test_test/rule_that_timeout.yaml",
         options=["--test"],
-        target_name="cli_test/long.py",
+        target_name="test_test/long.py",
         output_format=OutputFormat.JSON,
         assert_exit_code=1,
     )
@@ -87,9 +87,9 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/yaml_language/",
+        "rules/test_test/yaml_language/",
         options=["--test"],
-        target_name="cli_test/yaml_language/",
+        target_name="test_test/yaml_language/",
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(
@@ -103,9 +103,9 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/suffixes/",
+        "rules/test_test/suffixes/",
         options=["--test"],
-        target_name="cli_test/suffixes/",
+        target_name="test_test/suffixes/",
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(
@@ -120,9 +120,9 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.osemfail
 def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/overlapping_rules.yaml",
+        "rules/test_test/overlapping_rules.yaml",
         options=["--test"],
-        target_name="cli_test/multiple_annotations.py",
+        target_name="test_test/multiple_annotations.py",
         output_format=OutputFormat.TEXT,
         force_color=True,
     )
@@ -143,7 +143,7 @@ def test_cli_test_from_entrypoint(snapshot):
         "--test",
         "--config",
         "rules/basic.yaml",
-        "targets/cli_test/basic.py",
+        "targets/test_test/basic.py",
     ]
     result = subprocess.run(
         cmd,
@@ -162,9 +162,9 @@ def test_cli_test_from_entrypoint(snapshot):
 @pytest.mark.kinda_slow
 def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
-        "rules/cli_test/rule_with_paths_include_bar_xml.yaml",
+        "rules/test_test/rule_with_paths_include_bar_xml.yaml",
         options=["--test"],
-        target_name="cli_test/foo.xml",
+        target_name="test_test/foo.xml",
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(

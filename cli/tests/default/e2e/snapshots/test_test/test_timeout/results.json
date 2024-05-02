@@ -4,15 +4,15 @@
   "config_with_errors": [],
   "fixtest_results": {},
   "results": {
-    "rules/cli_test/rule_that_timeout.yaml": {
+    "rules/test_test/rule_that_timeout.yaml": {
       "checks": {
         "open-redirect": {
           "errors": [
             {
               "code": 2,
               "level": "warn",
-              "message": "Timeout when running forcetimeout on targets/cli_test/long.py:\n ",
-              "path": "targets/cli_test/long.py",
+              "message": "Timeout when running forcetimeout on targets/test_test/long.py:\n ",
+              "path": "targets/test_test/long.py",
               "rule_id": "forcetimeout",
               "type": "Timeout"
             }
