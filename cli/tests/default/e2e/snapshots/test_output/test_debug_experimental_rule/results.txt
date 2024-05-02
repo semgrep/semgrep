@@ -57,8 +57,12 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Skipping logs for tls.config
 [<MASKED>][DEBUG](default): Skipping logs for tls.tracing
 [<MASKED>][DEBUG](default): Skipping logs for x509
+[<MASKED>][DEBUG](default): Skipping logs for semgrep.engine
+[<MASKED>][DEBUG](default): Skipping logs for semgrep.fixing
+[<MASKED>][DEBUG](default): Skipping logs for semgrep.parsing
 [<MASKED>][DEBUG](default): Skipping logs for semgrep.targeting
 [<MASKED>][DEBUG](default): Skipping logs for ojsonnet.eval
+[<MASKED>][DEBUG](default): Skipping logs for tree-sitter
 [<MASKED>][DEBUG](default): Skipping logs for semgrep
 [<MASKED>][DEBUG](default): Skipping logs for git.value
 [<MASKED>][DEBUG](default): Skipping logs for git.tree
@@ -66,6 +70,7 @@ Running Semgrep engine with command:
 [<MASKED>][DEBUG](default): Skipping logs for git.blob
 [<MASKED>][DEBUG](default): Skipping logs for paths
 [<MASKED>][DEBUG](default): Skipping logs for commons.pcre
+[<MASKED>][DEBUG](default): Skipping logs for commons.textedit
 [<MASKED>][DEBUG](default): Skipping logs for bos
 [<MASKED>][DEBUG](default): Showing logs for application
 [<MASKED>][DEBUG](default): !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -194,8 +199,12 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for tls.config
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for tls.tracing
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for x509
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.engine
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.fixing
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.parsing
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep.targeting
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for ojsonnet.eval
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for tree-sitter
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for semgrep
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.value
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.tree
@@ -203,6 +212,7 @@ Running Semgrep engine with command:
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for git.blob
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for paths
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for commons.pcre
+[<MASKED>][[32mDEBUG[0m](default): Skipping logs for commons.textedit
 [<MASKED>][[32mDEBUG[0m](default): Skipping logs for bos
 [<MASKED>][[32mDEBUG[0m](default): Showing logs for application
 [<MASKED>][[32mDEBUG[0m](default): !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
