@@ -465,7 +465,7 @@ homebrew-setup:
 # See flake.nix top level comments for more information
 
 # Enter development environment with all dependencies installed
-nix-develop:
+shell:
 	nix develop -c $SHELL
 
 # Build targets
