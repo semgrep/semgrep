@@ -471,12 +471,16 @@ let apply_as_on_ranges ranges as_ =
                  | Some node -> (as_, MV.mvalue_of_any node) :: range.mvars
                  | None -> (
                      let tokens = Lazy.force range.origin.tokens in
-                     match range.origin.path.origin with
-                     | File fpath ->
+                     match (range.origin.path.origin, tokens) with
+                     | File _, [] ->
+                         Logs.warn (fun m ->
+                             m "Got empty tokens when using as-metavariable");
+                         range.mvars
+                     | File fpath, fst_tok :: _ ->
                          ( as_,
                            Text
                              ( Range.content_at_range fpath range.r,
-                               List.hd tokens,
+                               fst_tok,
                                Common2.list_last tokens ) )
                          :: range.mvars
                      | _ ->
