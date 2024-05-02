@@ -11,13 +11,13 @@ val cli_output_of_core_results :
 (* internals used in Scan_subcommant.ml *)
 val exit_code_of_error_type : Semgrep_output_v1_t.error_type -> Exit_code.t
 
-(* internals used also for incremental display of matches The fixed_lines_env is
+(* internals used also for incremental display of matches The Fixed_lines.env is
  * used for deciding whether a fixed_lines elements is included in the
  * cli_match. This depends on whether an overlapping fix was already included in
  * an earlier cli_match in the same list of matches. *)
 val cli_match_of_core_match :
   dryrun:bool ->
-  Autofix.fixed_lines_env ->
+  Fixed_lines.env ->
   Rule.hrules ->
   Semgrep_output_v1_t.core_match ->
   Semgrep_output_v1_t.cli_match

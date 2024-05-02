@@ -14,8 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_tree_sitter.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -120,9 +119,8 @@ let wrap_parser tree_sitter_parser ast_mapper =
                res.errors
            in
            let error_str = String.concat "\n" error_strs in
-           Logs.err (fun m ->
-               m ~tags "Partial errors returned by Tree-sitter parser\n%s"
-                 error_str));
+           Log.warn (fun m ->
+               m "Partial errors returned by Tree-sitter parser\n%s" error_str));
         Some (ast_mapper cst)
     | None -> None
   in

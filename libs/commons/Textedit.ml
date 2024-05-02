@@ -1,6 +1,6 @@
 (* Nat Mote
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,12 +12,25 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-(* This module represents and applies edits to text *)
-
 open Fpath_.Operators
 
-let tags = Logs_.create_tags [ __MODULE__; "autofix" ]
+(* alt: use a common Log_commons.ml src? *)
+let src = Logs.Src.create "commons.textedit"
+
+module Log = (val Logs.src_log src : Logs.LOG)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* This module represents and applies edits to text
+ *
+ * Related work:
+ *  - 'ed', the old Unix command-line tool
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 type t = {
   path : Fpath.t;
@@ -36,6 +49,10 @@ type edit_application_result =
       (* nonempty *)
       conflicting_edits : t list;
     }
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let overlaps (e1 : t) (e2 : t) =
   (* overlap <=> not (no overlap)
@@ -73,42 +90,18 @@ let remove_overlapping_edits edits =
   in
   (List.rev accepted_edits, List.rev redundant_edits, List.rev conflicting_edits)
 
-let apply_edit_to_text text ({ start; end_; replacement_text; _ } as edit) =
-  Logs.debug (fun m -> m ~tags "Apply edit %s" (show edit));
-  let before = Str.string_before text start in
-  let after = Str.string_after text end_ in
-  before ^ replacement_text ^ after
-
-let apply_edits_to_text path text edits =
-  (*
-     Don't sort the edits. They must be applied in the order in which they
-     were detected. If two rules report a problem at the same location,
-     the first rule that reports the problem has precedence.
-  *)
-  Logs.debug (fun m ->
-      m ~tags "Applying %i edits to file %s" (List.length edits) !!path);
-  let applicable_edits, redundant_edits, conflicting_edits =
-    remove_overlapping_edits edits
+(* To align the autofix logic with the Python CLI, remove the newline
+     character when replacing an entire line with an empty string.*)
+let remove_newline_for_empty_replacement text edit =
+  let text_len = String.length text in
+  let line_start = edit.start = 0 || String.get text (edit.start - 1) = '\n' in
+  let is_empty_replacement = String.length edit.replacement_text = 0 in
+  let skip_char c i =
+    if i + 1 <= text_len && String.get text i = c then i + 1 else i
   in
-  (* Switch to bottom to top order so that we don't need to track offsets as
-   * we apply multiple patches *)
-  let applicable_edits =
-    List.sort (fun a b -> Int.compare b.start a.start) applicable_edits
-  in
-  let fixed_text =
-    (* Apply the fixes. These string operations are inefficient but should
-     * be fine. The Python CLI version of this code is even more inefficent. *)
-    List.fold_left
-      (fun file_text edit -> apply_edit_to_text file_text edit)
-      text applicable_edits
-  in
-  Logs.debug (fun m ->
-      let successful_edits = applicable_edits @ redundant_edits in
-      m ~tags "file %s: %i/%i edits were applied successfully" !!path
-        (List.length successful_edits)
-        (List.length edits));
-  if conflicting_edits = [] then Success fixed_text
-  else Overlap { partial_result = fixed_text; conflicting_edits }
+  if line_start && is_empty_replacement then
+    { edit with end_ = edit.end_ |> skip_char '\r' |> skip_char '\n' }
+  else edit
 
 let partition_edits_by_file edits =
   (* TODO Consider using Common.group_by if we update it to return edits in
@@ -132,18 +125,48 @@ let partition_edits_by_file edits =
     edits_by_file;
   edits_by_file
 
-(* To align the autofix logic with the Python CLI, remove the newline
-     character when replacing an entire line with an empty string.*)
-let remove_newline_for_empty_replacement text edit =
-  let text_len = String.length text in
-  let line_start = edit.start = 0 || String.get text (edit.start - 1) = '\n' in
-  let is_empty_replacement = String.length edit.replacement_text = 0 in
-  let skip_char c i =
-    if i + 1 <= text_len && String.get text i = c then i + 1 else i
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+let apply_edit_to_text text ({ start; end_; replacement_text; _ } as edit) =
+  Log.debug (fun m -> m "Apply edit %s" (show edit));
+  let before = Str.string_before text start in
+  let after = Str.string_after text end_ in
+  before ^ replacement_text ^ after
+
+let apply_edits_to_text path text edits =
+  (*
+     Don't sort the edits. They must be applied in the order in which they
+     were detected. If two rules report a problem at the same location,
+     the first rule that reports the problem has precedence.
+  *)
+  Log.info (fun m ->
+      m "Applying %i edits to file %s" (List.length edits) !!path);
+  let applicable_edits, redundant_edits, conflicting_edits =
+    remove_overlapping_edits edits
   in
-  if line_start && is_empty_replacement then
-    { edit with end_ = edit.end_ |> skip_char '\r' |> skip_char '\n' }
-  else edit
+  (* Switch to bottom to top order so that we don't need to track offsets as
+   * we apply multiple patches *)
+  let applicable_edits =
+    List.sort (fun a b -> Int.compare b.start a.start) applicable_edits
+  in
+  let fixed_text =
+    (* Apply the fixes. These string operations are inefficient but should
+     * be fine. The Python CLI version of this code is even more inefficent. *)
+    List.fold_left
+      (fun file_text edit -> apply_edit_to_text file_text edit)
+      text applicable_edits
+  in
+  Log.info (fun m ->
+      let successful_edits = applicable_edits @ redundant_edits in
+      m "file %s: %i/%i edits were applied successfully" !!path
+        (List.length successful_edits)
+        (List.length edits));
+  if conflicting_edits = [] then Success fixed_text
+  else (
+    Log.warn (fun m -> m "file %s has overapping textedits" !!path);
+    Overlap { partial_result = fixed_text; conflicting_edits })
 
 let apply_edits ~dryrun edits =
   let edits_by_file = partition_edits_by_file edits in

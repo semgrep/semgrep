@@ -337,12 +337,13 @@ let (expected_error_lines_of_files :
                  * correct lines error reporting.
                  *)
                 if
-                  s =~ regexp (* + 1 because the comment is one line before *)
-                  (* This is so that we can mark a line differently for OSS and Pro,
+                  s =~ regexp
+                  (* This is so that we can mark a line differently for OSS/Pro,
                      e.g. `ruleid: deepok: example_rule_id` *)
                   && Option.fold ~none:true
                        ~some:(fun ok_regexp -> not (s =~ ok_regexp))
                        ok_regexp
+                  (* + 1 because the comment is one line before *)
                 then Some (file, idx + 1)
                 else None))
 

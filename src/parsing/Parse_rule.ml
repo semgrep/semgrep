@@ -25,7 +25,8 @@ module MV = Metavariable
 open Parse_rule_helpers
 module H = Parse_rule_helpers
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* use a separate Logs src? "semgrep.parsing.rule"? *)
+module Log = Log_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -983,9 +984,8 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
-               Logs.warn (fun m ->
-                   m ~tags "skipping rule %s, error = %s"
-                     (Rule_ID.to_string ruleid) s);
+               Log.warn (fun m ->
+                   m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
                Either.Right err)
   in
   Either_.partition_either (fun x -> x) xs
@@ -1056,8 +1056,8 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
     | _ ->
         (* TODO: suspicious code duplication. The same error message
            occurs in Translate_rule.ml *)
-        Logs.err (fun m ->
-            m ~tags
+        Log.err (fun m ->
+            m
               "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying to \
                parse %s as YAML"
               !!file);
