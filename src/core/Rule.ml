@@ -971,7 +971,8 @@ let rule_of_formula ?(fix = None) (xlang : Xlang.t) (formula : formula) : rule =
     max_version = None;
     message =
       (match formula with
-      | { f = P xpat; focus = []; conditions = [] } -> fst xpat.Xpattern.pstr
+      | { f = P xpat; focus = []; conditions = []; as_ = None } ->
+          fst xpat.Xpattern.pstr
       | _ -> "simple search rule");
     severity = `Error;
     target_selector;
