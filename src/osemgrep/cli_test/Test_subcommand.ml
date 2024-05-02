@@ -220,7 +220,7 @@ let fixtest_result_for_target (_env : env) (target : Fpath.t)
   in
   (* stricter? *)
   if List_.null textedits then
-    Logs.err (fun m -> m "no autofix generated for %s" !!target);
+    Logs.warn (fun m -> m "no autofix generated for %s" !!target);
 
   let expected_content = UFile.read_file fixtest_target in
   let actual_res =
@@ -362,7 +362,7 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
       (* maybe some files with todoruleid: without any match yet, but we
        * still want to include them in the JSON output like pysemgrep
        *)
-      (* stricter: *)
+      (* stricter? *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
       (* TODO: inconsistency in pysemgrep, sometimes it filter those rule ids
        * like in semgrep-rules/ocaml/, sometimes not,
@@ -424,9 +424,10 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
         rules |> List.exists rule_contain_fix_or_fix_regex )
     with
     | None, true ->
-        (* stricter: *)
+        (* stricter: (reported in JSON at least via config_missing_fixtests) *)
         Logs.warn (fun m ->
-            m "no fixtest for test %s but the matches had fixes" !!target);
+            m "no fixtest for test %s but the rule file %s uses autofix"
+              !!target !!(env.rule_file));
         Stack_.push (MissingFixtest env.rule_file) env.errors;
         None
     | Some fixtest, false ->
@@ -478,7 +479,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                let rules = Parse_rule.parse rule_file in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
-                   (* stricter: *)
+                   (* stricter: (but reported via config_missing_tests in JSON)*)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
                    Stack_.push (MissingTest rule_file) errors;
