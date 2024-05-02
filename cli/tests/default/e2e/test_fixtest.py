@@ -3,7 +3,9 @@
 #
 # TODO:
 #  - rename those test_fixtest_testx_xx_json; give meaningful names so we
-#    know what they test and adjust also accordingly the testx.py
+#    know what they test and adjust also accordingly the targets/testx.py
+#    (but do not use targets/test_whatever.py because then those targets are
+#     considered pytest candidates)
 #  - add test to detect missing_config_fixtest when rule use fix-regex
 import re
 
@@ -181,6 +183,20 @@ def test_fixtest_test5_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/basic_fix.yaml",
         target_name="fixtest/inexistent.py",
+        options=["--test"],
+        output_format=OutputFormat.JSON,
+    )
+    snapshot.assert_match(stdout, "test-results.json")
+
+
+# It should report config_missing_fixtest for rules containing a fix-regex:
+# at whatever position (not just the first rule), and without an associated
+# target.fixed.ext file.
+@pytest.mark.kinda_slow
+def test_missing_fixtest_fix_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/fixtest/basic_fix_regex.yaml",
+        target_name="fixtest/no_associated_fixed.py",
         options=["--test"],
         output_format=OutputFormat.JSON,
     )
