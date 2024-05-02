@@ -201,3 +201,16 @@ def test_missing_fixtest_fix_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(stdout, "test-results.json")
+
+
+# It should not add the trailing newlines in a fix: replacement string
+# in the fixed file
+@pytest.mark.kinda_slow
+def test_fix_trailing_newline(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/fixtest/fix_trailing_newline.yaml",
+        target_name="fixtest/basic.go",
+        options=["--test"],
+        output_format=OutputFormat.JSON,
+    )
+    snapshot.assert_match(stdout, "test-results.json")
