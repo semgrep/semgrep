@@ -212,6 +212,14 @@ let fixtest_of_target_opt (target : Fpath.t) : Fpath.t option =
   let fixtest = Filename_.filename_of_dbe (d, b, "fixed." ^ e) in
   if Sys.file_exists fixtest then Some (Fpath.v fixtest) else None
 
+(* TODO use capability and cleanup Test_parsing.ml and remove
+ * Common2.unix_diff
+ *)
+let unix_diff (str1 : string) (str2 : string) : string list =
+  UTmp.with_temp_file ~contents:str1 ~suffix:".x" (fun file1 ->
+      UTmp.with_temp_file ~contents:str2 ~suffix:".x" (fun file2 ->
+          Common2.unix_diff !!file1 !!file2))
+
 let fixtest_result_for_target (_env : env) (target : Fpath.t)
     (fixtest_target : Fpath.t) (pms : Pattern_match.t list) : fixtest_result =
   Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
@@ -231,8 +239,11 @@ let fixtest_result_for_target (_env : env) (target : Fpath.t)
     | Textedit.Success actual_content ->
         let passed = expected_content = actual_content in
         (* TODO: print the diff *)
-        if not passed then
-          Logs.err (fun m -> m "fixtest failed for %s" !!fixtest_target);
+        (if not passed then
+           let diff = unix_diff expected_content actual_content in
+           Logs.err (fun m ->
+               m "fixtest failed for %s, diff =\n%s" !!fixtest_target
+                 (String.concat "\n" diff)));
         passed
     | Overlap _ ->
         Logs.err (fun m -> m "fixes overlap for %s" !!target);
