@@ -54,7 +54,7 @@ type config = {
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
   handle_results :
     var option (** function name ('None' if anonymous) *) ->
-    Taint.result list ->
+    Taint_sig.result list ->
     Taint_lval_env.t ->
     unit;
       (** Callback to report results. *)
@@ -82,7 +82,7 @@ val mk_empty_java_props_cache : unit -> java_props_cache
 val hook_function_taint_signature :
   (config ->
   AST_generic.expr ->
-  (AST_generic.parameters (* params of function *) * Taint.signature) option)
+  (AST_generic.parameters (* params of function *) * Taint_sig.signature) option)
   option
   ref
 (** Pro inter-file (aka deep) *)
@@ -95,7 +95,7 @@ val hook_check_tainted_at_exit_sinks :
   (config ->
   Taint_lval_env.t ->
   IL.node ->
-  (Taint.taints * Taint.sink list) option)
+  (Taint.taints * Taint_sig.sink list) option)
   option
   ref
 (** Pro: support for `at-exit: true` sinks *)

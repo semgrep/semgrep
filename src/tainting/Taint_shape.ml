@@ -14,6 +14,7 @@
  *)
 
 open Common
+module G = AST_generic
 module T = Taint
 module Taints = T.Taint_set
 
@@ -105,6 +106,26 @@ and equal_shape shape1 shape2 =
 and equal_obj obj1 obj2 = Fields.equal equal_ref obj1 obj2
 
 (*****************************************************************************)
+(* Comparison *)
+(*****************************************************************************)
+
+let rec compare_ref ref1 ref2 =
+  let (Ref (taints1, shape1)) = ref1 in
+  let (Ref (taints2, shape2)) = ref2 in
+  match Xtaint.compare taints1 taints2 with
+  | 0 -> compare_shape shape1 shape2
+  | other -> other
+
+and compare_shape shape1 shape2 =
+  match (shape1, shape2) with
+  | Bot, Bot -> 0
+  | Obj obj1, Obj obj2 -> compare_obj obj1 obj2
+  | Bot, Obj _ -> -1
+  | Obj _, Bot -> 1
+
+and compare_obj obj1 obj2 = Fields.compare compare_ref obj1 obj2
+
+(*****************************************************************************)
 (* Pretty-printing *)
 (*****************************************************************************)
 
@@ -128,6 +149,7 @@ and show_obj obj =
 let rec union_ref ref1 ref2 =
   let (Ref (xtaint1, shape1)) = ref1 in
   let (Ref (xtaint2, shape2)) = ref2 in
+  (* TODO: Apply 'Flag_semgrep.max_taint_set_size' here too ? *)
   let xtaint = Xtaint.union xtaint1 xtaint2 in
   let shape = union_shape shape1 shape2 in
   Ref (xtaint, shape)

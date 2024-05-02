@@ -77,7 +77,6 @@ type tainted_tokens = tainted_token list [@@deriving show]
 type 'a call_trace =
   | PM of PM.t * 'a
   | Call of G.expr * tainted_tokens * 'a call_trace
-[@@deriving show]
 
 let length_of_call_trace ct =
   let rec loop acc = function
@@ -85,8 +84,6 @@ let length_of_call_trace ct =
     | Call (_, _, ct') -> loop (acc + 1) ct'
   in
   loop 0 ct
-
-type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink } [@@deriving show]
 
 let compare_metavar_env env1 env2 =
   (* It's important that we only return 0 if the two bindings are
@@ -109,12 +106,6 @@ let compare_matches pm1 pm2 =
       else compare_metavar_env pm1.env pm2.env
   | other -> other
 
-let compare_sink { pm = pm1; rule_sink = sink1 } { pm = pm2; rule_sink = sink2 }
-    =
-  match String.compare sink1.Rule.sink_id sink2.Rule.sink_id with
-  | 0 -> compare_matches pm1 pm2
-  | other -> other
-
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
@@ -134,12 +125,12 @@ let rec show_call_trace show_thing = function
 (*****************************************************************************)
 
 type arg = { name : string; index : int } [@@deriving show, ord]
-type base = BGlob of IL.name | BThis | BArg of arg [@@deriving show, ord]
+type base = BGlob of IL.name | BThis | BArg of arg [@@deriving ord]
 
 type offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
-[@@deriving show, ord]
+[@@deriving ord]
 
-type lval = { base : base; offset : offset list } [@@deriving show]
+type lval = { base : base; offset : offset list }
 
 let hook_offset_of_IL = ref None
 
@@ -193,10 +184,9 @@ type source = {
       *)
   precondition : (taint list * R.precondition) option;
 }
-[@@deriving show]
 
-and orig = Src of source | Var of lval | Control [@@deriving show]
-and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+and orig = Src of source | Var of lval | Control
+and taint = { orig : orig; tokens : tainted_tokens }
 
 let compare_precondition (_ts1, f1) (_ts2, f2) =
   (* We don't consider the "incoming" taints here, assuming both
@@ -304,101 +294,6 @@ and show_taint taint =
   | Var lval -> show_lval lval
   | Control -> "<control>"
 
-let show_sink { rule_sink; _ } = rule_sink.R.sink_id
-
-type taint_to_sink_item = { taint : taint; sink_trace : unit call_trace }
-[@@deriving show]
-
-let show_taint_to_sink_item { taint; sink_trace } =
-  Printf.sprintf "%s@{%s}" (show_taint taint)
-    (show_call_trace [%show: unit] sink_trace)
-
-let show_taints_and_traces taints =
-  Common2.string_of_list show_taint_to_sink_item taints
-
-let compare_taint_to_sink_item { taint = taint1; sink_trace = _ }
-    { taint = taint2; sink_trace = _ } =
-  compare_taint taint1 taint2
-
-type taints_to_sink = {
-  (* These taints were incoming to the sink, under a certain
-     REQUIRES expression.
-     When we discharge the taint signature, we will produce
-     a certain number of findings suitable to how the sink was
-     reached.
-  *)
-  taints_with_precondition : taint_to_sink_item list * R.precondition;
-  sink : sink;
-  merged_env : Metavariable.bindings;
-}
-[@@deriving show]
-
-let compare_taints_to_sink
-    { taints_with_precondition = ttsis1, pre1; sink = sink1; merged_env = env1 }
-    { taints_with_precondition = ttsis2, pre2; sink = sink2; merged_env = env2 }
-    =
-  match compare_sink sink1 sink2 with
-  | 0 -> (
-      match List.compare compare_taint_to_sink_item ttsis1 ttsis2 with
-      | 0 -> (
-          match R.compare_precondition pre1 pre2 with
-          | 0 -> compare_metavar_env env1 env2
-          | other -> other)
-      | other -> other)
-  | other -> other
-
-type result =
-  | ToSink of taints_to_sink
-  | ToReturn of taint list * G.tok
-  | ToLval of taint list * lval (* TODO: CleanArg ? *)
-
-let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
-  Common.spf "%s ~~~> %s" (show_taints_and_traces taints) (show_sink sink)
-
-let show_result = function
-  | ToSink x -> show_taints_to_sink x
-  | ToReturn (taints, _) ->
-      Printf.sprintf "return (%s)" (Common2.string_of_list show_taint taints)
-  | ToLval (taints, lval) ->
-      Printf.sprintf "%s ----> %s"
-        (Common2.string_of_list show_taint taints)
-        (show_lval lval)
-
-let compare_result r1 r2 =
-  match (r1, r2) with
-  | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
-  | ToReturn (ts1, tok1), ToReturn (ts2, tok2) -> (
-      match List.compare compare_taint ts1 ts2 with
-      | 0 -> Tok.compare tok1 tok2
-      | other -> other)
-  | ToLval (ts1, lv1), ToLval (ts2, lv2) -> (
-      match List.compare compare_taint ts1 ts2 with
-      | 0 -> compare_lval lv1 lv2
-      | other -> other)
-  | ToSink _, (ToReturn _ | ToLval _) -> -1
-  | ToReturn _, ToLval _ -> -1
-  | ToReturn _, ToSink _ -> 1
-  | ToLval _, (ToSink _ | ToReturn _) -> 1
-
-module Results = Set.Make (struct
-  type t = result
-
-  let compare = compare_result
-end)
-
-module Results_tbl = Hashtbl.Make (struct
-  type t = result
-
-  let equal r1 r2 = compare_result r1 r2 =|= 0
-  let hash = Hashtbl.hash
-end)
-
-type signature = Results.t
-
-let show_signature s =
-  s |> Results.to_seq |> List.of_seq |> List_.map show_result
-  |> String.concat " + "
-
 (*****************************************************************************)
 (* Taint sets *)
 (*****************************************************************************)
@@ -425,6 +320,7 @@ module Taint_set = struct
   let is_empty set = Taints.is_empty set
   let cardinal set = Taints.cardinal set
   let equal set1 set2 = Taints.equal set1 set2
+  let compare set1 set2 = Taints.compare set1 set2
   let to_seq set = set |> Taints.to_seq
   let elements set = set |> to_seq |> List.of_seq
 

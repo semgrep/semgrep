@@ -44,13 +44,14 @@ let rec lvals_of_exp e =
   | Cast (_, e) -> lvals_of_exp e
   | Composite (_, (_, xs, _)) -> lvals_of_exps xs
   | Operator (_, xs) -> lvals_of_exps (List_.map exp_of_arg xs)
-  | Record ys ->
+  | RecordOrDict ys ->
       lvals_of_exps
         (ys
-        |> List_.map @@ function
+        |> List.concat_map @@ function
            | Field (_, e)
            | Spread e ->
-               e)
+               [ e ]
+           | Entry (ke, ve) -> [ ke; ve ])
   | FixmeExp (_, _, Some e) -> lvals_of_exp e
   | FixmeExp (_, _, None) -> []
 

@@ -248,7 +248,7 @@ let rec eval (env : env) (exp : IL.exp) : G.svalue =
       | __else__ -> eval_op env op args)
   | Operator (op, args) -> eval_op env op args
   | Composite _
-  | Record _
+  | RecordOrDict _
   | Cast _
   | FixmeExp _ ->
       G.NotCst

@@ -23,6 +23,7 @@ module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Core_result
 module T = Taint
+module Sig = Taint_sig
 module Lval_env = Taint_lval_env
 module MV = Metavariable
 module ME = Matching_explanation
@@ -481,7 +482,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 
 (* If the 'requires' has the shape 'A and ...' then we assume that 'A' is the
  * preferred label for reporting the taint trace. *)
-let preferred_label_of_sink ({ rule_sink; _ } : T.sink) =
+let preferred_label_of_sink ({ rule_sink; _ } : Sig.sink) =
   match rule_sink.sink_requires with
   | Some { precondition = PAnd (PLabel label :: _); _ } -> Some label
   | Some _
@@ -513,7 +514,7 @@ let sources_of_taints ?preferred_label taints =
    * they need to specify the parameters as taint sources. *)
   let taint_sources =
     taints
-    |> List_.map_filter (fun { T.taint = { orig; tokens }; sink_trace } ->
+    |> List_.map_filter (fun { Sig.taint = { orig; tokens }; sink_trace } ->
            match orig with
            | Src src -> Some (src, tokens, sink_trace)
            (* even if there is any taint "variable", it's irrelevant for the
@@ -565,10 +566,10 @@ let trace_of_source source =
 
 let pms_of_finding ~match_on finding =
   match finding with
-  | T.ToLval _
-  | T.ToReturn _ ->
+  | Sig.ToLval _
+  | Sig.ToReturn _ ->
       []
-  | ToSink
+  | Sig.ToSink
       {
         taints_with_precondition = taints, requires;
         sink = { pm = sink_pm; _ } as sink;
@@ -577,7 +578,7 @@ let pms_of_finding ~match_on finding =
       if
         not
           (T.taints_satisfy_requires
-             (List_.map (fun t -> t.T.taint) taints)
+             (List_.map (fun t -> t.Sig.taint) taints)
              requires)
       then []
       else
