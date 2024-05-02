@@ -122,6 +122,7 @@ let keys = Common2.hkeys lang_map
 let supported_langs : string = String.concat ", " keys
 
 (* TODO: move file identification to lang.json *)
+(* TODO: Solidity *)
 let langs_of_filename filename =
   let typ = File_type.file_type_of_file filename in
   match typ with

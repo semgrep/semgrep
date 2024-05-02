@@ -61,7 +61,11 @@ and obj = ref Fields.t
  *)
 
 val equal_ref : ref -> ref -> bool
+val equal_shape : shape -> shape -> bool
+val compare_ref : ref -> ref -> int
+val compare_shape : shape -> shape -> int
 val show_ref : ref -> string
+val show_shape : shape -> string
 
 val union_ref : ref -> ref -> ref
 (** Merge refs at JOIN nodes of the CFG. *)
