@@ -15,7 +15,7 @@ rule.yml
                       conditions = []; focus = []; as_ = None }
                      ]
                    ));
-                conditions = []; focus = [] });
+                conditions = []; focus = []; as_ = None });
      message = "useless comparison"; severity = `Error;
      target_selector = (Some [Python]);
      target_analyzer = (Xlang.L (Python, [])); options = None;
