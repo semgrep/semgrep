@@ -19,6 +19,9 @@ module R = Rule
 module LabelSet = Set.Make (String)
 open Common
 
+(* TODO: Consider renaming the `show_xyz` functions to `pretty_xyz` and
+ * generate `show_xyz` ones via `deriving show`. *)
+
 let base_tag_strings = [ __MODULE__; "taint" ]
 let _tags = Logs_.create_tags base_tag_strings
 let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
