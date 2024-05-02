@@ -196,7 +196,9 @@ val taints_of_pms :
 
 val show_taints : taints -> string
 
-(*  *)
+(*****************************************************************************)
+(* Taint-oriented comparison functions for non-taint types *)
+(*****************************************************************************)
 
 val compare_matches : Pattern_match.t -> Pattern_match.t -> int
 val compare_metavar_env : Metavariable.bindings -> Metavariable.bindings -> int
