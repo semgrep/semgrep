@@ -414,22 +414,25 @@ let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
 (* Conversions *)
 (*****************************************************************************)
 
-(* from rule_match.py *)
+(* from rule_match.py
+ * Note that the backend is moving to pull severity from the rules rather
+ * than the findings so in practice the value we put here might be
+ * ignored in the futur.
+ *)
 let severity_to_int (severity : Rule.severity) =
   match severity with
-  | `Experiment -> `Int 4
+  | `Inventory
+  | `Info
+  | `Low ->
+      `Int 0
   | `Warning
   | `Medium ->
       `Int 1
   | `Error
   | `High ->
       `Int 2
-  (* TODO: use `Int 5 here? *)
-  | `Critical -> `Int 2
-  | `Inventory
-  | `Info
-  | `Low ->
-      `Int 0
+  | `Critical -> `Int 3
+  | `Experiment -> `Int 4
 
 (* this is used for sorting matches for findings *)
 let ord_of_severity (severity : Rule.severity) : int =

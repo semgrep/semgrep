@@ -103,17 +103,20 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
 
 let parse_severity ~id (s, t) : Rule.severity =
   match s with
-  (* LATER: should put a deprecated notice at some point *)
+  (* LATER: should put a deprecated notice at some point for all of those
+   * coupling: update the error below when we fully switch to Low/Medium/...
+   *)
   | "ERROR" -> `Error
   | "WARNING" -> `Warning
-  | "INFO" -> `Info
   | "INVENTORY" -> `Inventory
   | "EXPERIMENT" -> `Experiment
-  (* since Semgrep 1.70.0 *)
+  (* since Semgrep 1.72.0 *)
   | "CRITICAL" -> `Critical
   | "HIGH" -> `High
   | "MEDIUM" -> `Medium
   | "LOW" -> `Low
+  (* generic placeholder *)
+  | "INFO" -> `Info
   | s ->
       Rule.raise_error (Some id)
         (InvalidRule
