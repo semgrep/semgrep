@@ -1,0 +1,7 @@
+rules:
+  - id: simple-python-rule
+    pattern: "0"
+    message: Simple python rule
+    languages:
+      - python
+    severity: INFO

@@ -201,7 +201,17 @@ repos:
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
-  - repo: https://github.com/returntocorp/semgrep
+
+  # TODO: Switch to https://github.com/semgrep/pre-commit
+  #       which is much more lightweight and doesn't require
+  #       cloning all the other source files than needed to
+  #       install pre-commit hooks.
+  #
+  #       But only switch after semgrep/pre-commit is sufficiently
+  #       tested. Right now, continue to use the semgrep/semgrep
+  #       repo.
+
+  - repo: https://github.com/semgrep/semgrep
     rev: v1.54.0
     hooks:
       - id: semgrep
@@ -252,7 +262,7 @@ repos:
   # Dogfooding .pre-commit-hooks.yml and setup.py
   # Use a fixed version of p/python and p/bandit to not get new findings
   # We run `semgrep ci` for our main rulesets
-  - repo: https://github.com/returntocorp/semgrep
+  - repo: https://github.com/semgrep/semgrep
     rev: v1.51.0
     hooks:
       - id: semgrep
@@ -268,7 +278,7 @@ repos:
 
   # Run Semgrep Docker images. Only used in CI since it's slower for local developmemt.
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
-  - repo: https://github.com/returntocorp/semgrep
+  - repo: https://github.com/semgrep/semgrep
     # Note that the 'rev:' below is the revision to use to clone the URL
     # above and to fetch its .pre-commit-hooks.yaml file. It does not always
     # mean which version of semgrep to use for the hook itself.
@@ -279,14 +289,43 @@ repos:
     rev: v1.51.0
     hooks:
       - id: semgrep-docker-develop
+        alias: semgrep-docker-develop-from-semgrep-semgrep
         name: Semgrep Develop Python
         types: [python]
         exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "tests/precommit_dogfooding/python.yml", "--error"]
         stages: [manual]
       - id: semgrep-docker-develop
+        alias: semgrep-docker-develop-from-semgrep-semgrep
         name: Semgrep Develop Bandit
         types: [python]
         exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "tests/precommit_dogfooding/bandit.yml", "--error"]
+        stages: [manual]
+
+  # These are hooks which are run by CI (only in the pre-commit manual
+  # stage) to do the minumum thing in order to test that all the
+  # semgrep/pre-commit hooks works.
+  - repo: https://github.com/semgrep/pre-commit
+    rev: 'v1.70.0'
+    hooks:
+      - id: semgrep
+        alias: semgrep-from-semgrep-pre-commit
+        name: Pre-commit semgrep
+        args: ["--config", "tests/precommit_dogfooding/python_simple.yml"]
+        stages: [manual]
+      - id: semgrep-ci
+        alias: semgrep-ci-from-semgrep-pre-commit
+        name: Pre-commit semgrep-ci
+        args: ["--config", "tests/precommit_dogfooding/python_simple.yml"]
+        stages: [manual]
+      - id: semgrep-docker-develop
+        alias: semgrep-docker-develop-from-semgrep-pre-commit
+        name: Pre-commit semgrep-docker-develop
+        args: ["--config", "tests/precommit_dogfooding/python_simple.yml"]
+        stages: [manual]
+      - id: semgrep-docker
+        alias: semgrep-docker-from-semgrep-pre-commit
+        name: Pre-commit semgrep-docker
+        args: ["--config", "tests/precommit_dogfooding/python_simple.yml"]
         stages: [manual]

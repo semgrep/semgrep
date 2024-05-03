@@ -73,10 +73,61 @@ local pre_commit_manual_job = {
   steps: [
     actions.checkout(),
     gha.git_safedir,
+
+    # We need to specify the hook alias
+    # "semgrep-docker-develop-from-semgrep-semgrep" as opposed to the
+    # hook id "semgrep-docker-develop" because we have multiple pre-commit
+    # hooks with this id, and we only want this specific alias to run
+    # for this job.
     {
       uses: 'pre-commit/action@v3.0.0',
       with: {
-        extra_args: '--hook-stage manual',
+        extra_args: 'semgrep-docker-develop-from-semgrep-semgrep --hook-stage manual',
+      },
+    },
+  ],
+};
+
+
+// This is job has a different purpose than the dogfood job above.
+// This job tests that the semgrep/pre-commit repo containts a valid
+// pre-commit hook that users can install.
+local pre_commit_hook_test_job = {
+  'runs-on': 'ubuntu-latest',
+  steps: [
+    actions.checkout(),
+    gha.git_safedir,
+    // Fake a newly changed file on a path that's not excluded in .pre-commit-config.yaml
+    {
+      name: 'Fake update file',
+      run: 'git mv tests/precommit_dogfooding/python_simple.py python_simple.py',
+    },
+    {
+      name: 'Test semgrep pre-commit hook',
+      uses: 'pre-commit/action@v3.0.0',
+      with: {
+        extra_args: 'semgrep-from-semgrep-pre-commit --hook-stage manual --files python_simple.py',
+      },
+    },
+    {
+      name: 'Test semgrep-ci pre-commit hook',
+      uses: 'pre-commit/action@v3.0.0',
+      with: {
+        extra_args: 'semgrep-ci-from-semgrep-pre-commit --hook-stage manual --files python_simple.py',
+      },
+    },
+    {
+      name: 'Test semgrep-docker-develop pre-commit hook',
+      uses: 'pre-commit/action@v3.0.0',
+      with: {
+        extra_args: 'semgrep-docker-develop-from-semgrep-pre-commit --hook-stage manual --files python_simple.py',
+      },
+    },
+    {
+      name: 'Test semgrep-docker pre-commit hook',
+      uses: 'pre-commit/action@v3.0.0',
+      with: {
+        extra_args: 'semgrep-docker-from-semgrep-pre-commit --hook-stage manual --files python_simple.py',
       },
     },
   ],
@@ -186,6 +237,7 @@ local jsonnet_gha_job = {
   jobs: {
     'pre-commit': pre_commit_job,
     'pre-commit-manual': pre_commit_manual_job,
+    'pre-commit-hook-test': pre_commit_hook_test_job,
     'pre-commit-ocaml': pre_commit_ocaml_job(),
     'github-actions': action_lint_job,
     'jsonnet-gha': jsonnet_gha_job,

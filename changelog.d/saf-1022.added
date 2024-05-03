@@ -1,0 +1,3 @@
+Added more CI jobs to test our (still experimental) semgrep/pre-commit
+repo. This new repo hosts the pre-commit hook just like the
+semgrep/semgrep repo, but is much more lightweight.

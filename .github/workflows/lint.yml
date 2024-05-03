@@ -39,6 +39,30 @@ jobs:
       - env:
           SKIP_OCAMLFORMAT: yes
         uses: pre-commit/action@v3.0.0
+  pre-commit-hook-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Fake update file
+        run: git mv tests/precommit_dogfooding/python_simple.py python_simple.py
+      - name: Test semgrep pre-commit hook
+        uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: semgrep-from-semgrep-pre-commit --hook-stage manual --files python_simple.py
+      - name: Test semgrep-ci pre-commit hook
+        uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: semgrep-ci-from-semgrep-pre-commit --hook-stage manual --files python_simple.py
+      - name: Test semgrep-docker-develop pre-commit hook
+        uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: semgrep-docker-develop-from-semgrep-pre-commit --hook-stage manual --files python_simple.py
+      - name: Test semgrep-docker pre-commit hook
+        uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: semgrep-docker-from-semgrep-pre-commit --hook-stage manual --files python_simple.py
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +71,7 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - uses: pre-commit/action@v3.0.0
         with:
-          extra_args: --hook-stage manual
+          extra_args: semgrep-docker-develop-from-semgrep-semgrep --hook-stage manual
   pre-commit-ocaml:
     container: returntocorp/ocaml:ubuntu-2023-10-17
     runs-on: ubuntu-latest
