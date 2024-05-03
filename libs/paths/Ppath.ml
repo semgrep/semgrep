@@ -161,8 +161,7 @@ let add_segs (path : t) segs = create (path.segments @ segs)
 let append_fpath (path : t) fpath =
   match Fpath.segs fpath with
   | "" :: _ ->
-      invalid_arg
-        ("Ppath.append_fpath: not a relative path: " ^ Fpath.to_string fpath)
+      invalid_arg ("Ppath.append_fpath: not a relative path: " ^ !!fpath)
   | segs -> add_segs path segs
 
 module Operators = struct
@@ -306,13 +305,11 @@ let make_absolute path =
     match Rpath.of_fpath path with
     | Ok path -> Rpath.to_fpath path
     | Error err ->
-        failwith
-          (Common.spf "Failed to make path %s absolute: %s"
-             (Fpath.to_string path) err)
+        failwith (Common.spf "Failed to make path %s absolute: %s" !!path err)
 
 let of_relative_fpath (fpath : Fpath.t) =
   if Fpath.is_rel fpath then create ("" :: Fpath.segs fpath)
-  else invalid_arg ("Ppath.of_relative_fpath: " ^ Fpath.to_string fpath)
+  else invalid_arg ("Ppath.of_relative_fpath: " ^ !!fpath)
 
 (*
    This assumes the input paths are normalized. We use this

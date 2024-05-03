@@ -82,7 +82,14 @@ let handle_call caps : function_call -> (function_return, string) result =
       let modified_file_count, fixed_lines = handle_autofix dryrun edits in
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
   | `CallSarifFormat
-      { hide_nudge; engine_label; rules; cli_matches; cli_errors } ->
+      {
+        hide_nudge;
+        engine_label;
+        rules;
+        cli_matches;
+        cli_errors;
+        show_dataflow_traces = _TODO;
+      } ->
       let output, format_time_seconds =
         handle_sarif_format
           (caps :> < Cap.tmp >)
