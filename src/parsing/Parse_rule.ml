@@ -125,6 +125,7 @@ let parse_fix_regex (env : env) (key : key) fields =
   let (regex : string R.wrap) =
     take_key fix_regex_dict env parse_string_wrap "regex"
   in
+  (* TODO? should we String.trim for consistency with fix: ? *)
   let (replacement : string) =
     take_key fix_regex_dict env parse_string "replacement"
   in
@@ -932,7 +933,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     product;
     (* optional fields *)
     metadata = metadata_opt;
-    fix = fix_opt;
+    fix = fix_opt |> Option.map String.trim;
     fix_regexp = fix_regex_opt;
     paths = paths_opt;
     equivalences = equivs_opt;
@@ -1069,8 +1070,12 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
-  parse_file ~error_recovery:true ?rewrite_rule_ids file
+let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) =
+  let rules, errors = parse_file ~error_recovery:true ?rewrite_rule_ids file in
+  Log.debug (fun m ->
+      m "Parse_rule.parse_and_filter_invalid_rules(%s) = " !!file);
+  rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
+  (rules, errors)
 [@@profiling]
 
 let parse_xpattern xlang (str, tok) =

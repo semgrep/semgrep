@@ -24,6 +24,7 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
+(* LATER: we should remove the network caps; the tested rules should be local *)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 
 (* Intermediate type because semgrep_output_v1.atd does not have
@@ -37,18 +38,8 @@ type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
  *)
 type test_result = Rule_ID.t * Out.rule_result
 
-(* In theory, we should not return the Fpath.t associated with fixtest_result
- * because it is the same than the target parameter of run_rules_against_target,
- * but it is convenient for the caller of this function as the Out.fix_results
- * field in Out.test_results except a target name.
- * TODO? add diff between .fixed and actual for error management?
- *)
+(* TODO? add diff between .fixed and actual for error management? *)
 type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
-
-(* TODO: define clearly in semgrep_output_v1.atd config_with_errors type
- * and also the errors in rule_result.
- * type config_with_error_output = ...
- *)
 
 (* TODO: move in core/ ? used in other files? was in constants.py in pysemgrep *)
 let break_line =
@@ -69,6 +60,7 @@ type annotation_kind =
 
 (* TODO?
  *  - support multi ruleids separated by commas?
+ *  - support possible leading deepok:
  *  - support pro/deep annotations?
  *  - check comments?
  *)
@@ -80,6 +72,11 @@ type annotation = annotation_kind * Rule_ID.t
 
 (* starts at 1 *)
 type linenb = int
+
+(* TODO: define clearly in semgrep_output_v1.atd config_with_errors type
+ * and also the errors in rule_result.
+ * type config_with_error_output = ...
+ *)
 
 type error =
   (* there is a rule but there is no target file *)
@@ -152,7 +149,7 @@ let group_positive_annotations (annots : (annotation * linenb) list) :
            |> List.sort_uniq Int.compare ))
 
 (*****************************************************************************)
-(* Helpers *)
+(* File targeting *)
 (*****************************************************************************)
 
 (* coupling: mostly copy paste of Test_engine.single_xlang_from_rules *)
@@ -205,49 +202,63 @@ let rule_files_and_rules_of_config_string caps
                    (Rule_fetching.show_origin x.origin));
              None)
 
-let fixtest_result_for_target (env : env) (target : Fpath.t)
-    (pms : Pattern_match.t list) : fixtest_result option =
-  let fixtest_target_opt =
-    (* TODO? Use Fpath instead? Move to Rule_tests.ml?  *)
-    let d, b, e = Filename_.dbe_of_filename !!target in
-    let fixtest = Filename_.filename_of_dbe (d, b, "fixed." ^ e) in
-    if Sys.file_exists fixtest then Some (Fpath.v fixtest) else None
-  in
+(*****************************************************************************)
+(* Fixtest *)
+(*****************************************************************************)
+
+let fixtest_of_target_opt (target : Fpath.t) : Fpath.t option =
+  (* TODO? Use Fpath instead? Move to Rule_tests.ml?  *)
+  let d, b, e = Filename_.dbe_of_filename !!target in
+  let fixtest = Filename_.filename_of_dbe (d, b, "fixed." ^ e) in
+  if Sys.file_exists fixtest then Some (Fpath.v fixtest) else None
+
+(* TODO use capability and cleanup Test_parsing.ml and remove
+ * Common2.unix_diff
+ *)
+let unix_diff (str1 : string) (str2 : string) : string list =
+  UTmp.with_temp_file ~contents:str1 ~suffix:".x" (fun file1 ->
+      UTmp.with_temp_file ~contents:str2 ~suffix:".x" (fun file2 ->
+          Common2.unix_diff !!file1 !!file2))
+
+let fixtest_result_for_target (_env : env) (target : Fpath.t)
+    (fixtest_target : Fpath.t) (pms : Pattern_match.t list) : fixtest_result =
+  Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
   let (textedits : Textedit.t list) =
     pms |> List.concat_map (fun pm -> Autofix.render_fix pm |> Option.to_list)
   in
-  match (fixtest_target_opt, textedits) with
-  | None, [] -> None
-  | None, _ :: _ ->
-      (* stricter: *)
-      Logs.warn (fun m ->
-          m "no fixtest for test %s but the matches had fixes" !!target);
-      Stack_.push (MissingFixtest env.rule_file) env.errors;
-      None
-  | Some fixtest_target, _ :: _ ->
-      Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
-      let expected_content = UFile.read_file fixtest_target in
-      let actual_res =
-        Textedit.apply_edits_to_text target (UFile.read_file target) textedits
-      in
-      let passed =
-        match actual_res with
-        | Textedit.Success actual_content ->
-            let passed = expected_content = actual_content in
-            (* TODO: print the diff *)
-            if not passed then
-              Logs.err (fun m -> m "fixtest failed for %s" !!fixtest_target);
-            passed
-        | Overlap _ ->
-            Logs.err (fun m -> m "fixes overlap for %s" !!target);
-            (* TODO? return an error instead ?*)
-            false
-      in
-      Some (target, Out.{ passed })
-  | Some _, [] ->
-      (* stricter? *)
-      Logs.err (fun m -> m "no autofix generated for %s" !!target);
-      Some (target, Out.{ passed = false })
+  (* stricter? *)
+  if List_.null textedits then
+    Logs.warn (fun m -> m "no autofix generated for %s" !!target);
+
+  let expected_content = UFile.read_file fixtest_target in
+  let actual_res =
+    Textedit.apply_edits_to_text target (UFile.read_file target) textedits
+  in
+  let passed =
+    match actual_res with
+    | Textedit.Success actual_content ->
+        let passed = expected_content = actual_content in
+        (* TODO: print the diff *)
+        (if not passed then
+           let diff = unix_diff expected_content actual_content in
+           Logs.err (fun m ->
+               m "fixtest failed for %s, diff =\n%s" !!fixtest_target
+                 (String.concat "\n" diff)));
+        passed
+    | Overlap _ ->
+        Logs.err (fun m -> m "fixes overlap for %s" !!target);
+        (* TODO? return an error instead ?*)
+        false
+  in
+  (target, Out.{ passed })
+
+(* LATER: still enough in steps mode? *)
+let rule_contain_fix_or_fix_regex (rule : Rule.t) : bool =
+  match rule with
+  | { fix = Some _; _ }
+  | { fix_regexp = Some _; _ } ->
+      true
+  | _else_ -> false
 
 (*****************************************************************************)
 (* Reporting *)
@@ -362,7 +373,7 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
       (* maybe some files with todoruleid: without any match yet, but we
        * still want to include them in the JSON output like pysemgrep
        *)
-      (* stricter: *)
+      (* stricter? *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
       (* TODO: inconsistency in pysemgrep, sometimes it filter those rule ids
        * like in semgrep-rules/ocaml/, sometimes not,
@@ -419,9 +430,29 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
   in
   (* optional fixtest *)
   let (fixtest_res : (Fpath.t (* target *) * Out.fixtest_result) option) =
-    fixtest_result_for_target env target res.matches
+    match
+      ( fixtest_of_target_opt target,
+        rules |> List.exists rule_contain_fix_or_fix_regex )
+    with
+    | None, true ->
+        (* stricter: (reported in JSON at least via config_missing_fixtests) *)
+        Logs.warn (fun m ->
+            m "no fixtest for test %s but the rule file %s uses autofix"
+              !!target !!(env.rule_file));
+        Stack_.push (MissingFixtest env.rule_file) env.errors;
+        None
+    | Some fixtest, false ->
+        (* stricter? *)
+        Logs.err (fun m ->
+            m
+              "found the fixtest %s but the rule file %s does not contain \
+               autofix"
+              !!fixtest !!(env.rule_file));
+        None
+    | None, false -> None
+    | Some fixtest_target, true ->
+        Some (fixtest_result_for_target env target fixtest_target res.matches)
   in
-
   (* both together *)
   (checks, fixtest_res)
 
@@ -456,10 +487,12 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                (* TODO? sanity check? call metachecker Check_rule.check()?
                 * TODO: error managementm parsing errors?
                 *)
-               let rules = Parse_rule.parse rule_file in
+               let rules, _errorsTODO =
+                 Parse_rule.parse_and_filter_invalid_rules rule_file
+               in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
-                   (* stricter: *)
+                   (* stricter: (but reported via config_missing_tests in JSON)*)
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
                    Stack_.push (MissingTest rule_file) errors;

@@ -1,0 +1,21 @@
+{
+  "config_missing_fixtests": [],
+  "config_missing_tests": [],
+  "config_with_errors": [],
+  "fixtest_results": {
+    "targets/fixtest/basic.go": {
+      "passed": true
+    }
+  },
+  "results": {
+    "rules/fixtest/fix_trailing_newline.yaml": {
+      "checks": {
+        "basic-fix": {
+          "errors": [],
+          "matches": "<masked in tests>",
+          "passed": true
+        }
+      }
+    }
+  }
+}
