@@ -100,6 +100,8 @@ https:/<MASKED>
 [<MASKED>][INFO]: Version: semgrep-core version: <MASKED>
 [<MASKED>][DEBUG](default): size of returned JSON string: <MASKED>
 --- end semgrep-core stderr ---
+--- semgrep-core JSON answer ---
+{'version': '<MASKED>', 'results': [{'check_id': 'rules.experiment.research-experiment', 'path': '<MASKED>', 'start': {'line': 1, 'col': 1, 'offset': 0}, 'end': {'line': 1, 'col': 32, 'offset': 31}, 'extra': {'message': 'A match was found.', 'metavars': {}, 'engine_kind': 'OSS', 'is_ignored': False, 'validation_state': 'NO_VALIDATOR'}}, {'check_id': 'rules.experiment.research-experiment', 'path': '<MASKED>', 'start': {'line': 3, 'col': 1, 'offset': 33}, 'end': {'line': 3, 'col': 37, 'offset': 69}, 'extra': {'message': 'A match was found.', 'metavars': {}, 'engine_kind': 'OSS', 'is_ignored': False, 'validation_state': 'NO_VALIDATOR'}}], 'errors': [], 'paths': {'scanned': ['<MASKED>']}, 'time': {'rules': ['rules.experiment.research-experiment'], 'rules_parse_time': 0.0026578903198242188, 'profiling_times': {}, 'targets': [{'path': '<MASKED>', 'num_bytes': 69, 'match_times': [0.005018949508666992], 'parse_times': [0.012648820877075195], 'run_time': 0.0272369384765625}], 'total_bytes': 69, 'max_memory_bytes': 42336256}, 'rules_by_engine': [['rules.experiment.research-experiment', 'OSS']], 'engine_requested': 'OSS', 'interfile_languages_used': [], 'skipped_rules': []}--- end semgrep-core JSON answer ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
 
@@ -243,6 +245,8 @@ https:/<MASKED>
 [<MASKED>][[34mINFO[0m]: Version: semgrep-core version: <MASKED>
 [<MASKED>][[32mDEBUG[0m](default): size of returned JSON string: <MASKED>
 --- end semgrep-core stderr ---
+--- semgrep-core JSON answer ---
+{'version': '<MASKED>', 'results': [{'check_id': 'rules.experiment.research-experiment', 'path': '<MASKED>', 'start': {'line': 1, 'col': 1, 'offset': 0}, 'end': {'line': 1, 'col': 32, 'offset': 31}, 'extra': {'message': 'A match was found.', 'metavars': {}, 'engine_kind': 'OSS', 'is_ignored': False, 'validation_state': 'NO_VALIDATOR'}}, {'check_id': 'rules.experiment.research-experiment', 'path': '<MASKED>', 'start': {'line': 3, 'col': 1, 'offset': 33}, 'end': {'line': 3, 'col': 37, 'offset': 69}, 'extra': {'message': 'A match was found.', 'metavars': {}, 'engine_kind': 'OSS', 'is_ignored': False, 'validation_state': 'NO_VALIDATOR'}}], 'errors': [], 'paths': {'scanned': ['<MASKED>']}, 'time': {'rules': ['rules.experiment.research-experiment'], 'rules_parse_time': 0.0026578903198242188, 'profiling_times': {}, 'targets': [{'path': '<MASKED>', 'num_bytes': 69, 'match_times': [0.005018949508666992], 'parse_times': [0.012648820877075195], 'run_time': 0.0272369384765625}], 'total_bytes': 69, 'max_memory_bytes': 42336256}, 'rules_by_engine': [['rules.experiment.research-experiment', 'OSS']], 'engine_requested': 'OSS', 'interfile_languages_used': [], 'skipped_rules': []}--- end semgrep-core JSON answer ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
 
