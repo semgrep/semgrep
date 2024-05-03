@@ -481,6 +481,9 @@ nix-pysemgrep:
 nix-check:
 	nix flake check ".?submodules=1#"
 
+nix-check-verbose:
+	nix flake check -L ".?submodules=1#"
+
 # check flake is valid and not stale
 nix-check-flake:
 	nix run github:DeterminateSystems/flake-checker

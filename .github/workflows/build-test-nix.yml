@@ -15,7 +15,7 @@ jobs:
       - name: Check Flake Validity
         uses: DeterminateSystems/flake-checker-action@main
       - name: Build and Check Flake
-        run: make nix-check
+        run: make nix-check-verbose
     strategy:
       matrix:
         os:

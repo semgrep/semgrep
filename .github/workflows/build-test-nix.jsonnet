@@ -24,7 +24,7 @@ local job = gha.os_matrix(
     },
     {
         name: "Build and Check Flake",
-        run: "make nix-check"
+        run: "make nix-check-verbose"
     }
     /* TODO - add this in so we can cache everything on every push
 
