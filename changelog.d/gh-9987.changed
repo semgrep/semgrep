@@ -1,1 +1,0 @@
-The `--beta-testing-secrets-enabled` option, deprecated for several months, is now removed. Use `--secrets` as its replacement.
