@@ -41,6 +41,7 @@
 #
 # To contribute to the cache, go to 1password "Semgrep Cachix Auth Token" and run
 #   cachix authtoken <TOKEN>
+#
 
 # What is Nix?
 #
@@ -328,9 +329,15 @@
           # make sure we have submodules
           # See https://github.com/NixOS/nix/pull/7862
           buildPhase = if self.submodules then osemgrep.buildPhase' else osemgrep.buildPhaseFail;
-          # TODO check phase
-
-          checkTarget = "test";
+          nativeCheckInputs = with pkgs; [
+            cacert
+            git
+          ];
+          # git init is needed so tests work successfully since many rely on git root existing
+          checkPhase = ''
+            git init
+            make test
+          '';
 
           # DONE! Copy semgrep binaries!!!!
           installPhase = ''
@@ -398,10 +405,41 @@
         # TODO semgrep-js
       in
       {
+        # For a lot of nix commands, nix uses the cwd's flake. So
+        #   nix develop
+        # will run the current flake. But because semgrep has submodules we have
+        # to specify `.?submodules=1#` to enable checking out submodules`
+        #
+        # The target of the command is structured
+        # `<FLAKE_LOCATION>(?OPTIONAL_PARAMS)#<TARGET>` so you can run
+        #   nix run nixpkgs#gcc
+        # to run gcc from the default nix repository nixpkgs.
+        #
+        # But the location is similar to a url! So you can run
+        #   nix run github:DeterminateSystems/flake-checker
+        # to run DeterminateSystem's
+        # cool flake checker, without ever needing to install it or anything! Or
+        # other nix users who want to try osemgrep can run
+        #   nix run github:semgrep/semgrep?submodules=1#osemgrep
+        #
+        # See: https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html#types
+        # for more on flake refs
+        #
+        # See: https://nixos.org/manual/nix/stable/command-ref/experimental-commands
+        # for other useful commands
 
+        #   nix build ".?submodules=1#<PKG_NAME>"
+        # builds the below package leaving it empty builds the default. The
+        # output will be linked into the cwd in a folder called "result". Also
+        # exports packages for other nix packages to use
         packages.osemgrep = osemgrep;
         packages.semgrep = pysemgrep;
         packages.default = pysemgrep;
+
+        #   nix run ".?submodules=1#<PKG_NAME>"
+        # builds and runs the package specified, without linking the output
+        # result into the cwd. You can try other nixpkgs similarly by running
+        # `nix run nixpkgs#<PKG_NAME>` like `nix run nixpkgs#hello_world`.
         apps = {
           osemgrep = {
             type = "app";
@@ -424,8 +462,23 @@
             program = "${pysemgrep}/bin/semgrep";
           };
         };
+        #   nix flake check ".?submodules=1#"
+        # makes sure the flake is a valid structure, all the derivations are
+        # valid, and runs anyting put in checks
+        checks = {
+          osemgrep = osemgrep.overrideAttrs (prev: {
+            # We don't want to force people to run the test suite everytime they
+            # build semgrep, but we do want to run it here
+            doCheck = true;
+          });
+        };
 
+        #   nix fmt
+        # formats this file. In the future we can add ocaml, python, and other
+        # formatters here to run also
         formatter = pkgs.nixpkgs-fmt;
+        #   nix develop -c $SHELL
+        # runs this shell which has all dependencies needed to make semgrep
         devShells.default = pkgs.mkShell {
           # See comment above osemgrep.buildPhase for why we need this
           # This doesnt work there because idk

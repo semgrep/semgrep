@@ -466,7 +466,8 @@ homebrew-setup:
 
 # Enter development environment with all dependencies installed
 shell:
-	nix develop -c $SHELL
+	$(eval USER_SHELL := $(shell finger ${USER} | grep 'Shell:*' | cut -f3 -d ":"))
+	nix develop -c $(USER_SHELL)
 
 # Build targets
 nix-osemgrep:

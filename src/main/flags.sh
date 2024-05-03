@@ -54,7 +54,7 @@ OS="$1"
 # Check if NIX_ENVIRONMENT is not set
 # If it is set, we are in a nix-shell and we should not statically link
 # This is first because opam won't exist in a nix build environment
-if [[ -v SEMGREP_NIX_BUILD ]]; then
+if [[ -n "${SEMGREP_NIX_BUILD-}" ]]; then
     FLAGS=()
     CCLIB=()
     CCOPT=()
