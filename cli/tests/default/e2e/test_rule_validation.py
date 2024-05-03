@@ -63,9 +63,11 @@ def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule",
-    ["rules/regex-capture-groups.yaml",
-     "rules/numeric-regex-capture-rule.yaml",
-     "rules/patternless-sca-rule.yaml"],
+    [
+        "rules/regex-capture-groups.yaml",
+        "rules/numeric-regex-capture-rule.yaml",
+        "rules/patternless-sca-rule.yaml",
+    ],
 )
 def test_validation_of_valid_rules(run_semgrep_in_tmp: RunSemgrep, rule):
     run_semgrep_in_tmp(
