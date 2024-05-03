@@ -1,0 +1,7 @@
+rules:
+- id: critical
+  languages:
+  - python
+  match: print($ARG)
+  message: do not use print
+  severity: CRITICAL
