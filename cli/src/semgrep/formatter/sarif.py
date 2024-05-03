@@ -327,8 +327,12 @@ class SarifFormatter(BaseFormatter):
         """
         mapping = {
             out.Info(): "note",
+            out.Low(): "note",
             out.Warning(): "warning",
+            out.Medium(): "warning",
             out.Error(): "error",
+            out.High(): "error",
+            out.Critical(): "error",
         }
         return mapping[rule.severity.value]
 
