@@ -63,8 +63,6 @@
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
-SHELL := /bin/bash
-
 # First (and default) target.
 .PHONY: default
 default: core
