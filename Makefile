@@ -478,10 +478,13 @@ nix-semgrep-core:
 nix-pysemgrep:
 	nix build ".?submodules=1#pysemgrep"
 
-# Run tests
+# Build + run tests (doesn't run python tests yet)
 nix-check:
 	nix flake check ".?submodules=1#"
 
+# check flake is valid and not stale
+nix-check-flake:
+	nix run github:DeterminateSystems/flake-checker
 # Update flake inputs
 nix-update:
 	nix flake update
