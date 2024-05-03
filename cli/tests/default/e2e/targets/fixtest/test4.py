@@ -1,11 +1,11 @@
-# ruleid: test4
+# ruleid: other-pattern
 exit(1)
 
-# ruleid: test4
+# ruleid: other-pattern
 exit(2)
 
-# ok: test4
+# ok: other-pattern
 sys.exit(1)
 
-# ok: test4
+# ok: other-pattern
 sys.exit(2)

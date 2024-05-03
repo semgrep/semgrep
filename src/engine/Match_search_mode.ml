@@ -963,9 +963,15 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
-    xconf xtarget =
+let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
   let rule_id = fst r.id in
+
+  let%trace_debug sp = "Match_search_mode.check_rule" in
+  Tracing.add_data_to_span sp
+    [
+      ("rule_id", `String (rule_id |> Rule_ID.to_string)); ("taint", `Bool false);
+    ];
+
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
   {
@@ -977,12 +983,6 @@ let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
-      |> List.concat_map
-           (Match_dependency.annotate_pattern_match dependency_matches)
-      |> before_return (fun v ->
-             v
-             |> List.iter (fun (m : Pattern_match.t) ->
-                    let str = spf "with rule %s" (Rule_ID.to_string rule_id) in
-                    hook str m));
+      |> hook;
     errors;
   }

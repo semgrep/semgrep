@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2023 r2c
+ * Copyright (C) 2020-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,8 +16,6 @@ open Common
 open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module E = Core_error
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,8 +44,7 @@ let timeout_function file timeout f =
 let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
-      Logs.err (fun m ->
-          m ~tags "parse_pattern: exn = %s" (Common.exn_to_s exn));
+      Logs.err (fun m -> m "parse_pattern: exn = %s" (Common.exn_to_s exn));
       Rule.raise_error None
         (InvalidRule
            ( InvalidPattern
@@ -86,8 +83,8 @@ let output_core_results (caps : < Cap.exit >)
       *)
       let s = OutJ.string_of_core_output res in
       Logs.debug (fun m ->
-          m ~tags "size of returned JSON string: %d" (String.length s));
-      Out.put s;
+          m "size of returned JSON string: %d" (String.length s));
+      UConsole.print s;
       match result_or_exn with
       | Error (e, _) ->
           Core_exit_code.exit_semgrep caps#exit (Unknown_exception e)
@@ -100,11 +97,11 @@ let output_core_results (caps : < Cap.exit >)
             |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
           if not (List_.null res.errors) then (
-            (* TODO? Logs.warn? *)
-            Out.put
-              "WARNING: some files were skipped or only partially analyzed:";
-            (* TODO? Logs.err? *)
-            res.errors |> List.iter (fun err -> Out.put (E.string_of_error err)))
+            Logs.warn (fun m ->
+                m "some files were skipped or only partially analyzed");
+            res.errors
+            |> List.iter (fun err ->
+                   Logs.warn (fun m -> m "%s" (E.string_of_error err))))
       | Error (exn, _) -> Exception.reraise exn)
 
 (*****************************************************************************)
@@ -183,7 +180,7 @@ let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
       let res = Core_scan.scan caps config (([ rule ], []), rules_parse_time) in
       let json = Core_json_output.core_output_of_matches_and_errors res in
       let s = OutJ.string_of_core_output json in
-      Out.put s
+      UConsole.print s
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->
@@ -195,10 +192,10 @@ let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
       (* sanity check *)
       if config.filter_irrelevant_rules then
         Logs.warn (fun m ->
-            m ~tags "-fast does not work with -f/-e, or you need also -json");
+            m "-fast does not work with -f/-e, or you need also -json");
       files
       |> List.iter (fun (file : Fpath.t) ->
-             Logs.debug (fun m -> m ~tags "processing: %s" !!file);
+             Logs.info (fun m -> m "processing: %s" !!file);
              let process file =
                timeout_function file config.timeout (fun () ->
                    let ast =

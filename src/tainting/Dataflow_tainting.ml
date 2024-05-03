@@ -24,6 +24,7 @@ module R = Rule
 module S = Taint_shape
 module LV = IL_helpers
 module T = Taint
+module Sig = Taint_sig
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
 module TM = Taint_smatch
@@ -93,7 +94,7 @@ type config = {
        * `sanitize(sink(tainted))` will not yield any finding.
        * *)
   unify_mvars : bool;
-  handle_results : var option -> T.result list -> Lval_env.t -> unit;
+  handle_results : var option -> Sig.result list -> Lval_env.t -> unit;
 }
 
 type mapping = Lval_env.t D.mapping
@@ -437,8 +438,8 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
    We will figure out how many actual Semgrep findings are generated
    when this information is used, later.
 *)
-let results_of_tainted_sink env taints_with_traces (sink : T.sink) :
-    T.result list =
+let results_of_tainted_sink env taints_with_traces (sink : Sig.sink) :
+    Sig.result list =
   match taints_with_traces with
   | [] -> []
   | _ :: _ -> (
@@ -449,10 +450,10 @@ let results_of_tainted_sink env taints_with_traces (sink : T.sink) :
          So we record the `requires` within the taint finding, and evaluate
          the formula later, when we extract the PMs
       *)
-      let { T.pm = sink_pm; rule_sink = ts } = sink in
+      let { Sig.pm = sink_pm; rule_sink = ts } = sink in
       let taints_and_bindings =
         taints_with_traces
-        |> List_.map (fun ({ T.taint; _ } as item) ->
+        |> List_.map (fun ({ Sig.taint; _ } as item) ->
                let bindings =
                  match taint.T.orig with
                  | T.Src source ->
@@ -497,7 +498,7 @@ let results_of_tainted_sink env taints_with_traces (sink : T.sink) :
                  merge_source_sink_mvars env sink_pm.PM.env bindings
                in
                Some
-                 (T.ToSink
+                 (Sig.ToSink
                     {
                       taints_with_precondition = ([ t ], R.get_sink_requires ts);
                       sink;
@@ -511,7 +512,7 @@ let results_of_tainted_sink env taints_with_traces (sink : T.sink) :
         | None -> []
         | Some merged_env ->
             [
-              T.ToSink
+              Sig.ToSink
                 {
                   taints_with_precondition =
                     (List_.map fst taints_and_bindings, R.get_sink_requires ts);
@@ -521,7 +522,7 @@ let results_of_tainted_sink env taints_with_traces (sink : T.sink) :
             ])
 
 (* Produces a finding for every unifiable source-sink pair. *)
-let results_of_tainted_sinks env taints sinks : T.result list =
+let results_of_tainted_sinks env taints sinks : Sig.result list =
   let taints =
     let control_taints = Lval_env.get_control_taints env.lval_env in
     taints |> Taints.union control_taints
@@ -537,18 +538,18 @@ let results_of_tainted_sinks env taints sinks : T.result list =
            let taints_with_traces =
              taints |> Taints.elements
              |> List_.map (fun t ->
-                    { T.taint = t; sink_trace = T.PM (sink.T.pm, ()) })
+                    { Sig.taint = t; sink_trace = T.PM (sink.Sig.pm, ()) })
            in
            results_of_tainted_sink env taints_with_traces sink)
 
-let results_of_tainted_return taints return_tok : T.result list =
+let results_of_tainted_return taints return_tok : Sig.result list =
   if Taints.is_empty taints then []
   else
     let taint_list =
       taints |> Taints.elements
       |> List_.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
     in
-    [ T.ToReturn (taint_list, return_tok) ]
+    [ Sig.ToReturn (taint_list, return_tok) ]
 
 let check_orig_if_sink env ?filter_sinks orig taints =
   let sinks = orig_is_best_sink env orig in
@@ -1191,12 +1192,16 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
               args_taints
         in
         (op_taints, lval_env)
-    | Record fields ->
+    | RecordOrDict fields ->
         union_map_taints_and_vars env
           (fun env -> function
             | Field (_, e)
             | Spread e ->
-                check env e)
+                check env e
+            | Entry (ke, ve) ->
+                let k_taints, lval_env = check env ke in
+                let v_taints, lval_env = check { env with lval_env } ve in
+                (Taints.union k_taints v_taints, lval_env))
           fields
     | Cast (_, e) -> check env e
   in
@@ -1339,7 +1344,7 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
               { arg_lval with rev_offset = rev_offset @ arg_lval.rev_offset }
             in
             Some (lval, obj)
-        | Record fields, [ Ofld o ] -> (
+        | RecordOrDict fields, [ Ofld o ] -> (
             (* JS: The argument of a function call may be a record expression such as
              * `{x="tainted", y="safe"}`, if 'sig_lval' refers to the `x` field then
              * we want to resolve it to `"tainted"`. *)
@@ -1350,7 +1355,9 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
                     * we look for a `fld=lval` field in the record object such that
                     * 'fld' has the same name as 'o'. *)
                    | Field (fld, _) -> fst fld = fst o.ident
-                   | Spread _ -> false)
+                   | Entry _
+                   | Spread _ ->
+                       false)
             with
             | Some (Field (_, { e = Fetch ({ base = Var obj; _ } as lval); _ }))
               ->
@@ -1389,7 +1396,7 @@ let check_function_signature env fun_exp args args_taints =
       let* fparams, fun_sig = hook env.config eorig in
       Logs.debug (fun m ->
           m ~tags:sigs "Call to %s : %s" (_show_fun_exp fun_exp)
-            (T.show_signature fun_sig));
+            (Sig.show_signature fun_sig));
       (* This function simply produces the corresponding taints to the
           given argument, within the body of the function.
       *)
@@ -1418,7 +1425,7 @@ let check_function_signature env fun_exp args args_taints =
         T.map_preconditions subst taint
       in
       let process_sig :
-          T.result ->
+          Sig.result ->
           [ `Return of Taints.t
           | (* ^ Taints flowing through the function's output *)
             `UpdateEnv of
@@ -1426,7 +1433,7 @@ let check_function_signature env fun_exp args args_taints =
             (* ^ Taints flowing through function's arguments (or the callee object) by side-effect *)
           ]
           list = function
-        | T.ToReturn (taints, _return_tok) ->
+        | Sig.ToReturn (taints, _return_tok) ->
             taints
             |> List_.map_filter (fun t ->
                    match t.T.orig with
@@ -1469,10 +1476,11 @@ let check_function_signature env fun_exp args args_taints =
                    | Control ->
                        (* Control taint does not need to propagate via `return`s. *)
                        None)
-        | T.ToSink { taints_with_precondition = taints, _requires; sink; _ } ->
+        | Sig.ToSink { taints_with_precondition = taints, _requires; sink; _ }
+          ->
             let incoming_taints =
               taints
-              |> List.concat_map (fun { T.taint; sink_trace } ->
+              |> List.concat_map (fun { Sig.taint; sink_trace } ->
                      match taint.T.orig with
                      | T.Src _ ->
                          (* Here, we do not modify the call trace or the taint.
@@ -1505,14 +1513,14 @@ let check_function_signature env fun_exp args args_taints =
                             going into `sink_of_a_and_b`, and we will fail to produce a finding.
                          *)
                          let+ taint = taint |> subst_in_precondition in
-                         [ { T.taint; sink_trace } ]
+                         [ { Sig.taint; sink_trace } ]
                      | Var lval ->
                          let sink_trace =
                            T.Call (eorig, taint.tokens, sink_trace)
                          in
                          let+ lval_taints = lval_to_taints lval in
                          Taints.elements lval_taints
-                         |> List_.map (fun x -> { T.taint = x; sink_trace })
+                         |> List_.map (fun x -> { Sig.taint = x; sink_trace })
                      | Control ->
                          (* coupling: how to best refactor with Arg's case? *)
                          let sink_trace =
@@ -1522,12 +1530,12 @@ let check_function_signature env fun_exp args args_taints =
                            Lval_env.get_control_taints env.lval_env
                          in
                          Taints.elements control_taints
-                         |> List_.map (fun x -> { T.taint = x; sink_trace }))
+                         |> List_.map (fun x -> { Sig.taint = x; sink_trace }))
             in
             results_of_tainted_sink env incoming_taints sink
             |> report_results env;
             []
-        | T.ToLval (taints, dst_sig_lval) ->
+        | Sig.ToLval (taints, dst_sig_lval) ->
             (* Taints 'taints' go into an argument of the call, by side-effect.
              * Right now this is mainly used to track taint going into specific
              * fields of the callee object, like `this.x = "tainted"`. *)
@@ -1573,7 +1581,7 @@ let check_function_signature env fun_exp args args_taints =
                    else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
       Some
-        (fun_sig |> T.Results.elements
+        (fun_sig |> Sig.Results.elements
         |> List.concat_map process_sig
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->
@@ -1721,7 +1729,7 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
   report_results env results;
   (taints, var_env')
 
-let results_from_arg_updates_at_exit enter_env exit_env : T.result list =
+let results_from_arg_updates_at_exit enter_env exit_env : Sig.result list =
   (* TOOD: We need to get a map of `lval` to `Taint.arg`, and if an extension
    * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
    * extension and generate a `ToLval` result too. *)
@@ -1752,7 +1760,8 @@ let results_from_arg_updates_at_exit enter_env exit_env : T.result list =
                         let new_taints = Taints.diff exit_taints enter_taints in
                         (* TODO: Also report if taints are _cleaned_. *)
                         if not (Taints.is_empty new_taints) then
-                          Some (T.ToLval (new_taints |> Taints.elements, lval))
+                          Some
+                            (Sig.ToLval (new_taints |> Taints.elements, lval))
                         else None)))
   |> Seq.concat |> List.of_seq
 

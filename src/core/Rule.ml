@@ -621,7 +621,22 @@ type 'mode rule_info = {
    * TODO: if we resurrect the feature, we should parse the string
    *)
   equivalences : string list option;
-  (* a.k.a autofix *)
+  (* Optional replacement pattern, a.k.a autofix.
+   *
+   * Note that the pattern string is passed through String.trim() during rule
+   * parsing. This is to handle rules like
+   *
+   *        pattern: foobar($X)
+   *        fix: |
+   *            bar($X)
+   * which are parsed by the yaml parser as 'fix: "bar($X)\n"', but we don't
+   * want the extra newline added by the autofix.
+   * history: this used to be done only on the pysemgrep side in rule_match.py
+   * but better to do it here so osemgrep behaves like pysemgrep.
+   * Note that this trimming is useful only for languages where the AST-based
+   * autofix is not supported, in which case we don't parse the fix pattern
+   * but perform a basic textual replacement on the fix pattern string.
+   *)
   fix : string option;
   fix_regexp : fix_regexp option;
   (* TODO: we should get rid of this and instead provide a more general

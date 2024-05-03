@@ -68,7 +68,7 @@ let without_settings f =
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
-let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
+let test_basic_output (caps : Scan_subcommand.caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
       Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
       let repo_files =
@@ -87,7 +87,7 @@ let test_basic_output (caps : Scan_subcommand.caps) : Testo.test =
           in
           Exit_code.Check.ok exit_code))
 
-let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.test =
+let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
       Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
       let repo_files =

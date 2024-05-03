@@ -2,7 +2,7 @@
   "config_missing_tests": [],
   "config_with_errors": [],
   "results": {
-    "rules/cli_test/basic/basic.yaml": {
+    "rules/basic.yaml": {
       "checks": {
         "basic-test": {
           "matches": "<masked in tests>",

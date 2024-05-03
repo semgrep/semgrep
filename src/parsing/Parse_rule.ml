@@ -25,7 +25,8 @@ module MV = Metavariable
 open Parse_rule_helpers
 module H = Parse_rule_helpers
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* use a separate Logs src? "semgrep.parsing.rule"? *)
+module Log = Log_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -130,6 +131,7 @@ let parse_fix_regex (env : env) (key : key) fields =
   let (regex : string R.wrap) =
     take_key fix_regex_dict env parse_string_wrap "regex"
   in
+  (* TODO? should we String.trim for consistency with fix: ? *)
   let (replacement : string) =
     take_key fix_regex_dict env parse_string "replacement"
   in
@@ -937,7 +939,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     product;
     (* optional fields *)
     metadata = metadata_opt;
-    fix = fix_opt;
+    fix = fix_opt |> Option.map String.trim;
     fix_regexp = fix_regex_opt;
     paths = paths_opt;
     equivalences = equivs_opt;
@@ -989,9 +991,8 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
-               Logs.warn (fun m ->
-                   m ~tags "skipping rule %s, error = %s"
-                     (Rule_ID.to_string ruleid) s);
+               Log.warn (fun m ->
+                   m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
                Either.Right err)
   in
   Either_.partition_either (fun x -> x) xs
@@ -1062,8 +1063,8 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
     | _ ->
         (* TODO: suspicious code duplication. The same error message
            occurs in Translate_rule.ml *)
-        Logs.err (fun m ->
-            m ~tags
+        Log.err (fun m ->
+            m
               "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying to \
                parse %s as YAML"
               !!file);
@@ -1075,8 +1076,12 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
-  parse_file ~error_recovery:true ?rewrite_rule_ids file
+let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) =
+  let rules, errors = parse_file ~error_recovery:true ?rewrite_rule_ids file in
+  Log.debug (fun m ->
+      m "Parse_rule.parse_and_filter_invalid_rules(%s) = " !!file);
+  rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
+  (rules, errors)
 [@@profiling]
 
 let parse_xpattern xlang (str, tok) =

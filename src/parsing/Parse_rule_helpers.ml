@@ -17,7 +17,8 @@ module R = Rule
 module G = AST_generic
 module J = JSON
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* use a separate Logs src? "semgrep.parsing.rule"? *)
+module Log = Log_parsing.Log
 
 (*****************************************************************************)
 (* Types *)
@@ -125,8 +126,9 @@ let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
    *)
   rd.h |> Hashtbl_.hash_to_list
   |> List.iter (fun (k, _v) ->
+         (* Logs, not Log, on purpose *)
          Logs.warn (fun m ->
-             m ~tags "Skipping unknown field '%s' in rule %s" k
+             m "Skipping unknown field '%s' in rule %s" k
                (Rule_ID.to_string rule_id)))
 
 (*****************************************************************************)
@@ -410,8 +412,8 @@ let parse_regexp env (s, t) =
     Metavariable.mvars_of_regexp_string s
     |> List.iter (fun mvar ->
            if not (Metavariable.is_metavar_name mvar) then
-             Logs.warn (fun m ->
-                 m ~tags
+             Log.warn (fun m ->
+                 m
                    "Found invalid metavariable capture group name `%s` for \
                     regexp `%s` -- no binding produced"
                    mvar s));

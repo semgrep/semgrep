@@ -53,7 +53,7 @@ val taint_config_of_rule :
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
   (Dataflow_tainting.var option ->
-  Taint.result list ->
+  Taint_sig.result list ->
   Taint_lval_env.t ->
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
@@ -88,8 +88,7 @@ val check_fundef :
   *)
 
 val check_rules :
-  ?get_dep_matches:(Rule_ID.t -> Pattern_match.dependency_match list option) ->
-  match_hook:(string -> Pattern_match.t -> unit) ->
+  match_hook:(Pattern_match.t list -> Pattern_match.t list) ->
   per_rule_boilerplate_fn:
     (Rule.rule ->
     (unit -> Core_profiling.rule_profiling Core_result.match_result) ->

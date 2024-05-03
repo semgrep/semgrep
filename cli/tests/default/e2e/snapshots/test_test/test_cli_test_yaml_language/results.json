@@ -4,7 +4,7 @@
   "config_with_errors": [],
   "fixtest_results": {},
   "results": {
-    "rules/cli_test/language/yaml_language.yaml": {
+    "rules/test_test/yaml_language/yaml_language.yaml": {
       "checks": {
         "yaml-language": {
           "errors": [],

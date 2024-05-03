@@ -1,5 +1,7 @@
 (*
    Tags used to filter tests.
+
+   Tags are shared by Testo and Testo_lwt.
 *)
 
 open Common

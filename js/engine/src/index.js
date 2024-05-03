@@ -73,6 +73,7 @@ export const EngineFactory = async () => {
     getMissingLanguages: () => Array.from(missingLanguages),
     clearMissingLanguages: () => missingLanguages.clear(),
     execute,
+    parsePattern,
     writeFile,
     deleteFile,
   };

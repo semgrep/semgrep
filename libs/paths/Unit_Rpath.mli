@@ -2,4 +2,4 @@
    Unit tests for FPath
 *)
 
-val tests : Testo.test list
+val tests : Testo.t list

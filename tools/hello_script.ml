@@ -123,9 +123,7 @@ let simple_shell_programming_demo () =
 (*****************************************************************************)
 
 let run (caps : Cap.all_caps) (conf : conf) =
-  Logs_.setup_logging
-    ~level:(if conf.debug then Some Logs.Debug else Some Logs.Info)
-    ();
+  Logs_.setup ~level:(if conf.debug then Some Logs.Debug else Some Logs.Info) ();
   Logs.debug (fun m -> m "params = %s" (show_conf conf));
   Logs.info (fun m -> m "Hello %s from %s" conf.command conf.username);
   simple_shell_programming_demo ();

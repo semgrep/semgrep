@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,8 +14,6 @@
  * license.txt for more details.
  *)
 open Common
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -101,6 +99,7 @@ let aggregate_stats statxs =
  * ==> TODO evaluer les parties non parsé ?
  *)
 
+(* TODO: use Logs.info instead of UCommon.pr and rename to log_parsing_... *)
 let print_parsing_stat_list ?(verbose = false) statxs =
   let total = List.length statxs in
   let perfect =
@@ -187,6 +186,7 @@ let print_parsing_stat_list ?(verbose = false) statxs =
 (* Regression stats *)
 (*****************************************************************************)
 
+(* TODO: use Logs.info instead of UCommon.pr2 and rename to log_regression_... *)
 let print_regression_information ~ext xs newscore =
   let xs = Fpath_.to_strings xs in
   let dirname_opt =
@@ -207,7 +207,7 @@ let print_regression_information ~ext xs newscore =
              Filename.concat score_path
                ("score_parsing__" ^ str ^ ext ^ ".marshalled")
            in
-           Logs.debug (fun m -> m ~tags "saving regression info in %s" file);
+           Logs.info (fun m -> m "saving regression info in %s" file);
            Common2.regression_testing newscore file)
   else
     UCommon.pr2

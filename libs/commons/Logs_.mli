@@ -92,7 +92,7 @@ val setup_basic : ?level:Logs.level option -> unit -> unit
      ...
 *)
 val setup :
-  ?highlight_setting:Std_msg.highlight_setting ->
+  ?highlight_setting:Console.highlight_setting ->
   ?log_to_file:Fpath.t ->
   ?require_one_of_these_tags:string list ->
   ?read_level_from_env_vars:string list ->

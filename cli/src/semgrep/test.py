@@ -1,7 +1,9 @@
 """
-For each directory containing YAML rules, run those rules on the file in the same directory with the same name but different extension.
+For each directory containing YAML rules, run those rules on the file in the
+same directory with the same name but different extension.
 E.g. eqeq.yaml runs on eqeq.py.
-Validate that the output is annotated in the source file with by looking for a comment like:
+Validate that the output is annotated in the source file with by looking for a
+comment like:
 
  ```
  # ruleid:eqeq-is-bad
@@ -421,9 +423,11 @@ def get_config_fixtest_filenames(
 def config_contains_fix_key(config: Path) -> bool:
     with open(config) as file:
         yaml = YAML(typ="safe")  # default, if not specfied, is 'rt' (round-trip)
-        rule = yaml.load(file)
-        if rule.get("rules"):
-            return "fix" in rule["rules"][0]
+        rules = yaml.load(file)
+        if rules.get("rules"):
+            return any(
+                ("fix" in rule or "fix-regex" in rule) for rule in rules["rules"]
+            )
         else:
             return False
 
@@ -608,8 +612,8 @@ def generate_test_results(
         os.remove(tempcopy)
 
     output = {
-        "config_missing_tests": config_missing_tests_output,
-        "config_missing_fixtests": configs_missing_fixtests,
+        "config_missing_tests": sorted(config_missing_tests_output),
+        "config_missing_fixtests": sorted(configs_missing_fixtests),
         "config_with_errors": config_with_errors_output,
         "results": results_output,
         "fixtest_results": fixtest_results_output,
@@ -633,6 +637,7 @@ def generate_test_results(
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
 
+    # else text ouput
     num_tests = 0
     num_tests_passed = 0
     check_output_lines: str = ""

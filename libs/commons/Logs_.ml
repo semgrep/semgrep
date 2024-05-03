@@ -252,7 +252,7 @@ let setup_basic ?(level = Some Logs.Warning) () =
        ~read_tags_from_env_vars:[] ());
   ()
 
-let setup ?(highlight_setting = Std_msg.get_highlight_setting ())
+let setup ?(highlight_setting = Console.get_highlight_setting ())
     ?log_to_file:opt_file ?(require_one_of_these_tags = default_tags)
     ?(read_level_from_env_vars = [ "LOG_LEVEL" ])
     ?(read_srcs_from_env_vars = [ "LOG_SRCS" ])
@@ -286,7 +286,7 @@ let setup ?(highlight_setting = Std_msg.get_highlight_setting ())
     (mk_reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars ());
   Logs.debug (fun m ->
       m "setup_logging: highlight_setting=%s, highlight=%B"
-        (Std_msg.show_highlight_setting highlight_setting)
+        (Console.show_highlight_setting highlight_setting)
         highlight);
   (* From https://github.com/mirage/ocaml-cohttp#debugging.
    * Disable all (third-party) libs logs unless specified in show_srcs
