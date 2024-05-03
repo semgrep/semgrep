@@ -39,10 +39,10 @@
 #   substituters = https://cache.nixos.org https://semgrep.cachix.org https://nix-community.cachix.org
 #   trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= semgrep.cachix.org-1:waxSNb3ism0Vkmfa31//YYrOC2eMghZmTwy9bvMAGBI= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 #
-# to get write access to the cache make an account on cachix.org and then
-# contact @ajbt200128 and he will add you to the cache
+# To contribute to the cache, go to 1password "Semgrep Cachix Auth Token" and run
+#   cachix authtoken <TOKEN>
 
-# ## What is Nix?
+# What is Nix?
 #
 # Nix is a package dependency manager for reproducible and correct builds. Nix
 # is structured around the concept that each dependency is a function of its
