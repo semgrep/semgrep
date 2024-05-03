@@ -1,0 +1,8 @@
+rules:
+  - id: inventory-rule
+    languages:
+      - python
+    message: |-
+      Detected a print
+    pattern: print(...)
+    severity: INVENTORY

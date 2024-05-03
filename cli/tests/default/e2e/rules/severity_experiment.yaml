@@ -1,0 +1,7 @@
+rules:
+  - id: research-experiment
+    pattern: print("...")
+    message: A match was found.
+    languages:
+      - python
+    severity: EXPERIMENT
