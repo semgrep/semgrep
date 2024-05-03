@@ -267,23 +267,21 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
     ( H.dict_take_opt rule_dict "pattern",
       H.dict_take_opt rule_dict "pattern-either",
       H.dict_take_opt rule_dict "patterns",
-      H.dict_take_opt rule_dict "pattern-regex",
-      H.dict_take_opt rule_dict "r2c-internal-project-depends-on" )
+      H.dict_take_opt rule_dict "pattern-regex" )
   with
-  | None, None, None, None, None ->
+  | None, None, None, None ->
       error env.id rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, or `r2c-internal-project-depends-on` to be present"
-  | Some (key, value), None, None, None, None
-  | None, Some (key, value), None, None, None
-  | None, None, Some (key, value), None, None
-  | None, None, None, Some (key, value), None
-  | None, None, None, None, Some (key, value) ->
+         `pattern-regex` to be present"
+  | Some (key, value), None, None, None
+  | None, Some (key, value), None, None
+  | None, None, Some (key, value), None
+  | None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
       error env.id rule_dict.first_tok
-        "Expected only one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, or `r2c-internal-project-depends-on`"
+        "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
+         `pattern-regex`"
 
 let rec parse_formula_old_from_dict (env : env) (rule_dict : dict) : R.formula =
   let formula = parse_pair_old env (find_formula_old env rule_dict) in
