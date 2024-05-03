@@ -480,7 +480,7 @@ nix-pysemgrep:
 
 # Run tests
 nix-check:
-	nix flake check ".?submodules=1#check"
+	nix flake check ".?submodules=1#"
 
 # Update flake inputs
 nix-update:
