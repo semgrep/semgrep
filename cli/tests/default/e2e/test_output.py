@@ -289,59 +289,25 @@ def test_long_rule_id_long_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stdout, "results.out")
 
 
+# it should not report findings from rules using the "INVENTORY" severity
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
-        "rules/inventory/invent.yaml", target_name="inventory/invent.py"
+        "rules/severity_inventory.yaml", target_name="basic.py"
     )
     snapshot.assert_match(stdout, "results.out")
 
 
+# it should not report findings from rules using the "EXPERIMENT" severity
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
-        "rules/experiment/experiment.yaml",
-        target_name="experiment/experiment.py",
+        "rules/severity_experiment.yaml",
+        target_name="basic.py",
     )
     snapshot.assert_match(stdout, "results.out")
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    result = run_semgrep_in_tmp(
-        "rules/experiment/experiment.yaml",
-        target_name="experiment/experiment.py",
-        output_format=OutputFormat.TEXT,
-        options=["--debug"],
-    )
-
-    # A lot of masking is necessary to allow for a reproducible test.
-    # TODO: Is this test really useful? We'll have to run --snapshot-update
-    # a lot now that we're outputting debug-level logs from semgrep-core.
-    #
-    # It would be easier if the author told us what this test is for.
-    snapshot.assert_match(
-        result.as_snapshot(
-            mask=[
-                # Hide file paths and URL paths
-                re.compile(r"(/?(?:[^ \n:\"'/]+/)+[^ \n:\"'/]*)"),
-                # Hide timestamps (starts with a timestamp like '[00:03]')
-                re.compile(r"\[([0-9]{2}\.[0-9]{2})\]"),
-                # Other variable debug output.
-                re.compile(r"loaded 1 configs in(.*)"),
-                re.compile(r"semgrep ran in (.*) on 1 files"),
-                re.compile(r"semgrep contributions ran in (.*)"),
-                re.compile(r"\"total_time\":(.*)"),
-                re.compile(r"\"commit_date\":(.*)"),
-                re.compile(r"-j ([0-9]+)"),
-                re.compile(r"size of returned JSON string: (.*)"),
-            ]
-        ),
-        "results.txt",
-    )
 
 
 @pytest.mark.kinda_slow

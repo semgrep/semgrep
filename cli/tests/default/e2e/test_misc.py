@@ -885,3 +885,15 @@ def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snaps
         results,
         "results.txt",
     )
+
+
+# It should accept rules with the new "CRITICAL" severity
+@pytest.mark.kinda_slow
+def test_critical_severity(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/severity_critical.yaml",
+            target_name="basic.py",
+        ).stdout,
+        "results.json",
+    )

@@ -13,10 +13,15 @@ from semgrep.rule_match import RuleMatch
 class VimFormatter(BaseFormatter):
     @staticmethod
     def _get_parts(rule_match: RuleMatch) -> Sequence[str]:
+        # TODO is there a spec for vim format?
         severity = {
             out.Info(): "I",
             out.Warning(): "W",
             out.Error(): "E",
+            out.Low(): "L",
+            out.Medium(): "M",
+            out.High(): "H",
+            out.Critical(): "C",
         }
         return [
             str(rule_match.path),

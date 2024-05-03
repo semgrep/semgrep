@@ -16,11 +16,14 @@ from semgrep.state import get_state
 
 
 def _to_gitlab_severity(semgrep_severity: out.MatchSeverity) -> str:
-    # Todo: Semgrep states currently don't map super well to Gitlab schema.
     conversion_table: Dict[out.MatchSeverity, str] = {
         out.MatchSeverity(out.Info()): "Info",
+        out.MatchSeverity(out.Low()): "Low",
         out.MatchSeverity(out.Warning()): "Medium",
+        out.MatchSeverity(out.Medium()): "Medium",
         out.MatchSeverity(out.Error()): "High",
+        out.MatchSeverity(out.High()): "High",
+        out.MatchSeverity(out.Critical()): "Critical",
     }
     return conversion_table.get(semgrep_severity, "Unknown")
 

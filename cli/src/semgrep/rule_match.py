@@ -508,12 +508,19 @@ class RuleMatch:
         commit_date_app_format = datetime.fromtimestamp(int(commit_date)).isoformat()
 
         # Follow semgrep.dev severity conventions
-        if isinstance(self.severity.value, out.Error):
+        if isinstance(self.severity.value, out.Critical):
+            app_severity = 3
+        elif isinstance(self.severity.value, out.Error):
+            app_severity = 2
+        elif isinstance(self.severity.value, out.High):
             app_severity = 2
         elif isinstance(self.severity.value, out.Warning):
             app_severity = 1
+        elif isinstance(self.severity.value, out.Medium):
+            app_severity = 1
         elif isinstance(self.severity.value, out.Experiment):
             app_severity = 4
+        # Low, Info, Inventory
         else:
             app_severity = 0
 

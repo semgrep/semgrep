@@ -141,7 +141,11 @@ and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 (* Semgrep_output aliases *)
 (*****************************************************************************)
 
-(* this is now defined in semgrep_output_v1.atd *)
+(* This enum type is now defined in semgrep_output_v1.atd.
+ * This used to be essentially Error/Warning/Info, but starting from 1.72.0 we
+ * want to migrate to Critical/High/Medium/Low/Info as explained in
+ * https://linear.app/semgrep/issue/FIND-1240/unified-severity-levels-across-productslocations
+ *)
 type severity = Semgrep_output_v1_t.match_severity [@@deriving show, eq]
 
 type validation_state = Semgrep_output_v1_t.validation_state

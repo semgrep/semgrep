@@ -73,15 +73,23 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
 }
 
 SEVERITY_MAP_PLAIN = {
+    out.Critical.to_json(): ("", "❯❯❯❱"),
     out.Error.to_json(): ("", "❯❯❱"),
+    out.High.to_json(): ("", "❯❯❱"),
     out.Warning.to_json(): ("", " ❯❱"),
+    out.Medium.to_json(): ("", " ❯❱"),
     out.Info.to_json(): ("", "  ❱"),
+    out.Low.to_json(): ("", "  ❱"),
 }
 
 SEVERITY_MAP_STYLED = {
+    out.Critical.to_json(): ("red", "❯❯❯❱"),
     out.Error.to_json(): ("red", "❯❯❱"),
+    out.High.to_json(): ("red", "❯❯❱"),
     out.Warning.to_json(): ("magenta", " ❯❱"),
+    out.Medium.to_json(): ("magenta", " ❯❱"),
     out.Info.to_json(): ("green", "  ❱"),
+    out.Low.to_json(): ("green", "  ❱"),
 }
 
 
