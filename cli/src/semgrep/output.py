@@ -76,11 +76,16 @@ OSEMGREP_FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
 }
 
 
+# Experiment and Inventory are not below on purpose
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
     {
         out.MatchSeverity(out.Info()),
+        out.MatchSeverity(out.Low()),
         out.MatchSeverity(out.Warning()),
+        out.MatchSeverity(out.Medium()),
         out.MatchSeverity(out.Error()),
+        out.MatchSeverity(out.High()),
+        out.MatchSeverity(out.Critical()),
     }
 )
 
