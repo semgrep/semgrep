@@ -1,6 +1,0 @@
-When using semgrep --test --json, we now report in the
-config_missing_fixtests field in the JSON output not just rule files
-containing a `fix:` without a corresponding ".fixed" test file; we now also
-report rule files using a `fix-regex:` but without a corresponding a
-.fixed test file, and the `fix:` or `fix-regex:` can be in
-any rule in the file (not just the first rule).
