@@ -19,6 +19,7 @@ type caps = < Cap.stdout >
    exit code. *)
 let run_conf (_caps : caps) (conf : Logout_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
+  Logs.debug (fun m -> m "conf = %s" (Logout_CLI.show_conf conf));
   let settings = Semgrep_settings.load ~include_env:false () in
   match settings.Semgrep_settings.api_token with
   | None ->
