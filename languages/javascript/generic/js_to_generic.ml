@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,8 +17,7 @@ open Either_
 open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_javascript.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -315,7 +314,7 @@ and expr (x : expr) =
       | SR_Special v ->
           G.Call (G.IdSpecial v |> G.e, bracket (List_.map G.arg) v2)
       | SR_Literal l ->
-          Logs.debug (fun m -> m ~tags "Weird: literal in call position");
+          Log.warn (fun m -> m "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
           G.Call (G.L l |> G.e, bracket (List_.map G.arg) v2)
       | SR_NeedArgs f -> f (Tok.unbracket v2)

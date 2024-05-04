@@ -1,6 +1,6 @@
 (* David Frankel
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,6 +14,10 @@
  *)
 open Common.Operators
 open Fpath_.Operators
+
+let src = Logs.Src.create "parser_hack"
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (*
    Map a Hack CST obtained from the tree-sitter parser directly to the generic
@@ -34,7 +38,6 @@ module H2 = AST_generic_helpers
 type mode = Pattern | Target
 type env = mode H.env
 
-let tags = Logs_.create_tags [ __MODULE__ ]
 let token = H.token
 let str = H.str
 let fk tok = Tok.fake_tok tok ""
@@ -65,7 +68,7 @@ let stringify_without_quotes str =
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | s when s =~ "^\'\\(.*\\)\'$" -> Common.matched1 s
     | _ ->
-        Logs.warn (fun m -> m ~tags "weird string literal: %s" s);
+        Log.warn (fun m -> m "weird string literal: %s" s);
         s
   in
   G.String (fb (s, t))

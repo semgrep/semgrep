@@ -1,6 +1,8 @@
-let verbose_lexing = ref false
+(* TODO: we should probably get rid of this file.
+ * You can switch to Logs src if you want logging for your parser.
+ *)
 
-(* TODO: switch to Logs src *)
+let verbose_lexing = ref false
 let verbose_parsing = ref true
 
 (* see Parse_info.lexical_error helper and Lexical_error exn *)
