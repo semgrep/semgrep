@@ -1032,9 +1032,18 @@ let source_file (env : env) (xs : CST.source_file) =
 (* Entry points *)
 (*****************************************************************************)
 
-(* tree-sitter-dockerfile parser requires a trailing newline.
-   Not sure if it's intentional but we add one to simplify user
-   experience.
+(* tree-sitter-dockerfile parser requires a trailing newline, unlike the
+   official 'docker' command.
+
+   This may be fixed in the grammar eventually but for now, tree-sitter
+   inserts a "missing token" for the missing newline, and semgrep doesn't
+   report it as an error.
+
+   However, in some cases, a segfault occurs. This is fixed in recent
+   versions of tree-sitter but we need to upgrade (as of 2024-05-03,
+   we're using 0.20.6).
+   See https://github.com/camdencheek/tree-sitter-dockerfile/issues/22
+   Appending a trailing newline to the input works around this segfault.
 *)
 let ensure_trailing_newline str =
   if str <> "" then
