@@ -1,6 +1,5 @@
 open Fpath_.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_paths.Log
 
 (*************************************************************************)
 (* Prelude *)
@@ -80,7 +79,7 @@ let list path = list_with_stat path |> List_.map fst
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
   |> List_.map_filter (fun (path, (stat : Unix.stats)) ->
-         Logs.debug (fun m -> m ~tags "root: %s path: %s" !!root_path !!path);
+         Log.debug (fun m -> m "root: %s path: %s" !!root_path !!path);
          if keep_root && path = root_path then Some path
          else
            match stat.st_kind with

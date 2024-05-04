@@ -15,8 +15,7 @@
 open Common
 open Sexplib.Std
 open Fpath_.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_git_wrapper.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -254,7 +253,7 @@ let blobs_by_commit objects commits =
 (*****************************************************************************)
 
 let commit_blobs_by_date objects =
-  Logs.debug (fun m -> m ~tags "getting commits");
+  Log.info (fun m -> m "getting commits");
   let commits =
     objects |> Hashtbl.to_seq |> List.of_seq
     |> List_.map_filter (fun (_, value) ->
@@ -262,14 +261,14 @@ let commit_blobs_by_date objects =
            | Git.Value.Commit commit -> Some commit
            | _ -> None)
   in
-  Logs.debug (fun m -> m ~tags "got commits");
-  Logs.debug (fun m -> m ~tags "sorting commits");
+  Log.debug (fun m -> m "got commits");
+  Log.debug (fun m -> m "sorting commits");
   let commits_by_date =
     commits |> List.sort Commit.compare_by_date |> List.rev
   in
-  Logs.debug (fun m -> m ~tags "sorted commits");
+  Log.debug (fun m -> m "sorted commits");
   let blobs_by_commit = blobs_by_commit objects commits_by_date in
-  Logs.debug (fun m -> m ~tags "got blobs by commit");
+  Log.debug (fun m -> m "got blobs by commit");
   blobs_by_commit
 
 let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
@@ -278,6 +277,7 @@ let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   | Ok (str, (_, `Exited 0)) -> str
   | Ok _
   | Error (`Msg _) ->
+      (* use Log.warn instead? *)
       Logs.warn (fun m ->
           m
             {|Command failed.
@@ -507,7 +507,7 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?(branch = None)
         let cmd = (git, [ "worktree"; "remove"; !!temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
         | Ok (`Exited 0) ->
-            Logs.info (fun m -> m ~tags "Finished cleaning up git worktree")
+            Log.info (fun m -> m "Finished cleaning up git worktree")
         | Ok _ ->
             raise (Error ("Could not remove git worktree at " ^ !!temp_dir))
         | Error (`Msg e) -> raise (Error e)
@@ -560,8 +560,8 @@ let status ?cwd ?commit () =
   let renamed = ref [] in
   let rec parse = function
     | _ :: file :: tail when check_dir file && check_symlink file ->
-        Logs.info (fun m ->
-            m ~tags "Skipping %s since it is a symlink to a directory: %s" file
+        Log.info (fun m ->
+            m "Skipping %s since it is a symlink to a directory: %s" file
               (UUnix.realpath file));
         parse tail
     | "A" :: file :: tail ->
@@ -587,12 +587,10 @@ let status ?cwd ?commit () =
     | "!" (* ignored *) :: _ :: tail -> parse tail
     | "?" (* untracked *) :: _ :: tail -> parse tail
     | unknown :: file :: tail ->
-        Logs.warn (fun m ->
-            m ~tags "unknown type in git status: %s, %s" unknown file);
+        Log.warn (fun m -> m "unknown type in git status: %s, %s" unknown file);
         parse tail
     | [ remain ] ->
-        Logs.warn (fun m ->
-            m ~tags "unknown data after parsing git status: %s" remain)
+        Log.warn (fun m -> m "unknown data after parsing git status: %s" remain)
     | [] -> ()
   in
   parse stats;

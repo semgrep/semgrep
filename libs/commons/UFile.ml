@@ -14,8 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_commons.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -140,7 +139,7 @@ module Legacy = struct
       | f :: fs -> (
           match f with
           | f when not (USys.file_exists f) ->
-              Logs.err (fun m -> m ~tags "%s does not exist anymore" f);
+              Log.warn (fun m -> m "%s does not exist anymore" f);
               loop result fs
           | f when USys.is_directory f ->
               USys.readdir f |> Array.to_list

@@ -13,8 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_process_limits.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -94,8 +93,7 @@ let set_timeout ~name max_duration f =
   with
   | Timeout { name; max_duration } ->
       clear_timer ();
-      Logs.warn (fun m ->
-          m ~tags "%S timeout at %g s (we abort)" name max_duration);
+      Log.warn (fun m -> m "%S timeout at %g s (we abort)" name max_duration);
       None
   | exn ->
       let e = Exception.catch exn in
@@ -106,7 +104,7 @@ let set_timeout ~name max_duration f =
          Maybe signals are disabled when process an exception handler ?
       *)
       clear_timer ();
-      Logs.err (fun m -> m ~tags "exn while in set_timeout");
+      Log.err (fun m -> m "exn while in set_timeout");
       Exception.reraise e
 
 let set_timeout_opt ~name time_limit f =
