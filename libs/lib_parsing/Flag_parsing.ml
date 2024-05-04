@@ -1,4 +1,6 @@
 let verbose_lexing = ref false
+
+(* TODO: switch to Logs src *)
 let verbose_parsing = ref true
 
 (* see Parse_info.lexical_error helper and Lexical_error exn *)

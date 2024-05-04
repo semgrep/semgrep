@@ -22,8 +22,7 @@ module Flag_cpp = Flag_parsing_cpp
 module T = Parser_cpp
 module TH = Token_helpers_cpp
 module Lexer = Lexer_cpp
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_cpp.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -192,7 +191,7 @@ let (_defs : (string, Pp_token.define_body) Hashtbl.t) = Hashtbl.create 101
 let add_defs file =
   if not (Sys.file_exists !!file) then
     failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" !!file);
-  Logs.info (fun m -> m ~tags "Using %s macro file" !!file);
+  Log.info (fun m -> m "Using %s macro file" !!file);
   let xs = extract_macros file in
   xs |> List.iter (fun (k, v) -> Hashtbl.add _defs k v)
 
@@ -225,7 +224,7 @@ open Parsing_helpers
 let rec lexer_function tr lexbuf =
   match tr.rest with
   | [] ->
-      Logs.err (fun m -> m ~tags "LEXER: ALREADY AT END");
+      Log.warn (fun m -> m "LEXER: ALREADY AT END");
       tr.current
   | v :: xs ->
       tr.rest <- xs;
@@ -244,8 +243,7 @@ let passed_a_define tr =
     | T.TDefine _, _, T.TCommentNewline_DefineEndOfMacro _ -> true
     | _ -> false
   else (
-    Logs.err (fun m ->
-        m ~tags "WIERD: length list of error recovery tokens < 2 ");
+    Log.warn (fun m -> m "WEIRD: length list of error recovery tokens < 2 ");
     false)
 
 (*****************************************************************************)
@@ -272,7 +270,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
   let toks =
     try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
     | Token_views_cpp.UnclosedSymbol s ->
-        Logs.err (fun m -> m ~tags "unclosed symbol %s" s);
+        Log.warn (fun m -> m "unclosed symbol %s" s);
         if !Flag_cpp.debug_cplusplus then
           raise (Token_views_cpp.UnclosedSymbol s)
         else toks_orig
@@ -431,7 +429,7 @@ let parse file : (Ast.program, T.token) Parsing_result.t =
   Profiling.profile_code "Parse_cpp.parse" (fun () ->
       try parse2 file with
       | Stack_overflow ->
-          Logs.err (fun m -> m ~tags "PB stack overflow in %s" !!file);
+          Log.err (fun m -> m "Stack overflow in %s" !!file);
           {
             Parsing_result.ast = [];
             tokens = [];
@@ -454,7 +452,7 @@ let any_of_string lang s =
       let toks =
         try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
         | Token_views_cpp.UnclosedSymbol s ->
-            Logs.err (fun m -> m ~tags "unclosed symbol %s" s);
+            Log.warn (fun m -> m "unclosed symbol %s" s);
             if !Flag_cpp.debug_cplusplus then
               raise (Token_views_cpp.UnclosedSymbol s)
             else toks_orig
