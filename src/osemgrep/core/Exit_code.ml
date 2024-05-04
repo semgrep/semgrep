@@ -4,8 +4,6 @@
    Partially translated from error.py
 *)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 type t = { code : int; description : string }
 
 let create code description = { code; description }
@@ -16,7 +14,7 @@ let create code description = { code; description }
 *)
 let with_log ~__LOC__:loc x =
   Logs.debug (fun m ->
-      m ~tags "Producing exit code %i (%s) at: %s" x.code x.description loc);
+      m "Producing exit code %i (%s) at: %s" x.code x.description loc);
   x
 
 (* this is useful because of the private declaration of t in the .mli *)
