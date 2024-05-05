@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -275,7 +275,7 @@ let test_parse_tree_sitter lang root_paths =
                Parsing_stat.bad_stat file
          in
          Stack_.push stat stat_list);
-  Parsing_stat.print_parsing_stat_list !stat_list;
+  Logs.info (fun m -> m "%s" (Parsing_stat.string_of_stats !stat_list));
   ()
 
 (*****************************************************************************)
@@ -532,7 +532,7 @@ let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   if json then print_json lang stat_list
   else
     let flat_stat = List.concat_map snd stat_list in
-    Parsing_stat.print_parsing_stat_list flat_stat
+    UCommon.pr (Parsing_stat.string_of_stats flat_stat)
 
 let parsing_regressions lang files_or_dirs =
   let _stat_list = parsing_common lang files_or_dirs in

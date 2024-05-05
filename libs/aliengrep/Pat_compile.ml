@@ -9,6 +9,7 @@
 *)
 [@@@alert "-deprecated"]
 
+module Log = Log_aliengrep.Log
 open Printf
 
 type metavariable_kind =
@@ -444,7 +445,7 @@ let compile conf pattern_ast =
     | exn ->
         (* bug *)
         let e = Exception.catch exn in
-        Logs.err (fun m ->
+        Log.err (fun m ->
             m "Failed to compile PCRE pattern:\n%s\n" pcre_pattern);
         Exception.reraise e
   in

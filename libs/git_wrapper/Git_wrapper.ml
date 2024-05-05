@@ -277,7 +277,7 @@ let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   | Ok (str, (_, `Exited 0)) -> str
   | Ok _
   | Error (`Msg _) ->
-      (* use Log.warn instead? *)
+      (* nosemgrep: no-logs-in-library *)
       Logs.warn (fun m ->
           m
             {|Command failed.

@@ -20,7 +20,7 @@ let test_parse_c xs =
       let { Parsing_result.stat; _ } = Parse_c.parse file in
       Stack_.push stat stat_list);
   Parsing_stat.print_recurring_problematic_tokens !stat_list;
-  Parsing_stat.print_parsing_stat_list !stat_list;
+  UCommon.pr (Parsing_stat.string_of_stats !stat_list);
   ()
 
 let test_dump_c file =

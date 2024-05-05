@@ -6,6 +6,7 @@
 *)
 [@@@alert "-deprecated"]
 
+module Log = Log_aliengrep.Log
 open Printf
 
 type compiled_conf = {
@@ -72,7 +73,7 @@ let compile conf =
     try Pcre_.regexp pat with
     | exn ->
         let e = Exception.catch exn in
-        Logs.err (fun m ->
+        Log.err (fun m ->
             m "cannot compile PCRE pattern used to parse aliengrep patterns: %s"
               pat);
         Exception.reraise e

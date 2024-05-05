@@ -27,7 +27,7 @@ val correct_stat : string (* filename *) -> t
    suitable for logging.
 *)
 val summary_of_stat : t -> string
-val print_parsing_stat_list : ?verbose:bool -> t list -> unit
+val string_of_stats : ?verbose:bool -> t list -> string
 val print_recurring_problematic_tokens : t list -> unit
 val aggregate_stats : t list -> int * int (* total * bad *)
 

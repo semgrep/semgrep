@@ -142,6 +142,7 @@ let run matcher path =
   (* perf: this gets called a lot. The match-with is expected to make things
      faster by creating a closure for the anonymous function only in debug
      mode. *)
+  (* nosemgrep: no-logs-in-library *)
   (match Logs.level () with
   | Some Debug ->
       Log.debug (fun m ->
