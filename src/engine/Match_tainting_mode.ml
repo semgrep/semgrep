@@ -29,8 +29,7 @@ module MV = Metavariable
 module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_engine.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -178,8 +177,8 @@ module Formula_tbl = struct
 
            just don't cache it I guess
         *)
-        Logs.err (fun m ->
-            m ~tags
+        Log.warn (fun m ->
+            m
               "Tried to compute matches for a taint formula not in the cache \
                (impossible?)");
         compute_matches_fn ()
@@ -358,9 +357,8 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        Logs.debug (fun m ->
-            m ~tags
-              "Cannot compute range, there are no real tokens in this AST: %s"
+        Log.warn (fun m ->
+            m "Cannot compute range, there are no real tokens in this AST: %s"
               (G.show_any any));
       None
   | Some (tok1, tok2) ->
@@ -550,8 +548,8 @@ let sources_of_taints ?preferred_label taints =
   in
   if without_req <> [] then without_req
   else (
-    Logs.warn (fun m ->
-        m ~tags
+    Log.warn (fun m ->
+        m
           "Taint source without precondition wasn't found. Displaying the \
            taint trace from the source with precondition.");
     with_req)

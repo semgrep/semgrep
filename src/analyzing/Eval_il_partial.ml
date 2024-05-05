@@ -15,6 +15,7 @@
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
+module Log = Log_analyzing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,7 +45,7 @@ let fb = Tok.unsafe_fake_bracket
 
 let warning _tok s =
   (* TODO: Report these errors as matches of a builtin_div_by_zero rule. *)
-  Logs.debug (fun m -> m "CFGError: %s" s)
+  Log.warn (fun m -> m "CFGError: %s" s)
 
 (*****************************************************************************)
 (* Svalue Lattice *)

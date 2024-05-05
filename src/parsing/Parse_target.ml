@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,8 +20,7 @@ open Parsing_result2
 module Flag = Flag_semgrep
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -103,7 +102,7 @@ let parse_and_resolve_name lang file =
   (* Flow-sensitive constant propagation. *)
   Constant_propagation.propagate_dataflow lang ast;
 
-  Logs.debug (fun m -> m ~tags "Parse_target.parse_and_resolve_name done");
+  Log.info (fun m -> m "Parse_target.parse_and_resolve_name done");
   res
 [@@profiling]
 

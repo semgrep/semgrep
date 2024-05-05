@@ -14,6 +14,7 @@
  *)
 open Common
 module E = Core_error
+module Log = Log_semgrep.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -41,8 +42,6 @@ module E = Core_error
  *  -> Semgrep_output_v1.findings
  * LATER: it would be good to remove some intermediate types.
  *)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -292,9 +291,8 @@ let make_final_result
     match result.profiling with
     | Some profiling -> profiling
     | None ->
-        Logs.debug (fun m ->
-            m ~tags
-              "Mismatch between mode and result while creating final result");
+        Log.warn (fun m ->
+            m "Mismatch between mode and result while creating final result");
         empty_file_profiling
   in
   let (prof : Core_profiling.t) =

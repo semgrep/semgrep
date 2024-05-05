@@ -1803,6 +1803,7 @@ and m_call_op aop toka aargs bop tokb bargs tin =
     | G.Eq
     | G.NotEq ->
         if tin.config.commutative_compop then
+          (* nosemgrep: no-logs-in-library *)
           Logs.warn (fun m ->
               m
                 "`commutative_compop` rule option has been deprecated. Please \

@@ -16,8 +16,7 @@ open Common
 open Fpath_.Operators
 open Xpattern_matcher
 module MV = Metavariable
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_engine.Log
 
 (* This is generic so that internal uses of regex can still use PCRE (instead
    of PCRE2) to get the old semantics. Notably, this is used by generic mode.
@@ -114,8 +113,8 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->
-                          Logs.debug (fun m ->
-                              m ~tags "not found %d substring of %s in %s" n
+                          Log.debug (fun m ->
+                              m "not found %d substring of %s in %s" n
                                 (regex_functions.get_pattern regexp)
                                 matched_str);
                           None)
@@ -144,8 +143,8 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
                     Some (spf "$%s" name, MV.Text (str, t, t))
                   with
                   | Not_found ->
-                      Logs.debug (fun m ->
-                          m ~tags "not found %s substring of %s in %s" name
+                      Log.debug (fun m ->
+                          m "not found %s substring of %s in %s" name
                             (regex_functions.get_pattern regexp)
                             matched_str);
                       None)

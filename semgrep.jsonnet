@@ -117,7 +117,15 @@ local semgrep_rules = [
     severity: 'ERROR',
     paths: {
       exclude: [
+       // The semgrep codebase has a few "applications" where the use
+       // of Logs.xxx is fine:
+       //  - osemgrep (in src/osemgrep/),
+       //    with also code in metachecking/ for osemgrep validate
+       //  - semgrep-core (in src/core_cli/)
+       //  - test (tests/*)
        'osemgrep/',
+       'metachecking/',
+       'core_cli/',
        '*_main.ml',
        'Main.ml',
        'Test_*',
@@ -126,8 +134,10 @@ local semgrep_rules = [
        'tools/*',
        'scripts/*',
        'libs/commons/Logs_.ml',
-       #TODO: remove at some point
-       '/src/'
+       'src/core/Log_semgrep.ml',
+       //TODO: remove at some point, but managed by Iago for now
+       'src/tainting',
+       'src/analyzing',
       ]
     }
   },

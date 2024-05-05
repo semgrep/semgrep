@@ -16,8 +16,7 @@ open Common
 open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module R = Rule
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_semgrep.Log
 
 (****************************************************************************)
 (* Prelude *)
@@ -28,6 +27,7 @@ let tags = Logs_.create_tags [ __MODULE__ ]
  * Semgrep_output_v1.core_error, then processed in pysemgrep (or osemgrep)
  * and translated again in Semgrep_output_v1.error.
  * There's also Error.ml in osemgrep.
+ *
  * LATER: it would be good to remove some intermediate types.
  *)
 
@@ -196,8 +196,7 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
   | Rule.Error err -> opt_error_of_rule_error ~file err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
-      Logs.err (fun m ->
-          m ~tags "WEIRD Timeout converted to exn, backtrace = %s" s);
+      Log.warn (fun m -> m "WEIRD Timeout converted to exn, backtrace = %s" s);
       (* This exception should always be reraised. *)
       let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in

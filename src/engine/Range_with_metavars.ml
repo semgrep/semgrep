@@ -1,3 +1,9 @@
+module Log = Log_engine.Log
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type range_kind = Plain | Inside | Anywhere | Regexp [@@deriving show]
 
 (* range with metavars *)
@@ -57,8 +63,6 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
 (* Set operations *)
 (*****************************************************************************)
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 let included_in config rv1 rv2 =
   (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
   && rv1.mvars
@@ -105,6 +109,8 @@ let inside_compatible x y =
  * See https://github.com/returntocorp/semgrep/issues/2664
  * alt: we could do the rewriting ourselves, detecting that the
  * metavariable-regex has the wrong scope.
+ *
+ * TODO: remove ~debug_matches, just use SEMGREP_LOG_SRCS=engine
  *)
 let intersect_ranges config ~debug_matches xs ys =
   let left_merge u v =
@@ -121,9 +127,8 @@ let intersect_ranges config ~debug_matches xs ys =
     us |> Common2.map_flatten (fun u -> vs |> List_.map_filter (fun v -> p u v))
   in
   if debug_matches then
-    Logs.debug (fun m ->
-        m ~tags "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
-          (show_ranges ys));
+    Log.debug (fun m ->
+        m "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs) (show_ranges ys));
   merge left_merge xs ys
   (* TODO: just call merge once? *)
   @ merge (Fun.flip left_merge) xs ys

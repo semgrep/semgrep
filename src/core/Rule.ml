@@ -15,9 +15,6 @@
 open Common
 module MV = Metavariable
 module OutJ = Semgrep_output_v1_t
-
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 open Ppx_hash_lib.Std.Hash.Builtin
 
 (*****************************************************************************)
