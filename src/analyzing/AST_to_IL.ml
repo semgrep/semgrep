@@ -1027,16 +1027,32 @@ and record env ((_tok, origfields, _) as record_def) =
                    ( { G.name = G.EN (G.Id (id, _)); tparams = None; _ },
                      def_kind );
                _;
-             } ->
-             let fdeforig =
+             } as forig ->
+             let field_def =
                match def_kind with
                (* TODO: Consider what to do with vtype. *)
                | G.VarDef { G.vinit = Some fdeforig; _ }
                | G.FieldDefColon { G.vinit = Some fdeforig; _ } ->
-                   fdeforig
+                   expr env fdeforig
+               | G.FuncDef fdef ->
+                   (* TODO: we should have a use def.f_tok *)
+                   let tok = G.fake "record_literal_funcdef" in
+                   let lval = fresh_lval env tok in
+                   let fdef =
+                     (* This is a recursive call to `function_definition` and we need to pass
+                      * it a fresh `stmts` ref list. If we reuse the same `stmts` ref list, then
+                      * whatever `stmts` we have accumulated so far, will "magically" appear
+                      * in the body of this lambda in the final IL representation. This can
+                      * happen e.g. when translating `foo(bar(), (x) => { ... })`, because
+                      * the instruction added to `stmts` by the translation of `bar()` is
+                      * still present when traslating `(x) => { ... }`. *)
+                     function_definition { env with stmts = ref [] } fdef
+                   in
+                   let forig = Related (G.Fld forig) in
+                   add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) forig);
+                   mk_e (Fetch lval) forig
                | ___else___ -> todo (G.E e_gen)
              in
-             let field_def = expr env fdeforig in
              Some (Field (id, field_def))
          | G.F
              {
