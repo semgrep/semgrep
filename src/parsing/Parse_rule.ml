@@ -714,7 +714,19 @@ let parse_http_validator env key value : Rule.validator =
   let response = take_key validator_dict env parse_http_response "response" in
   HTTP { request; response }
 
-let parse_aws_validator _env _key _value = failwith "unimplemented"
+let parse_aws_request env key value : Rule.aws_request = 
+  let request_dict = yaml_to_dict env key value in
+  let secret_access_key = take_key request_dict env parse_string "secret_access_key" in
+  let access_key_id = take_key request_dict env parse_string "access_key_id" in
+  let region = take_key request_dict env parse_string "region" in
+  { secret_access_key; access_key_id; region }
+
+let parse_aws_validator env key value : Rule.validator = 
+  let validator_dict = yaml_to_dict env key value in
+  let request = take_key validator_dict env parse_aws_request "request" in
+  let response = take_key validator_dict env parse_http_response "response" in
+  AWS { request; response }
+
 
 
 let parse_validator_kind env key value =

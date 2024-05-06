@@ -407,6 +407,14 @@ type auth =
     }
 [@@deriving show]
 
+
+type aws_request = {
+  secret_access_key : string;
+  access_key_id : string;
+  region : string;
+}
+[@@deriving show]
+
 (* why is url : string? metavariables (i.e http://$X) are present at parsing; which
  * if parsed with Uri.of_string translates it to http://%24x
  *)
@@ -444,7 +452,9 @@ type http_matcher = {
 }
 [@@deriving show]
 
-type validator = HTTP of { request : request; response : http_matcher list }
+type validator = 
+  | HTTP of { request : request; response : http_matcher list }
+  | AWS of { request : aws_request; response : http_matcher list }
 [@@deriving show]
 
 (*****************************************************************************)
