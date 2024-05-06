@@ -253,6 +253,7 @@
 
         # osemgrep/semgrep-core inputs
         osemgrepInputs = with pkgs; [
+          pcre2
           tree-sitter
         ];
         devOpamPackagesQuery = {
