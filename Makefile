@@ -481,6 +481,7 @@ nix-pysemgrep:
 nix-check:
 	nix flake check ".?submodules=1#"
 
+# verbose and sandboxing are disabled to enable networking for tests
 nix-check-verbose:
 	nix flake check -L ".?submodules=1#"
 

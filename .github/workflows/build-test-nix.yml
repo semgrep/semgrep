@@ -10,6 +10,8 @@ jobs:
           submodules: true
       - name: Set up Nix
         uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: sandbox = false
       - name: Cache Nix
         uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Check Flake Validity

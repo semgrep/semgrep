@@ -245,6 +245,8 @@
         on = opam-nix.lib.${system};
         pythonPackages = pkgs.python310Packages;
         opamRepos = [ "${opam-repository}" ];
+        lib = pkgs.lib;
+        isDarwin = lib.strings.hasSuffix "darwin" system;
         # TODO split out osemgrep and pysemgrep into diff nix files
       in
       let
@@ -295,8 +297,7 @@
         baseOpamPackage = scope'.${package}; # Packages from devPackagesQuery
 
         # Special environment variables for osemgrep for linking stuff
-        osemgrepEnv = {
-          SEMGREP_NIX_BUILD = "1";
+        osemgrepEnvDarwin = {
           # all the dune files of semgrep treesitter <LANG> are missing the
           # :standard field. Basically all compilers autodetct if something is c
           # or c++ based on file extension, and add the c stdlib based on that.
@@ -307,6 +308,9 @@
           # commit them instead of doing this
           NIX_CFLAGS_COMPILE = "-I${pkgs.libcxx.dev}/include/c++/v1";
         };
+        osemgrepEnv = {
+          SEMGREP_NIX_BUILD = "1";
+        } // lib.optionalAttrs (isDarwin) osemgrepEnvDarwin;
         #
         # osemgrep
         #

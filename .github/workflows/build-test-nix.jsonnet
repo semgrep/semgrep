@@ -12,7 +12,10 @@ local job = gha.os_matrix(
     actions.checkout_with_submodules(),
     {
         name: "Set up Nix",
-        uses: "DeterminateSystems/nix-installer-action@main"
+        uses: "DeterminateSystems/nix-installer-action@main",
+        with: {
+            "extra-conf": "sandbox = false"
+        }
     },
     {
         name: "Cache Nix",
