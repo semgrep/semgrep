@@ -5,7 +5,6 @@ import sys
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -68,32 +67,37 @@ PRODUCT_NAMES_MAP = {
 }
 
 
-def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
+def is_valid_pattern(pattern: str) -> bool:
     """
     Parses patterns from semgrep.dev and returns the lines that
     are non-empty and do not start with #
     """
-    for pattern in patterns:
-        pattern = pattern.strip()
-
-        if not pattern:
-            continue
-        if pattern.startswith("#"):
-            continue
-
-        yield pattern
+    pattern = pattern.strip()
+    return pattern != "" and not pattern.startswith("#")
 
 
 def get_exclude_paths(
     requested_patterns: Optional[Mapping[out.Product, Sequence[str]]]
 ) -> Mapping[out.Product, Sequence[str]]:
     patterns = {
-        product: list(requested_patterns.get(product, [])) if requested_patterns else []
+        product: (
+            [
+                pattern.strip()
+                for pattern in requested_patterns.get(product, [])
+                if is_valid_pattern(pattern)
+            ]
+            if requested_patterns
+            else []
+        )
         for product in ALL_PRODUCTS
     }
 
     for product in ALL_PRODUCTS:
         patterns[product].extend(ALWAYS_EXCLUDE_PATTERNS)
+        # This logic isn't clear to me, since I don't see why adding these
+        # default patterns is done here or why it would depend on
+        # .semgrepignore. But, we've had this for a while, so leaving it not to
+        # potentially break things.
         if Path(IGNORE_FILE_NAME).is_file() and not requested_patterns:
             patterns[product].extend(DEFAULT_EXCLUDE_PATTERNS)
 

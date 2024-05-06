@@ -17,6 +17,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
+from typing import Iterable
 from typing import List
 
 import pytest
@@ -405,9 +406,15 @@ def enable_dependency_query() -> bool:
 # permitting tests that use different base URLs to succeed using these mocks.
 @pytest.fixture
 def start_scan_mock_maker(
-    requests_mock, scan_config, mocked_scan_id, enable_dependency_query
+    requests_mock,
+    scan_config,
+    mocked_scan_id,
+    enable_dependency_query,
 ):
-    def _start_scan_func(semgrep_url: str = "https://semgrep.dev"):
+    def _start_scan_func(
+        semgrep_url: str = "https://semgrep.dev",
+        ignored_files: Iterable[str] = (),
+    ):
         start_scan_response = out.ScanResponse.from_json(
             {
                 "info": {
@@ -427,6 +434,7 @@ def start_scan_mock_maker(
                 },
                 "engine_params": {
                     "dependency_query": enable_dependency_query,
+                    "ignored_files": list(ignored_files),
                 },
             }
         )
@@ -1437,6 +1445,42 @@ def test_outputs(
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", format],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        output_format=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
+# NOTE: in the future, the App should ideally *not* send such commented lines,
+# but for now we have to do some filtering.
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize("ignored_file", ["foo.py", "", "# foo.py"])
+@pytest.mark.osemfail
+def test_app_ignore(
+    git_tmp_path_with_commit,
+    snapshot,
+    ignored_file,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker(
+        "https://semgrep.dev", ignored_files=(ignored_file,)
+    )
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
