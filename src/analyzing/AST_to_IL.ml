@@ -899,7 +899,7 @@ and expr_aux env ?(void = false) g_expr =
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ expr env e ], r))) NoOrig
-  | G.Xml xml -> xml_expr env xml
+  | G.Xml xml -> xml_expr env ~void eorig xml
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
@@ -1111,16 +1111,13 @@ and dict env (_, orig_entries, _) orig =
   in
   mk_e (RecordOrDict entries) (SameAs orig)
 
-and xml_expr env xml =
-  let attrs =
-    xml.G.xml_attrs
-    |> List_.map_filter (function
-         | G.XmlAttr (_, tok, eorig)
-         | G.XmlAttrExpr (tok, eorig, _) ->
-             let exp = expr env eorig in
-             let _, lval = mk_aux_var env tok exp in
-             Some (mk_e (Fetch lval) (SameAs eorig))
-         | _ -> None)
+and xml_expr env ~void eorig xml =
+  let tok, id =
+    match xml.G.xml_kind with
+    | G.XmlClassic (tok, id, _, _)
+    | G.XmlSingleton (tok, id, _) ->
+        (tok, Some id)
+    | G.XmlFragment (tok, _) -> (tok, None)
   in
   let body =
     xml.G.xml_body
@@ -1129,19 +1126,60 @@ and xml_expr env xml =
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
              Some (mk_e (Fetch lval) (SameAs eorig))
-         | G.XmlXml xml' -> Some (xml_expr env xml')
+         | G.XmlXml xml' ->
+             (* TODO is this legit? *)
+             let eorig' = SameAs (G.Xml xml' |> G.e) in
+             Some (xml_expr env ~void:false eorig' xml')
          | _ -> None)
   in
-  let tok =
-    match xml.G.xml_kind with
-    | G.XmlClassic (tok, _, _, _)
-    | G.XmlSingleton (tok, _, _)
-    | G.XmlFragment (tok, _) ->
-        tok
-  in
-  mk_e
-    (Composite (CTuple, (tok, List.rev_append attrs body, tok)))
-    (Related (G.Xmls xml.G.xml_body))
+  match (Lang.is_js env.lang, id) with
+  | true, Some (id, id_info) ->
+      (* Model `<Foo x={y}>{bar}</Foo>` as `Foo({x: y, children: [bar])`
+       *
+       * This is approximately correct for functional components, which are
+       * standard practice these days. In order to correctly model older kinds
+       * of React components, we'll need to do more work. *)
+      let e = G.N (G.Id (id, id_info)) |> G.e in
+      let e = expr env e in
+      let fields =
+        xml.G.xml_attrs
+        |> List_.map_filter (function
+             | G.XmlAttr (id, tok, eorig) ->
+                 let e = expr env eorig in
+                 let _, lval = mk_aux_var env tok e in
+                 (* Also tried without this intermediate expression *)
+                 let e = mk_e (Fetch lval) (SameAs eorig) in
+                 Some (Field (id, e))
+             | _else_ -> None)
+      in
+      let body_exp =
+        mk_e
+          (Composite (CArray, Tok.unsafe_fake_bracket body))
+          (Related (G.Xmls xml.G.xml_body))
+      in
+      let fields = Field (("children", G.fake ""), body_exp) :: fields in
+      let fields_orig =
+        let attrs = xml.G.xml_attrs |> List_.map (fun attr -> G.XmlAt attr) in
+        let body = G.Xmls xml.G.xml_body in
+        Related (G.Anys (body :: attrs))
+      in
+      let record = mk_e (RecordOrDict fields) fields_orig in
+      let args = [ Unnamed record ] in
+      add_call env tok eorig ~void (fun res -> Call (res, e, args))
+  | _else_ ->
+      let attrs =
+        xml.G.xml_attrs
+        |> List_.map_filter (function
+             | G.XmlAttr (_, tok, eorig)
+             | G.XmlAttrExpr (tok, eorig, _) ->
+                 let exp = expr env eorig in
+                 let _, lval = mk_aux_var env tok exp in
+                 Some (mk_e (Fetch lval) (SameAs eorig))
+             | _ -> None)
+      in
+      mk_e
+        (Composite (CTuple, (tok, List.rev_append attrs body, tok)))
+        (Related (G.Xmls xml.G.xml_body))
 
 and stmt_expr env ?g_expr st =
   let todo () =
