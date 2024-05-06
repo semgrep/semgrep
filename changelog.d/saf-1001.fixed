@@ -1,0 +1,1 @@
+Added support for taint flowing into function declarations on object literals.
