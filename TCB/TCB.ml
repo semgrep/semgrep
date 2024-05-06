@@ -1002,6 +1002,7 @@ module Printf = struct
   let sprintf = Printf.sprintf
   let fprintf = Printf.fprintf
   let eprintf = Printf.eprintf
+  let bprintf = Printf.bprintf
 
   (* FORBIDDEN:
      - printf

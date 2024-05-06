@@ -126,7 +126,7 @@ let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
    *)
   rd.h |> Hashtbl_.hash_to_list
   |> List.iter (fun (k, _v) ->
-         (* Logs, not Log, on purpose *)
+         (* nosemgrep: no-logs-in-library *)
          Logs.warn (fun m ->
              m "Skipping unknown field '%s' in rule %s" k
                (Rule_ID.to_string rule_id)))

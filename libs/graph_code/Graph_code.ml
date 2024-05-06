@@ -555,35 +555,24 @@ let graph_of_dotfile dotfile =
 (*****************************************************************************)
 (* Statistics *)
 (*****************************************************************************)
-let log_statistics stats g =
-  Logs.info (fun m ->
-      m "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
-  Logs.info (fun m ->
-      m "parse errors = %d" (!(stats.parse_errors) |> List.length));
-  Logs.info (fun m ->
-      m "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
-
-  Logs.info (fun m ->
-      m "unresolved method calls = %d"
+let string_of_statistics stats g =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      prf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g);
+      prf "parse errors = %d" (!(stats.parse_errors) |> List.length);
+      prf "lookup fail = %d" (!(stats.lookup_fail) |> List.length);
+      prf "unresolved method calls = %d"
         (!(stats.method_calls)
         |> List.filter (fun (_, x) -> not x)
-        |> List.length));
-  Logs.info (fun m ->
-      m "(resolved method calls = %d)"
-        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
-
-  Logs.info (fun m ->
-      m "unresolved field access = %d"
+        |> List.length);
+      prf "(resolved method calls = %d)"
+        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length);
+      prf "unresolved field access = %d"
         (!(stats.field_access)
         |> List.filter (fun (_, x) -> not x)
-        |> List.length));
-  Logs.info (fun m ->
-      m "(resolved field access) = %d)"
-        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
-
-  Logs.info (fun m ->
-      m "unresolved class access = %d"
-        (!(stats.unresolved_class_access) |> List.length));
-  Logs.info (fun m ->
-      m "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
-  ()
+        |> List.length);
+      prf "(resolved field access) = %d)"
+        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length);
+      prf "unresolved class access = %d"
+        (!(stats.unresolved_class_access) |> List.length);
+      prf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length))

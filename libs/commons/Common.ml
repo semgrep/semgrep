@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+module Log = Log_commons.Log
 
 (*###########################################################################*)
 (* Prelude *)
@@ -62,7 +63,7 @@ let protect ~finally work =
       (* Just re-raise whatever exception was raised during a 'finally',
        * drop 'Finally_raised'.
        *)
-      Logs.err (fun m ->
+      Log.err (fun m ->
           m "protect: %s" (exn |> Exception.catch |> Exception.to_string));
       Exception.catch_and_reraise exn1
 

@@ -1,3 +1,7 @@
+(* TODO: we should probably get rid of this file.
+ * You can switch to Logs src if you want logging for your parser.
+ *)
+
 let verbose_lexing = ref false
 let verbose_parsing = ref true
 

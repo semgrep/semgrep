@@ -100,6 +100,47 @@ local semgrep_rules = [
       exclude: ['Testutil.ml']
     }
   },
+  {
+    id: 'no-logs-in-library',
+    match: {
+      all: [
+       'Logs.$F ...',
+       { not: 'Logs.src ...' },
+       ],
+    },
+    message: |||
+      Do not use Logs outside src/osemgrep/. Use a specialized Log
+      "src" for the library of your module and call that Log module instead.
+      See https://www.notion.so/semgrep/Logging-in-semgrep-semgrep-core-osemgrep-67c9046fa53744728d9d725a5a244f64 for more info.
+    |||,
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    paths: {
+      exclude: [
+       // The semgrep codebase has a few "applications" where the use
+       // of Logs.xxx is fine:
+       //  - osemgrep (in src/osemgrep/),
+       //    with also code in metachecking/ for osemgrep validate
+       //  - semgrep-core (in src/core_cli/)
+       //  - test (tests/*)
+       'osemgrep/',
+       'metachecking/',
+       'core_cli/',
+       '*_main.ml',
+       'Main.ml',
+       'Test_*',
+       'Unit_*',
+       '*_mock_*',
+       'tools/*',
+       'scripts/*',
+       'libs/commons/Logs_.ml',
+       'src/core/Log_semgrep.ml',
+       //TODO: remove at some point, but managed by Iago for now
+       'src/tainting',
+       'src/analyzing',
+      ]
+    }
+  },
 ];
 
 // ----------------------------------------------------------------------------

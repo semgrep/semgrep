@@ -1,5 +1,6 @@
 module OutJ = Semgrep_output_v1_t
 open Fpath_.Operators
+module Log = Log_reporting.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -7,8 +8,6 @@ open Fpath_.Operators
 (*
   Partially translated from formatters/text.py
 *)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -139,8 +138,7 @@ let dedent_lines (lines : string list) =
    TODO: add unit tests for this code
 *)
 let indent_and_wrap_lines ~indent ~max_width txt : (string * string) list =
-  Logs.debug (fun m ->
-      m ~tags "wrap indent=%d max_width=%d s=%s" indent max_width txt);
+  Log.debug (fun m -> m "wrap indent=%d max_width=%d s=%s" indent max_width txt);
   let indentation = String.make indent ' ' in
   let real_width = max_width - indent in
   let rec wrap txt acc =
@@ -172,8 +170,7 @@ let indent_and_wrap_lines ~indent ~max_width txt : (string * string) list =
   wrap txt []
 
 let cut s idx1 idx2 =
-  Logs.debug (fun m ->
-      m ~tags "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
+  Log.debug (fun m -> m "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
   ( Str.first_chars s idx1,
     String.sub s idx1 (idx2 - idx1),
     Str.string_after s idx2 )

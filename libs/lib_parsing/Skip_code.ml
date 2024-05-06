@@ -32,7 +32,7 @@ open Fpath_.Operators
  * update: actually gitignore supports the ! negative patterns as
  * well as the include extra config.
  *
- * This module is deprecated. You should prefer the gitignore library
+ * !!This module is deprecated!!! You should prefer the gitignore library
  * to skip files.
  *)
 
@@ -155,6 +155,7 @@ let filter_files_if_skip_list ~root xs =
   match find_skip_file_from_root root with
   | Some skip_file ->
       let skip_list = load skip_file in
+      (* nosemgrep: no-logs-in-library *)
       Logs.info (fun m -> m "using skip list in %s" !!skip_file);
       filter_files skip_list root xs
   | None -> (xs, [])

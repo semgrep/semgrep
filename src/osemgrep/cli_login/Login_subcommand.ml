@@ -136,6 +136,7 @@ let fetch_token caps session_id =
    exit code. *)
 let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
+  Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
@@ -169,6 +170,7 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
                   let caps = Auth.cap_token_and_network token caps in
                   save_token caps ~display_name:(Some display_name))))
   | Some _ ->
+      (* TODO: why not Logs.err instead? *)
       Logs.app (fun m ->
           m
             "%s You're already logged in. Use `semgrep logout` to log out \

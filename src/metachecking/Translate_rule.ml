@@ -1,6 +1,6 @@
 (* Cooper Pierce
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,8 +16,6 @@ open Common
 open Fpath_.Operators
 module FT = File_type
 open Rule
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -314,7 +312,7 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> List_.map (fun file ->
-           Logs.debug (fun m -> m ~tags "translate_files: processing %s" !!file);
+           Logs.info (fun m -> m "translate_files: processing %s" !!file);
            let formulas =
              fparser file
              |> List_.map (fun rule ->
@@ -340,7 +338,7 @@ let translate_files fparser xs =
             Yaml.of_string (UFile.read_file file) |> Result.get_ok
         | _ ->
             Logs.err (fun m ->
-                m ~tags
+                m
                   "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying \
                    to parse %s as YAML"
                   !!file);

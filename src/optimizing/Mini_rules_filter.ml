@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,6 +14,7 @@
  *)
 module Flag = Flag_semgrep
 module R = Mini_rule
+module Log = Log_optimizing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,8 +25,6 @@ module R = Mini_rule
  * regexp-extraction-from-pattern optimization at the rule level
  * in Semgrep.ml (instead of on mini-rule level in Semgrep_generic.ml).
  *)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -58,7 +57,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
          in
 
          if not match_ then
-           Logs.debug (fun m ->
-               m ~tags "filtering out rule %s" (Rule_ID.to_string rule.id));
+           Log.info (fun m ->
+               m "filtering out rule %s" (Rule_ID.to_string rule.id));
          match_)
 [@@profiling "Mini_rules_filter.filter"]

@@ -17,11 +17,15 @@ open Common
 
    Let's not log environment variables because they may contain sensitive
    secrets.
+   Note that we're using Logs.info below on purpose; this is probably
+   something the user wants to know.
 *)
 let log_command cmd =
+  (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd))
 
 let log_shell_command cmd =
+  (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Running shell command: %s" cmd)
 
 (*****************************************************************************)

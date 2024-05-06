@@ -6,7 +6,6 @@ module P = Pattern_match
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__ ]
 let t = Testo.create
 
 (*****************************************************************************)
@@ -918,7 +917,7 @@ let full_rule_semgrep_rules_regression_tests () =
                  Some (String.capitalize_ascii s)
              (* this skips the semgrep-rules/.github entries *)
              | _ ->
-                 Logs.info (fun m -> m ~tags "skipping %s" test.name);
+                 Logs.info (fun m -> m "skipping %s" test.name);
                  None
            in
            group_opt |> Option.map (fun groupname -> (groupname, test)))
