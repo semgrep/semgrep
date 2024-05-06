@@ -74,6 +74,8 @@ PATHS_ALWAYS_SKIPPED = (".git",)
 
 SCA_PRODUCT = out.Product(out.SCA())
 SAST_PRODUCT = out.Product(out.SAST())
+SECRETS_PRODUCT = out.Product(out.Secrets())
+ALL_PRODUCTS = (SAST_PRODUCT, SCA_PRODUCT, SECRETS_PRODUCT)
 
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
@@ -553,14 +555,13 @@ class TargetManager:
 
     target_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
-    excludes: Sequence[str] = Factory(list)
+    excludes: Mapping[out.Product, Sequence[str]] = Factory(dict)
     max_target_bytes: int = -1
     respect_git_ignore: bool = False
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
-    # ignore_profiles range is str of product.kind
-    ignore_profiles: Dict[str, FileIgnore] = Factory(dict)
+    ignore_profiles: Mapping[out.Product, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -758,7 +759,9 @@ class TargetManager:
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)
 
-        files = self.filter_excludes(self.excludes, candidates=files.kept)
+        files = self.filter_excludes(
+            self.excludes.get(product, []), candidates=files.kept
+        )
         self.ignore_log.cli_excludes.update(files.removed)
 
         files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
@@ -769,8 +772,8 @@ class TargetManager:
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
-        if product.kind in self.ignore_profiles:
-            file_ignore = self.ignore_profiles[product.kind]
+        if product in self.ignore_profiles:
+            file_ignore = self.ignore_profiles[product]
             files = file_ignore.filter_paths(candidates=files.kept)
             # TODO: Fix ignore_log to log which profile filtered which files.
             self.ignore_log.semgrepignored.update(files.removed)
