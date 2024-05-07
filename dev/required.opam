@@ -7,7 +7,8 @@ homepage: "n/a"
 bug-reports: "n/a"
 synopsis: "OCaml dependencies needed in CI"
 
-#coupling: with scripts/lint-ocaml
 depends: [
+  #coupling: with scripts/lint-ocaml version
+  #coupling: with .github/workflows/lint.jsonnet version
   "ocamlformat" {= "0.26.2" } # used by the pre-commit hook
 ]

@@ -126,7 +126,7 @@ local pre_commit_ocaml_job(submodules=false) =
           # When installing ocamlformat.0.26.1 OPAM will try to rebuild some packages
           # and for that it requires 'autoconf'.
           apt-get install -y autoconf
-          opam install -y ocamlformat.0.26.1
+          opam install -y ocamlformat.0.26.2
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
         |||,
