@@ -218,12 +218,9 @@ let add_shape lval new_taints new_shape
                 tainted =
                   NameMap.update var
                     (fun opt_var_ref ->
-                      let var_ref =
-                        opt_var_ref
-                        |> Option.value ~default:(S.Ref (`None, S.Bot))
-                      in
                       Some
-                        (S.unify_ref_shape new_taints new_shape offset var_ref))
+                        (S.unify_ref_shape new_taints new_shape offset
+                           opt_var_ref))
                     tainted;
                 control;
                 taints_to_propagate;
@@ -260,13 +257,10 @@ let find_lval { tainted; _ } lval =
   let* var_ref = NameMap.find_opt var tainted in
   S.find_in_ref offsets var_ref
 
-let find_lval_xtaint { tainted; _ } lval =
-  match normalize_lval lval with
+let find_lval_xtaint env lval =
+  match find_lval env lval with
   | None -> `None
-  | Some (var, offsets) -> (
-      match NameMap.find_opt var tainted with
-      | None -> `None
-      | Some var_ref -> S.find_xtaint_ref offsets var_ref)
+  | Some (S.Ref (xtaints, _shape)) -> xtaints
 
 let propagate_from prop_var env =
   let opt_taints = VarMap.find_opt prop_var env.taints_to_propagate in

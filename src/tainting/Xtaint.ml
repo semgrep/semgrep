@@ -58,6 +58,8 @@ let union xt1 xt2 =
       (* THINK *)
       `Clean
 
+let of_taints taints = if Taints.is_empty taints then `None else `Tainted taints
+
 let to_taints = function
   | `None
   | `Clean

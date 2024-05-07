@@ -256,43 +256,6 @@ and find_in_obj (offset : T.offset list) obj =
           | None -> None
           | Some o_ref -> find_in_ref offset o_ref))
 
-(* TODO: Define in terms of 'find_in_ref', what about the `[*]` case ? *)
-let rec find_xtaint_ref offset ref =
-  let (Ref (xtaint, shape)) = ref in
-  (* TODO: Would need to do this in 'find_in_ref' too *)
-  match (offset, shape) with
-  | [], Obj obj when Fields.cardinal obj =|= 1 && Fields.mem Oany obj ->
-      (* If it's an object where all fields are tainted, we also add
-       * the taint here. *)
-      let (Ref (index_xtaint, _)) = Fields.find Oany obj in
-      Xtaint.union xtaint index_xtaint
-  | [], _ -> xtaint
-  | _ :: _, _ -> find_xtaint_shape offset shape
-
-and find_xtaint_shape offset = function
-  (* offset <> [] *)
-  | Bot -> `None
-  | Obj obj -> find_xtaint_obj offset obj
-
-and find_xtaint_obj (offset : T.offset list) obj =
-  (* offset <> [] *)
-  match offset with
-  | [] ->
-      Logs.debug (fun m ->
-          m ~tags:error "fix_xtaint_obj: Impossible happened: empty offset");
-      `None
-  | o :: offset -> (
-      match o with
-      | Oany (* arbitrary index [*] *) ->
-          (* consider all fields/indexes *)
-          Fields.fold
-            (fun _ ref acc -> Xtaint.union acc (find_xtaint_ref offset ref))
-            obj `None
-      | o -> (
-          match Fields.find_opt o obj with
-          | None -> `None
-          | Some o_ref -> find_xtaint_ref offset o_ref))
-
 (*****************************************************************************)
 (* [UNSAFE] Update the xtaint of an offset *)
 (*****************************************************************************)
@@ -344,11 +307,12 @@ and unsafe_update_obj f offset obj =
 (* Tainting an offset *)
 (*****************************************************************************)
 
-let unify_ref_shape new_taints new_shape offset ref =
+let unify_ref_shape new_taints new_shape offset opt_ref =
   let new_taints =
-    (* TODO: Probably Dataflow_tainting should be returning this. *)
-    if Taints.is_empty new_taints then `None else `Tainted new_taints
+    (* THINK: Maybe Dataflow_tainting 'check_xyz' should be returning 'Xtaint.t'? *)
+    Xtaint.of_taints new_taints
   in
+  let ref = opt_ref |> Option.value ~default:(Ref (`None, Bot)) in
   let add_new_taints xtaint shape =
     let shape = union_shape new_shape shape in
     match xtaint with
@@ -373,8 +337,6 @@ let unify_ref_shape new_taints new_shape offset ref =
      Logs.debug (fun m ->
          m ~tags:error "taint_ref: Impossible happened: empty taint set"); *)
   unsafe_update_ref add_new_taints offset ref
-
-let taint_ref new_taints offset ref = unify_ref_shape new_taints Bot offset ref
 
 (*****************************************************************************)
 (* Clean taint *)
