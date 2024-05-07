@@ -8,7 +8,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 //TODO: currently fails because of conflicts with ocamlformat and jsoo
 // Usually we can do just "5.2.0" but since this is a beta release we can't
 // See: https://github.com/ocaml/setup-ocaml/issues/232
-local opam_switch = 'ocaml-base-compiler.5.2.0~beta2';
+local opam_switch = 'ocaml-base-compiler.5.2.0~rc1';
 
 // ----------------------------------------------------------------------------
 // The job
