@@ -63,6 +63,7 @@ depends: [
   "conf-libcurl" {= "1"}
   "uri"
   "uuidm"
+  "cohttp" {= "6.0.0~beta2"}
   "cohttp-lwt-unix"
   "cohttp-lwt-jsoo"
   "tls-lwt"

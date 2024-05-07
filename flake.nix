@@ -225,8 +225,6 @@
           ocaml-base-compiler = "4.14.2";
           # needed for OCTS and isn't pulled in by semgrep.opam
           tsort = "*";
-          # don't use bleeding edge cohttp
-          cohttp-lwt = "5.3.0";
         };
 
         # repos = opamRepos to force newest version of opam

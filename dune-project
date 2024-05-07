@@ -507,6 +507,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     uuidm
+    (cohttp (= 6.0.0~beta2))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)

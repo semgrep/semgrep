@@ -16,8 +16,8 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-module Request = Cohttp_lwt.Request
-module Response = Cohttp_lwt.Response
+module Request = Cohttp.Request
+module Response = Cohttp.Response
 module Body = Cohttp_lwt.Body
 module Header = Cohttp.Header
 
@@ -36,6 +36,12 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
   open M
 
   type ctx = unit
+  type 'a io = 'a Lwt.t
+  type body = Body.t
+  type 'a with_context = ?ctx:ctx -> 'a
+
+  let set_cache _ = failwith "Mock client, not implemented"
+  let map_context v f ?ctx = f (v ?ctx)
 
   let mock_response_of_request (req : Cohttp.Request.t) (body : Body.t) =
     Logs.debug (fun m ->
@@ -250,15 +256,8 @@ let parse_req =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          ( {
-              Cohttp.Request.meth;
-              resource;
-              version;
-              headers;
-              scheme = None;
-              encoding = Body.transfer_encoding body;
-            },
-            body ))
+          let uri = Uri.of_string ("http://localhost/" ^ resource) in
+          (Cohttp.Request.make ~meth ~version ~headers uri, body))
 
 let parse_resp =
   strip_and_parse "< " (fun lines ->
@@ -271,17 +270,7 @@ let parse_resp =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          ( {
-              Cohttp.Response.version;
-              headers;
-              status;
-              (* Not sure exactly how cohttp uses this. Not documented.
-               * Doesn't seem like there's any buffering in our tests anyway.
-               *)
-              flush = true;
-              encoding = Body.transfer_encoding body;
-            },
-            body ))
+          (Cohttp.Response.make ~version ~status ~flush:true ~headers (), body))
 
 let client_from_file req_resp_file =
   let contents = UFile.Legacy.read_file req_resp_file in
