@@ -24,6 +24,9 @@ type t = {
   (* Empty tokens that were inserted by the tree-sitter parser,
      corresponding to MISSING nodes. *)
   inserted_tokens : Tok.location list;
+  (* Partial-parsing errors that are not reported. We need them when
+     we want to be strict i.e. in parsing tests. *)
+  tolerated_errors : error list;
   stat : Parsing_stat.t;
 }
 
@@ -34,7 +37,12 @@ type t = {
 val loc_of_tree_sitter_error :
   Tree_sitter_run.Tree_sitter_error.t -> Tok.location
 
-val ok : AST_generic.program -> Parsing_stat.t -> t
+val ok :
+  AST_generic.program ->
+  Parsing_stat.t ->
+  (* tolerated errors (missing tokens inserted by tree-sitter) *)
+  Tree_sitter_run.Tree_sitter_error.t list ->
+  t
 
 val partial :
   AST_generic.program ->
@@ -49,4 +57,4 @@ val partial :
 val has_error : t -> bool
 
 (* Convert errors into a human-readable format. *)
-val format_errors : ?style:Tree_sitter_run.Snippet.style -> t -> string
+val format_errors : ?style:Tree_sitter_run.Snippet.style -> error list -> string
