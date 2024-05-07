@@ -43,6 +43,15 @@ let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
 let in_mock_context = ref false
 let set_client_ref v = if not !in_mock_context then client_ref := Some v
 
+let with_client_ref v f x =
+  let old = !client_ref in
+  set_client_ref v;
+  let result = f x in
+  (match old with
+  | Some old -> set_client_ref old
+  | None -> client_ref := None);
+  result
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)

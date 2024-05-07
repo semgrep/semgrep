@@ -54,13 +54,16 @@ val post :
     successful, or an [Error (code, msg)], including the HTTP status [code]
     and a message. *)
 
-val client_ref : (module Cohttp_lwt.S.Client) option ref
-(** [client_ref] is a reference to the Cohttp client module used by the
+val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
+(** [set_client_ref] sets a reference to the Cohttp client module used by the
     functions in this module. By default, it is set to
     [Cohttp_lwt_unix.Client], but can be changed to an instance
     of [TestingClient] if you want to test things. *)
 
-val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
+val with_client_ref : (module Cohttp_lwt.S.Client) -> ('a -> 'b) -> 'a -> 'b
+(** [with_client client f x] is a helper function that temporarily sets the client
+    reference to the provided client module, runs the provided function, and
+    then resets the client reference to its original value. *)
 
 (* See Http_mock_client.ml. If this global is set, set_client_ref()
  * above will be a noop (and so leave the mock_http_client in place).
