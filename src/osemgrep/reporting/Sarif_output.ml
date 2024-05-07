@@ -2,10 +2,32 @@ open Common
 module OutT = Semgrep_output_v1_t
 module Sarif_v = Sarif.Sarif_v_2_1_0_v
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Formats the CLI output to the SARIF format using the sarif OPAM package.
+ *
+ * The sarif spec is available at:
+ * https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* See the "level" property in the spec *)
 let sarif_severity_of_severity : _ -> Sarif_v.notification_level = function
-  | `Info -> `Note
-  | `Warning -> `Warning
-  | `Error -> `Error
+  | `Info
+  | `Low ->
+      `Note
+  | `Warning
+  | `Medium ->
+      `Warning
+  (* both critical and high are mapped to the same `Error *)
+  | `Error
+  | `Critical
+  | `High ->
+      `Error
   | `Experiment
   | `Inventory ->
       raise Todo
@@ -33,10 +55,11 @@ let tags_of_metadata metadata =
     | JSON.String s -> s
     | non_string -> JSON.string_of_json non_string
   in
+  (* Also add the "security" tag when the rule has CWE tags. *)
   let cwe =
     match JSON.member "cwe" metadata with
-    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe
-    | Some single_cwe -> [ best_effort_string single_cwe ]
+    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe @ [ "security" ]
+    | Some single_cwe -> [ best_effort_string single_cwe; "security" ]
     | None -> []
   in
   let owasp =
@@ -68,7 +91,8 @@ let tags_of_metadata metadata =
     | None ->
         []
   in
-  cwe @ owasp @ confidence @ semgrep_policy_slug @ tags
+  let all_tags = cwe @ owasp @ confidence @ semgrep_policy_slug @ tags in
+  List.sort_uniq String.compare all_tags
 
 (* We want to produce a json object? with the following shape:
    { id; name;
@@ -359,6 +383,10 @@ let error_to_sarif_notification (e : OutT.cli_error) =
       ()
   in
   Sarif_v.create_notification ~message ~descriptor ~level ()
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
     =

@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,8 +14,6 @@
  * license.txt for more details.
  *)
 open Common
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -101,92 +99,97 @@ let aggregate_stats statxs =
  * ==> TODO evaluer les parties non parsé ?
  *)
 
-let print_parsing_stat_list ?(verbose = false) statxs =
-  let total = List.length statxs in
-  let perfect =
-    statxs
-    |> List.filter (function
-         | { have_timeout = false; error_line_count = 0; _ } -> true
-         | _ -> false)
-    |> List.length
-  in
-
-  if verbose then (
-    UCommon.pr
-      "\n\n\n---------------------------------------------------------------";
-    UCommon.pr "pbs with files:";
-    statxs
-    |> List.filter (function
-         | { have_timeout = true; _ } -> true
-         | { error_line_count = n; _ } when n > 0 -> true
-         | _ -> false)
-    |> List.iter (function
-           | {
-               filename = file;
-               have_timeout = timeout;
-               error_line_count = n;
-               _;
-             }
-           ->
-           UCommon.pr (file ^ "  " ^ if timeout then "TIMEOUT" else i_to_s n));
-
-    UCommon.pr "\n\n\n";
-    UCommon.pr "files with lots of tokens passed/commentized:";
-    let threshold_passed = 100 in
-    statxs
-    |> List.filter (function
-         | { commentized = n; _ } when n > threshold_passed -> true
-         | _ -> false)
-    |> List.iter (function { filename = file; commentized = n; _ } ->
-           UCommon.pr (file ^ "  " ^ i_to_s n));
-
-    UCommon.pr "\n\n\n");
-
-  let total_lines =
-    statxs |> List.fold_left (fun acc { total_line_count = x; _ } -> acc + x) 0
-  in
-  let bad =
-    statxs |> List.fold_left (fun acc { error_line_count = x; _ } -> acc + x) 0
-  in
-  let passed =
-    statxs |> List.fold_left (fun acc { commentized = x; _ } -> acc + x) 0
-  in
-  let good = total_lines - bad in
-
-  UCommon.pr "---------------------------------------------------------------";
-  UCommon.pr
-    (spf "NB total files = %d; " total
-    ^ spf "NB total lines = %d; " total_lines
-    ^ spf "perfect = %d; " perfect
-    ^ spf "pbs = %d; "
-        (statxs
+let string_of_stats ?(verbose = false) statxs =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      let total = List.length statxs in
+      let perfect =
+        statxs
         |> List.filter (function
-             | { error_line_count = n; _ } when n > 0 -> true
+             | { have_timeout = false; error_line_count = 0; _ } -> true
              | _ -> false)
-        |> List.length)
-    ^ spf "timeout = %d; "
-        (statxs
+        |> List.length
+      in
+
+      if verbose then (
+        prf
+          "\n\n\n\
+           ---------------------------------------------------------------";
+        prf "pbs with files:";
+        statxs
         |> List.filter (function
              | { have_timeout = true; _ } -> true
+             | { error_line_count = n; _ } when n > 0 -> true
              | _ -> false)
-        |> List.length)
-    ^ spf "=========> %d" (100 * perfect / total)
-    ^ "%");
-  let gf, badf = (float_of_int good, float_of_int bad) in
-  let passedf = float_of_int passed in
-  UCommon.pr
-    (spf "nb good = %d,  nb passed = %d " good passed
-    ^ spf "=========> %f" (100.0 *. (passedf /. gf))
-    ^ "%");
-  UCommon.pr
-    (spf "nb good = %d,  nb bad = %d " good bad
-    ^ spf "=========> %f" (100.0 *. (gf /. (gf +. badf)))
-    ^ "%")
+        |> List.iter (function
+               | {
+                   filename = file;
+                   have_timeout = timeout;
+                   error_line_count = n;
+                   _;
+                 }
+               -> prf "%s  %s" file (if timeout then "TIMEOUT" else i_to_s n));
+
+        prf "\n\n\n";
+        prf "files with lots of tokens passed/commentized:";
+        let threshold_passed = 100 in
+        statxs
+        |> List.filter (function
+             | { commentized = n; _ } when n > threshold_passed -> true
+             | _ -> false)
+        |> List.iter (function { filename = file; commentized = n; _ } ->
+               prf "%s  %d" file n);
+
+        prf "\n\n\n");
+
+      let total_lines =
+        statxs
+        |> List.fold_left (fun acc { total_line_count = x; _ } -> acc + x) 0
+      in
+      let bad =
+        statxs
+        |> List.fold_left (fun acc { error_line_count = x; _ } -> acc + x) 0
+      in
+      let passed =
+        statxs |> List.fold_left (fun acc { commentized = x; _ } -> acc + x) 0
+      in
+      let good = total_lines - bad in
+
+      prf "---------------------------------------------------------------";
+      prf "%s"
+        (spf "NB total files = %d; " total
+        ^ spf "NB total lines = %d; " total_lines
+        ^ spf "perfect = %d; " perfect
+        ^ spf "pbs = %d; "
+            (statxs
+            |> List.filter (function
+                 | { error_line_count = n; _ } when n > 0 -> true
+                 | _ -> false)
+            |> List.length)
+        ^ spf "timeout = %d; "
+            (statxs
+            |> List.filter (function
+                 | { have_timeout = true; _ } -> true
+                 | _ -> false)
+            |> List.length)
+        ^ spf "=========> %d" (100 * perfect / total)
+        ^ "%");
+      let gf, badf = (float_of_int good, float_of_int bad) in
+      let passedf = float_of_int passed in
+      prf "%s"
+        (spf "nb good = %d,  nb passed = %d " good passed
+        ^ spf "=========> %f" (100.0 *. (passedf /. gf))
+        ^ "%");
+      prf "%s"
+        (spf "nb good = %d,  nb bad = %d " good bad
+        ^ spf "=========> %f" (100.0 *. (gf /. (gf +. badf)))
+        ^ "%"))
 
 (*****************************************************************************)
 (* Regression stats *)
 (*****************************************************************************)
 
+(* TODO: use Logs.info instead of UCommon.pr2 and rename to log_regression_... *)
 let print_regression_information ~ext xs newscore =
   let xs = Fpath_.to_strings xs in
   let dirname_opt =
@@ -207,7 +210,7 @@ let print_regression_information ~ext xs newscore =
              Filename.concat score_path
                ("score_parsing__" ^ str ^ ext ^ ".marshalled")
            in
-           Logs.debug (fun m -> m ~tags "saving regression info in %s" file);
+           UCommon.pr2 (spf "saving regression info in %s" file);
            Common2.regression_testing newscore file)
   else
     UCommon.pr2

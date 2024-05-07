@@ -551,8 +551,14 @@ class CoreRunner:
                     core_stderr,
                 )
 
+        # else:
         output_json = self._parse_core_output(
             shell_command, core_stdout, core_stderr, returncode
+        )
+        logger.debug(
+            f"--- semgrep-core JSON answer ---\n"
+            f"{output_json}"
+            f"--- end semgrep-core JSON answer ---"
         )
         return output_json
 

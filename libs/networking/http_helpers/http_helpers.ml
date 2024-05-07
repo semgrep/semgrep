@@ -57,6 +57,17 @@ struct
   (* Respect the proxy!*)
   (* Cohttp doesn't https://github.com/mirage/ocaml-cohttp/issues/459 *)
   (* https://github.com/0install/0install/blob/6c0f5c51bc099370a367102e48723a42cd352b3b/ocaml/zeroinstall/http.cohttp.ml#L232-L256 *)
+
+  (* What do we have to do to support a proxy? *)
+  (* On Native OCaml (not js), the certificate MUST be in a path listed in
+     https://github.com/mirage/ca-certs/blob/fa4ff942f1ac980e2502a0783ef10ade5ba497f2/lib/ca_certs.ml#L34-L50 *)
+  (* Or set SSL_CERT_FILE=path/to/cert. But note setting this means no default certs will be included *)
+  (* HTTP(s)_PROXY MUST have a scheme, http:// or https://, and must have a port
+     if it isn't on port 80/443 *)
+  (* So HTTP_PROXY=http://localhost:8080 or
+     HTTPS_PROXY=https://localhost:8080 *)
+  (* And note that HTTP_PROXY is only used for HTTP requests! We almost
+     exclusively use HTTPS urls so make sure both are set*)
   let get_proxy uri =
     let proxy_uri_env =
       match Uri.scheme uri with

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,8 +15,7 @@
 open Common
 open Fpath_.Operators
 module Flag = Flag_semgrep
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parsing.Log
 
 (* To get a better backtrace, to better debug parse errors *)
 let debug_exn = ref false
@@ -45,7 +44,9 @@ type 'ast parser =
    internal_result).
 *)
 type 'ast internal_result =
-  | ResOk of ('ast * Parsing_stat.t)
+  | ResOk of
+      (* Some errors are tolerated. We need them for tests. *)
+      ('ast * Parsing_stat.t * Tree_sitter_run.Tree_sitter_error.t list)
   | ResPartial of
       ('ast * Parsing_stat.t * Tree_sitter_run.Tree_sitter_error.t list)
   | ResError of Exception.t
@@ -88,38 +89,6 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
          UCommon.pr2
            (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
-let has_errors_other_than_missing_tokens
-    (res : _ Tree_sitter_run.Parsing_result.t) =
-  List.exists
-    (fun (err : Tree_sitter_run.Tree_sitter_error.t) ->
-      match err.kind with
-      | Internal
-      | Error_node ->
-          true
-      | Missing_node -> false)
-    res.errors
-
-let extract_pattern_from_tree_sitter_result
-    (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
-  match res.program with
-  | None -> failwith "no pattern found"
-  | Some pat ->
-      (* TODO: treat missing tokens as errors once we're confident that
-         these new errors won't affect users negatively on a large scale. *)
-      if has_errors_other_than_missing_tokens res then (
-        if print_errors then
-          res.errors
-          |> List.iter (fun err ->
-                 UCommon.pr2
-                   (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
-        (* to be backward compatible with what we do in PfffPat *)
-        raise Parsing.Parse_error)
-      else pat
-
-(*****************************************************************************)
-(* Run target parsers *)
-(*****************************************************************************)
-
 (*
    Serious error = any parsing error that causes us to resort to an
    alternate parser. Missing nodes aren't considered serious enough to
@@ -136,54 +105,76 @@ let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
       true
   | Missing_node -> false
 
+let has_serious_error (res : _ Tree_sitter_run.Parsing_result.t) =
+  List.exists is_serious_error res.errors
+
 (* Return the first serious error of the list to show as the reason
    for failure. *)
-let has_serious_errors (res : _ Tree_sitter_run.Parsing_result.t) =
+let get_serious_error (res : _ Tree_sitter_run.Parsing_result.t) =
   List.find_opt (fun err -> is_serious_error err) res.errors
+
+let extract_pattern_from_tree_sitter_result
+    (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
+  match res.program with
+  | None -> failwith "no pattern found"
+  | Some pat ->
+      (* TODO: treat missing tokens as errors once we're confident that
+         these new errors won't affect users negatively on a large scale. *)
+      if has_serious_error res then (
+        if print_errors then
+          res.errors
+          |> List.iter (fun err ->
+                 UCommon.pr2
+                   (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
+        (* to be backward compatible with what we do in PfffPat *)
+        raise Parsing.Parse_error)
+      else pat
+
+(*****************************************************************************)
+(* Run target parsers *)
+(*****************************************************************************)
 
 let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
  fun parser file ->
   match parser with
   | Pfff f ->
       Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
-          Logs.debug (fun m ->
-              m ~tags "trying to parse with Pfff parser %s" !!file);
+          Log.info (fun m -> m "trying to parse with Pfff parser %s" !!file);
           try
-            let res = f file in
-            ResOk res
+            let ast, stat = f file in
+            ResOk (ast, stat, [])
           with
           | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
           | exn ->
               let e = Exception.catch exn in
               (* TODO: print where the exception was raised or reraise *)
-              Logs.err (fun m ->
-                  m ~tags "exn (%s) with Pfff parser" (Common.exn_to_s exn));
+              Log.warn (fun m ->
+                  m "exn (%s) with Pfff parser" (Common.exn_to_s exn));
               ResError e)
   | TreeSitter f -> (
-      Logs.debug (fun m ->
-          m ~tags "trying to parse with TreeSitter parser %s" !!file);
+      Log.info (fun m -> m "trying to parse with TreeSitter parser %s" !!file);
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat !!file res.stat in
-        match (res.program, has_serious_errors res) with
+        match (res.program, get_serious_error res) with
         | None, None ->
             let msg =
               "internal error: failed to recover typed tree from tree-sitter's \
                untyped tree"
             in
             ResError (Exception.trace (Failure msg))
-        | Some ast, None -> ResOk (ast, stat)
+        | Some ast, None -> ResOk (ast, stat, res.errors)
         | None, Some ts_error ->
             let e = error_of_tree_sitter_error ts_error in
-            Logs.err (fun m ->
-                m ~tags "non-recoverable error with TreeSitter parser:\n%s"
+            Log.err (fun m ->
+                m "non-recoverable error with TreeSitter parser:\n%s"
                   (Exception.to_string e));
             ResError e
         | Some ast, Some _error ->
             (* Note that the first error is probably the most important;
              * the following one may be due to cascading effects *)
-            Logs.err (fun m ->
-                m ~tags "partial errors (%d) with TreeSitter parser"
+            Log.warn (fun m ->
+                m "partial errors (%d) with TreeSitter parser"
                   (List.length res.errors));
             ResPartial (ast, stat, res.errors)
       with
@@ -192,8 +183,8 @@ let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
       | exn when !debug_exn -> Exception.catch_and_reraise exn
       | exn ->
           let e = Exception.catch exn in
-          Logs.err (fun m ->
-              m ~tags "exn (%s) with TreeSitter parser" (Common.exn_to_s exn));
+          Log.err (fun m ->
+              m "exn (%s) with TreeSitter parser" (Common.exn_to_s exn));
           ResError e)
 
 let rec (run_either : Fpath.t -> 'ast parser list -> 'ast internal_result) =
@@ -210,27 +201,25 @@ let rec (run_either : Fpath.t -> 'ast parser list -> 'ast internal_result) =
           match res with
           | ResOk res -> ResOk res
           | ResError e2 ->
-              Logs.debug (fun m ->
-                  m ~tags "exn again but return Partial:\n%s"
-                    (Exception.to_string e2));
+              Log.debug (fun m ->
+                  m "exn again but return Partial:\n%s" (Exception.to_string e2));
               (* prefer a Partial to an Error *)
               partial
           | ResPartial _ ->
-              Logs.debug (fun m ->
-                  m ~tags "Partial again but return first Partial");
+              Log.debug (fun m -> m "Partial again but return first Partial");
               partial)
       | ResError e1 -> (
           let res = run_either file xs in
           match res with
           | ResOk res -> ResOk res
           | ResPartial _ as partial ->
-              Logs.debug (fun m ->
-                  m ~tags "Got now a Partial, better than exn:\n%s"
+              Log.debug (fun m ->
+                  m "Got now a Partial, better than exn:\n%s"
                     (Exception.to_string e1));
               partial
           | ResError e2 ->
-              Logs.debug (fun m ->
-                  m ~tags
+              Log.debug (fun m ->
+                  m
                     "exn again but return original exn:\n\
                      --- new exn (ignored) ---\n\
                      %s\n\
@@ -265,7 +254,8 @@ let (run :
     | () -> xs
   in
   match run_either file xs with
-  | ResOk (ast, stat) -> Parsing_result2.ok (fconvert ast) stat
+  | ResOk (ast, stat, tolerable_errors) ->
+      Parsing_result2.ok (fconvert ast) stat tolerable_errors
   | ResPartial (ast, stat, errors) ->
       Parsing_result2.partial (fconvert ast) stat errors
   | ResError e -> Exception.reraise e
@@ -278,12 +268,11 @@ let run_parser_pat ~print_errors p str =
   let parse () =
     match p with
     | PfffPat f ->
-        Logs.debug (fun m ->
-            m ~tags "trying to parse with Pfff parser the pattern");
+        Log.info (fun m -> m "trying to parse with Pfff parser the pattern");
         f str
     | TreeSitterPat f ->
-        Logs.debug (fun m ->
-            m ~tags "trying to parse with Tree-sitter parser the pattern");
+        Log.info (fun m ->
+            m "trying to parse with Tree-sitter parser the pattern");
         let res = f str in
         extract_pattern_from_tree_sitter_result res print_errors
   in

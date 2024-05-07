@@ -16,12 +16,12 @@ let handle_autofix dryrun edits =
    * makes it into the final JSON output. Otherwise, we write the edits to disk
    * and report the number of files that we modified. *)
   if dryrun then
-    let fixed_lines_env = Autofix.make_fixed_lines_env () in
+    let env = Fixed_lines.mk_env () in
     (* We need to include the index of each edit along with its fixed_lines so
      * that the Python code can mutate the right match. *)
     let fixed_lines =
       List_.mapi
-        (fun i edit -> (i, Autofix.make_fixed_lines fixed_lines_env edit))
+        (fun i edit -> (i, Fixed_lines.make_fixed_lines env edit))
         edits
     in
     let fixed_lines =
@@ -82,7 +82,14 @@ let handle_call caps : function_call -> (function_return, string) result =
       let modified_file_count, fixed_lines = handle_autofix dryrun edits in
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
   | `CallSarifFormat
-      { hide_nudge; engine_label; rules; cli_matches; cli_errors } ->
+      {
+        hide_nudge;
+        engine_label;
+        rules;
+        cli_matches;
+        cli_errors;
+        show_dataflow_traces = _TODO;
+      } ->
       let output, format_time_seconds =
         handle_sarif_format
           (caps :> < Cap.tmp >)

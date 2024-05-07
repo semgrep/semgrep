@@ -4,8 +4,6 @@
 
 open Common
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (* Add new cases as needed *)
 type reason =
   | Success
@@ -33,5 +31,5 @@ let code_of_reason = function
 let exit_semgrep (caps : Cap.Process.exit) reason =
   let code = code_of_reason reason in
   let msg = string_of_reason reason in
-  Logs.info (fun m -> m ~tags "exit %i: %s" code msg);
+  Logs.info (fun m -> m "exit %i: %s" code msg);
   CapStdlib.exit caps code

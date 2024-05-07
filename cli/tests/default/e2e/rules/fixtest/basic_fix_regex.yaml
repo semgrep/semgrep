@@ -1,0 +1,16 @@
+rules:
+- id: a-rule
+  pattern: foobar($X)
+  message: |
+      Do not use foobar
+  languages: [python]
+  severity: WARNING
+- id: basic-fix
+  pattern: exit($X)
+  fix-regex:
+    regex: exit
+    replacement: sys.exit
+  message: |
+      Use "sys.exit" over "exit".
+  languages: [python]
+  severity: WARNING

@@ -11,11 +11,19 @@ type t = {
   errors : error list;
   skipped_tokens : Tok.location list;
   inserted_tokens : Tok.location list;
+  tolerated_errors : error list;
   stat : Parsing_stat.t;
 }
 
-let ok ast stat =
-  { ast; errors = []; skipped_tokens = []; inserted_tokens = []; stat }
+let ok ast stat tolerated_errors =
+  {
+    ast;
+    errors = [];
+    skipped_tokens = [];
+    inserted_tokens = [];
+    tolerated_errors = List_.map (fun x -> Tree_sitter_error x) tolerated_errors;
+    stat;
+  }
 
 let loc_of_tree_sitter_error (err : Err.t) =
   let start = err.start_pos in
@@ -44,10 +52,10 @@ let partial ast stat tree_sitter_errors =
     locs_of_tree_sitter_errors tree_sitter_errors
   in
   let errors = List_.map (fun x -> Tree_sitter_error x) tree_sitter_errors in
-  { ast; errors; skipped_tokens; inserted_tokens; stat }
+  { ast; errors; skipped_tokens; inserted_tokens; tolerated_errors = []; stat }
 
 let has_error x = x.errors <> []
 let format_error ?style (Tree_sitter_error x) = Err.to_string ?style x
 
-let format_errors ?style x =
-  x.errors |> List_.map (format_error ?style) |> String.concat ""
+let format_errors ?style errors =
+  errors |> List_.map (format_error ?style) |> String.concat ""

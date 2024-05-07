@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,8 +16,7 @@ open Common
 open AST_generic
 open Naming_utils
 module H = AST_generic_helpers
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_naming.Log
 
 (* see error() below *)
 let error_report = false
@@ -329,7 +328,7 @@ let lookup_scope_opt ?(class_attr = false) (s, _) env =
 
 let error tok s =
   if error_report then raise (Parsing_error.Other_error (s, tok))
-  else Logs.debug (fun m -> m ~tags "%s at %s" s (Tok.stringpos_of_tok tok))
+  else Log.err (fun m -> m "%s at %s" s (Tok.stringpos_of_tok tok))
 
 (*****************************************************************************)
 (* Typing Helpers *)
@@ -489,7 +488,6 @@ let assign_implicitly_declares lang =
 (*****************************************************************************)
 
 let resolve lang prog =
-  Logs.debug (fun m -> m ~tags "Naming_AST.resolve program");
   let env = default_env lang in
 
   (* coupling: we do similar things in Constant_propagation.ml so if you

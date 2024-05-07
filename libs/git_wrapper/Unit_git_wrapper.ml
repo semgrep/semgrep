@@ -103,7 +103,8 @@ let tests =
          ~mk_scanning_root:(fun ~project_root ->
            Fpath.(Rpath.to_fpath project_root / "a")));
     t "get git project root" (fun () ->
-        match Git_wrapper.get_project_root () with
+        let cwd = USys.getcwd () |> Fpath.v in
+        match Git_wrapper.get_project_root_for_files_in_dir cwd with
         | Some root -> printf "found git project root: %s\n" !!root
         | None ->
             Alcotest.fail
@@ -112,7 +113,7 @@ let tests =
     t "fail to get git project root" (fun () ->
         (* A standard folder that we know is not in a git repo *)
         let cwd = Filename.get_temp_dir_name () |> Fpath.v in
-        match Git_wrapper.get_project_root ~cwd () with
+        match Git_wrapper.get_project_root_for_files_in_dir cwd with
         | Some root ->
             Alcotest.fail
               (spf "we found a git project root with cwd = %s: %s" !!cwd !!root)

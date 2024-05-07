@@ -5,7 +5,7 @@ Semgrep may collect aggregate metrics to help improve the product. This document
 - [the principles that guide our data-collection decisions](#principles)
 - [how to change when Semgrep sends metrics](#automatic-collection-opt-in-and-opt-out)
 - [what data is not collected](#data-not-collected)
-- [what data is collected](#data-collected)
+- [what data is collected](#data-collected-as-metrics)
 
 ## Principles
 

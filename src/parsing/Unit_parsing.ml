@@ -21,26 +21,37 @@ let tests_path_parsing = tests_path / "parsing"
 (* Helpers *)
 (*****************************************************************************)
 
+(*
+   Strict parsing: errors due to missing (inserted) tokens are not tolerated
+   in these tests.
+*)
 let parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
          Testo.create ~tags:(Test_tags.tags_of_lang lang)
            (Filename.basename file) (fun () ->
-             Parse_target.parse_and_resolve_name_fail_if_partial lang
-               (Fpath.v file)
+             Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
              |> ignore))
 
+(* Check that *)
 let partial_parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
          Testo.create ~tags:(Test_tags.tags_of_lang lang)
-           (Filename.basename file) (fun () ->
-             let { Parsing_result2.skipped_tokens = errs; _ } =
+           ~expected_outcome:
+             (Should_fail
+                "tree-sitter parsing error is expected: skipped tokens or \
+                 missing tokens") (Filename.basename file) (fun () ->
+             let { Parsing_result2.errors; tolerated_errors; _ } =
                Parse_target.parse_and_resolve_name lang (Fpath.v file)
              in
-             if errs =*= [] then
-               Alcotest.fail
-                 "it should parse partially the file (with some errors)"))
+             let all_errors = errors @ tolerated_errors in
+             match all_errors with
+             | [] -> ()
+             | _ ->
+                 Alcotest.fail
+                   ("parsing errors: "
+                   ^ Parsing_result2.format_errors all_errors)))
 
 (*****************************************************************************)
 (* Tests *)

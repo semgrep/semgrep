@@ -37,6 +37,9 @@ let filter_define_error = ref true
 (* debugging *)
 (*****************************************************************************)
 
+(* TODO: switch to Log_parser_cpp, or design new Log srcs for each of those
+ * category
+ *)
 let debug_typedef = ref true
 let debug_pp = ref true
 let debug_cplusplus = ref true

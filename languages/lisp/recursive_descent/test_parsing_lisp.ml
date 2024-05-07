@@ -27,7 +27,7 @@ let test_parse_lisp xs =
 
          let _xs, stat = Parse_lisp.parse file in
          Stack_.push stat stat_list);
-  Parsing_stat.print_parsing_stat_list !stat_list;
+  UCommon.pr2 (Parsing_stat.string_of_stats !stat_list);
   ()
 
 (*****************************************************************************)

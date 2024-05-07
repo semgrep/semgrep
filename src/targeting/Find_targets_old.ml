@@ -4,6 +4,7 @@ module In = Input_to_core_t
 module OutJ = Semgrep_output_v1_t
 module Resp = Semgrep_output_v1_t
 open Find_targets (* conf type *)
+module Log = Log_targeting.Log
 
 (*************************************************************************)
 (* Prelude *)
@@ -96,7 +97,7 @@ let group_by_project_root func paths =
 *)
 let group_roots_by_project conf (paths : Scanning_root.t list) =
   let force_root =
-    match conf.project_root with
+    match conf.force_project_root with
     | Some (Find_targets.Git_remote _)
     | None ->
         None
@@ -198,13 +199,14 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
       if conf.respect_gitignore then (
         try files_from_git_ls ~cwd:scan_root with
         | (Git_wrapper.Error _ | Unix.Unix_error _) as exn ->
+            (* nosemgrep: no-logs-in-library *)
             Logs.info (fun m ->
                 m
                   "Unable to ignore files ignored by git (%s is not a git \
                    directory or git is not installed). Running on all files \
                    instead..."
                   !!scan_root);
-            Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
+            Log.err (fun m -> m "exn = %s" (Common.exn_to_s exn));
             List_files.list_regular_files ~keep_root:true scan_root)
       else
         (* python: was called Target.files_from_filesystem () *)
@@ -269,7 +271,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
          let paths, skipped_paths1 =
            paths
            |> Either_.partition_either (fun path ->
-                  Logs.debug (fun m -> m "Considering path %s" !!path);
+                  Log.info (fun m -> m "Considering path %s" !!path);
                   let rel_path =
                     match
                       Fpath.relativize ~root:(Rfpath.to_fpath project_root) path
@@ -298,7 +300,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
                   match status with
                   | Not_ignored -> Left path
                   | Ignored ->
-                      Logs.debug (fun m ->
+                      Log.info (fun m ->
                           m "Ignoring path %s:\n%s" !!path
                             (Gitignore.show_selection_events selection_events));
                       let reason =

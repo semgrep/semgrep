@@ -298,8 +298,12 @@ class ScanHandler:
             out.Experiment(): 0,
             out.Inventory(): 1,
             out.Info(): 2,
+            out.Low(): 2,
             out.Warning(): 3,
+            out.Medium(): 3,
             out.Error(): 4,
+            out.High(): 4,
+            out.Critical(): 5,
         }
         # NB: sorted guarantees stable sort, so within a given severity level
         # issues remain sorted as before

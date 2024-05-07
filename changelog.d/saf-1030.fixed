@@ -1,0 +1,1 @@
+Fixed bug in rule parsing preventing patternless SCA rules from being validated.

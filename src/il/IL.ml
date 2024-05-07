@@ -278,14 +278,16 @@ and exp_kind =
   | Fetch of lval (* lvalue used in a rvalue context *)
   | Literal of G.literal
   | Composite of composite_kind * exp list bracket
-  (* Record could be a Composite where the arguments are CTuple with
-   * the Literal (String) as a key, but they are pretty important I think
-   * for some analysis so better to support them more directly.
-   * TODO should we transform that in a New followed by a series of Assign
-   * with Dot? simpler?
-   * This could also be used for Dict.
+  (* Records and dictionaries could also be 'Composite's, encoded as lists of
+   * tuples, with the first element of the tuple being the field name or key.
+   * (Python dictionary expressions are encoded this way in Generic.) But, for
+   * analyses that are field- and index-sensitive (such as taint), it is more
+   * convenient to have a separate representation as in here.
+   *
+   * THINK: should we transform Generic records/dict expressions into an empty
+   *     constructor, followed by a series of Assign with Dot? simpler?
    *)
-  | Record of field list
+  | RecordOrDict of field_or_entry list
   | Cast of G.type_ * exp
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
@@ -295,14 +297,16 @@ and exp_kind =
       * G.any (* fixme source *)
       * exp (* partial translation *) option
 
-and field = Field of ident * exp | Spread of exp
+and field_or_entry =
+  | Field of ident * exp  (** struct field *)
+  | Entry of exp * exp  (** dictionary entry, key and value *)
+  | Spread of exp
 
 and composite_kind =
   | CTuple
   | CArray
   | CList
   | CSet
-  | CDict (* could be merged with Record *)
   | Constructor of name (* OCaml *)
   | Regexp
 

@@ -3,8 +3,7 @@ open Ast_cpp
 open Either_
 module Ast = Ast_cpp
 module Flag = Flag_parsing
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_cpp.Log
 
 (*****************************************************************************)
 (* Wrappers *)
@@ -291,8 +290,8 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
                  | _ -> ()));
         ftyp
     | _ ->
-        Logs.err (fun m ->
-            m ~tags "weird, not a functionType. Got %s" (Ast_cpp.show_type_ ty));
+        Log.warn (fun m ->
+            m "weird, not a functionType. Got %s" (Ast_cpp.show_type_ ty));
         (* this is possible if someone used a typedef to a function type, or
          * when tree-sitter-cpp did some error recovery and wrongly parsed
          * something as a function when it's really not

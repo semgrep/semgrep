@@ -1,6 +1,6 @@
 (* Martin Jambon
  *
- * Copyright (C) 2021-2023 r2c
+ * Copyright (C) 2021-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,8 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_process_limits.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -91,14 +90,13 @@ let run_with_memory_limit ?get_context
     let stack_bytes = stat.stack_size * (Sys.word_size / 8) in
     let mem_bytes = heap_bytes + stack_bytes in
     if mem_limit > 0 && mem_bytes > mem_limit then (
-      Logs.info (fun m ->
-          m ~tags
-            "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
+      Log.err (fun m ->
+          m "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
             (context ()) mem_bytes stack_bytes heap_bytes);
       raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if !heap_warning > 0 && heap_bytes > !heap_warning then (
-      Logs.warn (fun m ->
-          m ~tags
+      Log.warn (fun m ->
+          m
             "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \
              follows, you could suspect OOM."
             (context ()) (heap_bytes / mb) mem_limit_mb);
@@ -108,8 +106,8 @@ let run_with_memory_limit ?get_context
       && stack_bytes > stack_warning
       && not !stack_already_warned
     then (
-      Logs.warn (fun m ->
-          m ~tags
+      Log.warn (fun m ->
+          m
             "%slarge stack size: %d bytes. If a crash follows, you should \
              suspect a stack overflow. Make sure the maximum stack size is set \
              to 'unlimited' or to a value greater than %d bytes so as to \

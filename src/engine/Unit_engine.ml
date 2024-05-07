@@ -6,7 +6,6 @@ module P = Pattern_match
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__ ]
 let t = Testo.create
 
 (*****************************************************************************)
@@ -106,7 +105,7 @@ let pack_tests_for_lang
        polyglot_pattern_path:Fpath.t ->
        Fpath.t list ->
        Language.t ->
-       Testo.test list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
+       Testo.t list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
   Testo.categorize
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
@@ -685,8 +684,7 @@ let tainting_test lang rules_file file =
              }
            in
            let results =
-             Match_tainting_mode.check_rules
-               ~match_hook:(fun _ _ -> ())
+             Match_tainting_mode.check_rules ~match_hook:Fun.id
                ~per_rule_boilerplate_fn:(fun _rule f -> f ())
                [ rule ] xconf xtarget
            in
@@ -799,7 +797,7 @@ let full_rule_regression_tests () =
   let tests = tests1 @ tests2 in
   let groups =
     tests
-    |> List_.map (fun (test : Testo.test) ->
+    |> List_.map (fun (test : Testo.t) ->
            let group =
              match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
@@ -828,7 +826,7 @@ let full_rule_taint_maturity_tests () =
 (*
    Special exclusions for Semgrep JS
 *)
-let mark_todo_js (test : Testo.test) =
+let mark_todo_js (test : Testo.t) =
   match test.name with
   | s
     when (* The target file has an unsupported .erb extension, making it excluded
@@ -849,7 +847,7 @@ let full_rule_semgrep_rules_regression_tests () =
   let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
-    |> List_.map_filter (fun (test : Testo.test) ->
+    |> List_.map_filter (fun (test : Testo.t) ->
            let test = mark_todo_js test in
            let group_opt =
              match test.name with
@@ -919,7 +917,7 @@ let full_rule_semgrep_rules_regression_tests () =
                  Some (String.capitalize_ascii s)
              (* this skips the semgrep-rules/.github entries *)
              | _ ->
-                 Logs.info (fun m -> m ~tags "skipping %s" test.name);
+                 Logs.info (fun m -> m "skipping %s" test.name);
                  None
            in
            group_opt |> Option.map (fun groupname -> (groupname, test)))
@@ -930,7 +928,7 @@ let full_rule_semgrep_rules_regression_tests () =
     (groups
     |> List_.map (fun (group, tests) ->
            tests
-           |> List_.map (fun (test : Testo.test) ->
+           |> List_.map (fun (test : Testo.t) ->
                   match group with
                   | "XFAIL" ->
                       (* TODO: populate the excuse below with the exact reason

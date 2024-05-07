@@ -72,16 +72,24 @@ const entrypoint = async () => {
       try {
         return parsers.get(lang).parseTarget(lang, str);
       } catch (e) {
-        console.log(`Error parsing target ${e}`);
-        throw e;
+        console.log(`Error parsing target ${e} for lang ${lang}`);
+        if (parsers.get(lang) === undefined) {
+          console.log(`Warning! Parser for lang ${lang} does not exist. Add it to js/tests/index.test.js`);
+        } else {
+          throw e;
+        }
       }
     };
     const parsePattern = (_, lang, pattern) => {
       try {
         return parsers.get(lang).parsePattern(true, lang, pattern);
       } catch (e) {
-        console.log(`Error parsing pattern ${e}`);
-        throw e;
+        console.log(`Error parsing pattern ${e} for lang ${lang}`);
+        if (parsers.get(lang) === undefined) {
+          console.log(`Warning! Parser for lang ${lang} does not exist. Add it to js/tests/index.test.js`);
+        } else {
+          throw e;
+        }
       }
     };
     setJustParseWithLang(parseLang);

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,9 +25,8 @@ module E = Core_error
 module ME = Matching_explanation
 module GG = Generic_vs_generic
 module OutJ = Semgrep_output_v1_j
+module Log = Log_engine.Log
 open Match_env
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (* Debugging flags.
  * Note that semgrep-core -matching_explanations can also be useful to debug.
@@ -191,11 +190,11 @@ let (mini_rule_of_pattern :
 
 let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
-  Logs.debug (fun m -> m ~tags "DEBUG SEMGREP MODE!");
+  Log.debug (fun m -> m "DEBUG SEMGREP MODE!");
   mini_rules
   |> List.concat_map (fun mr ->
-         Logs.debug (fun m ->
-             m ~tags "Checking mini rule with pattern %s" mr.MR.pattern_string);
+         Log.debug (fun m ->
+             m "Checking mini rule with pattern %s" mr.MR.pattern_string);
          let res =
            Match_patterns.check
              ~hook:(fun _ -> ())
@@ -216,7 +215,7 @@ let debug_semgrep config mini_rules file lang ast =
            *)
            res
            |> List.iter (fun m ->
-                  Logs.debug (fun p -> p ~tags "match = %s" (PM.show m)));
+                  Log.debug (fun p -> p "match = %s" (PM.show m)));
          res)
 
 (*****************************************************************************)
@@ -338,9 +337,8 @@ let run_selector_on_ranges env selector_opt ranges =
         matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
           patterns
       in
-      Logs.debug (fun m ->
-          m ~tags "run_selector_on_ranges: found %d matches"
-            (List.length res.matches));
+      Log.debug (fun m ->
+          m "run_selector_on_ranges: found %d matches" (List.length res.matches));
       res.matches
       |> List_.map RM.match_result_to_range
       |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
@@ -648,10 +646,14 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              )
          | R.CondAnalysis (mvar, CondEntropyV2) -> (
              match !hook_pro_entropy_analysis with
-             (* TODO - nice UX handling of this - tell the user that they ran a rule in OSS w/o Pro hook and so their rule didn't do anything *)
              | None ->
+                 (* TODO - nice UX handling of this for pysemgrep - tell the user
+                  * that they ran a rule in OSS w/o Pro hook and so their rule
+                  * didn't do anything
+                  *)
+                 (* nosemgrep: no-logs-in-library *)
                  Logs.err (fun m ->
-                     m ~tags
+                     m
                        "EntropyV2 rule encountered without loading proprietary \
                         plugin");
                  None
@@ -668,24 +670,23 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
-               Logs.debug (fun m ->
-                   m ~tags
-                     "Analyze regexp captured by %s for ReDoS vulnerability: %s"
+               Log.debug (fun m ->
+                   m "Analyze regexp captured by %s for ReDoS vulnerability: %s"
                      mvar re_str);
                match ReDoS.find_vulnerable_subpatterns re_str with
                | Ok [] -> false
                | Ok subpatterns ->
                    subpatterns
                    |> List.iter (fun pat ->
-                          Logs.debug (fun m ->
-                              m ~tags
+                          Log.debug (fun m ->
+                              m
                                 "The following subpattern was predicted to be \
                                  vulnerable to ReDoS attacks: %s"
                                 pat));
                    true
                | Error () ->
-                   Logs.debug (fun m ->
-                       m ~tags
+                   Log.warn (fun m ->
+                       m
                          "Failed to parse metavariable %s's value as a regexp: \
                           %s"
                          mvar re_str);
@@ -932,7 +933,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     matches_of_xpatterns mvar_context rule xconf xtarget xpatterns
     |> RP.add_rule rule
   in
-  Logs.debug (fun m -> m ~tags "found %d matches" (List.length res.matches));
+  Log.info (fun m -> m "found %d matches" (List.length res.matches));
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
@@ -945,10 +946,9 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       errors = ref E.ErrorSet.empty;
     }
   in
-  Logs.debug (fun m -> m ~tags "evaluating the formula");
+  Log.info (fun m -> m "evaluating the formula");
   let final_ranges, expl = evaluate_formula env opt_context formula in
-  Logs.debug (fun m ->
-      m ~tags "found %d final ranges" (List.length final_ranges));
+  Log.info (fun m -> m "found %d final ranges" (List.length final_ranges));
   let res' =
     {
       res with
@@ -963,9 +963,15 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
-    xconf xtarget =
+let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
   let rule_id = fst r.id in
+
+  let%trace_debug sp = "Match_search_mode.check_rule" in
+  Tracing.add_data_to_span sp
+    [
+      ("rule_id", `String (rule_id |> Rule_ID.to_string)); ("taint", `Bool false);
+    ];
+
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
   {
@@ -977,12 +983,6 @@ let check_rule ?dependency_matches ({ R.mode = `Search formula; _ } as r) hook
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
-      |> List.concat_map
-           (Match_dependency.annotate_pattern_match dependency_matches)
-      |> before_return (fun v ->
-             v
-             |> List.iter (fun (m : Pattern_match.t) ->
-                    let str = spf "with rule %s" (Rule_ID.to_string rule_id) in
-                    hook str m));
+      |> hook;
     errors;
   }

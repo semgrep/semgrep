@@ -1,0 +1,11 @@
+rules:
+  - id: stupid-equal-generic
+    pattern: $X == $X
+    message: Basic test
+    severity: ERROR
+    languages: [python]
+  - id: stupid-equal-specific
+    pattern: 5 == 5
+    message: Five is right out.
+    severity: ERROR
+    languages: [python]

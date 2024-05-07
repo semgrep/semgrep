@@ -29,6 +29,16 @@ let equal xt1 xt2 =
   | `Clean, _ ->
       false
 
+let compare xt1 xt2 =
+  match (xt1, xt2) with
+  | `Tainted taints1, `Tainted taints2 -> Taints.compare taints1 taints2
+  | `None, `None
+  | `Clean, `Clean ->
+      0
+  | `Tainted _, _ -> -1
+  | `None, _ -> -1
+  | `Clean, _ -> 1
+
 let show = function
   | `Tainted taints -> Taint.show_taints taints
   | `None -> "0"

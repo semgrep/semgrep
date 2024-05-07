@@ -1,6 +1,6 @@
 (* Ruin0x11
  *
- * Copyright (c) 2020 R2C
+ * Copyright (c) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,8 +18,7 @@ module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_lua.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -94,7 +93,7 @@ let string_literal (env : env) (tok : CST.identifier) =
     match s with
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | _ ->
-        Logs.warn (fun m -> m ~tags "weird string literal: %s" s);
+        Log.warn (fun m -> m "weird string literal: %s" s);
         s
   in
   G.L (G.String (fb (s, t))) |> G.e

@@ -148,9 +148,7 @@ val all_nodes : t -> node list
 (* statistics *)
 val nb_nodes : t -> int
 val nb_use_edges : t -> int
-
-(* use Logs.info() (and not Log_graph_code.info) to log statistics *)
-val log_statistics : statistics -> t -> unit
+val string_of_statistics : statistics -> t -> string
 
 (* algorithms *)
 val group_edges_by_files_edges :

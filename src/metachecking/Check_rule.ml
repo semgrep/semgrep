@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -23,8 +23,6 @@ module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
 module OutJ = Semgrep_output_v1_t
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -221,6 +219,7 @@ let check r =
       check_formula { r; errors = ref [] } r.target_analyzer f
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
+  | `SCA _ -> (* TODO *) []
 
 let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
     Core_error.t list =
@@ -271,16 +270,15 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
   match rules with
   | [] ->
       Logs.err (fun m ->
-          m ~tags
-            "no valid yaml rules to run on (.test.yaml files are excluded)");
+          m "no valid yaml rules to run on (.test.yaml files are excluded)");
       []
   | _ ->
       let semgrep_found_errs = semgrep_check caps config metachecks rules in
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
-               Logs.debug (fun m ->
-                   m ~tags "run_checks: processing rule file %s" !!file);
+               Logs.info (fun m ->
+                   m "run_checks: processing rule file %s" !!file);
                try
                  let rs = fparser file in
                  rs |> List.concat_map (fun file -> check file)
@@ -329,8 +327,7 @@ let stat_files fparser xs =
   let cache = Some (Hashtbl.create 101) in
   fullxs
   |> List.iter (fun file ->
-         Logs.debug (fun m ->
-             m ~tags "stat_files: processing rule file %s" !!file);
+         Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
          let rs = fparser file in
          rs
          |> List.iter (fun r ->

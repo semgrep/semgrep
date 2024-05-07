@@ -1,0 +1,16 @@
+# This is mainly for testing osemgrep's sarif output vs
+# pysemgrep. Tags should be de-duplicated and if there's a cwe section
+# inside metadata, the security tag is automatically inserted.
+
+rules:
+  - id: rule-with-cwe-tag
+    pattern: $X + $Y
+    message: Fake message.
+    metadata:
+      cwe:
+        - "CWE-99999999: Fake CWE"
+        - "CWE-99999999: Fake CWE"
+        - "CWE-88888888: Another fake CWE"
+    languages:
+      - python
+    severity: ERROR

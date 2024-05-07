@@ -14,8 +14,7 @@
  *)
 open Fpath_.Operators
 open Xpattern_matcher
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_engine.Log
 
 let lexing_pos_to_loc (file : Fpath.t) (x : Lexing.position) str =
   (* almost like Spacegrep.Semgrep.semgrep_pos() *)
@@ -98,8 +97,7 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps
             match doc_type with
             | Minified
             | Binary ->
-                Logs.debug (fun m ->
-                    m ~tags "ignoring gibberish file: %s\n%!" !!file);
+                Log.info (fun m -> m "ignoring gibberish file: %s\n%!" !!file);
                 None
             | Text
             | Short ->

@@ -4,7 +4,7 @@
 │ 1 Unvalidated Secrets Finding │
 └───────────────────────────────┘
 
-  [36m[22m[24m  targets/cli_test/basic/basic.py[0m
+  [36m[22m[24m  targets/basic.py[0m
    [31m❯❯❱[0m [1mrules.basic-test.secret[0m
           Basic test
 
@@ -15,7 +15,7 @@
 │ 1 Code Finding │
 └────────────────┘
 
-  [36m[22m[24m  targets/cli_test/basic/basic.py[0m
+  [36m[22m[24m  targets/basic.py[0m
    [31m❯❯❱[0m [1mrules.basic-test.nonsecret[0m
           Basic test
 

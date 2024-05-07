@@ -224,7 +224,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
 
 let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
   let v1 = token env v1 (* "<" *) in
-  let v2 = str env v2 (* start_tag_name *) in
+  let v2 = (str env v2 (* start_tag_name *), G.empty_id_info ()) in
   let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
@@ -232,21 +232,21 @@ let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
 let map_template_start_tag (env : env)
     ((v1, v2, v3, v4) : CST.template_start_tag) =
   let v1 = token env v1 (* "<" *) in
-  let v2 = str env v2 (* template_start_tag_name *) in
+  let v2 = (str env v2 (* template_start_tag_name *), G.empty_id_info ()) in
   let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v1 = token env v1 (* "<" *) in
-  let v2 = str env v2 (* style_start_tag_name *) in
+  let v2 = (str env v2 (* style_start_tag_name *), G.empty_id_info ()) in
   let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
-  let v2 = str env v2 (* script_start_tag_name *) in
+  let v2 = (str env v2 (* script_start_tag_name *), G.empty_id_info ()) in
   let v3 = List_.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
@@ -289,7 +289,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
       { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
   | `Self_clos_tag (v1, v2, v3, v4) ->
       let l = token env v1 (* "<" *) in
-      let id = str env v2 (* start_tag_name *) in
+      let id = (str env v2 (* start_tag_name *), G.empty_id_info ()) in
       let attrs = List_.map (map_anon_choice_attr_a1991da env) v3 in
       let r = token env v4 (* "/>" *) in
       { xml_kind = XmlSingleton (l, id, r); xml_attrs = attrs; xml_body = [] }
@@ -338,7 +338,7 @@ and map_node (env : env) (x : CST.node) : xml_body list =
       [ XmlXml xml ]
   | `Errons_end_tag (v1, v2, v3) ->
       let l = token env v1 (* "</" *) in
-      let id = str env v2 (* erroneous_end_tag_name *) in
+      let id = (str env v2 (* erroneous_end_tag_name *), G.empty_id_info ()) in
       let r = token env v3 (* ">" *) in
       (* todo? raise an exn instead? *)
       let xml =

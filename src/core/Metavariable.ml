@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,11 +15,10 @@
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
+module Log = Log_semgrep.Log
 
 (* Provide hash_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -190,8 +189,8 @@ let program_of_mvalue : mvalue -> G.program option =
   | P _
   | XmlAt _
   | Text _ ->
-      Logs.debug (fun m ->
-          m ~tags "program_of_mvalue: not handled '%s'" (show_mvalue mval));
+      Log.warn (fun m ->
+          m "program_of_mvalue: not handled '%s'" (show_mvalue mval));
       None
 
 let range_of_mvalue mval =

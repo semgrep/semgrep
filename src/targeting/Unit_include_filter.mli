@@ -3,4 +3,4 @@
    (Include_filter)
 *)
 
-val tests : Testo.test list
+val tests : Testo.t list

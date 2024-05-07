@@ -1,8 +1,0 @@
-rules:
-- id: test1
-  pattern: exit($X)
-  fix: sys.exit($X)
-  message: |
-      Use "sys.exit" over "exit".
-  languages: [python]
-  severity: WARNING

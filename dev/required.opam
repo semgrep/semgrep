@@ -8,6 +8,7 @@ bug-reports: "n/a"
 synopsis: "OCaml dependencies needed in CI"
 
 depends: [
-  # OCamlFormat doesn't support OCaml 5 https://github.com/ocaml-ppx/ocamlformat/issues/2524
-  (("ocamlformat" {= "0.26.1" } & "ocaml" {< "5.0"}) | "ocaml" {>= "5.0"}) # used by the pre-commit hook
+  #coupling: with scripts/lint-ocaml version
+  #coupling: with .github/workflows/lint.jsonnet version
+  "ocamlformat" {= "0.26.2" } # used by the pre-commit hook
 ]

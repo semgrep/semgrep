@@ -96,8 +96,9 @@ type conf = {
   diff_depth : int;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
-  (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
-  project_root : project_root option;
+  (* osemgrep-only: option
+     (see Git_project.find_any_project_root and the force_root parameter) *)
+  force_project_root : project_root option;
 }
 [@@deriving show]
 
@@ -116,12 +117,7 @@ type force_root = (Project.kind * Rfpath.t) option
 
 let default_conf : conf =
   {
-    (* the project root is inferred from the presence of .git, otherwise
-       falls back to the current directory. Should it be offered as
-       a command-line option? In osemgrep, a .semgrepignore at the
-       git project root will be honored unlike in legacy semgrep
-       if we're in a subfolder. *)
-    project_root = None;
+    force_project_root = None;
     exclude = [];
     include_ = None;
     baseline_commit = None;
@@ -403,6 +399,7 @@ let git_list_files ~exclude_standard
                             (* TODO: return an Error instead and let the
                              * caller decide instead of assert false
                              *)
+                            (* nosemgrep: no-logs-in-library *)
                             Logs.err (fun m ->
                                 m
                                   "Internal error: cannot obtain path relative \
@@ -458,16 +455,15 @@ let git_list_untracked_files (project_roots : project_roots) :
 
 let scanning_root_by_project (force_root : force_root)
     (scanning_root : Scanning_root.t) : Project.t * Fppath.t =
-  let kind, { Git_project.project_root; inproject_path = scanning_root_ppath } =
-    Git_project.find_any_project_root ?force_root
-      (Scanning_root.to_fpath scanning_root)
+  let scanning_root_fpath = Scanning_root.to_fpath scanning_root in
+  let kind, scanning_root_info =
+    Git_project.find_any_project_root ?force_root scanning_root_fpath
   in
-  ( ({ kind; path = project_root } : Project.t),
-    ({
-       fpath = Scanning_root.to_fpath scanning_root;
-       ppath = scanning_root_ppath;
-     }
-      : Fppath.t) )
+  let project : Project.t = { kind; path = scanning_root_info.project_root } in
+  let path : Fppath.t =
+    { fpath = scanning_root_fpath; ppath = scanning_root_info.inproject_path }
+  in
+  (project, path)
 
 (*
    Identify the project root for each scanning root and group them
@@ -493,7 +489,7 @@ let group_scanning_roots_by_project (conf : conf)
       m "group_scanning_roots_by_project %s"
         (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root =
-    match conf.project_root with
+    match conf.force_project_root with
     | Some (Filesystem proj_root) ->
         (* This is when --project-root is specified on the command line.
            It doesn't use 'git ls-files' to list files. This is required
@@ -643,7 +639,7 @@ let get_targets_for_project conf (project_roots : project_roots) =
 
 (* for semgrep query console *)
 let clone_if_remote_project_root conf =
-  match conf.project_root with
+  match conf.force_project_root with
   | Some (Git_remote { url }) ->
       let cwd = Fpath.v (Unix.getcwd ()) in
       Log.info (fun m ->

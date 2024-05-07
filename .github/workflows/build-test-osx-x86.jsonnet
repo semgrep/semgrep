@@ -66,7 +66,7 @@ local build_core_job = {
       run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
     },
     {
-      name: 'Compile semgrep',
+      name: 'Compile semgrep (in case of linking errors, adjust src/main/flags.sh)',
       run: 'opam exec -- make core',
     },
     actions.make_artifact_step("./bin/semgrep-core"),

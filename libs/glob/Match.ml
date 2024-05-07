@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 open Pattern
+module Log = Log_glob.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,8 +29,6 @@ open Pattern
    'foo' as '/foo'. However, we use ocaml-re to produce the regexp tree
    and then execute it to match a path given as a string.
 *)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -143,10 +142,11 @@ let run matcher path =
   (* perf: this gets called a lot. The match-with is expected to make things
      faster by creating a closure for the anonymous function only in debug
      mode. *)
+  (* nosemgrep: no-logs-in-library *)
   (match Logs.level () with
   | Some Debug ->
-      Logs.debug (fun m ->
-          m ~tags "glob: %S  pcre: %s  path: %S  matches: %B"
+      Log.debug (fun m ->
+          m "glob: %S  pcre: %s  path: %S  matches: %B"
             matcher.source.line_contents matcher.re.pattern path res)
   | _ -> ());
   res

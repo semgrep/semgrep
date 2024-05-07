@@ -15,9 +15,6 @@
 open Common
 module MV = Metavariable
 module OutJ = Semgrep_output_v1_t
-
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 open Ppx_hash_lib.Std.Hash.Builtin
 
 (*****************************************************************************)
@@ -141,7 +138,11 @@ and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 (* Semgrep_output aliases *)
 (*****************************************************************************)
 
-(* this is now defined in semgrep_output_v1.atd *)
+(* This enum type is now defined in semgrep_output_v1.atd.
+ * This used to be essentially Error/Warning/Info, but starting from 1.72.0 we
+ * want to migrate to Critical/High/Medium/Low/Info as explained in
+ * https://linear.app/semgrep/issue/FIND-1240/unified-severity-levels-across-productslocations
+ *)
 type severity = Semgrep_output_v1_t.match_severity [@@deriving show, eq]
 
 type validation_state = Semgrep_output_v1_t.validation_state
@@ -546,6 +547,8 @@ and dependency_pattern = {
 }
 [@@deriving show, eq]
 
+type sca_mode = [ `SCA of dependency_formula ] [@@deriving show]
+
 (*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
@@ -621,7 +624,22 @@ type 'mode rule_info = {
    * TODO: if we resurrect the feature, we should parse the string
    *)
   equivalences : string list option;
-  (* a.k.a autofix *)
+  (* Optional replacement pattern, a.k.a autofix.
+   *
+   * Note that the pattern string is passed through String.trim() during rule
+   * parsing. This is to handle rules like
+   *
+   *        pattern: foobar($X)
+   *        fix: |
+   *            bar($X)
+   * which are parsed by the yaml parser as 'fix: "bar($X)\n"', but we don't
+   * want the extra newline added by the autofix.
+   * history: this used to be done only on the pysemgrep side in rule_match.py
+   * but better to do it here so osemgrep behaves like pysemgrep.
+   * Note that this trimming is useful only for languages where the AST-based
+   * autofix is not supported, in which case we don't parse the fix pattern
+   * but perform a basic textual replacement on the fix pattern string.
+   *)
   fix : string option;
   fix_regexp : fix_regexp option;
   (* TODO: we should get rid of this and instead provide a more general
@@ -652,7 +670,7 @@ type 'mode rule_info = {
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
 
-type mode = [ search_mode | taint_mode | extract_mode | steps_mode ]
+type mode = [ search_mode | taint_mode | extract_mode | steps_mode | sca_mode ]
 [@@deriving show]
 
 (* the general type *)
@@ -693,8 +711,10 @@ let partition_rules (rules : rules) :
         | `Extract _ as e ->
             part_rules search taint ({ r with mode = e } :: extract) step l
         | `Steps _ as j ->
-            part_rules search taint extract ({ r with mode = j } :: step) l)
+            part_rules search taint extract ({ r with mode = j } :: step) l
+        | `SCA _ -> part_rules search taint extract step l)
   in
+
   part_rules [] [] [] [] rules
 
 (* for informational messages *)
@@ -911,6 +931,7 @@ let rec formula_of_mode (mode : mode) =
       List.concat_map
         (fun step -> formula_of_mode (step.step_mode :> mode))
         steps
+  | `SCA _ -> []
 
 let xpatterns_of_rule rule =
   let formulae = formula_of_mode rule.mode in
