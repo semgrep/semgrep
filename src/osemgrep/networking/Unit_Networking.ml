@@ -17,60 +17,33 @@
 (* Prelude *)
 (*****************************************************************************)
 
-module Http_helpers = Http_helpers.Make (Lwt_platform)
-
 let t = Testo.create
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let get_and_check caps url =
-  Logs.debug (fun m -> m "GET %s" url);
-  let uri = Uri.of_string url in
-  let response = Http_helpers.get caps#network uri in
-  (* Check OK Status *)
-  match response with
-  | Ok (body, _) -> body
-  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
-
-let post_and_check caps url body =
-  Logs.debug (fun m -> m "POST %s" url);
-  let uri = Uri.of_string url in
-  let response = Http_helpers.post ~body caps#network uri in
-  (* Check OK Status *)
-  match response with
-  | Ok body -> body
-  | Error (_, msg) -> failwith (Printf.sprintf "Error (%s): %s" url msg)
-
 let get_and_check_lwt caps url =
   Logs.debug (fun m -> m "(lwt) GET %s" url);
   let uri = Uri.of_string url in
-  let%lwt response = Http_helpers.get_async caps#network uri in
+  let%lwt response = Http_helpers.get caps#network uri in
   (* Check OK Status *)
   match response with
-  | Ok (body, _) -> Lwt.return body
-  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok { body = Ok body; _ } -> Lwt.return body
+  | Ok { body = Error e; _ }
+  | Error e ->
+      Alcotest.failf "Error (%s): %s" url e
 
 let post_and_check_lwt caps url body =
   Logs.debug (fun m -> m "(lwt) POST %s" url);
   let uri = Uri.of_string url in
-  let%lwt response = Http_helpers.post_async ~body caps#network uri in
+  let%lwt response = Http_helpers.post ~body caps#network uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> Lwt.return body
-  | Error (_, msg) -> failwith (Printf.sprintf "Error (%s): %s" url msg)
-
-let get_and_check_multi caps urls (f : string -> unit) =
-  Logs.debug (fun m -> m "GET synchronously");
-  urls |> List_.map (get_and_check caps) |> List.iter f
-
-let post_and_check_multi caps (url_body_pairs : (string * string) list)
-    (f : string -> unit) =
-  Logs.debug (fun m -> m "POST synchronously");
-  url_body_pairs
-  |> List_.map (fun (url, body) -> post_and_check caps url body)
-  |> List.iter f
+  | Ok { body = Ok body; _ } -> Lwt.return body
+  | Ok { body = Error e; _ }
+  | Error e ->
+      Alcotest.failf "Error (%s): %s" url e
 
 let get_and_check_multi_lwt ?(parallel = false) caps urls (f : string -> unit) =
   Logs.debug (fun m ->
@@ -106,15 +79,12 @@ let html_tests caps =
   let check_fn body =
     Alcotest.(check bool) "Body is not empty" true (String.length body <> 0)
   in
-  let get_sync () = get_and_check_multi caps urls check_fn in
-
   let get_async () = get_and_check_multi_lwt caps urls check_fn in
   let get_async_parallel () =
     get_and_check_multi_lwt ~parallel:true caps urls check_fn
   in
   Testo.categorize "Basic HTML"
     [
-      t "GET synchronously" get_sync;
       t "GET asynchronously" get_async;
       t "GET asynchronously (parallel)" get_async_parallel;
     ]
@@ -133,14 +103,12 @@ let json_tests caps =
       (Yojson.Safe.from_string body
       |> Yojson.Safe.Util.to_assoc |> List.length > 0)
   in
-  let get_sync () = get_and_check_multi caps urls check_fn in
   let get_async () = get_and_check_multi_lwt caps urls check_fn in
   let get_async_parallel () =
     get_and_check_multi_lwt ~parallel:true caps urls check_fn
   in
   Testo.categorize "Basic JSON"
     [
-      t "GET synchronously" get_sync;
       t "GET asynchronously" get_async;
       t "GET asynchronously (parallel)" get_async_parallel;
     ]
@@ -150,18 +118,17 @@ let post_tests caps =
   let check_fn body =
     Alcotest.(check bool) "Body is not empty" true (String.length body <> 0)
   in
-  let post_sync () = post_and_check_multi caps url_body_pairs check_fn in
   let post_async () = post_and_check_multi_lwt caps url_body_pairs check_fn in
   let post_async_parallel () =
     post_and_check_multi_lwt ~parallel:true caps url_body_pairs check_fn
   in
   Testo.categorize "Basic POST"
     [
-      t "POST synchronously" post_sync;
       t "POST asynchronously" post_async;
       t "POST asynchronously (parallel)" post_async_parallel;
     ]
 
+(* TODO: We should use the mock network here, so we can re-enable these tests *)
 let tests caps =
   Testo.categorize_suites "OSemgrep Networking"
     [ html_tests caps; json_tests caps; post_tests caps ]

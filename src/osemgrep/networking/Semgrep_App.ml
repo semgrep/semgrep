@@ -14,7 +14,6 @@
  *)
 open Common
 module OutJ = Semgrep_output_v1_j
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -67,18 +66,22 @@ let get_scan_config_from_token_async
     OutJ.scan_config option Lwt.t =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route in
   let headers = [ Auth.auth_header_of_token caps#token ] in
-  let%lwt response = Http_helpers.get_async ~headers caps#network url in
+  let%lwt response = Http_helpers.get ~headers caps#network url in
   let scan_config_opt =
     match response with
-    | Error (msg, _) ->
-        Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
-        None
-    | Ok (body, _) -> (
+    | Ok { body = Ok body; _ } -> (
         try Some (OutJ.scan_config_of_string body) with
         | Yojson.Json_error msg ->
             Logs.debug (fun m ->
                 m "failed to parse body as scan_config %s: %s" msg body);
             None)
+    | Ok { body = Error err; code; _ } ->
+        Logs.debug (fun m ->
+            m "error while retrieving scan config %u: %s" code err);
+        None
+    | Error e ->
+        Logs.debug (fun m -> m "error while retrieving scan config %s" e);
+        None
   in
   Lwt.return scan_config_opt
 
@@ -156,15 +159,20 @@ let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
-  let%lwt response = Http_helpers.get_async ~headers caps#network url in
+  let%lwt response = Http_helpers.get ~headers caps#network url in
   let deployment_opt =
     match response with
-    | Error (msg, _) ->
-        Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
-        None
-    | Ok (body, _) ->
+    | Ok { body = Ok body; _ } ->
         let x = OutJ.deployment_response_of_string body in
         Some x.deployment
+    | Ok { body = Error msg; code; _ } ->
+        Logs.debug (fun m ->
+            m "error while retrieving deployment, %s returned %u: %s"
+              (Uri.to_string url) code msg);
+        None
+    | Error e ->
+        Logs.debug (fun m -> m "error while retrieving deployment: %s" e);
+        None
   in
   Lwt.return deployment_opt
 
@@ -177,11 +185,11 @@ let get_deployment_from_token token =
 (*****************************************************************************)
 
 (* TODO: pass project_config *)
-let start_scan ~dry_run caps (prj_meta : Project_metadata.t)
-    (scan_meta : OutJ.scan_metadata) : (scan_id, string) result =
+let start_scan_async ~dry_run caps (prj_meta : Project_metadata.t)
+    (scan_meta : OutJ.scan_metadata) : (scan_id, string) result Lwt.t =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
-    Ok "")
+    Lwt.return_ok "")
   else
     let headers =
       [
@@ -215,11 +223,11 @@ let start_scan ~dry_run caps (prj_meta : Project_metadata.t)
       body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
     in
     Logs.debug (fun m -> m "Starting scan: %s" pretty_body);
-    match Http_helpers.post ~body ~headers caps#network url with
-    | Ok body -> extract_scan_id body
-    | Error (status, msg) ->
+    match%lwt Http_helpers.post ~body ~headers caps#network url with
+    | Ok { body = Ok body; _ } -> Lwt.return (extract_scan_id body)
+    | Ok { body = Error err; code; _ } ->
         let pre_msg =
-          if status =|= 404 then
+          if code =|= 404 then
             {|Failed to create a scan with given token and deployment_id.
 Please make sure they have been set correctly.
 |}
@@ -227,9 +235,13 @@ Please make sure they have been set correctly.
         in
         let msg =
           Fmt.str "%sAPI server at %a returned this error: %s" pre_msg Uri.pp
-            url msg
+            url err
         in
-        Error msg
+        Lwt.return_error msg
+    | Error e -> Lwt.return_error (spf "Failed to start scan: %s" e)
+
+let start_scan ~dry_run caps prj_meta scan_meta =
+  Lwt_platform.run (start_scan_async ~dry_run caps prj_meta scan_meta)
 
 (*****************************************************************************)
 (* Step2 : fetch scan config (version 2) *)
@@ -286,26 +298,23 @@ let fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps :
       Auth.auth_header_of_token caps#token;
     ]
   in
-  let%lwt content =
-    let%lwt response = Http_helpers.get_async ~headers caps#network url in
+  let%lwt conf_string =
+    let%lwt response = Http_helpers.get ~headers caps#network url in
     let results =
       match response with
-      | Ok _ as r -> r
-      | Error (msg, _) ->
+      | Ok { body = Ok body; _ } -> Ok body
+      | Ok { body = Error msg; code; _ } ->
+          Error
+            (Printf.sprintf "Failed to download config, %s returned %u: %s"
+               (Uri.to_string url) code msg)
+      | Error e ->
           Error
             (Printf.sprintf "Failed to download config from %s: %s"
-               (Uri.to_string url) msg)
+               (Uri.to_string url) e)
     in
     Lwt.return results
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
-  (* TODO? use Result.map? or a let*? *)
-  let conf_string =
-    match content with
-    | Error _ as e -> e
-    | Ok (content, _) -> Ok content
-  in
-
   Lwt.return conf_string
 
 let fetch_scan_config_async ~dry_run ~sca ~full_scan ~repository caps :
@@ -327,15 +336,15 @@ let fetch_scan_config ~dry_run ~sca ~full_scan ~repository caps =
 (*****************************************************************************)
 
 (* python: was called report_findings *)
-let upload_findings ~dry_run ~scan_id ~results ~complete caps :
-    (app_block_override, string) result =
+let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
+    (app_block_override, string) result Lwt.t =
   let results = OutJ.string_of_ci_scan_results results in
   let complete = OutJ.string_of_ci_scan_complete complete in
   if dry_run then (
     Logs.app (fun m ->
         m "Would have sent findings and ignores blob: %s" results);
     Logs.app (fun m -> m "Would have sent complete blob: %s" complete);
-    Ok None)
+    Lwt.return_ok None)
   else (
     Logs.debug (fun m -> m "Sending findings and ignores blob: %s" results);
     Logs.debug (fun m -> m "Sending complete blob: %s" complete);
@@ -351,24 +360,42 @@ let upload_findings ~dry_run ~scan_id ~results ~complete caps :
       ]
     in
     let body = results in
-    (match Http_helpers.post ~body ~headers caps#network url with
-    | Ok body ->
-        let errors = extract_errors body in
-        errors
-        |> List.iter (fun s ->
-               Logs.warn (fun m -> m "Server returned following warning: %s" s))
-    | Error (code, msg) ->
-        Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
+    let%lwt () =
+      match%lwt Http_helpers.post ~body ~headers caps#network url with
+      | Ok { body = Ok body; _ } ->
+          let errors = extract_errors body in
+          errors
+          |> List.iter (fun s ->
+                 Logs.warn (fun m ->
+                     m "Server returned following warning: %s" s));
+          Lwt.return_unit
+      | Ok { body = Error msg; code; _ } ->
+          Logs.warn (fun m ->
+              m "API server returned %u, this error: %s" code msg);
+          Lwt.return_unit
+      | Error e ->
+          Logs.warn (fun m -> m "Failed to upload findings: %s" e);
+          Lwt.return_unit
+    in
     (* mark as complete *)
     let url =
       Uri.with_path !Semgrep_envvars.v.semgrep_url (complete_route scan_id)
     in
     let body = complete in
-    match Http_helpers.post ~body ~headers caps#network url with
-    | Ok body -> extract_block_override body
-    | Error (code, msg) ->
-        Error
-          ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
+    match%lwt Http_helpers.post ~body ~headers caps#network url with
+    | Ok { body = Ok body; _ } -> Lwt.return (extract_block_override body)
+    | Ok { body = Error msg; code; _ } ->
+        let msg =
+          Fmt.str
+            "Failed to upload findings, API server returned %u, this error: %s"
+            code msg
+        in
+        Lwt.return_error msg
+    | Error e -> Lwt.return_error (spf "Failed to upload findings: %s" e))
+
+let upload_findings ~dry_run ~scan_id ~results ~complete caps =
+  Lwt_platform.run
+    (upload_findings_async ~dry_run ~scan_id ~results ~complete caps)
 
 (*****************************************************************************)
 (* Installing Pro Engine *)
@@ -396,11 +423,13 @@ let fetch_pro_binary caps platform_kind =
 (*****************************************************************************)
 
 (* report a failure for [scan_id] to Semgrep App *)
-let report_failure ~dry_run ~scan_id caps (exit_code : Exit_code.t) : unit =
+let report_failure_async ~dry_run ~scan_id caps (exit_code : Exit_code.t) :
+    unit Lwt.t =
   let int_code = Exit_code.to_int exit_code in
-  if dry_run then
+  if dry_run then (
     Logs.app (fun m ->
-        m "Would have reported failure to semgrep.dev: %u" int_code)
+        m "Would have reported failure to semgrep.dev: %u" int_code);
+    Lwt.return_unit)
   else
     let headers =
       [
@@ -418,10 +447,17 @@ let report_failure ~dry_run ~scan_id caps (exit_code : Exit_code.t) : unit =
                               stderr = "" }
     in
     let body = OutJ.string_of_ci_scan_failure failure in
-    match Http_helpers.post ~body ~headers caps#network url with
-    | Ok _ -> ()
-    | Error (code, msg) ->
-        Logs.err (fun m -> m "API server returned %u, this error: %s" code msg)
+    match%lwt Http_helpers.post ~body ~headers caps#network url with
+    | Ok { body = Ok _; _ } -> Lwt.return_unit
+    | Ok { body = Error msg; code; _ } ->
+        Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg);
+        Lwt.return_unit
+    | Error e ->
+        Logs.warn (fun m -> m "Failed to report failure: %s" e);
+        Lwt.return_unit
+
+let report_failure ~dry_run ~scan_id caps exit_code =
+  Lwt_platform.run (report_failure_async ~dry_run ~scan_id caps exit_code)
 
 (*****************************************************************************)
 (* Other endpoints *)
@@ -436,16 +472,21 @@ let get_identity_async caps =
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url identity_route in
-  let%lwt res = Http_helpers.get_async ~headers caps#network url in
+  let%lwt res = Http_helpers.get ~headers caps#network url in
   match res with
-  | Ok (body, _) -> Lwt.return body
-  | Error (msg, _) ->
-      Logs.err (fun m ->
-          m "Failed to download identity from %s: %s" (Uri.to_string url) msg);
+  | Ok { body = Ok body; _ } -> Lwt.return body
+  | Ok { body = Error msg; code; _ } ->
+      Logs.warn (fun m ->
+          m "Failed to download identity, %s returned %u: %s"
+            (Uri.to_string url) code msg);
+      Lwt.return ""
+  | Error e ->
+      Logs.warn (fun m ->
+          m "Failed to download identity from %s: %s" (Uri.to_string url) e);
       Lwt.return ""
 
 (* for semgrep publish *)
-let upload_rule_to_registry caps json =
+let upload_rule_to_registry_async caps json =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url registry_rule_route in
   let headers =
     [
@@ -455,4 +496,17 @@ let upload_rule_to_registry caps json =
     ]
   in
   let body = JSON.string_of_json (JSON.from_yojson json) in
-  Http_helpers.post ~body ~headers caps#network url
+  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  | Ok { body = Ok body; _ } -> Lwt.return_ok body
+  | Ok { body = Error msg; code; _ } ->
+      let msg =
+        Fmt.str
+          "Failed to upload rule to registry, API server returned %u, this \
+           error: %s"
+          code msg
+      in
+      Lwt.return_error msg
+  | Error e -> Lwt.return_error (spf "Failed to upload rule to registry: %s" e)
+
+let upload_rule_to_registry caps json =
+  Lwt_platform.run (upload_rule_to_registry_async caps json)

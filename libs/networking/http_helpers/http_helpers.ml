@@ -23,7 +23,15 @@ module Log = (val Logs.src_log src : Logs.LOG)
 (* Types *)
 (*****************************************************************************)
 
-type get_info = { response : Cohttp.Response.t; code : int }
+type server_result = (string, string) result
+
+type server_response = {
+  body : server_result;
+  response : Cohttp.Response.t;
+  code : int;
+}
+
+type client_result = (server_response, string) result
 
 (*****************************************************************************)
 (* Globals *)
@@ -36,175 +44,105 @@ let in_mock_context = ref false
 let set_client_ref v = if not !in_mock_context then client_ref := Some v
 
 (*****************************************************************************)
-(* Async *)
+(* Helpers *)
 (*****************************************************************************)
 
-(* We use a functor here so that we can pass in what we use for the Lwt runtime
- * This is platform dependent (JS vs Unix), so we can't just choose one.
- *
- * alt: we could use a ref like above, but this doesn't need to be decided at
- * runtime, only at build, so I don't want to open the door to being able to
- * change it at runtime for no reason.
- * alt: we also can't just call Lwt_platform directly, as when
- * compiling/linking a package OCaml requires a choice of a virtual module
- * implementation, and it can't defer to the thing that's using the package.
- *)
+let string_of_meth = Cohttp.Code.string_of_method
 
-module Make (Lwt_platform : sig
-  val run : 'a Lwt.t -> 'a
-end) =
-struct
-  (* Respect the proxy!*)
-  (* Cohttp doesn't https://github.com/mirage/ocaml-cohttp/issues/459 *)
-  (* https://github.com/0install/0install/blob/6c0f5c51bc099370a367102e48723a42cd352b3b/ocaml/zeroinstall/http.cohttp.ml#L232-L256 *)
+let server_response_of_response (response, body) meth =
+  let code = response |> Response.status |> Code.code_of_status in
+  let meth_str = string_of_meth meth in
+  match code with
+  | _ when Code.is_success code -> { body = Ok body; response; code }
+  | _ when Code.is_error code ->
+      Log.debug (fun m -> m "HTTP %s failed:\n %s" meth_str body);
+      { body = Error body; response; code }
+  | _ ->
+      Log.debug (fun m -> m "HTTP %s unexpected response:\n %s" meth_str body);
+      { body = Error body; response; code }
 
-  (* What do we have to do to support a proxy? *)
-  (* On Native OCaml (not js), the certificate MUST be in a path listed in
-     https://github.com/mirage/ca-certs/blob/fa4ff942f1ac980e2502a0783ef10ade5ba497f2/lib/ca_certs.ml#L34-L50 *)
-  (* Or set SSL_CERT_FILE=path/to/cert. But note setting this means no default certs will be included *)
-  (* HTTP(s)_PROXY MUST have a scheme, http:// or https://, and must have a port
-     if it isn't on port 80/443 *)
-  (* So HTTP_PROXY=http://localhost:8080 or
-     HTTPS_PROXY=https://localhost:8080 *)
-  (* And note that HTTP_PROXY is only used for HTTP requests! We almost
-     exclusively use HTTPS urls so make sure both are set*)
-  let get_proxy uri =
-    let proxy_uri_env =
-      match Uri.scheme uri with
-      | Some "http" -> Some "HTTP_PROXY"
-      | Some "https" -> Some "HTTPS_PROXY"
-      | _ -> None
-    in
-    let proxy_uri = Option.bind proxy_uri_env Sys.getenv_opt in
-    match proxy_uri with
-    | Some proxy_uri ->
-        Log.info (fun m -> m "Using proxy %s for request" proxy_uri);
-        Some (Uri.of_string proxy_uri)
-    | None -> None
+(*****************************************************************************)
+(* Proxy Stuff *)
+(*****************************************************************************)
 
-  (* Why this wrapper function? Client.call takes a uri, and some other things *)
-  (* and then makes a Request.t with said uri and sends that request to the same uri *)
-  (* By using Client.callv, we can make a request that has some uri, but then really *)
-  (* send it to a different uri. This is used for proxying requests *)
+(* Respect the proxy!*)
+(* Cohttp doesn't https://github.com/mirage/ocaml-cohttp/issues/459 *)
+(* https://github.com/0install/0install/blob/6c0f5c51bc099370a367102e48723a42cd352b3b/ocaml/zeroinstall/http.cohttp.ml#L232-L256 *)
 
-  let default_resp_handler (response, body) =
-    let%lwt body_str = Cohttp_lwt.Body.to_string body in
-    Lwt.return (response, body_str)
+(* What do we have to do to support a proxy? *)
+(* On Native OCaml (not js), the certificate MUST be in a path listed in
+   https://github.com/mirage/ca-certs/blob/fa4ff942f1ac980e2502a0783ef10ade5ba497f2/lib/ca_certs.ml#L34-L50 *)
+(* Or set SSL_CERT_FILE=path/to/cert. But note setting this means no default certs will be included *)
+(* HTTP(s)_PROXY MUST have a scheme, http:// or https://, and must have a port
+   if it isn't on port 80/443 *)
+(* So HTTP_PROXY=http://localhost:8080 or
+   HTTPS_PROXY=https://localhost:8080 *)
+(* And note that HTTP_PROXY is only used for HTTP requests! We almost
+   exclusively use HTTPS urls so make sure both are set*)
+let get_proxy uri =
+  let proxy_uri_env =
+    match Uri.scheme uri with
+    (* TODO support all cases *)
+    | Some "http" -> Some "HTTP_PROXY"
+    | Some "https" -> Some "HTTPS_PROXY"
+    | _ -> None
+  in
+  let proxy_uri = Option.bind proxy_uri_env Sys.getenv_opt in
+  match proxy_uri with
+  | Some proxy_uri ->
+      Log.info (fun m -> m "Using proxy %s for request" proxy_uri);
+      Some (Uri.of_string proxy_uri)
+  | None -> None
 
-  (* Why do we need a response_handler? From the cohttp docs: *)
-  (*
+(* Why this wrapper function? Client.call takes a uri, and some other things *)
+(* and then makes a Request.t with said uri and sends that request to the same uri *)
+(* By using Client.callv, we can make a request that has some uri, but then really *)
+(* send it to a different uri. This is used for proxying requests *)
+
+let default_resp_handler (response, body) =
+  let%lwt body_str = Cohttp_lwt.Body.to_string body in
+  Lwt.return (response, body_str)
+
+(* Why do we need a response_handler? From the cohttp docs: *)
+(*
     [response_body] is not buffered, but stays on the wire until
         consumed. It must therefore be consumed in a timely manner.
         Otherwise the connection would stay open and a file descriptor leak
         may be caused. Following responses would get blocked.
         Functions in the {!Body} module can be used to consume [response_body]. *)
-  (* So if we don't handle the body, we can leak file descriptors and accidentally keep the connection open *)
-  (* Let's just handle the body when making the request then, so we don't risk leaving this up*)
-  (* to a consumer of this library, who may or may not know about this requirement *)
-  let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
-      ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
-    let module Client =
-      (val match !client_ref with
-           | Some client -> client
-           | None -> failwith "HTTP client not initialized")
-    in
-    (* Send the request to the proxy, not the original url, if it's set *)
-    let%lwt content_length_header =
-      match meth with
-      | `POST ->
-          let%lwt length, _ = Cohttp_lwt.Body.length body in
-          (* Not added when using callv :(, so we gotta add it here *)
-          Lwt.return [ ("content-length", Int64.to_string length) ]
-      | _ -> Lwt.return []
-    in
-    let headers = content_length_header @ headers in
-    let headers = Header.of_list headers in
-    let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
-    let req, url =
-      match get_proxy url with
-      | Some proxy_url ->
-          ({ req with Cohttp.Request.resource = Uri.to_string url }, proxy_url)
-      | None -> (req, url)
-    in
-    let stream_req = Lwt_stream.of_list [ (req, body) ] in
-    (* callv is deprecated in 6.0.0 of cohttp, but that's not released yet as of this comment *)
-    let%lwt responses_stream = Client.callv url stream_req in
-    (* Assume that we only get one response back *)
-    (* MUST USE GET HERE *)
-    let%lwt repsonses =
-      responses_stream |> Lwt_stream.map_s resp_handler |> Lwt_stream.to_list
-    in
-    match repsonses with
-    | [ (response, response_body) ] -> Lwt.return (response, response_body)
-    | [] -> failwith "No responses from a single request"
-    | _ -> failwith "Multiple responses from a single request"
-
-  let rec get_async ?(headers = []) caps url =
-    Log.info (fun m -> m "GET on %s" (Uri.to_string url));
-    (* This checks to make sure a client has been set *)
-    (* Instead of defaulting to a client, as that can cause *)
-    (* Hard to debug build and runtime issues *)
-    let%lwt response, body = call_client ~headers `GET url in
-    let code = response |> Response.status |> Code.code_of_status in
-    match code with
-    | _ when Code.is_success code -> Lwt.return (Ok (body, { code; response }))
-    (* Automatically resolve redirects, in this case a 307 Temporary Redirect.
-       This is important for installing the Semgrep Pro Engine binary, which
-       receives a temporary redirect at the proper endpoint.
-    *)
-    | 307 -> (
-        let location = Header.get (response |> Response.headers) "location" in
-        match location with
-        | None ->
-            let code_str = Code.string_of_status response.status in
-            let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
-            Log.err (fun m -> m "%s" err);
-            Lwt.return (Error (err, { code; response }))
-        | Some url -> get_async caps (Uri.of_string url))
-    | _ when Code.is_error code ->
-        let code_str = Code.string_of_status response.status in
-        let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
-        Log.err (fun m -> m "%s" err);
-        Lwt.return (Error (err, { code; response }))
-    | _ ->
-        let code_str = Code.string_of_status response.status in
-        let err = "HTTP GET unexpected response: " ^ code_str ^ ":\n" ^ body in
-        Log.err (fun m -> m "%s" err);
-        Lwt.return (Error (err, { code; response }))
-
-  let post_async ~body ?(headers = [ ("content-type", "application/json") ])
-      ?(chunked = false) _caps url =
-    Log.info (fun m -> m "POST on %s" (Uri.to_string url));
-    let%lwt response, body =
-      call_client
-        ~body:(Cohttp_lwt.Body.of_string body)
-        ~headers ~chunked `POST url
-    in
-    let code = response |> Response.status |> Code.code_of_status in
-    match code with
-    | _ when Code.is_success code -> Lwt.return (Ok body)
-    | _ when Code.is_error code ->
-        let code_str = Code.string_of_status response.status in
-        let err = "HTTP POST failed: " ^ code_str ^ ":\n" ^ body in
-        Log.err (fun m -> m "%s" err);
-        Lwt.return (Error (code, err))
-    | _ ->
-        let code_str = Code.string_of_status response.status in
-        let err = "HTTP POST unexpected response: " ^ code_str ^ ":\n" ^ body in
-        Log.err (fun m -> m "%s" err);
-        Lwt.return (Error (code, err))
-
-  (*****************************************************************************)
-  (* Sync *)
-  (*****************************************************************************)
-
-  (* TODO: extend to allow to curl with JSON as answer *)
-  let get ?headers caps url = Lwt_platform.run (get_async ?headers caps url)
-  [@@profiling]
-
-  let post ~body ?(headers = [ ("content-type", "application/json") ])
-      ?(chunked = false) caps url =
-    (* We add an exception handler to handle otherwise uncaught unix errors
+(* So if we don't handle the body, we can leak file descriptors and accidentally keep the connection open *)
+(* Let's just handle the body when making the request then, so we don't risk leaving this up*)
+(* to a consumer of this library, who may or may not know about this requirement *)
+let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
+    ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
+  let module Client =
+    (val match !client_ref with
+         | Some client -> client
+         | None -> failwith "HTTP client not initialized")
+  in
+  (* Send the request to the proxy, not the original url, if it's set *)
+  let%lwt content_length_header =
+    match meth with
+    | `POST ->
+        let%lwt length, _ = Cohttp_lwt.Body.length body in
+        (* Not added when using callv :(, so we gotta add it here *)
+        Lwt.return [ ("content-length", Int64.to_string length) ]
+    | _ -> Lwt.return []
+  in
+  let headers = content_length_header @ headers in
+  let headers = Header.of_list headers in
+  (* [make_for_client] Sets host header internally *)
+  let req = Cohttp.Request.make_for_client ~headers ~chunked meth url in
+  let req, url =
+    match get_proxy url with
+    | Some proxy_url ->
+        ({ req with Cohttp.Request.resource = Uri.to_string url }, proxy_url)
+    | None -> (req, url)
+  in
+  let stream_req = Lwt_stream.of_list [ (req, body) ] in
+  (* callv is deprecated in 6.0.0 of cohttp, but that's not released yet as of this comment *)
+  let responses_stream_opt =
+    (* We add a try catch  to handle otherwise uncaught unix errors
        (e.g. ECONNREFUSED) and return a more helpful error message.
 
        Currently, we're observing high failure rates from our metrics endpoint
@@ -223,15 +161,66 @@ struct
        always respond with TLS v1.3, as we are not guaranteed to hit the same
        node. Currently, AWS does not support specifying a minimum TLS version
        of v1.3, and we will need to figure out a better solution for ensuring
-       reliable metrics delivery.
-    *)
-    Lwt_platform.run
-      (Lwt.catch
-         (fun () -> post_async ~body ~headers ~chunked caps url)
-         (fun exn ->
-           let err = Printexc.to_string exn in
-           Log.err (fun m ->
-               m "send to '%s' failed: %s" (Uri.to_string url) err);
-           Lwt.return (Error (0, err))))
-  [@@profiling]
-end
+       reliable metrics delivery. *)
+    try
+      let%lwt responses_stream = Client.callv url stream_req in
+      Lwt.return_ok responses_stream
+    with
+    | exn ->
+        let err = Printexc.to_string exn in
+        Log.err (fun m ->
+            m "HTTP %S to '%s' failed: %s" (string_of_meth meth)
+              (Uri.to_string url) err);
+        Lwt.return_error err
+  in
+  let handle_responses responses_stream =
+    (* Assume that we only get one response back *)
+    (* MUST USE GET HERE *)
+    let%lwt repsonses =
+      responses_stream |> Lwt_stream.map_s resp_handler |> Lwt_stream.to_list
+    in
+    match repsonses with
+    | [ (response, response_body) ] -> Lwt.return_ok (response, response_body)
+    | [] -> Lwt.return_error "No responses from a single request"
+    | _ -> Lwt.return_error "Multiple responses from a single request"
+  in
+  Lwt_result.bind responses_stream_opt handle_responses
+
+(*****************************************************************************)
+(* Async *)
+(*****************************************************************************)
+let rec get ?(headers = []) caps url =
+  Log.info (fun m -> m "GET on %s" (Uri.to_string url));
+  (* This checks to make sure a client has been set *)
+  (* Instead of defaulting to a client, as that can cause *)
+  (* Hard to debug build and runtime issues *)
+  let response_result = call_client ~headers `GET url in
+  let handle_response (response, body) =
+    let server_response = server_response_of_response (response, body) `GET in
+    match server_response.code with
+    | 307 -> (
+        let location = Header.get (response |> Response.headers) "location" in
+        match location with
+        | None ->
+            let code_str = Code.string_of_status response.status in
+            let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
+            Log.err (fun m -> m "%s" err);
+            let server_response = { server_response with body = Error err } in
+            Lwt.return_ok server_response
+        | Some url -> get caps (Uri.of_string url))
+    | _ -> Lwt.return_ok server_response
+  in
+  Lwt_result.bind response_result handle_response
+[@@profiling]
+
+let post ~body ?(headers = [ ("content-type", "application/json") ])
+    ?(chunked = false) _caps url =
+  Log.info (fun m -> m "POST on %s" (Uri.to_string url));
+  let response =
+    call_client
+      ~body:(Cohttp_lwt.Body.of_string body)
+      ~headers ~chunked `POST url
+  in
+  Lwt_result.bind response (fun (response, body) ->
+      Lwt.return_ok (server_response_of_response (response, body) `POST))
+[@@profiling]

@@ -1,39 +1,46 @@
-(* Small wrapper around Cohttp data structures to access conveniently
- * all results (body, http code) from a GET http request.
- *)
-type get_info = { response : Cohttp.Response.t; code : int }
+(* This module provides a simple interface for making HTTP requests. It wraps
+   Cohttp with better error handling, adds network mocking, and proxy support *)
 
-(* This is functorized because we must run http requests differently
- * depending on the platform (native vs jsoo). To use this module do:
- *
- *    module Http_helpers = Http_helpers.Make(Lwt_platform)
- *
- * where this Lwt_platform is defined via the dune 'virtual modules'
- * See libs/lwt_platform/ which defines this run() for more info.
- *)
-module Make (I : sig
-  val run : 'a Lwt.t -> 'a
-end) : sig
-  val get_async :
-    ?headers:(string * string) list ->
-    Cap.Network.t ->
-    Uri.t ->
-    (string * get_info, string * get_info) result Lwt.t
-  (** [get_async ~headers caps uri] retrieves [uri] (via HTTP GET) with the
+type server_result = (string, string) result
+(** [server_result] is [Ok body] when the server returns an Ok status*)
+
+type server_response = {
+  body : server_result;
+  response : Cohttp.Response.t;
+  code : int;
+}
+(** [server_response] is whatever the server returns *)
+
+type client_result = (server_response, string) result
+(** [client_result] is [Ok response] when the network request is successful.
+    This does not guarantee the server response was an Ok status code. It
+    just means we made a network response and got /some/ response  *)
+
+(* Before we didn't wrap anything here in two results. It used to be one result
+ * with a string error message. This was a mistake. We were trusting cohttp to
+ * not blow up on the smallest stuff, instead of returning a proper error. So
+ * now we have a proper error type. That Cohttp should have done for us. *)
+
+val get :
+  ?headers:(string * string) list ->
+  Cap.Network.t ->
+  Uri.t ->
+  client_result Lwt.t
+(** [get_async ~headers caps uri] retrieves [uri] (via HTTP GET) with the
     provided [headers], asynchronously. The return value is either a promise
     of [Ok body] - if the request was successful, or an error message.
     If a temporary redirect (307) is returned, this function will automatically
     re-query and resolve the redirection.
    *)
 
-  val post_async :
-    body:string ->
-    ?headers:(string * string) list ->
-    ?chunked:bool ->
-    Cap.Network.t ->
-    Uri.t ->
-    (string, int * string) result Lwt.t
-  (** [post_async ~body ~headers ~chunked caps uri] asynchronously sends a
+val post :
+  body:string ->
+  ?headers:(string * string) list ->
+  ?chunked:bool ->
+  Cap.Network.t ->
+  Uri.t ->
+  client_result Lwt.t
+(** [post_async ~body ~headers ~chunked caps uri] asynchronously sends a
     POST request to [uri] with
     - [headers] (default: content-type: application/json)
     - [chunked] (default: false) this maps to whether we enable
@@ -46,35 +53,6 @@ end) : sig
     The returned value is a promise of either [Ok body] if the request was
     successful, or an [Error (code, msg)], including the HTTP status [code]
     and a message. *)
-
-  val get :
-    ?headers:(string * string) list ->
-    Cap.Network.t ->
-    Uri.t ->
-    (string * get_info, string * get_info) result
-  (** [get ~headers caps uri] retrieves [uri] (via HTTP GET) with the provided
-    [headers]. The return value is either [Ok body] - if the request was
-    successful, or an error message.
-    If a temporary redirect (307) is returned, this function will automatically
-    re-query and resolve the redirection.
-   *)
-
-  val post :
-    body:string ->
-    ?headers:(string * string) list ->
-    ?chunked:bool ->
-    Cap.Network.t ->
-    Uri.t ->
-    (string, int * string) result
-  (** [post ~body ~headers ~chunked caps uri] sends a POST request to [uri]
-    with:
-    - [headers] (default: content-type: application/json)
-    - [chunked] (default: false)
-    - [body] payload to send (e.g. JSON body as string)
-
-    The returned value is either [Ok body] if the request was successful, or
-    an [Error (code, msg)], including the HTTP status [code] and a message. *)
-end
 
 val client_ref : (module Cohttp_lwt.S.Client) option ref
 (** [client_ref] is a reference to the Cohttp client module used by the

@@ -14,7 +14,6 @@
  *)
 open Fpath_.Operators
 module Out = Semgrep_output_v1_j
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -49,36 +48,18 @@ let add_semgrep_pro_version_stamp current_executable_path =
   (* THINK: does this append or write entirely? *)
   UFile.write_file pro_version_stamp_path Version.version
 
-let download_semgrep_pro (caps : < Cap.network ; .. >) platform_kind dest =
+let download_semgrep_pro_async (caps : < Cap.network ; .. >) platform_kind dest
+    =
   let dest = !!dest in
   match (Semgrep_settings.load ()).api_token with
   | None ->
       Logs.err (fun m ->
           m "No API token found, please run `semgrep login` first.");
-      false
+      Lwt.return_false
   | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
-      match Semgrep_App.fetch_pro_binary caps platform_kind with
-      | Error (_, { code = 401; _ }) ->
-          Logs.err (fun m ->
-              m
-                "API token not valid. Try to run `semgrep logout` and `semgrep \
-                 login` again. Or in CI, ensure your SEMGREP_APP_TOKEN \
-                 variable is set correctly.");
-          false
-      | Error (_, { code = 403; _ }) ->
-          Logs.err (fun m ->
-              m
-                "Logged in deployment does not have access to Semgrep Pro \
-                 Engine.");
-          Logs.err (fun m ->
-              m
-                "Visit https://semgrep.dev/products/pro-engine for more \
-                 information.");
-          false
-      (* THINK: ??? is this raise for status? *)
-      | Error _ -> false
-      | Ok (body, { response; _ }) ->
+      match%lwt Semgrep_App.fetch_pro_binary caps platform_kind with
+      | Ok { body = Ok body; response; _ } ->
           (* Make sure no such binary exists. We have had weird situations
            * when the downloaded binary was corrupted, and overwriting it did
            * not fix it, but it was necessary to `rm -f` it.
@@ -92,7 +73,34 @@ let download_semgrep_pro (caps : < Cap.network ; .. >) platform_kind dest =
           in
 
           UFile.write_file (Fpath.v dest) body;
-          true)
+          Lwt.return_true
+      | Ok { code = 401; _ } ->
+          Logs.err (fun m ->
+              m
+                "API token not valid. Try to run `semgrep logout` and `semgrep \
+                 login` again. Or in CI, ensure your SEMGREP_APP_TOKEN \
+                 variable is set correctly.");
+          Lwt.return_false
+      | Ok { code = 403; _ } ->
+          Logs.err (fun m ->
+              m
+                "Logged in deployment does not have access to Semgrep Pro \
+                 Engine.");
+          Logs.err (fun m ->
+              m
+                "Visit https://semgrep.dev/products/pro-engine for more \
+                 information.");
+          Lwt.return_false
+      (* THINK: ??? is this raise for status? *)
+      | Ok { code; body = Error msg; _ } ->
+          Logs.err (fun m -> m "Error downloading Semgrep Pro: %d %s" code msg);
+          Lwt.return_false
+      | Error msg ->
+          Logs.err (fun m -> m "Error downloading Semgrep Pro: %s" msg);
+          Lwt.return_false)
+
+let download_semgrep_pro caps platform_kind dest =
+  Lwt_platform.run (download_semgrep_pro_async caps platform_kind dest)
 
 (*****************************************************************************)
 (* Main logic *)

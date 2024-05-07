@@ -1,5 +1,3 @@
-module Http_helpers = Http_helpers.Make (Lwt_platform)
-
 (* GitHub REST API *)
 
 let find_branchoff_point_async caps ~gh_token ~api_url ~repo_name
@@ -7,13 +5,13 @@ let find_branchoff_point_async caps ~gh_token ~api_url ~repo_name
   let str = Auth.string_of_token gh_token in
   let headers = [ ("Authorization", Fmt.str "Bearer %s" str) ] in
   let%lwt response =
-    Http_helpers.get_async ~headers caps#network
+    Http_helpers.get ~headers caps#network
       (Uri.of_string
          (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
             Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash))
   in
   match response with
-  | Ok (body, _) ->
+  | Ok { body = Ok body; _ } ->
       let body = body |> Yojson.Basic.from_string in
       let commit =
         Option.bind
@@ -22,4 +20,9 @@ let find_branchoff_point_async caps ~gh_token ~api_url ~repo_name
           Digestif.SHA1.of_hex_opt
       in
       Lwt.return commit
-  | __else__ -> Lwt.return_none
+  | Ok { body = Error e; code; _ } ->
+      Logs.err (fun m -> m "Github API returned an error code %d: %s" code e);
+      Lwt.return_none
+  | Error e ->
+      Logs.err (fun m -> m "Failed to fetch branch off point: %s" e);
+      Lwt.return_none
