@@ -219,6 +219,7 @@ let check r =
       check_formula { r; errors = ref [] } r.target_analyzer f
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
+  | `SCA _ -> (* TODO *) []
 
 let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
     Core_error.t list =

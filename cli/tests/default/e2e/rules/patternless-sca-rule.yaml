@@ -1,0 +1,12 @@
+rules:
+- id: patternless-sca-rule
+  message: >-
+    Test rule that doesn't have a pattern but is a valid SCA rule.
+  r2c-internal-project-depends-on:
+    depends-on-either:
+    - namespace: gem
+      package: bolt
+      version: < 9.87.65
+  languages:
+  - ruby
+  severity: ERROR
