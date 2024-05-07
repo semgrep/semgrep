@@ -1065,6 +1065,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         dryrun;
         strict;
         force_color;
+        show_dataflow_traces = dataflow_traces;
         output_format;
         max_chars_per_line;
         max_lines_per_finding;
