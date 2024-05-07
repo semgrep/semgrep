@@ -1,7 +1,7 @@
-let parse_pattern print_errors _ str =
+let parse_pattern _ str =
   let js_ast =
     str
-    |> Pfff_or_tree_sitter.run_pattern ~print_errors
+    |> Pfff_or_tree_sitter.run_pattern
          (* coupling: semgrep/js/languages/typescript/Parser.ml *)
          [
            PfffPat Parse_js.any_of_string;

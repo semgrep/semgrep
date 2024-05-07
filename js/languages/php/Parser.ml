@@ -1,4 +1,4 @@
-let parse_pattern _ _ str =
+let parse_pattern _ str =
   let any_cst = Parse_php.any_of_string str in
   let any = Ast_php_build.any any_cst in
   Php_to_generic.any any

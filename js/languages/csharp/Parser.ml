@@ -2,9 +2,9 @@ let parse_target _ file =
   Pfff_or_tree_sitter.run file [ TreeSitter Parse_csharp_tree_sitter.parse ]
     (fun x -> x)
 
-let parse_pattern print_errors _ str =
+let parse_pattern _ str =
   let res = Parse_csharp_tree_sitter.parse_pattern str in
-  Pfff_or_tree_sitter.extract_pattern_from_tree_sitter_result res print_errors
+  Pfff_or_tree_sitter.extract_pattern_from_tree_sitter_result res
 
 let _ =
   Common.jsoo := true;

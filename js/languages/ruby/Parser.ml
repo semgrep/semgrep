@@ -1,7 +1,7 @@
-let parse_pattern print_errors _ str =
+let parse_pattern _ str =
   let res = Parse_ruby_tree_sitter.parse_pattern str in
   let pattern =
-    Pfff_or_tree_sitter.extract_pattern_from_tree_sitter_result res print_errors
+    Pfff_or_tree_sitter.extract_pattern_from_tree_sitter_result res
   in
   Ruby_to_generic.any pattern
 
