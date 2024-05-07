@@ -177,7 +177,8 @@ let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
   E.try_with_print_exn_and_reraise !!file (fun () ->
-      let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
+      (* TODO? enable "semgrep.parsing" log level *)
+      let any = Parse_pattern.parse_pattern lang s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       UCommon.pr s)
@@ -355,7 +356,7 @@ let all_actions (caps : Cap.all_caps) () =
           in
           Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
-            !!file) );
+            file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
@@ -430,9 +431,6 @@ let all_actions (caps : Cap.all_caps) () =
       " <file> <dir>",
       Arg_.mk_action_2_arg (fun a b ->
           Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
-    ( "-postmortem",
-      " <log file",
-      Arg_.mk_action_1_conv Fpath.v Statistics_report.stat );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program

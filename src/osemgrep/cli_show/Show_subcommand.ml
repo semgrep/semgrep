@@ -82,7 +82,8 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
    *)
   | DumpPattern (str, lang) ->
       (* mostly a copy paste of Core_CLI.dump_pattern *)
-      let any = Parse_pattern.parse_pattern lang ~print_errors:true str in
+      (* TODO: maybe enable the "semgrep.parsing" src here *)
+      let any = Parse_pattern.parse_pattern lang str in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
       CapConsole.print stdout s;

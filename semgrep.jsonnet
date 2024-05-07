@@ -139,7 +139,35 @@ local semgrep_rules = [
        'src/tainting',
        'src/analyzing',
       ]
-    }
+    },
+  },
+  // similar to no-print-in-semgrep in semgrep.yml
+  {
+    id: 'no-pr2',
+    match: {
+      any: [
+       'UCommon.pr2 ...',
+       'UCommon.pr2_gen ...',
+       ],
+    },
+    message: |||
+      Do not use UCommon.pr2 or any variant of it. Use Logs instead.
+      See https://www.notion.so/semgrep/Logging-in-semgrep-semgrep-core-osemgrep-67c9046fa53744728d9d725a5a244f64 for more info.
+    |||,
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    paths: {
+      exclude: [
+       'Test_*',
+       'Unit_*',
+       'tools/',
+       'scripts/',
+       #TODO:
+       'libs/',
+       'languages/',
+       'src/'
+       ]
+    },
   },
 ];
 

@@ -108,7 +108,7 @@ let rec parse_type env key (str, tok) =
   | Xlang.L (lang, _) ->
       let str = wrap_type_expr env key lang str in
       try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-          Parse_pattern.parse_pattern lang ~print_errors:false str)
+          Parse_pattern.parse_pattern lang str)
       |> unwrap_type_expr env key lang
   | Xlang.LRegex
   | Xlang.LSpacegrep
@@ -153,8 +153,7 @@ let parse_rule_xpattern env (str, tok) =
         lazy
           ((* we need to raise the right error *)
            try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-               Parse_pattern.parse_pattern lang ~print_errors:false
-                 ~rule_options:env.options str))
+               Parse_pattern.parse_pattern lang ~rule_options:env.options str))
       in
       XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
   | Xlang.LRegex ->
