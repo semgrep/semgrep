@@ -68,8 +68,8 @@ and obj = ref Fields.t
 (* UNSAFE: Violates INVARIANT(ref), see 'unsafe_find_offset_in_obj *)
 let ref_none_bot = Ref (`None, Bot)
 
-(* Temporarily breaks 'unsafe_find_offset_in_obj' by initializing a field with a
- * 'ref<0>(_|_)' shape, the field will immediately be after be tainted or cleaned. *)
+(* Temporarily breaks INVARIANT(ref) by initializing a field with the shape
+ * 'ref<0>(_|_)', but right away the field will be either tainted or cleaned. *)
 let unsafe_find_offset_in_obj o obj =
   match Fields.find_opt o obj with
   | Some _ -> (o, obj)
@@ -150,12 +150,11 @@ let tuple_like_obj taints_and_shapes : obj =
     taints_and_shapes
     |> List.fold_left
          (fun (i, obj) (taints, shape) ->
-           let xtaint =
-             if Taints.is_empty taints then `None else `Tainted taints
-           in
-           match (xtaint, shape) with
-           | `None, Bot -> (* See INVARIANT(ref) *) (i + 1, obj)
-           | __else__ ->
+           match (Xtaint.of_taints taints, shape) with
+           | `None, Bot ->
+               (* We skip this index to maintain INVARIANT(ref). *)
+               (i + 1, obj)
+           | xtaint, shape ->
                let ref = Ref (xtaint, shape) in
                (i + 1, Fields.add (T.Oint i) ref obj))
          (0, Fields.empty)

@@ -1473,7 +1473,7 @@ let taints_of_sig_base env fparams args_taints base =
   | T.BArg pos -> find_pos_in_actual_args args_taints fparams pos
   | BThis -> None (* TODO *)
   | BGlob var ->
-      let* (S.Ref (xtaints, shape)) = Lval_env.find_var_opt env.lval_env var in
+      let* (S.Ref (xtaints, shape)) = Lval_env.find_var env.lval_env var in
       Some (Xtaint.to_taints xtaints, shape)
 
 (* What is the taint denoted by 'sig_lval' ? *)
@@ -1945,7 +1945,7 @@ let results_from_arg_updates_at_exit enter_env exit_env : Sig.result list =
    * extension and generate a `ToLval` result too. *)
   exit_env |> Lval_env.seq_of_tainted
   |> Seq.map (fun (var, exit_var_ref) ->
-         match Lval_env.find_var_opt enter_env var with
+         match Lval_env.find_var enter_env var with
          | None -> Seq.empty
          | Some (S.Ref ((`Clean | `None), _)) -> Seq.empty
          | Some (S.Ref (`Tainted enter_taints, _)) -> (
