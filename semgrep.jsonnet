@@ -148,6 +148,7 @@ local semgrep_rules = [
       any: [
        'UCommon.pr2 ...',
        'UCommon.pr2_gen ...',
+       #'pr2_gen ...', needed?
        ],
     },
     message: |||
@@ -164,7 +165,6 @@ local semgrep_rules = [
        'scripts/',
        #TODO:
        'libs/',
-       'languages/',
        'src/'
        ]
     },

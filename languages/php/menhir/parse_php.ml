@@ -18,6 +18,7 @@ module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
 module TH = Token_helpers_php
 module PS = Parsing_stat
+module Log = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -130,7 +131,7 @@ let parse filename =
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
-        UCommon.pr2 ("parse error\n = " ^ error_msg_tok cur);
+        Log.err (fun m -> m "parse error\n = %s" (error_msg_tok cur));
       let checkpoint2 = UFile.cat filename |> List.length in
 
       if !Flag.show_parsing_error then

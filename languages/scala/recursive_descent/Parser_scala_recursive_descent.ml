@@ -179,9 +179,8 @@ let with_logging funcname f in_ =
 let error x in_ =
   let tok = in_.token in
   let info = TH.info_of_tok tok in
-  if !Flag.debug_parser then (
-    UCommon.pr2 (T.show tok);
-    UCommon.pr2 x);
+  if !Flag.debug_parser then
+    Log.err (fun m -> m "tok =%s, x = %s" (T.show tok) x);
   raise (Parsing_error.Syntax_error info)
 
 let warning s = if !Flag.debug_parser then Log.warn (fun m -> m "%s" s)

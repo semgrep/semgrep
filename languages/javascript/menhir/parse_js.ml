@@ -20,6 +20,7 @@ module Ast = Ast_js
 module TH = Token_helpers_js
 module PS = Parsing_stat
 module Log = Log_parser_javascript.Log
+module LogLib = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -236,7 +237,7 @@ let parse2 opt_timeout (filename : Fpath.t) =
         match asi_opportunity charpos last_charpos_error cur tr with
         | None ->
             if !Flag.show_parsing_error then
-              UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
+              LogLib.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
             Right cur
         | Some (passed_before, passed_offending, passed_after) ->
             asi_insert charpos last_charpos_error tr
@@ -291,7 +292,7 @@ let parse2 opt_timeout (filename : Fpath.t) =
     | Some res -> res
     | None ->
         if !Flag.show_parsing_error then
-          UCommon.pr2 (spf "TIMEOUT on %s" !!filename);
+          Log.err (fun m -> m "TIMEOUT on %s" !!filename);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         stat.PS.have_timeout <- true;
         []

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 R2C
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,6 +16,7 @@ open Fpath_.Operators
 module Flag = Flag_parsing
 module TH = Token_helpers_scala
 module PS = Parsing_stat
+module Log = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -76,11 +77,12 @@ let parse (filename : Fpath.t) =
   | Parsing_error.Syntax_error cur
     when !Flag.error_recovery && not !Flag.debug_parser ->
       if !Flag.show_parsing_error then (
-        UCommon.pr2
-          ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
+        Log.err (fun m ->
+            m "parse error \n = %s" (Parsing_helpers.error_message_info cur));
         let filelines = UFile.cat_array filename in
         let checkpoint2 = UFile.cat filename |> List.length in
         let line_error = Tok.line_of_tok cur in
+        (* TODO: switch to Parsing_helpers.string_of_bad and then Log.err *)
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }
