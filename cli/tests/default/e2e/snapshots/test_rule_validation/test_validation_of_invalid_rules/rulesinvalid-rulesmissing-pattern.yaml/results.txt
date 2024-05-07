@@ -10,4 +10,4 @@ semgrep error: Invalid rule schema
 One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'
 
 [ERROR] Rule parse error in rule eqeq:
- Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, or `r2c-internal-project-depends-on` to be present
+ Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex` to be present
