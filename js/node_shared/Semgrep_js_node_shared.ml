@@ -42,5 +42,5 @@ end
 (*****************************************************************************)
 
 let init_cohttp () =
-  Http_helpers.client_ref :=
-    Some (module Patched_cohttp_lwt_jsoo : Cohttp_lwt.S.Client)
+  Http_helpers.set_client_ref
+    (module Patched_cohttp_lwt_jsoo : Cohttp_lwt.S.Client)
