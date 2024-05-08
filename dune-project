@@ -507,7 +507,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     uuidm
-    ; cohttp >= 6.0.0 requires opam 2.1.0
+    ; cohttp >= 6.0.0 requires opam 2.1.0 (which isn't yet on Windows)
     (cohttp (= 5.3.0))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
