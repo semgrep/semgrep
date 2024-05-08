@@ -6,6 +6,37 @@
 
 <!-- insertion point -->
 
+## [1.72.0](https://github.com/returntocorp/semgrep/releases/tag/v1.72.0) - 2024-05-08
+
+
+### Fixed
+
+
+- Dockerfile support: Avoid a silent parsing error that was possibly accompanied
+  with a segfault when parsing Dockerfiles that lack a trailing newline
+  character. (gh-10084)
+- Fixed bug that was preventing the use of `metavariable-pattern` with
+  the aliengrep engine of the generic mode. (gh-10222)
+- Added support for function declarations on object literals in the dataflow analysis.
+
+  For example, previously taint rules would not have matched the
+  following javascript code but now would.
+  ```
+  let tainted = source()
+  let o = {
+      someFuncDecl(x) {
+          sink(tainted)
+      }
+  }
+  ``` (saf-1001)
+- Osemgrep only:
+
+  When rules have metavariable-type, they don't show up in the SARIF output. This change fixes that.
+
+  Also right now dataflow traces are always shown in SARIF even when --dataflow-traces is not passed. This change also fixes that. (saf-1020)
+- Fixed bug in rule parsing preventing patternless SCA rules from being validated. (saf-1030)
+
+
 ## [1.71.0](https://github.com/returntocorp/semgrep/releases/tag/v1.71.0) - 2024-05-03
 
 

@@ -1,5 +1,0 @@
-Osemgrep only:
-
-When rules have metavariable-type, they don't show up in the SARIF output. This change fixes that.
-
-Also right now dataflow traces are always shown in SARIF even when --dataflow-traces is not passed. This change also fixes that.
