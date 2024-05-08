@@ -21,6 +21,7 @@ type expectation =
   | Not of expectation
 [@@deriving show]
 
+let mv kind bare_name : Pat_compile.metavariable = { kind; bare_name }
 let match_subs (x : Match.match_) = x.match_loc.substring
 let check_num_matches n matches = List.length matches = n
 
@@ -116,22 +117,22 @@ let test_metavariables () =
     [
       Num_matches 1;
       Match_value "a xy b";
-      Capture (Metavariable, "X");
-      Capture_value ((Metavariable, "X"), "xy");
+      Capture (mv Metavariable "X");
+      Capture_value (mv Metavariable "X", "xy");
     ];
   check slconf {|a $AB_4! b|} {|a xy! b|}
     [
       Num_matches 1;
       Match_value "a xy! b";
-      Capture_value ((Metavariable, "AB_4"), "xy");
+      Capture_value (mv Metavariable "AB_4", "xy");
     ];
   check slconf {|$ X|} {|$ X|}
     [
       Num_matches 1;
       Match_value "$ X";
-      Not (Capture (Metavariable, "X"));
-      Not (Capture (Metavariable, ""));
-      Not (Capture (Metavariable, "$"));
+      Not (Capture (mv Metavariable "X"));
+      Not (Capture (mv Metavariable ""));
+      Not (Capture (mv Metavariable "$"));
     ];
   check slconf {|$A $B|} {|1 2 3 4|}
     [
@@ -139,12 +140,12 @@ let test_metavariables () =
       Num_matches 2;
       (* first match *)
       Match_value "1 2";
-      Capture_value ((Metavariable, "A"), "1");
-      Capture_value ((Metavariable, "B"), "2");
+      Capture_value (mv Metavariable "A", "1");
+      Capture_value (mv Metavariable "B", "2");
       (* other match *)
       Match_value "3 4";
-      Capture_value ((Metavariable, "A"), "3");
-      Capture_value ((Metavariable, "B"), "4");
+      Capture_value (mv Metavariable "A", "3");
+      Capture_value (mv Metavariable "B", "4");
     ]
 
 let test_ellipsis_brackets () =
@@ -197,7 +198,7 @@ let test_backreferences () =
     [
       Num_matches 1;
       Match_value {|a, b, c, a|};
-      Capture_value ((Metavariable, "A"), "a");
+      Capture_value (mv Metavariable "A", "a");
     ];
   (* no overlaps -> only 2 matches *)
   check slconf {|$A ... $A ... $A|} {|a x x x a x x x a x x x x a|}
@@ -205,8 +206,8 @@ let test_backreferences () =
       Num_matches 2;
       Match_value {|a x x x a x x x a|};
       Match_value {|x x x|};
-      Capture_value ((Metavariable, "A"), "a");
-      Capture_value ((Metavariable, "A"), "x");
+      Capture_value (mv Metavariable "A", "a");
+      Capture_value (mv Metavariable "A", "x");
     ];
   (* back-references should not end in the middle of a word *)
   check slconf {|$A ... $A|} {|ab abc|} [ Num_matches 0 ];
@@ -214,33 +215,33 @@ let test_backreferences () =
   check slconf {|$A ... $A|} {|abc bc|} [ Num_matches 0 ];
   (* ellipsis extremities that are not words may touch words *)
   check slconf {|... $...A : $...A ...|} {|x+ : +x|}
-    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "+") ];
+    [ Num_matches 1; Capture_value (mv Metavariable_ellipsis "A", "+") ];
   (* ellipsis extremities that are not words may touch [specific] words *)
   check slconf {|x $...A : $...A x|} {|x+ : +x|}
     [ Num_matches 1; Match_value {|x+ : +x|} ];
   (* ellipsis extremities that are words may not touch words *)
   check slconf {|... $...A : $...A ...|} {|xy : yx|}
-    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "") ];
+    [ Num_matches 1; Capture_value (mv Metavariable_ellipsis "A", "") ];
   (* ellipsis extremities that are words may not touch [specific] words *)
   check slconf {|x $...A : $...A x|} {|x+ : +x|}
     [
       Num_matches 1;
       Match_value {|x+ : +x|};
-      Capture_value ((Metavariable_ellipsis, "A"), "+");
+      Capture_value (mv Metavariable_ellipsis "A", "+");
     ];
   (* word extremities of ellipsis back-references may not touch words *)
   check slconf {|... $...A : $...A ...|} {|x : xx|}
-    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "") ];
+    [ Num_matches 1; Capture_value (mv Metavariable_ellipsis "A", "") ];
   (* nonword extremities of ellipsis back-references may touch words *)
   check slconf {|... $...A : $...A ...|} {|+ : ++|}
-    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "+") ]
+    [ Num_matches 1; Capture_value (mv Metavariable_ellipsis "A", "+") ]
 
 let test_ellipsis_metavariable () =
   check slconf {|[$...ITEMS]|} {|a, [ b, c ], d|}
     [
       Num_matches 1;
       Match_value {|[ b, c ]|};
-      Capture_value ((Metavariable_ellipsis, "ITEMS"), {|b, c|});
+      Capture_value (mv Metavariable_ellipsis "ITEMS", {|b, c|});
     ];
   (* regular vs. long ellipsis in single-line mode *)
   check slconf {|[$...ITEMS]|} "a, [ b,\nc ], d" [ Num_matches 0 ];
@@ -248,14 +249,14 @@ let test_ellipsis_metavariable () =
     [
       Num_matches 1;
       Match_value "[ b,\nc ]";
-      Capture_value ((Metavariable_ellipsis, "ITEMS"), "b,\nc");
+      Capture_value (mv Metavariable_ellipsis "ITEMS", "b,\nc");
     ];
   (* backtracking and back-references *)
   check slconf {|[$...A $...A]|} "[a b a b]"
     [
       Num_matches 1;
       Match_value "[a b a b]";
-      Capture_value ((Metavariable_ellipsis, "A"), "a b");
+      Capture_value (mv Metavariable_ellipsis "A", "a b");
     ];
   (* back-references require exact whitespace match, unfortunately *)
   check slconf {|[$...A $...A]|} "[a b a  b]" [ Num_matches 0 ]
@@ -282,8 +283,8 @@ var e = "xx";
   check slconf pat target
     [
       Num_matches 1;
-      Capture_value ((Metavariable, "ORIG"), "b");
-      Capture_value ((Metavariable, "COPY"), "d");
+      Capture_value (mv Metavariable "ORIG", "b");
+      Capture_value (mv Metavariable "COPY", "d");
     ]
 
 let test_left_anchored_ellipses () =

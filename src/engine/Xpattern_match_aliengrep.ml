@@ -28,12 +28,8 @@ let convert_capture ~file
   let str = loc.substring in
   let pos = convert_pos ~file loc in
   let tok = Tok.tok_of_loc pos in
-  let name_with_dollar =
-    match mv with
-    | Metavariable, name -> "$" ^ name
-    | Metavariable_ellipsis, name -> "$..." ^ name
-  in
-  (name_with_dollar, Metavariable.Text (str, tok, tok))
+  let name_with_dollar = Aliengrep.Pat_compile.string_of_metavariable mv in
+  (name_with_dollar, Xpattern_matcher.mval_of_string str tok)
 
 (* Convert locations to the file/line/column format etc. *)
 let convert_match ~file (match_ : Aliengrep.Match.match_) =

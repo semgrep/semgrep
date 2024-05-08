@@ -155,7 +155,7 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     match rule.mode with
     | `Taint { Rule.sources; sanitizers = _; sinks; propagators = _ } ->
         `Taint { Rule.sources; sanitizers = None; sinks; propagators = [] }
-    | (`Search _ | `Extract _ | `Steps _) as mode -> mode
+    | (`Search _ | `Extract _ | `Steps _ | `SCA _) as mode -> mode
   in
   let formulae = Rule.formula_of_mode mode in
   (* We need to do this as flattening and sorting does not always produce the

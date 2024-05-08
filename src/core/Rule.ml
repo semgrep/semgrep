@@ -547,6 +547,8 @@ and dependency_pattern = {
 }
 [@@deriving show, eq]
 
+type sca_mode = [ `SCA of dependency_formula ] [@@deriving show]
+
 (*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
@@ -668,7 +670,7 @@ type 'mode rule_info = {
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
 
-type mode = [ search_mode | taint_mode | extract_mode | steps_mode ]
+type mode = [ search_mode | taint_mode | extract_mode | steps_mode | sca_mode ]
 [@@deriving show]
 
 (* the general type *)
@@ -709,8 +711,10 @@ let partition_rules (rules : rules) :
         | `Extract _ as e ->
             part_rules search taint ({ r with mode = e } :: extract) step l
         | `Steps _ as j ->
-            part_rules search taint extract ({ r with mode = j } :: step) l)
+            part_rules search taint extract ({ r with mode = j } :: step) l
+        | `SCA _ -> part_rules search taint extract step l)
   in
+
   part_rules [] [] [] [] rules
 
 (* for informational messages *)
@@ -927,6 +931,7 @@ let rec formula_of_mode (mode : mode) =
       List.concat_map
         (fun step -> formula_of_mode (step.step_mode :> mode))
         steps
+  | `SCA _ -> []
 
 let xpatterns_of_rule rule =
   let formulae = formula_of_mode rule.mode in

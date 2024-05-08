@@ -78,6 +78,8 @@ class OsemgrepSarifFormatter(BaseFormatter):
 
             engine_label = "PRO" if is_pro else "OSS"
 
+            show_dataflow_traces = extra["dataflow_traces"]
+
             # Sort according to RuleMatch.get_ordering_key
             sorted_findings = sorted(rule_matches)
             cli_matches = [
@@ -91,6 +93,7 @@ class OsemgrepSarifFormatter(BaseFormatter):
                 rules_path,
                 cli_matches,
                 cli_errors,
+                show_dataflow_traces,
             )
             formatted_output = ocaml.sarif_format(rpc_params)
             if formatted_output:

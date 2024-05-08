@@ -1,6 +1,8 @@
 open Common
 open Semgrep_output_v1_j
 
+exception InvalidRPCArgument of string
+
 let ( let* ) = Result.bind
 
 (* Once we get some more RPC calls we should probably move this to a different
@@ -38,8 +40,9 @@ let handle_autofix dryrun edits =
     in
     (List.length modified_files, [])
 
-let handle_sarif_format caps hide_nudge engine_label (rules : fpath)
-    (cli_matches : cli_match list) (cli_errors : cli_error list) =
+let handle_sarif_format caps hide_nudge engine_label show_dataflow_traces
+    (rules : fpath) (cli_matches : cli_match list) (cli_errors : cli_error list)
+    =
   let core_scan_conf =
     {
       Core_scan_config.default with
@@ -70,7 +73,8 @@ let handle_sarif_format caps hide_nudge engine_label (rules : fpath)
   let output, format_time_seconds =
     Common.with_time (fun () ->
         let sarif_json =
-          Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
+          Sarif_output.sarif_output hide_nudge engine_label show_dataflow_traces
+            hrules cli_output
         in
         Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   in
@@ -88,14 +92,30 @@ let handle_call caps : function_call -> (function_return, string) result =
         rules;
         cli_matches;
         cli_errors;
-        show_dataflow_traces = _TODO;
+        show_dataflow_traces = Some show_dataflow_traces;
       } ->
       let output, format_time_seconds =
         handle_sarif_format
           (caps :> < Cap.tmp >)
-          hide_nudge engine_label rules cli_matches cli_errors
+          hide_nudge engine_label show_dataflow_traces rules cli_matches
+          cli_errors
       in
       Ok (`RetSarifFormat { output; format_time_seconds })
+  (* There shouldn't really be optional fields, but because they were
+   *  added later, they had to be optional not to break backward
+   *  compatibility *)
+  | `CallSarifFormat
+      {
+        hide_nudge = _;
+        engine_label = _;
+        show_dataflow_traces = None;
+        rules = _;
+        cli_matches = _;
+        cli_errors = _;
+      } ->
+      raise
+        (InvalidRPCArgument
+           "The field show_dataflow_traces must be populated in CallSarifFormat")
 
 let read_packet chan =
   let* size_str =
@@ -152,5 +172,9 @@ let handle_single_request caps () =
   write_packet stdout res_str
 
 let main caps =
+  (* For some requests, such as SARIF formatting, need to parse rules
+   * so we need to init the parsers as well. *)
+  Parsing_init.init ();
+
   (* For now, just handle one request and then exit. *)
   handle_single_request caps ()

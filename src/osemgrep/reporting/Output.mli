@@ -9,6 +9,8 @@ type conf = {
    * Output_format.Text *)
   force_color : bool;
   logging_level : Logs.level option;
+  (* For text and SARIF *)
+  show_dataflow_traces : bool;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;

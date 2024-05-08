@@ -180,11 +180,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           in
           match opt_xlang with
           | None -> (
-              (* We match wrt the same language as the rule.
-               * NOTE: A generic pattern nested inside a generic won't work because
-               *   generic mode binds metavariables to `MV.Text`, and
-               *   `MV.program_of_mvalue` does not handle `MV.Text`. So one must
-               *   specify `language: generic` (case `Some xlang` below). *)
+              (* We match wrt the same language as the rule. *)
               match MV.program_of_mvalue mval with
               | None ->
                   error env
