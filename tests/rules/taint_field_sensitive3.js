@@ -12,14 +12,11 @@ function f() {
     //ruleid: test
     sink(x.d.e[k].f.g[l].h.i)
 
-    // These are OK because we have not enabled propagation of taint up through
-    // fields, to avoid FPs
-    //ok: test
-    sink(x.a.b.d)
+    // Previously these were not findings, but we now consider that if the
+    // `sink` could _potentially_ access tainted data, then it's better to
+    // report a finding.
     //ruleid: test
     sink(x.a.b)
-    //ok: test
-    sink(x.a.c)
     //ruleid: test
     sink(x.a)
     //ruleid: test
@@ -30,4 +27,10 @@ function f() {
     sink(x.d)
     //ruleid: test
     sink(x)
+
+    // These are OK because no taint can be reached from those fields
+    //ok: test
+    sink(x.a.b.d)
+    //ok: test
+    sink(x.a.c)
 }
