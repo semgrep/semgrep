@@ -280,7 +280,11 @@ pro:
 
 # We need to install all the dependencies in a single 'opam install'
 # command so as to detect conflicts.
-REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core ./dev/required.opam
+# WEIRD: if you use ./libs/ocaml-tree-sitter-core/ instead of the full
+# path, then recent versions of opam crash with a 'git ls-files fatal error'
+# about some 'libs/ocaml-tree-sitter-core/../../.git/...' not being a git
+# repo.
+REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core/tree-sitter.opam ./dev/required.opam
 OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 
 # This target is portable; it only assumes you have 'gcc', 'opam' and
@@ -300,8 +304,11 @@ install-deps-for-semgrep-core: semgrep.opam
 # This now also installs the dev dependencies. This has the benefit
 # of installing all the packages in one shot and detecting possible
 # version conflicts.
+# Note that we're using --no-depexts because we have issues
+# with opam on recent alpine and anyway we're managing external
+# dependencies ourselves in the make install-deps-XXX-for-semgrep-core
 install-opam-deps:
-	opam install -y --deps-only $(REQUIRED_DEPS)
+	opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -403,6 +410,8 @@ WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config \
 # -------------------------------------------------
 
 # See the `build-static-libcurl.sh` script for why it's necessary
+# TODO? remove the --no-cache so we can get rid of the --no-depexts above?
+#  (related to https://github.com/ocaml/opam/issues/5186 ?)
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
 	./scripts/build-static-libcurl.sh

@@ -106,7 +106,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # and https://github.com/semgrep/ocaml-layer/pull/43
 # So I'm using the last version that is known to work, the one we used
 # in returntocorp/ocaml:alpine-2023-10-17
-FROM alpine:3.12.0 as semgrep-core-container
+FROM alpine:3.19 as semgrep-core-container
 
 # Install the general build packages (independent of semgrep)
 #TODO? move those apk commands in Makefile? so we can factorize later in GHA?
