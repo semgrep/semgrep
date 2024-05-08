@@ -36,12 +36,6 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
   open M
 
   type ctx = unit
-  type 'a io = 'a Lwt.t
-  type body = Body.t
-  type 'a with_context = ?ctx:ctx -> 'a
-
-  let set_cache _ = failwith "Mock client, not implemented"
-  let map_context v f ?ctx = f (v ?ctx)
 
   let mock_response_of_request (req : Cohttp.Request.t) (body : Body.t) =
     Logs.debug (fun m ->
