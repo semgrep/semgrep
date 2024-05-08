@@ -108,7 +108,7 @@ FROM alpine:3.19 as semgrep-core-container
 #TODO? move those apk commands in Makefile? so we can factorize later in GHA?
 RUN apk add --no-cache bash build-base git make opam
 RUN opam init --disable-sandboxing -v &&\
-    opam switch create 4.14.0 -v
+    opam switch create 5.1.1 -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
