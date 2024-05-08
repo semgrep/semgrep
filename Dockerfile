@@ -99,6 +99,13 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
 # images available.
 #
+
+# TODO: 3.12 is very very old; Alpine released 3.19.0 in 2024.
+# But we actually had troubles switching to more recent version in ocaml-layer
+# in https://github.com/semgrep/semgrep/pull/10213
+# and https://github.com/semgrep/ocaml-layer/pull/43
+# So I'm using the last version that is known to work, the one we used
+# in returntocorp/ocaml:alpine-2023-10-17
 FROM alpine:3.12.0 as semgrep-core-container
 
 # Install the general build packages (independent of semgrep)
