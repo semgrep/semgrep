@@ -17,6 +17,10 @@ from tests.fixtures import RunSemgrep
         # Aliengrep-specific tests
         ("rules/aliengrep/begin-end.yaml", "aliengrep/begin-end.log"),
         ("rules/aliengrep/long-match.yaml", "aliengrep/long-match.txt"),
+        (
+            "rules/aliengrep/metavariable-pattern.yaml",
+            "aliengrep/metavariable-pattern.conf",
+        ),
     ],
 )
 def test_aliengrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
