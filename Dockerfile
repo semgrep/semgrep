@@ -20,7 +20,7 @@
 # to interactively explore the docker image.
 
 ###############################################################################
-# Step0: collect files needed to build semgrep-cpre
+# Step0: collect files needed to build semgrep-core
 ###############################################################################
 
 # The semgrep git repository contains the source code to multiple build artifacts
@@ -99,20 +99,41 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
 # images available.
 #
-FROM returntocorp/ocaml:alpine-2023-10-17 as semgrep-core-container
 
+# TODO: 3.12 is very very old; Alpine released 3.19.0 in 2024.
+# But we actually had troubles switching to more recent version in ocaml-layer
+# in https://github.com/semgrep/semgrep/pull/10213
+# and https://github.com/semgrep/ocaml-layer/pull/43
+# So I'm using the last version that is known to work, the one we used
+# in returntocorp/ocaml:alpine-2023-10-17
+FROM alpine:3.12.0 as semgrep-core-container
+
+# Install the general build packages (independent of semgrep)
+#TODO? move those apk commands in Makefile? so we can factorize later in GHA?
+RUN apk add --no-cache bash build-base git make opam
+RUN opam init --disable-sandboxing -v &&\
+    opam switch create 4.14.0 -v
+
+# Install semgrep-core build dependencies
 WORKDIR /src/semgrep
-COPY --from=semgrep-core-files /src/semgrep .
-
-#TODO: update the root image to include python 3.9 so the apk commands
-# run internally in make 'install-deps-alpine-xxx' below are fast too
+COPY --from=semgrep-core-files /src/semgrep/Makefile ./Makefile
+COPY --from=semgrep-core-files /src/semgrep/scripts ./scripts
+COPY --from=semgrep-core-files /src/semgrep/dune-project ./dune-project
+COPY --from=semgrep-core-files /src/semgrep/semgrep.opam ./semgrep.opam
+COPY --from=semgrep-core-files /src/semgrep/libs/ocaml-tree-sitter-core/tree-sitter.opam ./libs/ocaml-tree-sitter-core/tree-sitter.opam
+COPY --from=semgrep-core-files /src/semgrep/dev ./dev
+# note that we do not run 'make install-deps-for-semgrep-core' here because it
+# configures and builds ocaml-tree-sitter-core too; here we are
+# just concerned about installing external packages to maximize docker caching.
 RUN make install-deps-ALPINE-for-semgrep-core &&\
-    make install-deps-for-semgrep-core
+    make install-opam-deps
 
+# Compile (and minimal test) semgrep-core
+COPY --from=semgrep-core-files /src/semgrep ./
 # Let's build just semgrep-core
-WORKDIR /src/semgrep
 #alt: use 'opam exec -- ...' instead of eval
-RUN eval "$(opam env)" &&\
+RUN make install-deps-for-semgrep-core &&\
+    eval "$(opam env)" &&\
     make minimal-build &&\
     # Sanity check
     /src/semgrep/_build/default/src/main/Main.exe -version
@@ -216,7 +237,6 @@ RUN rm -rf /semgrep
 # Note though that the actual USER directive is done in Step 3.
 RUN adduser -D -u 1000 -h /home/semgrep semgrep \
     && chown semgrep /src
-
 # Disabling defaulting to the user 'semgrep' for now
 # See the nonroot build stage below.
 #USER semgrep
@@ -262,7 +282,7 @@ RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secret
 # Clear out any detritus from the pro install (especially credentials)
 RUN rm -rf /root/.semgrep
 
-# This was the final step! This is what we ship to users.
+# This was the final step! This is what we ship to users!
 
 ###############################################################################
 # optional: nonroot variant
