@@ -1100,13 +1100,11 @@ and xml = {
 }
 
 and xml_kind =
-  (* <foo>...</foo> *)
-  (* TODO use `name`? JS/TS allows `<Foo.Bar>...` *)
-  | XmlClassic of
-      tok (*'<'*) * (ident * id_info) * tok (*'>'*) * tok (*'</foo>'*)
+  (* <foo>...</foo>
+   * Name instead of id + info because Foo.Bar is valid in JS, maybe others. *)
+  | XmlClassic of tok (*'<'*) * name * tok (*'>'*) * tok (*'</foo>'*)
   (* <foo/> *)
-  | XmlSingleton of
-      tok (*'<'*) * (ident * id_info) * tok (* '/>', with xml_body = [] *)
+  | XmlSingleton of tok (*'<'*) * name * tok (* '/>', with xml_body = [] *)
   (* React/JS specific *)
   | XmlFragment of tok (* '<>' *) * (* '</>', with xml_attrs = [] *) tok
 
