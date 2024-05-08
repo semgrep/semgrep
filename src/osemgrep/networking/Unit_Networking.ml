@@ -37,9 +37,8 @@ let get_and_check_lwt caps url =
 let post_and_check_lwt caps url body =
   Logs.debug (fun m -> m "(lwt) POST %s" url);
   let uri = Uri.of_string url in
-  let%lwt response = Http_helpers.post ~body caps#network uri in
   (* Check OK Status *)
-  match response with
+  match%lwt Http_helpers.post ~body caps#network uri with
   | Ok { body = Ok body; _ } -> Lwt.return body
   | Ok { body = Error e; _ }
   | Error e ->
