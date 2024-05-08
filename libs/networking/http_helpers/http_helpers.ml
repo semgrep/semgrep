@@ -23,10 +23,10 @@ module Log = (val Logs.src_log src : Logs.LOG)
 (* Types *)
 (*****************************************************************************)
 
-type server_result = (string, string) result
+type body_result = (string, string) result
 
 type server_response = {
-  body : server_result;
+  body : body_result;
   response : Cohttp.Response.t;
   code : int;
 }
@@ -66,6 +66,7 @@ let server_response_of_response (response, body) meth =
   | _ when Code.is_error code ->
       Log.debug (fun m -> m "HTTP %s failed:\n %s" meth_str body);
       { body = Error body; response; code }
+  (* This case is anything that is [Code.is_redirection] or [Code.is_informational]*)
   | _ ->
       Log.debug (fun m -> m "HTTP %s unexpected response:\n %s" meth_str body);
       { body = Error body; response; code }
@@ -91,7 +92,8 @@ let server_response_of_response (response, body) meth =
 let get_proxy uri =
   let proxy_uri_env =
     match Uri.scheme uri with
-    (* TODO support all cases *)
+    (* TODO support all versions of these env vars. They can be both uppercase *)
+    (* and lowercase *)
     | Some "http" -> Some "HTTP_PROXY"
     | Some "https" -> Some "HTTPS_PROXY"
     | _ -> None
@@ -178,7 +180,7 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
     | exn ->
         let err = Printexc.to_string exn in
         Log.err (fun m ->
-            m "HTTP %S to '%s' failed: %s" (string_of_meth meth)
+            m "HTTP %s to '%s' failed: %s" (string_of_meth meth)
               (Uri.to_string url) err);
         Lwt.return_error err
   in
@@ -207,7 +209,14 @@ let rec get ?(headers = []) caps url =
   let handle_response (response, body) =
     let server_response = server_response_of_response (response, body) `GET in
     match server_response.code with
-    | 307 -> (
+    (* Automatically resolve redirects, in this case a 307 Temporary Redirect.
+       This is important for installing the Semgrep Pro Engine binary, which
+       receives a temporary redirect at the proper endpoint.
+    *)
+    | 301
+    | 302
+    | 307
+    | 308 -> (
         let location = Header.get (response |> Response.headers) "location" in
         match location with
         | None ->

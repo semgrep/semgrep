@@ -1,11 +1,14 @@
 (* This module provides a simple interface for making HTTP requests. It wraps
    Cohttp with better error handling, adds network mocking, and proxy support *)
 
-type server_result = (string, string) result
-(** [server_result] is [Ok body] when the server returns an Ok status*)
+type body_result = (string, string) result
+(** [response_body] is [Ok body] when the server returns an a success status
+    code. A success status is any 2xx status code [Code.is_success]. Otherwise
+    it is an [Error body]. The body will not be modified either way.
+  *)
 
 type server_response = {
-  body : server_result;
+  body : body_result;
   response : Cohttp.Response.t;
   code : int;
 }

@@ -234,8 +234,9 @@ Please make sure they have been set correctly.
           else ""
         in
         let msg =
-          Fmt.str "%sAPI server at %a returned this error: %s" pre_msg Uri.pp
-            url err
+          spf "%sAPI server at %s returned this error: %s" pre_msg
+            Uri.(to_string url)
+            err
         in
         Lwt.return_error msg
     | Error e -> Lwt.return_error (spf "Failed to start scan: %s" e)
