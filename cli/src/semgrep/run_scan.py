@@ -352,6 +352,7 @@ def run_scan(
         str
     ],  # NOTE: Since the `ci` command reuses this function, we intentionally do not set a default at this level.
     no_rewrite_rule_ids: bool = False,
+    interfile_jobs: Optional[int] = None,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Mapping[Product, Sequence[str]]] = None,
@@ -552,6 +553,7 @@ def run_scan(
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
+        interfile_jobs=interfile_jobs,
         engine_type=engine_type,
         timeout=timeout,
         max_memory=max_memory,

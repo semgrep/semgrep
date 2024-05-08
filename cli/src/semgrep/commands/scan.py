@@ -145,6 +145,10 @@ _scan_options: List[Callable] = [
         type=int,
     ),
     optgroup.option(
+        "--interfile-jobs",
+        type=int,
+    ),
+    optgroup.option(
         "--max-memory",
         type=int,
     ),
@@ -511,6 +515,7 @@ def scan(
     exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
     include: Optional[Tuple[str, ...]],
+    interfile_jobs: Optional[int],
     jobs: Optional[int],
     lang: Optional[str],
     matching_explanations: bool,
@@ -719,6 +724,7 @@ def scan(
                     try:
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
+                            interfile_jobs=interfile_jobs,
                             engine_type=engine_type,
                             timeout=timeout,
                             max_memory=max_memory,
@@ -775,6 +781,7 @@ def scan(
                     lang=lang,
                     configs=(config or ["auto"]),
                     no_rewrite_rule_ids=(not rewrite_rule_ids),
+                    interfile_jobs=interfile_jobs,
                     jobs=jobs,
                     include=include,
                     exclude={product: (exclude or ()) for product in ALL_PRODUCTS},

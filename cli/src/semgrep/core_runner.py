@@ -476,6 +476,7 @@ class CoreRunner:
     def __init__(
         self,
         jobs: Optional[int],
+        interfile_jobs: Optional[int],
         engine_type: EngineType,
         timeout: int,
         max_memory: int,
@@ -489,6 +490,7 @@ class CoreRunner:
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
+        self._interfile_jobs = jobs or engine_type.default_interfile_jobs
         self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
@@ -899,6 +901,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         "-timeout_for_interfile_analysis",
                         str(self._interfile_timeout),
                     ]
+                    cmd += ["-interfile_jobs", str(self._interfile_jobs)]
                     cmd += [root]
                 elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-deep_intra_file"]
