@@ -251,7 +251,7 @@ let parse_req =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          let uri = Uri.of_string ("http://localhost/" ^ resource) in
+          let uri = Uri.of_string resource in
           (Cohttp.Request.make ~meth ~version ~headers uri, body))
 
 let parse_resp =

@@ -173,7 +173,8 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
        node. Currently, AWS does not support specifying a minimum TLS version
        of v1.3, and we will need to figure out a better solution for ensuring
        reliable metrics delivery. *)
-    try
+    (* try%lwt here since callv will raise a Lwt error not a normal one *)
+    try%lwt
       let%lwt responses_stream = Client.callv url stream_req in
       Lwt.return_ok responses_stream
     with

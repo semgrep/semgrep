@@ -24,6 +24,23 @@ type client_result = (server_response, string) result
  * not blow up on the smallest stuff, instead of returning a proper error. So
  * now we have a proper error type. That Cohttp should have done for us. *)
 
+val call_client :
+  ?body:Cohttp_lwt.Body.t ->
+  ?headers:(string * string) list ->
+  ?chunked:bool ->
+  ?resp_handler:
+    (Cohttp.Response.t * Cohttp_lwt.Body.t ->
+    (Cohttp.Response.t * string) Lwt.t) ->
+  Cohttp.Code.meth ->
+  Uri.t ->
+  (Cohttp.Response.t * string, string) result Lwt.t
+(** [call_client] is a low-level function that sends an HTTP request to the
+    provided URI. It returns a promise of either [Ok (response, body)] if the
+    request was successful, or an [Error msg] if the request failed.
+    [resp_handler] can be used to directly work with the response body, as it
+    has to be handled directly on the stream. By default it will convert the
+    body to a string *)
+
 val get :
   ?headers:(string * string) list ->
   Cap.Network.t ->
