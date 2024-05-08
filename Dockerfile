@@ -14,10 +14,13 @@
 # but those tools are not necessary when *running* semgrep.
 # This is a standard practice in the Docker world.
 # See https://docs.docker.com/build/building/multi-stage/
+# We use static linking because we can and removing external library
+# dependencies is usually simpler (especially since the docker container
+# where we build semgrep-core is not the same container where we use it).
 #
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
-# to interactively explore the docker image.
+# to interactively explore the docker image before that failing point.
 
 ###############################################################################
 # Step0: collect files needed to build semgrep-core
@@ -98,17 +101,10 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #
 # Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
 # images available.
-#
 
-# TODO: 3.12 is very very old; Alpine released 3.19.0 in 2024.
-# But we actually had troubles switching to more recent version in ocaml-layer
-# in https://github.com/semgrep/semgrep/pull/10213
-# and https://github.com/semgrep/ocaml-layer/pull/43
-# So I'm using the last version that is known to work, the one we used
-# in returntocorp/ocaml:alpine-2023-10-17
-FROM alpine:3.12.0 as semgrep-core-container
+FROM alpine:3.19 as semgrep-core-container
 
-# Install the general build packages (independent of semgrep)
+# Install opam and basic build tools (independent of semgrep)
 #TODO? move those apk commands in Makefile? so we can factorize later in GHA?
 RUN apk add --no-cache bash build-base git make opam
 RUN opam init --disable-sandboxing -v &&\
@@ -116,9 +112,9 @@ RUN opam init --disable-sandboxing -v &&\
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
+# Just copy enough so that the `make install-xxx` below can work
 COPY --from=semgrep-core-files /src/semgrep/Makefile ./Makefile
 COPY --from=semgrep-core-files /src/semgrep/scripts ./scripts
-COPY --from=semgrep-core-files /src/semgrep/dune-project ./dune-project
 COPY --from=semgrep-core-files /src/semgrep/semgrep.opam ./semgrep.opam
 COPY --from=semgrep-core-files /src/semgrep/libs/ocaml-tree-sitter-core/tree-sitter.opam ./libs/ocaml-tree-sitter-core/tree-sitter.opam
 COPY --from=semgrep-core-files /src/semgrep/dev ./dev

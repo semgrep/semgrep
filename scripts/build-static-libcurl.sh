@@ -6,6 +6,7 @@
 # This script is necessary when building Semgrep in Alpine, since installing it
 # via apk add causes problems build against some of curl's dependencies. It's
 # easier to just download and build it ourselves.
+# TODO: is this still true with our switch to Alpine 3.19?
 
 set -eu
 
