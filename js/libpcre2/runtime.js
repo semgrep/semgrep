@@ -245,6 +245,10 @@ const PCRE2_ERROR_DFA_UINVALID_UTF = (-66);
 const PCRE2_ERROR_INVALIDOFFSET = (-67);
 
 
+//Provides: PCRE2_JIT_COMPLETE const
+const PCRE2_JIT_COMPLETE = 1;
+
+
 //Provides: pcre2_exc_Error const
 var pcre2_exc_Error = undefined;
 //Provides: pcre2_exc_Backtrack const
@@ -380,8 +384,8 @@ function cstring_of_jsstring(js_string) {
 }
 
 //Provides: pcre2_compile_stub_bc
-//Requires: libpcre2, caml_jsstring_of_string, cstring_of_jsstring, pcre2_auto_malloc, raise_bad_pattern, NULL, caml_int64_to_int32
-function pcre2_compile_stub_bc(v_opt, v_tables, v_pat) {
+//Requires: libpcre2, caml_jsstring_of_string, cstring_of_jsstring, pcre2_auto_malloc, raise_bad_pattern, NULL, caml_int64_to_int32, PCRE2_JIT_COMPLETE
+function pcre2_compile_stub_bc(jit, v_opt, v_tables, v_pat) {
     var v_pat = caml_jsstring_of_string(v_pat);
     // This is a uint32_t in PCRE2. I have no idea why the bindings use a int64.
     const opt = caml_int64_to_int32(v_opt);
@@ -406,6 +410,12 @@ function pcre2_compile_stub_bc(v_opt, v_tables, v_pat) {
         if (regex == NULL) {
             raise_bad_pattern(libpcre2.getValue(error_code_ptr, "i32"),
                 libpcre2.getValue(error_pos_ptr, "i32"))
+        }
+
+        if (jit) {
+                if (libpcre2._pcre2_jit_compile_8(regexp, PCRE2_JIT_COMPLETE) < 0) {
+                        raise_internal_error("issue in JIT compilation");
+                }
         }
         /* It's unknown at this point whether JIT compilation is going to be
          * used, but we have to decide on a size.  Tests with some simple

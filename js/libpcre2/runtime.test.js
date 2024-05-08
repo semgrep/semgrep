@@ -68,6 +68,7 @@ describe("pcre2-ocaml stubs", () => {
         const bytes = [...s.matchAll(/[^ ]{1,2}/g)].map((a) => parseInt(a[0], 16));
         const re = `(${Buffer.from(bytes).toString("utf-8")})+`;
         stubs.pcre2_compile_stub_bc(
+            false,
             0x00080000, /* PCRE2_UTF */
             0,
             re,
@@ -78,7 +79,7 @@ describe("pcre2-ocaml stubs", () => {
         await libpcre2Promise;
         const stubs = require("../libpcre2");
         stubs.pcre2_ocaml_init();
-        expect(() => stubs.pcre2_compile_stub_bc(0, 0, "(")).toThrow(
+        expect(() => stubs.pcre2_compile_stub_bc(false, 0, 0, "(")).toThrow(
             "caml raise: {tag: 0, arg: missing closing parenthesis,1}"
         );
     });
@@ -88,6 +89,7 @@ describe("pcre2-ocaml stubs", () => {
         const stubs = require("../libpcre2");
         stubs.pcre2_ocaml_init();
         stubs.pcre2_compile_stub_bc(
+            false,
             0,
             0,
             `////(?i)snyk.{0,50}['|\"|\`]?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}['\"\\s]?`
@@ -98,7 +100,57 @@ describe("pcre2-ocaml stubs", () => {
         await libpcre2Promise;
         const stubs = require("../libpcre2");
         stubs.pcre2_ocaml_init();
-        const regex = stubs.pcre2_compile_stub_bc(0, 0, "([a-z]+)");
+        const regex = stubs.pcre2_compile_stub_bc(false, 0, 0, "([a-z]+)");
+        const subject = "foo.bar.baz.quux";
+        const subject_start = 3;
+        const ovec = [0, 0, 0, 0];
+
+        stubs.pcre2_match_stub_bc(
+            0,
+            regex,
+            subject_start,
+            subject_start,
+            subject,
+            ovec,
+            0,
+            0
+        );
+        expect(subject.slice(ovec[1], ovec[2])).toEqual("bar");
+
+        stubs.pcre2_match_stub_bc(
+            0,
+            regex,
+            ovec[2],
+            subject_start,
+            subject,
+            ovec,
+            0,
+            0
+        );
+        expect(subject.slice(ovec[1], ovec[2])).toEqual("baz");
+
+        stubs.pcre2_match_stub_bc(
+            0,
+            regex,
+            ovec[2],
+            subject_start,
+            subject,
+            ovec,
+            0,
+            0
+        );
+        expect(subject.slice(ovec[1], ovec[2])).toEqual("quux");
+
+        expect(() =>
+            stubs.pcre2_match_stub_bc(0, regex, ovec[2], 0, subject, ovec, 0, 0)
+        ).toThrow(NotFoundError);
+    });
+
+    test("match multiple times with offset (jit)", async () => {
+        await libpcre2Promise;
+        const stubs = require("../libpcre2");
+        stubs.pcre2_ocaml_init();
+        const regex = stubs.pcre2_compile_stub_bc(true, 0, 0, "([a-z]+)");
         const subject = "foo.bar.baz.quux";
         const subject_start = 3;
         const ovec = [0, 0, 0, 0];
@@ -149,6 +201,7 @@ describe("pcre2-ocaml stubs", () => {
         const stubs = require("../libpcre2");
         stubs.pcre2_ocaml_init();
         const regex = stubs.pcre2_compile_stub_bc(
+            false,
             0,
             0,
             "(?<numbers>[0-9]+)(?<letters>[a-z]+)"
