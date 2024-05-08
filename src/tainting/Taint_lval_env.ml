@@ -86,7 +86,7 @@ let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
 
 let union le1 le2 =
   let tainted =
-    NameMap.union (fun _ x y -> Some (S.union_ref x y)) le1.tainted le2.tainted
+    NameMap.union (fun _ x y -> Some (S.unify_ref x y)) le1.tainted le2.tainted
   in
   {
     tainted;
@@ -200,32 +200,26 @@ let add_shape lval new_taints new_shape
          variable. We just return the same environment untouched. *)
       lval_env
   | Some (var, offset) -> (
-      match (Taints.is_empty new_taints, new_shape) with
-      | true, S.Bot -> lval_env
-      | __else__ -> (
-          match check_tainted_lvals_limit tainted var with
-          | None -> lval_env
-          | Some tainted ->
-              let new_taints =
-                let var_tok = snd var.ident in
-                if Tok.is_fake var_tok then new_taints
-                else
-                  new_taints
-                  |> Taints.map (fun t ->
-                         { t with tokens = var_tok :: t.tokens })
-              in
-              {
-                tainted =
-                  NameMap.update var
-                    (fun opt_var_ref ->
-                      Some
-                        (S.unify_ref_shape new_taints new_shape offset
-                           opt_var_ref))
-                    tainted;
-                control;
-                taints_to_propagate;
-                pending_propagation_dests;
-              }))
+      match check_tainted_lvals_limit tainted var with
+      | None -> lval_env
+      | Some tainted ->
+          let new_taints =
+            let var_tok = snd var.ident in
+            if Tok.is_fake var_tok then new_taints
+            else
+              new_taints
+              |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+          in
+          {
+            tainted =
+              NameMap.update var
+                (fun opt_var_ref ->
+                  S.unify_ref_shape new_taints new_shape offset opt_var_ref)
+                tainted;
+            control;
+            taints_to_propagate;
+            pending_propagation_dests;
+          })
 
 let add lval new_taints lval_env = add_shape lval new_taints S.Bot lval_env
 

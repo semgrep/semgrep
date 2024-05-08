@@ -571,7 +571,7 @@ let results_of_tainted_return taints shape return_tok : Sig.result list =
       [ Sig.ToReturn (taint_list, shape, return_tok) ]
 
 let check_orig_if_sink env ?filter_sinks orig taints shape =
-  let taints = taints |> Taints.union (S.union_taints_in_shape shape) in
+  let taints = taints |> Taints.union (S.gather_all_taints_in_shape shape) in
   let sinks = orig_is_best_sink env orig in
   let sinks =
     match filter_sinks with
@@ -766,7 +766,7 @@ let handle_taint_propagators env thing taints shape =
    * the subexpressions. E.g. in `x.f(y,z)` we can propagate taint from `y` or
    * `z` to `x`, or from `y` to `z`; but we cannot propagate taint from `x` to
    * `y` or `z`, or from `z` to `y`. *)
-  let taints = Taints.union taints (S.union_taints_in_shape shape) in
+  let taints = Taints.union taints (S.gather_all_taints_in_shape shape) in
   let lval_env = env.lval_env in
   let propagators =
     let any =
@@ -1164,7 +1164,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
   let check env = check_tainted_expr env in
   let check_without_shape env e =
     let taints, shape, lval_env = check env e in
-    let shape_taints = S.union_taints_in_shape shape in
+    let shape_taints = S.gather_all_taints_in_shape shape in
     (Taints.union taints shape_taints, lval_env)
   in
   let check_subexpr exp =
@@ -1177,7 +1177,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
     | FixmeExp (_, _, Some e) ->
         (* THINK: Always return 'Bot' shape ? *)
         let taints, shape, lval_env = check env e in
-        let taints = Taints.union taints (S.union_taints_in_shape shape) in
+        let taints = Taints.union taints (S.gather_all_taints_in_shape shape) in
         (taints, shape, lval_env)
     | Composite ((CTuple | CArray | CList), (_, es, _)) ->
         let _all_taints, taints_and_shapes, lval_env =
@@ -1202,7 +1202,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
                  match arg with
                  | Named (_, (_, shape))
                  | Unnamed (_, shape) ->
-                     S.union_taints_in_shape shape |> Taints.union acc)
+                     S.gather_all_taints_in_shape shape |> Taints.union acc)
                Taints.empty
         in
         let args_taints =
@@ -1710,7 +1710,7 @@ let check_function_signature env fun_exp args
                match fsig with
                | `Return (taints, shape) ->
                    ( Taints.union taints taints_acc,
-                     S.union_shape shape shape_acc,
+                     S.unify_shape shape shape_acc,
                      lval_env )
                | `UpdateEnv (lval, taints) ->
                    (taints_acc, shape_acc, lval_env |> Lval_env.add lval taints))
@@ -1753,7 +1753,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                  match arg with
                  | Named (_, (_, shape))
                  | Unnamed (_, shape) ->
-                     S.union_taints_in_shape shape |> Taints.union acc)
+                     S.gather_all_taints_in_shape shape |> Taints.union acc)
                Taints.empty
         in
 
@@ -1812,7 +1812,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                       | Some (obj, _) -> (
                           match Lval_env.find_lval lval_env obj with
                           | None -> Taints.empty
-                          | Some ref -> S.union_taints_in_ref ref)
+                          | Some ref -> S.gather_all_taints_in_ref ref)
                     in
                     (call_taints |> Taints.union obj_taints, S.Bot, lval_env))
         in
@@ -1847,7 +1847,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                      match arg with
                      | Named (_, (_, shape))
                      | Unnamed (_, shape) ->
-                         S.union_taints_in_shape shape |> Taints.union acc)
+                         S.gather_all_taints_in_shape shape |> Taints.union acc)
                    Taints.empty
             in
             ( Taints.union all_args_taints all_args_taints_in_shapes,
@@ -1865,7 +1865,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                  match arg with
                  | Named (_, (_, shape))
                  | Unnamed (_, shape) ->
-                     S.union_taints_in_shape shape |> Taints.union acc)
+                     S.gather_all_taints_in_shape shape |> Taints.union acc)
                Taints.empty
         in
         ( Taints.union all_args_taints all_args_taints_in_shapes,
@@ -1882,7 +1882,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                  match arg with
                  | Named (_, (_, shape))
                  | Unnamed (_, shape) ->
-                     S.union_taints_in_shape shape |> Taints.union acc)
+                     S.gather_all_taints_in_shape shape |> Taints.union acc)
                Taints.empty
         in
         let taints = Taints.union all_args_taints all_args_taints_in_shapes in

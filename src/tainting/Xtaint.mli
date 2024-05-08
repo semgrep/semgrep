@@ -19,5 +19,6 @@ val show : t -> string
 val union : t -> t -> t
 (** Merge xtaints at JOIN nodes of the CFG. *)
 
+val is_tainted : [> `Tainted of Taint.taints ] -> bool
 val of_taints : Taint.taints -> t
 val to_taints : [< t | `Sanitized ] -> Taint.taints
