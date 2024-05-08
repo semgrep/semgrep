@@ -26,9 +26,8 @@ let t = Testo.create
 let get_and_check_lwt caps url =
   Logs.debug (fun m -> m "(lwt) GET %s" url);
   let uri = Uri.of_string url in
-  let%lwt response = Http_helpers.get caps#network uri in
   (* Check OK Status *)
-  match response with
+  match%lwt Http_helpers.get caps#network uri with
   | Ok { body = Ok body; _ } -> Lwt.return body
   | Ok { body = Error e; _ }
   | Error e ->
