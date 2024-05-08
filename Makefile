@@ -308,6 +308,7 @@ install-deps-for-semgrep-core: semgrep.opam
 # with opam on recent alpine and anyway we're managing external
 # dependencies ourselves in the make install-deps-XXX-for-semgrep-core
 install-opam-deps:
+	opam --version
 	opam install -y --deps-only --cli=2.1 --no-depexts $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
