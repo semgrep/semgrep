@@ -76,7 +76,8 @@ let regexp ?iflags ?(flags = []) ?chtables pat =
    * and perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
    * hang (but it was just the Pcre2 engine taking way too much time). *)
   let regexp =
-    Pcre2.regexp ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
+    Pcre2.regexp ~jit_compile:true
+      ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
       ~depth_limit:1_000_000
         (* sets the backtracking depth limit field in a match context; see `pcre2_set_depth_limit(3)` *)
       ?iflags ~flags ?chtables pat
