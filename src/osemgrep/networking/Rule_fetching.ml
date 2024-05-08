@@ -121,8 +121,7 @@ let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
       | None -> None
       | Some token -> Some [ Auth.auth_header_of_token token ]
     in
-    let%lwt res = Http_helpers.get ?headers caps#network url in
-    match res with
+    match%lwt Http_helpers.get ?headers caps#network url with
     | Ok { body = Ok body; _ } -> Lwt.return body
     | Ok { body = Error error; code; _ } ->
         Error.abort
