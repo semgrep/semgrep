@@ -6,7 +6,7 @@
 # which can be statically linked.
 #
 # Then 'semgrep-core' alone is copied to another Alpine-based container
-# which takes care of the 'semgrep-cli' (a.k.a. pysemgrep) Python wrapping.
+# which takes care of the pysemgrep Python requirements.
 #
 # We use Alpine because it allows to generate small Docker images.
 # We use this two-steps process because *building* semgrep-core itself
@@ -106,9 +106,10 @@ FROM alpine:3.19 as semgrep-core-container
 
 # Install opam and basic build tools (independent of semgrep)
 #TODO? move those apk commands in Makefile? so we can factorize later in GHA?
-RUN apk add --no-cache bash build-base git make opam
-RUN opam init --disable-sandboxing -v &&\
-    opam switch create 4.14.0 -v
+RUN apk add --no-cache bash build-base git rsync make
+RUN apk add --no-cache opam
+RUN opam init --disable-sandboxing -v
+RUN opam switch create 5.2.0~rc1 -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
