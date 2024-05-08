@@ -1,0 +1,2 @@
+Fixed bug that was preventing the use of `metavariable-pattern` with
+the aliengrep engine of the generic mode.
