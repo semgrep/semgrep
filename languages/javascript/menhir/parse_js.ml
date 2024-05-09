@@ -273,9 +273,11 @@ let parse2 opt_timeout (filename : Fpath.t) =
            let filelines = UFile.cat_array filename in
            let cur = tr.Parsing_helpers.current in
            let line_error = TH.line_of_tok cur in
-           Parsing_helpers.print_bad line_error
-             (line_start, min max_line (line_error + 10))
-             filelines);
+           Log.err (fun m ->
+               m "%s"
+                 (Parsing_helpers.show_parse_error_line line_error
+                    (line_start, min max_line (line_error + 10))
+                    filelines)));
         if !Flag.error_recovery then (
           (* todo? try to recover? call 'aux tr'? but then can be really slow*)
           (* TODO: count a bad line twice? use Hashtbl.length tech instead *)

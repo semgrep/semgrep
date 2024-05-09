@@ -156,7 +156,10 @@ let rec parse ?(parsing_mode = Python) (filename : Fpath.t) =
           let filelines = UFile.cat_array filename in
           let checkpoint2 = UFile.cat filename |> List.length in
           let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
-          Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
+          Log.err (fun m ->
+              m "%s"
+                (Parsing_helpers.show_parse_error_line line_error
+                   (0, checkpoint2) filelines)));
         stat.PS.error_line_count <- stat.PS.total_line_count;
         { Parsing_result.ast = []; tokens = toks; stat }
 [@@profiling]

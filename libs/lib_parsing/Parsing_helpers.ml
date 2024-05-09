@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,6 +14,7 @@
  * license.txt for more details.
  *)
 open Common
+module Log = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -103,7 +104,8 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
       | Parsing_error.Lexical_error (s, info) ->
           raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
-    if !Flag_parsing.debug_lexer then UCommon.pr2_gen tok;
+    if !Flag_parsing.debug_lexer then
+      Log.debug (fun m -> m "tok = %s" (Dumper.dump tok));
     let tok = tok |> visitor_tok adjust_info in
     if is_eof tok then List.rev (tok :: acc) else tokens_aux (tok :: acc)
   in
@@ -138,7 +140,7 @@ let mk_lexer_for_yacc toks is_comment =
   let rec lexer lexbuf =
     match tr.rest with
     | [] ->
-        UCommon.pr2 "LEXER: ALREADY AT END";
+        Log.warn (fun m -> m "LEXER: ALREADY AT END");
         tr.current
     | v :: xs ->
         tr.rest <- xs;
@@ -230,18 +232,19 @@ let error_message_info info =
   let loc = Tok.unsafe_loc_of_tok info in
   error_message_token_location loc
 
-let print_bad line_error (start_line, end_line) filelines =
-  UCommon.pr2 ("badcount: " ^ i_to_s (end_line - start_line));
+let show_parse_error_line line_error (start_line, end_line) filelines =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      prf "badcount: %d" (end_line - start_line);
 
-  for i = start_line to end_line do
-    let s = filelines.(i) in
-    let line =
-      (* this happens in Javascript for minified files *)
-      if String.length s > 200 then
-        String.sub s 0 100 ^ " (TOO LONG, SHORTEN!)..."
-      else s
-    in
+      for i = start_line to end_line do
+        let s = filelines.(i) in
+        let line =
+          (* this happens in Javascript for minified files *)
+          if String.length s > 200 then
+            String.sub s 0 100 ^ " (TOO LONG, SHORTEN!)..."
+          else s
+        in
 
-    if i =|= line_error then UCommon.pr2 ("BAD:!!!!!" ^ " " ^ line)
-    else UCommon.pr2 ("bad:" ^ " " ^ line)
-  done
+        if i =|= line_error then prf "BAD:!!!!! %s" line else prf "bad: %s" line
+      done)

@@ -16,13 +16,13 @@ open Common
 module G = Graph_code
 module E = Entity_code
 module Set = Set_
+module Log = Log_graph_code.Log
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Naive class analysis.
  *
- * TODO: Switch to Log_graph_code.Log instead of UCommon.pr2
  *)
 
 (*****************************************************************************)
@@ -66,40 +66,40 @@ let protected_to_private_candidates g =
              let privacy =
                try G.privacy_of_node node g with
                | Not_found ->
-                   UCommon.pr2
-                     (spf "No nodeinfo for %s" (G.string_of_node node));
+                   Log.warn (fun m ->
+                       m "No nodeinfo for %s" (G.string_of_node node));
                    E.Private
              in
              match privacy with
              | E.Private ->
                  let users = G.pred node G.Use g in
                  if List_.null users then
-                   UCommon.pr2
-                     (spf "DEAD private field: %s" (G.string_of_node node))
+                   Log.warn (fun m ->
+                       m "DEAD private field: %s" (G.string_of_node node))
              | E.Protected ->
                  let parents = G.parents node g in
                  if List.length parents > 1 then (
-                   UCommon.pr2_gen node;
-                   UCommon.pr2_gen parents);
+                   Log.debug (fun m -> m "node = %s" (Dumper.dump node));
+                   Log.debug (fun m -> m "parents = %s" (Dumper.dump parents)));
                  let class_ = G.parent node g in
                  if class_ =*= G.dupe then
-                   UCommon.pr2
-                     (spf "Redefined field: %s" (G.string_of_node node))
+                   Log.warn (fun m ->
+                       m "Redefined field: %s" (G.string_of_node node))
                  else
                    let classname = fst class_ in
 
                    let users = G.pred node G.Use g in
                    if List_.null users then
-                     UCommon.pr2
-                       (spf "DEAD protected field: %s" (G.string_of_node node))
+                     Log.warn (fun m ->
+                         m "DEAD protected field: %s" (G.string_of_node node))
                    else if
                      users
                      |> List.for_all (fun (s, _kind) ->
                             s =~ spf "^%s\\." classname)
                    then
-                     UCommon.pr2
-                       (spf "Protected to private candidate: %s"
-                          (G.string_of_node node))
+                     Log.debug (fun m ->
+                         m "Protected to private candidate: %s"
+                           (G.string_of_node node))
                    else ()
              | _ -> ())
          | _ -> ())

@@ -189,32 +189,34 @@ let string_of_stats ?(verbose = false) statxs =
 (* Regression stats *)
 (*****************************************************************************)
 
-(* TODO: use Logs.info instead of UCommon.pr2 and rename to log_regression_... *)
-let print_regression_information ~ext xs newscore =
-  let xs = Fpath_.to_strings xs in
-  let dirname_opt =
-    match xs with
-    | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
-    | _ -> None
-  in
-  (* nosemgrep *)
-  let score_path = (* Config_pfff.regression_data_dir *) "/tmp/parsing_stats" in
-  if Sys.file_exists score_path then
-    dirname_opt
-    |> Option.iter (fun dirname ->
-           UCommon.pr2 "------------------------------";
-           UCommon.pr2 "regression testing information";
-           UCommon.pr2 "------------------------------";
-           let str = Str.global_replace (Str.regexp "/") "__" dirname in
-           let file =
-             Filename.concat score_path
-               ("score_parsing__" ^ str ^ ext ^ ".marshalled")
-           in
-           UCommon.pr2 (spf "saving regression info in %s" file);
-           Common2.regression_testing newscore file)
-  else
-    UCommon.pr2
-      (spf "no regression info available: %s does not exist" score_path)
+let regression_information ~ext (xs : Fpath.t list) (newscore : Common2.score) :
+    string =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      let xs = Fpath_.to_strings xs in
+      let dirname_opt =
+        match xs with
+        | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
+        | _ -> None
+      in
+      (* TODO Config_pfff.regression_data_dir *)
+      (* nosemgrep: not-portable-tmp *)
+      let score_path = "/tmp/parsing_stats" in
+      if Sys.file_exists score_path then
+        dirname_opt
+        |> Option.iter (fun dirname ->
+               prf "------------------------------";
+               prf "regression testing information";
+               prf "------------------------------";
+               let str = Str.global_replace (Str.regexp "/") "__" dirname in
+               let file =
+                 Filename.concat score_path
+                   ("score_parsing__" ^ str ^ ext ^ ".marshalled")
+               in
+               (* nosemgrep: no-logs-in-library *)
+               Logs.info (fun m -> m "saving regression info in %s" file);
+               Common2.regression_testing newscore file)
+      else prf "no regression info available: %s does not exist" score_path)
 
 (*****************************************************************************)
 (* Most problematic tokens *)
@@ -233,29 +235,32 @@ let lines_around_error_line ~context (file, line) =
   done;
   List.rev !res
 
-let print_recurring_problematic_tokens xs =
-  let h = Hashtbl.create 101 in
-  xs
-  |> List.iter (fun x ->
-         let file = x.filename in
-         x.problematic_lines
-         |> List.iter (fun (xs, line_error) ->
-                xs
-                |> List.iter (fun s ->
-                       Common2.hupdate_default s
-                         (fun (old, example) -> (old + 1, example))
-                         (fun () -> (0, (file, line_error)))
-                         h)));
-  Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  UCommon.pr2 "maybe 10 most problematic tokens";
-  Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  Hashtbl_.hash_to_list h
-  |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
-  |> List_.take_safe 10
-  |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
-         UCommon.pr2 (spf "%s: present in %d parsing errors" k i);
-         UCommon.pr2 "example: ";
-         let lines = lines_around_error_line ~context:2 (file_ex, line_ex) in
-         lines |> List.iter (fun s -> UCommon.pr2 ("       " ^ s)));
-  Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  ()
+let recurring_problematic_tokens (xs : t list) : string =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      let h = Hashtbl.create 101 in
+      xs
+      |> List.iter (fun x ->
+             let file = x.filename in
+             x.problematic_lines
+             |> List.iter (fun (xs, line_error) ->
+                    xs
+                    |> List.iter (fun s ->
+                           Common2.hupdate_default s
+                             (fun (old, example) -> (old + 1, example))
+                             (fun () -> (0, (file, line_error)))
+                             h)));
+      prf "-------------------------------";
+      prf "maybe 10 most problematic tokens";
+      prf "-------------------------------";
+      Hashtbl_.hash_to_list h
+      |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
+      |> List_.take_safe 10
+      |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
+             prf "%s: present in %d parsing errors" k i;
+             prf "example: ";
+             let lines =
+               lines_around_error_line ~context:2 (file_ex, line_ex)
+             in
+             lines |> List.iter (fun s -> prf "       %s" s));
+      prf "-------------------------------")

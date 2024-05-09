@@ -15,6 +15,7 @@
 open Common
 module E = Entity_code
 module G = Graph_code
+module Log = Log_graph_code.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,7 +47,7 @@ type graph = {
 let hashtbl_find h n =
   try Hashtbl.find h n with
   | Not_found ->
-      UCommon.pr2_gen ("PB:", n);
+      Log.warn (fun m -> m "PB: %s" (Dumper.dump n));
       raise Not_found
 
 (*****************************************************************************)

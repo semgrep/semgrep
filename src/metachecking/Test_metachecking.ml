@@ -108,10 +108,11 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
          with
          | Ok () -> Hashtbl.add newscore !!file Common2.Ok
          | Error (num_errors, msg) ->
-             UCommon.pr2 msg;
+             Logs.err (fun m -> m "%s" msg);
              Hashtbl.add newscore !!file (Common2.Pb msg);
              total_mismatch := !total_mismatch + num_errors;
              if unit_testing then Alcotest.fail msg);
   if not unit_testing then
-    Parsing_stat.print_regression_information ~ext xs newscore;
-  UCommon.pr2 (spf "total mismatch: %d" !total_mismatch)
+    Logs.info (fun m ->
+        m "%s" (Parsing_stat.regression_information ~ext xs newscore));
+  Logs.info (fun m -> m "total mismatch: %d" !total_mismatch)
