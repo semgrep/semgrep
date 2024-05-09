@@ -167,8 +167,6 @@ local semgrep_rules = [
        'Unit_*',
        'tools/',
        'scripts/',
-       #TODO
-       'libs/',
        ]
     },
   },

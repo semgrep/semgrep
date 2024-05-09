@@ -369,8 +369,10 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
             (* bugfix: *)
             checkpoint_file = checkpoint2_file && checkpoint_file = !!file
           then
-            Parsing_helpers.print_bad line_error (checkpoint, checkpoint2)
-              filelines
+            Log.err (fun m ->
+                m "%s"
+                  (Parsing_helpers.show_parse_error_line line_error
+                     (checkpoint, checkpoint2) filelines))
           else
             Log.err (fun m -> m "PB: bad: but on tokens not from original file");
 

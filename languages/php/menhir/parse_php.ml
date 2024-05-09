@@ -130,12 +130,13 @@ let parse filename =
       if not !Flag.error_recovery then
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
-      if !Flag.show_parsing_error then
+      if !Flag.show_parsing_error then (
         Log.err (fun m -> m "parse error\n = %s" (error_msg_tok cur));
-      let checkpoint2 = UFile.cat filename |> List.length in
-
-      if !Flag.show_parsing_error then
-        Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;
+        let checkpoint2 = UFile.cat filename |> List.length in
+        Log.err (fun m ->
+            m "%s"
+              (Parsing_helpers.show_parse_error_line line_error
+                 (checkpoint, checkpoint2) filelines)));
       (* TODO: just count the skipped lines; Use Hashtbl.length strategy *)
       stat.PS.error_line_count <- stat.PS.total_line_count;
 

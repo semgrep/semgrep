@@ -18,6 +18,7 @@ module G = Graph_code
 module G2 = Graph_code_opti
 open Dependencies_matrix_code
 module DM = Dependencies_matrix_code
+module Log = Log_graph_code.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,8 +40,6 @@ module DM = Dependencies_matrix_code
  *  - better layout algorithm, minimize more backward dependencies
  *  - packing in "..." intermediate directories
  *  - TODO even better layout algorithm, hill climbing
- *
- * TODO: Switch to Log_graph_code.Log instead of UCommon.pr2
  *)
 
 (*****************************************************************************)
@@ -60,14 +59,14 @@ type igopti
 let hashtbl_find_node h n =
   try Hashtbl.find h n with
   | Not_found ->
-      (* pr2 (spf "PB: %s" (G.string_of_node n));*)
+      Log.warn (fun m -> m "PB: %s" (G.string_of_node n));
       (* raise Not_found *)
       failwith (spf "Not_found: %s" (G.string_of_node n))
 
 let hashtbl_find h n =
   try Hashtbl.find h n with
   | Not_found ->
-      UCommon.pr2_gen ("PB:", n);
+      Log.warn (fun m -> m "PB: %s" (Dumper.dump n));
       raise Not_found
 
 (*****************************************************************************)
@@ -224,7 +223,7 @@ let hill_climbing nodes dm =
   let a, m = reduced_matrix nodes dm in
   let n = Array.length a in
   let current_score = score_upper_triangle m dm in
-  UCommon.pr2 (spf "current score = %d" current_score);
+  Log.info (fun m -> m "current score = %d" current_score);
 
   let rec aux (a, m) current_score i ~jump =
     let j = i + jump in
@@ -235,11 +234,11 @@ let hill_climbing nodes dm =
       let a1, m1 = switch i j (a, m) in
       let new_score = score_upper_triangle m1 dm in
       if new_score < current_score then (
-        UCommon.pr2
-          (spf " %s <-> %s, before = %d, after = %d (jmp=%d)"
-             (G.string_of_node a.(i))
-             (G.string_of_node a.(j))
-             current_score new_score jump);
+        Log.info (fun m ->
+            m " %s <-> %s, before = %d, after = %d (jmp=%d)"
+              (G.string_of_node a.(i))
+              (G.string_of_node a.(j))
+              current_score new_score jump);
         aux (a1, m1) new_score 0 ~jump:1)
       else aux (a, m) current_score (i + 1) ~jump
   in
@@ -319,7 +318,7 @@ let partition_matrix nodes dm =
     in
     xs |> List.iter (empty_all_cells_relevant_to_node m dm);
     right := xs @ !right;
-    (* pr2 (spf "step1: %s" (Common2.dump xs)); *)
+    Log.debug (fun m -> m "step1: %s" (Dumper.dump xs));
     if List_.null xs then rest else step1 rest
   and step2 nodes =
     (* "2.Identify system elements (or tasks) that deliver no
@@ -339,24 +338,21 @@ let partition_matrix nodes dm =
      *)
     let xs = sort_by_count_rows_low_first elts_with_empty_lines dm.matrix dm in
     xs |> List.iter (empty_all_cells_relevant_to_node m dm);
-    (* pr2 (spf "step2: %s" (Common2.dump xs)); *)
+    Log.debug (fun m -> m "step2: %s" (Dumper.dump xs));
     left := !left @ xs;
     if List_.null xs then step1 rest else step2 rest
   in
 
   let rest = step2 nodes in
   if List_.null rest then !left @ !right
-  else
-    (*
-    pr2 "CYCLE";
-    pr2_gen rest;
-*)
+  else (
+    Log.warn (fun m -> m "CYCLE: %s" (Dumper.dump rest));
     let rest = sort_by_count_rows_low_columns_high_first rest m dm in
     let rest = hill_climbing rest dm in
-    !left @ rest @ !right
+    !left @ rest @ !right)
 
 (* to debug the heuristics *)
-let info_orders dm =
+let info_orders (dm : dm) : string =
   dm.matrix
   |> Array.mapi (fun i _ ->
          let nrow = count_row i dm.matrix in
@@ -366,8 +362,8 @@ let info_orders dm =
            spf "%-20s: count lines = %d, count columns = %d, H = %.2f"
              (fst dm.i_to_name.(i))
              nrow ncol h ))
-  |> Array.to_list |> Assoc.sort_by_key_lowfirst
-  |> List.iter (fun (_, s) -> UCommon.pr2 s)
+  |> Array.to_list |> Assoc.sort_by_key_lowfirst |> List_.map snd
+  |> String.concat "\n"
 
 (*****************************************************************************)
 (* Manual ordering *)
@@ -386,8 +382,8 @@ let optional_manual_reordering (s, _node_kind) nodes constraints_opt =
           |> List.map (fun (s, node_kind) ->
                  match Common2.hfind_option s horder with
                  | None ->
-                     UCommon.pr2
-                       (spf "INFO_TXT: could not find %s in constraint set" s);
+                     Log.warn (fun m ->
+                         m "INFO_TXT: could not find %s in constraint set" s);
                      ((s, node_kind), !current)
                  | Some n ->
                      current := n;
@@ -395,7 +391,7 @@ let optional_manual_reordering (s, _node_kind) nodes constraints_opt =
         in
         Assoc.sort_by_val_lowfirst nodes_with_order |> List.map fst
       else (
-        UCommon.pr2 (spf "didn't find entry in constraints for %s" s);
+        Log.warn (fun m -> m "didn't find entry in constraints for %s" s);
         nodes)
 
 (*****************************************************************************)
