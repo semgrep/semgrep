@@ -399,6 +399,7 @@ let git_list_files ~exclude_standard
                             (* TODO: return an Error instead and let the
                              * caller decide instead of assert false
                              *)
+                            (* nosemgrep: no-logs-in-library *)
                             Logs.err (fun m ->
                                 m
                                   "Internal error: cannot obtain path relative \

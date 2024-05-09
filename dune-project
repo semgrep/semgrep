@@ -1,35 +1,35 @@
 (lang dune 3.7)
+
+;; This file is used both to configure 'dune' as usual, and
+;; to autogenerate the semgrep.opam for 'opam'.
+
+;; classic dune-project settings
 (name semgrep)
 (using menhir 2.1)
-
-; set here so the semgrep package below can use it and we can easily bump it
-(version 1.70.0)
-; disable mangling of of workspace root, to preserve debugging information
-; needed to support earlybird debugger
+; disable mangling of workspace root, to preserve debugging information
+; needed to support the earlybird debugger
 ; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
 (map_workspace_root false)
 
-; Opam package declarations for public libraries and public executables
-; defined in various dune files.
-;
-; Documentation for declaring opam packages:
-; https://dune.readthedocs.io/en/stable/opam.html#opam-generation
-
-; Generate the opam files used to install dependencies.
-;
-; 'dune build' (+ early interruption) is sufficient to trigger an update
-; of the opam files.
-; TODO: find the minimum command for this and add it as a pre-commit hook.
-;
+;; Opam package declarations for public libraries and public executables
+;; defined in various dune files.
+;; See the documentation for declaring opam packages for more info:
+;; https://dune.readthedocs.io/en/stable/opam.html#opam-generation
+;;
+;; Type 'make semgrep.opam' to regenerate semgrep.opam
+;; TODO: add it as a pre-commit hook?
 (generate_opam_files)
 
-; Default attributes of opam packages
-(source (github returntocorp/semgrep))
+;; set here so the semgrep package below can use it and we can easily bump it
+(version 1.72.0)
+
+;; Default attributes of opam packages
+(source (github semgrep/semgrep))
 (homepage "https://semgrep.dev")
 (maintainers "Semgrep authors")
 (authors "Semgrep authors")
 
-; Opam packages
+;; Opam packages (sorted alphabetically)
 
 (package
   (name aliengrep)
@@ -104,7 +104,9 @@ a few other projects developed at r2c.
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
     (pcre (>= "7.5.0" ))
-    (pcre2 (>= "7.5.3" ))
+    ; we're currently "vendoring" pcre2 in libs/pcre2
+    ; so no need to get opam to install it
+    ;(pcre2 (>= "7.5.3" ))
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
@@ -400,6 +402,7 @@ metrics
   )
 )
 
+;; coupling: if you modify this package, type 'make semgrep.opam' to update
 (package (name semgrep)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
   (description "\
@@ -424,10 +427,15 @@ For more information see https://semgrep.dev
 ;
 ; or ask Martin to do so.
 ; You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
+;
 ;coupling: because of the way we need to statically link on macOS, if
 ; you add a library here, you'll probably need to update src/main/flags.sh
 ; if this library has some C stubs.
+;
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
+;
+; Note that we don't include here as dependencies all the libraries
+; that are "vendored" inside semgrep (e.g., commons, aliengrep, pcre2)
   (depends
     ; core deps
     (ocaml (>= 4.13.0))
@@ -443,7 +451,7 @@ For more information see https://semgrep.dev
     fpath
     bos
     fileutils
-    ; unit testing
+    ; unit testing (TODO? still need those alcotest-xx with testo?)
     alcotest
     alcotest-js
     alcotest-lwt
@@ -478,13 +486,13 @@ For more information see https://semgrep.dev
     ; regexps
     re
     pcre
-    (pcre2 (>= "7.5.2" ))
+    ; we're currently "vendoring" pcre2 in libs/pcre2
+    ; so no need to get opam to install it
+    ;(pcre2 (>= "7.5.3" ))
     ; misc
     ocamlgraph
     parmap
     semver
-    uri
-    uuidm
     (timedesc (>= 2.0.0)) ; used via git-wrapper
     (lsp (= 1.15.1-5.0))
     git
@@ -498,6 +506,9 @@ For more information see https://semgrep.dev
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
     ; web stuff
     uri
+    uuidm
+    ; cohttp >= 6.0.0 requires opam 2.1.0 (which isn't yet on Windows)
+    (cohttp (= 5.3.0))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)

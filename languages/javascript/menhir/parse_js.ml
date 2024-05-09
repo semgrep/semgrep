@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010, 2013 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,8 +19,8 @@ module Flag = Flag_parsing
 module Ast = Ast_js
 module TH = Token_helpers_js
 module PS = Parsing_stat
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_javascript.Log
+module LogLib = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -93,8 +93,8 @@ let put_back_lookahead_token_if_needed tr item_opt =
          * all the tokens (more risky now that we use ast_js.ml instead of
          * cst_js.ml)
          *)
-        Logs.debug (fun m ->
-            m ~tags "putting back lookahead token %s" (Dumper.dump current));
+        Log.debug (fun m ->
+            m "putting back lookahead token %s" (Dumper.dump current));
         tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
         tr.Parsing_helpers.passed <-
           List_.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
@@ -149,8 +149,8 @@ let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
   let info = TH.info_of_tok passed_offending in
   let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
-  Logs.debug (fun m ->
-      m ~tags "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info));
+  Log.debug (fun m ->
+      m "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info));
 
   let toks =
     List.rev passed_after
@@ -237,7 +237,7 @@ let parse2 opt_timeout (filename : Fpath.t) =
         match asi_opportunity charpos last_charpos_error cur tr with
         | None ->
             if !Flag.show_parsing_error then
-              UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
+              LogLib.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
             Right cur
         | Some (passed_before, passed_offending, passed_after) ->
             asi_insert charpos last_charpos_error tr
@@ -263,9 +263,8 @@ let parse2 opt_timeout (filename : Fpath.t) =
     (* EOF *)
     | Either.Left None -> []
     | Either.Left (Some x) ->
-        Logs.debug (fun m ->
-            m ~tags "%s"
-              (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
+        Log.debug (fun m ->
+            m "%s" (spf "parsed: %s" (Ast.Program [ x ] |> Ast_js.show_any)));
 
         x :: aux tr
     | Either.Right err_tok ->
@@ -274,9 +273,11 @@ let parse2 opt_timeout (filename : Fpath.t) =
            let filelines = UFile.cat_array filename in
            let cur = tr.Parsing_helpers.current in
            let line_error = TH.line_of_tok cur in
-           Parsing_helpers.print_bad line_error
-             (line_start, min max_line (line_error + 10))
-             filelines);
+           Log.err (fun m ->
+               m "%s"
+                 (Parsing_helpers.show_parse_error_line line_error
+                    (line_start, min max_line (line_error + 10))
+                    filelines)));
         if !Flag.error_recovery then (
           (* todo? try to recover? call 'aux tr'? but then can be really slow*)
           (* TODO: count a bad line twice? use Hashtbl.length tech instead *)
@@ -293,7 +294,7 @@ let parse2 opt_timeout (filename : Fpath.t) =
     | Some res -> res
     | None ->
         if !Flag.show_parsing_error then
-          UCommon.pr2 (spf "TIMEOUT on %s" !!filename);
+          Log.err (fun m -> m "TIMEOUT on %s" !!filename);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         stat.PS.have_timeout <- true;
         []

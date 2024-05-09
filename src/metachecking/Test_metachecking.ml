@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,8 +17,7 @@ open Fpath_.Operators
 module FT = File_type
 module R = Rule
 module E = Core_error
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module TCM = Test_compare_matches
 
 (*****************************************************************************)
 (* Prelude *)
@@ -54,8 +53,7 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
 
   fullxs
   |> List.iter (fun file ->
-         Logs.debug (fun m ->
-             m ~tags "test_rules: processing rule file %s" !!file);
+         Logs.info (fun m -> m "test_rules: processing rule file %s" !!file);
 
          (* just a sanity check *)
          (* rules |> List.iter Check_rule.check; *)
@@ -84,13 +82,12 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
            with
            | Not_found -> failwith (spf "could not find a target for %s" !!file)
          in
-         Logs.debug (fun m ->
-             m ~tags "test_rules: processing target %s" !!target);
+         Logs.info (fun m -> m "test_rules: processing target %s" !!target);
          (* expected *)
          (* not tororuleid! not ok:! *)
          let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
          let expected_error_lines =
-           E.expected_error_lines_of_files ~regexp [ target ]
+           TCM.expected_error_lines_of_files ~regexp [ target ]
          in
 
          (* actual *)
@@ -104,17 +101,18 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
          in
          actual_errors
          |> List.iter (fun e ->
-                Logs.debug (fun m ->
-                    m ~tags "test_rules: found error: %s" (E.string_of_error e)));
+                Logs.err (fun m ->
+                    m "test_rules: found error: %s" (E.string_of_error e)));
          match
-           E.compare_actual_to_expected actual_errors expected_error_lines
+           TCM.compare_actual_to_expected actual_errors expected_error_lines
          with
          | Ok () -> Hashtbl.add newscore !!file Common2.Ok
          | Error (num_errors, msg) ->
-             UCommon.pr2 msg;
+             Logs.err (fun m -> m "%s" msg);
              Hashtbl.add newscore !!file (Common2.Pb msg);
              total_mismatch := !total_mismatch + num_errors;
              if unit_testing then Alcotest.fail msg);
   if not unit_testing then
-    Parsing_stat.print_regression_information ~ext xs newscore;
-  UCommon.pr2 (spf "total mismatch: %d" !total_mismatch)
+    Logs.info (fun m ->
+        m "%s" (Parsing_stat.regression_information ~ext xs newscore));
+  Logs.info (fun m -> m "total mismatch: %d" !total_mismatch)

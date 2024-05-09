@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -241,13 +241,13 @@ let name_of_entity ent =
       Some name
   | _____else_____ -> None
 
-let composite_of_container : G.container_operator -> IL.composite_kind =
+let composite_of_container ~g_expr : G.container_operator -> IL.composite_kind =
   function
   | Array -> CArray
   | List -> CList
   | Tuple -> CTuple
   | Set -> CSet
-  | Dict -> CDict
+  | Dict -> impossible (E g_expr)
 
 let mk_unnamed_args (exps : IL.exp list) = List_.map (fun x -> Unnamed x) exps
 
@@ -429,8 +429,8 @@ and try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally =
 (*****************************************************************************)
 (* Assign *)
 (*****************************************************************************)
-and assign env lhs tok rhs_exp e_gen =
-  let eorig = SameAs e_gen in
+and assign env ~g_expr lhs tok rhs_exp =
+  let eorig = SameAs g_expr in
   match lhs.G.e with
   | G.N _
   | G.DotAccess _
@@ -445,7 +445,7 @@ and assign env lhs tok rhs_exp e_gen =
           (* lval translation failed, we use a fresh lval instead *)
           let fixme_lval = fresh_lval ~str:"_FIXME" env tok in
           add_instr env (mk_i (Assign (fixme_lval, rhs_exp)) eorig);
-          fixme_exp kind any_generic (related_exp e_gen))
+          fixme_exp kind any_generic (related_exp g_expr))
   | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
       (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
@@ -465,19 +465,19 @@ and assign env lhs tok rhs_exp e_gen =
                  }
                in
                let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
-               assign env lhs_i tok1
-                 { e = Fetch lval_i; eorig = related_exp lhs_i }
-                 e_gen)
+               assign env ~g_expr lhs_i tok1
+                 { e = Fetch lval_i; eorig = related_exp lhs_i })
       in
       (* (E1, ..., En) *)
       mk_e
-        (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
+        (Composite
+           (composite_of_container ~g_expr ckind, (tok1, tup_elems, tok2)))
         (related_exp lhs)
   | G.Record (tok1, fields, tok2) ->
       assign_to_record env (tok1, fields, tok2) rhs_exp (related_exp lhs)
   | _ ->
-      add_instr env (fixme_instr ToDo (G.E e_gen) (related_exp e_gen));
-      fixme_exp ToDo (G.E e_gen) (related_exp lhs)
+      add_instr env (fixme_instr ToDo (G.E g_expr) (related_exp g_expr));
+      fixme_exp ToDo (G.E g_expr) (related_exp lhs)
 
 and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
   (* Assignments of the form
@@ -535,7 +535,7 @@ and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
         let fldi = var_of_id_info id1 ii1 in
         let offset = { o = Dot fldi; oorig = NoOrig } in
         let fields = do_fields (offset :: acc_rev_offsets) fields in
-        Field (fldi.ident, mk_e (Record fields) (related_tok tok))
+        Field (fldi.ident, mk_e (RecordOrDict fields) (related_tok tok))
     | field ->
         (* TODO: What other patterns could be nested ? *)
         (* __FIXME_AST_to_IL__: FixmeExp ToDo *)
@@ -546,9 +546,9 @@ and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
         add_instr env (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
         Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field)))
   in
-  let fields : field list = do_fields [] fields in
+  let fields : field_or_entry list = do_fields [] fields in
   (* {x1: E1, ..., xN: En} *)
-  mk_e (Record fields) lhs_orig
+  mk_e (RecordOrDict fields) lhs_orig
 
 (*****************************************************************************)
 (* Expression *)
@@ -559,9 +559,9 @@ and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
 (* We set `void` to `true` when the value of the expression is being discarded, in
  * which case, for certain expressions and in certain languages, we assume that the
  * expression has side-effects. See translation of operators below. *)
-and expr_aux env ?(void = false) e_gen =
-  let eorig = SameAs e_gen in
-  match e_gen.G.e with
+and expr_aux env ?(void = false) g_expr =
+  let eorig = SameAs g_expr in
+  match g_expr.G.e with
   | G.Call
       ( { e = G.IdSpecial (G.Op ((G.And | G.Or) as op), tok); _ },
         (_, arg0 :: args, _) )
@@ -577,7 +577,7 @@ and expr_aux env ?(void = false) e_gen =
          * Ruby `s << "hello"` is syntax sugar for `s.<<("hello")` and it mutates
          * the string `s` appending "hello" to it. *)
         match args with
-        | [] -> impossible (G.E e_gen)
+        | [] -> impossible (G.E g_expr)
         | obj :: args' ->
             let obj_var, _obj_lval =
               mk_aux_var env tok (IL_helpers.exp_of_arg obj)
@@ -625,7 +625,7 @@ and expr_aux env ?(void = false) e_gen =
           in
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
-      | _ -> impossible (G.E e_gen))
+      | _ -> impossible (G.E g_expr))
   | G.Call
       ( {
           e =
@@ -695,7 +695,7 @@ and expr_aux env ?(void = false) e_gen =
             CallSpecial (res, special, args))
       with
       | Fixme (kind, any_generic) ->
-          let fixme = fixme_exp kind any_generic (related_exp e_gen) in
+          let fixme = fixme_exp kind any_generic (related_exp g_expr) in
           add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
   | G.Call (e, args) ->
       let tok = G.fake "call" in
@@ -712,7 +712,7 @@ and expr_aux env ?(void = false) e_gen =
   | G.DotAccess (_, _, _)
   | G.ArrayAccess (_, _)
   | G.DeRef (_, _) ->
-      let lval = lval env e_gen in
+      let lval = lval env g_expr in
       let exp = mk_e (Fetch lval) eorig in
       let ident_function_call_hack exp =
         (* Taking into account Ruby's ability to allow function calls without
@@ -765,13 +765,13 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Fetch lval) (SameAs obj_e)
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
-      assign env e1 tok exp e_gen
+      assign env ~g_expr e1 tok exp
   | G.AssignOp (e1, (G.Eq, tok), e2) ->
       (* AsssignOp(Eq) is used to represent plain assignment in some languages,
        * e.g. Go's `:=` is represented as `AssignOp(Eq)`, and C#'s assignments
        * are all represented this way too. *)
       let exp = expr env e2 in
-      assign env e1 tok exp e_gen
+      assign env ~g_expr e1 tok exp
   | G.AssignOp (e1, op, e2) ->
       let exp = expr env e2 in
       let lval = lval env e1 in
@@ -789,7 +789,7 @@ and expr_aux env ?(void = false) e_gen =
       mk_unit (G.fake "()") NoOrig
   | G.Seq xs -> (
       match List.rev xs with
-      | [] -> impossible (G.E e_gen)
+      | [] -> impossible (G.E g_expr)
       | last :: xs ->
           let xs = List.rev xs in
           xs
@@ -797,24 +797,25 @@ and expr_aux env ?(void = false) e_gen =
                  let _eIGNORE = expr env e in
                  ());
           expr env last)
+  | G.Record fields -> record env fields
+  | G.Container (G.Dict, xs) -> dict env xs g_expr
   | G.Container (kind, xs) ->
       let xs = bracket_keep (List_.map (expr env)) xs in
-      let kind = composite_kind kind in
+      let kind = composite_kind ~g_expr kind in
       mk_e (Composite (kind, xs)) eorig
-  | G.Comprehension _ -> todo (G.E e_gen)
-  | G.Record fields -> record env fields
+  | G.Comprehension _ -> todo (G.E g_expr)
   | G.Lambda fdef ->
-      (* TODO: we should have a use def.f_tok *)
-      let tok = G.fake "lambda" in
-      let lval = fresh_lval env tok in
+      let lval = fresh_lval env (snd fdef.fkind) in
       let fdef =
-        (* This is a recursive call to `function_definition` and we need to pass
-         * it a fresh `stmts` ref list. If we reuse the same `stmts` ref list, then
-         * whatever `stmts` we have accumulated so far, will "magically" appear
-         * in the body of this lambda in the final IL representation. This can
-         * happen e.g. when translating `foo(bar(), (x) => { ... })`, because
-         * the instruction added to `stmts` by the translation of `bar()` is
-         * still present when traslating `(x) => { ... }`. *)
+        (* NOTE(config.stmts): This is a recursive call to
+         * `function_definition` and we need to pass it a fresh
+         * `stmts` ref list. If we reuse the same `stmts` ref list,
+         * then whatever `stmts` we have accumulated so far, will
+         * "magically" appear in the body of this lambda in the final
+         * IL representation. This can happen e.g. when translating
+         * `foo(bar(), (x) => { ... })`, because the instruction added
+         * to `stmts` by the translation of `bar()` is still present
+         * when traslating `(x) => { ... }`. *)
         function_definition { env with stmts = ref [] } fdef
       in
       add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) eorig);
@@ -838,8 +839,8 @@ and expr_aux env ?(void = false) e_gen =
       | Some var_special ->
           let lval = lval_of_base (VarSpecial (var_special, tok)) in
           mk_e (Fetch lval) eorig
-      | None -> impossible (G.E e_gen))
-  | G.SliceAccess (_, _) -> todo (G.E e_gen)
+      | None -> impossible (G.E g_expr))
+  | G.SliceAccess (_, _) -> todo (G.E g_expr)
   (* e1 ? e2 : e3 ==>
    *  pre: lval = e1;
    *       if(lval) { lval = e2 } else { lval = e3 }
@@ -908,8 +909,8 @@ and expr_aux env ?(void = false) e_gen =
   | G.DisjExpr (_, _)
   | G.DeepEllipsis _
   | G.DotAccessEllipsis _ ->
-      sgrep_construct (G.E e_gen)
-  | G.StmtExpr st -> stmt_expr env ~e_gen st
+      sgrep_construct (G.E g_expr)
+  | G.StmtExpr st -> stmt_expr env ~g_expr st
   | G.OtherExpr ((str, tok), xs) ->
       let es =
         xs
@@ -921,8 +922,8 @@ and expr_aux env ?(void = false) e_gen =
       let other_expr = mk_e (Composite (CTuple, (tok, es, tok))) eorig in
       let _, tmp = mk_aux_var ~str env tok other_expr in
       let partial = mk_e (Fetch tmp) (related_tok tok) in
-      fixme_exp ToDo (G.E e_gen) (related_tok tok) ~partial
-  | G.RawExpr _ -> todo (G.E e_gen)
+      fixme_exp ToDo (G.E g_expr) (related_tok tok) ~partial
+  | G.RawExpr _ -> todo (G.E g_expr)
 
 and expr env ?void e_gen =
   try expr_aux env ?void e_gen with
@@ -977,7 +978,7 @@ and call_special _env (x, tok) =
     | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok) |> G.e))
-        (* should be intercepted before *)
+    (* should be intercepted before *)
     | G.Eval -> Eval
     | G.Typeof -> Typeof
     | G.Instanceof -> Instanceof
@@ -993,10 +994,10 @@ and call_special _env (x, tok) =
         todo (G.E (G.IdSpecial (x, tok) |> G.e))),
     tok )
 
-and composite_kind = function
+and composite_kind ~g_expr = function
   | G.Array -> CArray
   | G.List -> CList
-  | G.Dict -> CDict
+  | G.Dict -> impossible (E g_expr)
   | G.Set -> CSet
   | G.Tuple -> CTuple
 
@@ -1026,16 +1027,26 @@ and record env ((_tok, origfields, _) as record_def) =
                    ( { G.name = G.EN (G.Id (id, _)); tparams = None; _ },
                      def_kind );
                _;
-             } ->
-             let fdeforig =
+             } as forig ->
+             let field_def =
                match def_kind with
                (* TODO: Consider what to do with vtype. *)
                | G.VarDef { G.vinit = Some fdeforig; _ }
                | G.FieldDefColon { G.vinit = Some fdeforig; _ } ->
-                   fdeforig
+                   expr env fdeforig
+               (* Some languages such as javascript allow function
+                  definitions in object literal syntax. *)
+               | G.FuncDef fdef ->
+                   let lval = fresh_lval env (snd fdef.fkind) in
+                   (* See NOTE(config.stmts)! *)
+                   let fdef =
+                     function_definition { env with stmts = ref [] } fdef
+                   in
+                   let forig = Related (G.Fld forig) in
+                   add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) forig);
+                   mk_e (Fetch lval) forig
                | ___else___ -> todo (G.E e_gen)
              in
-             let field_def = expr env fdeforig in
              Some (Field (id, field_def))
          | G.F
              {
@@ -1095,7 +1106,20 @@ and record env ((_tok, origfields, _) as record_def) =
              None
          | G.F _ -> todo (G.E e_gen))
   in
-  mk_e (Record fields) (SameAs e_gen)
+  mk_e (RecordOrDict fields) (SameAs e_gen)
+
+and dict env (_, orig_entries, _) orig =
+  let entries =
+    orig_entries
+    |> List_.map (fun orig_entry ->
+           match orig_entry.G.e with
+           | G.Container (G.Tuple, (_, [ korig; vorig ], _)) ->
+               let ke = expr env korig in
+               let ve = expr env vorig in
+               Entry (ke, ve)
+           | __else__ -> todo (G.E orig))
+  in
+  mk_e (RecordOrDict entries) (SameAs orig)
 
 and xml_expr env xml =
   let attrs =
@@ -1129,9 +1153,9 @@ and xml_expr env xml =
     (Composite (CTuple, (tok, List.rev_append attrs body, tok)))
     (Related (G.Xmls xml.G.xml_body))
 
-and stmt_expr env ?e_gen st =
+and stmt_expr env ?g_expr st =
   let todo () =
-    match e_gen with
+    match g_expr with
     | None -> todo (G.E (G.e (G.StmtExpr st)))
     | Some e_gen -> todo (G.E e_gen)
   in
@@ -1184,7 +1208,7 @@ and stmt_expr env ?e_gen st =
       add_stmts env
         (ss @ [ mk_s (If (tok, e', pre_a1 @ [ a1 ], pre_a2 @ [ a2 ])) ]);
       let eorig =
-        match e_gen with
+        match g_expr with
         | None -> related_exp (G.e (G.StmtExpr st))
         | Some e_gen -> SameAs e_gen
       in

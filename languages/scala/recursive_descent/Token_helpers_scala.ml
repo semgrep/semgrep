@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 R2C
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,8 +14,7 @@
  *)
 open Token_scala
 module PI = Lib_ast_fuzzy
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_scala.Log
 
 (*****************************************************************************)
 (* Token Helpers *)
@@ -203,7 +202,7 @@ let inFirstOfStat x =
   | DEDENT _ ->
       false
   | _ ->
-      Logs.debug (fun m -> m ~tags "inFirstOfStat: true for %s" (Dumper.dump x));
+      Log.debug (fun m -> m "inFirstOfStat: true for %s" (Dumper.dump x));
       true
 
 (** Can token end a statement? *)
@@ -240,7 +239,7 @@ let inLastOfStat x =
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
-      Logs.debug (fun m -> m ~tags "inLastOfStat: true for %s" (Dumper.dump x));
+      Log.debug (fun m -> m "inLastOfStat: true for %s" (Dumper.dump x));
       true
   | _ -> false
 

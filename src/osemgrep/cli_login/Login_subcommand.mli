@@ -1,7 +1,7 @@
 (*
    Parse a semgrep-login command, execute it and exit.
 
-   Usage: main [| "semgrep-login"; ... |]
+   Usage: main caps [| "semgrep-login"; ... |]
 
    This function returns an exit code to be passed to the 'exit' function.
 *)

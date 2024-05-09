@@ -22,7 +22,9 @@ module RP = Core_result
 module In = Input_to_core_j
 module OutJ = Semgrep_output_v1_j
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+let src = Logs.Src.create "semgrep.core_scan"
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (*****************************************************************************)
 (* Purpose *)
@@ -332,6 +334,11 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
   } =
     match_
   in
+  let str =
+    match str with
+    | None -> Common.spf "with rule %s" (Rule_ID.to_string match_.rule_id.id)
+    | Some str -> str
+  in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   let dep_toks_and_version =
     (* Only print the extra data if it was a reachable finding *)
@@ -344,7 +351,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
     | _ -> None
   in
   (if config.mvars =*= [] then
-     Core_text_output.print_match ?str ~format:config.match_format toks
+     Core_text_output.print_match ~str ~format:config.match_format toks
    else
      (* similar to the code of Lib_matcher.print_match, maybe could
       * factorize code a bit.
@@ -457,8 +464,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     offending_file_list
     |> List_.map (fun file ->
            (* logging useful info for rule writers *)
-           Logs.debug (fun m ->
-               m ~tags "too many matches on %s, generating exn for it" file);
+           Log.warn (fun m ->
+               m "too many matches on %s, generating exn for it" file);
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
@@ -479,9 +486,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              | _ -> assert false
            in
            let (id, pat), cnt = biggest_offending_rule in
-           Logs.debug (fun m ->
-               m ~tags
-                 "most offending rule: id = %s, matches = %d, pattern = %s"
+           Log.warn (fun m ->
+               m "most offending rule: id = %s, matches = %d, pattern = %s"
                  (Rule_ID.to_string id) cnt pat);
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
@@ -564,15 +570,17 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
              (replace_named_pipe_by_regular_file caps file))
     | other -> other
   in
-  match rule_source with
-  | Some (Core_scan_config.Rule_file file) ->
-      Logs.debug (fun m ->
-          m ~tags "%s" (spf "Parsing %s:\n%s" !!file (UFile.read_file file)));
-      Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
-  | Some (Core_scan_config.Rules rules) -> (rules, [])
-  | None ->
-      (* TODO: ensure that this doesn't happen *)
-      failwith "missing rules"
+  let rules, rule_errors =
+    match rule_source with
+    | Some (Core_scan_config.Rule_file file) ->
+        Log.debug (fun m -> m "Parsing %s:\n%s" !!file (UFile.read_file file));
+        Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
+    | Some (Core_scan_config.Rules rules) -> (rules, [])
+    | None ->
+        (* TODO: ensure that this doesn't happen *)
+        failwith "missing rules"
+  in
+  (rules, rule_errors)
 [@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
@@ -608,8 +616,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let origin = Target.origin target in
-           Logs.debug (fun m ->
-               m ~tags "Analyzing %s (contents in %s)" (Origin.to_string origin)
+           Log.info (fun m ->
+               m "Analyzing %s (contents in %s)" (Origin.to_string origin)
                  !!internal_path);
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -648,8 +656,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         * not testing -max_memory.
                         *)
                        if config.test then Gc.full_major ();
-                       Logs.debug (fun m ->
-                           m ~tags "done with %s (contents in %s)"
+                       Log.info (fun m ->
+                           m "done with %s (contents in %s)"
                              (Origin.to_string origin) !!internal_path);
 
                        (res, was_scanned))
@@ -665,18 +673,17 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      (match !Match_patterns.last_matched_rule with
                      | None -> ()
                      | Some rule ->
-                         Logs.debug (fun m ->
-                             m ~tags "critical exn while matching ruleid %s"
+                         Log.warn (fun m ->
+                             m "critical exn while matching ruleid %s"
                                (Rule_ID.to_string rule.id);
-                             Logs.debug (fun m ->
-                                 m ~tags "full pattern is: %s"
-                                   rule.MR.pattern_string)));
+                             Log.debug (fun m ->
+                                 m "full pattern is: %s" rule.MR.pattern_string)));
                      let loc = Tok.first_loc_of_file !!internal_path in
                      let errors =
                        match exn with
                        | Match_rules.File_timeout rule_ids ->
-                           Logs.debug (fun m ->
-                               m ~tags "Timeout on %s (contents in %s)"
+                           Log.warn (fun m ->
+                               m "Timeout on %s (contents in %s)"
                                  (Origin.to_string origin) !!internal_path);
                            (* TODO what happened here is several rules
                               timed out while trying to scan a file.
@@ -693,8 +700,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                                     OutJ.Timeout)
                            |> E.ErrorSet.of_list
                        | Out_of_memory ->
-                           Logs.warn (fun m ->
-                               m ~tags "OutOfMemory on %s (contents in %s)"
+                           Log.warn (fun m ->
+                               m "OutOfMemory on %s (contents in %s)"
                                  (Origin.to_string origin) !!internal_path);
                            E.ErrorSet.singleton
                              (E.mk_error !Rule.last_matched_rule loc ""
@@ -835,8 +842,7 @@ let targets_of_config (caps : < Cap.tmp >) (config : Core_scan_config.t) :
       (* sanity checking *)
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
-        Logs.err (fun m ->
-            m ~tags "if you use -targets, you should not specify files");
+        Log.err (fun m -> m "if you use -targets, you should not specify files");
       (* TODO: ugly, this is because the code path for -e/-f requires
        * a language, even with a -target, see test_target_file.py
        *)
@@ -989,9 +995,9 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
              Parse_lockfile.parse_lockfile)
           target.lockfile
       in
-      let default_match_hook str match_ =
+      let default_match_hook match_ =
         if config.output_format =*= Text then
-          print_match ~str config match_ Metavariable.ii_of_mval
+          print_match config match_ Metavariable.ii_of_mval
       in
       let match_hook = Option.value match_hook ~default:default_match_hook in
       let xconf =
@@ -1084,9 +1090,8 @@ let scan ?match_hook (caps : < Cap.tmp >) config
     ];
 
   (* Let's go! *)
-  Logs.debug (fun m ->
-      m ~tags "processing %d files, skipping %d files" num_targets
-        num_skipped_targets);
+  Log.info (fun m ->
+      m "processing %d files, skipping %d files" num_targets num_skipped_targets);
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
@@ -1122,8 +1127,7 @@ let scan ?match_hook (caps : < Cap.tmp >) config
   let num_errors = List.length res.errors in
   Tracing.add_data_to_opt_span config.top_level_span
     [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
-  Logs.debug (fun m ->
-      m ~tags "found %d matches, %d errors" num_matches num_errors);
+  Log.info (fun m -> m "found %d matches, %d errors" num_matches num_errors);
 
   let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
@@ -1140,8 +1144,8 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 
   (* Concatenate all the skipped targets *)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
-  Logs.debug (fun m ->
-      m ~tags "there were %d skipped targets" (List.length skipped_targets));
+  Log.info (fun m ->
+      m "there were %d skipped targets" (List.length skipped_targets));
   (* TODO: returning, or not skipped_targets does not seem to have any impact
    * on our testsuite, weird. We need to add more tests. Maybe because
    * both pysemgrep and osemgrep do their own skip targets management.
@@ -1170,6 +1174,5 @@ let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
-      Logs.debug (fun m ->
-          m ~tags "Uncaught exception: %s" (Exception.to_string e));
+      Log.err (fun m -> m "Uncaught exception: %s" (Exception.to_string e));
       Error (e, None)

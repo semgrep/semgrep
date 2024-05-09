@@ -1,0 +1,17 @@
+
+
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+
+  [36m[22m[24m  targets/basic.py[0m
+   [31m❯❯❱[0m [1mrules.rule1[0m
+          Same message as other rule.
+
+            2┆ print([1m1 == 1[0m)
+
+   [31m❯❯❱[0m [1mrules.rule2[0m
+          Same message as other rule.
+
+            2┆ print([1m1 == 1[0m)
+

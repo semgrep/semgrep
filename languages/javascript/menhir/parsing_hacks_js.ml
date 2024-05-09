@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010, 2013 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,8 +19,7 @@ module Ast = Ast_js
 module T = Parser_js
 module TH = Token_helpers_js
 module F = Ast_fuzzy
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_javascript.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -194,8 +193,8 @@ let fix_tokens_ASI xs =
   let push_sc_before_x x =
     let info = TH.info_of_tok x in
     let fake = Ast.fakeInfoAttach info in
-    Logs.debug (fun m ->
-        m ~tags "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info));
+    Log.debug (fun m ->
+        m "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info));
     Stack_.push (T.T_VIRTUAL_SEMICOLON fake) res
   in
 

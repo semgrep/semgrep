@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 module Http_helpers_ = Http_helpers
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 module Env = Semgrep_envvars
 
 (*****************************************************************************)
@@ -275,7 +274,7 @@ let before_exit ~profile caps : unit =
   (* alt: could be done in Main.ml instead, just before the call to exit() *)
   !Hooks.exit |> List.iter (fun f -> f ());
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
-  if profile then Profiling.print_diagnostics_and_gc_stats ();
+  if profile then Profiling.log_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)
   CapTmp.erase_temp_files caps#tmp;
   ()

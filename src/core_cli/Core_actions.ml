@@ -46,16 +46,17 @@ let json_of_v (v : OCaml.v) =
 (*****************************************************************************)
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
-let dump_il_all file =
+let dump_il_all (caps : < Cap.stdout >) file =
   let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
-  List.iter (fun stmt -> UCommon.pr2 (IL.show_stmt stmt)) xs
+  xs |> List.iter (fun stmt -> CapConsole.print caps#stdout (IL.show_stmt stmt))
 [@@action]
 
-let dump_il file =
+let dump_il (caps : < Cap.stdout >) file =
   let module G = AST_generic in
+  let print s = CapConsole.print caps#stdout s in
   let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
@@ -66,13 +67,13 @@ let dump_il file =
       | Some { G.name = EN n; _ } -> G.show_name n
       | Some _ -> "<entity>"
     in
-    UCommon.pr2 (spf "Function name: %s" name);
+    print (spf "Function name: %s" name);
     let s =
       AST_generic.show_any
         (G.S (AST_generic_helpers.funcbody_to_stmt fdef.G.fbody))
     in
-    UCommon.pr2 s;
-    UCommon.pr2 "==>";
+    print s;
+    print "==>";
 
     (* Creating a CFG and throwing it away here so the implicit return
      * analysis pass may be run in order to mark implicit return nodes.
@@ -84,7 +85,7 @@ let dump_il file =
      *)
     let _, xs = AST_to_IL.function_definition lang fdef in
     let s = IL.show_any (IL.Ss xs) in
-    UCommon.pr2 s
+    print s
   in
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
@@ -93,7 +94,7 @@ let dump_v1_json caps file =
   let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
-      E.try_with_print_exn_and_reraise !!file (fun () ->
+      E.try_with_log_exn_and_reraise file (fun () ->
           let { Parsing_result2.ast; skipped_tokens; _ } =
             Parse_target.parse_and_resolve_name lang file
           in
@@ -101,7 +102,7 @@ let dump_v1_json caps file =
           let s = Ast_generic_v1_j.string_of_program v1 in
           UCommon.pr s;
           if skipped_tokens <> [] then
-            UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file))
+            Logs.warn (fun m -> m "fail to fully parse %s" !!file))
   | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]
 
@@ -113,11 +114,11 @@ let generate_ast_json file =
       let s = Ast_generic_v1_j.string_of_program v1 in
       let file = !!file ^ ".ast.json" |> Fpath.v in
       UFile.write_file file s;
-      UCommon.pr2 (spf "saved JSON output in %s" !!file)
+      Logs.info (fun m -> m "saved JSON output in %s" !!file)
   | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]
 
-let dump_ext_of_lang () =
+let dump_ext_of_lang (caps : < Cap.stdout >) () =
   let lang_to_exts =
     Lang.keys
     |> List_.map (fun lang_str ->
@@ -126,15 +127,14 @@ let dump_ext_of_lang () =
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
            | None -> "")
   in
-  UCommon.pr2
+  CapConsole.print caps#stdout
     (spf "Language to supported file extension mappings:\n %s"
        (String.concat "\n" lang_to_exts))
 [@@action]
 
-let dump_equivalences (caps : < Cap.tmp >) file =
-  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
+let dump_equivalences (caps : < Cap.stdout >) file =
   let xs = Parse_equivalences.parse file in
-  UCommon.pr2_gen xs
+  CapConsole.print caps#stdout (Dumper.dump xs)
 [@@action]
 
 let dump_rule (caps : < Cap.tmp >) file =
@@ -180,13 +180,14 @@ let dump_contributions () =
  * and print a summary.
  * This is what 'semgrep-core -test_rules' run.
  *)
-let test_rules caps (paths : Fpath.t list) : unit =
+let test_rules (caps : < Cap.stdout ; Cap.exit >) (paths : Fpath.t list) : unit
+    =
   let total_mismatch = ref 0 in
   let fail_callback num_errors _msg =
     total_mismatch := !total_mismatch + num_errors
   in
   let tests = Test_engine.make_tests ~fail_callback paths in
   tests |> List.iter (fun (test : Testo.t) -> test.func ());
-  UCommon.pr2 (spf "total mismatch: %d" !total_mismatch);
+  CapConsole.print caps#stdout (spf "total mismatch: %d" !total_mismatch);
   if !total_mismatch > 0 then CapStdlib.exit caps#exit 1
 [@@action]

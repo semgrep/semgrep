@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,8 +15,7 @@
 open Common
 open AST_generic
 module G = AST_generic
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_ast_generic.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -173,7 +172,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
         (* we skip the type parts in ds ... *)
         | Some (QDots ds) -> ds |> List_.map fst
         | Some (QExpr _) ->
-            Logs.err (fun m -> m ~tags "unexpected qualifier type");
+            Log.warn (fun m -> m "unexpected qualifier type");
             []
         | None -> []
       in
@@ -442,9 +441,8 @@ let ac_matching_nf op args =
   if is_associative_operator op then (
     try Some (nf args) with
     | Exit ->
-        Logs.err (fun m ->
-            m ~tags
-              "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+        Log.warn (fun m ->
+            m "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
               (show_operator op)
               (show_arguments (Tok.unsafe_fake_bracket args)));
         None)
@@ -470,7 +468,7 @@ let set_e_range l r e =
       (* Probably not super useful to dump the whole expression, or to log the
        * fake tokens themselves. Perhaps this will be useful for debugging
        * isolated examples, though. *)
-      Logs.debug (fun m -> m ~tags "set_e_range failed: missing token location");
+      Log.warn (fun m -> m "set_e_range failed: missing token location");
       ()
 
 class ['self] extract_info_visitor =
@@ -576,8 +574,7 @@ let set_e_range_with_anys anys e =
   match extract_ranges_with_anys anys with
   | Some (l, r) -> e.e_range <- Some (l, r)
   | None ->
-      Logs.debug (fun m ->
-          m ~tags "set_e_range_with_anys failed: no locations found");
+      Log.warn (fun m -> m "set_e_range_with_anys failed: no locations found");
       ()
 
 let range_of_tokens_unsafe tokens =

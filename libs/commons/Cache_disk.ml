@@ -14,8 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_commons.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -98,13 +97,13 @@ let (cache_monad :
     bind (compute_value input) (fun value ->
         let extra = methods.cache_extra_for_input input in
         let (v : ('value, 'extra) cached_value_on_disk) = { extra; value } in
-        Logs.debug (fun m -> m "saving %s content in %s" input_str !!cache_file);
+        Log.info (fun m -> m "saving %s content in %s" input_str !!cache_file);
         (try write_value v !!cache_file with
         | Sys_error err ->
             (* We must Signal_ignore SIGXFSZ to get this exn; See the comment
              * on "SIGXFSZ (file size limit exceeded)" in Semgrep CLI.ml
              *)
-            Logs.debug (fun m ->
+            Log.warn (fun m ->
                 m "could not write cache file for %s (err = %s)" input_str err);
             (* Make sure we don't leave corrupt cache files behind us *)
             if USys.file_exists !!cache_file then USys.remove !!cache_file);
@@ -118,11 +117,11 @@ let (cache_monad :
     let (v : ('value, 'extra) cached_value_on_disk) = get_value !!cache_file in
     let { extra; value } = v in
     if methods.check_extra extra then (
-      Logs.debug (fun m ->
+      Log.info (fun m ->
           m "using the cache file %s for %s" !!cache_file input_str);
       return value)
     else (
-      Logs.debug (fun m ->
+      Log.warn (fun m ->
           m "invalid cache %s for %s (or too old)" !!cache_file input_str);
 
       compute_and_save_in_cache ())
@@ -146,8 +145,8 @@ let cache_lwt compute_value methods input =
 let cache_computation ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
   else if not (USys.file_exists file) then (
-    Logs.err (fun m -> m ~tags "WARNING: cache_computation: can't find %s" file);
-    Logs.err (fun m -> m ~tags "defaulting to calling the function");
+    Log.warn (fun m -> m "cache_computation: can't find %s" file);
+    Log.warn (fun m -> m "defaulting to calling the function");
     f ())
   else
     let file_cache = file ^ ext_cache in
@@ -155,7 +154,7 @@ let cache_computation ?(use_cache = true) file ext_cache f =
       USys.file_exists file_cache
       && UFile.filemtime (Fpath.v file_cache) >= UFile.filemtime (Fpath.v file)
     then (
-      Logs.info (fun m -> m ~tags "using cache: %s" file_cache);
+      Log.info (fun m -> m "using cache: %s" file_cache);
       get_value file_cache)
     else
       let res = f () in
@@ -181,7 +180,7 @@ let cache_computation_robust file ext_cache
     && get_value dependencies_cache =*= dependencies
   then get_value file_cache
   else (
-    UCommon.pr2 ("cache computation recompute " ^ file);
+    Log.info (fun m -> m "cache computation recompute %s" file);
     let res = f () in
     write_value dependencies dependencies_cache;
     write_value res file_cache;

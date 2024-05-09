@@ -27,8 +27,8 @@ module MV = Metavariable
 module Options = Rule_options_t
 module H = AST_generic_helpers
 open Matching_generic
+module Log = Log_matching.Log
 
-let tags = Logs_.create_tags [ __MODULE__ ]
 let hook_find_possible_parents = ref None
 let hook_r2c_pro_was_here = ref None
 
@@ -329,8 +329,8 @@ let m_with_symbolic_propagation ~is_root f b tin =
            * itself, but if it directly resolves to itself, we can easily catch
            * it. *)
           if phys_equal b1 b then (
-            Logs.err (fun m ->
-                m ~tags
+            Log.warn (fun m ->
+                m
                   "Aborting symbolic propagation: Circular reference \
                    encountered (\"%s\")"
                   id);
@@ -338,8 +338,8 @@ let m_with_symbolic_propagation ~is_root f b tin =
           else f b1 { tin with deref_sym_vals = tin.deref_sym_vals + 1 }
       | ___else___ -> fail () tin
     else (
-      Logs.err (fun m ->
-          m ~tags
+      Log.warn (fun m ->
+          m
             "Aborting symbolic propagation: a bug in Semgrep may be causing an \
              infinite loop");
       fail () tin)
@@ -493,7 +493,6 @@ let rec m_name_inner a b =
       | Some file ->
           let m = module_name_of_filename file in
           let t = snd idb in
-          UCommon.pr2_gen m;
           let _n = H.name_of_ids [ (m, t); idb ] in
           (* retry with qualified target *)
           (* m_name a n *)
@@ -1544,19 +1543,19 @@ and m_xml_kind a b =
         (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
-           let* () = m_ident_and_id_info a1 b1 in
+           let* () = m_name a1 b1 in
            let* () = m_tok a2 b2 in
            return ())
         ~else_:(fail ())
   | G.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident_and_id_info a1 b1 in
+      let* () = m_name a1 b1 in
       let* () = m_tok a2 b2 in
       let* () = m_tok a3 b3 in
       return ()
   | G.XmlSingleton (a0, a1, a2), B.XmlSingleton (b0, b1, b2) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident_and_id_info a1 b1 in
+      let* () = m_name a1 b1 in
       let* () = m_tok a2 b2 in
       return ()
   | G.XmlFragment (a1, a2), B.XmlFragment (b1, b2) ->
@@ -1803,8 +1802,9 @@ and m_call_op aop toka aargs bop tokb bargs tin =
     | G.Eq
     | G.NotEq ->
         if tin.config.commutative_compop then
-          Logs.err (fun m ->
-              m ~tags
+          (* nosemgrep: no-logs-in-library *)
+          Logs.warn (fun m ->
+              m
                 "`commutative_compop` rule option has been deprecated. Please \
                  use `symmetric_eq` instead.");
         tin.config.commutative_compop || tin.config.symmetric_eq
@@ -1829,8 +1829,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
             | false (* assoc and not comm*) ->
                 m_assoc_op tokb aop aargs_ac bargs_ac tin)
         | ___else___ ->
-            Logs.warn (fun m ->
-                m ~tags
+            Log.warn (fun m ->
+                m
                   "Will not perform AC-matching, something went wrong when \
                    trying to convert operands to AC normal form: %s ~ %s"
                   (G.show_expr
@@ -1989,8 +1989,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
        *       explode but not as easily
        *)
       (* TODO: Issue a proper warning to the user. *)
-      Logs.warn (fun m ->
-          m ~tags
+      Log.warn (fun m ->
+          m
             "Restricted AC-matching due to potential blow-up: op=%s avars#=%d \
              bs_left#=%d\n"
             (G.show_operator op) (List.length avars) num_bs_left);
@@ -2288,6 +2288,12 @@ and m_attribute a b =
       m_name a1 b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.OtherAttribute (a1, a2), B.OtherAttribute (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | ( G.OtherAttribute (_, [ G.E { e = G.Call (a1, a2); _ } ]),
+      B.NamedAttr (_, b1, b2) ) ->
+      m_expr a1 (B.N b1 |> B.e) >>= fun () -> m_bracket m_list__m_argument a2 b2
+  | ( G.NamedAttr (_, a1, a2),
+      B.OtherAttribute (_, [ B.E { e = B.Call (b1, b2); _ } ]) ) ->
+      m_expr (G.N a1 |> G.e) b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.KeywordAttr _, _
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->
@@ -2406,8 +2412,8 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
  *)
 and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
     =
-  Logs.debug (fun m ->
-      m ~tags "%s"
+  Log.debug (fun m ->
+      m "%s"
         (spf "m_list__m_stmt: %d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
@@ -3208,8 +3214,8 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
 
 (* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
-  Logs.debug (fun m ->
-      m ~tags "%s"
+  Log.debug (fun m ->
+      m "%s"
         (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
@@ -3741,7 +3747,7 @@ and m_any a b =
   | G.S a1, B.S b1 -> m_stmt a1 b1
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
   | G.Name a1, B.Name b1 -> m_name a1 b1
-  | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
+  | G.Args a1, B.Args b1 -> m_list__m_argument a1 b1
   | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
   | G.Xmls a1, B.Xmls b1 -> m_list m_xml_body a1 b1
   | G.Anys a1, B.Anys b1 -> m_list m_any a1 b1

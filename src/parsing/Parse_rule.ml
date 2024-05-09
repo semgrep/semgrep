@@ -25,7 +25,8 @@ module MV = Metavariable
 open Parse_rule_helpers
 module H = Parse_rule_helpers
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* alt: use a separate Logs src "semgrep.parsing.rule" *)
+module Log = Log_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -102,11 +103,20 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
 
 let parse_severity ~id (s, t) : Rule.severity =
   match s with
+  (* LATER: should put a deprecated notice at some point for all of those
+   * coupling: update the error below when we fully switch to Low/Medium/...
+   *)
   | "ERROR" -> `Error
   | "WARNING" -> `Warning
-  | "INFO" -> `Info
   | "INVENTORY" -> `Inventory
   | "EXPERIMENT" -> `Experiment
+  (* since Semgrep 1.72.0 *)
+  | "CRITICAL" -> `Critical
+  | "HIGH" -> `High
+  | "MEDIUM" -> `Medium
+  | "LOW" -> `Low
+  (* generic placeholder *)
+  | "INFO" -> `Info
   | s ->
       Rule.raise_error (Some id)
         (InvalidRule
@@ -124,6 +134,7 @@ let parse_fix_regex (env : env) (key : key) fields =
   let (regex : string R.wrap) =
     take_key fix_regex_dict env parse_string_wrap "regex"
   in
+  (* TODO? should we String.trim for consistency with fix: ? *)
   let (replacement : string) =
     take_key fix_regex_dict env parse_string "replacement"
   in
@@ -198,11 +209,10 @@ let parse_options rule_id (key : key) value =
       (fun _src_loc field_name ->
         (* for forward compatibility, better to not raise an exn and just
          * ignore the new fields.
-         * TODO: we should use a warning/logging infra to report
-         * this in the JSON to the semgrep wrapper and user.
+         * old: raise (InvalidYamlException (spf "unknown opt: %s" field_name))
          *)
-        (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
-        UCommon.pr2 (spf "WARNING: unknown option: %s" field_name))
+        (* nosemgrep: no-logs-in-library *)
+        Logs.warn (fun m -> m "unknown rule option: %s" field_name))
       (fun () -> Rule_options_j.t_of_string s)
   in
   (options, Some key)
@@ -778,25 +788,25 @@ let parse_dependency_formula env key value : R.dependency_formula =
 (*****************************************************************************)
 
 (* dispatch depending on the "mode" of the rule *)
-let parse_mode env mode_opt (rule_dict : dict) : R.mode =
+let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) : R.mode =
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
   *)
   let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
   (* TODO? maybe have also has_extract_key, has_steps_key, has_secrets_key *)
-  match (mode_opt, has_taint_key) with
+  match (mode_opt, has_taint_key, dep_fml_opt) with
   (* no mode:, no taint:, default to look for match: *)
-  | None, false
-  | Some ("search", _), false ->
+  | None, false, None
+  | Some ("search", _), false, _ ->
       parse_search_fields env rule_dict
-  | None, true
-  | Some ("taint", _), _ ->
+  | None, true, _
+  | Some ("taint", _), _, _ ->
       parse_taint_fields env rule_dict
   (* TODO: for extract in syntax v2 (see rule_schema_v2.atd)
    * | None, _, true (has_extract_key) ->
    *     parse_extract_fields ...
    *)
-  | Some ("extract", _), _ ->
+  | Some ("extract", _), _, _ ->
       let formula =
         Parse_rule_formula.parse_formula_old_from_dict env rule_dict
       in
@@ -822,11 +832,18 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
   (* TODO? should we use "mode: steps" instead? *)
-  | Some ("step", _), _ ->
+  | Some ("step", _), _, _ ->
       let steps = take_key rule_dict env parse_steps "steps" in
       `Steps steps
+  (* SCA Doesn't require patterns. Just trying to be permissive here
+     for now. If the SCA rule is a valid search rule then we go ahead
+     and parse it as a search rule. Right now the dependency_formula
+     is repeated as an optional field in the rule too.*)
+  | None, false, Some fml -> (
+      try parse_search_fields env rule_dict with
+      | Rule.Error { kind = InvalidRule _; _ } -> `SCA fml)
   (* unknown mode *)
-  | Some key, _ ->
+  | Some key, _, _ ->
       error_at_key env.id key
         (spf
            "Unexpected value for mode, should be 'search', 'taint', 'extract', \
@@ -916,12 +933,12 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     }
   in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
-  (* this parses the search formula, or taint spec, or extract mode, etc. *)
-  let mode = parse_mode env mode_opt rd in
-  let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
   let dep_formula_opt =
     take_opt rd env parse_dependency_formula "r2c-internal-project-depends-on"
   in
+  (* this parses the search formula, or taint spec, or extract mode, etc. *)
+  let mode = parse_mode env mode_opt dep_formula_opt rd in
+  let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
   let product = parse_product metadata_opt dep_formula_opt in
   let message, severity =
     match mode with
@@ -948,7 +965,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     product;
     (* optional fields *)
     metadata = metadata_opt;
-    fix = fix_opt;
+    fix = fix_opt |> Option.map String.trim;
     fix_regexp = fix_regex_opt;
     paths = paths_opt;
     equivalences = equivs_opt;
@@ -1000,9 +1017,8 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
-               Logs.warn (fun m ->
-                   m ~tags "skipping rule %s, error = %s"
-                     (Rule_ID.to_string ruleid) s);
+               Log.warn (fun m ->
+                   m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
                Either.Right err)
   in
   Either_.partition_either (fun x -> x) xs
@@ -1073,8 +1089,8 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
     | _ ->
         (* TODO: suspicious code duplication. The same error message
            occurs in Translate_rule.ml *)
-        Logs.err (fun m ->
-            m ~tags
+        Log.err (fun m ->
+            m
               "Wrong rule format, only JSON/YAML/JSONNET are valid. Trying to \
                parse %s as YAML"
               !!file);
@@ -1086,8 +1102,12 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
-  parse_file ~error_recovery:true ?rewrite_rule_ids file
+let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) =
+  let rules, errors = parse_file ~error_recovery:true ?rewrite_rule_ids file in
+  Log.debug (fun m ->
+      m "Parse_rule.parse_and_filter_invalid_rules(%s) = " !!file);
+  rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
+  (rules, errors)
 [@@profiling]
 
 let parse_xpattern xlang (str, tok) =

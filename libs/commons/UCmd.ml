@@ -17,11 +17,15 @@ open Common
 
    Let's not log environment variables because they may contain sensitive
    secrets.
+   Note that we're using Logs.info below on purpose; this is probably
+   something the user wants to know.
 *)
 let log_command cmd =
+  (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd))
 
 let log_shell_command cmd =
+  (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Running shell command: %s" cmd)
 
 (*****************************************************************************)
@@ -38,7 +42,9 @@ let process_output_to_list ?(verbose = false) command =
   let rec process_otl_aux () =
     let e = input_line chan in
     res := e :: !res;
-    if verbose then UCommon.pr2 e;
+    if verbose then
+      (* nosemgrep: no-logs-in-library *)
+      Logs.info (fun m -> m "%s" e);
     process_otl_aux ()
   in
   try process_otl_aux () with

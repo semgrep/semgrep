@@ -6,7 +6,6 @@ module FT = File_type
 module C = Rules_config
 module R = Rule
 module XP = Xpattern
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -122,13 +121,16 @@ let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
       | None -> None
       | Some token -> Some [ Auth.auth_header_of_token token ]
     in
-    let%lwt res = Http_helpers.get_async ?headers caps#network url in
-    match res with
-    | Ok (body, _) -> Lwt.return body
-    | Error (msg, _) ->
+    match%lwt Http_helpers.get ?headers caps#network url with
+    | Ok { body = Ok body; _ } -> Lwt.return body
+    | Ok { body = Error error; code; _ } ->
+        Error.abort
+          (spf "Failed to download config from %s, returned code %u: %s"
+             (Uri.to_string url) code error)
+    | Error e ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
-          (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
+          (spf "Failed to download config from %s: %s" (Uri.to_string url) e)
   in
   Logs.info (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content

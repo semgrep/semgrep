@@ -1,6 +1,6 @@
 (* David Frankel
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,6 +14,10 @@
  *)
 open Common.Operators
 open Fpath_.Operators
+
+let src = Logs.Src.create "parser_hack"
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (*
    Map a Hack CST obtained from the tree-sitter parser directly to the generic
@@ -34,7 +38,6 @@ module H2 = AST_generic_helpers
 type mode = Pattern | Target
 type env = mode H.env
 
-let tags = Logs_.create_tags [ __MODULE__ ]
 let token = H.token
 let str = H.str
 let fk tok = Tok.fake_tok tok ""
@@ -65,7 +68,7 @@ let stringify_without_quotes str =
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | s when s =~ "^\'\\(.*\\)\'$" -> Common.matched1 s
     | _ ->
-        Logs.warn (fun m -> m ~tags "weird string literal: %s" s);
+        Log.warn (fun m -> m "weird string literal: %s" s);
         s
   in
   G.String (fb (s, t))
@@ -2873,7 +2876,7 @@ and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
   match x with
   | `Xhp_open_close (v1, v2, v3, v4) ->
       let v1 = (* "<" *) token env v1 in
-      let v2 = (xhp_identifier_ env v2, G.empty_id_info ()) in
+      let v2 = G.Id (xhp_identifier_ env v2, G.empty_id_info ()) in
       let v3 = List_.map (xhp_attribute env) v3 in
       let v4 = (* "/>" *) token env v4 in
       { xml_kind = G.XmlSingleton (v1, v2, v4); xml_attrs = v3; xml_body = [] }
@@ -2906,7 +2909,7 @@ and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
 
 and xhp_open (env : env) ((v1, v2, v3, v4) : CST.xhp_open) =
   let v1 = (* "<" *) token env v1 in
-  let v2 = (xhp_identifier_ env v2, G.empty_id_info ()) in
+  let v2 = G.Id (xhp_identifier_ env v2, G.empty_id_info ()) in
   let v3 = List_.map (xhp_attribute env) v3 in
   let v4 = (* ">" *) token env v4 in
   (v1, v2, v3, v4)

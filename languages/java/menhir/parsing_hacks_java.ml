@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2012 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,8 +19,7 @@ module Flag = Flag_parsing
 module TH = Token_helpers_java
 module F = Ast_fuzzy
 module T = Parser_java
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_java.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -53,9 +52,9 @@ let fix_tokens_generics xs =
   let rec aux env xs =
     let depth_angle = env in
     if depth_angle < 0 then (
-      Logs.err (fun m -> m ~tags "depth_angle < 0, %d" depth_angle);
-      Logs.err (fun m ->
-          m ~tags "%s"
+      Log.warn (fun m -> m "depth_angle < 0, %d" depth_angle);
+      Log.debug (fun m ->
+          m "%s"
             (match xs with
             | x :: _ -> Dumper.dump x
             | [] -> "<can't get info from empty list>"));
@@ -125,8 +124,7 @@ let fix_tokens_generics xs =
        * this code. But pb, see previous comment.
        *)
       | IDENTIFIER (s, ii1) :: LT ii2 :: xs when s =~ "^[A-Z]" ->
-          Logs.debug (fun m ->
-              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
+          Log.debug (fun m -> m "retagging < at %s" (Tok.stringpos_of_tok ii2));
           IDENTIFIER (s, ii1) :: LT_GENERIC ii2 :: aux (depth_angle + 1) xs
       | IDENTIFIER (s, ii1)
         :: TCommentSpace iispace
@@ -134,15 +132,13 @@ let fix_tokens_generics xs =
         :: IDENTIFIER (s3, ii3)
         :: xs
         when s =~ "^[A-Z]" && s3 =~ "^[A-Z]" ->
-          Logs.debug (fun m ->
-              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
+          Log.debug (fun m -> m "retagging < at %s" (Tok.stringpos_of_tok ii2));
           IDENTIFIER (s, ii1)
           :: TCommentSpace iispace :: LT_GENERIC ii2
           :: aux (depth_angle + 1) (IDENTIFIER (s3, ii3) :: xs)
       | IDENTIFIER (s, ii1) :: TCommentSpace iispace :: LT ii2 :: COND ii3 :: xs
         when s =~ "^[A-Z]" ->
-          Logs.debug (fun m ->
-              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
+          Log.debug (fun m -> m "retagging < at %s" (Tok.stringpos_of_tok ii2));
           IDENTIFIER (s, ii1)
           :: TCommentSpace iispace :: LT_GENERIC ii2
           :: aux (depth_angle + 1) (COND ii3 :: xs)
@@ -151,8 +147,7 @@ let fix_tokens_generics xs =
        * so at least the >> get transformed into > >.
        *)
       | DOT ii1 :: LT ii2 :: xs ->
-          Logs.debug (fun m ->
-              m ~tags "retagging < at %s" (Tok.stringpos_of_tok ii2));
+          Log.debug (fun m -> m "retagging < at %s" (Tok.stringpos_of_tok ii2));
           DOT ii1 :: LT_GENERIC ii2 :: aux (depth_angle + 1) xs
       (* <T extends ...> bar().
        * could also check for public|static|... just before the <
@@ -239,18 +234,17 @@ let fix_tokens_fuzzy toks =
     toks
     |> List.map (function
          | T.LP info when Hashtbl.mem retag_lparen info ->
-             Logs.debug (fun m ->
-                 m ~tags "retagging ( for lambda at %s"
-                   (Tok.stringpos_of_tok info));
+             Log.debug (fun m ->
+                 m "retagging ( for lambda at %s" (Tok.stringpos_of_tok info));
              T.LP_LAMBDA info
          | T.LP info when Hashtbl.mem retag_lparen_constructor info ->
-             Logs.debug (fun m ->
-                 m ~tags "retagging ( for constructor at %s"
+             Log.debug (fun m ->
+                 m "retagging ( for constructor at %s"
                    (Tok.stringpos_of_tok info));
              T.LP_PARAM info
          | T.DEFAULT info when Hashtbl.mem retag_default info ->
-             Logs.debug (fun m ->
-                 m ~tags "retagging default at %s" (Tok.stringpos_of_tok info));
+             Log.debug (fun m ->
+                 m "retagging default at %s" (Tok.stringpos_of_tok info));
              T.DEFAULT_COLON info
          | x -> x)
   with

@@ -6,6 +6,112 @@
 
 <!-- insertion point -->
 
+## [1.72.0](https://github.com/returntocorp/semgrep/releases/tag/v1.72.0) - 2024-05-08
+
+
+### Fixed
+
+
+- Dockerfile support: Avoid a silent parsing error that was possibly accompanied
+  with a segfault when parsing Dockerfiles that lack a trailing newline
+  character. (gh-10084)
+- Fixed bug that was preventing the use of `metavariable-pattern` with
+  the aliengrep engine of the generic mode. (gh-10222)
+- Added support for function declarations on object literals in the dataflow analysis.
+
+  For example, previously taint rules would not have matched the
+  following javascript code but now would.
+  ```
+  let tainted = source()
+  let o = {
+      someFuncDecl(x) {
+          sink(tainted)
+      }
+  }
+  ``` (saf-1001)
+- Osemgrep only:
+
+  When rules have metavariable-type, they don't show up in the SARIF output. This change fixes that.
+
+  Also right now dataflow traces are always shown in SARIF even when --dataflow-traces is not passed. This change also fixes that. (saf-1020)
+- Fixed bug in rule parsing preventing patternless SCA rules from being validated. (saf-1030)
+
+
+## [1.71.0](https://github.com/returntocorp/semgrep/releases/tag/v1.71.0) - 2024-05-03
+
+
+### Added
+
+
+- Pro: const-prop: Previously inter-procedural const-prop could only infer whether
+  a function returned an arbitrary string constant. Now it will be able to infer
+  whether a function returns a concrete constant value, e.g.:
+
+  ```python
+  def bar():
+    return "bar"
+
+  def test():
+    x = bar()
+    foo(x) # now also matches pattern `foo("bar")`, previously only `foo("...")`
+  ``` (flow-61)
+- Python: const-prop: Semgrep will now recognize "..." * N expression as arbitrary
+  constant string literals (thus matching the pattern "..."). (flow-75)
+
+
+### Changed
+
+
+- The `--beta-testing-secrets-enabled` option, deprecated for several months, is now removed. Use `--secrets` as its replacement. (gh-9987)
+
+
+### Fixed
+
+
+- When using semgrep --test --json, we now report in the
+  config_missing_fixtests field in the JSON output not just rule files
+  containing a `fix:` without a corresponding ".fixed" test file; we now also
+  report rule files using a `fix-regex:` but without a corresponding a
+  .fixed test file, and the `fix:` or `fix-regex:` can be in
+  any rule in the file (not just the first rule). (fixtest)
+- Fixes matching for go struct field tags metadata.
+
+  For example given the program:
+  ```
+  type Rectangle struct {
+      Top    int `json:"top"`
+      Left   int `json:"left"`
+      Width  int `json:"width"`
+      Height int `json:"height"`
+  }
+  ```
+  The pattern,
+  ```
+  type Rectangle struct {
+      ...
+      $NAME $TYPE $TAGS
+      ...
+  }
+  ```
+  will now match each field and the `$TAGS` metavariable will be
+  bound when used in susequent patterns. (saf-949)
+- Matching: Patterns of statements ending in ellipsis metavariables, such as
+  ```
+  x = 1
+  $...STMTS
+  ```
+  will now properly extend the match range to accommodate whatever is captured by
+  the ellipsis metavariable ($...STMTS). (saf-961)
+- The SARIF output format should have the tag "security" when the "cwe"
+  section is present in the rule. Moreover, duplicate tags should be
+  de-duped.
+
+  Osemgrep wasn't doing this before, but with this fix, now it does. (saf-991)
+- Fixed bug in mix.lock parser where it was possible to fail on a python None error. Added handler for arbitrary exceptions during lockfile parsing. (sc-1466)
+- Moved `--historical-secrets` to the "Pro Engine" option group, instead of
+  "Output formats", where it was previously (in error). (scrt-570)
+
+
 ## [1.70.0](https://github.com/returntocorp/semgrep/releases/tag/v1.70.0) - 2024-04-24
 
 

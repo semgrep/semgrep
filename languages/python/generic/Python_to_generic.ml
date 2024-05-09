@@ -905,15 +905,39 @@ and decorator env (t, v1) =
   in
   match dotted_name with
   | Some d_name -> (
-      match (H.name_of_ids d_name, args) with
+      match (d_name, args) with
       (* Use standard static keyword for staticmethod attribute. This
          is used by other parts of the pro-engine to check if a method
          is static. *)
-      | G.Id (("staticmethod", tok), _), (None | Some (_, [], _)) ->
+      | [ ("staticmethod", tok) ], (None | Some (_, [], _)) ->
           G.attr G.Static tok
-      | name, args ->
+      | [ x ], args ->
           G.NamedAttr
-            (t, name, Option.value ~default:(Tok.unsafe_fake_bracket []) args))
+            ( t,
+              Id (x, G.empty_id_info ()),
+              Option.value ~default:(Tok.unsafe_fake_bracket []) args )
+      | x :: xs, args ->
+          let base = G.N (G.Id (x, G.empty_id_info ())) |> G.e in
+          let dot_access =
+            xs
+            |> List.fold_left
+                 (fun e x ->
+                   let tok = Tok.fake_tok (snd x) "." in
+                   G.DotAccess (e, tok, G.FN (G.Id (x, G.empty_id_info ())))
+                   |> G.e)
+                 base
+          in
+          G.OtherAttribute
+            ( ("qualified attr", t),
+              [
+                G.E
+                  (G.Call
+                     ( dot_access,
+                       args
+                       |> Option.value ~default:(Tok.unsafe_fake_bracket []) )
+                  |> G.e);
+              ] )
+      | [], _ -> raise Impossible)
   | None ->
       let v1 = expr env v1 in
       G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])

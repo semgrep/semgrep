@@ -1,15 +1,38 @@
 open Common
 module OutT = Semgrep_output_v1_t
 
-(* from formatter/gitlab_sast.py *)
-(* TODO: Semgrep states currently don't map super well to Gitlab schema.*)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Output findings compatible with GitLab SAST JSON format.
+
+   - Written based on:
+     https://github.com/returntocorp/semgrep-action/blob/678eff1a4269ed04b76631771688c8be860ec4e9/src/semgrep_agent/findings.py#L137-L165
+   - Docs:
+     https://docs.gitlab.com/ee/user/application_security/sast/#reports-json-format
+   - Schema:
+     https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
+
+   Ported from cli/.../formatter/gitlab_sast.py
+*)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let to_gitlab_severity = function
   | `Info -> "Info"
-  | `Warning -> "Medium"
-  | `Error -> "High"
+  | `Low -> "Low"
+  | `Warning
+  | `Medium ->
+      "Medium"
+  | `Error
+  | `High ->
+      "High"
+  | `Critical -> "Critical"
   | `Experiment
   | `Inventory ->
-      raise Todo
+      "Unknown"
 
 let format_cli_match (cli_match : OutT.cli_match) =
   let metadata = JSON.from_yojson cli_match.extra.metadata in
@@ -131,15 +154,11 @@ let format_cli_match (cli_match : OutT.cli_match) =
   in
   r
 
-(* Format matches in GitLab SAST report compliant JSON.
-   - Written based on:
-     https://github.com/returntocorp/semgrep-action/blob/678eff1a4269ed04b76631771688c8be860ec4e9/src/semgrep_agent/findings.py#L137-L165
-   - Docs:
-     https://docs.gitlab.com/ee/user/application_security/sast/#reports-json-format
-   - Schema:
-     https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
-*)
-let output f matches =
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+let output f (matches : OutT.cli_match list) : JSON.yojson =
   let header =
     [
       ( "$schema",
@@ -180,6 +199,10 @@ let output f matches =
         | `Experiment
         | `Inventory ->
             None
+        | `Critical
+        | `High
+        | `Medium
+        | `Low
         | `Info
         | `Warning
         | `Error ->
@@ -189,7 +212,8 @@ let output f matches =
   `Assoc
     (header @ [ ("scan", scan); ("vulnerabilities", `List vulnerabilities) ])
 
-let sast_output matches = output format_cli_match matches
+let sast_output (matches : OutT.cli_match list) =
+  output format_cli_match matches
 
 let secrets_format_cli_match (cli_match : OutT.cli_match) =
   let r = format_cli_match cli_match in
@@ -210,4 +234,5 @@ let secrets_format_cli_match (cli_match : OutT.cli_match) =
   in
   r @ more
 
-let secrets_output matches = output secrets_format_cli_match matches
+let secrets_output (matches : OutT.cli_match list) : JSON.yojson =
+  output secrets_format_cli_match matches

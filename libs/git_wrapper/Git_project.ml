@@ -3,9 +3,8 @@
 
    Tests are in Unit_semgrepignore.ml
 *)
-
-(* remove logging tags if/when this module gets its own src *)
-let tags = Logs_.create_tags [ __MODULE__ ]
+open Fpath_.Operators
+module Log = Log_git_wrapper.Log
 
 type scanning_root_info = { project_root : Rfpath.t; inproject_path : Ppath.t }
 
@@ -21,19 +20,19 @@ let force_project_root ?(project_root : Rfpath.t option) (path : Fpath.t) =
     | None -> get_project_root_for_nongit_file path
     | Some x -> x
   in
-  Logs.debug (fun m ->
-      m ~tags "project_root=%s path=%s" (Rfpath.show project_root)
+  Log.debug (fun m ->
+      m "project_root=%s path=%s" (Rfpath.show project_root)
         (Fpath.to_string path));
   match Ppath.in_project ~root:project_root path with
   | Ok inproject_path -> { project_root; inproject_path }
   | Error msg -> failwith msg
 
 let find_any_project_root ?fallback_root ?force_root (fpath : Fpath.t) =
-  Logs.debug (fun m ->
-      m ~tags "find_any_project_root: fallback_root=%s force_root=%s %s"
+  Log.debug (fun m ->
+      m "find_any_project_root: fallback_root=%s force_root=%s %s"
         (Logs_.option Rfpath.show fallback_root)
         (Logs_.option (fun _ -> "_") force_root)
-        (Fpath.to_string fpath));
+        !!fpath);
   match force_root with
   | Some (kind, project_root) ->
       let scanning_root_info = force_project_root ~project_root fpath in

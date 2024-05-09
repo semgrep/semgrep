@@ -2,10 +2,32 @@ open Common
 module OutT = Semgrep_output_v1_t
 module Sarif_v = Sarif.Sarif_v_2_1_0_v
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Formats the CLI output to the SARIF format using the sarif OPAM package.
+ *
+ * The sarif spec is available at:
+ * https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+ *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* See the "level" property in the spec *)
 let sarif_severity_of_severity : _ -> Sarif_v.notification_level = function
-  | `Info -> `Note
-  | `Warning -> `Warning
-  | `Error -> `Error
+  | `Info
+  | `Low ->
+      `Note
+  | `Warning
+  | `Medium ->
+      `Warning
+  (* both critical and high are mapped to the same `Error *)
+  | `Error
+  | `Critical
+  | `High ->
+      `Error
   | `Experiment
   | `Inventory ->
       raise Todo
@@ -310,7 +332,7 @@ let sarif_codeflow (cli_match : OutT.cli_match) =
             ~thread_flows ();
         ]
 
-let results (cli_output : OutT.cli_output) =
+let results show_dataflow_traces (cli_output : OutT.cli_output) =
   let result (cli_match : OutT.cli_match) =
     let location =
       let physical_location =
@@ -334,7 +356,9 @@ let results (cli_output : OutT.cli_output) =
       | Some true -> Some [ Sarif_v.create_suppression ~kind:`InSource () ]
     in
     let fixes = sarif_fixes cli_match in
-    let code_flows = sarif_codeflow cli_match in
+    let code_flows =
+      if show_dataflow_traces then sarif_codeflow cli_match else None
+    in
     Sarif_v.create_result
       ~rule_id:(Rule_ID.to_string cli_match.check_id)
       ~message:(message cli_match.extra.message)
@@ -362,8 +386,12 @@ let error_to_sarif_notification (e : OutT.cli_error) =
   in
   Sarif_v.create_notification ~message ~descriptor ~level ()
 
-let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
-    =
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let sarif_output ~hide_nudge ~engine_label ~show_dataflow_traces hrules
+    (cli_output : OutT.cli_output) =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
@@ -377,7 +405,7 @@ let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
       in
       Sarif_v.create_tool ~driver ()
     in
-    let results = results cli_output in
+    let results = results show_dataflow_traces cli_output in
     let invocation =
       (* TODO no test case(s) for executionNotifications being non-empty *)
       let tool_execution_notifications =

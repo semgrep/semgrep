@@ -3,7 +3,7 @@
   "interfile_languages_used": [],
   "paths": {
     "scanned": [
-      "targets/experiment/experiment.py"
+      "targets/basic.py"
     ]
   },
   "results": [],

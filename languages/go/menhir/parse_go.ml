@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,6 +17,7 @@ open Fpath_.Operators
 module Flag = Flag_parsing
 module TH = Token_helpers_go
 module Lexer = Lexer_go
+module Log = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -76,11 +77,14 @@ let parse filename =
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then (
-        UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
+        Log.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
         let filelines = UFile.cat_array filename in
         let checkpoint2 = UFile.cat filename |> List.length in
         let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
-        Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
+        Log.err (fun m ->
+            m "%s"
+              (Parsing_helpers.show_parse_error_line line_error (0, checkpoint2)
+                 filelines)));
       {
         Parsing_result.ast = [];
         tokens = toks_orig;
@@ -115,5 +119,5 @@ let any_of_string s =
       try Parser_go.sgrep_spatch_pattern lexer lexbuf_fake with
       | Parsing.Parse_error ->
           let cur = tr.Parsing_helpers.current in
-          UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
+          Log.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
           raise (Parsing_error.Syntax_error (TH.info_of_tok cur)))

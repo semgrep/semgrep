@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Matthew McQuaid
  *
- * Copyright (C) 2021-2022 R2C
+ * Copyright (C) 2021-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,8 +20,7 @@ module Flag = Flag_parsing
 open Token_scala
 open AST_scala
 module AST = AST_scala
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_parser_scala.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -166,10 +165,10 @@ let with_logging funcname f in_ =
     let save = in_.depth in
     in_.depth <- in_.depth + 1;
     let depth = n_dash in_.depth in
-    Logs.debug (fun m -> m ~tags "%s>%s: %s" depth funcname (T.show in_.token));
+    Log.debug (fun m -> m "%s>%s: %s" depth funcname (T.show in_.token));
     let res = f () in
     (* less: pass in_ ? *)
-    Logs.debug (fun m -> m ~tags "%s<%s: %s" depth funcname (T.show in_.token));
+    Log.debug (fun m -> m "%s<%s: %s" depth funcname (T.show in_.token));
     in_.depth <- save;
     res)
   else f ()
@@ -180,12 +179,11 @@ let with_logging funcname f in_ =
 let error x in_ =
   let tok = in_.token in
   let info = TH.info_of_tok tok in
-  if !Flag.debug_parser then (
-    UCommon.pr2 (T.show tok);
-    UCommon.pr2 x);
+  if !Flag.debug_parser then
+    Log.err (fun m -> m "tok =%s, x = %s" (T.show tok) x);
   raise (Parsing_error.Syntax_error info)
 
-let warning s = if !Flag.debug_parser then UCommon.pr2 ("WARNING: " ^ s)
+let warning s = if !Flag.debug_parser then Log.warn (fun m -> m "%s" s)
 
 (*****************************************************************************)
 (* Helpers  *)
@@ -407,9 +405,9 @@ let inSepRegion tok f in_ =
  * a NEWLINE or NEWLINES *)
 let insertNL ?(newlines = false) in_ =
   if !debug_newline then (
-    Logs.debug (fun m -> m ~tags "%s: %s" "insertNL" (T.show in_.token));
-    Logs.debug (fun m ->
-        m ~tags "inserting back a newline:%s" (Dumper.dump in_.last_nl)));
+    Log.debug (fun m -> m "%s: %s" "insertNL" (T.show in_.token));
+    Log.debug (fun m ->
+        m "inserting back a newline:%s" (Dumper.dump in_.last_nl)));
   match in_.last_nl with
   | None -> error "IMPOSSIBLE? no last newline to insert back" in_
   | Some x ->
@@ -433,15 +431,15 @@ let afterLineEnd in_ =
             loop xs
         | _ ->
             if !debug_newline then
-              Logs.debug (fun m ->
-                  m ~tags "%s: false because %s" "afterLineEnd" (T.show x));
+              Log.debug (fun m ->
+                  m "%s: false because %s" "afterLineEnd" (T.show x));
             false)
     | [] -> false
   in
   loop in_.passed |> fun b ->
   if !debug_newline then
-    Logs.debug (fun m ->
-        m ~tags "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b);
+    Log.debug (fun m ->
+        m "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b);
   b
 
 (* ------------------------------------------------------------------------- *)
@@ -462,7 +460,7 @@ let fetchToken in_ =
     | [] -> error "IMPOSSIBLE? fetchToken: no more tokens" in_
     | x :: xs -> (
         if !Flag.debug_lexer then
-          Logs.debug (fun m -> m ~tags "fetchToken: %s" (T.show x));
+          Log.debug (fun m -> m "fetchToken: %s" (T.show x));
 
         in_.rest <- xs;
 

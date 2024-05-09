@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2021-2022 r2c
+ * Copyright (C) 2021-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,8 +18,7 @@ open Match_env
 module MV = Metavariable
 module RM = Range_with_metavars
 module G = AST_generic
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_engine.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -96,9 +95,8 @@ let get_persistent_bindings revert_loc r nested_matches =
                     |> MV.mvalue_of_any
                   with
                   | None ->
-                      Logs.err (fun m ->
-                          m ~tags "Failed to convert mvar %s to and from any"
-                            mvar);
+                      Log.err (fun m ->
+                          m "Failed to convert mvar %s to and from any" mvar);
                       None
                   | Some mval -> Some (mvar, mval))
          in
@@ -182,11 +180,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           in
           match opt_xlang with
           | None -> (
-              (* We match wrt the same language as the rule.
-               * NOTE: A generic pattern nested inside a generic won't work because
-               *   generic mode binds metavariables to `MV.Text`, and
-               *   `MV.program_of_mvalue` does not handle `MV.Text`. So one must
-               *   specify `language: generic` (case `Some xlang` below). *)
+              (* We match wrt the same language as the rule. *)
               match MV.program_of_mvalue mval with
               | None ->
                   error env
@@ -261,17 +255,17 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                    * `$STRING` binds to some text (except when using language:
                    * generic, see above) but it can naturally bind to other
                    * string expressions. *)
-                  Logs.debug (fun m ->
-                      m ~tags
+                  Log.debug (fun m ->
+                      m
                         "metavariable-pattern failed because the content of %s \
                          is not text: %s"
                         mvar (MV.show_mvalue mval));
                   []
               | Some contents ->
                   let contents = adjust_content_for_language xlang contents in
-                  Logs.debug (fun m ->
-                      m ~tags "nested analysis of |||%s||| with lang '%s'"
-                        contents (Xlang.to_string xlang));
+                  Log.info (fun m ->
+                      m "nested analysis of |||%s||| with lang '%s'" contents
+                        (Xlang.to_string xlang));
                   (* We re-parse the matched text as `xlang`. *)
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
@@ -293,12 +287,12 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                 |> List_.map (fun tok -> revert_loc tok)
                               in
                               if skipped_tokens <> [] then
-                                UCommon.pr2
-                                  (spf
-                                     "rule %s: metavariable-pattern: failed to \
-                                      fully parse the content of %s"
-                                     (Rule_ID.to_string (fst env.rule.Rule.id))
-                                     mvar);
+                                Log.warn (fun m ->
+                                    m
+                                      "rule %s: metavariable-pattern: failed \
+                                       to fully parse the content of %s"
+                                      (Rule_ID.to_string (fst env.rule.Rule.id))
+                                      mvar);
                               Ok (lazy (ast, skipped_tokens))
                             with
                             | Parsing_error.Syntax_error tk ->

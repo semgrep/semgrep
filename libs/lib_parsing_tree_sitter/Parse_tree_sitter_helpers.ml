@@ -15,7 +15,8 @@
 open Common
 open Fpath_.Operators
 
-let tags = Logs_.create_tags [ __MODULE__ ]
+(* alt: could also use Log_lib_parsing.Log *)
+module Log = Log_tree_sitter.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -96,17 +97,15 @@ let str env (tok : Tree_sitter_run.Token.t) =
 
 let debug_sexp_cst_after_error sexp_cst =
   let s = Printexc.get_backtrace () in
-  UCommon.pr2 "Some constructs are not handled yet";
-  UCommon.pr2 "CST was:";
+  Log.warn (fun m -> m "Some constructs are not handled yet. CST was: ");
   (* bugfix: do not use CST.dump_tree because it prints on stdout
    * and will mess up our interaction with semgrep python wrapper and
    * also for the parsing_stat CI job.
    *
    * alt: Use Print_sexp.to_stderr of martin
    *)
-  UCommon.pr2 (Sexplib.Sexp.to_string_hum sexp_cst);
-  UCommon.pr2 "Original backtrace:";
-  UCommon.pr2 s
+  Log.warn (fun m ->
+      m "%s\nOriginal backtrace:\n %s" (Sexplib.Sexp.to_string_hum sexp_cst) s)
 
 let wrap_parser tree_sitter_parser ast_mapper =
   let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
@@ -120,9 +119,8 @@ let wrap_parser tree_sitter_parser ast_mapper =
                res.errors
            in
            let error_str = String.concat "\n" error_strs in
-           Logs.err (fun m ->
-               m ~tags "Partial errors returned by Tree-sitter parser\n%s"
-                 error_str));
+           Log.warn (fun m ->
+               m "Partial errors returned by Tree-sitter parser\n%s" error_str));
         Some (ast_mapper cst)
     | None -> None
   in

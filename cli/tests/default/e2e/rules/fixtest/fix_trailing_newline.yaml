@@ -1,0 +1,9 @@
+rules:
+- id: basic-fix
+  pattern: "42"
+  fix: |
+    666
+  message: |
+      Do not use 42
+  languages: [go]
+  severity: WARNING

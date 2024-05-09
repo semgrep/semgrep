@@ -1,6 +1,6 @@
 (* Emma Jin
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -86,21 +86,21 @@ let rec show_replacements reps =
   in
   "[" ^ list_string
 
-let rec show_patterns (patterns : pattern_instrs) =
+let rec show_patterns print (patterns : pattern_instrs) =
   match patterns with
-  | [] -> UCommon.pr2 "---"
+  | [] -> print "---"
   | (_any, pattern, replacements) :: pats ->
-      UCommon.pr2
+      print
         ("( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
         ^ ", "
         ^ show_replacements replacements
         ^ " )");
-      show_patterns pats
+      show_patterns print pats
 
-let show_pattern_sets patsets =
-  UCommon.pr2 "[";
-  List.iter show_patterns patsets;
-  UCommon.pr2 "]\n"
+let show_pattern_sets print patsets =
+  print "[";
+  List.iter (show_patterns print) patsets;
+  print "]\n"
 
 (*****************************************************************************)
 (* Pattern_from_Code Helpers *)
@@ -203,9 +203,7 @@ let pattern_from_args env args : pattern_instrs =
     | Args (Arg { e = Ellipsis el; _ } :: Arg arg :: xs) -> (
         match f (E arg) with
         | E x -> Args (Arg (Ellipsis el |> G.e) :: Arg x :: xs)
-        | x ->
-            UCommon.pr2 (show_any x);
-            raise InvalidSubstitution)
+        | _x -> raise InvalidSubstitution)
     | Args (_ :: _) -> args
     | _ -> raise InvalidSubstitution
   in
@@ -352,7 +350,7 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
             | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
             | _ -> raise InvalidSubstitution)
         | _ ->
-            UCommon.pr2 "h1";
+            (* old: print "h1"; ??? *)
             raise InvalidSubstitution
       in
       let _, pattern =
@@ -431,14 +429,20 @@ let get_included_patterns pattern_children =
   List_.map (List.concat_map include_pattern) pattern_children
 
 let rec generate_patterns_help (target_patterns : pattern_instrs list) =
-  (* For each pattern in each set of target_patterns, generate the list of one step replacements *)
-  (*    ex: ($X, bar(foo(2), x), f) ------> [$X(...), [bar, fun x -> x(...); [foo(2), x], fun xs -> bar(xs)]] *)
-  (*        (pattern, any, any -> any) list *)
-  (* Flatten the list. Each node n will have a corresponding set of patterns Sn *)
-  if false then (
-    (* Set this for debug info *)
-    UCommon.pr2 "target patterns";
-    show_pattern_sets target_patterns);
+  (* For each pattern in each set of target_patterns, generate the list of one
+   * step replacements
+   *    ex: ($X, bar(foo(2), x), f) ------> [$X(...), [bar, fun x -> x(...); [foo(2), x], fun xs -> bar(xs)]]
+   *        (pattern, any, any -> any) list
+   * Flatten the list. Each node n will have a corresponding set of patterns Sn
+   *)
+  (* nosemgrep: no-logs-in-library *)
+  Logs.debug (fun m ->
+      let s =
+        Buffer_.with_buffer_to_string (fun buf ->
+            let print s = Printf.bprintf buf "%s" s in
+            show_pattern_sets print target_patterns)
+      in
+      m "target patterns: %s" s);
   let pattern_children =
     List_.map (List_.map get_one_step_replacements) target_patterns
   in

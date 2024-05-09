@@ -1,4 +1,5 @@
 open Js_of_ocaml
+(* coupling: with js/engine/src/index.d.ts *)
 
 let _ =
   Js.export_all
@@ -35,7 +36,7 @@ let _ =
        (* coupling: This is similar to semgrep_with_rules, the main
           difference being we prepare the rules and targets ourselves
           since we have a narrow use case of running one rule file on
-          set files *)
+          a set of files *)
        method execute language rule_file _root source_files : string =
          let execute () =
            let xlang = Xlang.of_string (Js.to_string language) in

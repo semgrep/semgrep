@@ -23,13 +23,13 @@ module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Core_result
 module T = Taint
+module Sig = Taint_sig
 module Lval_env = Taint_lval_env
 module MV = Metavariable
 module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_engine.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -177,8 +177,8 @@ module Formula_tbl = struct
 
            just don't cache it I guess
         *)
-        Logs.err (fun m ->
-            m ~tags
+        Log.warn (fun m ->
+            m
               "Tried to compute matches for a taint formula not in the cache \
                (impossible?)");
         compute_matches_fn ()
@@ -357,9 +357,8 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        Logs.debug (fun m ->
-            m ~tags
-              "Cannot compute range, there are no real tokens in this AST: %s"
+        Log.warn (fun m ->
+            m "Cannot compute range, there are no real tokens in this AST: %s"
               (G.show_any any));
       None
   | Some (tok1, tok2) ->
@@ -481,7 +480,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 
 (* If the 'requires' has the shape 'A and ...' then we assume that 'A' is the
  * preferred label for reporting the taint trace. *)
-let preferred_label_of_sink ({ rule_sink; _ } : T.sink) =
+let preferred_label_of_sink ({ rule_sink; _ } : Sig.sink) =
   match rule_sink.sink_requires with
   | Some { precondition = PAnd (PLabel label :: _); _ } -> Some label
   | Some _
@@ -513,7 +512,7 @@ let sources_of_taints ?preferred_label taints =
    * they need to specify the parameters as taint sources. *)
   let taint_sources =
     taints
-    |> List_.map_filter (fun { T.taint = { orig; tokens }; sink_trace } ->
+    |> List_.map_filter (fun { Sig.taint = { orig; tokens }; sink_trace } ->
            match orig with
            | Src src -> Some (src, tokens, sink_trace)
            (* even if there is any taint "variable", it's irrelevant for the
@@ -549,8 +548,8 @@ let sources_of_taints ?preferred_label taints =
   in
   if without_req <> [] then without_req
   else (
-    Logs.warn (fun m ->
-        m ~tags
+    Log.warn (fun m ->
+        m
           "Taint source without precondition wasn't found. Displaying the \
            taint trace from the source with precondition.");
     with_req)
@@ -565,10 +564,10 @@ let trace_of_source source =
 
 let pms_of_finding ~match_on finding =
   match finding with
-  | T.ToLval _
-  | T.ToReturn _ ->
+  | Sig.ToLval _
+  | Sig.ToReturn _ ->
       []
-  | ToSink
+  | Sig.ToSink
       {
         taints_with_precondition = taints, requires;
         sink = { pm = sink_pm; _ } as sink;
@@ -577,7 +576,7 @@ let pms_of_finding ~match_on finding =
       if
         not
           (T.taints_satisfy_requires
-             (List_.map (fun t -> t.T.taint) taints)
+             (List_.map (fun t -> t.Sig.taint) taints)
              requires)
       then []
       else
@@ -914,8 +913,8 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   in
   (flow, mapping)
 
-let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
-    match_hook (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
+let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
   let { path = { internal_path_to_content; _ }; xlang; lazy_ast_and_errors; _ }
@@ -1013,15 +1012,7 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
     !matches
     (* same post-processing as for search-mode in Match_rules.ml *)
     |> PM.uniq
-    |> PM.no_submatches (* see "Taint-tracking via ranges" *)
-    |> List.concat_map (Match_dependency.annotate_pattern_match dep_matches)
-    |> Common.before_return (fun v ->
-           v
-           |> List.iter (fun (m : Pattern_match.t) ->
-                  let str =
-                    Common.spf "with rule %s" (Rule_ID.to_string m.rule_id.id)
-                  in
-                  match_hook str m))
+    |> PM.no_submatches (* see "Taint-tracking via ranges" *) |> match_hook
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
@@ -1047,7 +1038,7 @@ let check_rule ?dep_matches per_file_formula_cache (rule : R.taint_rule)
   let report = { report with explanations } in
   report
 
-let check_rules ?get_dep_matches ~match_hook
+let check_rules ~match_hook
     ~(per_rule_boilerplate_fn :
        R.rule ->
        (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
@@ -1073,9 +1064,6 @@ let check_rules ?get_dep_matches ~match_hook
              ("taint", `Bool true);
            ];
 
-         let dep_matches =
-           Option.bind get_dep_matches (fun f -> f (fst rule.R.id))
-         in
          let xconf =
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
@@ -1086,5 +1074,4 @@ let check_rules ?get_dep_matches ~match_hook
          per_rule_boilerplate_fn
            (rule :> R.rule)
            (fun () ->
-             check_rule ?dep_matches per_file_formula_cache rule match_hook
-               xconf xtarget))
+             check_rule per_file_formula_cache rule match_hook xconf xtarget))

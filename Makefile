@@ -280,7 +280,11 @@ pro:
 
 # We need to install all the dependencies in a single 'opam install'
 # command so as to detect conflicts.
-REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core ./dev/required.opam
+# WEIRD: if you use ./libs/ocaml-tree-sitter-core/ instead of the full
+# path, then recent versions of opam crash with a 'git ls-files fatal error'
+# about some 'libs/ocaml-tree-sitter-core/../../.git/...' not being a git
+# repo.
+REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core/tree-sitter.opam ./dev/required.opam
 OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 
 # This target is portable; it only assumes you have 'gcc', 'opam' and
@@ -288,7 +292,7 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 # Note that we call opam update below because semgrep.opam may mention
 # new packages that are covered yet by our ocaml-layer docker image.
 .PHONY: install-deps-for-semgrep-core
-install-deps-for-semgrep-core: semgrep.opam
+install-deps-for-semgrep-core:
 	opam update -y
 # Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
@@ -340,37 +344,47 @@ install-deps: install-deps-for-semgrep-core
 # -------------------------------------------------
 # Packages
 # -------------------------------------------------
+# TODO: opam can in theory handle automatically external dependencies
+# via `opam depext ...`, so we should not need for each Linux distro to know
+# what is the corresponding package name; this info is actually
+# stored in many conf-xxx OPAM packages. So we should generalize our use
+# of WINDOWS_OPAM_DEPEXT_DEPS to all platforms.
 
 # Here is why we need those external packages to compile semgrep-core:
-# - pcre: for ocaml-pcre now used in semgrep-core
-# - gmp: for osemgrep and its use of cohttp
-# - libev: ??
-# - curl: for opentelemetry, which we use for tracing
+# - pkgconf (name of pkg-config clone in arch): required by opam/dune
+#   so it can find the location of the other libs
+# - pcre: for ocaml-pcre now used in semgrep-core (used by spacegrep)
+# - pcre2: new version of pcre needed by Cooper
+# - gmp: for osemgrep and its use of cohttp (LGPL since gmp 6)
+# - libev: ?? for Austin
+# - curl: for opentelemetry, which we use for tracing for Emma
 # - openssl: ??
 # - zlib: ??
-
 # - openssl-libs-static: dependency of curl-static
-ALPINE_APK_DEPS_CORE=pcre-dev \
-					 pcre2-dev \
-					 gmp-dev \
-					 libev-dev \
-					 curl-dev \
-					 openssl-libs-static \
-					 zlib-static
+ALPINE_APK_DEPS_CORE=\
+  pkgconf \
+  pcre-dev \
+  pcre2-dev \
+  gmp-dev \
+  libev-dev \
+  curl-dev \
+  openssl-libs-static \
+  zlib-static
 
 # Here is why we need those external packages below for pysemgrep:
 # - python3: obviously needed for pysemgrep and our e2e tests
-ALPINE_APK_DEPS_PYSEMGREP= python3
+ALPINE_APK_DEPS_PYSEMGREP=python3
 
 # Here is why we need those external packages:
 # - pkg-config?
 # NOTE: libpcre3 is actually libpcre
-UBUNTU_DEPS=pkg-config \
-			libpcre3-dev \
-			libpcre2-dev \
-			libgmp-dev \
-			libev-dev \
-			libcurl4-gnutls-dev
+UBUNTU_DEPS=\
+  pkg-config \
+  libpcre3-dev \
+  libpcre2-dev \
+  libgmp-dev \
+  libev-dev \
+  libcurl4-gnutls-dev
 
 #TODO: ARCH_DEPS=??
 
@@ -381,30 +395,42 @@ UBUNTU_DEPS=pkg-config \
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pkg-config \
-		  pcre \
-		  pcre2 \
-		  gmp \
-		  libev \
-		  curl \
-		  coreutils \
-		  gettext
+BREW_DEPS=\
+  pkg-config \
+  pcre \
+  pcre2 \
+  gmp \
+  libev \
+  curl \
+  coreutils \
+  gettext
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?
-WINDOWS_OPAM_DEPEXT_DEPS=conf-pkg-config \
-						 conf-gmp \
-						 conf-libpcre \
-						 conf-libpcre2-8 \
-						 conf-libcurl
+WINDOWS_OPAM_DEPEXT_DEPS=\
+  conf-pkg-config \
+  conf-gmp \
+  conf-libpcre \
+  conf-libpcre2-8 \
+  conf-libcurl
 
 # -------------------------------------------------
 # Alpine
 # -------------------------------------------------
 
-# See the `build-static-libcurl.sh` script for why it's necessary
+# Note that we're not using --no-cache below otherwise opam does not
+# recognize that pkg-config and other packages have been installed
+# (See https://github.com/ocaml/opam/issues/5186)
+#alt: we could use --no-depexts (and --cli=2.1) in 'install-opam-deps'
+# and keep the --no-cache below, as anyway we're managing external
+# dependencies ourselves in the make install-deps-XXX-for-semgrep-core,
+# but then this requires a recent opam (2.1) which is still not available
+# in our setup-ocaml@v2 GHA for windows, so simpler to just use --no-cache
+# (anyway this is used in an intermediate step in our Docker image, not
+# the final image, so we don't really need --no-cache)
 install-deps-ALPINE-for-semgrep-core:
-	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
+	apk add $(ALPINE_APK_DEPS_CORE)
+# Look at its top comment for why it's necessary
 	./scripts/build-static-libcurl.sh
 
 # We pin to a specific version just to prevent things from breaking randomly.

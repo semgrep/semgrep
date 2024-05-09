@@ -1,4 +1,4 @@
-(* This module is deprecated. You should prefer the gitignore library
+(* !!This module is deprecated!! You should prefer the gitignore library
  * to skip files.
  *)
 

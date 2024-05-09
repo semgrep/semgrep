@@ -92,9 +92,9 @@ let create_make_fixed_lines_test { test_name; contents; fixes; expected } =
             Textedit.{ start; end_; replacement_text; path = fakepath })
           fixes
       in
-      let env = Autofix.make_fixed_lines_env () in
+      let env = Fixed_lines.mk_env () in
       let all_fixed_lines : string list option list =
-        List_.map (Autofix.make_fixed_lines_of_string env contents) edits
+        List_.map (Fixed_lines.make_fixed_lines_of_string env contents) edits
       in
       Alcotest.(check (string |> list |> option |> list))
         "fixed_lines" expected all_fixed_lines)

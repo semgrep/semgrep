@@ -18,8 +18,7 @@ module R = Rule
 module RP = Core_result
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
-
-let tags = Logs_.create_tags [ __MODULE__ ]
+module Log = Log_engine.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -50,8 +49,8 @@ let timeout_function (rule : Rule.t) file timeout f =
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
       AST_generic_equals.busy_with_equal := saved_busy_with_equal;
-      Logs.warn (fun m ->
-          m ~tags "timeout for rule %s on file %s"
+      Log.err (fun m ->
+          m "timeout for rule %s on file %s"
             (Rule_ID.to_string (fst rule.id))
             file);
       None
@@ -70,13 +69,13 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
         | Some (prefilter_formula, func) ->
             let content = Lazy.force lazy_content in
             let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
-            Logs.debug (fun m ->
-                m ~tags "looking for %s in %s" s !!internal_path_to_content);
+            Log.info (fun m ->
+                m "looking for %s in %s" s !!internal_path_to_content);
             func content)
   in
   if not is_relevant then
-    Logs.debug (fun m ->
-        m ~tags "skipping rule %s for %s"
+    Log.info (fun m ->
+        m "skipping rule %s for %s"
           (Rule_ID.to_string (fst r.R.id))
           !!internal_path_to_content);
   is_relevant
@@ -93,8 +92,10 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
+           | `SCA _ -> failwith "SCA rule not available in core."
            | `Steps _ ->
-               UCommon.pr2 (Rule.show_rule r);
+               Log.warn (fun m ->
+                   m "Step rule not handled: %s" (Rule.show_rule r));
                raise Multistep_rules_not_available)
   in
   (* Taint rules are only relevant to each other if they are meant to be
@@ -145,6 +146,16 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
+let scc_match_hook match_hook get_dep_matches pms =
+  pms
+  |> List.concat_map (fun (pm : Pattern_match.t) ->
+         let dependency_matches = get_dep_matches pm.rule_id.id in
+         let pms' =
+           Match_dependency.annotate_pattern_match dependency_matches pm
+         in
+         pms' |> List.iter match_hook;
+         pms')
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -158,18 +169,20 @@ let check ~match_hook ~timeout ~timeout_threshold
     | Some table -> Hashtbl.find_opt table
     | None -> fun _ -> None
   in
+  let match_hook = scc_match_hook match_hook get_dep_matches in
+
   let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
       : Xtarget.t =
     xtarget
   in
-  Logs.debug (fun m ->
-      m ~tags "checking %s with %d rules" !!internal_path_to_content
+  Log.info (fun m ->
+      m "checking %s with %d rules" !!internal_path_to_content
         (List.length rules));
   (match (!Profiling.profile, xlang) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Xlang.L (_lang, []) ->
-      Logs.debug (fun m ->
-          m ~tags "forcing parsing of AST outside of rules, for better profile");
+      Log.debug (fun m ->
+          m "forcing parsing of AST outside of rules, for better profile");
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
   let per_rule_boilerplate_fn =
@@ -192,13 +205,12 @@ let check ~match_hook ~timeout ~timeout_threshold
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
-           Match_tainting_mode.check_rules ~get_dep_matches ~match_hook
-             ~per_rule_boilerplate_fn relevant_taint_rules xconf xtarget)
+           Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
+             relevant_taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
     |> List_.map (fun r ->
-           let dependency_matches = get_dep_matches (fst r.R.id) in
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -208,8 +220,8 @@ let check ~match_hook ~timeout ~timeout_threshold
                (* dispatching *)
                match r.R.mode with
                | `Search _ as mode ->
-                   Match_search_mode.check_rule ?dependency_matches
-                     { r with mode } match_hook xconf xtarget
+                   Match_search_mode.check_rule { r with mode } match_hook xconf
+                     xtarget
                | `Extract extract_spec ->
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }

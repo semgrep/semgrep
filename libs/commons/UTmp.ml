@@ -14,6 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
+module Log = Log_commons.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -21,8 +22,6 @@ open Fpath_.Operators
 (* Operations dealing with files in /tmp (or whatever tmp directory is
  * in your OS).
  *)
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Globals *)
@@ -43,7 +42,7 @@ let erase_temp_files () =
   if not !save_temp_files then (
     temp_files_created
     |> Hashtbl.iter (fun path () ->
-           Logs.debug (fun m -> m ~tags "deleting: %s" !!path);
+           Log.info (fun m -> m "deleting: %s" !!path);
            USys.remove !!path);
     Hashtbl.clear temp_files_created)
 
@@ -83,7 +82,7 @@ let new_temp_file ?(prefix = default_temp_file_prefix) ?(suffix = "") ?temp_dir
 let erase_this_temp_file f =
   if not !save_temp_files then (
     Hashtbl.remove temp_files_created f;
-    Logs.debug (fun m -> m ~tags "deleting: %s" !!f);
+    Log.info (fun m -> m "deleting: %s" !!f);
     USys.remove !!f)
 
 let with_temp_file ?(contents = "") ?(persist = false) ?prefix ?suffix ?temp_dir
@@ -113,8 +112,7 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
   Common.protect
     ~finally:(fun () -> close_out_noerr oc)
     (fun () -> output_string oc data);
-  Logs.debug (fun m ->
-      m ~tags "wrote %i bytes to %s" (String.length data) tmp_path);
+  Log.debug (fun m -> m "wrote %i bytes to %s" (String.length data) tmp_path);
   Fpath.v tmp_path
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
@@ -131,7 +129,7 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
 
 let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   let data = In_channel.input_all UStdlib.stdin in
-  Logs.debug (fun m -> m ~tags "stdin data: %s" (*String_.show*) data);
+  Log.debug (fun m -> m "stdin data: %s" (*String_.show*) data);
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data
 
 let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())

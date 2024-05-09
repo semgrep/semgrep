@@ -60,4 +60,4 @@ val yyback : int -> Lexing.lexbuf -> unit
 (* TODO? remove? *)
 val error_message : string (* filename *) -> string * int -> string
 val error_message_info : Tok.t -> string
-val print_bad : int -> int * int -> string array -> unit
+val show_parse_error_line : int -> int * int -> string array -> string

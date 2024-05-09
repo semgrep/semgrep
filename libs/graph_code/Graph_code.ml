@@ -239,10 +239,10 @@ let create () =
 
 let add_node n g =
   if G.has_node n g.has then (
-    UCommon.pr2_gen n;
+    Log.warn (fun m -> m "already present %s" (Dumper.dump n));
     raise (Error (NodeAlreadyPresent n)));
   if G.has_node n g.use then (
-    UCommon.pr2_gen n;
+    Log.warn (fun m -> m "already present %s" (Dumper.dump n));
     raise (Error (NodeAlreadyPresent n)));
 
   G.add_vertex_if_not_present n g.has;
@@ -522,7 +522,7 @@ let graph_of_dotfile dotfile =
              let src, dst = Common.matched2 s in
              Some (src, dst)
            else (
-             UCommon.pr2 (spf "ignoring line: %s" s);
+             Log.info (fun m -> m "ignoring line: %s" s);
              None))
   in
   let g = create () in
@@ -542,7 +542,8 @@ let graph_of_dotfile dotfile =
              g |> add_node (dst, E.File);
              g |> add_edge ((dstdir, E.Dir), (dst, E.File)) Has)
          with
-         | Assert_failure _ -> UCommon.pr2_gen (src, dst));
+         | Assert_failure _ ->
+             Log.err (fun m -> m "assert failure: %s" (Dumper.dump (src, dst))));
   (* step2: use *)
   deps
   |> List.iter (fun (src, dst) ->
@@ -555,35 +556,24 @@ let graph_of_dotfile dotfile =
 (*****************************************************************************)
 (* Statistics *)
 (*****************************************************************************)
-let log_statistics stats g =
-  Logs.info (fun m ->
-      m "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
-  Logs.info (fun m ->
-      m "parse errors = %d" (!(stats.parse_errors) |> List.length));
-  Logs.info (fun m ->
-      m "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
-
-  Logs.info (fun m ->
-      m "unresolved method calls = %d"
+let string_of_statistics stats g =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      prf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g);
+      prf "parse errors = %d" (!(stats.parse_errors) |> List.length);
+      prf "lookup fail = %d" (!(stats.lookup_fail) |> List.length);
+      prf "unresolved method calls = %d"
         (!(stats.method_calls)
         |> List.filter (fun (_, x) -> not x)
-        |> List.length));
-  Logs.info (fun m ->
-      m "(resolved method calls = %d)"
-        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
-
-  Logs.info (fun m ->
-      m "unresolved field access = %d"
+        |> List.length);
+      prf "(resolved method calls = %d)"
+        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length);
+      prf "unresolved field access = %d"
         (!(stats.field_access)
         |> List.filter (fun (_, x) -> not x)
-        |> List.length));
-  Logs.info (fun m ->
-      m "(resolved field access) = %d)"
-        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
-
-  Logs.info (fun m ->
-      m "unresolved class access = %d"
-        (!(stats.unresolved_class_access) |> List.length));
-  Logs.info (fun m ->
-      m "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
-  ()
+        |> List.length);
+      prf "(resolved field access) = %d)"
+        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length);
+      prf "unresolved class access = %d"
+        (!(stats.unresolved_class_access) |> List.length);
+      prf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length))

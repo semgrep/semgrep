@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,8 +14,6 @@
  * license.txt for more details.
  *)
 open Common
-
-let tags = Logs_.create_tags [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -101,117 +99,124 @@ let aggregate_stats statxs =
  * ==> TODO evaluer les parties non parsé ?
  *)
 
-let print_parsing_stat_list ?(verbose = false) statxs =
-  let total = List.length statxs in
-  let perfect =
-    statxs
-    |> List.filter (function
-         | { have_timeout = false; error_line_count = 0; _ } -> true
-         | _ -> false)
-    |> List.length
-  in
-
-  if verbose then (
-    UCommon.pr
-      "\n\n\n---------------------------------------------------------------";
-    UCommon.pr "pbs with files:";
-    statxs
-    |> List.filter (function
-         | { have_timeout = true; _ } -> true
-         | { error_line_count = n; _ } when n > 0 -> true
-         | _ -> false)
-    |> List.iter (function
-           | {
-               filename = file;
-               have_timeout = timeout;
-               error_line_count = n;
-               _;
-             }
-           ->
-           UCommon.pr (file ^ "  " ^ if timeout then "TIMEOUT" else i_to_s n));
-
-    UCommon.pr "\n\n\n";
-    UCommon.pr "files with lots of tokens passed/commentized:";
-    let threshold_passed = 100 in
-    statxs
-    |> List.filter (function
-         | { commentized = n; _ } when n > threshold_passed -> true
-         | _ -> false)
-    |> List.iter (function { filename = file; commentized = n; _ } ->
-           UCommon.pr (file ^ "  " ^ i_to_s n));
-
-    UCommon.pr "\n\n\n");
-
-  let total_lines =
-    statxs |> List.fold_left (fun acc { total_line_count = x; _ } -> acc + x) 0
-  in
-  let bad =
-    statxs |> List.fold_left (fun acc { error_line_count = x; _ } -> acc + x) 0
-  in
-  let passed =
-    statxs |> List.fold_left (fun acc { commentized = x; _ } -> acc + x) 0
-  in
-  let good = total_lines - bad in
-
-  UCommon.pr "---------------------------------------------------------------";
-  UCommon.pr
-    (spf "NB total files = %d; " total
-    ^ spf "NB total lines = %d; " total_lines
-    ^ spf "perfect = %d; " perfect
-    ^ spf "pbs = %d; "
-        (statxs
+let string_of_stats ?(verbose = false) statxs =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      let total = List.length statxs in
+      let perfect =
+        statxs
         |> List.filter (function
-             | { error_line_count = n; _ } when n > 0 -> true
+             | { have_timeout = false; error_line_count = 0; _ } -> true
              | _ -> false)
-        |> List.length)
-    ^ spf "timeout = %d; "
-        (statxs
+        |> List.length
+      in
+
+      if verbose then (
+        prf
+          "\n\n\n\
+           ---------------------------------------------------------------";
+        prf "pbs with files:";
+        statxs
         |> List.filter (function
              | { have_timeout = true; _ } -> true
+             | { error_line_count = n; _ } when n > 0 -> true
              | _ -> false)
-        |> List.length)
-    ^ spf "=========> %d" (100 * perfect / total)
-    ^ "%");
-  let gf, badf = (float_of_int good, float_of_int bad) in
-  let passedf = float_of_int passed in
-  UCommon.pr
-    (spf "nb good = %d,  nb passed = %d " good passed
-    ^ spf "=========> %f" (100.0 *. (passedf /. gf))
-    ^ "%");
-  UCommon.pr
-    (spf "nb good = %d,  nb bad = %d " good bad
-    ^ spf "=========> %f" (100.0 *. (gf /. (gf +. badf)))
-    ^ "%")
+        |> List.iter (function
+               | {
+                   filename = file;
+                   have_timeout = timeout;
+                   error_line_count = n;
+                   _;
+                 }
+               -> prf "%s  %s" file (if timeout then "TIMEOUT" else i_to_s n));
+
+        prf "\n\n\n";
+        prf "files with lots of tokens passed/commentized:";
+        let threshold_passed = 100 in
+        statxs
+        |> List.filter (function
+             | { commentized = n; _ } when n > threshold_passed -> true
+             | _ -> false)
+        |> List.iter (function { filename = file; commentized = n; _ } ->
+               prf "%s  %d" file n);
+
+        prf "\n\n\n");
+
+      let total_lines =
+        statxs
+        |> List.fold_left (fun acc { total_line_count = x; _ } -> acc + x) 0
+      in
+      let bad =
+        statxs
+        |> List.fold_left (fun acc { error_line_count = x; _ } -> acc + x) 0
+      in
+      let passed =
+        statxs |> List.fold_left (fun acc { commentized = x; _ } -> acc + x) 0
+      in
+      let good = total_lines - bad in
+
+      prf "---------------------------------------------------------------";
+      prf "%s"
+        (spf "NB total files = %d; " total
+        ^ spf "NB total lines = %d; " total_lines
+        ^ spf "perfect = %d; " perfect
+        ^ spf "pbs = %d; "
+            (statxs
+            |> List.filter (function
+                 | { error_line_count = n; _ } when n > 0 -> true
+                 | _ -> false)
+            |> List.length)
+        ^ spf "timeout = %d; "
+            (statxs
+            |> List.filter (function
+                 | { have_timeout = true; _ } -> true
+                 | _ -> false)
+            |> List.length)
+        ^ spf "=========> %d" (100 * perfect / total)
+        ^ "%");
+      let gf, badf = (float_of_int good, float_of_int bad) in
+      let passedf = float_of_int passed in
+      prf "%s"
+        (spf "nb good = %d,  nb passed = %d " good passed
+        ^ spf "=========> %f" (100.0 *. (passedf /. gf))
+        ^ "%");
+      prf "%s"
+        (spf "nb good = %d,  nb bad = %d " good bad
+        ^ spf "=========> %f" (100.0 *. (gf /. (gf +. badf)))
+        ^ "%"))
 
 (*****************************************************************************)
 (* Regression stats *)
 (*****************************************************************************)
 
-let print_regression_information ~ext xs newscore =
-  let xs = Fpath_.to_strings xs in
-  let dirname_opt =
-    match xs with
-    | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
-    | _ -> None
-  in
-  (* nosemgrep *)
-  let score_path = (* Config_pfff.regression_data_dir *) "/tmp/parsing_stats" in
-  if Sys.file_exists score_path then
-    dirname_opt
-    |> Option.iter (fun dirname ->
-           UCommon.pr2 "------------------------------";
-           UCommon.pr2 "regression testing information";
-           UCommon.pr2 "------------------------------";
-           let str = Str.global_replace (Str.regexp "/") "__" dirname in
-           let file =
-             Filename.concat score_path
-               ("score_parsing__" ^ str ^ ext ^ ".marshalled")
-           in
-           Logs.debug (fun m -> m ~tags "saving regression info in %s" file);
-           Common2.regression_testing newscore file)
-  else
-    UCommon.pr2
-      (spf "no regression info available: %s does not exist" score_path)
+let regression_information ~ext (xs : Fpath.t list) (newscore : Common2.score) :
+    string =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      let xs = Fpath_.to_strings xs in
+      let dirname_opt =
+        match xs with
+        | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
+        | _ -> None
+      in
+      (* TODO Config_pfff.regression_data_dir *)
+      (* nosemgrep: not-portable-tmp *)
+      let score_path = "/tmp/parsing_stats" in
+      if Sys.file_exists score_path then
+        dirname_opt
+        |> Option.iter (fun dirname ->
+               prf "------------------------------";
+               prf "regression testing information";
+               prf "------------------------------";
+               let str = Str.global_replace (Str.regexp "/") "__" dirname in
+               let file =
+                 Filename.concat score_path
+                   ("score_parsing__" ^ str ^ ext ^ ".marshalled")
+               in
+               (* nosemgrep: no-logs-in-library *)
+               Logs.info (fun m -> m "saving regression info in %s" file);
+               Common2.regression_testing newscore file)
+      else prf "no regression info available: %s does not exist" score_path)
 
 (*****************************************************************************)
 (* Most problematic tokens *)
@@ -230,29 +235,32 @@ let lines_around_error_line ~context (file, line) =
   done;
   List.rev !res
 
-let print_recurring_problematic_tokens xs =
-  let h = Hashtbl.create 101 in
-  xs
-  |> List.iter (fun x ->
-         let file = x.filename in
-         x.problematic_lines
-         |> List.iter (fun (xs, line_error) ->
-                xs
-                |> List.iter (fun s ->
-                       Common2.hupdate_default s
-                         (fun (old, example) -> (old + 1, example))
-                         (fun () -> (0, (file, line_error)))
-                         h)));
-  Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  UCommon.pr2 "maybe 10 most problematic tokens";
-  Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  Hashtbl_.hash_to_list h
-  |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
-  |> List_.take_safe 10
-  |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
-         UCommon.pr2 (spf "%s: present in %d parsing errors" k i);
-         UCommon.pr2 "example: ";
-         let lines = lines_around_error_line ~context:2 (file_ex, line_ex) in
-         lines |> List.iter (fun s -> UCommon.pr2 ("       " ^ s)));
-  Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  ()
+let recurring_problematic_tokens (xs : t list) : string =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      let h = Hashtbl.create 101 in
+      xs
+      |> List.iter (fun x ->
+             let file = x.filename in
+             x.problematic_lines
+             |> List.iter (fun (xs, line_error) ->
+                    xs
+                    |> List.iter (fun s ->
+                           Common2.hupdate_default s
+                             (fun (old, example) -> (old + 1, example))
+                             (fun () -> (0, (file, line_error)))
+                             h)));
+      prf "-------------------------------";
+      prf "maybe 10 most problematic tokens";
+      prf "-------------------------------";
+      Hashtbl_.hash_to_list h
+      |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
+      |> List_.take_safe 10
+      |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
+             prf "%s: present in %d parsing errors" k i;
+             prf "example: ";
+             let lines =
+               lines_around_error_line ~context:2 (file_ex, line_ex)
+             in
+             lines |> List.iter (fun s -> prf "       %s" s));
+      prf "-------------------------------")

@@ -1,0 +1,17 @@
+rules:
+  - id: bar-inside-foo-element
+    message: |
+      dummy
+    languages:
+      - xml
+    severity: WARNING
+    paths:
+      include:
+        - bar.xml
+    patterns:
+      - pattern: |
+          <dict>
+          ...
+          <foo>bar</foo>
+          ...
+          </dict>
