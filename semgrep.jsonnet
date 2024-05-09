@@ -106,6 +106,8 @@ local semgrep_rules = [
       all: [
        'Logs.$F ...',
        { not: 'Logs.src ...' },
+       // TODO? tolerate Logs.info?
+       // TODO? tolerate when inside if <... !$REF ...> then ... ?
        ],
     },
     message: |||
@@ -135,6 +137,7 @@ local semgrep_rules = [
        'tools/*',
        'scripts/*',
        'libs/commons/Logs_.ml',
+       'libs/profiling/Profiling.ml',
        'src/core/Log_semgrep.ml',
        //TODO: remove at some point, but managed by Iago for now
        'src/tainting',
@@ -164,7 +167,7 @@ local semgrep_rules = [
        'Unit_*',
        'tools/',
        'scripts/',
-       #TODO:
+       #TODO
        'libs/',
        ]
     },

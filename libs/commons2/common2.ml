@@ -209,7 +209,8 @@ let pr2_gen x = pr2 (Dumper.dump x)
 
 (* ---------------------------------------------------------------------- *)
 let xxx_once f s =
-  if !UCommon.disable_pr2_once then UCommon.pr2 s
+  if !UCommon.disable_pr2_once then (* nosemgrep: no-pr2 *)
+    UCommon.pr2 s
   else if not (Hashtbl.mem UCommon._already_printed s) then (
     Hashtbl.add UCommon._already_printed s true;
     f ("(ONCE) " ^ s))
