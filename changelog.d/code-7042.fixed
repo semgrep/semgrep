@@ -1,0 +1,3 @@
+Fix `couldn't find metavar $MT in the match results` error, which may occur
+when we capture FQN with the metavariable and use metavariable-type filter on
+it.
