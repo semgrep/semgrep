@@ -293,7 +293,7 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
       semgrep_found_errs @ ocaml_found_errs
 
 (* for semgrep-core -check_rules *)
-let check_files (caps : < Cap.tmp >) mk_config fparser input =
+let check_files (caps : < Cap.stdout ; Cap.tmp >) mk_config fparser input =
   let config = mk_config () in
   let errors =
     match input with
@@ -303,18 +303,23 @@ let check_files (caps : < Cap.tmp >) mk_config fparser input =
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \
               on")
-    | metachecks :: xs -> run_checks caps config fparser metachecks xs
+    | metachecks :: xs ->
+        run_checks (caps :> < Cap.tmp >) config fparser metachecks xs
   in
   match config.output_format with
-  | Text -> List.iter (fun err -> UCommon.pr2 (E.string_of_error err)) errors
+  | Text ->
+      errors
+      |> List.iter (fun err ->
+             Logs.err (fun m -> m "%s" (E.string_of_error err)))
   | Json _ ->
       let (res : Core_result.t) =
         Core_result.mk_final_result_with_just_errors errors
       in
       let json = Core_json_output.core_output_of_matches_and_errors res in
-      UCommon.pr (SJ.string_of_core_output json)
+      CapConsole.print caps#stdout (SJ.string_of_core_output json)
 
-let stat_files fparser xs =
+(* for semgrep-core -stat_rules *)
+let stat_files (caps : < Cap.stdout >) fparser xs =
   let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -335,11 +340,12 @@ let stat_files fparser xs =
                 match res with
                 | None ->
                     incr bad;
-                    UCommon.pr2
-                      (spf "PB: no regexp prefilter for rule %s:%s" !!file
-                         (Rule_ID.to_string (fst r.id)))
+                    Logs.warn (fun m ->
+                        m "no regexp prefilter for rule %s:%s" !!file
+                          (Rule_ID.to_string (fst r.id)))
                 | Some (f, _f) ->
                     incr good;
                     let s = Semgrep_prefilter_j.string_of_formula f in
-                    UCommon.pr2 (spf "regexp: %s" s)));
-  UCommon.pr2 (spf "good = %d, no regexp found = %d" !good !bad)
+                    Logs.debug (fun m -> m "regexp: %s" s)));
+  CapConsole.print caps#stdout
+    (spf "good = %d, no regexp found = %d" !good !bad)

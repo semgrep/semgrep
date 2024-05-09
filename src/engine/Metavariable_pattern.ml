@@ -287,12 +287,12 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                 |> List_.map (fun tok -> revert_loc tok)
                               in
                               if skipped_tokens <> [] then
-                                UCommon.pr2
-                                  (spf
-                                     "rule %s: metavariable-pattern: failed to \
-                                      fully parse the content of %s"
-                                     (Rule_ID.to_string (fst env.rule.Rule.id))
-                                     mvar);
+                                Log.warn (fun m ->
+                                    m
+                                      "rule %s: metavariable-pattern: failed \
+                                       to fully parse the content of %s"
+                                      (Rule_ID.to_string (fst env.rule.Rule.id))
+                                      mvar);
                               Ok (lazy (ast, skipped_tokens))
                             with
                             | Parsing_error.Syntax_error tk ->

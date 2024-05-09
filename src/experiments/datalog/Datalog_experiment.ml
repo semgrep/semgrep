@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Emma Jin
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -68,8 +68,7 @@ let add env x = Stack_.push x env.facts
 
 let todo any =
   let s = IL.show_any any in
-  UCommon.pr2 s;
-  failwith "Datalog_experiment: TODO: IL element not handled (see above)"
+  failwith (spf "Datalog_experiment: IL element not handled: %s" s)
 
 let var_of_name _env name = spf "%s__%s" (fst name.ident) (G.SId.show name.sid)
 let heap_of_int _env (_, tok) = spf "int %s" (Tok.content_of_tok tok)
@@ -126,5 +125,7 @@ let gen_facts file outdir =
   v#visit_program () ast;
 
   let facts = !facts |> List.rev |> List.flatten in
-  UCommon.pr2 (spf "generating %d facts in %s" (List.length facts) !!outdir);
+  (* nosemgrep: no-logs-in-library *)
+  Logs.info (fun m ->
+      m "generating %d facts in %s" (List.length facts) !!outdir);
   Datalog_io.write_facts_for_doop facts outdir

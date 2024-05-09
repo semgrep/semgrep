@@ -572,7 +572,7 @@ let test_eval file =
     print_result (Some res)
   with
   | NotHandled e ->
-      UCommon.pr2 (G.show_expr e);
+      Log.warn (fun m -> m "expr not handled in test_eval: %s" (G.show_expr e));
       raise (NotHandled e)
 
 (* We need to swallow most exns in eval_bool(). This is because the

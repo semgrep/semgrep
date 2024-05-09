@@ -53,7 +53,7 @@ let parse_pattern lang_pattern str =
              Tok.unsafe_fake_tok "no loc" ))
 [@@profiling]
 
-let output_core_results (caps : < Cap.exit >)
+let output_core_results (caps : < Cap.stdout ; Cap.exit >)
     (result_or_exn : Core_result.result_or_exn) (config : Core_scan_config.t) :
     unit =
   (* note: uncomment the following and use semgrep-core -stat_matches
@@ -84,7 +84,7 @@ let output_core_results (caps : < Cap.exit >)
       let s = OutJ.string_of_core_output res in
       Logs.debug (fun m ->
           m "size of returned JSON string: %d" (String.length s));
-      UConsole.print s;
+      CapConsole.print caps#stdout s;
       match result_or_exn with
       | Error (e, _) ->
           Core_exit_code.exit_semgrep caps#exit (Unknown_exception e)
@@ -108,10 +108,11 @@ let output_core_results (caps : < Cap.exit >)
 (* semgrep-core -rules *)
 (*****************************************************************************)
 
-let semgrep_core_with_rules_and_formatted_output (caps : < Cap.tmp ; Cap.exit >)
-    (config : Core_scan_config.t) : unit =
+let semgrep_core_with_rules_and_formatted_output
+    (caps : < Cap.stdout ; Cap.tmp ; Cap.exit >) (config : Core_scan_config.t) :
+    unit =
   let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
-  output_core_results (caps :> < Cap.exit >) res config
+  output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)
@@ -154,7 +155,7 @@ let pattern_of_config lang (config : Core_scan_config.t) =
    - Have semgrep_with_patterns return the results and errors.
    - Print the final results (json or text) using dedicated functions.
 *)
-let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
+let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
     (config : Core_scan_config.t) : unit =
   assert (config.rule_source =*= None);
 
@@ -177,17 +178,24 @@ let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
             in
             Rule.rule_of_xpattern xlang xpat)
       in
-      let res = Core_scan.scan caps config (([ rule ], []), rules_parse_time) in
+      let res =
+        Core_scan.scan
+          (caps :> < Cap.tmp >)
+          config
+          (([ rule ], []), rules_parse_time)
+      in
       let json = Core_json_output.core_output_of_matches_and_errors res in
       let s = OutJ.string_of_core_output json in
-      UConsole.print s
+      CapConsole.print caps#stdout s
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in scan() *)
-      let target_info, _skipped = Core_scan.targets_of_config caps config in
+      let target_info, _skipped =
+        Core_scan.targets_of_config (caps :> < Cap.tmp >) config
+      in
       let files = target_info |> List_.map Target.internal_path in
       (* sanity check *)
       if config.filter_irrelevant_rules then
@@ -214,11 +222,11 @@ let semgrep_core_with_one_pattern (caps : < Cap.tmp >)
              in
 
              if not config.error_recovery then
-               E.try_with_print_exn_and_reraise !!file (fun () -> process file)
-             else E.try_with_exn_to_error !!file (fun () -> process file));
+               E.try_with_log_exn_and_reraise file (fun () -> process file)
+             else E.try_with_exn_to_error file (fun () -> process file));
 
       let n = List.length !E.g_errors in
-      if n > 0 then UCommon.pr2 (spf "error count: %d" n)
+      if n > 0 then Logs.err (fun m -> m "error count: %d" n)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -228,6 +236,6 @@ let semgrep_core_dispatch (caps : Cap.all_caps) (config : Core_scan_config.t) :
     unit =
   if config.rule_source <> None then
     semgrep_core_with_rules_and_formatted_output
-      (caps :> < Cap.exit ; Cap.tmp >)
+      (caps :> < Cap.stdout ; Cap.exit ; Cap.tmp >)
       config
-  else semgrep_core_with_one_pattern (caps :> < Cap.tmp >) config
+  else semgrep_core_with_one_pattern (caps :> < Cap.stdout ; Cap.tmp >) config

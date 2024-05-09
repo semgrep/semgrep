@@ -17,6 +17,7 @@ open Fpath_.Operators
 module FT = File_type
 module R = Rule
 module E = Core_error
+module TCM = Test_compare_matches
 
 (*****************************************************************************)
 (* Prelude *)
@@ -86,7 +87,7 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
          (* not tororuleid! not ok:! *)
          let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
          let expected_error_lines =
-           E.expected_error_lines_of_files ~regexp [ target ]
+           TCM.expected_error_lines_of_files ~regexp [ target ]
          in
 
          (* actual *)
@@ -103,7 +104,7 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
                 Logs.err (fun m ->
                     m "test_rules: found error: %s" (E.string_of_error e)));
          match
-           E.compare_actual_to_expected actual_errors expected_error_lines
+           TCM.compare_actual_to_expected actual_errors expected_error_lines
          with
          | Ok () -> Hashtbl.add newscore !!file Common2.Ok
          | Error (num_errors, msg) ->
