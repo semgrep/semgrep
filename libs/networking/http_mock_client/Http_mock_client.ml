@@ -155,10 +155,27 @@ let check_headers expected_headers actual_headers =
   let expected_headers =
     expected_headers |> Header.to_list |> lowercase_and_sort
   in
-  (* Passing "" for the name of the check prevents an otherwise
+  let rec check = function
+    | [], [] -> ()
+    | _ :: _, [] -> Alcotest.fail "Missing some expected headers"
+    | [], _ :: _ -> Alcotest.fail "Found some unexpected headers"
+    | (expected_header, expected_value) :: expected_headers, (actual_header, actual_value) :: actual_headers ->
+      if String.equal expected_header actual_header then
+        (
+      match Pcre2_.pmatch ~rex:(Pcre2_.regexp expected_value) actual_value with
+      | Ok true -> check (expected_headers, actual_headers)
+      | Ok false -> Alcotest.failf "Header values for '%s' do not match" expected_header
+      | Error err -> Alcotest.failf "Invalid regex: %a" Pcre2_.pp_error err
+    )
+      else
+        Alcotest.fail "Header names do not match"
+
+  in
+  check (expected_headers, actual_headers)
+  (* (* Passing "" for the name of the check prevents an otherwise
      unconditional print to stderr of the string "Assert <name>". *)
   Alcotest.(check (list (pair string string)))
-    "" expected_headers actual_headers
+    "" expected_headers actual_headers *)
 
 let get_header req header =
   Cohttp.Header.get (Cohttp.Request.headers req) header
