@@ -18,7 +18,8 @@ type metavariable_kind =
 [@@deriving show, eq]
 
 (* metavariable kind, bare name *)
-type metavariable = metavariable_kind * string [@@deriving show, eq]
+type metavariable = { kind : metavariable_kind; bare_name : string }
+[@@deriving show, eq]
 
 type t = {
   pcre : Pcre_.t;
@@ -353,7 +354,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
         let num = new_capturing_group () in
         capturing_groups := (num, metavariable) :: !capturing_groups;
         sprintf {|(%s)|} pat
-    | Some (backref_num, (Metavariable, _)) ->
+    | Some (backref_num, { kind = Metavariable; _ }) ->
         (* Ignore the pattern, instead require an exact occurrence of what
            the metavariable matched earlier.
            The assertions lwb and rwb (word boundaries) ensure that
@@ -361,7 +362,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
            "$A ... $A" may not match "ab b" or "a ab".
         *)
         sprintf {|(?&lwb)\g{%d}(?&rwb)|} backref_num
-    | Some (backref_num, (Metavariable_ellipsis, _)) ->
+    | Some (backref_num, { kind = Metavariable_ellipsis; _ }) ->
         (* Ellipses may match elements other than words, so the assertions
            at the extremities of the match are more complicated:
            - if the extremity is a word character, its outer neighbor
@@ -393,16 +394,17 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
       (match node with
       | Ellipsis -> add (ellipsis_pat ~excluded_brace param)
       | Long_ellipsis -> add (long_ellipsis_pat ~excluded_brace param)
-      | Metavar name -> add (capture (Metavariable, name) {|(?&word)|})
+      | Metavar name ->
+          add (capture { kind = Metavariable; bare_name = name } {|(?&word)|})
       | Metavar_ellipsis name ->
           add
             (capture
-               (Metavariable_ellipsis, name)
+               { kind = Metavariable_ellipsis; bare_name = name }
                (ellipsis_pat ~excluded_brace param))
       | Long_metavar_ellipsis name ->
           add
             (capture
-               (Metavariable_ellipsis, name)
+               { kind = Metavariable_ellipsis; bare_name = name }
                (long_ellipsis_pat ~excluded_brace param))
       | Bracket (open_, seq, close) ->
           add (Pcre_util.quote (String.make 1 open_));
@@ -452,4 +454,13 @@ let compile conf pattern_ast =
   { pcre; metavariable_groups }
 
 let from_string conf pat_str =
-  Pat_parser.from_string conf pat_str |> compile conf
+  let res = Pat_parser.from_string conf pat_str |> compile conf in
+  Log.debug (fun m ->
+      m "aliengrep input pattern: %s\nPCRE pattern:\n%s" pat_str
+        res.pcre.pattern);
+  res
+
+let string_of_metavariable (x : metavariable) =
+  match x.kind with
+  | Metavariable -> "$" ^ x.bare_name
+  | Metavariable_ellipsis -> "$..." ^ x.bare_name

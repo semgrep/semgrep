@@ -270,8 +270,10 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
   with
   | None, None, None, None ->
       error env.id rule_dict.first_tok
+        (* Note, we shouldn't reach this code if
+           r2c-internal-project-depends-on is present. *)
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex` to be present"
+         `pattern-regex`, or `r2c-internal-project-depends-on` to be present."
   | Some (key, value), None, None, None
   | None, Some (key, value), None, None
   | None, None, Some (key, value), None

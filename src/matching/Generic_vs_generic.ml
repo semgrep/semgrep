@@ -1544,19 +1544,19 @@ and m_xml_kind a b =
         (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
-           let* () = m_ident_and_id_info a1 b1 in
+           let* () = m_name a1 b1 in
            let* () = m_tok a2 b2 in
            return ())
         ~else_:(fail ())
   | G.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident_and_id_info a1 b1 in
+      let* () = m_name a1 b1 in
       let* () = m_tok a2 b2 in
       let* () = m_tok a3 b3 in
       return ()
   | G.XmlSingleton (a0, a1, a2), B.XmlSingleton (b0, b1, b2) ->
       let* () = m_tok a0 b0 in
-      let* () = m_ident_and_id_info a1 b1 in
+      let* () = m_name a1 b1 in
       let* () = m_tok a2 b2 in
       return ()
   | G.XmlFragment (a1, a2), B.XmlFragment (b1, b2) ->
@@ -2289,6 +2289,12 @@ and m_attribute a b =
       m_name a1 b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.OtherAttribute (a1, a2), B.OtherAttribute (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | ( G.OtherAttribute (_, [ G.E { e = G.Call (a1, a2); _ } ]),
+      B.NamedAttr (_, b1, b2) ) ->
+      m_expr a1 (B.N b1 |> B.e) >>= fun () -> m_bracket m_list__m_argument a2 b2
+  | ( G.NamedAttr (_, a1, a2),
+      B.OtherAttribute (_, [ B.E { e = B.Call (b1, b2); _ } ]) ) ->
+      m_expr (G.N a1 |> G.e) b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.KeywordAttr _, _
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->
@@ -3742,7 +3748,7 @@ and m_any a b =
   | G.S a1, B.S b1 -> m_stmt a1 b1
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
   | G.Name a1, B.Name b1 -> m_name a1 b1
-  | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
+  | G.Args a1, B.Args b1 -> m_list__m_argument a1 b1
   | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
   | G.Xmls a1, B.Xmls b1 -> m_list m_xml_body a1 b1
   | G.Anys a1, B.Anys b1 -> m_list m_any a1 b1

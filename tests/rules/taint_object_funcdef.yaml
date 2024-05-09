@@ -1,0 +1,31 @@
+rules:
+  - id: test
+    message: Matched SQL injection.
+    languages:
+      - javascript
+    severity: ERROR
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES) {...})
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(get|post|put|head|delete|options)$
+          - pattern: $REQ.params
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          "$SQLSTR" + $EXPR
+                      - pattern-inside: |
+                          "$SQLSTR".concat($EXPR)
+                      - pattern: util.format($SQLSTR, $EXPR)
+                      - pattern: |
+                          `$SQLSTR${$EXPR}...`
+                  - metavariable-regex:
+                      metavariable: $SQLSTR
+                      regex: .*\b(?i)(select|delete|insert|create|update|alter|drop)\b.*
+          - focus-metavariable: $EXPR

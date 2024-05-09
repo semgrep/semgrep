@@ -332,7 +332,7 @@ let sarif_codeflow (cli_match : OutT.cli_match) =
             ~thread_flows ();
         ]
 
-let results (cli_output : OutT.cli_output) =
+let results show_dataflow_traces (cli_output : OutT.cli_output) =
   let result (cli_match : OutT.cli_match) =
     let location =
       let physical_location =
@@ -356,7 +356,9 @@ let results (cli_output : OutT.cli_output) =
       | Some true -> Some [ Sarif_v.create_suppression ~kind:`InSource () ]
     in
     let fixes = sarif_fixes cli_match in
-    let code_flows = sarif_codeflow cli_match in
+    let code_flows =
+      if show_dataflow_traces then sarif_codeflow cli_match else None
+    in
     Sarif_v.create_result
       ~rule_id:(Rule_ID.to_string cli_match.check_id)
       ~message:(message cli_match.extra.message)
@@ -388,8 +390,8 @@ let error_to_sarif_notification (e : OutT.cli_error) =
 (* Entry point *)
 (*****************************************************************************)
 
-let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
-    =
+let sarif_output ~hide_nudge ~engine_label ~show_dataflow_traces hrules
+    (cli_output : OutT.cli_output) =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
@@ -403,7 +405,7 @@ let sarif_output ~hide_nudge ~engine_label hrules (cli_output : OutT.cli_output)
       in
       Sarif_v.create_tool ~driver ()
     in
-    let results = results cli_output in
+    let results = results show_dataflow_traces cli_output in
     let invocation =
       (* TODO no test case(s) for executionNotifications being non-empty *)
       let tool_execution_notifications =
