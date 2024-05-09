@@ -16,8 +16,8 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-module Request = Cohttp_lwt.Request
-module Response = Cohttp_lwt.Response
+module Request = Cohttp.Request
+module Response = Cohttp.Response
 module Body = Cohttp_lwt.Body
 module Header = Cohttp.Header
 
@@ -173,8 +173,9 @@ let with_testing_client make_fn test_fn () =
       let make_response = make_fn
     end))
   in
-  Common.save_excursion Http_helpers.in_mock_context true (fun () ->
-      Common.save_excursion Http_helpers.client_ref (Some new_client) test_fn)
+  Http_helpers.with_client_ref new_client
+    (fun () -> Common.save_excursion Http_helpers.in_mock_context true test_fn)
+    ()
 
 (*****************************************************************************)
 (* Saved Request/Reponse Mocking *)
@@ -250,15 +251,8 @@ let parse_req =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          ( {
-              Cohttp.Request.meth;
-              resource;
-              version;
-              headers;
-              scheme = None;
-              encoding = Body.transfer_encoding body;
-            },
-            body ))
+          let uri = Uri.of_string resource in
+          (Cohttp.Request.make ~meth ~version ~headers uri, body))
 
 let parse_resp =
   strip_and_parse "< " (fun lines ->
@@ -271,17 +265,7 @@ let parse_resp =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          ( {
-              Cohttp.Response.version;
-              headers;
-              status;
-              (* Not sure exactly how cohttp uses this. Not documented.
-               * Doesn't seem like there's any buffering in our tests anyway.
-               *)
-              flush = true;
-              encoding = Body.transfer_encoding body;
-            },
-            body ))
+          (Cohttp.Response.make ~version ~status ~flush:true ~headers (), body))
 
 let client_from_file req_resp_file =
   let contents = UFile.Legacy.read_file req_resp_file in

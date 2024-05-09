@@ -12,8 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module Http_helpers = Http_helpers.Make (Lwt_platform)
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -42,10 +40,10 @@ let send_async caps =
   Logs.debug (fun m ->
       m "Sending metrics (with user agent '%s') data: %s" user_agent metrics);
   let%lwt response =
-    Http_helpers.post_async ~body:metrics ~headers caps#network url
+    Http_helpers.post ~body:metrics ~headers caps#network url
   in
   (match response with
-  | Ok body -> (
+  | Ok { body = Ok body; _ } -> (
       (* TODO: find where the schema of the response is defined and
        * add it in semgrep_metrics.atd
        * Here is an example of answer:
@@ -68,8 +66,9 @@ let send_async caps =
       with
       | Yojson.Json_error msg ->
           Logs.warn (fun m -> m "Metrics response is not valid json: %s" msg))
-  | Error (status_code, err) ->
-      Logs.warn (fun m -> m "Metrics server error: %d %s" status_code err));
+  | Ok { body = Error err; code; _ } ->
+      Logs.warn (fun m -> m "Metrics server error: %d %s" code err)
+  | Error e -> Logs.warn (fun m -> m "Failed to send metrics: %s" e));
   Lwt.return_unit
 
 let send caps =

@@ -1,6 +1,5 @@
 open Common
 module Out = Semgrep_output_v1_t
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -125,10 +124,8 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
 
       let semgrep_url = !Semgrep_envvars.v.semgrep_url in
       match Semgrep_App.upload_rule_to_registry caps request_json with
-      | Error (status_code, text) ->
-          Logs.err (fun m ->
-              m "    Failed to upload rule with status code %d" status_code);
-          Logs.err (fun m -> m "%s" text);
+      | Error e ->
+          Logs.err (fun m -> m "%s" e);
           false
       | Ok text ->
           let yojson = Yojson.Safe.from_string text in
