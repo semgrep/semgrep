@@ -86,8 +86,9 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         UCommon.pr2
-           (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
+         Log.err (fun m ->
+             m "%s"
+               (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err)))
 
 (*
    Serious error = any parsing error that causes us to resort to an
@@ -114,18 +115,19 @@ let get_serious_error (res : _ Tree_sitter_run.Parsing_result.t) =
   List.find_opt (fun err -> is_serious_error err) res.errors
 
 let extract_pattern_from_tree_sitter_result
-    (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
+    (res : 'a Tree_sitter_run.Parsing_result.t) =
   match res.program with
   | None -> failwith "no pattern found"
   | Some pat ->
       (* TODO: treat missing tokens as errors once we're confident that
          these new errors won't affect users negatively on a large scale. *)
       if has_serious_error res then (
-        if print_errors then
-          res.errors
-          |> List.iter (fun err ->
-                 UCommon.pr2
-                   (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
+        res.errors
+        |> List.iter (fun err ->
+               Log.err (fun m ->
+                   m "%s"
+                     (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto
+                        err)));
         (* to be backward compatible with what we do in PfffPat *)
         raise Parsing.Parse_error)
       else pat
@@ -264,7 +266,7 @@ let (run :
 (* Similar to run, but for pattern parsing *)
 (*****************************************************************************)
 
-let run_parser_pat ~print_errors p str =
+let run_parser_pat p str =
   let parse () =
     match p with
     | PfffPat f ->
@@ -274,7 +276,7 @@ let run_parser_pat ~print_errors p str =
         Log.info (fun m ->
             m "trying to parse with Tree-sitter parser the pattern");
         let res = f str in
-        extract_pattern_from_tree_sitter_result res print_errors
+        extract_pattern_from_tree_sitter_result res
   in
   try Ok (parse ()) with
   | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
@@ -284,7 +286,7 @@ let run_parser_pat ~print_errors p str =
  * logic there when we're parsing patterns, so it doesn't make sense
  * to reuse it.
  *)
-let run_pattern ~print_errors parsers program =
+let run_pattern parsers program =
   let rec f parsers =
     match parsers with
     | [] ->
@@ -292,7 +294,7 @@ let run_pattern ~print_errors parsers program =
           (Exception.trace
              (Failure "internal error: No pattern parser available"))
     | p :: xs -> (
-        match run_parser_pat ~print_errors p program with
+        match run_parser_pat p program with
         | Ok res -> Stdlib.Ok res
         | Error e -> (
             match f xs with

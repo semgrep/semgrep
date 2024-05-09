@@ -323,8 +323,9 @@ let related_file_of_target ~polyglot_pattern_path ~ext ~file =
       Error msg
 
 let match_pattern ~lang ~hook ~file ~pattern ~fix =
+  (* TODO? enable the "semgrep.parsing" src level maybe here *)
   let pattern =
-    try Parse_pattern.parse_pattern lang ~print_errors:true pattern with
+    try Parse_pattern.parse_pattern lang pattern with
     | exn ->
         failwith
           (spf "fail to parse pattern `%s` with lang = %s (exn = %s)" pattern

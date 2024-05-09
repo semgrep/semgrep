@@ -3,7 +3,7 @@ export interface Parser {
   getLangs: () => string[];
   setMountpoints: (mountpoints: Mountpoint[]) => void;
   parseTarget: (lang: string, filename: string) => any;
-  parsePattern: (printErrors: boolean, lang: string, pattern: string) => any;
+  parsePattern: (lang: string, pattern: string) => any;
 }
 export interface Engine {
   lookupLang: (name: string) => string | null;

@@ -6,10 +6,10 @@ let parse_target _ file =
     ]
     C_to_generic.program
 
-let parse_pattern print_errors _ str =
+let parse_pattern _ str =
   let any =
     str
-    |> Pfff_or_tree_sitter.run_pattern ~print_errors
+    |> Pfff_or_tree_sitter.run_pattern
          [
            (* this internally uses `Parse_cpp` *)
            PfffPat (fun x -> Parse_c.any_of_string x);

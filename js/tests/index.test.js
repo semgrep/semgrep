@@ -80,9 +80,9 @@ const entrypoint = async () => {
         }
       }
     };
-    const parsePattern = (_, lang, pattern) => {
+    const parsePattern = (lang, pattern) => {
       try {
-        return parsers.get(lang).parsePattern(true, lang, pattern);
+        return parsers.get(lang).parsePattern(lang, pattern);
       } catch (e) {
         console.log(`Error parsing pattern ${e} for lang ${lang}`);
         if (parsers.get(lang) === undefined) {

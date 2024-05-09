@@ -42,7 +42,7 @@ let timeout_function file timeout f =
 
 (* for -e/-f *)
 let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
+  try Parse_pattern.parse_pattern lang_pattern str with
   | exn ->
       Logs.err (fun m -> m "parse_pattern: exn = %s" (Common.exn_to_s exn));
       Rule.raise_error None

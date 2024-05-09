@@ -46,7 +46,7 @@ val init_jsoo : 'a -> unit
 val setJsonnetParser :
   (jstring -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) -> unit
 
-val setParsePattern : (jbool -> jstring -> jstring -> AST_generic.any) -> unit
+val setParsePattern : (jstring -> jstring -> AST_generic.any) -> unit
 (** [setParsePattern f] is sets the parse pattern function for semgrep.
     This is what determines which parser to use for a given language pattern.
   *)
@@ -60,7 +60,7 @@ val make_js_module :
   ?parse_target_ts_only:(Fpath.t -> 'a) option ->
   Language.t list ->
   (Language.t -> Fpath.t -> 'b) ->
-  (bool -> Language.t -> string -> 'c) ->
+  (Language.t -> string -> 'c) ->
   unit
 (** [make_js_module langs parse parse_pattern] creates a javascript module
     that can be used to parse a given language. It takes a list of languages,

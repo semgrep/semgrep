@@ -1,6 +1,6 @@
 open Fpath_.Operators
 
-let parse_pattern _ _ str =
+let parse_pattern _ str =
   let any = Parse_json.any_of_string str in
   Json_to_generic.any any
 

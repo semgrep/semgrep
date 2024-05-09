@@ -1,6 +1,6 @@
 (* Emma Jin, Yoann Padioleau
  *
- * Copyright (C) 2020, 2023 r2c
+ * Copyright (C) 2020, 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,6 +16,7 @@ open Common
 open AST_generic
 module G = AST_generic
 module F = Format
+module Log = Log_printing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -64,7 +65,7 @@ type env = { lang : Lang.t; (* indentation level *) level : int }
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  UCommon.pr2 (show_any any);
+  Log.warn (fun m -> m "Pretty_print_AST TODO: %s" (show_any any));
   "*TODO*"
 
 let rec indent = function

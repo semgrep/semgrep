@@ -30,13 +30,13 @@ export const EngineFactory = async () => {
 
   const missingLanguages = new Set();
 
-  const parsePattern = (printErrors, lang, pattern) => {
+  const parsePattern = (lang, pattern) => {
     const parser = languages.get(lang);
     if (!parser) {
       missingLanguages.add(lang);
       throw new MissingParserError(lang);
     }
-    return parser.parsePattern(printErrors, lang, pattern);
+    return parser.parsePattern(lang, pattern);
   };
 
   const parseFile = (lang, str) => {

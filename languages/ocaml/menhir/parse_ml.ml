@@ -17,6 +17,7 @@ open Fpath_.Operators
 module Flag = Flag_parsing
 module TH = Token_helpers_ml
 module PS = Parsing_stat
+module Log = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -64,7 +65,7 @@ let parse filename =
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then (
-        UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
+        Log.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
         let filelines = UFile.cat_array (Fpath.v filename) in
         let checkpoint2 = UFile.Legacy.cat filename |> List.length in
         let line_error = TH.line_of_tok cur in

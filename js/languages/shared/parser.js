@@ -68,7 +68,7 @@ exports.testParsePattern = (lang, parserPromise) => {
       test(filename, async () => {
         const parser = await parserPromise;
         const patternContent = fs.readFileSync(filename, "utf8");
-        const pattern = parser.parsePattern(true, lang, patternContent);
+        const pattern = parser.parsePattern(lang, patternContent);
         expect(typeof pattern).toEqual("object");
       });
     });
