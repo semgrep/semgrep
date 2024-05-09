@@ -5,7 +5,7 @@ export interface Parser {
   getLangs: () => Lang[];
   setMountpoints: (mountpoints: Mountpoint[]) => void;
   parseTarget: (lang: Lang, filename: string) => any;
-  parsePattern: (printErrors: boolean, lang: Lang, pattern: string) => any;
+  parsePattern: (lang: Lang, pattern: string) => any;
   parseTargetTsOnly: (file: string) => any;
 }
 

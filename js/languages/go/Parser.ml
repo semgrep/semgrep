@@ -1,4 +1,4 @@
-let parse_pattern _ _ str = Go_to_generic.any (Parse_go.any_of_string str)
+let parse_pattern _ str = Go_to_generic.any (Parse_go.any_of_string str)
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
