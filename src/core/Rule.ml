@@ -407,7 +407,6 @@ type auth =
     }
 [@@deriving show]
 
-
 type aws_request = {
   secret_access_key : string;
   access_key_id : string;
@@ -452,7 +451,7 @@ type http_matcher = {
 }
 [@@deriving show]
 
-type validator = 
+type validator =
   | HTTP of { request : request; response : http_matcher list }
   | AWS of { request : aws_request; response : http_matcher list }
 [@@deriving show]
