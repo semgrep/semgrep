@@ -166,7 +166,6 @@ local semgrep_rules = [
        'scripts/',
        #TODO:
        'libs/',
-       'src/'
        ]
     },
   },

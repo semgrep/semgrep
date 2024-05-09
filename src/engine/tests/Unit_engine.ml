@@ -5,6 +5,7 @@ module MR = Mini_rule
 module P = Pattern_match
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
+module TCM = Test_compare_matches
 
 let t = Testo.create
 
@@ -404,8 +405,8 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              |> ignore;
              let actual = !E.g_errors in
              E.g_errors := [];
-             let expected = E.expected_error_lines_of_files [ file ] in
-             E.compare_actual_to_expected_for_alcotest actual expected))
+             let expected = TCM.expected_error_lines_of_files [ file ] in
+             TCM.compare_actual_to_expected_for_alcotest actual expected))
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
     lang_data =
@@ -710,8 +711,8 @@ let tainting_test lang rules_file file =
              details = None;
            })
   in
-  let expected = E.expected_error_lines_of_files [ file ] in
-  E.compare_actual_to_expected_for_alcotest actual expected
+  let expected = TCM.expected_error_lines_of_files [ file ] in
+  TCM.compare_actual_to_expected_for_alcotest actual expected
 
 let tainting_tests_for_lang files lang =
   files

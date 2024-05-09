@@ -222,8 +222,8 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
              in
 
              if not config.error_recovery then
-               E.try_with_print_exn_and_reraise !!file (fun () -> process file)
-             else E.try_with_exn_to_error !!file (fun () -> process file));
+               E.try_with_log_exn_and_reraise file (fun () -> process file)
+             else E.try_with_exn_to_error file (fun () -> process file));
 
       let n = List.length !E.g_errors in
       if n > 0 then Logs.err (fun m -> m "error count: %d" n)
