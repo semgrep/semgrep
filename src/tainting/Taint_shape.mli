@@ -67,6 +67,10 @@ val compare_shape : shape -> shape -> int
 val show_ref : ref -> string
 val show_shape : shape -> string
 
+val taints_and_shape_are_relevant : Taint.taints -> shape -> bool
+(** [true] iff the union of [taints] and [gather_all_taints_in_shape shape]
+ * is non-empty. *)
+
 val tuple_like_obj : (Taint.taints * shape) list -> obj
 (** Constructs a 0-indexed tuple-like 'obj' from a list of pairs, taints and shape,
  * for each element in the tuple.  *)

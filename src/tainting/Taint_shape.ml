@@ -86,6 +86,18 @@ let internal_UNSAFE_find_offset_in_obj o obj =
               (T.show_offset o));
         (Oany, obj))
 
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+let taints_and_shape_are_relevant taints shape =
+  match (Taints.is_empty taints, shape) with
+  | true, Bot -> false
+  | __else__ ->
+      (* Either 'taints' is non-empty, or 'shape' is non-'Bot' and hence
+       * by INVARIANT(ref) it contains some taint. *)
+      true
+
 (* THINK !!!! *)
 let _shape_has_taint_in_it shape =
   let rec check_ref ref =
@@ -325,39 +337,35 @@ and internal_UNSAFE_update_obj ~f offset obj =
 (*****************************************************************************)
 
 let unify_ref_shape new_taints new_shape offset opt_ref =
-  match (Taints.is_empty new_taints, new_shape) with
-  | true, Bot ->
-      (* To maintain INVARIANT(ref). *)
-      opt_ref
-  | __else__ ->
-      (* Either 'new_taints' is non-empty, or 'new_shape' is non-'Bot' and hence
-       * by INVARIANT(ref) it contains some taint. *)
-      let new_xtaint =
-        (* THINK: Maybe Dataflow_tainting 'check_xyz' should be returning 'Xtaint.t'? *)
-        Xtaint.of_taints new_taints
-      in
-      let ref = opt_ref ||| ref_none_bot in
-      let add_new_taints xtaint shape =
-        let shape = unify_shape new_shape shape in
-        match xtaint with
-        | `None
-        | `Clean ->
-            (* Since we're adding taint we cannot have `Clean here. *)
-            (new_xtaint, shape)
-        | `Tainted taints as xtaint ->
-            if
-              !Flag_semgrep.max_taint_set_size =|= 0
-              || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
-            then (Xtaint.union new_xtaint xtaint, shape)
-            else (
-              Logs.debug (fun m ->
-                  m ~tags:warning
-                    "Already tracking too many taint sources for %s, will not \
-                     track more"
-                    (offset |> List_.map T.show_offset |> String.concat ""));
-              (`Tainted taints, shape))
-      in
-      Some (internal_UNSAFE_update_ref ~f:add_new_taints offset ref)
+  if taints_and_shape_are_relevant new_taints new_shape then
+    let new_xtaint =
+      (* THINK: Maybe Dataflow_tainting 'check_xyz' should be returning 'Xtaint.t'? *)
+      Xtaint.of_taints new_taints
+    in
+    let ref = opt_ref ||| ref_none_bot in
+    let add_new_taints xtaint shape =
+      let shape = unify_shape new_shape shape in
+      match xtaint with
+      | `None
+      | `Clean ->
+          (* Since we're adding taint we cannot have `Clean here. *)
+          (new_xtaint, shape)
+      | `Tainted taints as xtaint ->
+          if
+            !Flag_semgrep.max_taint_set_size =|= 0
+            || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
+          then (Xtaint.union new_xtaint xtaint, shape)
+          else (
+            Logs.debug (fun m ->
+                m ~tags:warning
+                  "Already tracking too many taint sources for %s, will not \
+                   track more"
+                  (offset |> List_.map T.show_offset |> String.concat ""));
+            (`Tainted taints, shape))
+    in
+    Some (internal_UNSAFE_update_ref ~f:add_new_taints offset ref)
+  else (* To maintain INVARIANT(ref). *)
+    opt_ref
 
 (*****************************************************************************)
 (* Clean taint *)
