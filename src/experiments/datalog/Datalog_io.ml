@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -51,6 +51,7 @@ let write_facts_for_doop facts dir =
   groups
   |> List.iter (fun (table, tuples) ->
          let file = dir / (table ^ ".csv") in
-         UCommon.pr2 (spf "generating tuples for %s" !!file);
+         (* nosemgrep: no-logs-in-library *)
+         Logs.info (fun m -> m "generating tuples for %s" !!file);
          UFile.with_open_out file (fun (mypr, _chan) ->
              tuples |> List.iter (fun tuple -> mypr (csv_of_tuple tuple))))

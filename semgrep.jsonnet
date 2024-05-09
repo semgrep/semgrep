@@ -121,7 +121,8 @@ local semgrep_rules = [
        // of Logs.xxx is fine:
        //  - osemgrep (in src/osemgrep/),
        //    with also code in metachecking/ for osemgrep validate
-       //  - semgrep-core (in src/core_cli/)
+       //  - semgrep-core (in src/core_cli/), and many actions with
+       //    code under src/experiments
        //  - test (tests/*)
        'osemgrep/',
        'metachecking/',

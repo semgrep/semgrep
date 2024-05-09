@@ -392,10 +392,12 @@ let all_actions (caps : Cap.all_caps) () =
     );
     ( "-stat_matches",
       " <marshalled file>",
-      Arg_.mk_action_1_arg Experiments.stat_matches );
+      Arg_.mk_action_1_arg (Experiments.stat_matches (caps :> < Cap.stdout >))
+    );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
-      Arg_.mk_action_1_conv Fpath.v Experiments.ebnf_to_menhir );
+      Arg_.mk_action_1_conv Fpath.v
+        (Experiments.ebnf_to_menhir (caps :> < Cap.stdout >)) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
@@ -412,7 +414,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
-           (caps :> < Cap.tmp >)
+           (caps :> < Cap.stdout ; Cap.tmp >)
            mk_config Parse_rule.parse) );
     ( "-translate_rules",
       " <files or dirs>",
@@ -420,7 +422,8 @@ let all_actions (caps : Cap.all_caps) () =
         (Translate_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v (Check_rule.stat_files Parse_rule.parse) );
+      Arg_.mk_action_n_conv Fpath.v
+        (Check_rule.stat_files (caps :> < Cap.stdout >) Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v (Core_actions.test_rules caps) );

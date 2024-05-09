@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -91,12 +91,8 @@ let parse file =
                                     right (Common.exn_to_s exn))
                          in
                          { Eq.id; left; op; right; languages }
-                     | x ->
-                         UCommon.pr2_gen x;
-                         error "wrong equivalence fields")
-                 | x ->
-                     UCommon.pr2_gen x;
-                     error "wrong equivalence fields")
+                     | _ -> error "wrong equivalence fields")
+                 | _ -> error "wrong equivalence fields")
       | _ -> error "missing equivalences entry")
   | Result.Error (`Msg s) ->
       failwith
