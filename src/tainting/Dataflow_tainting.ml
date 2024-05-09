@@ -169,13 +169,18 @@ let map_check_expr env check_expr xs =
   in
   (List.rev rev_taints_and_shapes, lval_env)
 
-let union_map_taints_and_vars env f xs =
+(* FIXME: Add taints from shapes *)
+let union_map_taints_and_vars env check xs =
   let taints, lval_env =
     xs
     |> List.fold_left
-         (fun (taints1, lval_env) x ->
-           let taints2, lval_env = f { env with lval_env } x in
-           (Taints.union taints1 taints2, lval_env))
+         (fun (taints_acc, lval_env) x ->
+           let taints, shape, lval_env = check { env with lval_env } x in
+           let taints_acc =
+             taints_acc |> Taints.union taints
+             |> Taints.union (S.gather_all_taints_in_shape shape)
+           in
+           (taints_acc, lval_env))
          (Taints.empty, env.lval_env)
   in
   let taints =
@@ -1171,11 +1176,6 @@ and check_tainted_lval_offset env offset =
  * report the finding too (by side effect). *)
 and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
   let check env = check_tainted_expr env in
-  let check_without_shape env e =
-    let taints, shape, lval_env = check env e in
-    let taints = taints |> Taints.union (S.gather_all_taints_in_shape shape) in
-    (taints, lval_env)
-  in
   let check_subexpr exp =
     match exp.e with
     | Fetch _
@@ -1194,9 +1194,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
         let obj = S.tuple_like_obj taints_and_shapes in
         (Taints.empty, Obj obj, lval_env)
     | Composite ((CSet | Constructor _ | Regexp), (_, es, _)) ->
-        let taints, lval_env =
-          union_map_taints_and_vars env check_without_shape es
-        in
+        let taints, lval_env = union_map_taints_and_vars env check es in
         (taints, S.Bot, lval_env)
     | Operator ((op, _), es) ->
         (* let _, args_taints, lval_env = check_function_call_arguments env es in *)
@@ -1274,23 +1272,19 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
         in
         (op_taints, S.Bot (* TODO *), lval_env)
     | RecordOrDict fields ->
-        (* TODO *)
-        let taints, lval_env =
-          union_map_taints_and_vars env
-            (fun env -> function
-              (* FIXME *)
-              | Field (_, e)
-              | Spread e ->
-                  check_without_shape env e
-              | Entry (ke, ve) ->
-                  let k_taints, lval_env = check_without_shape env ke in
-                  let v_taints, lval_env =
-                    check_without_shape { env with lval_env } ve
-                  in
-                  (Taints.union k_taints v_taints, lval_env))
-            fields
+        (* TODO: Construct a proper record/dict shape here. *)
+        let fields_exprs =
+          fields
+          |> List.concat_map (function
+               | Field (_, e)
+               | Spread e ->
+                   [ e ]
+               | Entry (ke, ve) -> [ ke; ve ])
         in
-        (taints, S.Bot (* TODO *), lval_env)
+        let taints, lval_env =
+          union_map_taints_and_vars env check fields_exprs
+        in
+        (taints, S.Bot, lval_env)
     | Cast (_, e) -> check env e
   in
   match exp_is_sanitized env exp with
@@ -1829,7 +1823,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
             args_taints
         with
         | Some (call_taints, shape, lval_env) ->
-            (* FIXME: Will 'new' return the proper shape ??? *)
+            (* TODO: 'new' should return the shape of the object being constructed *)
             (call_taints, shape, lval_env)
         | None ->
             let all_args_taints_in_shapes =
