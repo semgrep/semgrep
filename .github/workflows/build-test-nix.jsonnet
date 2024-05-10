@@ -14,6 +14,13 @@ local job = gha.os_matrix(
         name: "Set up Nix",
         uses: "DeterminateSystems/nix-installer-action@main",
         with: {
+            // pysemgrep and osemgrep have networking tests that rely on the
+            // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
+            // everything fine, but all networking tests fail. So we set sandbox
+            // to false here so networking tests succeed
+            //
+            // TODO: disable networking tests for nix? that would be the nix way
+            // of doing things
             "extra-conf": "sandbox = false"
         }
     },
@@ -48,8 +55,6 @@ local job = gha.os_matrix(
 ]);
 {
   name: 'build-test-nix',
-  // This is called from tests.jsonnet and release.jsonnet
-  // TODO: just make this job a func so no need to use GHA inherit/call
   on: gha.on_classic,
   jobs: {
     job: job,
