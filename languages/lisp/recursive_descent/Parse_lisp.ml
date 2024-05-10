@@ -17,6 +17,7 @@ open Fpath_.Operators
 open Parser_lisp
 open Ast_lisp
 module PS = Parsing_stat
+module Log = Log_lib_parsing.Log
 
 (* we don't need a full grammar for lisp code, so we put everything,
  * the token type, the helper in parser_ml. No token_helpers_lisp.ml
@@ -130,9 +131,9 @@ let parse filename =
             (Parsing_error.Other_error ("trailing constructs", TH.info_of_tok x))
     with
     | Parsing_error.Other_error (s, info) ->
-        UCommon.pr2
-          (spf "Parse error: %s, {%s} at %s" s (Tok.content_of_tok info)
-             (Tok.stringpos_of_tok info));
+        Log.err (fun m ->
+            m "Parse error: %s, {%s} at %s" s (Tok.content_of_tok info)
+              (Tok.stringpos_of_tok info));
         stat.PS.error_line_count <- stat.PS.total_line_count;
         None
     | exn -> Exception.catch_and_reraise exn

@@ -21,7 +21,7 @@
 (generate_opam_files)
 
 ;; set here so the semgrep package below can use it and we can easily bump it
-(version 1.71.0)
+(version 1.72.0)
 
 ;; Default attributes of opam packages
 (source (github semgrep/semgrep))
@@ -507,6 +507,8 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     uuidm
+    ; cohttp >= 6.0.0 requires opam 2.1.0 (which isn't yet on Windows)
+    (cohttp (= 5.3.0))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)

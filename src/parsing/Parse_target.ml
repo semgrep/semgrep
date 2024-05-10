@@ -12,8 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-open Common
 open Fpath_.Operators
 open Pfff_or_tree_sitter
 module Res = Parsing_result2
@@ -111,7 +109,9 @@ let parse_and_resolve_name_warn_if_partial lang file =
   let { ast; errors; _ } : Res.t = parse_and_resolve_name lang file in
   (match errors with
   | [] -> ()
-  | _ -> UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file));
+  | _ ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "fail to fully parse %s" !!file));
   ast
 
 let fail_on_errors errors =

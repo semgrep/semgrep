@@ -1,6 +1,7 @@
 open Common
 open Fpath_.Operators
 module E = Core_error
+module TCM = Test_compare_matches
 
 let t = Testo.create
 
@@ -38,7 +39,7 @@ let metachecker_checks_tests () =
             let file = Fpath.v file in
             t (Fpath.basename file) (fun () ->
                 (* note that try_with_exn_to_error also modifies g_errors *)
-                E.try_with_exn_to_error !!file (fun () ->
+                E.try_with_exn_to_error file (fun () ->
                     let rules = Parse_rule.parse file in
                     rules
                     |> List.iter (fun rule ->
@@ -46,8 +47,8 @@ let metachecker_checks_tests () =
                            E.g_errors := errs @ !E.g_errors));
                 let actual = !E.g_errors in
                 E.g_errors := [];
-                let expected = E.expected_error_lines_of_files [ file ] in
-                E.compare_actual_to_expected_for_alcotest actual expected)))
+                let expected = TCM.expected_error_lines_of_files [ file ] in
+                TCM.compare_actual_to_expected_for_alcotest actual expected)))
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests caps =

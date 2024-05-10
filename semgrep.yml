@@ -29,8 +29,10 @@ rules:
               ...
               [@@action]
     message: you should not print anything on stdout as it may interfere with
-      the JSON output we must return to the semgrep python wrapper.
-      Use Logs.debug() for debugging or Out.put() for actual valid output.
+      the JSON output we must return to pysemgrep from semgrep-core, or it may
+      interfere with the output of osemgrep.
+      Use Logs.debug() for debugging, UConsole.print() for actual valid output
+      in semgrep-core, or Logs.app() and CapConsole.print() in osemgrep.
     languages: [ocaml]
     severity: ERROR
     paths:

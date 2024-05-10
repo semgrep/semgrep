@@ -63,17 +63,14 @@ let setJsonnetParser
   Parse_jsonnet.jsonnet_parser_ref :=
     fun file -> func (Js.string Fpath.(to_string file))
 
-let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
+let setParsePattern (func : jstring -> jstring -> 'a) =
   Parse_pattern.parse_pattern_ref :=
-    fun print_error _options lang pattern ->
+    fun _options lang pattern ->
       match lang with
       (* The Yaml and JSON parsers are embedded in the engine because it's a
          core component needed to parse rules *)
       | Lang.Yaml -> Yaml_to_generic.any pattern
-      | _ ->
-          func (Js.bool print_error)
-            (Js.string (Lang.to_lowercase_alnum lang))
-            (Js.string pattern)
+      | _ -> func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string pattern)
 
 let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
   Parse_target.just_parse_with_lang_ref :=
@@ -166,9 +163,9 @@ let make_js_module ?(parse_target_ts_only = None) (langs : Language.t list)
           in
           wrap_with_js_error parse_target
 
-        method parsePattern print_errors lang str =
+        method parsePattern lang str =
           let parse_pattern () =
-            parse_pattern (Js.to_bool print_errors)
+            parse_pattern
               (Lang.of_string (Js.to_string lang))
               (Js.to_string str)
           in

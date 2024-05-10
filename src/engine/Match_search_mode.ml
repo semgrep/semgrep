@@ -576,6 +576,10 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              let mvalue_to_expr m =
                match Metavariable.mvalue_to_any m with
                | G.E e -> Some e
+               (* When we capture `IdQualified` with `Id`
+                  metavariable, `Metavariable.N` is generated in
+                  `Generic_vs_generic.m_name_inner` *)
+               | G.Name n -> Some (N n |> G.e)
                | _ -> None
              in
              match

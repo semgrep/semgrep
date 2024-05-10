@@ -1,3 +1,0 @@
-Dockerfile support: Avoid a silent parsing error that was possibly accompanied
-with a segfault when parsing Dockerfiles that lack a trailing newline
-character.

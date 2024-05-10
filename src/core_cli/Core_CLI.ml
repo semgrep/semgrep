@@ -163,12 +163,14 @@ let dump_v_to_format (v : OCaml.v) =
   | Text -> OCaml.string_of_v v
   | Json _ -> J.string_of_json (Core_actions.json_of_v v)
 
-let dump_parsing_errors file (res : Parsing_result2.t) =
-  UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file);
-  UCommon.pr2 (Parsing_result2.format_errors ~style:Auto res.errors);
-  UCommon.pr2
-    (List_.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
-    |> String.concat "\n")
+let log_parsing_errors file (res : Parsing_result2.t) =
+  Logs.warn (fun m -> m "fail to fully parse %s" !!file);
+  Logs.debug (fun m ->
+      m "errs = %s" (Parsing_result2.format_errors ~style:Auto res.errors));
+  Logs.debug (fun m ->
+      m "skipped = %s"
+        (List_.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
+        |> String.concat "\n"))
 
 (* works with -lang *)
 let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
@@ -176,8 +178,9 @@ let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
   let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
-  E.try_with_print_exn_and_reraise !!file (fun () ->
-      let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
+  E.try_with_log_exn_and_reraise file (fun () ->
+      (* TODO? enable "semgrep.parsing" log level *)
+      let any = Parse_pattern.parse_pattern lang s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       UCommon.pr s)
@@ -199,12 +202,12 @@ let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
     xpats
 [@@action]
 
-let dump_ast ?(naming = false) (caps : < Cap.exit ; Cap.tmp >)
+let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit ; Cap.tmp >)
     (lang : Language.t) (file : Fpath.t) =
   let file =
     Core_scan.replace_named_pipe_by_regular_file (caps :> < Cap.tmp >) file
   in
-  E.try_with_print_exn_and_reraise !!file (fun () ->
+  E.try_with_log_exn_and_reraise file (fun () ->
       let res =
         if naming then Parse_target.parse_and_resolve_name lang file
         else Parse_target.just_parse_with_lang lang file
@@ -213,9 +216,9 @@ let dump_ast ?(naming = false) (caps : < Cap.exit ; Cap.tmp >)
       (* 80 columns is too little *)
       Format.set_margin 120;
       let s = dump_v_to_format v in
-      UCommon.pr s;
+      CapConsole.print caps#stdout s;
       if Parsing_result2.has_error res then (
-        dump_parsing_errors file res;
+        log_parsing_errors file res;
         Core_exit_code.(exit_semgrep caps#exit False)))
 [@@action]
 
@@ -292,7 +295,8 @@ let all_actions (caps : Cap.all_caps) () =
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
-      Arg_.mk_action_0_arg Core_actions.dump_ext_of_lang );
+      Arg_.mk_action_0_arg
+        (Core_actions.dump_ext_of_lang (caps :> < Cap.stdout >)) );
     ( "-dump_pattern",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (dump_pattern (caps :> < Cap.tmp >)) );
@@ -305,7 +309,7 @@ let all_actions (caps : Cap.all_caps) () =
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:false
-             (caps :> < Cap.exit ; Cap.tmp >)
+             (caps :> < Cap.stdout ; Cap.exit ; Cap.tmp >)
              (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_lang_ast",
@@ -319,13 +323,17 @@ let all_actions (caps : Cap.all_caps) () =
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:true
-             (caps :> < Cap.exit ; Cap.tmp >)
+             (caps :> < Cap.stdout ; Cap.exit ; Cap.tmp >)
              (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_il_all",
       " <file>",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.dump_il_all );
-    ("-dump_il", " <file>", Arg_.mk_action_1_conv Fpath.v Core_actions.dump_il);
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.dump_il_all (caps :> < Cap.stdout >)) );
+    ( "-dump_il",
+      " <file>",
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.dump_il (caps :> < Cap.stdout >)) );
     ( "-dump_rule",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v
@@ -333,7 +341,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_equivalences",
       " <file> (deprecated)",
       Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_equivalences (caps :> < Cap.tmp >)) );
+        (Core_actions.dump_equivalences (caps :> < Cap.stdout >)) );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
@@ -355,7 +363,7 @@ let all_actions (caps : Cap.all_caps) () =
           in
           Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
-            !!file) );
+            file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
@@ -391,10 +399,12 @@ let all_actions (caps : Cap.all_caps) () =
     );
     ( "-stat_matches",
       " <marshalled file>",
-      Arg_.mk_action_1_arg Experiments.stat_matches );
+      Arg_.mk_action_1_arg (Experiments.stat_matches (caps :> < Cap.stdout >))
+    );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
-      Arg_.mk_action_1_conv Fpath.v Experiments.ebnf_to_menhir );
+      Arg_.mk_action_1_conv Fpath.v
+        (Experiments.ebnf_to_menhir (caps :> < Cap.stdout >)) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
@@ -411,7 +421,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
-           (caps :> < Cap.tmp >)
+           (caps :> < Cap.stdout ; Cap.tmp >)
            mk_config Parse_rule.parse) );
     ( "-translate_rules",
       " <files or dirs>",
@@ -419,10 +429,12 @@ let all_actions (caps : Cap.all_caps) () =
         (Translate_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v (Check_rule.stat_files Parse_rule.parse) );
+      Arg_.mk_action_n_conv Fpath.v
+        (Check_rule.stat_files (caps :> < Cap.stdout >) Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v (Core_actions.test_rules caps) );
+      Arg_.mk_action_n_conv Fpath.v
+        (Core_actions.test_rules (caps :> < Cap.stdout ; Cap.exit >)) );
     ( "-parse_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );
@@ -430,9 +442,6 @@ let all_actions (caps : Cap.all_caps) () =
       " <file> <dir>",
       Arg_.mk_action_2_arg (fun a b ->
           Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
-    ( "-postmortem",
-      " <log file",
-      Arg_.mk_action_1_conv Fpath.v Statistics_report.stat );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
@@ -610,7 +619,7 @@ let options caps actions =
       ( "-version",
         Arg.Unit
           (fun () ->
-            UCommon.pr2 version;
+            CapConsole.print caps#stdout version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
       ( "-rpc",

@@ -59,6 +59,3 @@ val display_with_gv : 'a graph -> unit
 
 val display_strongly_connected_components :
   str_of_key:('a -> string) -> ('a, int) Hashtbl.t -> 'a graph -> unit
-
-(* internals *)
-val stat : 'a graph -> unit

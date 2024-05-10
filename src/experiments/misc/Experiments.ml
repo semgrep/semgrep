@@ -14,9 +14,9 @@ open Fpath_.Operators
 (* We now log the files who have too many matches, but this action below
  * can still be useful for deeper debugging.
  *)
-let stat_matches file =
+let stat_matches (caps : < Cap.stdout >) file =
   let (matches : Pattern_match.t list) = Common2.get_value file in
-  UCommon.pr2 (spf "matched: %d" (List.length matches));
+  CapConsole.print caps#stdout (spf "matched: %d" (List.length matches));
   let per_files =
     matches
     |> List_.map (fun (m : Pattern_match.t) ->
@@ -25,14 +25,16 @@ let stat_matches file =
     |> List_.map (fun (file, xs) -> (file, List.length xs))
     |> Assoc.sort_by_val_highfirst |> List_.take_safe 10
   in
-  UCommon.pr2 "biggest file offenders";
+  CapConsole.print caps#stdout "biggest file offenders";
   per_files
-  |> List.iter (fun (file, n) -> UCommon.pr2 (spf " %60s: %d" !!file n));
+  |> List.iter (fun (file, n) ->
+         CapConsole.print caps#stdout (spf " %60s: %d" !!file n));
   ()
 
 module T = Genlex
 
-let ebnf_to_menhir file =
+let ebnf_to_menhir (caps : < Cap.stdout >) file =
+  let print s = CapConsole.print caps#stdout s in
   let xs = UFile.cat file in
   let hkwd = Hashtbl.create 11 in
   let htokens = Hashtbl.create 11 in
@@ -86,20 +88,20 @@ let ebnf_to_menhir file =
            | _ when s =~ "^[ \t]*$" -> ""
            | _ -> failwith (spf "not handled: %s" s))
   in
-  UCommon.pr2 "%{";
-  UCommon.pr2 "%}";
-  UCommon.pr2 "";
+  print "%{";
+  print "%}";
+  print "";
 
   htokens |> Hashtbl_.hashset_to_list
-  |> List.iter (fun s -> UCommon.pr2 (spf "%%token <unit> %s" s));
+  |> List.iter (fun s -> print (spf "%%token <unit> %s" s));
 
   let i = ref 0 in
   hkwd |> Hashtbl_.hashset_to_list
   |> List.iter (fun s ->
          incr i;
-         UCommon.pr2 (spf "%%token <unit> X%d \"%s\"" !i s));
-  UCommon.pr2 "%start <unit> compilationUnit";
-  UCommon.pr2 "%%";
-  UCommon.pr2 "";
+         print (spf "%%token <unit> X%d \"%s\"" !i s));
+  print "%start <unit> compilationUnit";
+  print "%%";
+  print "";
 
-  ys |> List.iter (fun s -> UCommon.pr2 s)
+  ys |> List.iter (fun s -> print s)

@@ -125,7 +125,8 @@ let arg_parse2 l msg short_usage_fun =
       (* eprintf "%s" msg; exit 2; *)
       let xs = lines msg in
       (* take only head, it's where the error msg is *)
-      UCommon.pr2 (List_.hd_exn "unexpected empty list" xs);
+      (* nosemgrep: no-logs-in-library *)
+      Logs.err (fun m -> m "%s" (List_.hd_exn "unexpected empty list" xs));
       short_usage_fun ();
       raise (UnixExit 2)
   | Arg.Help _msg ->

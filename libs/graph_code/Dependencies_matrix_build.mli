@@ -15,7 +15,8 @@ val build :
   Graph_code_opti.graph ->
   dm * Graph_code_opti.graph
 
-val info_orders : dm -> unit
+(* to debug the heuristics *)
+val info_orders : dm -> string
 
 (* we return a gopti because of threshold_pack that may alter the graph *)
 val config_of_path :

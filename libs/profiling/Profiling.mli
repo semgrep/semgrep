@@ -10,14 +10,13 @@ val profile_code : string -> (unit -> 'a) -> 'a
 val profile_diagnostic : unit -> string
 val profile_code_exclusif : string -> (unit -> 'a) -> 'a
 val profile_code_inside_exclusif_ok : string -> (unit -> 'a) -> 'a
-val report_if_take_time : int -> string -> (unit -> 'a) -> 'a
+val warn_if_take_time : int -> string -> (unit -> 'a) -> 'a
 
-(* similar to profile_code but print some information during execution too *)
-(* similar to profile_code but print some information during execution too *)
+(* similar to profile_code but log some information during execution too *)
 val profile_code2 : string -> (unit -> 'a) -> 'a
 
 (* to use with Arg, to add a -profile that enables profiling *)
 val flags : unit -> (string * Arg.spec * string) list
 
-(* print on stderr, usually called just before exit *)
-val print_diagnostics_and_gc_stats : unit -> unit
+(* log and print on stderr, usually called just before exit *)
+val log_diagnostics_and_gc_stats : unit -> unit

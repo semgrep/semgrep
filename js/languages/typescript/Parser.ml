@@ -13,10 +13,10 @@ let parse_target lang file =
         Js_to_generic.program
   | _ -> failwith ("This parser cannot parse lang: " ^ Lang.to_string lang)
 
-let parse_pattern print_errors _ str =
+let parse_pattern _ str =
   let js_ast =
     str
-    |> Pfff_or_tree_sitter.run_pattern ~print_errors
+    |> Pfff_or_tree_sitter.run_pattern
          (* coupling: check src/parsing_languages/Parse_pattern2.ml *)
          [
            PfffPat Parse_js.any_of_string;

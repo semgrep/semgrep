@@ -1,6 +1,5 @@
 open Common
 module OutJ = Semgrep_output_v1_j
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* TODO: migrate this to the new scan endpoint to match the pysemgrep        *)

@@ -8,11 +8,11 @@ If you want to show the logs of a particular library
 (e.g., the semgrep targeting library), you'll need to adjust the
 SEMGREP_LOG_SRCS environment variable as in
 
-  export SEMGREP_LOG_SRCS="semgrep.targeting" semgrep ... --debug
+  SEMGREP_LOG_SRCS="semgrep.targeting" semgrep ... --debug
 
 or for osemgrep you can use it with any log level as in
 
-   export SEMGREP_LOG_SRCS="semgrep.targeting" ./bin/osemgrep ... --verbose
+  SEMGREP_LOG_SRCS="semgrep.targeting" ./bin/osemgrep ... --verbose
 
 You can see the list of possible libraries above in this log as in
 ...

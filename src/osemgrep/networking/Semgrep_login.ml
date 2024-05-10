@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Types *)
@@ -104,11 +103,9 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
         in
         Lwt.return (Error msg)
     | n -> (
-        let%lwt resp =
-          Http_helpers.post_async ~body ~headers caps#network url
-        in
+        let%lwt resp = Http_helpers.post ~body ~headers caps#network url in
         match resp with
-        | Ok body -> (
+        | Ok { body = Ok body; _ } -> (
             try
               let json = Yojson.Basic.from_string body in
               let open Yojson.Basic.Util in
@@ -125,13 +122,13 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
               | `Null
               | _ ->
                   let message = Printf.sprintf "Failed to get token: %s" body in
-                  Error message |> Lwt.return
+                  Lwt.return_error message
             with
             | Yojson.Json_error msg ->
                 let message = Printf.sprintf "Failed to parse json: %s" msg in
-                Error message |> Lwt.return)
-        | Error (status_code, err) -> (
-            match status_code with
+                Lwt.return_error message)
+        | Ok { body = Error err; code; _ } -> (
+            match code with
             | 404 ->
                 let%lwt () = wait_hook (min_wait_ms + next_wait_ms') in
                 fetch_token' (apply_backoff next_wait_ms') (n - 1)
@@ -143,12 +140,25 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                      code %d).\n\
                      Please try again or reach out to Semgrep support at \
                      @{<cyan;ul>%s@}"
-                    (Console.error_tag ()) (Uri.to_string url) status_code
-                    support_url
+                    (Console.error_tag ()) (Uri.to_string url) code support_url
                 in
-                Logs.info (fun m -> m "HTTP error: %s" err);
-                Error msg |> Lwt.return))
+                Logs.err (fun m -> m "HTTP error: %s" err);
+                Lwt.return_error msg)
+        | Error e ->
+            let msg =
+              Ocolor_format.asprintf
+                "%s Login Failed!\n\
+                 We had an unexpected failure while trying to make a network\n\
+                \                  request to %s:\n\
+                 %s\n\
+                 Please check network settings and try again or reach out to \
+                 Semgrep support at @{<cyan;ul>%s@}"
+                (Console.error_tag ()) (Uri.to_string url) e support_url
+            in
+            Logs.err (fun m -> m "Failed to fetch token: %s" e);
+            Lwt.return_error msg)
   in
+
   fetch_token' next_wait_ms max_retries
 
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)

@@ -25,7 +25,7 @@ module MV = Metavariable
 open Parse_rule_helpers
 module H = Parse_rule_helpers
 
-(* use a separate Logs src? "semgrep.parsing.rule"? *)
+(* alt: use a separate Logs src "semgrep.parsing.rule" *)
 module Log = Log_parsing.Log
 
 (*****************************************************************************)
@@ -209,11 +209,10 @@ let parse_options rule_id (key : key) value =
       (fun _src_loc field_name ->
         (* for forward compatibility, better to not raise an exn and just
          * ignore the new fields.
-         * TODO: we should use a warning/logging infra to report
-         * this in the JSON to the semgrep wrapper and user.
+         * old: raise (InvalidYamlException (spf "unknown opt: %s" field_name))
          *)
-        (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
-        UCommon.pr2 (spf "WARNING: unknown option: %s" field_name))
+        (* nosemgrep: no-logs-in-library *)
+        Logs.warn (fun m -> m "unknown rule option: %s" field_name))
       (fun () -> Rule_options_j.t_of_string s)
   in
   (options, Some key)

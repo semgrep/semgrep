@@ -9,6 +9,7 @@
     commons
 
     semgrep.engine
+    semgrep.engine.tests
     osemgrep_core
     osemgrep_networking
   )

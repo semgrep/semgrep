@@ -1,0 +1,27 @@
+rules:
+  - id: test
+    message: Semgrep found a match
+    languages:
+      - ts
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: httpOptions.hostname
+      - pattern: opts.hostname
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              (...).request({...})
+          - pattern-not:
+              pattern: |
+                (...).request({
+                  beforeRedirect: ($OPTS) => {
+                    ... 
+                    sanitizeIP($OPTS.hostname)
+                    ...
+                  },
+                  ...,
+                  lookup: getLookupFunction(..., sanitize)
+                })
+    options:
+      symbolic_propagation: true

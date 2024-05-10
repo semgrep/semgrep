@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - python
+    severity: WARNING
+    patterns:
+      - pattern: |
+          @$X
+      - metavariable-type:
+          metavariable: $X
+          type: foo
+

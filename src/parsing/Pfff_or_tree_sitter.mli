@@ -21,15 +21,14 @@ val run :
 
 (* usage:
     let js_ast =
-      str |> run_pattern ~print_errors [
+      str |> run_pattern [
          PfffPat Parse_js.any_of_string;
          TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;
          ]
       in
       Js_to_generic.any js_ast
 *)
-val run_pattern :
-  print_errors:bool -> 'ast pattern_parser list -> string -> 'ast
+val run_pattern : 'ast pattern_parser list -> string -> 'ast
 
 (* helpers used both in Parse_target.ml and Parse_target2.ml *)
 
@@ -52,7 +51,7 @@ val run_external_parser :
 (* helpers used both in Parse_pattern.ml and Parse_pattern2.ml *)
 
 val extract_pattern_from_tree_sitter_result :
-  'any Tree_sitter_run.Parsing_result.t -> bool (* print_errors *) -> 'any
+  'any Tree_sitter_run.Parsing_result.t -> 'any
 
 val dump_and_print_errors :
   ('a -> unit) -> 'a Tree_sitter_run.Parsing_result.t -> unit

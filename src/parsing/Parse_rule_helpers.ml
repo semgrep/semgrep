@@ -17,7 +17,7 @@ module R = Rule
 module G = AST_generic
 module J = JSON
 
-(* use a separate Logs src? "semgrep.parsing.rule"? *)
+(* alt: use a separate Logs src "semgrep.parsing.rule" *)
 module Log = Log_parsing.Log
 
 (*****************************************************************************)
@@ -149,7 +149,8 @@ let generic_to_json rule_id (key : key) ast =
     | G.L (Int pi) -> (
         match Parsed_int.to_int_opt pi with
         | None ->
-            UCommon.pr2 (G.show_expr_kind x.G.e);
+            Log.err (fun m ->
+                m "no value for integer %s" (G.show_expr_kind x.G.e));
             error_at_expr rule_id x "no value for generic integer"
         | Some i -> J.Int i)
     | G.L (String (_, (s, _), _)) ->
@@ -172,7 +173,7 @@ let generic_to_json rule_id (key : key) ast =
           )
     | G.Alias (_alias, e) -> aux e
     | _ ->
-        UCommon.pr2 (G.show_expr_kind x.G.e);
+        Log.err (fun m -> m "Unexpected yaml: %s" (G.show_expr_kind x.G.e));
         error_at_expr rule_id x "Unexpected generic representation of yaml"
   in
   aux ast
@@ -427,7 +428,7 @@ let parse_python_expression env key s =
   try
     let lang = Lang.Python in
     (* todo? use lang in env? *)
-    match Parse_pattern.parse_pattern lang ~print_errors:false s with
+    match Parse_pattern.parse_pattern lang s with
     | AST_generic.E e -> e
     | _ -> error_at_key env.id key "not a Python expression"
   with
