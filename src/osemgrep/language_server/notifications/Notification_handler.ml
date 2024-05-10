@@ -87,21 +87,29 @@ let on_notification notification (server : RPC_server.t) =
     | CN.DidCreateFiles _ ->
         Session.cache_workspace_targets server.session;
         server
-    | CN.DidDeleteFiles { files; _ } ->
+    | CN.DidDeleteFiles { files = paths; _ } ->
         (* This is lame, for whatever reason they chose to type uri as string here, not Uri.t *)
         Session.cache_workspace_targets server.session;
-        let files =
-          List_.map
-            (fun { FileDelete.uri } ->
-              Str.string_after uri (String.length "file://") |> Fpath.v)
-            files
+        let paths =
+          paths
+          |> List_.map (fun { FileDelete.uri } ->
+                 Str.string_after uri (String.length "file://") |> Fpath.v)
+          (* Be careful! Because each file that DidDeleteFiles sends us might actually
+             be a folder, we cannot just delete findings from those paths.
+             We must check all files for which we have results, and check if they may be
+             contained in the reported folder.
+          *)
+          |> List.concat_map (fun path ->
+                 List.filter
+                   (fun scanned_file -> Fpath.is_prefix path scanned_file)
+                   (Session.scanned_files server.session))
         in
         let diagnostics =
           Diagnostics.diagnostics_of_results
-            ~is_intellij:server.session.is_intellij [] files
+            ~is_intellij:server.session.is_intellij [] paths
         in
         RPC_server.batch_notify diagnostics;
-        Session.remove_open_documents server.session files;
+        Session.remove_open_documents server.session paths;
         server
     | CN.Exit ->
         Logs.debug (fun m -> m "Server exiting");
