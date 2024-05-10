@@ -724,14 +724,31 @@ let parse_http_validator env key value : Rule.validator =
   let response = take_key validator_dict env parse_http_response "response" in
   HTTP { request; response }
 
+let parse_aws_request env key value : Rule.aws_request =
+  let request_dict = yaml_to_dict env key value in
+  let secret_access_key =
+    take_key request_dict env parse_string "secret_access_key"
+  in
+  let access_key_id = take_key request_dict env parse_string "access_key_id" in
+  let region = take_key request_dict env parse_string "region" in
+  { secret_access_key; access_key_id; region }
+
+let parse_aws_validator env key value : Rule.validator =
+  let validator_dict = yaml_to_dict env key value in
+  let request = take_key validator_dict env parse_aws_request "request" in
+  let response = take_key validator_dict env parse_http_response "response" in
+  AWS { request; response }
+
 let parse_validator key env value =
-  let rd = yaml_to_dict env key value in
-  let http = take_opt rd env parse_http_validator "http" in
-  match http with
-  | Some validator -> validator
+  let dict = yaml_to_dict env key value in
+  match List_.find_some_opt (Hashtbl.find_opt dict.h) [ "http"; "aws" ] with
+  | Some (("http", _), value) -> parse_http_validator env key value
+  | Some (("aws", _), value) -> parse_aws_validator env key value
+  | Some _
   | None ->
+      (* The [Some _] case here should be impossible *)
       error_at_key env.id key
-        ("No reconigzed validator (e.g., 'http') at " ^ fst key)
+        ("No recognized validator, must be one of ['http', 'aws'] at " ^ fst key)
 
 let parse_validators env key value =
   parse_list env key (parse_validator key) value

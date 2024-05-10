@@ -145,7 +145,7 @@ let check_header req header header_val =
      unconditional print to stderr of the string "Assert <name>". *)
   | Some actual_header -> Alcotest.(check string) "" header_val actual_header
 
-let check_headers expected_headers actual_headers =
+let check_headers actual_headers expected_headers =
   let lowercase_and_sort xs =
     xs
     |> List_.map (fun (x, y) -> (String.lowercase_ascii x, y))
@@ -155,10 +155,56 @@ let check_headers expected_headers actual_headers =
   let expected_headers =
     expected_headers |> Header.to_list |> lowercase_and_sort
   in
-  (* Passing "" for the name of the check prevents an otherwise
-     unconditional print to stderr of the string "Assert <name>". *)
-  Alcotest.(check (list (pair string string)))
-    "" expected_headers actual_headers
+  let pp = Alcotest.(pp (list (pair string string))) in
+
+  let rec check = function
+    | [], [] -> ()
+    | (_ :: _ as expected_headers), [] ->
+        Alcotest.failf "Missing some expected headers:\n%a" (Fmt.styled `Red pp)
+          expected_headers
+    | [], (_ :: _ as actual_headers) ->
+        Alcotest.failf "Found some unexpected headers:\n%a" (Fmt.styled `Red pp)
+          actual_headers
+    | ( (expected_header, expected_value) :: expected_headers,
+        (actual_header, actual_value) :: actual_headers ) ->
+        if String.equal expected_header actual_header then
+          let value_regex =
+            if
+              String.starts_with ~prefix:"regex{" expected_value
+              && String.ends_with ~suffix:"}" expected_value
+            then
+              Pcre2_.regexp
+                (String.sub expected_value 6 (String.length expected_value - 7))
+            else Pcre2_.regexp (Pcre2_.quote expected_value)
+          in
+          match Pcre2_.pmatch ~rex:value_regex actual_value with
+          | Ok true -> check (expected_headers, actual_headers)
+          | Ok false ->
+              Alcotest.failf
+                "Header values for '%a' do not match\n\
+                 Expected:\n\
+                 %a\n\
+                 Received:\n\
+                 \"%a\""
+                (Fmt.styled `Bold Fmt.string)
+                expected_header
+                (Fmt.styled `Green Pcre2_.pp)
+                value_regex
+                (Fmt.styled `Red Fmt.string)
+                actual_value
+          | Error err -> Alcotest.failf "Invalid regex: %a" Pcre2_.pp_error err
+        else
+          Alcotest.failf
+            "Expected header '%a', but it was either missing, or header counts \
+             did not match up"
+            (Fmt.styled `Bold Fmt.string)
+            expected_header
+  in
+  check (expected_headers, actual_headers)
+(* (* Passing "" for the name of the check prevents an otherwise
+      unconditional print to stderr of the string "Assert <name>". *)
+   Alcotest.(check (list (pair string string)))
+     "" expected_headers actual_headers *)
 
 let get_header req header =
   Cohttp.Header.get (Cohttp.Request.headers req) header
@@ -290,6 +336,7 @@ let client_from_file req_resp_file =
         with
         | Some ((expected_req, request_body), (response, response_body), used)
           ->
+            Logs.debug (fun m -> m "FOUND ONE RESPONSE");
             check_method expected_req.meth req.meth;
             check_headers req.headers expected_req.headers;
             Lwt.async (fun () -> check_body body request_body);
