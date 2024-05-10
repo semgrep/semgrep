@@ -336,7 +336,6 @@ let client_from_file req_resp_file =
         with
         | Some ((expected_req, request_body), (response, response_body), used)
           ->
-            Logs.debug (fun m -> m "FOUND ONE RESPONSE");
             check_method expected_req.meth req.meth;
             check_headers req.headers expected_req.headers;
             Lwt.async (fun () -> check_body body request_body);
