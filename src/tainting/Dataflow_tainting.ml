@@ -1291,7 +1291,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
   match exp_is_sanitized env exp with
   (* THINK: Can we just skip checking the subexprs in 'exp'? There could be a
    * sanitizer by-side-effect that will not trigger, see CODE-6548. E.g.
-   * if `x` in `foo(x) is supposed to be sanitized by-side-effect, but `foo(x)`
+   * if `x` in `foo(x)` is supposed to be sanitized by-side-effect, but `foo(x)`
    * itself is sanitized, the by-side-effect sanitization of `x` will not happen.
    * Problem is, we do not want sources or propagators by-side-effect to trigger
    * on `x` if `foo(x)` is sanitized, so we would need to check the subexprs while
@@ -1299,7 +1299,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
    *)
   | Some lval_env ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-      (Taints.empty, S.Bot (* THINK *), lval_env)
+      (Taints.empty, S.Bot, lval_env)
   | None ->
       let taints, shape, lval_env =
         match exp.e with
@@ -1350,50 +1350,10 @@ and check_function_call_arguments env args =
 let check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
-let rev_offset_of_sig_offset offset =
-  let os =
-    offset
-    |> List_.map (function
-         | T.Ofld x -> Some { o = Dot x; oorig = NoOrig }
-         | T.Oint i ->
-             Some
-               {
-                 o =
-                   Index
-                     {
-                       e = Literal (G.Int (Parsed_int.of_int i));
-                       eorig = NoOrig;
-                     };
-                 oorig = NoOrig;
-               }
-         | T.Ostr s ->
-             Some
-               {
-                 o =
-                   Index
-                     {
-                       e =
-                         Literal
-                           (G.String
-                              (Tok.unsafe_fake_bracket
-                                 (s, Tok.unsafe_fake_tok s)));
-                       eorig = NoOrig;
-                     };
-                 oorig = NoOrig;
-               }
-         | T.Oany -> None)
-  in
-  os
-  |> List.fold_left
-       (fun acc opt_o ->
-         match (acc, opt_o) with
-         | Some acc, Some o -> Some (o :: acc)
-         | _, None
-         | None, _ ->
-             None)
-       (Some [])
-
-(* Given a function/method call 'fun_exp'('args_exps'), and an argument
+(* TODO(shapes): This is needed for stuff that is not yet fully adapted to shapes
+ *               such as records and dicts, it will be superseeded by 'taints_of_lval'.
+ *
+ * Given a function/method call 'fun_exp'('args_exps'), and an argument
  * spec 'sig_lval' from the taint signature of the called function/method,
  * determine what lvalue corresponds to 'sig_lval'.
  *
@@ -1410,7 +1370,7 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
      * `this.x` were tainted, then we would record that taint went through
      * `obj`. *)
     (lval * T.tainted_token) option =
-  let* rev_offset = rev_offset_of_sig_offset sig_lval.offset in
+  let* rev_offset = T.rev_IL_offset_of_offset sig_lval.offset in
   let* lval, obj =
     match sig_lval.base with
     | BGlob gvar -> Some ({ base = Var gvar; rev_offset }, gvar)
@@ -1465,26 +1425,49 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
   in
   Some (lval, snd obj.ident)
 
-let taints_of_sig_base env fparams args_taints base =
-  match base with
-  | T.BArg pos -> find_pos_in_actual_args args_taints fparams pos
-  | BThis -> None (* TODO *)
-  | BGlob var ->
-      let* (S.Ref (xtaints, shape)) = Lval_env.find_var env.lval_env var in
+let taints_of_lval env fparams fun_exp args_taints lval =
+  let { T.base; offset } = lval in
+  let* base, offset =
+    match base with
+    | T.BArg pos -> Some (`Arg pos, offset)
+    | BThis -> (
+        match fun_exp with
+        | {
+         e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
+         _;
+        } ->
+            (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
+            Some (`Var obj, offset)
+        | { e = Fetch { base = Var _method; rev_offset = [] }; _ } -> (
+            (* We're calling a `method` on the same instace of the caller,
+             * and `this.x.y` is just `x.y` *)
+            (* TODO: We should track `this` in `Lval_env` rather than doing this hack. *)
+            match offset with
+            | [] -> None
+            | Ofld var :: offset -> Some (`Var var, offset)
+            | (Oint _ | Ostr _ | Oany) :: _ -> None)
+        | __else__ -> None)
+    | BGlob var -> Some (`Var var, offset)
+  in
+  let* base_taints, base_shape =
+    match base with
+    | `Arg pos -> find_pos_in_actual_args args_taints fparams pos
+    | `Var var ->
+        let* (S.Ref (xtaints, shape)) = Lval_env.find_var env.lval_env var in
+        Some (Xtaint.to_taints xtaints, shape)
+  in
+  match (base_shape, offset) with
+  | base_shape, [] -> Some (base_taints, base_shape)
+  | S.Bot, _ :: _ -> None
+  | base_shape, _ :: _ ->
+      let* (S.Ref (xtaints, shape)) = S.find_in_shape offset base_shape in
       Some (Xtaint.to_taints xtaints, shape)
 
 (* What is the taint denoted by 'sig_lval' ? *)
 let taints_of_sig_lval env fparams fun_exp args_exps
     (args_taints : (Taints.t * S.shape) argument list) (sig_lval : T.lval) =
-  let { T.base; offset } = sig_lval in
-  match taints_of_sig_base env fparams args_taints base with
-  | Some (taints, shape) when shape <> S.Bot || sig_lval.offset =*= [] -> (
-      match offset with
-      | [] -> Some (taints, shape)
-      | _ :: _ ->
-          let* (S.Ref (xtaints, shape)) = S.find_in_shape offset shape in
-          Some (Xtaint.to_taints xtaints, shape))
-  | Some _
+  match taints_of_lval env fparams fun_exp args_taints sig_lval with
+  | Some (taints, shape) -> Some (taints, shape)
   | None ->
       (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
       let* lval, _obj = lval_of_sig_lval fun_exp fparams args_exps sig_lval in

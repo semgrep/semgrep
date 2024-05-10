@@ -172,7 +172,50 @@ let offset_of_IL (o : IL.offset) =
           Oany)
   | Some offset_of_IL -> offset_of_IL o
 
-let offset_of_IL_rev_offset ~rev_offset = List.rev_map offset_of_IL rev_offset
+let offset_of_rev_IL_offset ~rev_offset = List.rev_map offset_of_IL rev_offset
+
+let rev_IL_offset_of_offset offset =
+  let os =
+    offset
+    |> List_.map (function
+         | Ofld x -> Some IL.{ o = Dot x; oorig = NoOrig }
+         | Oint i ->
+             Some
+               {
+                 o =
+                   Index
+                     {
+                       e = Literal (G.Int (Parsed_int.of_int i));
+                       eorig = NoOrig;
+                     };
+                 oorig = NoOrig;
+               }
+         | Ostr s ->
+             Some
+               {
+                 o =
+                   Index
+                     {
+                       e =
+                         Literal
+                           (G.String
+                              (Tok.unsafe_fake_bracket
+                                 (s, Tok.unsafe_fake_tok s)));
+                       eorig = NoOrig;
+                     };
+                 oorig = NoOrig;
+               }
+         | Oany -> None)
+  in
+  os
+  |> List.fold_left
+       (fun acc opt_o ->
+         match (acc, opt_o) with
+         | Some acc, Some o -> Some (o :: acc)
+         | _, None
+         | None, _ ->
+             None)
+       (Some [])
 
 (*****************************************************************************)
 (* Taint *)

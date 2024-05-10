@@ -51,7 +51,15 @@ type offset =
 val compare_offset : offset -> offset -> int
 val show_offset : offset -> string
 val offset_of_IL : IL.offset -> offset
-val offset_of_IL_rev_offset : rev_offset:IL.offset list -> offset list
+val offset_of_rev_IL_offset : rev_offset:IL.offset list -> offset list
+
+val rev_IL_offset_of_offset : offset list -> IL.offset list option
+(** TODO(shapes): This is needed for stuff that is not yet fully adapted to shapes
+  *               such as records and dicts.
+  *
+  * Constructs an reversed IL offset corresponding to a taint offset, if possible
+  * (if there is no `Oany`).
+  *)
 
 type lval = { base : base; offset : offset list }
 (** A restriction of 'IL.lval', the l-values that are in the scope of a

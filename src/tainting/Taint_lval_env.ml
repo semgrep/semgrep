@@ -144,7 +144,7 @@ let normalize_lval lval =
             None)
     | Mem _ -> None
   in
-  let offset = T.offset_of_IL_rev_offset ~rev_offset in
+  let offset = T.offset_of_rev_IL_offset ~rev_offset in
   Some (base, offset)
 
 (* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
