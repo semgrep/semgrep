@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from typing import IO
 from typing import Optional
 from typing import Type
@@ -97,6 +98,8 @@ def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         [semgrep_core_path, "-rpc"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
+        # Print error logs, if any
+        stderr=sys.stderr,
         text=True,
         encoding=ENCODING,
     ) as proc:
