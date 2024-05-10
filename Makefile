@@ -489,11 +489,18 @@ homebrew-setup:
 # See flake.nix top level comments for more information
 
 # Enter development environment with all dependencies installed
+#
+# The finger stuff here is weird but it's so we can get the user shell and run
+# it in the nix shell. I.e. /usr/bin/zsh or /usr/bin/fish
+# It's really weird because by default makefile overrides $SHELL so this is the
+# only way to get it
 shell:
 	$(eval USER_SHELL := $(shell finger ${USER} | grep 'Shell:*' | cut -f3 -d ":"))
 	nix develop -c $(USER_SHELL)
 
 # Build targets
+# For all the .?submodules=1 we need because nix is weird:
+# https://github.com/NixOS/nix/issues/4423#issuecomment-791352686
 nix-osemgrep:
 	nix build ".?submodules=1#osemgrep"
 
