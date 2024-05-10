@@ -37,6 +37,17 @@
     contents: 'read',
   },
 
+  // For making matrix jobs, i.e. one job running on multiple OSes.
+  os_matrix(oss=['ubuntu-latest', 'macos-latest', 'windows-latest'],steps): {
+    strategy: {
+      matrix: {
+        os: oss,
+      },
+    },
+    'runs-on': '${{ matrix.os }}',
+    steps: steps,
+  },
+
   // Git helpers
 
   // Speed up checkout by running multiple fetches in parallel.
