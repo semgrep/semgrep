@@ -189,6 +189,16 @@ let union_map_taints_and_vars env check xs =
   in
   (taints, lval_env)
 
+let gather_all_taints_args_taints args_taints =
+  args_taints
+  |> List.fold_left
+       (fun acc arg ->
+         match arg with
+         | Named (_, (_, shape))
+         | Unnamed (_, shape) ->
+             S.gather_all_taints_in_shape shape |> Taints.union acc)
+       Taints.empty
+
 let any_is_best_sanitizer env any =
   env.config.is_sanitizer any
   |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
@@ -1201,23 +1211,14 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
         let args_taints, all_args_taints, lval_env =
           check_function_call_arguments env es
         in
-        let all_args_taints_in_shapes =
-          args_taints
-          |> List.fold_left
-               (fun acc arg ->
-                 match arg with
-                 | Named (_, (_, shape))
-                 | Unnamed (_, shape) ->
-                     S.gather_all_taints_in_shape shape |> Taints.union acc)
-               Taints.empty
+        let all_args_taints =
+          all_args_taints
+          |> Taints.union (gather_all_taints_args_taints args_taints)
         in
-        let args_taints =
-          Taints.union all_args_taints all_args_taints_in_shapes
-        in
-        let args_taints =
+        let all_args_taints =
           if env.options.taint_only_propagate_through_assignments then
             Taints.empty
-          else args_taints
+          else all_args_taints
         in
         let op_taints =
           match op with
@@ -1237,7 +1238,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
           | G.Is
           | G.NotIs ->
               if env.options.taint_assume_safe_comparisons then Taints.empty
-              else args_taints
+              else all_args_taints
           | G.And
           | G.Or
           | G.Xor
@@ -1268,7 +1269,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
           | G.Nullish
           | G.Background
           | G.Pipe ->
-              args_taints
+              all_args_taints
         in
         (op_taints, S.Bot (* TODO *), lval_env)
     | RecordOrDict fields ->
@@ -1734,20 +1735,13 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
         let args_taints, all_args_taints, lval_env =
           check_function_call_arguments env args
         in
+        let all_args_taints =
+          all_args_taints
+          |> Taints.union (gather_all_taints_args_taints args_taints)
+        in
         let e_taints, _TODOshape, lval_env =
           check_function_call_callee { env with lval_env } e
         in
-        let all_args_taints_in_shapes =
-          args_taints
-          |> List.fold_left
-               (fun acc arg ->
-                 match arg with
-                 | Named (_, (_, shape))
-                 | Unnamed (_, shape) ->
-                     S.gather_all_taints_in_shape shape |> Taints.union acc)
-               Taints.empty
-        in
-
         let shapeTODO =
           (* TODO: This is like all the arguments are sinks, so what's the shape
            * of "all the arguments"? *)
@@ -1761,9 +1755,8 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
          * `taint_assume_safe_functions: true`, if the spec is `sink(...)`, we
          * still report `sink(tainted)`.
          *)
-        check_orig_if_sink { env with lval_env } instr.iorig
-          (Taints.union all_args_taints all_args_taints_in_shapes) shapeTODO
-          ~filter_sinks:(fun m ->
+        check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
+          shapeTODO ~filter_sinks:(fun m ->
             not (m.spec.sink_exact && m.spec.sink_has_focus));
         let call_taints, shape, lval_env =
           match
@@ -1826,58 +1819,35 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
             (* TODO: 'new' should return the shape of the object being constructed *)
             (call_taints, shape, lval_env)
         | None ->
-            let all_args_taints_in_shapes =
-              args_taints
-              |> List.fold_left
-                   (fun acc arg ->
-                     match arg with
-                     | Named (_, (_, shape))
-                     | Unnamed (_, shape) ->
-                         S.gather_all_taints_in_shape shape |> Taints.union acc)
-                   Taints.empty
+            let all_args_taints =
+              all_args_taints
+              |> Taints.union (gather_all_taints_args_taints args_taints)
             in
-            ( Taints.union all_args_taints all_args_taints_in_shapes,
-              S.Bot,
-              lval_env ))
+            (all_args_taints, S.Bot, lval_env))
     | New (_lval, _ty, None, args) ->
         (* 'New' without reference to constructor *)
         let args_taints, all_args_taints, lval_env =
           check_function_call_arguments env args
         in
-        let all_args_taints_in_shapes =
-          args_taints
-          |> List.fold_left
-               (fun acc arg ->
-                 match arg with
-                 | Named (_, (_, shape))
-                 | Unnamed (_, shape) ->
-                     S.gather_all_taints_in_shape shape |> Taints.union acc)
-               Taints.empty
+        let all_args_taints =
+          all_args_taints
+          |> Taints.union (gather_all_taints_args_taints args_taints)
         in
-        ( Taints.union all_args_taints all_args_taints_in_shapes,
-          S.Bot (* TODO *),
-          lval_env )
+        (all_args_taints, S.Bot (* TODO *), lval_env)
     | CallSpecial (_, _, args) ->
         let args_taints, all_args_taints, lval_env =
           check_function_call_arguments env args
         in
-        let all_args_taints_in_shapes =
-          args_taints
-          |> List.fold_left
-               (fun acc arg ->
-                 match arg with
-                 | Named (_, (_, shape))
-                 | Unnamed (_, shape) ->
-                     S.gather_all_taints_in_shape shape |> Taints.union acc)
-               Taints.empty
+        let all_args_taints =
+          all_args_taints
+          |> Taints.union (gather_all_taints_args_taints args_taints)
         in
-        let taints = Taints.union all_args_taints all_args_taints_in_shapes in
-        let taints =
+        let all_args_taints =
           if env.options.taint_only_propagate_through_assignments then
             Taints.empty
-          else taints
+          else all_args_taints
         in
-        (taints, S.Bot, lval_env)
+        (all_args_taints, S.Bot, lval_env)
     | FixmeInstr _ -> (Taints.empty, S.Bot, env.lval_env)
   in
   let sanitizer_pms = orig_is_best_sanitizer env instr.iorig in
