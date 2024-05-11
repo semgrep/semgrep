@@ -25,6 +25,8 @@ type conf = {
    * Output_format.Text *)
   force_color : bool;
   logging_level : Logs.level option;
+  (* For text and SARIF *)
+  show_dataflow_traces : bool;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
@@ -42,6 +44,7 @@ let default : conf =
     dryrun = false;
     strict = false;
     logging_level = Some Logs.Warning;
+    show_dataflow_traces = false;
     output_format = Output_format.Text;
     force_color = false;
     max_chars_per_line = 160;
@@ -151,7 +154,8 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         || not runtime_params.is_using_registry
       in
       let sarif_json =
-        Sarif_output.sarif_output hide_nudge engine_label hrules cli_output
+        Sarif_output.sarif_output hide_nudge engine_label
+          conf.show_dataflow_traces hrules cli_output
       in
       UConsole.print
         (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)

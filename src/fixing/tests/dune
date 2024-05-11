@@ -4,8 +4,8 @@
  (wrapped false)
  (libraries
    commons
-   semgrep_parsing
-   semgrep_engine
+   semgrep.parsing
+   semgrep.engine.tests
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

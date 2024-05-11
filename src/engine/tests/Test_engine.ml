@@ -19,6 +19,7 @@ module R = Rule
 module E = Core_error
 module RP = Core_result
 module In = Input_to_core_t
+module TCM = Test_compare_matches
 
 (*****************************************************************************)
 (* Prelude *)
@@ -223,10 +224,13 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         (* not tororuleid! not ok:! not todook:
            see https://semgrep.dev/docs/writing-rules/testing-rules/
            for the meaning of those labels.
+
+           TODO: we should use the compare_matches logic in Test_subcommand.ml
+           to be more consistent with 'osemgrep test'.
         *)
         let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
         let expected_error_lines =
-          E.expected_error_lines_of_files ~regexp [ target ]
+          TCM.expected_error_lines_of_files ~regexp [ target ]
         in
 
         (* actual *)
@@ -257,7 +261,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         |> List.iter (fun e ->
                Logs.debug (fun m -> m "found error: %s" (E.string_of_error e)));
         match
-          E.compare_actual_to_expected actual_errors expected_error_lines
+          TCM.compare_actual_to_expected actual_errors expected_error_lines
         with
         | Ok () -> ()
         | Error (num_errors, msg) ->

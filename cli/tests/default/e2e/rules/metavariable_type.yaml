@@ -1,0 +1,11 @@
+rules:
+  - id: metavar-type
+    patterns:
+      - pattern: $X
+      - metavariable-type:
+          metavariable: $X
+          type: string
+    message: rules with metavariable type
+    languages:
+      - python
+    severity: ERROR

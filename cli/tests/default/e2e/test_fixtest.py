@@ -18,7 +18,6 @@ from semgrep.constants import OutputFormat
 # It should report passing fixtests in the text output.
 # TODO: rename test_passed_text_output
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_fixtest_test1_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/fixtest/basic_fix.yaml",
@@ -36,7 +35,6 @@ def test_fixtest_test1_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # It should report passing fixtests in the JSON output.
 # TODO: rename test_passed_json_output
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_fixtest_test1_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/basic_fix.yaml",
@@ -67,7 +65,6 @@ def test_fixtest_test2_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # It should report config_missing_fixtests in the JSON output.
 # TODO: rename test_missing_fixtest_json_output aka test_config_missing_fixtests
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_fixtest_test2_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/basic_fix.yaml",
@@ -100,7 +97,6 @@ def test_fixtest_test3_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # It should report '"passed": false' for a bad fixtest in the JSON output.
 # TODO: rename test_fixtest_not_passed_json_output
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_fixtest_test3_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/fixtest/other_fix.yaml",

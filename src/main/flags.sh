@@ -49,7 +49,16 @@ OS="$1"
 # - we're on alpine, in which case the opam switch doesn't have a special
 #   name. It is assumed that the reason we're on alpine is to get
 #   statically-linked executables.
-if [[ "$(opam switch show)" == *+static* ]]; then
+
+
+# Check if NIX_ENVIRONMENT is not set
+# If it is set, we are in a nix-shell and we should not statically link
+# This is first because opam won't exist in a nix build environment
+if [[ -n "${SEMGREP_NIX_BUILD-}" ]]; then
+    FLAGS=()
+    CCLIB=()
+    CCOPT=()
+elif [[ "$(opam switch show)" == *+static* ]]; then
     FLAGS=()
     CCLIB=("-lssl" "-lcrypto" "-lz")
     CCOPT=("-static" "-no-pie")

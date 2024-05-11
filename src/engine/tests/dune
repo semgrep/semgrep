@@ -1,0 +1,18 @@
+(library
+ (public_name semgrep.engine.tests)
+ (name semgrep_engine_tests)
+ (wrapped false)
+ (libraries
+   commons
+
+   semgrep.core
+   semgrep.il
+   semgrep.engine
+ )
+ (preprocess
+    (pps
+      ppx_profiling
+      ppx_deriving.show
+    )
+ )
+)

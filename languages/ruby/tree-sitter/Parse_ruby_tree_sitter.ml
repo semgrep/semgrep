@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -101,9 +101,7 @@ let operator (env : env) (x : CST.operator) =
   | `TILDE tok -> (Right Op_UTilde, token2 env tok)
   | `BANG tok -> (Right Op_UBang, token2 env tok)
   (* TODO *)
-  | `BQUOT tok ->
-      UCommon.pr2_gen tok;
-      failwith "Op_BQUOT???"
+  | `BQUOT _tok -> failwith "Op_BQUOT???"
 
 let int_or_float (env : env) (x : CST.int_or_float) =
   match x with

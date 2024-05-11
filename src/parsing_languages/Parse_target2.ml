@@ -41,7 +41,7 @@ let lang_to_python_parsing_mode = function
 (* Entry point *)
 (*****************************************************************************)
 
-let just_parse_with_lang lang file =
+let just_parse_with_lang lang file : Parsing_result2.t =
   if lang =*= Lang.C && Sys.file_exists !!(!Flag_parsing_cpp.macros_h) then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
@@ -57,6 +57,7 @@ let just_parse_with_lang lang file =
         errors = [];
         skipped_tokens = [];
         inserted_tokens = [];
+        tolerated_errors = [];
         stat = Parsing_stat.default_stat !!file;
       }
   (* Menhir and Tree-sitter *)

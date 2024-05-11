@@ -108,7 +108,7 @@ let rec parse_type env key (str, tok) =
   | Xlang.L (lang, _) ->
       let str = wrap_type_expr env key lang str in
       try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-          Parse_pattern.parse_pattern lang ~print_errors:false str)
+          Parse_pattern.parse_pattern lang str)
       |> unwrap_type_expr env key lang
   | Xlang.LRegex
   | Xlang.LSpacegrep
@@ -153,8 +153,7 @@ let parse_rule_xpattern env (str, tok) =
         lazy
           ((* we need to raise the right error *)
            try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-               Parse_pattern.parse_pattern lang ~print_errors:false
-                 ~rule_options:env.options str))
+               Parse_pattern.parse_pattern lang ~rule_options:env.options str))
       in
       XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
   | Xlang.LRegex ->
@@ -271,8 +270,10 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
   with
   | None, None, None, None ->
       error env.id rule_dict.first_tok
+        (* Note, we shouldn't reach this code if
+           r2c-internal-project-depends-on is present. *)
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex` to be present"
+         `pattern-regex`, or `r2c-internal-project-depends-on` to be present."
   | Some (key, value), None, None, None
   | None, Some (key, value), None, None
   | None, None, Some (key, value), None

@@ -6,10 +6,10 @@ let lang_to_python_parsing_mode = function
   | Lang.Python3 -> Parse_python.Python3
   | s -> failwith (Printf.sprintf "not a python language:%s" (Lang.to_string s))
 
-let parse_pattern print_errors lang str =
+let parse_pattern lang str =
   let any =
     str
-    |> run_pattern ~print_errors
+    |> run_pattern
          (* coupling: semgrep/js/languages/python/Parser.ml *)
          [
            PfffPat

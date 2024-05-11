@@ -16,6 +16,7 @@ open Common
 open Prolog_code
 module G = Graph_code
 module E = Entity_code
+module Log = Log_graph_code.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -81,7 +82,7 @@ let build g =
          | E.TopStmts
          | E.Other _
          | E.MultiDirs ->
-             UCommon.pr2_gen n;
+             Log.warn (fun m -> m "Todo node: %s" (Dumper.dump n));
              raise Todo);
 
          try

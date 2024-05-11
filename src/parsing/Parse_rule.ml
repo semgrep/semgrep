@@ -25,7 +25,7 @@ module MV = Metavariable
 open Parse_rule_helpers
 module H = Parse_rule_helpers
 
-(* use a separate Logs src? "semgrep.parsing.rule"? *)
+(* alt: use a separate Logs src "semgrep.parsing.rule" *)
 module Log = Log_parsing.Log
 
 (*****************************************************************************)
@@ -209,11 +209,10 @@ let parse_options rule_id (key : key) value =
       (fun _src_loc field_name ->
         (* for forward compatibility, better to not raise an exn and just
          * ignore the new fields.
-         * TODO: we should use a warning/logging infra to report
-         * this in the JSON to the semgrep wrapper and user.
+         * old: raise (InvalidYamlException (spf "unknown opt: %s" field_name))
          *)
-        (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
-        UCommon.pr2 (spf "WARNING: unknown option: %s" field_name))
+        (* nosemgrep: no-logs-in-library *)
+        Logs.warn (fun m -> m "unknown rule option: %s" field_name))
       (fun () -> Rule_options_j.t_of_string s)
   in
   (options, Some key)
@@ -725,14 +724,31 @@ let parse_http_validator env key value : Rule.validator =
   let response = take_key validator_dict env parse_http_response "response" in
   HTTP { request; response }
 
+let parse_aws_request env key value : Rule.aws_request =
+  let request_dict = yaml_to_dict env key value in
+  let secret_access_key =
+    take_key request_dict env parse_string "secret_access_key"
+  in
+  let access_key_id = take_key request_dict env parse_string "access_key_id" in
+  let region = take_key request_dict env parse_string "region" in
+  { secret_access_key; access_key_id; region }
+
+let parse_aws_validator env key value : Rule.validator =
+  let validator_dict = yaml_to_dict env key value in
+  let request = take_key validator_dict env parse_aws_request "request" in
+  let response = take_key validator_dict env parse_http_response "response" in
+  AWS { request; response }
+
 let parse_validator key env value =
-  let rd = yaml_to_dict env key value in
-  let http = take_opt rd env parse_http_validator "http" in
-  match http with
-  | Some validator -> validator
+  let dict = yaml_to_dict env key value in
+  match List_.find_some_opt (Hashtbl.find_opt dict.h) [ "http"; "aws" ] with
+  | Some (("http", _), value) -> parse_http_validator env key value
+  | Some (("aws", _), value) -> parse_aws_validator env key value
+  | Some _
   | None ->
+      (* The [Some _] case here should be impossible *)
       error_at_key env.id key
-        ("No reconigzed validator (e.g., 'http') at " ^ fst key)
+        ("No recognized validator, must be one of ['http', 'aws'] at " ^ fst key)
 
 let parse_validators env key value =
   parse_list env key (parse_validator key) value
@@ -772,25 +788,25 @@ let parse_dependency_formula env key value : R.dependency_formula =
 (*****************************************************************************)
 
 (* dispatch depending on the "mode" of the rule *)
-let parse_mode env mode_opt (rule_dict : dict) : R.mode =
+let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) : R.mode =
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
   *)
   let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
   (* TODO? maybe have also has_extract_key, has_steps_key, has_secrets_key *)
-  match (mode_opt, has_taint_key) with
+  match (mode_opt, has_taint_key, dep_fml_opt) with
   (* no mode:, no taint:, default to look for match: *)
-  | None, false
-  | Some ("search", _), false ->
+  | None, false, None
+  | Some ("search", _), false, _ ->
       parse_search_fields env rule_dict
-  | None, true
-  | Some ("taint", _), _ ->
+  | None, true, _
+  | Some ("taint", _), _, _ ->
       parse_taint_fields env rule_dict
   (* TODO: for extract in syntax v2 (see rule_schema_v2.atd)
    * | None, _, true (has_extract_key) ->
    *     parse_extract_fields ...
    *)
-  | Some ("extract", _), _ ->
+  | Some ("extract", _), _, _ ->
       let formula =
         Parse_rule_formula.parse_formula_old_from_dict env rule_dict
       in
@@ -816,11 +832,18 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
   (* TODO? should we use "mode: steps" instead? *)
-  | Some ("step", _), _ ->
+  | Some ("step", _), _, _ ->
       let steps = take_key rule_dict env parse_steps "steps" in
       `Steps steps
+  (* SCA Doesn't require patterns. Just trying to be permissive here
+     for now. If the SCA rule is a valid search rule then we go ahead
+     and parse it as a search rule. Right now the dependency_formula
+     is repeated as an optional field in the rule too.*)
+  | None, false, Some fml -> (
+      try parse_search_fields env rule_dict with
+      | Rule.Error { kind = InvalidRule _; _ } -> `SCA fml)
   (* unknown mode *)
-  | Some key, _ ->
+  | Some key, _, _ ->
       error_at_key env.id key
         (spf
            "Unexpected value for mode, should be 'search', 'taint', 'extract', \
@@ -910,12 +933,12 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     }
   in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
-  (* this parses the search formula, or taint spec, or extract mode, etc. *)
-  let mode = parse_mode env mode_opt rd in
-  let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
   let dep_formula_opt =
     take_opt rd env parse_dependency_formula "r2c-internal-project-depends-on"
   in
+  (* this parses the search formula, or taint spec, or extract mode, etc. *)
+  let mode = parse_mode env mode_opt dep_formula_opt rd in
+  let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
   let product = parse_product metadata_opt dep_formula_opt in
   let message, severity =
     match mode with

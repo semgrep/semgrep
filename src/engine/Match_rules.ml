@@ -92,8 +92,10 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
+           | `SCA _ -> failwith "SCA rule not available in core."
            | `Steps _ ->
-               UCommon.pr2 (Rule.show_rule r);
+               Log.warn (fun m ->
+                   m "Step rule not handled: %s" (Rule.show_rule r));
                raise Multistep_rules_not_available)
   in
   (* Taint rules are only relevant to each other if they are meant to be

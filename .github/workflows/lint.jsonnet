@@ -90,7 +90,7 @@ local pre_commit_ocaml_job(submodules=false) =
     // (this is not necessary in Circle CI which has sane defaults).
     'runs-on': 'ubuntu-latest',
     // This custom image provides 'ocamlformat' with a specific version needed to check
-    // OCaml code (must be the same than the one in dev/dev.opam)
+    // OCaml code (must be the same than the one in dev/required.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
     container: 'returntocorp/ocaml:ubuntu-2023-10-17',
     steps: [
@@ -104,7 +104,7 @@ local pre_commit_ocaml_job(submodules=false) =
         env: {
           HOME: '/root',
         },
-        // coupling: the version below must be the same than in dev/dev.opam
+        // coupling: the version below must be the same than in dev/required.opam
         //
         // Without the 'git config' command below, we would get this error in CI:
         //   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
@@ -123,10 +123,11 @@ local pre_commit_ocaml_job(submodules=false) =
         // TODO: get rid of apt-get autconf and opam update which is slow
         // but need a more recent container: above
         run: |||
-          # When installing ocamlformat.0.26.1 OPAM will try to rebuild some packages
+          # When installing ocamlformat OPAM will try to rebuild some packages
           # and for that it requires 'autoconf'.
           apt-get install -y autoconf
-          opam install -y ocamlformat.0.26.1
+          opam update
+          opam install -y ocamlformat.0.26.2
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
         |||,

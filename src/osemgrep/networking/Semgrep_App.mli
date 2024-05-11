@@ -6,7 +6,11 @@
 
 (* The architecture of the Pro Engine binary to install. *)
 type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
+type app_block_override = string (* reason *) option
 
+(*****************************************************************************)
+(* Sync *)
+(*****************************************************************************)
 (* retrieves the deployment config from the provided token. *)
 val get_deployment_from_token :
   < Cap.network ; Auth.cap_token ; .. > ->
@@ -49,8 +53,6 @@ val fetch_scan_config :
 (** [fetch_scan_config ~token ~sca ~dry_run ~full_scan repo] returns the rules
     (as a RAW string containing JSON data) for the provided configuration. *)
 
-type app_block_override = string (* reason *) option
-
 (* upload both the scan_results and complete *)
 val upload_findings :
   dry_run:bool ->
@@ -77,11 +79,19 @@ val report_failure :
 val upload_rule_to_registry :
   < Cap.network ; Auth.cap_token ; .. > ->
   JSON.yojson ->
-  (string, int * string) result
+  (string, string) result
+
+(* content of binary is in the body of response (get_info) *)
+val fetch_pro_binary :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  pro_engine_arch ->
+  Http_helpers.client_result Lwt.t
+
+(*****************************************************************************)
+(* Async *)
+(*****************************************************************************)
 
 val get_identity_async : < Cap.network ; Auth.cap_token ; .. > -> string Lwt.t
-
-(* lwt-friendly versions for the language-server *)
 
 val get_deployment_from_token_async :
   < Cap.network ; Auth.cap_token ; .. > ->
@@ -112,8 +122,34 @@ val fetch_scan_config_async :
 (** [fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repo] returns a
      promise of the rules for the provided configuration. *)
 
-(* content of binary is in the body of response (get_info) *)
-val fetch_pro_binary :
+val report_failure_async :
+  dry_run:bool ->
+  scan_id:scan_id ->
   < Cap.network ; Auth.cap_token ; .. > ->
-  pro_engine_arch ->
-  (string * Http_helpers.get_info, string * Http_helpers.get_info) result
+  Exit_code.t ->
+  unit Lwt.t
+
+val start_scan_async :
+  dry_run:bool ->
+  < Cap.network ; Auth.cap_token ; .. > ->
+  Project_metadata.t ->
+  Semgrep_output_v1_t.scan_metadata ->
+  (scan_id, string) result Lwt.t
+(** [start_scan_async ~dry_run ~token url prj] informs the Semgrep App that a
+    scan is about to be started, and returns the scan id from the server. If
+    [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
+
+val upload_findings_async :
+  dry_run:bool ->
+  scan_id:scan_id ->
+  results:Semgrep_output_v1_t.ci_scan_results ->
+  complete:Semgrep_output_v1_t.ci_scan_complete ->
+  < Cap.network ; Auth.cap_token ; .. > ->
+  (app_block_override, string) result Lwt.t
+(** [upload_findings_async ~dry_run ~token ~scan_id ~results ~complete]
+    reports the findings to Semgrep App. *)
+
+val upload_rule_to_registry_async :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  JSON.yojson ->
+  (string, string) result Lwt.t

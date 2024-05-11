@@ -1,0 +1,19 @@
+rules:
+  # used to fail with error message in --strict --verbose mode:
+  # "metavariable-pattern failed because $X does not bind to a
+  # sub-program. please check your rule"
+  - id: test-aliengrep-mv
+    severity: ERROR
+    languages:
+      - generic
+    options:
+      generic_engine: aliengrep
+    message: |
+      found '$X'
+    patterns:
+      - pattern: |
+          key = $X
+      - focus-metavariable: $X
+      - metavariable-pattern:
+          metavariable: $X
+          pattern: value

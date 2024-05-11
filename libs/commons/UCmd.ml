@@ -42,7 +42,9 @@ let process_output_to_list ?(verbose = false) command =
   let rec process_otl_aux () =
     let e = input_line chan in
     res := e :: !res;
-    if verbose then UCommon.pr2 e;
+    if verbose then
+      (* nosemgrep: no-logs-in-library *)
+      Logs.info (fun m -> m "%s" e);
     process_otl_aux ()
   in
   try process_otl_aux () with

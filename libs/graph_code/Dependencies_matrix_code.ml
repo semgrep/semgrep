@@ -15,6 +15,7 @@
 open Common
 module G = Graph_code
 module G2 = Graph_code_opti
+module Log = Log_graph_code.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -124,7 +125,7 @@ let rec final_nodes_of_tree tree =
 let hashtbl_find_node h n =
   try Hashtbl.find h n with
   | Not_found ->
-      (* pr2 (spf "PB: %s" (G.string_of_node n));*)
+      Log.warn (fun m -> m "PB: %s" (G.string_of_node n));
       (* raise Not_found *)
       failwith (spf "Not_found: %s" (G.string_of_node n))
 
@@ -134,7 +135,8 @@ let hashtbl_find_node h n =
 
 (* poor's man DSM visualizer (use codegraph for a real visualization) *)
 let display dm =
-  UCommon.pr2_gen dm;
+  (* nosemgrep: no-pr2 *)
+  UCommon.pr2 (Dumper.dump dm);
   ()
 
 (*****************************************************************************)

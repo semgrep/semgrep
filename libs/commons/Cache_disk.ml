@@ -180,7 +180,7 @@ let cache_computation_robust file ext_cache
     && get_value dependencies_cache =*= dependencies
   then get_value file_cache
   else (
-    UCommon.pr2 ("cache computation recompute " ^ file);
+    Log.info (fun m -> m "cache computation recompute %s" file);
     let res = f () in
     write_value dependencies dependencies_cache;
     write_value res file_cache;

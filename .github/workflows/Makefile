@@ -15,6 +15,7 @@ OBJS = \
   build-test-core-x86.yml build-test-core-x86-ocaml5.yml \
   build-test-osx-x86.yml build-test-osx-arm64.yml \
   build-test-manylinux-x86.yml build-test-manylinux-aarch64.yml \
+  build-test-nix.yml \
   build-test-windows-x86.yml \
   build-test-javascript.yml \
   tests.yml \

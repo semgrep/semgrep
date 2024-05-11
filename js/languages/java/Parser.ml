@@ -1,7 +1,7 @@
-let parse_pattern print_errors _ str =
+let parse_pattern _ str =
   let any =
     str
-    |> Pfff_or_tree_sitter.run_pattern ~print_errors
+    |> Pfff_or_tree_sitter.run_pattern
          [
            PfffPat Parse_java.any_of_string;
            TreeSitterPat Parse_java_tree_sitter.parse_pattern;

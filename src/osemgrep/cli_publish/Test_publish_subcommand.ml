@@ -14,7 +14,6 @@
  *)
 open Common
 open Fpath_.Operators
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 let t = Testo.create
 

@@ -301,7 +301,6 @@ def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 # it should not report findings from rules using the "EXPERIMENT" severity
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/severity_experiment.yaml",

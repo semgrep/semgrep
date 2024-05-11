@@ -16,8 +16,8 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-module Request = Cohttp_lwt.Request
-module Response = Cohttp_lwt.Response
+module Request = Cohttp.Request
+module Response = Cohttp.Response
 module Body = Cohttp_lwt.Body
 module Header = Cohttp.Header
 
@@ -145,7 +145,7 @@ let check_header req header header_val =
      unconditional print to stderr of the string "Assert <name>". *)
   | Some actual_header -> Alcotest.(check string) "" header_val actual_header
 
-let check_headers expected_headers actual_headers =
+let check_headers actual_headers expected_headers =
   let lowercase_and_sort xs =
     xs
     |> List_.map (fun (x, y) -> (String.lowercase_ascii x, y))
@@ -155,10 +155,56 @@ let check_headers expected_headers actual_headers =
   let expected_headers =
     expected_headers |> Header.to_list |> lowercase_and_sort
   in
-  (* Passing "" for the name of the check prevents an otherwise
-     unconditional print to stderr of the string "Assert <name>". *)
-  Alcotest.(check (list (pair string string)))
-    "" expected_headers actual_headers
+  let pp = Alcotest.(pp (list (pair string string))) in
+
+  let rec check = function
+    | [], [] -> ()
+    | (_ :: _ as expected_headers), [] ->
+        Alcotest.failf "Missing some expected headers:\n%a" (Fmt.styled `Red pp)
+          expected_headers
+    | [], (_ :: _ as actual_headers) ->
+        Alcotest.failf "Found some unexpected headers:\n%a" (Fmt.styled `Red pp)
+          actual_headers
+    | ( (expected_header, expected_value) :: expected_headers,
+        (actual_header, actual_value) :: actual_headers ) ->
+        if String.equal expected_header actual_header then
+          let value_regex =
+            if
+              String.starts_with ~prefix:"regex{" expected_value
+              && String.ends_with ~suffix:"}" expected_value
+            then
+              Pcre2_.regexp
+                (String.sub expected_value 6 (String.length expected_value - 7))
+            else Pcre2_.regexp (Pcre2_.quote expected_value)
+          in
+          match Pcre2_.pmatch ~rex:value_regex actual_value with
+          | Ok true -> check (expected_headers, actual_headers)
+          | Ok false ->
+              Alcotest.failf
+                "Header values for '%a' do not match\n\
+                 Expected:\n\
+                 %a\n\
+                 Received:\n\
+                 \"%a\""
+                (Fmt.styled `Bold Fmt.string)
+                expected_header
+                (Fmt.styled `Green Pcre2_.pp)
+                value_regex
+                (Fmt.styled `Red Fmt.string)
+                actual_value
+          | Error err -> Alcotest.failf "Invalid regex: %a" Pcre2_.pp_error err
+        else
+          Alcotest.failf
+            "Expected header '%a', but it was either missing, or header counts \
+             did not match up"
+            (Fmt.styled `Bold Fmt.string)
+            expected_header
+  in
+  check (expected_headers, actual_headers)
+(* (* Passing "" for the name of the check prevents an otherwise
+      unconditional print to stderr of the string "Assert <name>". *)
+   Alcotest.(check (list (pair string string)))
+     "" expected_headers actual_headers *)
 
 let get_header req header =
   Cohttp.Header.get (Cohttp.Request.headers req) header
@@ -173,8 +219,9 @@ let with_testing_client make_fn test_fn () =
       let make_response = make_fn
     end))
   in
-  Common.save_excursion Http_helpers.in_mock_context true (fun () ->
-      Common.save_excursion Http_helpers.client_ref (Some new_client) test_fn)
+  Http_helpers.with_client_ref new_client
+    (fun () -> Common.save_excursion Http_helpers.in_mock_context true test_fn)
+    ()
 
 (*****************************************************************************)
 (* Saved Request/Reponse Mocking *)
@@ -250,15 +297,8 @@ let parse_req =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          ( {
-              Cohttp.Request.meth;
-              resource;
-              version;
-              headers;
-              scheme = None;
-              encoding = Body.transfer_encoding body;
-            },
-            body ))
+          let uri = Uri.of_string resource in
+          (Cohttp.Request.make ~meth ~version ~headers uri, body))
 
 let parse_resp =
   strip_and_parse "< " (fun lines ->
@@ -271,17 +311,7 @@ let parse_resp =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          ( {
-              Cohttp.Response.version;
-              headers;
-              status;
-              (* Not sure exactly how cohttp uses this. Not documented.
-               * Doesn't seem like there's any buffering in our tests anyway.
-               *)
-              flush = true;
-              encoding = Body.transfer_encoding body;
-            },
-            body ))
+          (Cohttp.Response.make ~version ~status ~flush:true ~headers (), body))
 
 let client_from_file req_resp_file =
   let contents = UFile.Legacy.read_file req_resp_file in

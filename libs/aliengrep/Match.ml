@@ -46,6 +46,10 @@ let convert_match (pat : Pat_compile.t) target_str
     List_.map
       (fun (capture_id, mv) ->
         let loc = loc_of_substring target_str substrings capture_id in
+        Log.debug (fun m ->
+            m "captured metavariable %s = %S"
+              (Pat_compile.show_metavariable mv)
+              loc.substring);
         (mv, loc))
       pat.metavariable_groups
   in

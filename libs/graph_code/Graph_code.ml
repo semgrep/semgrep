@@ -239,10 +239,10 @@ let create () =
 
 let add_node n g =
   if G.has_node n g.has then (
-    UCommon.pr2_gen n;
+    Log.warn (fun m -> m "already present %s" (Dumper.dump n));
     raise (Error (NodeAlreadyPresent n)));
   if G.has_node n g.use then (
-    UCommon.pr2_gen n;
+    Log.warn (fun m -> m "already present %s" (Dumper.dump n));
     raise (Error (NodeAlreadyPresent n)));
 
   G.add_vertex_if_not_present n g.has;
@@ -522,7 +522,7 @@ let graph_of_dotfile dotfile =
              let src, dst = Common.matched2 s in
              Some (src, dst)
            else (
-             UCommon.pr2 (spf "ignoring line: %s" s);
+             Log.info (fun m -> m "ignoring line: %s" s);
              None))
   in
   let g = create () in
@@ -542,7 +542,8 @@ let graph_of_dotfile dotfile =
              g |> add_node (dst, E.File);
              g |> add_edge ((dstdir, E.Dir), (dst, E.File)) Has)
          with
-         | Assert_failure _ -> UCommon.pr2_gen (src, dst));
+         | Assert_failure _ ->
+             Log.err (fun m -> m "assert failure: %s" (Dumper.dump (src, dst))));
   (* step2: use *)
   deps
   |> List.iter (fun (src, dst) ->
