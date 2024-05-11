@@ -149,6 +149,9 @@ let docker_string_expr ((loc, fragments) : docker_string) : G.expr =
 
 let str_or_ellipsis_expr = function
   | Str_str str -> docker_string_expr str
+  | Str_template x ->
+      (* TODO: distinguish heredocs from ordinary strings *)
+      unquoted_string_expr x.body
   | Str_semgrep_ellipsis tok -> ellipsis_expr tok
 
 let array_elt_expr (x : array_elt) : G.expr =
@@ -164,7 +167,7 @@ let string_array ((open_, args, close) : string_array) : G.expr =
    Return the arguments to pass to the dockerfile command e.g. the arguments
    to CMD.
 *)
-let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
+let command (env : env) (x : command) : G.expr list =
   match x with
   | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
@@ -176,6 +179,9 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
       let args = [ unquoted_string_expr code ] in
       let loc = DLoc.wrap_loc code in
       [ call_shell loc shell_compat args ]
+  | Shell_command_template (_loc, _args) ->
+      (* TODO: heredocs *)
+      []
 
 let param_arg (x : param) : G.argument =
   let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
@@ -223,7 +229,10 @@ let label_pairs (kv_pairs : label_pair list) : G.argument list =
        | Label_semgrep_ellipsis tok -> G.Arg (ellipsis_expr tok)
        | Label_pair (_loc, key, _eq, value) -> (
            match key with
-           | Var_ident key -> G.ArgKwd (key, docker_string_expr value)
+           | Var_ident key ->
+               (* LABEL keys can now be variables so we should encode the
+                  key/value pairs differently, perhaps as a tuple. *)
+               G.ArgKwd (key, docker_string_expr value)
            | Var_semgrep_metavar mv -> G.ArgKwd (mv, docker_string_expr value)))
 
 let add_or_copy (opt_param : param option) (src : path_or_ellipsis list)
@@ -260,13 +269,11 @@ let run_param (x : run_param) =
 
 (* RUN, CMD, ENTRYPOINT, HEALTHCHECK CMD *)
 let cmd_instr_expr (env : env) loc name (params : run_param list)
-    (cmd : argv_or_shell) : G.expr =
-  call_exprs name loc
-    ~opt_args:(List_.map run_param params)
-    (argv_or_shell env cmd)
+    (cmd : command) : G.expr =
+  call_exprs name loc ~opt_args:(List_.map run_param params) (command env cmd)
 
-let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
-    =
+let healthcheck_cmd_args env (params : param list) (cmd : cmd_instr) :
+    G.argument list =
   let opt_args = List_.map param_arg params in
   let cmd_arg =
     let loc, name, params, cmd = cmd in
@@ -275,7 +282,7 @@ let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
   cmd_arg :: opt_args
 
 let var_or_metavar_expr = function
-  | Var_ident key -> id_expr key
+  | Var_ident key -> simple_docker_string_expr key
   | Var_semgrep_metavar mv -> metavar_expr mv
 
 let string_or_metavar_expr = function
