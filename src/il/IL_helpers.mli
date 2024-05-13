@@ -10,6 +10,10 @@ val lval_of_var : IL.name -> IL.lval
 val is_dots_offset : IL.offset list -> bool
 (** Test whether an offset is of the form .a_1. ... .a_N.  *)
 
+val split_last_offset : IL.exp -> (IL.lval * IL.offset) option
+(** Split the last offset of an l-value, e.g. given `x.y.foo` it returns
+   'Some (`x.y`, `foo`)' *)
+
 val lval_of_instr_opt : IL.instr -> IL.lval option
 (** If the given instruction stores its result in [lval] then it is
     [Some lval], otherwise it is [None]. *)

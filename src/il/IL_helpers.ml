@@ -98,6 +98,11 @@ let is_dots_offset offset =
          | Dot _ -> true
          | Index _ -> false)
 
+let split_last_offset = function
+  | { e = Fetch { base; rev_offset = o :: rev_offset' }; _ } ->
+      Some ({ base; rev_offset = rev_offset' }, o)
+  | __else__ -> None
+
 let lval_of_instr_opt x =
   match x.i with
   | Assign (lval, _)
