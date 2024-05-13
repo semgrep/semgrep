@@ -177,7 +177,7 @@ let check_headers actual_headers expected_headers =
                 (String.sub expected_value 6 (String.length expected_value - 7))
             else Pcre2_.regexp (Pcre2_.quote expected_value)
           in
-          match Pcre2_.pmatch ~rex:value_regex actual_value with
+          match Pcre2_.pmatch ~flags:[`ANCHORED ; `ENDANCHORED] ~rex:value_regex actual_value with
           | Ok true -> check (expected_headers, actual_headers)
           | Ok false ->
               Alcotest.failf
