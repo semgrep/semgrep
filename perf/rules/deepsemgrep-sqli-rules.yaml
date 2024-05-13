@@ -1,0 +1,1687 @@
+# This file will get copied into semgrep/perf/targets by
+# the `run-pro-benchmarks.sh` script
+rules:
+- id: tainted-sql-string
+  languages:
+  - java
+  message: User data flows into this manually-constructed SQL string. User data can
+    be safely inserted into SQL strings using prepared statements or an object-relational
+    mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL
+    injection, which could let an attacker steal or manipulate data from the database.
+    Instead, use prepared statements (`connection.PreparedStatement`) or a safe library.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: '"$SQLSTR" + ...
+
+          '
+      - pattern: '"$SQLSTR".concat(...)
+
+          '
+      - patterns:
+        - pattern-inside: 'StringBuilder $SB = new StringBuilder("$SQLSTR");
+
+            ...
+
+            '
+        - pattern: $SB.append(...)
+      - patterns:
+        - pattern-inside: '$VAR = "$SQLSTR";
+
+            ...
+
+            '
+        - pattern: $VAR += ...
+      - pattern: String.format("$SQLSTR", ...)
+      - patterns:
+        - pattern-inside: 'String $VAR = "$SQLSTR";
+
+            ...
+
+            '
+        - pattern: String.format($VAR, ...)
+    - pattern-not-inside: System.out.println(...)
+    - pattern-not-inside: $LOG.info(...)
+    - pattern-not-inside: $LOG.warn(...)
+    - pattern-not-inside: $LOG.warning(...)
+    - pattern-not-inside: $LOG.debug(...)
+    - pattern-not-inside: $LOG.debugging(...)
+    - pattern-not-inside: $LOG.error(...)
+    - metavariable-regex:
+        metavariable: $SQLSTR
+        regex: (?i)(select|delete|insert|create|update|alter|drop)\b
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: "$METHODNAME(..., @$REQ($LOOKUP) $TYPE $SOURCE,...) {\n  ...\n\
+          }\n"
+      - pattern-inside: "$METHODNAME(..., @$REQ $TYPE $SOURCE,...) {\n  ...\n}\n"
+    - metavariable-regex:
+        metavariable: $REQ
+        regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+    - pattern: $SOURCE
+  severity: ERROR
+- id: formatted-sql-string
+  languages:
+  - java
+  message: Detected a formatted string in a SQL statement. This could lead to SQL
+    injection if variables in the SQL statement are not properly sanitized. Use a
+    prepared statements (java.sql.PreparedStatement) instead. You can obtain a PreparedStatement
+    using 'connection.prepareStatement'.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern-not: $S.$SQLFUNC(<... "=~/.*TABLE *$/" ...>)
+    - pattern-not: $S.$SQLFUNC(<... "=~/.*TABLE %s$/" ...>)
+    - pattern-either:
+      - pattern: (Statement $S).$SQLFUNC(...)
+      - pattern: (Connection $C).createStatement(...).$SQLFUNC(...)
+      - pattern: (EntityManager $EM).$SQLFUNC(...)
+    - metavariable-regex:
+        metavariable: $SQLFUNC
+        regex: execute|executeQuery|createQuery|query
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: '(HttpServletRequest $REQ)
+
+          '
+      - pattern: '(ServletRequest $REQ)
+
+          '
+      - patterns:
+        - pattern-either:
+          - pattern-inside: "$METHODNAME(..., @$REQ($LOOKUP) $TYPE $SOURCE,...) {\n\
+              \  ...\n}\n"
+          - pattern-inside: "$METHODNAME(..., @$REQ $TYPE $SOURCE,...) {\n  ...\n\
+              }\n"
+        - metavariable-regex:
+            metavariable: $REQ
+            regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+        - pattern: $SOURCE
+  severity: ERROR
+- id: jdbc-sql-formatted-string
+  languages:
+  - java
+  message: 'Possible JDBC injection detected. Use the parameterized query feature
+    available in queryForObject instead of concatenating or formatting strings: ''jdbc.queryForObject("select
+    * from table where name = ?", Integer.class, parameterName);'''
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern-inside: '$JDBC = new JdbcTemplate(...);
+
+        ...
+
+        '
+    - pattern: $JDBC.$JDBCFUNC(...);
+    - metavariable-regex:
+        metavariable: $JDBCFUNC
+        regex: queryForObject|queryForList|update|execute|insert
+  pattern-sources:
+  - pattern: '(HttpServletRequest $REQ)
+
+      '
+  - pattern: '(ServletRequest $REQ)
+
+      '
+  severity: WARNING
+- id: jdbctemplate-sqli
+  languages:
+  - java
+  message: User data flows into this manually-constructed SQL string. User data can
+    be safely inserted into SQL strings using prepared statements or an object-relational
+    mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL
+    injection, which could let an attacker steal or manipulate data from the database.
+    Instead, use prepared statements (`connection.PreparedStatement`) or a safe library.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern: $SQL
+    - pattern-inside: (org.springframework.jdbc.core.JdbcTemplate $JT).$METHOD($SQL,
+        ...)
+    - metavariable-regex:
+        metavariable: $METHOD
+        regex: ^(batchUpdate|execute|query|queryForList|queryForMap|queryForObject|queryForRowSet|queryForStream|update)$
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: "$METHODNAME(..., @$REQ(...) $TYPE $SOURCE,...) {\n  ...\n\
+          }\n"
+      - pattern-inside: "$METHODNAME(..., @$REQ $TYPE $SOURCE,...) {\n  ...\n}\n"
+    - metavariable-regex:
+        metavariable: $REQ
+        regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+    - pattern: $SOURCE
+  severity: ERROR
+- id: jpa-sqli
+  languages:
+  - java
+  message: User data flows into this manually-constructed SQL string. User data can
+    be safely inserted into SQL strings using prepared statements or an object-relational
+    mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL
+    injection, which could let an attacker steal or manipulate data from the database.
+    Instead, use prepared statements (`connection.PreparedStatement`) or a safe library.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern: $SQL
+    - pattern-either:
+      - pattern-inside: (javax.persistence.EntityManager $EM).createQuery($SQL,...)
+      - pattern-inside: (javax.persistence.EntityManager $EM).createNativeQuery($SQL,...)
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: "$METHODNAME(..., @$REQ(...) $TYPE $SOURCE,...) {\n  ...\n\
+          }\n"
+      - pattern-inside: "$METHODNAME(..., @$REQ $TYPE $SOURCE,...) {\n  ...\n}\n"
+    - metavariable-regex:
+        metavariable: $REQ
+        regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+    - pattern: $SOURCE
+  severity: ERROR
+- id: jdo-sqli
+  languages:
+  - java
+  message: User data flows into this manually-constructed SQL string. User data can
+    be safely inserted into SQL strings using prepared statements or an object-relational
+    mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL
+    injection, which could let an attacker steal or manipulate data from the database.
+    Instead, use prepared statements (`connection.PreparedStatement`) or a safe library.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern: $SQL
+    - pattern-either:
+      - pattern-inside: (javax.jdo.PersistenceManager $PM).newQuery(..., $SQL)
+      - pattern-inside: (javax.jdo.Query $Q).setFilter($SQL, ...)
+      - pattern-inside: (javax.jdo.Query $Q).setGrouping($SQL, ...)
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: "$METHODNAME(..., @$REQ(...) $TYPE $SOURCE,...) {\n  ...\n\
+          }\n"
+      - pattern-inside: "$METHODNAME(..., @$REQ $TYPE $SOURCE,...) {\n  ...\n}\n"
+    - metavariable-regex:
+        metavariable: $REQ
+        regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+    - pattern: $SOURCE
+  severity: ERROR
+- id: hibernate-sqli
+  languages:
+  - java
+  message: User data flows into this manually-constructed SQL string. User data can
+    be safely inserted into SQL strings using prepared statements or an object-relational
+    mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL
+    injection, which could let an attacker steal or manipulate data from the database.
+    Instead, use prepared statements (`connection.PreparedStatement`) or a safe library.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern: $SQL
+    - pattern-either:
+      - pattern: (javax.persistence.EntityManager $EM).createQuery($SQL,...)
+      - pattern: (javax.persistence.EntityManager $EM).createSQLQuery($SQL,...)
+      - pattern: (org.hibernate.Session $S).createQuery($SQL,...)
+      - pattern: (org.hibernate.Session $S).createSQLQuery($SQL,...)
+      - pattern: (org.hibernate.SessionFactory $SF).getCurrentSession(...).createQuery($SQL,...)
+      - pattern: (org.hibernate.SessionFactory $SF).getCurrentSession(...).createSQLQuery($SQL,...)
+      - pattern: org.hibernate.criterion.Restrictions.sqlRestriction($SQL,...)
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: "$METHODNAME(..., @$REQ(...) $TYPE $SOURCE,...) {\n  ...\n\
+          }\n"
+      - pattern-inside: "$METHODNAME(..., @$REQ $TYPE $SOURCE,...) {\n  ...\n}\n"
+    - metavariable-regex:
+        metavariable: $REQ
+        regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+    - pattern: $SOURCE
+  severity: ERROR
+- id: tainted-sql-from-http-request
+  languages:
+  - java
+  message: Detected input from a HTTPServletRequest going into a SQL sink or statement.
+    This could lead to SQL injection if variables in the SQL statement are not properly
+    sanitized. Use parameterized SQL queries or properly sanitize user input instead.
+  metadata:
+    interfile: true # DELETEME
+  options:
+    interfile: true
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: "(java.sql.CallableStatement $STMT) = ...; \n"
+      - pattern: '(java.sql.Statement $STMT) = ...;
+
+          ...
+
+          $OUTPUT = $STMT.$FUNC(...);
+
+          '
+      - pattern: '(java.sql.PreparedStatement $STMT) = ...;
+
+          '
+      - pattern: '$VAR = $CONN.prepareStatement(...)
+
+          '
+      - pattern: '$PATH.queryForObject(...);
+
+          '
+      - pattern: '(java.util.Map<String, Object> $STMT) = $PATH.queryForMap(...);
+
+          '
+      - pattern: '(org.springframework.jdbc.support.rowset.SqlRowSet $STMT) = ...;
+
+          '
+      - patterns:
+        - pattern-inside: '(String $SQL) = "$SQLSTR" + ...;
+
+            ...
+
+            '
+        - pattern: $PATH.$SQLCMD(..., $SQL, ...);
+        - metavariable-regex:
+            metavariable: $SQLSTR
+            regex: (?i)(^SELECT.* | ^INSERT.* | ^UPDATE.*)
+        - metavariable-regex:
+            metavariable: $SQLCMD
+            regex: (execute|query|executeUpdate)
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: '(HttpServletRequest $REQ)
+
+          '
+      - pattern: '(ServletRequest $REQ)
+
+          '
+    - pattern-not: "$REQ.getUserPrincipal() \n"
+    - pattern-not: "$REQ.getSession(...) \n"
+    - pattern-not: "$REQ.getAuthType(...) \n"
+    - pattern-not: "$REQ.getMethod(...) \n"
+    - pattern-not: "$REQ.getLocales(...) \n"
+    - pattern-not: "$REQ.getLocale(...) \n"
+    - pattern-not: "$REQ.isUserinRole(...) \n"
+    - pattern-not: "$REQ.isRequestdSessionIdValid(...) \n"
+    - pattern-not: "$REQ.isRequestedSessionIdFromUrl(...) \n"
+    - pattern-not: "$REQ.getIntHeader(...) \n"
+    - pattern-not: "$REQ.getDateHeader(...) \n"
+    - pattern-not: "$REQ.authenticate(...) \n"
+    - pattern-not: "$REQ.isUserInRole(...) \n"
+    - pattern-not: '$REQ.getAttribute(...)
+
+        '
+    - pattern-not: '$REQ.getAttributeNames(...)
+
+        '
+    - pattern-not: '$REQ.getAuthType(...)
+
+        '
+  severity: WARNING
+- id: express-fs-filename
+  message: >-
+    Detected `$REQ` argument enter fs module. An attacker could  potentially control
+    the location of this
+    file, to include going  backwards in the directory with '../'. To address this,  ensure
+    that user-controlled
+    variables in file paths are validated.
+  severity: WARNING
+  metadata:
+    likelihood: HIGH
+    impact: MEDIUM
+    confidence: MEDIUM
+    category: security
+    cwe:
+    - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+    cwe2021-top25: true
+    cwe2022-top25: true
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    owasp:
+    - A05:2017 - Broken Access Control
+    - A01:2021 - Broken Access Control
+    references:
+    - https://owasp.org/www-community/attacks/Path_Traversal
+    subcategory:
+    - vuln
+    technology:
+    - express
+    - nodejs
+  languages:
+  - javascript
+  - typescript
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: function ... ($REQ, $RES) {...}
+      - pattern-inside: function ... ($REQ, $RES, $NEXT) {...}
+      - patterns:
+        - pattern-either:
+          - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES) {...})
+          - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, $NEXT) {...})
+        - metavariable-regex:
+            metavariable: $METHOD
+            regex: ^(get|post|put|head|delete|options)$
+    - pattern-either:
+      - pattern: $REQ.query
+      - pattern: $REQ.body
+      - pattern: $REQ.params
+      - pattern: $REQ.cookies
+      - pattern: $REQ.headers
+  - patterns:
+    - pattern-either:
+      - pattern-inside: >
+          ({ $REQ }: Request,$RES: Response, $NEXT: NextFunction) =>
+          {...}
+      - pattern-inside: |
+          ({ $REQ }: Request,$RES: Response) => {...}
+    - focus-metavariable: $REQ
+    - pattern-either:
+      - pattern: params
+      - pattern: query
+      - pattern: cookies
+      - pattern: headers
+      - pattern: body
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: |
+          $FS = require('fs')
+          ...
+      - pattern-inside: |
+          $FS = require('fs/promises')
+          ...
+      - pattern-inside: |
+          import * as $FS from 'fs'
+          ...
+      - pattern-inside: |
+          import $FS from 'fs'
+          ...
+      - pattern-inside: |
+          import * as $FS from 'fs/promises'
+          ...
+      - pattern-inside: |
+          import $FS from 'fs/promises'
+          ...
+    - pattern-not: $FS. ... .$METHOD("...", ...)
+    - pattern-either:
+      - pattern: $FS. ... .access($FILE,...)
+      - pattern: $FS. ... .appendFile($FILE,...)
+      - pattern: $FS. ... .chmod($FILE,...)
+      - pattern: $FS. ... .chown($FILE,...)
+      - pattern: $FS. ... .close($FILE,...)
+      - pattern: $FS. ... .copyFile($FILE,...)
+      - pattern: $FS. ... .copyFile($SMTH, $FILE,...)
+      - pattern: $FS. ... .cp($FILE, ...)
+      - pattern: $FS. ... .cp($SMTH, $FILE, ...)
+      - pattern: $FS. ... .createReadStream($FILE,...)
+      - pattern: $FS. ... .createWriteStream($FILE,...)
+      - pattern: $FS. ... .exists($FILE, ...)
+      - pattern: $FS. ... .fchmod($FILE, ...)
+      - pattern: $FS. ... .fchown($FILE, ...)
+      - pattern: $FS. ... .fdatasync($FILE, ...)
+      - pattern: $FS. ... .fstat($FILE, ...)
+      - pattern: $FS. ... .fsync($FILE, ...)
+      - pattern: $FS. ... .ftruncate($FILE, ...)
+      - pattern: $FS. ... .futimes($FILE, ...)
+      - pattern: $FS. ... .lchmod($FILE, ...)
+      - pattern: $FS. ... .lchown($FILE, ...)
+      - pattern: $FS. ... .lutimes($FILE, ...)
+      - pattern: $FS. ... .link($FILE, ...)
+      - pattern: $FS. ... .link($SMTH, $FILE, ...)
+      - pattern: $FS. ... .lstat($FILE, ...)
+      - pattern: $FS. ... .mkdir($FILE, ...)
+      - pattern: $FS. ... .mkdtemp($FILE, ...)
+      - pattern: $FS. ... .open($FILE, ...)
+      - pattern: $FS. ... .opendir($FILE, ...)
+      - pattern: $FS. ... .read($FILE, ...)
+      - pattern: $FS. ... .read($FILE, ...)
+      - pattern: $FS. ... .readdir($FILE, ...)
+      - pattern: $FS. ... .readFile($FILE, ...)
+      - pattern: $FS. ... .readlink($FILE, ...)
+      - pattern: $FS. ... .readv($FILE, ...)
+      - pattern: $FS. ... .realpath($FILE, ...)
+      - pattern: $FS. ... .realpath.native($FILE, ...)
+      - pattern: $FS. ... .rename($FILE, ...)
+      - pattern: $FS. ... .rename($SMTH, $FILE, ...)
+      - pattern: $FS. ... .rmdir($FILE, ...)
+      - pattern: $FS. ... .rm($FILE, ...)
+      - pattern: $FS. ... .stat($FILE, ...)
+      - pattern: $FS. ... .symlink($SMTH, $FILE, ...)
+      - pattern: $FS. ... .symlink($FILE, ...)
+      - pattern: $FS. ... .truncate($FILE, ...)
+      - pattern: $FS. ... .unlink($FILE, ...)
+      - pattern: $FS. ... .unwatchFile($FILE, ...)
+      - pattern: $FS. ... .utimes($FILE, ...)
+      - pattern: $FS. ... .watch($FILE, ...)
+      - pattern: $FS. ... .watchFile($FILE, ...)
+      - pattern: $FS. ... .write($FILE, ...)
+      - pattern: $FS. ... .writeFile($FILE, ...)
+      - pattern: $FS. ... .writev($FILE, ...)
+      - pattern: $FS. ... .accessSync($FILE, ...)
+      - pattern: $FS. ... .appendFileSync($FILE, ...)
+      - pattern: $FS. ... .chmodSync($FILE, ...)
+      - pattern: $FS. ... .chownSync($FILE, ...)
+      - pattern: $FS. ... .closeSync($FILE, ...)
+      - pattern: $FS. ... .copyFileSync($FILE, ...)
+      - pattern: $FS. ... .copyFileSync($SMTH, $FILE, ...)
+      - pattern: $FS. ... .cpSync($FILE, ...)
+      - pattern: $FS. ... .cpSync($SMTH, $FILE, ...)
+      - pattern: $FS. ... .existsSync($FILE, ...)
+      - pattern: $FS. ... .fchmodSync($FILE, ...)
+      - pattern: $FS. ... .fchownSync($FILE, ...)
+      - pattern: $FS. ... .fdatasyncSync($FILE, ...)
+      - pattern: $FS. ... .fstatSync($FILE, ...)
+      - pattern: $FS. ... .fsyncSync($FILE, ...)
+      - pattern: $FS. ... .ftruncateSync($FILE, ...)
+      - pattern: $FS. ... .futimesSync($FILE, ...)
+      - pattern: $FS. ... .lchmodSync($FILE, ...)
+      - pattern: $FS. ... .lchownSync($FILE, ...)
+      - pattern: $FS. ... .lutimesSync($FILE, ...)
+      - pattern: $FS. ... .linkSync($FILE, ...)
+      - pattern: $FS. ... .linkSync($SMTH, $FILE, ...)
+      - pattern: $FS. ... .lstatSync($FILE, ...)
+      - pattern: $FS. ... .mkdirSync($FILE, ...)
+      - pattern: $FS. ... .mkdtempSync($FILE, ...)
+      - pattern: $FS. ... .opendirSync($FILE, ...)
+      - pattern: $FS. ... .openSync($FILE, ...)
+      - pattern: $FS. ... .readdirSync($FILE, ...)
+      - pattern: $FS. ... .readFileSync($FILE, ...)
+      - pattern: $FS. ... .readlinkSync($FILE, ...)
+      - pattern: $FS. ... .readSync($FILE, ...)
+      - pattern: $FS. ... .readSync($FILE, ...)
+      - pattern: $FS. ... .readvSync($FILE, ...)
+      - pattern: $FS. ... .realpathync($FILE, ...)
+      - pattern: $FS. ... .realpathSync.native($FILE, ...)
+      - pattern: $FS. ... .renameSync($FILE, ...)
+      - pattern: $FS. ... .renameSync($SMTH, $FILE, ...)
+      - pattern: $FS. ... .rmdirSync($FILE, ...)
+      - pattern: $FS. ... .rmSync($FILE, ...)
+      - pattern: $FS. ... .statSync($FILE, ...)
+      - pattern: $FS. ... .symlinkSync($FILE, ...)
+      - pattern: $FS. ... .symlinkSync($SMTH, $FILE, ...)
+      - pattern: $FS. ... .truncateSync($FILE, ...)
+      - pattern: $FS. ... .unlinkSync($FILE, ...)
+      - pattern: $FS. ... .utimesSync($FILE, ...)
+      - pattern: $FS. ... .writeFileSync($FILE, ...)
+      - pattern: $FS. ... .writeSync($FILE, ...)
+      - pattern: $FS. ... .writevSync($FILE, ...)
+    - focus-metavariable: $FILE
+  - patterns:
+    - pattern-either:
+      - pattern-inside: |
+          import 'fs'
+          ...
+      - pattern-inside: |
+          import 'fs/promises'
+          ...
+    - pattern-not: $METHOD("...", ...)
+    - pattern-either:
+      - pattern: access($FILE,...)
+      - pattern: appendFile($FILE,...)
+      - pattern: chmod($FILE,...)
+      - pattern: chown($FILE,...)
+      - pattern: close($FILE,...)
+      - pattern: copyFile($FILE,...)
+      - pattern: copyFile($SMTH, $FILE,...)
+      - pattern: cp($FILE, ...)
+      - pattern: cp($SMTH, $FILE, ...)
+      - pattern: createReadStream($FILE,...)
+      - pattern: createWriteStream($FILE,...)
+      - pattern: exists($FILE, ...)
+      - pattern: fchmod($FILE, ...)
+      - pattern: fchown($FILE, ...)
+      - pattern: fdatasync($FILE, ...)
+      - pattern: fstat($FILE, ...)
+      - pattern: fsync($FILE, ...)
+      - pattern: ftruncate($FILE, ...)
+      - pattern: futimes($FILE, ...)
+      - pattern: lchmod($FILE, ...)
+      - pattern: lchown($FILE, ...)
+      - pattern: lutimes($FILE, ...)
+      - pattern: link($FILE, ...)
+      - pattern: link($SMTH, $FILE, ...)
+      - pattern: lstat($FILE, ...)
+      - pattern: mkdir($FILE, ...)
+      - pattern: mkdtemp($FILE, ...)
+      - pattern: open($FILE, ...)
+      - pattern: opendir($FILE, ...)
+      - pattern: read($FILE, ...)
+      - pattern: read($FILE, ...)
+      - pattern: readdir($FILE, ...)
+      - pattern: readFile($FILE, ...)
+      - pattern: readlink($FILE, ...)
+      - pattern: readv($FILE, ...)
+      - pattern: realpath($FILE, ...)
+      - pattern: realpath.native($FILE, ...)
+      - pattern: rename($FILE, ...)
+      - pattern: rename($SMTH, $FILE, ...)
+      - pattern: rmdir($FILE, ...)
+      - pattern: rm($FILE, ...)
+      - pattern: stat($FILE, ...)
+      - pattern: symlink($SMTH, $FILE, ...)
+      - pattern: symlink($FILE, ...)
+      - pattern: truncate($FILE, ...)
+      - pattern: unlink($FILE, ...)
+      - pattern: unwatchFile($FILE, ...)
+      - pattern: utimes($FILE, ...)
+      - pattern: watch($FILE, ...)
+      - pattern: watchFile($FILE, ...)
+      - pattern: write($FILE, ...)
+      - pattern: writeFile($FILE, ...)
+      - pattern: writev($FILE, ...)
+      - pattern: accessSync($FILE, ...)
+      - pattern: appendFileSync($FILE, ...)
+      - pattern: chmodSync($FILE, ...)
+      - pattern: chownSync($FILE, ...)
+      - pattern: closeSync($FILE, ...)
+      - pattern: copyFileSync($FILE, ...)
+      - pattern: copyFileSync($SMTH, $FILE, ...)
+      - pattern: cpSync($FILE, ...)
+      - pattern: cpSync($SMTH, $FILE, ...)
+      - pattern: existsSync($FILE, ...)
+      - pattern: fchmodSync($FILE, ...)
+      - pattern: fchownSync($FILE, ...)
+      - pattern: fdatasyncSync($FILE, ...)
+      - pattern: fstatSync($FILE, ...)
+      - pattern: fsyncSync($FILE, ...)
+      - pattern: ftruncateSync($FILE, ...)
+      - pattern: futimesSync($FILE, ...)
+      - pattern: lchmodSync($FILE, ...)
+      - pattern: lchownSync($FILE, ...)
+      - pattern: lutimesSync($FILE, ...)
+      - pattern: linkSync($FILE, ...)
+      - pattern: linkSync($SMTH, $FILE, ...)
+      - pattern: lstatSync($FILE, ...)
+      - pattern: mkdirSync($FILE, ...)
+      - pattern: mkdtempSync($FILE, ...)
+      - pattern: opendirSync($FILE, ...)
+      - pattern: openSync($FILE, ...)
+      - pattern: readdirSync($FILE, ...)
+      - pattern: readFileSync($FILE, ...)
+      - pattern: readlinkSync($FILE, ...)
+      - pattern: readSync($FILE, ...)
+      - pattern: readSync($FILE, ...)
+      - pattern: readvSync($FILE, ...)
+      - pattern: realpathync($FILE, ...)
+      - pattern: realpathSync.native($FILE, ...)
+      - pattern: renameSync($FILE, ...)
+      - pattern: renameSync($SMTH, $FILE, ...)
+      - pattern: rmdirSync($FILE, ...)
+      - pattern: rmSync($FILE, ...)
+      - pattern: statSync($FILE, ...)
+      - pattern: symlinkSync($FILE, ...)
+      - pattern: symlinkSync($SMTH, $FILE, ...)
+      - pattern: truncateSync($FILE, ...)
+      - pattern: unlinkSync($FILE, ...)
+      - pattern: utimesSync($FILE, ...)
+      - pattern: writeFileSync($FILE, ...)
+      - pattern: writeSync($FILE, ...)
+      - pattern: writevSync($FILE, ...)
+    - focus-metavariable: $FILE
+- id: express-mysql-sqli
+  message: >-
+    Detected a `$IMPORT` statement that is tainted by user-input `$REQ`.
+    This could lead to SQL injection if the variable is user-controlled and is
+    not properly sanitized. In order to prevent SQL injection, it is
+    recommended to use parameterized queries or prepared statements.
+  metadata:
+    interfile: true # DELETEME
+    references:
+      - https://sequelize.org/docs/v6/core-concepts/raw-queries/#replacements
+    category: security
+    technology:
+      - express
+    cwe:
+      - "CWE-89: Improper Neutralization of Special Elements used in an SQL
+        Command ('SQL Injection')"
+    owasp:
+      - A01:2017 - Injection
+      - A03:2021 - Injection
+    cwe2022-top25: true
+    cwe2021-top25: true
+    subcategory:
+      - vuln
+    likelihood: HIGH
+    impact: HIGH
+    confidence: HIGH
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  options:
+    interfile: true
+  mode: taint
+  pattern-sources:
+    - patterns:
+        - pattern-either:
+            - pattern-inside: function ... ($REQ, $RES) {...}
+            - pattern-inside: function ... ($REQ, $RES, $NEXT) {...}
+            - patterns:
+                - pattern-either:
+                    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES) {...})
+                    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, $NEXT) {...})
+                - metavariable-regex:
+                    metavariable: $METHOD
+                    regex: ^(get|post|put|head|delete|options)$
+        - pattern-either:
+            - pattern: $REQ.query
+            - pattern: $REQ.body
+            - pattern: $REQ.params
+            - pattern: $REQ.cookies
+            - pattern: $REQ.headers
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                ({ $REQ }: Request,$RES: Response, $NEXT: NextFunction) =>
+                {...}
+            - pattern-inside: |
+                ({ $REQ }: Request,$RES: Response) => {...}
+        - focus-metavariable: $REQ
+        - pattern-either:
+            - pattern: params
+            - pattern: query
+            - pattern: cookies
+            - pattern: headers
+            - pattern: body
+  pattern-sinks:
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                $MYSQL = require('$IMPORT')
+                ...
+            - pattern-inside: |
+                $MYSQL = require('$IMPORT').$FUNC(...)
+                ...
+            - pattern-inside: |
+                import $MYSQL from '$IMPORT'
+                ...
+            - pattern-inside: |
+                import { ..., $MYSQL, ... } from '$IMPORT'
+                ...
+            - pattern-inside: |
+                import $MYSQL,{ ... } from '$IMPORT'
+                ...
+            - pattern-inside: |
+                import * as $MYSQL from '$IMPORT'
+                ...
+        - metavariable-regex:
+            metavariable: $IMPORT
+            regex: ^(mysql|mysql2)
+        - pattern-either:
+            - patterns:
+                - pattern-either:
+                    - pattern-inside: |
+                        $CONN = $MYSQL. ...
+                        ...
+                    - pattern-inside: |
+                        $CONN = await $MYSQL. ...
+                        ...
+                    - patterns: 
+                      - pattern-inside: |
+                          $POOL = $MYSQL. ...
+                          ...
+                      - pattern-inside: |
+                          $CONN = $POOL. ...
+                          ...
+                    - patterns: 
+                      - pattern-inside: |
+                          $POOL = await $MYSQL. ...
+                          ...
+                      - pattern-inside: |
+                          $CONN = await $POOL. ...
+                          ...
+                - pattern: |
+                    $CONN. ... .$QUERY($SINK, ...)
+            - pattern: |
+                $MYSQL. ... .$QUERY($SINK, ...)
+            - patterns:
+                - pattern-inside: |
+                    $CONN.getConnection(function(..., $F,...) {
+                      ...
+                    })
+                - pattern: $F.$QUERY($SINK,...)
+        - pattern-not: $X. ... .$QUERY({...,sql:'...',...},...)
+        - pattern-not: $X. ... .$QUERY('...',...)
+        - metavariable-regex:
+            metavariable: $QUERY
+            regex: ^(query|execute)$
+        - focus-metavariable: $SINK
+  pattern-sanitizers:
+    - patterns:
+        - pattern-either:
+            - pattern: parseInt(...)
+            - pattern: Number.parseInt(...)
+            - pattern: $MYSQL. ... .escape(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                $ESCAPE = require('$IMPORT'). ... .escape
+                ...
+        - metavariable-regex:
+            metavariable: $IMPORT
+            regex: ^(mysql|mysql2)
+        - pattern-either:
+            - pattern: $ESCAPE(...)
+            - pattern: $ESCAPE.apply(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                import { ...,$ESCAPE, ... } from 'mysql2'
+                ...
+        - metavariable-pattern: 
+            metavariable: $ESCAPE
+            patterns: 
+              - pattern-either:
+                  - pattern: escape(...)
+                  - pattern: escape.apply(...)
+                  - pattern: escapeId(...)
+    - patterns:
+        - pattern: $THIS. ... .$HASH(...)
+        - metavariable-regex:
+            metavariable: $HASH
+            regex: (hash|md5|sha1|sha256)
+- id: express-mongo-nosqli
+  message: >-
+    Detected a `$IMPORT` statement that comes from a `$REQ` argument.  This
+    could lead to NoSQL injection if the variable is user-controlled and is
+    not properly sanitized. Be sure to properly sanitize the data if you
+    absolutely must pass request data into a mongo query.
+  severity: ERROR
+  metadata:
+    # We will want to remove this rule for a deepsemgrep rule soon due to hack below
+    interfile: true # DELETEME
+    likelihood: HIGH
+    impact: HIGH
+    confidence: MEDIUM
+    category: security
+    cwe:
+      - "CWE-943: Improper Neutralization of Special Elements in Data Query
+        Logic"
+    owasp:
+      - A01:2017 - Injection
+    references:
+      - https://owasp.org/www-pdf-archive/GOD16-NOSQL.pdf
+    subcategory:
+      - vuln
+    technology:
+      - express
+      - nodejs
+      - mongodb
+  languages:
+    - javascript
+    - typescript
+  options:
+    interfile: true
+  mode: taint
+  pattern-sources:
+    - patterns:
+        - pattern-either:
+            - pattern-inside: function ... (...,$REQ, ...) {...}
+        - pattern-either:
+            - pattern: $REQ.query
+            - pattern: $REQ.body
+            - pattern: $REQ.params
+            - pattern: $REQ.cookies
+            - pattern: $REQ.headers
+    - patterns:
+        - pattern-either:
+            - pattern-inside: >
+                (...,{ $REQ }: Request,...) =>
+                {...}
+            - pattern-inside: |
+                (...,{ $REQ }: $EXPRESS.Request,...) => {...}
+        - focus-metavariable: $REQ
+        - pattern-either:
+            - pattern: params
+            - pattern: query
+            - pattern: cookies
+            - pattern: headers
+            - pattern: body
+  pattern-sinks:
+    - patterns:
+        - pattern-either:
+            - patterns:
+                - pattern-either:
+                    - pattern-inside: |
+                        $DB = require('$IMPORT')
+                        ...
+                    - pattern-inside: |
+                        import { ...,$DB,... } from '$IMPORT'
+                        ...
+                    - pattern-inside: |
+                        import * as $DB from '$IMPORT'
+                        ...
+                    - pattern-inside: |
+                        import $DB from '$IMPORT'
+                        ...
+                - metavariable-regex:
+                    metavariable: $IMPORT
+                    # This should only be mongoose|mongodb|mongojs for deepsemgrep
+                    regex: .*(mongoose|mongodb|database|collection)
+            - patterns:
+                - pattern-either:
+                    - pattern-inside: |
+                        $I = require('$IMPORT')
+                        ...
+                    - pattern-inside: |
+                        import { ...,$I,... } from '$IMPORT'
+                        ...
+                    - pattern-inside: |
+                        import * as $I from '$IMPORT'
+                        ...
+                    - pattern-inside: |
+                        import $I from '$IMPORT'
+                        ...
+                - metavariable-regex:
+                    metavariable: $IMPORT
+                    regex: ^(mongoose|mongodb|mongojs)
+            # this should be indented, but because we will lose so many findings in OSS Semgrep i will keep not indented
+            - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      $I.connect(..., function(...,$DB,...){
+                          ...
+                      })
+                  - pattern-inside: |
+                      $DB = $I.connect(...)
+                      ...
+        - pattern-not-inside: |
+            $APP.use(mongoSanitize())
+        - pattern-either:
+            - pattern-inside: $DB. ... .$M($VALUE,...)
+        - metavariable-regex:
+            metavariable: $M
+            regex: (deleteMany|deleteOne|find|findById|findByIdAndDelete|findByIdAndRemove|findByIdAndUpdate|findOne|updateOne|findOneAndDelete|findOneAndRemove|findOneAndReplace|findOneAndUpdate|replaceOne|updateMany|update)
+        - focus-metavariable: $VALUE
+  pattern-sanitizers:
+    - patterns:
+        - pattern-inside: |
+            $EMS = require('express-mongo-sanitize')
+            ...
+        - pattern: $EMS.sanitize(...)
+    - patterns:
+        - pattern-inside: |
+            $MS = require('mongo-sanitize')
+            ...
+        - pattern: $MS.sanitize(...)
+    - patterns: 
+      - pattern-inside: |
+          $OBJ = require('...'). ... .ObjectId
+          ...
+      - pattern: $OBJ(...)
+    - patterns: 
+      - pattern-inside: |
+          $OBJ = require('...'). ... .isValid
+          ...
+      - pattern: $OBJ(...)
+    - patterns:
+        - pattern-either:
+            - pattern: String(...)
+            - pattern: $VALUE. ... .toString()
+            - pattern: parseInt(...)
+            - pattern: Number.parseInt(...)
+            - pattern: $TYPE. ... .isValid(...)
+            - pattern: $TYPE. ... .ObjectId(...)
+            - pattern: $TYPE. ... .ObjectID(...)
+            - pattern: ObjectID(...)
+            - pattern: ObjectId(...)
+            - pattern: new $TYPE. ... .isValid(...)
+            - pattern: new $TYPE. ... .ObjectId(...)
+            - pattern: new $TYPE. ... .ObjectID(...)
+            - pattern: new ObjectId(...)
+            - pattern: new ObjectID(...)
+    - patterns:
+        - pattern: $THIS. ... .$HASH(...)
+        - metavariable-regex:
+            metavariable: $HASH
+            regex: (hash|md5|sha1|sha256)   
+- id: symmetric-hardcoded-key
+  message: >-
+    A hard-coded credential was detected. It is not recommended to store
+    credentials in source-code, as this risks secrets being leaked and used by
+    either an internal or external malicious adversary. It is recommended to
+    use environment variables to securely provide credentials or retrieve
+    credentials from a secure vault or HSM (Hardware Security Module).
+  severity: WARNING
+  metadata:
+    interfile: true # DELETEME
+    likelihood: HIGH
+    impact: MEDIUM
+    confidence: HIGH
+    category: security
+    cwe:
+      - "CWE-798: Use of Hard-coded Credentials"
+    cwe2021-top25: true
+    cwe2022-top25: true
+    owasp:
+      - A07:2021 - Identification and Authentication Failures
+    references:
+      - https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_CheatSheet.html
+    subcategory:
+      - vuln
+    technology:
+      - secrets
+      - headers
+      - github
+  languages:
+  - javascript
+  - typescript
+  options:
+    interfile: true
+    symbolic_propagation: true
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern-either:
+        - pattern-inside: |
+            $CRYPTO = require('crypto')
+            ...
+        - pattern-inside: |
+            $CRYPTO = require('crypto').$METHOD
+            ...
+        - pattern-inside: |
+            import $CRYPTO from 'crypto'
+            ...
+        - pattern-inside: |
+            import * as $CRYPTO from 'crypto'
+            ...
+      - pattern-either:
+        - pattern: $CRYPTO.$METHOD($ALGO,"$PASS",...)
+        - pattern: $CRYPTO($ALGO,"$PASS",...)
+    - pattern: crypto. ... .$METHOD($ALGO,"$PASS",...)
+  - focus-metavariable: $PASS
+  - metavariable-regex:
+      metavariable: $METHOD
+      regex: ^(createCipheriv|createCipher|createDecipher|createDecipheriv)$
+  - pattern: |
+      "..."
+  - pattern-not: |
+      ""
+- id: xss
+  message: >-
+      Detected the use of a Document/Location property that enters a 
+      dangerous web API. This can introduce a Cross-Site-Scripting (XSS) 
+      vulnerability if this comes from user-provided input. If you 
+      have to use a dangerous web API, consider using a sanitization 
+      library such as DOMPurify to sanitize the HTML before it is assigned.
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  metadata:
+      interfile: true # DELETEME
+      likelihood: HIGH
+      impact: MEDIUM
+      confidence: HIGH
+      category: security
+      cwe:
+      - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      cwe2021-top25: true
+      cwe2022-top25: true
+      owasp:
+      - A07:2017 - Cross-Site Scripting (XSS)
+      - A03:2021 - Injection
+      references:
+      - https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+      subcategory:
+      - vuln
+      technology:
+      - browser
+  options:
+    interfile: true
+  mode: taint
+  pattern-sources:
+    - label: TAINTED
+      patterns:
+      - pattern-either:
+          - pattern: $THIS. ... .location.hash.slice(1)
+          - pattern: location.hash.slice(1)
+          - pattern: |
+              $THIS. ... .location.hash.split("#")[1]
+          - pattern: |
+              location.hash.split("#")[1]
+          - pattern: |
+              $THIS. ... .location.search.split("=")[1]
+          - pattern: |
+              location.search.split("=")[1]
+          - pattern: |
+              $THIS. ... .location.href.split("=")[1]
+          - pattern: |
+              location.href.split("=")[1]
+  pattern-sinks:
+    - requires: TAINTED
+      patterns:
+        - pattern-either:
+            - pattern: $ELEMENT. ... .innerHTML = $X
+            - pattern: $ELEMENT. ... .outerHTML = $X
+            - pattern: document.write($X)
+            - pattern: $THIS. ... .document.write($X)
+            - pattern: document.writeln($X)
+            - pattern: $THIS. ... .document.writeln($X)
+            - pattern: $THIS. ... .insertAdjacentHTML(...,$X)
+        - focus-metavariable: $X
+  pattern-sanitizers:
+    - patterns:
+        - pattern-either:
+            - pattern: parseInt(...)
+            - pattern: Number.parseInt(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                import $S from "underscore.string"
+                ...
+            - pattern-inside: |
+                import * as $S from "underscore.string"
+                ...
+            - pattern-inside: |
+                import $S from "underscore.string"
+                ...
+            - pattern-inside: |
+                $S = require("underscore.string")
+                ...
+        - pattern: $S.escapeHTML(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                import $S from "dompurify"
+                ...
+            - pattern-inside: |
+                import { ..., $S,... } from "dompurify"
+                ...
+            - pattern-inside: |
+                import * as $S from "dompurify"
+                ...
+            - pattern-inside: |
+                $S = require("dompurify")
+                ...
+            - pattern-inside: |
+                import $S from "isomorphic-dompurify"
+                ...
+            - pattern-inside: |
+                import * as $S from "isomorphic-dompurify"
+                ...
+            - pattern-inside: |
+                $S = require("isomorphic-dompurify")
+                ...
+        - pattern-either:
+            - patterns:
+                - pattern-inside: |
+                    $VALUE = $S(...)
+                    ...
+                - pattern: $VALUE.sanitize(...)
+            - patterns:
+                - pattern-inside: |
+                    $VALUE = $S.sanitize
+                    ...
+                - pattern: $S(...)
+            - pattern: $S.sanitize(...)
+            - pattern: $S(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                import $S from 'xss';
+                ...
+            - pattern-inside: |
+                import * as $S from 'xss';
+                ...
+            - pattern-inside: |
+                $S = require("xss")
+                ...
+        - pattern: $S(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                import $S from 'sanitize-html';
+                ...
+            - pattern-inside: |
+                import * as $S from "sanitize-html";
+                ...
+            - pattern-inside: |
+                $S = require("sanitize-html")
+                ...
+        - pattern: $S(...)
+    - patterns:
+        - pattern-either:
+            - pattern-inside: |
+                $S = new Remarkable()
+                ...
+        - pattern: $S.render(...)
+- id: httpclient-taint
+  message: Untrusted input might be used to build an HTTP request, which can lead
+    to a Server-side request forgery (SSRF) vulnerability. SSRF allows an
+    attacker to send crafted requests from the server side to other internal
+    or external systems. SSRF can lead to unauthorized access to sensitive
+    data and, in some cases, allow the attacker to control applications or
+    systems that trust the vulnerable service. To prevent this vulnerability,
+    avoid allowing user input to craft the base request. Instead, treat it as
+    part of the path or query parameter and encode it appropriately. When user
+    input is necessary to prepare the HTTP request, perform strict input
+    validation. Additionally, whenever possible, use allowlists to only
+    interact with expected, trusted domains.
+  severity: ERROR
+  metadata:
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+    category: security
+    subcategory:
+      - vuln
+    cwe:
+      - "CWE-918: Server-Side Request Forgery (SSRF)"
+    cwe2021-top25: true
+    cwe2022-top25: true
+    functional-categories:
+      - net::sink::http-request
+      - web::source::header::ASP.NET
+      - web::source::http-body::ASP.NET
+      - web::source::http-params::ASP.NET
+      - web::source::url-path-params::ASP.NET
+    owasp:
+      - A10:2021 - Server-Side Request Forgery (SSRF)
+    references:
+      - https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29
+    technology:
+      - .NET
+      - api
+      - csharp
+      - dotnet
+      - http
+      - httpclient
+      - mvc
+    license: Copyright 2023 Semgrep, Inc.
+    vulnerability_class:
+      - Server-Side Request Forgery (SSRF)
+  languages:
+    - csharp
+  mode: taint
+  options:
+    interfile: true
+  pattern-sources:
+    - label: REQ
+      pattern-either:
+        - patterns:
+            - pattern-inside: |
+                using Microsoft.AspNetCore.Mvc;
+                ...
+            - pattern: |
+                public $TYPE $NAME(..., $X $VAR,...) {
+                  ...
+                }
+            - pattern-not: |
+                [NonAction]
+                public $TYPE $NAME(..., $X $VAR,...) {
+                  ...
+                }
+            - pattern-not: |
+                public $TYPE $NAME(..., [FromServices] $X $VAR, ...){
+                  ...
+                }
+            - focus-metavariable: $VAR
+            - metavariable-pattern:
+                metavariable: $X
+                patterns:
+                  - pattern-not-regex: (int|long|float|double|bool|Guid)
+            - pattern-either:
+                - patterns:
+                    - pattern-either:
+                        - pattern-inside: |
+                            class $CN : Controller {...}
+                        - pattern-inside: |
+                            class $CN : ControllerBase {...}
+                    - pattern-not-inside: |
+                        [NonController]
+                        class $CN : $T {...}
+                - patterns:
+                    - pattern-inside: class $CN {...}
+                    - pattern-not-inside: |
+                        [NonController]
+                        class $CN {...}
+                    - metavariable-regex:
+                        metavariable: $CN
+                        regex: .*Controller
+                - pattern-inside: |
+                    [Controller]
+                    class $CN {...}
+                - pattern-inside: |
+                    [ApiController]
+                    class $CN {...}
+        - patterns:
+            - pattern-inside: |
+                using Microsoft.AspNetCore.Mvc;
+                ...
+            - focus-metavariable: $VAR
+            - pattern-either:
+                - pattern-inside: $TYPE $NAME(..., [FromBody] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromForm] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromHeader] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromQuery] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromRoute] $T $VAR, ...) { ... }
+                - pattern-inside: (..., [FromBody] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromForm] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromHeader] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromQuery] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromRoute] $T $VAR, ...) => { ... }
+        - patterns:
+            - pattern-either:
+                - pattern: HttpContext.Request.Query
+                - pattern: HttpContext.Request.QueryString
+                - pattern: HttpContext.Request.Headers
+                - pattern: HttpContext.Request.RouteValues
+                - pattern: HttpContext.Request.Body
+                - pattern: HttpContext.Request.BodyReader
+                - pattern: HttpContext.Request.Form
+                - pattern: $X.HttpContext.Request.Query
+                - pattern: $X.HttpContext.Request.QueryString
+                - pattern: $X.HttpContext.Request.Headers
+                - pattern: $X.HttpContext.Request.RouteValues
+                - pattern: $X.HttpContext.Request.Body
+                - pattern: $X.HttpContext.Request.BodyReader
+                - pattern: $X.HttpContext.Request.Form
+                - pattern: (HttpContext $C).Request.Query
+                - pattern: (HttpContext $C).Request.QueryString
+                - pattern: (HttpContext $C).Request.Headers
+                - pattern: (HttpContext $C).Request.RouteValues
+                - pattern: (HttpContext $C).Request.Body
+                - pattern: (HttpContext $C).Request.BodyReader
+                - pattern: (HttpContext $C).Request.Form
+                - pattern: (HttpRequest $R).Query
+                - pattern: (HttpRequest $R).QueryString
+                - pattern: (HttpRequest $R).Headers
+                - pattern: (HttpRequest $R).RouteValues
+                - pattern: (HttpRequest $R).Body
+                - pattern: (HttpRequest $R).BodyReader
+                - pattern: (HttpRequest $R).Form
+    - label: NOT_HTTP
+      patterns:
+        - focus-metavariable: $X
+        - pattern-either:
+            - pattern: $F + $X
+            - pattern: $"...{$X}..."
+            - pattern: String.Format(..., $X, ...)
+            - pattern: string.Format(..., $X, ...)
+        - pattern-not: $X + $F
+        - pattern-not: |
+            "http://" + $X
+        - pattern-not: |
+            "https://" + $X
+        - pattern-not: |
+            "//" + $X
+        - pattern-not: $"{$X}..."
+        - pattern-not: $"http://{$X}..."
+        - pattern-not: $"https://{$X}..."
+        - pattern-not: $"//{$X}..."
+      requires: REQ
+  pattern-propagators:
+    - from: $FROM
+      patterns:
+        - patterns:
+            - pattern-either:
+                - pattern: (StringBuilder $TO).Append(..., $FROM,...)
+                - pattern: (StringBuilder $TO).AppendLine(..., $FROM,...)
+                - pattern: (StringBuilder $TO).AppendFormat(..., $FROM,...)
+                - pattern: (StringBuilder $TO).AppendJoin(..., $FROM,...)
+                - pattern: (StringBuilder $TO).Replace(..., $FROM,...)
+                - pattern: (StringBuilder $TO).Insert(..., $FROM,...)
+                - patterns:
+                    - pattern-either:
+                        - pattern: $TO.Append(..., $FROM,...)
+                        - pattern: $TO.AppendLine(..., $FROM,...)
+                        - pattern: $TO.AppendFormat(..., $FROM,...)
+                        - pattern: $TO.AppendJoin(..., $FROM,...)
+                        - pattern: $TO.Replace(..., $FROM,...)
+                        - pattern: $TO.Insert(..., $FROM,...)
+                    - pattern-either:
+                        - pattern-inside: |
+                            var $TO = new StringBuilder(...);
+                            ...
+                        - pattern-inside: |
+                            $TO = new StringBuilder(...);
+                            ...
+      to: $TO
+  pattern-sinks:
+    - patterns:
+        - focus-metavariable: $URL
+        - pattern-inside: |
+            using System.Net.Http;
+            ...
+        - pattern-either:
+            - pattern: (HttpClient $C).GetAsync($URL, ...)
+            - pattern: (HttpClient $C).GetByteArrayAsync($URL, ...)
+            - pattern: (HttpClient $C).GetStreamAsync($URL, ...)
+            - pattern: (HttpClient $C).GetStringAsync($URL, ...)
+            - pattern: (HttpClient $C).PatchAsync($URL, ...)
+            - pattern: (HttpClient $C).PostAsync($URL, ...)
+            - pattern: (HttpClient $C).PutAsync($URL, ...)
+            - pattern: new Uri($URL, ...)
+            - pattern: new HttpRequestMessage($X, $URL, ...)
+      requires: REQ and not NOT_HTTP
+- id: mongodb-taint
+  message: Untrusted input might be used to build a database query, which can lead
+    to a NoSQL injection vulnerability. An attacker can execute malicious
+    NoSQL statements and gain unauthorized access to sensitive data, modify,
+    delete data, or execute arbitrary system commands. Make sure all user
+    input is validated and sanitized, and avoid using tainted user input to
+    construct NoSQL statements if possible. Ideally, avoid raw queries and
+    instead use parameterized queries.
+  severity: ERROR
+  metadata:
+    likelihood: HIGH
+    impact: HIGH
+    confidence: HIGH
+    category: security
+    subcategory:
+      - vuln
+    cwe:
+      - "CWE-943: Improper Neutralization of Special Elements in Data Query
+        Logic"
+    functional-categories:
+      - db::sink::sql-or-nosql-query
+      - web::source::header::ASP.NET
+      - web::source::http-body::ASP.NET
+      - web::source::http-params::ASP.NET
+      - web::source::url-path-params::ASP.NET
+    owasp:
+      - A01:2017 - Injection
+    references:
+      - https://owasp.org/Top10/A03_2021-Injection
+    technology:
+      - .NET
+      - api
+      - csharp
+      - dotnet
+      - ef
+      - entity
+      - entity framework
+      - mvc
+      - sql
+    license: Copyright 2023 Semgrep, Inc.
+    vulnerability_class:
+      - Improper Validation
+  languages:
+    - csharp
+  mode: taint
+  options:
+    interfile: true
+  pattern-sources:
+    - label: REQ
+      pattern-either:
+        - patterns:
+            - pattern-inside: |
+                using Microsoft.AspNetCore.Mvc;
+                ...
+            - pattern: |
+                public $TYPE $NAME(..., $X $VAR,...) {
+                  ...
+                }
+            - pattern-not: |
+                [NonAction]
+                public $TYPE $NAME(..., $X $VAR,...) {
+                  ...
+                }
+            - pattern-not: |
+                public $TYPE $NAME(..., [FromServices] $X $VAR, ...){
+                  ...
+                }
+            - focus-metavariable: $VAR
+            - metavariable-pattern:
+                metavariable: $X
+                patterns:
+                  - pattern-not-regex: (int|long|float|double|bool|Guid)
+            - pattern-either:
+                - patterns:
+                    - pattern-either:
+                        - pattern-inside: |
+                            class $CN : Controller {...}
+                        - pattern-inside: |
+                            class $CN : ControllerBase {...}
+                    - pattern-not-inside: |
+                        [NonController]
+                        class $CN : $T {...}
+                - patterns:
+                    - pattern-inside: class $CN {...}
+                    - pattern-not-inside: |
+                        [NonController]
+                        class $CN {...}
+                    - metavariable-regex:
+                        metavariable: $CN
+                        regex: .*Controller
+                - pattern-inside: |
+                    [Controller]
+                    class $CN {...}
+                - pattern-inside: |
+                    [ApiController]
+                    class $CN {...}
+        - patterns:
+            - pattern-inside: |
+                using Microsoft.AspNetCore.Mvc;
+                ...
+            - focus-metavariable: $VAR
+            - pattern-either:
+                - pattern-inside: $TYPE $NAME(..., [FromBody] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromForm] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromHeader] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromQuery] $T $VAR, ...) { ... }
+                - pattern-inside: $TYPE $NAME(..., [FromRoute] $T $VAR, ...) { ... }
+                - pattern-inside: (..., [FromBody] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromForm] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromHeader] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromQuery] $T $VAR, ...) => { ... }
+                - pattern-inside: (..., [FromRoute] $T $VAR, ...) => { ... }
+        - patterns:
+            - pattern-either:
+                - pattern: HttpContext.Request.Query
+                - pattern: HttpContext.Request.QueryString
+                - pattern: HttpContext.Request.Headers
+                - pattern: HttpContext.Request.RouteValues
+                - pattern: HttpContext.Request.Body
+                - pattern: HttpContext.Request.BodyReader
+                - pattern: HttpContext.Request.Form
+                - pattern: $X.HttpContext.Request.Query
+                - pattern: $X.HttpContext.Request.QueryString
+                - pattern: $X.HttpContext.Request.Headers
+                - pattern: $X.HttpContext.Request.RouteValues
+                - pattern: $X.HttpContext.Request.Body
+                - pattern: $X.HttpContext.Request.BodyReader
+                - pattern: $X.HttpContext.Request.Form
+                - pattern: (HttpContext $C).Request.Query
+                - pattern: (HttpContext $C).Request.QueryString
+                - pattern: (HttpContext $C).Request.Headers
+                - pattern: (HttpContext $C).Request.RouteValues
+                - pattern: (HttpContext $C).Request.Body
+                - pattern: (HttpContext $C).Request.BodyReader
+                - pattern: (HttpContext $C).Request.Form
+                - pattern: (HttpRequest $R).Query
+                - pattern: (HttpRequest $R).QueryString
+                - pattern: (HttpRequest $R).Headers
+                - pattern: (HttpRequest $R).RouteValues
+                - pattern: (HttpRequest $R).Body
+                - pattern: (HttpRequest $R).BodyReader
+                - pattern: (HttpRequest $R).Form
+    - label: CONCAT
+      patterns:
+        - pattern-either:
+            - pattern: |
+                "..." + ...
+            - pattern: ... + "..."
+            - pattern: $"..."
+            - pattern: String.Format(...)
+            - pattern: string.Format(...)
+            - pattern: String.Concat(...)
+            - pattern: string.Concat(...)
+            - pattern: String.Concat<$T>(...)
+            - pattern: string.Concat<$T>(...)
+            - pattern: String.Join(...)
+            - pattern: string.Join(...)
+            - pattern: String.Join<$T>(...)
+            - pattern: string.Join<$T>(...)
+            - pattern: new String(...)
+            - pattern: new string(...)
+            - pattern: new StringBuilder(...)
+            - pattern: (StringBuilder $S).Append(...)
+            - pattern: (StringBuilder $S).AppendLine(...)
+            - pattern: (StringBuilder $S).AppendFormat(...)
+            - pattern: (StringBuilder $S).AppendJoin(...)
+            - pattern: (StringBuilder $S).Replace(...)
+            - pattern: (StringBuilder $S).Insert(...)
+            - patterns:
+                - pattern-either:
+                    - pattern: $S.Append(...)
+                    - pattern: $S.AppendLine(...)
+                    - pattern: $S.AppendFormat(...)
+                    - pattern: $S.AppendJoin(...)
+                    - pattern: $S.Replace(...)
+                    - pattern: $S.Insert(...)
+                - pattern-either:
+                    - pattern-inside: |
+                        var $S = new StringBuilder(...);
+                        ...
+                    - pattern-inside: |
+                        $S = new StringBuilder(...);
+                        ...
+      requires: REQ
+  pattern-propagators:
+    - from: $FROM
+      patterns:
+        - patterns:
+            - pattern-either:
+                - pattern: (StringBuilder $TO).Append(..., $FROM,...)
+                - pattern: (StringBuilder $TO).AppendLine(..., $FROM,...)
+                - pattern: (StringBuilder $TO).AppendFormat(..., $FROM,...)
+                - pattern: (StringBuilder $TO).AppendJoin(..., $FROM,...)
+                - pattern: (StringBuilder $TO).Replace(..., $FROM,...)
+                - pattern: (StringBuilder $TO).Insert(..., $FROM,...)
+                - patterns:
+                    - pattern-either:
+                        - pattern: $TO.Append(..., $FROM,...)
+                        - pattern: $TO.AppendLine(..., $FROM,...)
+                        - pattern: $TO.AppendFormat(..., $FROM,...)
+                        - pattern: $TO.AppendJoin(..., $FROM,...)
+                        - pattern: $TO.Replace(..., $FROM,...)
+                        - pattern: $TO.Insert(..., $FROM,...)
+                    - pattern-either:
+                        - pattern-inside: |
+                            var $TO = new StringBuilder(...);
+                            ...
+                        - pattern-inside: |
+                            $TO = new StringBuilder(...);
+                            ...
+      to: $TO
+  pattern-sinks:
+    - patterns:
+        - focus-metavariable: $FILTER
+        - pattern-either:
+            - patterns:
+                - pattern-inside: |
+                    using MongoDB.Driver;
+                    ...
+                - metavariable-regex:
+                    metavariable: $METHOD
+                    regex: (Find|FindSync|FindOneAndDelete|FindOneAndReplace|FindOneAndUpdate|Distinct|ReplaceOne|UpdateMany|UpdateOne)(Async)?$
+                - pattern-either:
+                    - pattern: (IMongoCollection<$TYPE> $COL).$METHOD($FILTER, ...)
+                    - pattern: (IMongoCollection<$TYPE> $COL).$METHOD<$T>($FILTER, ...)
+                    - pattern: (IMongoCollection<$TYPE> $COL).$METHOD($X, $FILTER,...)
+                    - pattern: (IMongoCollection<$TYPE> $COL).$METHOD<$T>($X, $FILTER,...)
+                    - pattern: (IMongoCollection<$TYPE> $COL).$METHOD($X, $Z, $FILTER,...)
+                    - pattern: (IMongoCollection<$TYPE> $COL).$METHOD<$T>($X, $Z, $FILTER,...)
+            - patterns:
+                - pattern-either:
+                    - pattern-inside: |
+                        $COL = $DB.GetCollection(...);
+                        ...
+                    - pattern-inside: |
+                        $COL = $DB.GetCollection<$CT>(...);
+                        ...
+                    - pattern-inside: |
+                        var $COL = $DB.GetCollection(...);
+                        ...
+                    - pattern-inside: |
+                        var $COL = $DB.GetCollection<$CT>(...);
+                        ...
+                    - pattern-inside: |
+                        $ITYPE $COL = $DB.GetCollection(...);
+                        ...
+                    - pattern-inside: |
+                        $ITYPE $COL = $DB.GetCollection<$CT>(...);
+                        ...
+                - metavariable-regex:
+                    metavariable: $METHOD
+                    regex: (Find|FindSync|FindOneAndDelete|FindOneAndReplace|FindOneAndUpdate|Distinct|ReplaceOne|UpdateMany|UpdateOne)(Async)?$
+                - pattern-either:
+                    - pattern: $COL.$METHOD($FILTER, ...)
+                    - pattern: $COL.$METHOD<$T>($FILTER, ...)
+                    - pattern: $COL.$METHOD($X, $FILTER,...)
+                    - pattern: $COL.$METHOD<$T>($X, $FILTER,...)
+                    - pattern: $COL.$METHOD($X, $Z, $FILTER,...)
+                    - pattern: $COL.$METHOD<$T>($X, $Z, $FILTER,...)
+            - patterns:
+                - pattern-inside: |
+                    using MongoDB.Driver;
+                    ...
+                - pattern: FilterDefinition<$TYPE> $FD = $FILTER;
+            - patterns:
+                - pattern-inside: |
+                    using MongoDB.Bson;
+                    ...
+                - pattern: BsonDocument.Create($FILTER,...)
+      requires: CONCAT
+  pattern-sanitizers:
+    - patterns:
+        - pattern: Convert.$METHOD(...)
+        - metavariable-regex:
+            metavariable: $METHOD
+            regex: (ToBase64CharArray|ToBase64String|ToBoolean|ToDateTime|ToDecimal|ToDouble|ToInt16|ToInt32|ToInt64|ToSByte|ToSingle|ToUInt16|ToUInt32|ToUInt64)
+    - patterns:
+        - pattern-either:
+            - pattern: $INT.Parse(...)
+            - pattern: $INT.TryParse(...)
+            - pattern: $INT.TryParseExact(...)
+        - metavariable-regex:
+            metavariable: $INT
+            regex: (Int32|Int128|Int16|Int64|IntPtr|Boolean|Decimal|Double|Guid|DateTime|Single|SByte|UInt128|UInt16|UInt32|UInt64|UIntPtr)
+    - patterns:
+        - pattern-either:
+            - pattern: (int $NUM)
+            - pattern: (long $NUM)
+            - pattern: (float $NUM)
+            - pattern: (double $NUM)
+            - pattern: (bool $NUM)
+            - pattern: (Guid $NUM)
+            - pattern: var $X = (int) ...;
+            - pattern: var $X = (long) ...;
+            - pattern: var $X = (float) ...;
+            - pattern: var $X = (double) ...;
+            - pattern: var $X = (bool) ...;
+            - pattern: var $X = (Guid) ...;
