@@ -1,0 +1,2113 @@
+[
+  {
+    "name": "semgrep.bench.TSW_PROJECT",
+    "findings": {
+      "errors": [],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.TSW_PROJECT.formatted-sql-string",
+          "end": {
+            "col": 93,
+            "line": 48,
+            "offset": 1130
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/TSW_PROJECT/input/TSW_PROJECT.git/eclipse-workspace/games_basement/src/main/java/implementation/UserImpl.java",
+          "start": {
+            "col": 17,
+            "line": 48,
+            "offset": 1054
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.TSW_PROJECT.formatted-sql-string",
+          "end": {
+            "col": 135,
+            "line": 70,
+            "offset": 1747
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/TSW_PROJECT/input/TSW_PROJECT.git/eclipse-workspace/games_basement/src/main/java/implementation/UserImpl.java",
+          "start": {
+            "col": 4,
+            "line": 70,
+            "offset": 1616
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.TSW_PROJECT.formatted-sql-string",
+          "end": {
+            "col": 123,
+            "line": 56,
+            "offset": 1600
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/TSW_PROJECT/input/TSW_PROJECT.git/eclipse-workspace/games_basement/src/main/java/implementation/DatiAnagrificiImpl.java",
+          "start": {
+            "col": 4,
+            "line": 55,
+            "offset": 1376
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.IUTRS-TP-Bot",
+    "findings": {
+      "errors": [],
+      "results": []
+    }
+  },
+  {
+    "name": "semgrep.bench.blaze-persistence",
+    "findings": {
+      "errors": [
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/spring-boot-sample/src/main/resources/archetype-resources/src/main/java/Application.java:17:\n `package` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/spring-boot-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+          "spans": [
+            {
+              "end": {
+                "col": 18,
+                "line": 17,
+                "offset": 7
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/spring-boot-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+              "start": {
+                "col": 11,
+                "line": 17,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 18,
+                  "line": 17,
+                  "offset": 7
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/spring-boot-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+                "start": {
+                  "col": 11,
+                  "line": 17,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/java-ee-sample/src/main/resources/archetype-resources/src/main/java/Application.java:17:\n `package` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/java-ee-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+          "spans": [
+            {
+              "end": {
+                "col": 18,
+                "line": 17,
+                "offset": 7
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/java-ee-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+              "start": {
+                "col": 11,
+                "line": 17,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 18,
+                  "line": 17,
+                  "offset": 7
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/java-ee-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+                "start": {
+                  "col": 11,
+                  "line": 17,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/deltaspike-data-sample/src/main/resources/archetype-resources/src/main/java/Application.java:17:\n `package` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/deltaspike-data-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+          "spans": [
+            {
+              "end": {
+                "col": 18,
+                "line": 17,
+                "offset": 7
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/deltaspike-data-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+              "start": {
+                "col": 11,
+                "line": 17,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 18,
+                  "line": 17,
+                  "offset": 7
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/blaze-persistence/input/blaze-persistence.git/archetype/deltaspike-data-sample/src/main/resources/archetype-resources/src/main/java/Application.java",
+                "start": {
+                  "col": 11,
+                  "line": 17,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        }
+      ],
+      "results": []
+    }
+  },
+  {
+    "name": "semgrep.bench.simple-mvc-app",
+    "findings": {
+      "errors": [],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.simple-mvc-app.tainted-sql-string",
+          "end": {
+            "col": 77,
+            "line": 66,
+            "offset": 2071
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/simple-mvc-app/input/simple-mvc-app.git/src/main/java/ru/mcs/mvc/app/dao/PersonDAO.java",
+          "start": {
+            "col": 26,
+            "line": 65,
+            "offset": 1933
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.simple-mvc-app.formatted-sql-string",
+          "end": {
+            "col": 41,
+            "line": 67,
+            "offset": 2113
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/simple-mvc-app/input/simple-mvc-app.git/src/main/java/ru/mcs/mvc/app/dao/PersonDAO.java",
+          "start": {
+            "col": 13,
+            "line": 67,
+            "offset": 2085
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.Hospital-System",
+    "findings": {
+      "errors": [],
+      "results": []
+    }
+  },
+  {
+    "name": "semgrep.bench.aws-doc-sdk-examples",
+    "findings": {
+      "errors": [
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SNS/Sns_Samples.cs:26:\n `/*\n\nusing System` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SNS/Sns_Samples.cs",
+          "spans": [
+            {
+              "end": {
+                "col": 13,
+                "line": 28,
+                "offset": 16
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SNS/Sns_Samples.cs",
+              "start": {
+                "col": 1,
+                "line": 26,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 13,
+                  "line": 28,
+                  "offset": 16
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SNS/Sns_Samples.cs",
+                "start": {
+                  "col": 1,
+                  "line": 26,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/cloudtrail/cloudtrail.java.log-and-digest-file-validation.java:81:\n `)` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/cloudtrail/cloudtrail.java.log-and-digest-file-validation.java",
+          "spans": [
+            {
+              "end": {
+                "col": 100,
+                "line": 81,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/cloudtrail/cloudtrail.java.log-and-digest-file-validation.java",
+              "start": {
+                "col": 99,
+                "line": 81,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 100,
+                  "line": 81,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/cloudtrail/cloudtrail.java.log-and-digest-file-validation.java",
+                "start": {
+                  "col": 99,
+                  "line": 81,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SecretsManager/GetSecretValue/GetSecretValue.cs:26:\n ``` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SecretsManager/GetSecretValue/GetSecretValue.cs",
+          "spans": [
+            {
+              "end": {
+                "col": 2,
+                "line": 26,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SecretsManager/GetSecretValue/GetSecretValue.cs",
+              "start": {
+                "col": 1,
+                "line": 26,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 2,
+                  "line": 26,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/.dotnet/example_code_legacy/SecretsManager/GetSecretValue/GetSecretValue.cs",
+                "start": {
+                  "col": 1,
+                  "line": 26,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/FifoTopics.java:89:\n `(\n    new PublishRequest()\n        .withTopicArn(topicArn)\n        .withSubject(subject)\n        .withMessage(payload)\n        .withMessageGroupId(groupId);` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/FifoTopics.java",
+          "spans": [
+            {
+              "end": {
+                "col": 38,
+                "line": 94,
+                "offset": 156
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/FifoTopics.java",
+              "start": {
+                "col": 12,
+                "line": 89,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 38,
+                  "line": 94,
+                  "offset": 156
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/FifoTopics.java",
+                "start": {
+                  "col": 12,
+                  "line": 89,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java:6:\n `void main(String[] args) {` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+          "spans": [
+            {
+              "end": {
+                "col": 41,
+                "line": 6,
+                "offset": 26
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+              "start": {
+                "col": 15,
+                "line": 6,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 19,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+              "start": {
+                "col": 1,
+                "line": 19,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 63,
+                "line": 23,
+                "offset": 27
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+              "start": {
+                "col": 36,
+                "line": 23,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 42,
+                "line": 35,
+                "offset": 86
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+              "start": {
+                "col": 36,
+                "line": 34,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 90,
+                "line": 45,
+                "offset": 50
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+              "start": {
+                "col": 40,
+                "line": 45,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 74,
+                "line": 60,
+                "offset": 118
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+              "start": {
+                "col": 41,
+                "line": 59,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 41,
+                  "line": 6,
+                  "offset": 26
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+                "start": {
+                  "col": 15,
+                  "line": 6,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 2,
+                  "line": 19,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+                "start": {
+                  "col": 1,
+                  "line": 19,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 63,
+                  "line": 23,
+                  "offset": 27
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+                "start": {
+                  "col": 36,
+                  "line": 23,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 42,
+                  "line": 35,
+                  "offset": 86
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+                "start": {
+                  "col": 36,
+                  "line": 34,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 90,
+                  "line": 45,
+                  "offset": 50
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+                "start": {
+                  "col": 40,
+                  "line": 45,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 74,
+                  "line": 60,
+                  "offset": 118
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/java/example_code/sns/PublishSmsToTopic.java",
+                "start": {
+                  "col": 41,
+                  "line": 59,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java:54:\n `yyyy` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+          "spans": [
+            {
+              "end": {
+                "col": 69,
+                "line": 54,
+                "offset": 4
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 65,
+                "line": 54,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 75,
+                "line": 54,
+                "offset": 2
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 73,
+                "line": 54,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 70,
+                "line": 55,
+                "offset": 4
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 66,
+                "line": 55,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 48,
+                "line": 58,
+                "offset": 163
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 74,
+                "line": 55,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 113,
+                "line": 62,
+                "offset": 256
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 56,
+                "line": 58,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 221,
+                "line": 62,
+                "offset": 107
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 114,
+                "line": 62,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 237,
+                "line": 62,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 236,
+                "line": 62,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 41,
+                "line": 70,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 40,
+                "line": 70,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 52,
+                "line": 70,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 51,
+                "line": 70,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 51,
+                "line": 73,
+                "offset": 14
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 37,
+                "line": 73,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 78,
+                "offset": 4
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+              "start": {
+                "col": 5,
+                "line": 77,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 69,
+                  "line": 54,
+                  "offset": 4
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 65,
+                  "line": 54,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 75,
+                  "line": 54,
+                  "offset": 2
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 73,
+                  "line": 54,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 70,
+                  "line": 55,
+                  "offset": 4
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 66,
+                  "line": 55,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 48,
+                  "line": 58,
+                  "offset": 163
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 74,
+                  "line": 55,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 113,
+                  "line": 62,
+                  "offset": 256
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 56,
+                  "line": 58,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 221,
+                  "line": 62,
+                  "offset": 107
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 114,
+                  "line": 62,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 237,
+                  "line": 62,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 236,
+                  "line": 62,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 41,
+                  "line": 70,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 40,
+                  "line": 70,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 52,
+                  "line": 70,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 51,
+                  "line": 70,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 51,
+                  "line": 73,
+                  "offset": 14
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 37,
+                  "line": 73,
+                  "offset": 0
+                }
+              },
+              {
+                "end": {
+                  "col": 2,
+                  "line": 78,
+                  "offset": 4
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/InjectWorkService.java",
+                "start": {
+                  "col": 5,
+                  "line": 77,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/typescript/example_code/cdk/HelloCdk-stack.ts:48:\n `const sub` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/typescript/example_code/cdk/HelloCdk-stack.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 14,
+                "line": 48,
+                "offset": 9
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/typescript/example_code/cdk/HelloCdk-stack.ts",
+              "start": {
+                "col": 5,
+                "line": 48,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 14,
+                  "line": 48,
+                  "offset": 9
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/typescript/example_code/cdk/HelloCdk-stack.ts",
+                "start": {
+                  "col": 5,
+                  "line": 48,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/DisableAlarmActionsExample/DisableAlarmActionsExample/DisableAlarmActions.cs:35:\n `else\n            {\n                Console.WriteLine(\"Alarm action(s) were not disabled.\")\n            }` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/DisableAlarmActionsExample/DisableAlarmActionsExample/DisableAlarmActions.cs",
+          "spans": [
+            {
+              "end": {
+                "col": 14,
+                "line": 38,
+                "offset": 104
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/DisableAlarmActionsExample/DisableAlarmActionsExample/DisableAlarmActions.cs",
+              "start": {
+                "col": 13,
+                "line": 35,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 14,
+                  "line": 38,
+                  "offset": 104
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/DisableAlarmActionsExample/DisableAlarmActionsExample/DisableAlarmActions.cs",
+                "start": {
+                  "col": 13,
+                  "line": 35,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/EnableAlarmActionsExample/EnableAlarmActionsExample/EnableAlarmActions.cs:35:\n `else\n            {\n                Console.WriteLine(\"Alarm action(s) were not enabled.\")\n            }` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/EnableAlarmActionsExample/EnableAlarmActionsExample/EnableAlarmActions.cs",
+          "spans": [
+            {
+              "end": {
+                "col": 14,
+                "line": 38,
+                "offset": 103
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/EnableAlarmActionsExample/EnableAlarmActionsExample/EnableAlarmActions.cs",
+              "start": {
+                "col": 13,
+                "line": 35,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 14,
+                  "line": 38,
+                  "offset": 103
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/CloudWatch/EnableAlarmActionsExample/EnableAlarmActionsExample/EnableAlarmActions.cs",
+                "start": {
+                  "col": 13,
+                  "line": 35,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/IAM/CreatePolicyExample/CreatePolicyExample/CreatePolicy.cs:46:\n `Console.WriteLine($\"{policy.PolicyName} created with ID: {policy.PolicyId}.\")` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/IAM/CreatePolicyExample/CreatePolicyExample/CreatePolicy.cs",
+          "spans": [
+            {
+              "end": {
+                "col": 94,
+                "line": 46,
+                "offset": 77
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/IAM/CreatePolicyExample/CreatePolicyExample/CreatePolicy.cs",
+              "start": {
+                "col": 17,
+                "line": 46,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 94,
+                  "line": 46,
+                  "offset": 77
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/dotnetv3/IAM/CreatePolicyExample/CreatePolicyExample/CreatePolicy.cs",
+                "start": {
+                  "col": 17,
+                  "line": 46,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        }
+      ],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.aws-doc-sdk-examples.tainted-sql-string",
+          "end": {
+            "col": 99,
+            "line": 42,
+            "offset": 1439
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/Creating_Spring_RDS_ Rest/src/main/java/com/aws/rest/RetrieveItems.java",
+          "start": {
+            "col": 35,
+            "line": 42,
+            "offset": 1375
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.aws-doc-sdk-examples.tainted-sql-string",
+          "end": {
+            "col": 243,
+            "line": 57,
+            "offset": 2421
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/aws-doc-sdk-examples/input/aws-doc-sdk-examples.git/javav2/usecases/CreatingSpringRedshiftRest/src/main/java/com/aws/rest/InjectWorkService.java",
+          "start": {
+            "col": 35,
+            "line": 57,
+            "offset": 2213
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.javaspringvulny",
+    "findings": {
+      "errors": [],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.javaspringvulny.tainted-sql-string",
+          "end": {
+            "col": 50,
+            "line": 31,
+            "offset": 981
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/javaspringvulny/input/javaspringvulny.git/src/main/java/hawk/service/UserSearchService.java",
+          "start": {
+            "col": 28,
+            "line": 30,
+            "offset": 852
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.vulnado",
+    "findings": {
+      "errors": [],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.vulnado.tainted-sql-string",
+          "end": {
+            "col": 81,
+            "line": 47,
+            "offset": 1365
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/vulnado/input/vulnado.git/src/main/java/com/scalesec/vulnado/User.java",
+          "start": {
+            "col": 22,
+            "line": 47,
+            "offset": 1306
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.vulnado.formatted-sql-string",
+          "end": {
+            "col": 46,
+            "line": 49,
+            "offset": 1445
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/vulnado/input/vulnado.git/src/main/java/com/scalesec/vulnado/User.java",
+          "start": {
+            "col": 22,
+            "line": 49,
+            "offset": 1421
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.WebGoat",
+    "findings": {
+      "errors": [],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 87,
+            "line": 58,
+            "offset": 2581
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson10.java",
+          "start": {
+            "col": 24,
+            "line": 58,
+            "offset": 2518
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 86,
+            "line": 60,
+            "offset": 2855
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6a.java",
+          "start": {
+            "col": 21,
+            "line": 60,
+            "offset": 2790
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 189,
+            "line": 59,
+            "offset": 2699
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/challenges/challenge5/Assignment5.java",
+          "start": {
+            "col": 71,
+            "line": 59,
+            "offset": 2581
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 176,
+            "line": 72,
+            "offset": 2643
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/mitigation/Servers.java",
+          "start": {
+            "col": 62,
+            "line": 72,
+            "offset": 2529
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 119,
+            "line": 63,
+            "offset": 2724
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionChallenge.java",
+          "start": {
+            "col": 41,
+            "line": 63,
+            "offset": 2646
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 116,
+            "line": 61,
+            "offset": 2733
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson9.java",
+          "start": {
+            "col": 24,
+            "line": 61,
+            "offset": 2641
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 116,
+            "line": 60,
+            "offset": 2692
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson8.java",
+          "start": {
+            "col": 24,
+            "line": 60,
+            "offset": 2600
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 110,
+            "line": 60,
+            "offset": 3026
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+          "start": {
+            "col": 21,
+            "line": 60,
+            "offset": 2937
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 108,
+            "line": 134,
+            "offset": 5780
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson8.java",
+          "start": {
+            "col": 27,
+            "line": 134,
+            "offset": 5699
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 104,
+            "line": 56,
+            "offset": 2542
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5b.java",
+          "start": {
+            "col": 30,
+            "line": 56,
+            "offset": 2468
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.tainted-sql-string",
+          "end": {
+            "col": 101,
+            "line": 52,
+            "offset": 2012
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/container/users/UserService.java",
+          "start": {
+            "col": 30,
+            "line": 52,
+            "offset": 1941
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.jdbctemplate-sqli",
+          "end": {
+            "col": 101,
+            "line": 52,
+            "offset": 2012
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/container/users/UserService.java",
+          "start": {
+            "col": 30,
+            "line": 52,
+            "offset": 1941
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 77,
+            "line": 65,
+            "offset": 2870
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionChallenge.java",
+          "start": {
+            "col": 39,
+            "line": 65,
+            "offset": 2832
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 66,
+            "line": 67,
+            "offset": 3236
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/advanced/SqlInjectionLesson6a.java",
+          "start": {
+            "col": 37,
+            "line": 67,
+            "offset": 3207
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 66,
+            "line": 66,
+            "offset": 3052
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson9.java",
+          "start": {
+            "col": 37,
+            "line": 66,
+            "offset": 3023
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 66,
+            "line": 66,
+            "offset": 3014
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson8.java",
+          "start": {
+            "col": 37,
+            "line": 66,
+            "offset": 2985
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 66,
+            "line": 63,
+            "offset": 2863
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson10.java",
+          "start": {
+            "col": 37,
+            "line": 63,
+            "offset": 2834
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 66,
+            "line": 62,
+            "offset": 3225
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+          "start": {
+            "col": 37,
+            "line": 62,
+            "offset": 3196
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 62,
+            "line": 62,
+            "offset": 2638
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson2.java",
+          "start": {
+            "col": 33,
+            "line": 62,
+            "offset": 2609
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 47,
+            "line": 65,
+            "offset": 2745
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson3.java",
+          "start": {
+            "col": 17,
+            "line": 65,
+            "offset": 2715
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 47,
+            "line": 63,
+            "offset": 2636
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson4.java",
+          "start": {
+            "col": 17,
+            "line": 63,
+            "offset": 2606
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.WebGoat.formatted-sql-string",
+          "end": {
+            "col": 46,
+            "line": 138,
+            "offset": 5945
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/WebGoat/input/WebGoat.git/src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson8.java",
+          "start": {
+            "col": 13,
+            "line": 138,
+            "offset": 5912
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.dvja",
+    "findings": {
+      "errors": [],
+      "results": []
+    }
+  },
+  {
+    "name": "semgrep.bench.juice_shop",
+    "findings": {
+      "errors": [
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 8,
+                "line": 14,
+                "offset": 5
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+              "start": {
+                "col": 3,
+                "line": 14,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 8,
+                  "line": 14,
+                  "offset": 5
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+                "start": {
+                  "col": 3,
+                  "line": 14,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_2.ts:57:\n `: any[]` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_2.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 45,
+                "line": 57,
+                "offset": 7
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_2.ts",
+              "start": {
+                "col": 38,
+                "line": 57,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 45,
+                  "line": 57,
+                  "offset": 7
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_2.ts",
+                "start": {
+                  "col": 38,
+                  "line": 57,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_4.ts:57:\n `: any[]` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_4.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 44,
+                "line": 57,
+                "offset": 7
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_4.ts",
+              "start": {
+                "col": 37,
+                "line": 57,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 44,
+                  "line": 57,
+                  "offset": 7
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_4.ts",
+                "start": {
+                  "col": 37,
+                  "line": 57,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_2.ts:19:\n `]` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_2.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 2,
+                "line": 19,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_2.ts",
+              "start": {
+                "col": 1,
+                "line": 19,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 2,
+                  "line": 19,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_2.ts",
+                "start": {
+                  "col": 1,
+                  "line": 19,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_3.ts:43:\n `: any[]` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_3.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 44,
+                "line": 43,
+                "offset": 7
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_3.ts",
+              "start": {
+                "col": 37,
+                "line": 43,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 44,
+                  "line": 43,
+                  "offset": 7
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/restfulXssChallenge_3.ts",
+                "start": {
+                  "col": 37,
+                  "line": 43,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_1.ts:18:\n `]` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_1.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 2,
+                "line": 18,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_1.ts",
+              "start": {
+                "col": 1,
+                "line": 18,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 2,
+                  "line": 18,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_1.ts",
+                "start": {
+                  "col": 1,
+                  "line": 18,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_3_correct.ts:14:\n `]` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_3_correct.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 2,
+                "line": 14,
+                "offset": 1
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_3_correct.ts",
+              "start": {
+                "col": 1,
+                "line": 14,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 2,
+                  "line": 14,
+                  "offset": 1
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/tokenSaleChallenge_3_correct.ts",
+                "start": {
+                  "col": 1,
+                  "line": 14,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_2.ts:1:\n `User.init(\n      password: {\n        type: DataTypes.STRING,\n        set (clearTextPassword) {\n          validatePasswordHasAtLeastOneNumber(clearTextPassword)\n          validatePasswordHasAtLeastOneSpecialChar(clearTextPassword)\n          validatePasswordHasAtLeastOneUpperCaseChar(clearTextPassword)\n          validatePasswordHasAtLeastOneLowerCaseChar(clearTextPassword)\n          validatePasswordHasAtLeastTenChar(clearTextPassword)\n          validatePasswordIsNotInTopOneMillionCommonPasswordsList(clearTextPassword)\n          this.setDataValue('password', security.hash(clearTextPassword))\n        }\n      },` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_2.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 9,
+                "line": 13,
+                "offset": 614
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_2.ts",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 9,
+                  "line": 13,
+                  "offset": 614
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_2.ts",
+                "start": {
+                  "col": 1,
+                  "line": 1,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_3.ts:1:\n `User.init(\n      password: {\n        type: DataTypes.STRING,\n        set (clearTextPassword) {\n          validatePasswordHasAtLeastOneNumber(clearTextPassword)\n          validatePasswordHasAtLeastOneSpecialChar(clearTextPassword)\n          validatePasswordHasAtLeastOneUpperCaseChar(clearTextPassword)\n          validatePasswordHasAtLeastOneLowerCaseChar(clearTextPassword)\n          validatePasswordHasAtLeastTenChar(clearTextPassword)\n          this.setDataValue('password', security.hash(clearTextPassword))\n        }\n      },` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_3.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 9,
+                "line": 12,
+                "offset": 529
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_3.ts",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 9,
+                  "line": 12,
+                  "offset": 529
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_3.ts",
+                "start": {
+                  "col": 1,
+                  "line": 1,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_1_correct.ts:1:\n `User.init(\n      password: {\n        type: DataTypes.STRING,\n        set (clearTextPassword) {\n          validatePasswordHasAtLeastTenChar(clearTextPassword)\n          validatePasswordIsNotInTopOneMillionCommonPasswordsList(clearTextPassword)\n          this.setDataValue('password', security.hash(clearTextPassword))\n        }\n      },` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_1_correct.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 9,
+                "line": 9,
+                "offset": 335
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_1_correct.ts",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 9,
+                  "line": 9,
+                  "offset": 335
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_1_correct.ts",
+                "start": {
+                  "col": 1,
+                  "line": 1,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_4.ts:1:\n `User.init(\n      password: {\n        type: DataTypes.STRING,\n        set (clearTextPassword) {\n          validatePasswordIsNotInTopOneMillionCommonPasswordsList(clearTextPassword)\n          this.setDataValue('password', security.hash(clearTextPassword))\n        }\n      },` was unexpected",
+          "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_4.ts",
+          "spans": [
+            {
+              "end": {
+                "col": 9,
+                "line": 8,
+                "offset": 272
+              },
+              "file": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_4.ts",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0
+              }
+            }
+          ],
+          "type": [
+            "PartialParsing",
+            [
+              {
+                "end": {
+                  "col": 9,
+                  "line": 8,
+                  "offset": 272
+                },
+                "path": "/home/runner/work/semgrep-proprietary/semgrep-proprietary/OSS/perf/bench/juice_shop/input/juice-shop/data/static/codefixes/weakPasswordChallenge_4.ts",
+                "start": {
+                  "col": 1,
+                  "line": 1,
+                  "offset": 0
+                }
+              }
+            ]
+          ]
+        }
+      ],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 58,
+            "line": 18,
+            "offset": 753
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/trackOrder.ts",
+          "start": {
+            "col": 20,
+            "line": 18,
+            "offset": 715
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 56,
+            "line": 34,
+            "offset": 1138
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/showProductReviews.ts",
+          "start": {
+            "col": 21,
+            "line": 34,
+            "offset": 1103
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 47,
+            "line": 31,
+            "offset": 1131
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/likeProductReviews.ts",
+          "start": {
+            "col": 36,
+            "line": 31,
+            "offset": 1120
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 45,
+            "line": 61,
+            "offset": 1898
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/dataExport.ts",
+          "start": {
+            "col": 22,
+            "line": 61,
+            "offset": 1875
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 42,
+            "line": 80,
+            "offset": 2437
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/dataExport.ts",
+          "start": {
+            "col": 25,
+            "line": 80,
+            "offset": 2420
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 35,
+            "line": 18,
+            "offset": 646
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/likeProductReviews.ts",
+          "start": {
+            "col": 24,
+            "line": 18,
+            "offset": 635
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 32,
+            "line": 42,
+            "offset": 1651
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/likeProductReviews.ts",
+          "start": {
+            "col": 21,
+            "line": 42,
+            "offset": 1640
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 27,
+            "line": 18,
+            "offset": 775
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/updateProductReviews.ts",
+          "start": {
+            "col": 7,
+            "line": 18,
+            "offset": 755
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-mongo-nosqli",
+          "end": {
+            "col": 24,
+            "line": 25,
+            "offset": 905
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/likeProductReviews.ts",
+          "start": {
+            "col": 13,
+            "line": 25,
+            "offset": 894
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-fs-filename",
+          "end": {
+            "col": 69,
+            "line": 81,
+            "offset": 1956
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/vulnCodeFixes.ts",
+          "start": {
+            "col": 23,
+            "line": 81,
+            "offset": 1910
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-fs-filename",
+          "end": {
+            "col": 136,
+            "line": 31,
+            "offset": 1643
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/profileImageUrlUpload.ts",
+          "start": {
+            "col": 54,
+            "line": 31,
+            "offset": 1561
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-fs-filename",
+          "end": {
+            "col": 118,
+            "line": 28,
+            "offset": 1082
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/profileImageFileUpload.ts",
+          "start": {
+            "col": 19,
+            "line": 28,
+            "offset": 983
+          }
+        },
+        {
+          "check_id": "OSS.perf.bench.rules_cache.juice_shop.express-fs-filename",
+          "end": {
+            "col": 108,
+            "line": 82,
+            "offset": 2068
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/juice_shop/input/juice-shop/routes/vulnCodeFixes.ts",
+          "start": {
+            "col": 62,
+            "line": 82,
+            "offset": 2022
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "semgrep.bench.remotely",
+    "findings": {
+      "errors": [],
+      "results": [
+        {
+          "check_id": "OSS.perf.bench.rules_cache.remotely.httpclient-taint",
+          "end": {
+            "col": 47,
+            "line": 113,
+            "offset": 3849
+          },
+          "extra": "<masked in benchmarks>",
+          "path": "<masked in benchmarks>/OSS/perf/bench/remotely/input/Remotely/Server/API/AlertsController.cs",
+          "start": {
+            "col": 21,
+            "line": 113,
+            "offset": 3823
+          }
+        }
+      ]
+    }
+  }
+]
