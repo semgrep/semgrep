@@ -687,10 +687,8 @@ let fix_poly_taint_with_field env lval xtaint =
             match (type_of_il_offset o, T.offset_of_IL o) with
             | Some { t = TyFun _; _ }, _ ->
                 (* We have an l-value like `o.f` where `f` has a function type,
-                 * so it's a method call. We just drop `taints` from `o` here,
-                 * because at this point we don't know if they are needed. In
-                 * check_tainted_instr/Call/default-case we take care of this. *)
-                `None
+                 * so it's a method call, we do nothing here. *)
+                xtaint
             | _, Oany ->
                 (* Cannot handle this offset. *)
                 xtaint
@@ -1788,21 +1786,17 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                   if not (propagate_through_functions env) then
                     (Taints.empty, S.Bot, lval_env)
                   else
-                    let obj_taints, lval_env =
+                    let obj_taints =
                       (* If this is a method call, `o.method(...)`, then we fetch the
                        * taint of the callee object `o`. This is a conservative worst-case
                        * asumption that any taint in `o` can be tainting the call's result. *)
                       match LV.split_last_offset e with
-                      | None -> (Taints.empty, lval_env)
-                      | Some (obj, _) ->
-                          let taints, _shape, lval_env =
-                            check_tainted_lval { env with lval_env } obj
-                          in
-                          (* TODO: Add 'shape' taints too? *)
-                          (taints, lval_env)
+                      | None -> Taints.empty
+                      | Some (obj, _) -> (
+                          match Lval_env.find_lval lval_env obj with
+                          | None -> Taints.empty
+                          | Some ref -> S.gather_all_taints_in_ref ref)
                     in
-                    Printf.eprintf "\nobj_taints = %s\n\n"
-                      (T.show_taints obj_taints);
                     (call_taints |> Taints.union obj_taints, S.Bot, lval_env))
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
