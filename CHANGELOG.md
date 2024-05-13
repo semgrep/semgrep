@@ -1,5 +1,5 @@
 <!-- Do not edit. This changelog is updated at release time by towncrier
-     from individual files in the changelog.d/ directory. 
+     from individual files in the changelog.d/ directory.
 -->
 
 # Changelog
