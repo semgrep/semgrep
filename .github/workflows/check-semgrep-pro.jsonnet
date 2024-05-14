@@ -82,10 +82,8 @@ local job = container.job {
       name: 'Adjust semgrep-pro to use the semgrep in this PR',
       run: |||
         cd ../semgrep-proprietary
-        rm -rf semgrep
-        ln -s ../semgrep
-        ls -al
-        xxx
+        rm -rf OSS
+        ln -s ../semgrep OSS
       |||,
     },
     {
