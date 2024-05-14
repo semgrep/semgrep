@@ -17,7 +17,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
-from typing import Iterable
+from typing import Iterable, Mapping
 from typing import List
 
 import pytest
@@ -43,6 +43,7 @@ from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from semgrep.metrics import Metrics
 from semgrep.settings import generate_anonymous_user_id
+from semgrep.target_manager import SAST_PRODUCT, SECRETS_PRODUCT
 
 ##############################################################################
 # Constants
@@ -413,7 +414,7 @@ def start_scan_mock_maker(
 ):
     def _start_scan_func(
         semgrep_url: str = "https://semgrep.dev",
-        ignored_files: Iterable[str] = (),
+        product_ignored_files: Mapping[out.Product, List[str]] = {},
     ):
         start_scan_response = out.ScanResponse.from_json(
             {
@@ -434,7 +435,10 @@ def start_scan_mock_maker(
                 },
                 "engine_params": {
                     "dependency_query": enable_dependency_query,
-                    "ignored_files": list(ignored_files),
+                    "product_ignored_files": [
+                        [product.to_json(), ignores]
+                        for product, ignores in product_ignored_files.items()
+                    ],
                 },
             }
         )
@@ -1462,18 +1466,23 @@ def test_outputs(
 # but for now we have to do some filtering.
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("ignored_file", ["foo.py", "", "# foo.py"])
+@pytest.mark.parametrize("ignored_product", [SAST_PRODUCT, SECRETS_PRODUCT])
 @pytest.mark.osemfail
 def test_app_ignore(
     git_tmp_path_with_commit,
     snapshot,
     ignored_file,
+    ignored_product,
     run_semgrep: RunSemgrep,
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
 ):
     start_scan_mock = start_scan_mock_maker(
-        "https://semgrep.dev", ignored_files=(ignored_file,)
+        "https://semgrep.dev",
+        product_ignored_files={
+            ignored_product: [ignored_file],
+        },
     )
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
