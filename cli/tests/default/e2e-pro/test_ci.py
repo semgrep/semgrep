@@ -17,8 +17,8 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
-from typing import Iterable, Mapping
 from typing import List
+from typing import Mapping
 
 import pytest
 from requests.exceptions import ConnectionError
@@ -43,7 +43,8 @@ from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from semgrep.metrics import Metrics
 from semgrep.settings import generate_anonymous_user_id
-from semgrep.target_manager import SAST_PRODUCT, SECRETS_PRODUCT
+from semgrep.target_manager import SAST_PRODUCT
+from semgrep.target_manager import SECRETS_PRODUCT
 
 ##############################################################################
 # Constants
