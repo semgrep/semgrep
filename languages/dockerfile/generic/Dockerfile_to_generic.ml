@@ -129,10 +129,6 @@ let docker_string_expr ((loc, fragments) : docker_string) : G.expr =
       let start, end_ = loc in
       G.Call (func, (start, args, end_)) |> G.e
 
-(*
-  | JSON_quoted (_loc, x) -> G.L (G.String x) |> G.e
-*)
-
 let str_or_ellipsis_expr = function
   | Str_str str -> docker_string_expr str
   | Str_template x ->
@@ -212,7 +208,7 @@ let var_or_metavar_expr = function
    Convert an ENV or LABEL list of assignments into a list of
    pairs of function arguments.
    The goal is to turn 'ENV a=b c=d' into two function calls
-   'set_env a b' and 'set_env c d'.
+   'ENV(a, b)' and 'ENV(c, d)'.
 *)
 let label_pair_exprs (instr_name : string wrap) (kv_pairs : label_pair list) :
     G.expr list =
