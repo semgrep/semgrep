@@ -52,8 +52,8 @@ handler.setFormatter(
 )
 logger.addHandler(handler)
 
-PERF_PATH = "semgrep/perf"
-PERF_RULE_PATH = "semgrep.perf"
+PERF_PATH = "OSS/perf"
+PERF_RULE_PATH = "OSS.perf"
 
 
 # This class allows us to put semgrep results in a set and compute set
