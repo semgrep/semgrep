@@ -30,6 +30,7 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
+from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.verbose_logging import getLogger
 
 if TYPE_CHECKING:
@@ -141,13 +142,26 @@ class ScanHandler:
         return []
 
     @property
-    def ignore_patterns(self) -> List[str]:
+    def ignore_patterns(self) -> out.ProductIgnoredFiles:
         """
         Separate property for easy of mocking in test
         """
         if self.scan_response:
-            return self.scan_response.engine_params.ignored_files
-        return []
+            if self.scan_response.engine_params.product_ignored_files:
+                return self.scan_response.engine_params.product_ignored_files
+            # Deprecated, but used as a fallback in case
+            # product_ignored_files is not set.
+            if self.scan_response.engine_params.ignored_files:
+                return out.ProductIgnoredFiles(
+                    value={
+                        product: [
+                            out.Glob(pattern)
+                            for pattern in self.scan_response.engine_params.ignored_files
+                        ]
+                        for product in ALL_PRODUCTS
+                    }
+                )
+        return out.ProductIgnoredFiles(value={})
 
     @property
     def scan_params(self) -> str:
