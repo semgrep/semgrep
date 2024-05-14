@@ -453,7 +453,10 @@ def ci(
         product: [*exclude] if exclude else [] for product in ALL_PRODUCTS
     }
     excludes_from_app = (
-        {product: scan_handler.ignore_patterns for product in ALL_PRODUCTS}
+        {
+            product: [ignore.value for ignore in ignores]
+            for product, ignores in scan_handler.ignore_patterns.value.items()
+        }
         if scan_handler
         else None
     )
