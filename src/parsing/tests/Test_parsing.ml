@@ -216,6 +216,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Python ->
       Tree_sitter_python.Parse.file file
       |> dump_and_print_errors Tree_sitter_python.Boilerplate.dump_tree
+  | Lang.Dockerfile ->
+      Tree_sitter_dockerfile.Parse.file file
+      |> dump_and_print_errors Tree_sitter_dockerfile.Boilerplate.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
