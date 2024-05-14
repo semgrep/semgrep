@@ -50,7 +50,7 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
-        exclude: "^\\.github/workflows/.+|semgrep\\.opam$"
+        exclude: "^\\.github/workflows/.+|semgrep\\.opam|.gitmodules$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
