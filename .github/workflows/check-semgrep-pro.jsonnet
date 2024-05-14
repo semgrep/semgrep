@@ -84,6 +84,8 @@ local job = container.job {
         cd ../semgrep-proprietary
         rm -rf semgrep
         ln -s ../semgrep
+        ls -al
+        xxx
       |||,
     },
     {

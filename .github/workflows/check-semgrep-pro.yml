@@ -64,6 +64,8 @@ jobs:
           cd ../semgrep-proprietary
           rm -rf semgrep
           ln -s ../semgrep
+          ls -al
+          xxx
       - name: Install semgrep-pro dependencies
         run: |
           cd ../semgrep-proprietary
