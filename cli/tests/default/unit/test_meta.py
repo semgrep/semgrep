@@ -283,7 +283,8 @@ def test_git_url_parser():
     ]
     for url, expected in tests:
         actual = {}
-        for key, _value in expected.items():
+        # TODO: mypy complains about .items not defined on object
+        for key, _value in expected.items():  # type: ignore[attr-defined]
             actual[key] = getattr(Parser(url).parse(), key)
         assert (url, actual) == (url, expected)
 
