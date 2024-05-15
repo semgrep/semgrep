@@ -6,25 +6,6 @@
 
 <!-- insertion point -->
 
-## [1.73.0](https://github.com/returntocorp/semgrep/releases/tag/v1.73.0) - 2024-05-16
-
-
-### Added
-
-
-- Added new AWS validator syntax for Secrets (scrt-278)
-
-
-### Fixed
-
-
-- Fix `couldn't find metavar $MT in the match results` error, which may occur
-  when we capture FQN with the metavariable and use metavariable-type filter on
-  it. (code-7042)
-- Fixes the crash (during scan) caused by improper handling of unicode characters present in the source code. (gh-8421)
-- [Pro Engine Only] Tainted values are now tracked through instantiation of React functional components via JSX. (jsx-taint)
-
-
 ## [1.72.0](https://github.com/returntocorp/semgrep/releases/tag/v1.72.0) - 2024-05-08
 
 
