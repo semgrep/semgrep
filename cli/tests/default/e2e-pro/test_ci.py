@@ -76,23 +76,45 @@ FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
 
-# To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
-# the app code uses, so the tests can enforce the env is mocked appropriately.
-_cli_src = (Path(__file__).parent.parent.parent.parent / "src").resolve()
-USED_GITHUB_VARS = set(
-    subprocess.run(
-        f"git grep --recurse-submodules -hPo 'GITHUB_[\\w_]*' {_cli_src}",
-        shell=True,
-        capture_output=True,
-        check=True,
-    )
-    .stdout.decode()
-    .strip()
-    .split("\n")
-) - {
-    "GITHUB_TOKEN",  # not used in the cli, just passed to the backend
-    "GITHUB_EVENT_PATH",  # TODO: mock this for more than just PR events
-    "GITHUB_xxx",  # not used, just an example in comments
+# To ensure our tests are as accurate as possible, lets try to detect what
+# GITHUB_ vars the app code uses, so the tests can enforce the env is mocked
+# appropriately.
+# UPDATE: the code below is now commented because it's using `git grep`
+# which prevents to build pysemgrep (cd cli; make build) when not
+# inside a repository (as in pro/.../check-semgrep-oss.jsonnet).
+# Instead, we run the commented code below and just copy pasted the
+# output in the USED_GITHUB_VARS below.
+#
+##_cli_src = (Path(__file__).parent.parent.parent.parent / "src").resolve()
+##USED_GITHUB_VARS = set(
+##    subprocess.run(
+##        f"git grep --recurse-submodules -hPo 'GITHUB_[\\w_]*' {_cli_src}",
+##        shell=True,
+##        capture_output=True,
+##        check=True,
+##    )
+##    .stdout.decode()
+##    .strip()
+##    .split("\n")
+##) - {
+##    "GITHUB_TOKEN",  # not used in the cli, just passed to the backend
+##    "GITHUB_EVENT_PATH",  # TODO: mock this for more than just PR events
+##    "GITHUB_xxx",  # not used, just an example in comments
+##}
+
+USED_GITHUB_VARS = {
+    "GITHUB_HEAD_REF",
+    "GITHUB_REPOSITORY",
+    "GITHUB_RUN_ID",
+    "GITHUB_SERVER_URL",
+    "GITHUB_EVENT_NAME",
+    "GITHUB_API_URL",
+    "GITHUB_SHA",
+    "GITHUB_WORKSPACE",
+    "GITHUB_REF",
+    "GITHUB_REPOSITORY_OWNER_ID",
+    "GITHUB_ACTIONS",
+    "GITHUB_REPOSITORY_ID",
 }
 
 assert "GITHUB_ACTIONS" in USED_GITHUB_VARS  # ensure the parsing did something
