@@ -569,7 +569,12 @@ local ignore_md = {
     // Pysemgrep tests that require build-test-core-x86
     'test-qa': test_qa_job,
     'benchmarks-lite': benchmarks_lite_job,
-    'benchmarks-full': benchmarks_full_job,
+    // These 'benchmarks-full' use rule-ids and paths with difference prefixes
+    // than the Pro benchmarks (OSS.perf and OSS/perf) thus causing problems with
+    // masking. We quick-fix this by disabling 'benchmarks-full', given that we
+    // have the Argo-based semgrep-compare benchmarks as a safeguard. It may be
+    // more productive to integrate these benchmarks into the Pro's workflow.
+    // 'benchmarks-full': benchmarks_full_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
     'push-docker-returntocorp':
