@@ -49,11 +49,14 @@ Parsed = collections.namedtuple('Parsed', [
 POSSIBLE_REGEXES = (
     re.compile(r'^(?P<protocol>https?|git|ssh|rsync)\://'
                r'(?:(?P<user>[^\n@]+)@)*'
-               r'(?P<resource>[a-z0-9_.-]*)'
+               r'(?P<resource>[a-z0-9_\.-]*)'
                r'[:/]*'
                r'(?P<port>(?<=:)[\d]+){0,1}'
-               r'(?P<pathname>\/((?P<owner>[\w\-%\/]+)\/)?'
-               r'((?P<name>[\w\-%\.]+?)(\.git|\/)?)?)$'),
+               r'(?P<pathname>\/((?P<owner>[\w\-%\/~\.]+)\/)?'
+               # Matches the last name in a path (non-"/").
+               # Trickily uses lazy matching "+?" to remove any
+               # trailing ".git" and "/" from the end.
+               r'((?P<name>[\w\-%~\.]+?)(\.git)?\/?)?)$'),
     re.compile(r'(git\+)?'
                r'((?P<protocol>\w+)://)'
                r'((?P<user>\w+)@)?'
@@ -61,10 +64,12 @@ POSSIBLE_REGEXES = (
                r'(:(?P<port>\d+))?'
                r'(?P<pathname>(\/(?P<owner>\w+)/)?'
                r'(\/?(?P<name>[\w\-]+)(\.git|\/)?)?)$'),
-    re.compile(r'^(?:(?P<user>[^\n@]+)@)*'
+    re.compile(r'^'
+               r'(?!\w+\://)'
+               r'(?:(?P<user>[^\n@]+)@)*'
                r'(?P<resource>[a-z0-9_.-]*)[:]*'
                r'(?P<port>(?<=:)[\d]+){0,1}'
-               r'(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+).git)$'),
+               r'(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+?)(\.git)?\/?)$'),
     re.compile(r'((?P<user>\w+)@)?'
                r'((?P<resource>[\w\.\-]+))'
                r'[\:\/]{1,2}'
