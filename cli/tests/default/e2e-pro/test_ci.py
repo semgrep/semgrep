@@ -413,9 +413,10 @@ def start_scan_mock_maker(
     mocked_scan_id,
     enable_dependency_query,
 ):
+    # TODO: fix the noqa above
     def _start_scan_func(
         semgrep_url: str = "https://semgrep.dev",
-        product_ignored_files: Mapping[out.Product, List[str]] = {},
+        product_ignored_files: Mapping[out.Product, List[str]] = {},  # noqa
     ):
         start_scan_response = out.ScanResponse.from_json(
             {
