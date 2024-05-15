@@ -283,7 +283,7 @@ def test_git_url_parser():
     ]
     for url, expected in tests:
         actual = {}
-        for key, value in expected.items():
+        for key, _value in expected.items():
             actual[key] = getattr(Parser(url).parse(), key)
         assert (url, actual) == (url, expected)
 
