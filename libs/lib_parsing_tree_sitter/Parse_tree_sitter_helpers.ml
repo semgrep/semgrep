@@ -30,7 +30,8 @@ module Log = Log_tree_sitter.Log
 (*****************************************************************************)
 type 'a env = {
   file : Fpath.t;
-  (* get the charpos (offset) in file given a line x col *)
+  (* get the charpos (offset) in file given a line x col.
+     Raises Not_found! *)
   conv : int * int -> int;
   extra : 'a;
 }
@@ -68,23 +69,26 @@ let line_col_to_pos file =
       full_charpos_to_pos_aux ());
   Hashtbl.find h
 
-(* Patterns are given as a one line string with `\n` characters *)
+(* Patterns are given as a one line string with '\n' characters (huh?)
+   TODO: Explain the desired behavior *)
 let line_col_to_pos_pattern _str (_line, col) = col
 
 let token env (tok : Tree_sitter_run.Token.t) =
   let loc, str = tok in
-  let h = env.conv in
   let start = loc.Tree_sitter_run.Loc.start in
   (* Parse_info is 1-line based and 0-column based, like Emacs *)
   let line = start.Tree_sitter_run.Loc.row + 1 in
   let column = start.Tree_sitter_run.Loc.column in
   let file = env.file in
   let bytepos =
-    try h (line, column) with
-    | Not_found ->
+    match env.conv (line, column) with
+    | x -> x
+    | exception Not_found ->
         raise
           (Tok.NoTokenLocation
-             (spf "Could not convert from location %d:%d in %s to a position"
+             (spf
+                "Could not convert (line %d, column %d) into a byte offset in \
+                 file %s"
                 line column !!file))
   in
   let pos = Pos.make ~line ~column ~file:!!file bytepos in

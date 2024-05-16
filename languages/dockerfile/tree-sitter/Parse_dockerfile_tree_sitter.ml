@@ -35,9 +35,32 @@ type env = (AST_bash.input_kind * shell_compatibility) H.env
 let token = H.token
 let str = H.str
 
-(* TODO: This basic stuff should not exist here. Move it to Tok. *)
 let concat_tokens first_tok other_toks : string wrap =
   let tok = Tok.combine_toks first_tok other_toks in
+  (Tok.content_of_tok tok, tok)
+
+(* Tricky: insert newlines and blanks corresponding to Docker comments
+   that were removed during parsing.
+   For example:
+
+     RUN a && \
+       # comment
+       b
+
+   results in "a &&   b" if we concatenate the shell fragments naively.
+   This results in a wrong location for "b". What we want is:
+   - preserve the global byte offset count: if the backslash is gone,
+     put it back or replace it by a space.
+   - preserve the line numbering: insert a newline for each comment line
+     that was ignored.
+
+   In the end, we want something like "a && \\\n\\\n            b".
+*)
+let concat_shell_fragments first_tok other_toks : string wrap =
+  let tok =
+    Tok.combine_sparse_toks ~ignorable_newline:"\\\n" ~ignorable_blank:' '
+      first_tok other_toks
+  in
   (Tok.content_of_tok tok, tok)
 
 (* TODO: This basic stuff should not exist here. Move it to Tok. *)
@@ -795,7 +818,7 @@ let shell_command (env : env) (x : CST.shell_command) =
                [ shell_line_cont; shell_frag ])
         |> List.flatten
       in
-      let raw_shell_code = concat_tokens first_frag more_frags in
+      let raw_shell_code = concat_shell_fragments first_frag more_frags in
       let _, shell_compat = env.extra in
       match shell_compat with
       | Sh -> (
