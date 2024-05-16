@@ -88,8 +88,8 @@ let token env (tok : Tree_sitter_run.Token.t) =
           (Tok.NoTokenLocation
              (spf
                 "Could not convert (line %d, column %d) into a byte offset in \
-                 file %s"
-                line column !!file))
+                 file %s. Invalid location for token %S."
+                line column !!file str))
   in
   let pos = Pos.make ~line ~column ~file:!!file bytepos in
   let tok_loc = { Tok.str; pos } in

@@ -412,11 +412,13 @@ let combine_sparse_toks ?(ignorable_newline = "\n") ?(ignorable_blank = ' ')
             (pos.bytepos - orig_pos.bytepos - missing_newline_bytes
            - missing_indent)
         in
+        (*
         Printf.eprintf
           "tok %S: current_line=%i, current_column=%i, \
            missing_newline_bytes=%i, missing_indent=%i, missing_bytes=%i\n"
           str !current_line !current_column missing_newline_bytes missing_indent
           missing_bytes;
+        *)
         (* It's safe to insert missing bytes only if they're followed
            by a newline that resets the indentation. *)
         if missing_newlines > 0 then
