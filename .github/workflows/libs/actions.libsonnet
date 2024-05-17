@@ -40,6 +40,12 @@
     run: 'pip install pipenv==2022.6.7',
   },
 
+  install_python_deps(directory): {
+    name: 'Install Python dependencies',
+    'working-directory': directory,
+    run: 'pipenv install --dev',
+  },
+
   // ---------------------------------------------------------
   // Docker
   // ---------------------------------------------------------
