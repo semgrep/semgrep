@@ -1162,13 +1162,14 @@ and xml_expr env ~void eorig xml =
         xml.G.xml_attrs
         |> List_.map_filter (function
              | G.XmlAttr (id, tok, eorig) ->
+                 (* e.g. <Foo x={y}/> *)
                  let e = expr env eorig in
                  let _, lval = mk_aux_var env tok e in
                  let e = mk_e (Fetch lval) (SameAs eorig) in
                  Some (Field (id, e))
-             | G.XmlAttrExpr _ ->
-                 (* TODO, handle <Foo {...bar} /> (spread) *)
-                 None
+             | G.XmlAttrExpr (_l, eorig, _r) ->
+                 let e = expr env eorig in
+                 Some (Spread e)
              | G.XmlEllipsis _ ->
                  (* Should never encounter this in a target *)
                  None)
