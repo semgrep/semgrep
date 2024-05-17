@@ -736,13 +736,12 @@ let json_string_array (env : env) ((v1, v2, v3) : CST.json_string_array) :
   let loc = (open_, close) in
   (loc, (open_, argv, close))
 
-let env_pair (env : env) (x : CST.env_pair) : label_pair =
+let env_pair (env : env) (x : CST.env_pair) : env_pair =
   match x with
-  | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
+  | `Semg_ellips tok -> Env_semgrep_ellipsis (token env tok (* "..." *))
   | `Env_key_imm_tok_eq_opt_choice_double_quoted_str (v1, v2, v3) ->
       let k =
-        Var_ident
-          (Unquoted (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *)))
+        Ident (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *))
       in
       let eq = token env v2 (* "=" *) in
       let v =
@@ -755,36 +754,33 @@ let env_pair (env : env) (x : CST.env_pair) : label_pair =
             (loc, [ Unquoted (Tok.content_of_tok tok, tok) ])
         | Some x -> string env x
       in
-      let loc = var_or_metavar_loc k in
-      Label_pair (loc, k, eq, v)
+      let loc = ident_or_metavar_loc k in
+      Env_pair (loc, k, eq, v)
 
-let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) :
-    label_pair =
-  let k =
-    Var_ident
-      (Unquoted (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *)))
-  in
+let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) : env_pair
+    =
+  let k = Ident (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *)) in
   let blank = token env v2 (* pattern \s+ *) in
   let v = string env v3 in
-  let loc = var_or_metavar_loc k in
-  Label_pair (loc, k, blank, v)
+  let loc = ident_or_metavar_loc k in
+  Env_pair (loc, k, blank, v)
 
 let label_pair (env : env) (x : CST.label_pair) : label_pair =
   match x with
   | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
   | `Choice_semg_meta_imm_tok_eq_choice_double_quoted_str (v1, v2, v3) ->
-      let key =
+      let key : key_or_metavar =
         match v1 with
         | `Semg_meta tok ->
-            Var_semgrep_metavar (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
+            Semgrep_metavar (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
         | `Pat_4128122 tok ->
-            Var_ident (Unquoted (str env tok (* pattern [-a-zA-Z0-9\._]+ *)))
-        | `Double_quoted_str x -> Var_ident (double_quoted_string env x)
-        | `Single_quoted_str x -> Var_ident (single_quoted_string env x)
+            Key (Unquoted (str env tok (* pattern [-a-zA-Z0-9\._]+ *)))
+        | `Double_quoted_str x -> Key (double_quoted_string env x)
+        | `Single_quoted_str x -> Key (single_quoted_string env x)
       in
       let eq = token env v2 (* "=" *) in
       let value = string env v3 in
-      let loc = var_or_metavar_loc key in
+      let loc = key_or_metavar_loc key in
       Label_pair (loc, key, eq, value)
 
 let shell_command (env : env) (x : CST.shell_command) =
@@ -971,7 +967,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `Rep1_env_pair xs -> List_.map (env_pair env) xs
             | `Spaced_env_pair x -> [ spaced_env_pair env x ]
           in
-          let _, end_ = Tok_range.of_list label_pair_loc pairs in
+          let _, end_ = Tok_range.of_list env_pair_loc pairs in
           let loc = (wrap_tok name, end_) in
           (env, Env (loc, name, pairs))
       | `Add_inst x -> (env, Add (add_or_copy env x))
@@ -1032,15 +1028,14 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Workdir (loc, name, dir))
       | `Arg_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [aA][rR][gG] *) in
-          let key =
+          let key : ident_or_metavar =
             match v2 with
             | `Semg_meta tok ->
-                Var_semgrep_metavar
-                  (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
+                Semgrep_metavar (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
             | `Pat_4de4cb9 tok ->
-                Var_ident (Unquoted (str env tok (* pattern [a-zA-Z0-9_]+ *)))
+                Ident (str env tok (* pattern [a-zA-Z0-9_]+ *))
           in
-          let loc = (wrap_tok name, var_or_metavar_loc key |> snd) in
+          let loc = (wrap_tok name, ident_or_metavar_loc key |> snd) in
           let opt_value, loc =
             match v3 with
             | Some (v1, v2) ->

@@ -7,5 +7,4 @@ ENV MY_GOLDFISH Maurice
 # MATCH:
 ENV MY_NAME "John Doe"
 
-# MATCH:
 ENV MY_GOLDFISH=Maurice MY_NAME="John Doe"

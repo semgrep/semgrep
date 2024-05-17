@@ -200,15 +200,44 @@ let from (params : param list) (image_spec : image_spec) opt_alias :
   in
   name :: optional_params
 
-let var_or_metavar_expr = function
-  | Var_ident key -> simple_docker_string_expr key
-  | Var_semgrep_metavar mv -> metavar_expr mv
+let ident_or_metavar_expr (x : ident_or_metavar) =
+  match x with
+  | Ident key -> id_expr key
+  | Semgrep_metavar mv -> metavar_expr mv
+
+let key_or_metavar_expr (x : key_or_metavar) =
+  match x with
+  | Key key -> simple_docker_string_expr key
+  | Semgrep_metavar mv -> metavar_expr mv
+
+let env_decl pairs =
+  let decls =
+    pairs
+    |> List_.map (function
+         | Env_semgrep_ellipsis tok ->
+             G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s
+         | Env_pair (_loc, key, _eq, value) -> (
+             match key with
+             | Ident v
+             | Semgrep_metavar v ->
+                 let entity = G.basic_entity v in
+                 let vardef =
+                   G.VarDef
+                     {
+                       vinit = Some (docker_string_expr value);
+                       vtype = None;
+                       vtok = G.no_sc;
+                     }
+                 in
+                 G.DefStmt (entity, vardef) |> G.s))
+  in
+  G.StmtExpr (G.Block (Tok.unsafe_fake_bracket decls) |> G.s) |> G.e
 
 (*
-   Convert an ENV or LABEL list of assignments into a list of
+   Convert a LABEL list of key/value pairs into a list of
    pairs of function arguments.
-   The goal is to turn 'ENV a=b c=d' into two function calls
-   'ENV(a, b)' and 'ENV(c, d)'.
+   The goal is to turn 'LABEL a=b c=d' into two function calls
+   'LABEL(a, b)' and 'LABEL(c, d)'.
 *)
 let label_pair_exprs (instr_name : string wrap) (kv_pairs : label_pair list) :
     G.expr list =
@@ -221,17 +250,17 @@ let label_pair_exprs (instr_name : string wrap) (kv_pairs : label_pair list) :
   |> List.filter_map (function
        | Label_semgrep_ellipsis tok ->
            if is_one_element then
-             (* ENV ... *)
+             (* LABEL ... *)
              let loc = (tok, tok) in
              Some (call instr_name loc [ G.Arg (G.Ellipsis tok |> G.e) ])
            else
-             (* ENV a=b ... c=d *)
+             (* LABEL a=b ... c=d *)
              (* This can no longer be translated into something that makes
                 sense since each key=value pair gets its own ENV call.
                 Such an ellipsis is ignored. *)
              None
        | Label_pair (loc, key, _eq, value) ->
-           let key_expr = var_or_metavar_expr key in
+           let key_expr = key_or_metavar_expr key in
            let value_expr = docker_string_expr value in
            Some (call instr_name loc [ G.Arg key_expr; G.Arg value_expr ]))
 
@@ -286,7 +315,7 @@ let string_or_metavar_expr = function
   | Str_semgrep_metavar mv -> metavar_expr mv
 
 let arg_args key opt_value : G.expr list =
-  let key = var_or_metavar_expr key in
+  let key = ident_or_metavar_expr key in
   let value =
     match opt_value with
     | None -> []
@@ -335,7 +364,7 @@ let rec instruction_exprs env (x : instruction) : G.expr list =
   | Expose (loc, name, port_protos) ->
       let args = List.concat_map expose_port_expr port_protos in
       [ call_exprs name loc args ]
-  | Env (_loc, name, kv_pairs) -> label_pair_exprs name kv_pairs
+  | Env (_loc, _name, pairs) -> [ env_decl pairs ]
   | Add (loc, name, param, src, dst) ->
       [ call name loc (add_or_copy param src dst) ]
   | Copy (loc, name, param, src, dst) ->

@@ -1,11 +1,11 @@
-# MATCH
+# MATCH:
 LABEL "k e y"=value
 
-# MATCH
+# MATCH:
 LABEL key=value
 
-# MATCH
+# MATCH:
 LABEL "${KEY}"=value
 
-# MATCH
+# MATCH:
 LABEL "${KEY}suffix"=value

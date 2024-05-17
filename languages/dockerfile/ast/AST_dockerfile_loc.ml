@@ -44,9 +44,13 @@ let docker_string_fragment_loc (x : docker_string_fragment) =
   | Expansion (loc, _) -> loc
   | Frag_semgrep_metavar (_, tok) -> (tok, tok)
 
-let var_or_metavar_loc = function
-  | Var_ident x -> docker_string_fragment_loc x
-  | Var_semgrep_metavar (_, tok) -> (tok, tok)
+let ident_or_metavar_loc = function
+  | Ident (_, tok) -> (tok, tok)
+  | Semgrep_metavar (_, tok) -> (tok, tok)
+
+let key_or_metavar_loc = function
+  | Key x -> docker_string_fragment_loc x
+  | Semgrep_metavar (_, tok) -> (tok, tok)
 
 let docker_string_loc ((loc, _) : docker_string) = loc
 let heredoc_template_loc (x : heredoc_template) = (x.opening, x.closing)
@@ -79,6 +83,10 @@ let command_loc = function
 
 let param_loc ((loc, _) : param) : loc = loc
 let image_spec_loc (x : image_spec) = x.loc
+
+let env_pair_loc = function
+  | Env_semgrep_ellipsis tok -> (tok, tok)
+  | Env_pair (loc, _, _, _) -> loc
 
 let label_pair_loc = function
   | Label_semgrep_ellipsis tok -> (tok, tok)

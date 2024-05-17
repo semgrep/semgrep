@@ -78,9 +78,11 @@ type docker_string_fragment =
   | Expansion of (loc * expansion)
   | Frag_semgrep_metavar of string wrap
 
-type var_or_metavar =
-  | Var_ident of docker_string_fragment
-  | Var_semgrep_metavar of string wrap
+type ident_or_metavar = Ident of string wrap | Semgrep_metavar of string wrap
+
+type key_or_metavar =
+  | Key of docker_string_fragment
+  | Semgrep_metavar of string wrap
 
 (* A string which is possibly the concatenation of several fragments.
 
@@ -184,8 +186,14 @@ type image_spec = {
   digest : (tok (* @ *) * docker_string) option;
 }
 
+(* 'ENV key=value' where the key is an identifier, not a string template. *)
+type env_pair =
+  | Env_pair of loc * ident_or_metavar * tok (* = *) * docker_string
+  | Env_semgrep_ellipsis of tok
+
+(* 'LABEL key=value' where the key can be a string template. *)
 type label_pair =
-  | Label_pair of loc * var_or_metavar (* key *) * tok (* = *) * docker_string
+  | Label_pair of loc * key_or_metavar * tok (* = *) * docker_string
   | Label_semgrep_ellipsis of tok
 
 (* value *)
@@ -228,7 +236,7 @@ type instruction =
   | Cmd of cmd_instr
   | Label of loc * string wrap * label_pair list
   | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
-  | Env of loc * string wrap * label_pair list
+  | Env of loc * string wrap * env_pair list
   | Add of add_or_copy
   | Copy of add_or_copy
   | Entrypoint of loc * string wrap * command
@@ -239,7 +247,7 @@ type instruction =
       * docker_string (* user *)
       * (tok (* : *) * docker_string) (* group *) option
   | Workdir of loc * string wrap * docker_string
-  | Arg of loc * string wrap * var_or_metavar * (tok * docker_string) option
+  | Arg of loc * string wrap * ident_or_metavar * (tok * docker_string) option
   | Onbuild of loc * string wrap * instruction
   | Stopsignal of loc * string wrap * docker_string
   | Healthcheck of loc * string wrap * healthcheck
