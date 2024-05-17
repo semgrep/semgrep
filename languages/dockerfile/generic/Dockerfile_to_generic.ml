@@ -212,13 +212,28 @@ let var_or_metavar_expr = function
 *)
 let label_pair_exprs (instr_name : string wrap) (kv_pairs : label_pair list) :
     G.expr list =
+  let is_one_element =
+    match kv_pairs with
+    | [ _ ] -> true
+    | _ -> false
+  in
   kv_pairs
-  |> List_.map (function
-       | Label_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
+  |> List.filter_map (function
+       | Label_semgrep_ellipsis tok ->
+           if is_one_element then
+             (* ENV ... *)
+             let loc = (tok, tok) in
+             Some (call instr_name loc [ G.Arg (G.Ellipsis tok |> G.e) ])
+           else
+             (* ENV a=b ... c=d *)
+             (* This can no longer be translated into something that makes
+                sense since each key=value pair gets its own ENV call.
+                Such an ellipsis is ignored. *)
+             None
        | Label_pair (loc, key, _eq, value) ->
            let key_expr = var_or_metavar_expr key in
            let value_expr = docker_string_expr value in
-           call instr_name loc [ G.Arg key_expr; G.Arg value_expr ])
+           Some (call instr_name loc [ G.Arg key_expr; G.Arg value_expr ]))
 
 let add_or_copy (params : param list) (src : path_or_ellipsis list)
     (dst : docker_string) =
