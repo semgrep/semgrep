@@ -90,6 +90,18 @@ def test_mix_options_block(original: str):
         }""",
             (4, ("telemetry", "0.4.3")),
         ),
+        (
+            """{
+        :hex,
+        :testing,
+        "1.0.1",
+        "1234bb4db5b32fc0f8aa5c4a2040348b4aa36687100fb8837b850e90cf60e06",
+        [:mix],
+        [],
+        "hexpm"
+        }""",
+            (4, ("testing", "1.0.1")),
+        ),
     ],
 )
 @pytest.mark.no_semgrep_cli
@@ -97,6 +109,36 @@ def test_mix_options_block(original: str):
 @pytest.mark.quick
 def test_mix_package_entry_value_block(original: str, output: Tuple):
     result = mix.package_entry_hex_value_block(output[1][0]).parse_partial(original)
+    assert result[0] == output
+    assert not result[1]
+
+
+@pytest.mark.parametrize(
+    "original, output",
+    [
+        (
+            '{:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]}',
+            (1, ("grpc-erl", "0.6.12")),
+        ),
+        (
+            '{:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", []}',
+            None,
+        ),
+        (
+            '{:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [ref: "31370f25643666c4be43310d62ef749ca1fc20e2"]}',
+            "31370f25643666c4be43310d62ef749ca1fc20e2",
+        ),
+        (
+            '{:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [branch: "my-branch"]}',
+            "my-branch",
+        ),
+    ],
+)
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_package_entry_git_value_block(original: str, output: Tuple):
+    result = mix.package_entry_git_value_block("grpc-erl").parse_partial(original)
     assert result[0] == output
     assert not result[1]
 
@@ -165,6 +207,8 @@ def test_mix_lockfile_parser():
       "cowboy": {:hex, :cowboy, "2.10.0", "ff9ffeff91dae4ae270dd975642997afe2a1179d94b1887863e43f681a203e26", [:make, :rebar3], [{:cowlib, "2.12.1", [hex: :cowlib, repo: "hexpm", optional: false]}, {:ranch, "1.8.0", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm", "3afdccb7183cc6f143cb14d3cf51fa00e53db9ec80cdcd525482f5e99bc41d6b"},
       "cowboy_telemetry": {:hex, :cowboy_telemetry, "0.4.0", "f239f68b588efa7707abce16a84d0d2acf3a0f50571f8bb7f56a15865aae820c", [:rebar3], [{:cowboy, "~> 2.7", [hex: :cowboy, repo: "hexpm", optional: false]}, {:telemetry, "~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "7d98bac1ee4565d31b62d59f8823dfd8356a169e7fcbb83831b8a5397404c9de"},
       "credo": {:hex, :credo, "1.7.3", "05bb11eaf2f2b8db370ecaa6a6bda2ec49b2acd5e0418bc106b73b07128c0436", [:mix], [{:bunt, "~> 0.2.1 or ~> 1.0", [hex: :bunt, repo: "hexpm", optional: false]}, {:file_system, "~> 0.2 or ~> 1.0", [hex: :file_system, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "35ea675a094c934c22fb1dca3696f3c31f2728ae6ef5a53b5d648c11180a4535"},
+      "grpc-erl": {:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [branch: "my-branch"]},
+      "grpc-erl2": {:git, "https://github.com/emqx/grpc-erl2.git", "31370f25643666c4be43310d62ef749ca1fc20e2", []},
       }
     """
     result = mix.lockfile_parser.parse_partial(full_lockfile)
@@ -177,6 +221,8 @@ def test_mix_lockfile_parser():
         (7, ("cowboy", "2.10.0")),
         (8, ("cowboy_telemetry", "0.4.0")),
         (9, ("credo", "1.7.3")),
+        "my-branch",
+        None,
     ]
     assert not result[1]
 
@@ -189,6 +235,7 @@ def test_mix_lockfile_parser():
             '{:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true}',
             "rocksdb",
         ),
+        ('{:recon, "~> 2.5.1"}', "recon"),
     ],
 )
 @pytest.mark.no_semgrep_cli
@@ -248,7 +295,7 @@ def test_mix_manifest_deps():
     assert result[0] == [
         (3, "ehttpc"),
         (4, "gproc"),
-        "          # some comment",
+        " some comment",
         (6, "rocksdb"),
         (7, "grpc"),
         (8, "ecpool"),
@@ -286,6 +333,7 @@ def test_mix_manifest_parser():
               {:grpc, github: "emqx/grpc-erl", tag: "0.6.12", override: true},
               {:ecpool, github: "emqx/ecpool", tag: "0.5.7", override: true},
               {:pbkdf2, github: "emqx/erlang-pbkdf2", tag: "2.0.4", override: true},
+              # some comment
               {:typerefl, github: "ieQu1/typerefl", tag: "0.9.1", override: true}
             ]
           end
@@ -299,8 +347,38 @@ def test_mix_manifest_parser():
         (22, "grpc"),
         (23, "ecpool"),
         (24, "pbkdf2"),
-        (25, "typerefl"),
+        " some comment",
+        (26, "typerefl"),
     ]
+    assert not result[1]
+
+
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_mix_manifest_parser_inline():
+    full_deps = """
+        defmodule ObserverCli.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :observer_cli,
+              version: "1.7.4",
+              language: :erlang,
+              description: "observer in shell",
+              deps: [
+                {:recon, "~> 2.5.1"}, # testing
+                {:recon1, "~> 2.5.1"},
+                {:recon2, "== 2.5.1"},
+              ]
+            ]
+          end
+
+        end
+    """
+    result = mix.manifest_parser.parse_partial(full_deps)
+    assert result[0] == [(12, "recon"), (13, "recon1"), (14, "recon2")]
     assert not result[1]
 
 

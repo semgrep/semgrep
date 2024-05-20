@@ -13,6 +13,7 @@ from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import lbrace
 from semdep.parsers.util import lbrack
+from semdep.parsers.util import line
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import new_lines
 from semdep.parsers.util import quoted_str
@@ -50,6 +51,20 @@ inner_dependency_block = (
 # {:plug, "~> 1.14", [hex: :plug, repo: "hexpm", optional: false]}, {:octo_fetch, "~> 0.3", [hex: :octo_fetch, repo: "hexpm", optional: false]}
 many_independency_blocks = inner_dependency_block.sep_by(comma)
 
+git_ref = string("ref") >> colon >> quoted_str
+
+git_branch = string("branch") >> colon >> quoted_str
+
+comment = regex(r" *#") >> line
+
+
+def git_tag(package: str) -> Parser[tuple[int, tuple[str, str]]]:
+    return (
+        string("tag")
+        >> colon
+        >> version_block.bind(lambda version: mark_line(success((package, version))))
+    )
+
 
 #   {
 #     :hex,
@@ -80,15 +95,16 @@ def package_entry_hex_value_block(package: str) -> Parser[tuple[int, tuple[str, 
         << rbrack
         << comma
         << quoted_str
-        << comma
-        << quoted_str
+        << (comma << quoted_str).optional()
         << rbrace
         << comma.optional()
     )
 
 
 # {:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]},
-def package_entry_git_value_block(package: str) -> Parser[tuple[int, tuple[str, str]]]:
+def package_entry_git_value_block(
+    package: str,
+) -> Parser[tuple[int, tuple[str, str]] | str | None]:
     return (
         whitespace
         >> lbrace
@@ -99,9 +115,7 @@ def package_entry_git_value_block(package: str) -> Parser[tuple[int, tuple[str, 
         >> quoted_str
         >> comma
         >> lbrack
-        >> string("tag")
-        >> colon
-        >> version_block.bind(lambda version: mark_line(success((package, version))))
+        >> (git_tag(package) | git_ref | git_branch).optional()
         << rbrack
         << rbrace
         << comma.optional()
@@ -139,7 +153,7 @@ manifest_package = (
 # {:gproc, github: "emqx/gproc", tag: "0.9.0.1", override: true},
 # {:rocksdb, github: "emqx/erlang-rocksdb", tag: "1.8.0-emqx-2", override: true},
 many_manifest_packages = whitespace >> (
-    mark_line(manifest_package) | upto("\n")
+    comment | (mark_line(manifest_package) << comment.optional())
 ).sep_by(new_lines)
 
 # defp deps do
@@ -168,9 +182,21 @@ manifest_deps = (
     << whitespace
 )
 
-manifest_parser = (
-    any_char.until(manifest_deps_declaration) >> manifest_deps << any_char.many()
+inline_deps = string("deps") >> colon
+
+inline_manifest_deps = (
+    whitespace
+    >> inline_deps
+    >> whitespace
+    >> lbrack
+    >> many_manifest_packages
+    << any_char.many()
 )
+
+manifest_parser = (
+    (any_char.until(manifest_deps_declaration) >> manifest_deps)
+    | (any_char.until(inline_deps) >> inline_manifest_deps)
+) << any_char.many()
 
 
 def _parse_manifest_deps(manifest: list[tuple[int, str]]) -> set[str]:
@@ -208,9 +234,13 @@ def parse_mix(
 ) -> tuple[list[FoundDependency], list[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(lockfile_path, lockfile_parser, ScaParserName(MixLock())),
-        DependencyFileToParse(manifest_path, manifest_parser, ScaParserName(MixLock()))
-        if manifest_path
-        else None,
+        (
+            DependencyFileToParse(
+                manifest_path, manifest_parser, ScaParserName(MixLock())
+            )
+            if manifest_path
+            else None
+        ),
     )
 
     if not parsed_lockfile or not parsed_manifest:
@@ -219,6 +249,8 @@ def parse_mix(
     direct_deps = _parse_manifest_deps(
         [x for x in parsed_manifest if isinstance(x, tuple)]
     )
-    found_deps = _build_found_dependencies(direct_deps, parsed_lockfile)
+    found_deps = _build_found_dependencies(
+        direct_deps, [x for x in parsed_lockfile if isinstance(x, tuple)]
+    )
 
     return found_deps, errors

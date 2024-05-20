@@ -26,6 +26,7 @@ defmodule Myapp.MixProject do
       {:ex_aws_ses, "~> 2.0"},
       {:hackney, "~> 1.17"},
       {:jason, "~> 1.0"},
+      # some comment
       {:joken, "~> 2.0"},
       {:sweet_xml, "~> 0.7.1"},
       {:uuid, "~> 1.1"}
