@@ -63,6 +63,21 @@
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
+PROJECT_ROOT = $(shell git rev-parse --show-toplevel || pwd)
+
+# Deal with paths that change depending on whether we're in the
+# semgrep-proprietary monorepo or detached as a standalone semgrep project.
+# The script 'scripts/make-symlinks' also deals with such issues.
+ifeq ($(shell pwd),$(PROJECT_ROOT))
+  # The root is here.
+  BUILD = _build
+  BUILD_DEFAULT = _build/default
+else
+  # Assume we're in the semgrep-proprietary repo where OSS/ = semgrep.
+  BUILD = ../_build
+  BUILD_DEFAULT = ../_build/default/OSS
+endif
+
 # First (and default) target.
 .PHONY: default
 default: core
@@ -117,12 +132,12 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core
+	dune build $(BUILD)/install/default/bin/semgrep-core
 
 .PHONY: minimal-build-bc
 minimal-build-bc:
-	dune build _build/install/default/bin/semgrep-core.bc
-	dune build _build/install/default/bin/osemgrep.bc
+	dune build $(BUILD)/install/default/bin/semgrep-core.bc
+	dune build $(BUILD)/install/default/bin/osemgrep.bc
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -135,20 +150,20 @@ build-docker:
 
 .PHONY: build-otarzan
 build-otarzan:
-	dune build _build/install/default/bin/otarzan
+	dune build $(BUILD)/install/default/bin/otarzan
 
 .PHONY: build-ojsonnet
 build-ojsonnet:
-	dune build _build/install/default/bin/ojsonnet
+	dune build $(BUILD)/install/default/bin/ojsonnet
 
 .PHONY: build-pfff
 build-pfff:
-	dune build _build/install/default/bin/pfff
+	dune build $(BUILD)/install/default/bin/pfff
 
 # This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
 .PHONY: build-parse-cairo
 build-parse-cairo:
-	dune build _build/install/default/bin/parse-cairo
+	dune build $(BUILD)/install/default/bin/parse-cairo
 
 # This takes a long time
 .PHONY: build-semgrep-jsoo
@@ -230,12 +245,12 @@ core-test:
 # './test <filter>' where <filter> selects the tests to run.
 .PHONY: build-core-test
 build-core-test:
-	dune build ./_build/default/src/tests/test.exe
+	dune build $(BUILD_DEFAULT)/src/tests/test.exe
 
 # Bytecode version of the test for debugging
 .PHONY: test-bc
 test-bc:
-	dune build ./_build/default/src/tests/test.bc
+	dune build $(BUILD_DEFAULT)/src/tests/test.bc
 
 
 #coupling: this is run by .github/workflow/tests.yml
@@ -556,6 +571,7 @@ install-deps-WINDOWS-for-semgrep-core:
 # important dependencies change.
 .PHONY: setup
 setup: semgrep.opam
+	./scripts/make-symlinks
 	./scripts/check-bash-version
 	$(MAKE) install-deps-for-semgrep-core
 
@@ -608,7 +624,7 @@ install-semgrep-libs: semgrep.opam
 
 .PHONY: dump
 dump:
-	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
+	$(BUILD_DEFAULT)/tests/test.bc -dump_ast tests/lint/stupid.py
 
 # Run perf benchmarks
 # Running this will reset your `semgrep` command to point to your local version

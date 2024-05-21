@@ -134,15 +134,8 @@ let tests_with_delayed_error caps =
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  let repo_root =
-    match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
-    | Some path -> path
-    | None ->
-        failwith
-          "You must run the test program from within the semgrep repo and not \
-           one of its subfolders or submodules."
-  in
-  Testutil_files.with_chdir repo_root (fun () ->
+  let project_root = Test_LS_e2e.get_project_root () in
+  Testutil_files.with_chdir project_root (fun () ->
       (* coupling: partial copy of the content of CLI.main() *)
       Core_CLI.register_exception_printers ();
       Parsing_init.init ();
