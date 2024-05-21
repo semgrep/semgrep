@@ -49,7 +49,6 @@ let tests (caps : Cap.all_caps) =
   List.flatten
     [
       Commons_tests.tests;
-      Unit_graph_code.tests;
       Unit_list_files.tests;
       Glob.Unit_glob.tests;
       Unit_find_targets.tests;
