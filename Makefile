@@ -90,18 +90,9 @@ all:
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
 	$(MAKE) build-semgrep-jsoo
-	$(MAKE) unused-libs
 # Python setup
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
-
-# Build library code that may not being used or tested in this repo such as
-# libs/graph_code which is used by semgrep-proprietary.
-# This checks that the code compiles.
-.PHONY: unused-libs
-unused-libs:
-	dune build languages
-	dune build libs
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core

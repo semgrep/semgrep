@@ -7,7 +7,6 @@
     lib_parsing
     aliengrep
     spacegrep_tests
-    graph_code
     paths
     git_wrapper
 
