@@ -97,6 +97,20 @@ let create_info caps =
    This makes a system call that interferes with lwt's event loop.
    Be careful.
 *)
+let get_project_root () =
+  match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
+  | Some path ->
+      let oss_path = path / "OSS" in
+      if Sys.file_exists !!oss_path then oss_path else path
+  | None ->
+      (* Deal with the case where we're not a in git repo:
+           if it looks like we're at the project root, we're happy. *)
+      if Sys.file_exists "CONTRIBUTING.md" then Fpath.v (Sys.getcwd ())
+      else
+        failwith
+          "You must run the test program from within the semgrep repo and not \
+           one of its subfolders or submodules."
+
 let get_rule_path () =
   match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
   | Some root -> root // Fpath.v "cli/tests/default/e2e/targets/ls/rules.yaml"

@@ -1,0 +1,27 @@
+#! /usr/bin/env bash
+#
+# Create symbolic links that depend on the location of the
+# root of Dune project.
+#
+# The OSS 'semgrep' repo appears as a folder within a larger monorepo.
+# This script creates symbolic links according to the situation.
+#
+# This script must run from the root folder of the 'semgrep' project.
+#
+set -eu -o pipefail
+
+project_root=$(git rev-parse --show-toplevel || pwd)
+semgrep_root=$(pwd)
+
+if [[ "$project_root" != "$semgrep_root" ]]; then
+  echo -n "Creating symlinks to pretend $semgrep_root is the project root... "
+  mkdir -p _build
+  (
+    cd _build
+    # Create symbolic links to the standard Dune folders.
+    # This allows finding freshly-built executables at a fixed location.
+    ln -sf ../../_build/default/OSS default
+    ln -sf ../../_build/install .
+  )
+  echo "done"
+fi
