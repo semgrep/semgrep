@@ -27,7 +27,7 @@ local job = {
       uses: 'actions/checkout@v3',
       with: {
         repository: 'semgrep/semgrep-proprietary',
-        path: '../semgrep-pro',
+        path: 'PRO',
         token: semgrep.github_bot.token_ref,
        },
      },

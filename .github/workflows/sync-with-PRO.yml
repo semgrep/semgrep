@@ -29,7 +29,7 @@ jobs:
           token: ${{ steps.token.outputs.token }}
       - uses: actions/checkout@v3
         with:
-          path: ../semgrep-pro
+          path: PRO
           repository: semgrep/semgrep-proprietary
           token: ${{ steps.token.outputs.token }}
       - run: ls ../
