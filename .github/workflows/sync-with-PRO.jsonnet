@@ -32,7 +32,18 @@ local job = {
        },
      },
      {
-       run: 'ls ../'
+      env: {
+        BRANCHNAME: 'sync-with-PRO-${{ github.run_id }}-${{ github.run_attempt }}',
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+      },
+       run: |||
+         cd PRO
+         git checkout -b $BRANCHNAME
+         rm -f README.md
+         git config --global user.name "GitHub Actions Bot"
+         git commit -a -m"sync OSS -> PRO"
+         git push origin $BRANCHNAME
+       |||,
      },
   ],
 };

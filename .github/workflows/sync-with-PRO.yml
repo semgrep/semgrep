@@ -32,7 +32,16 @@ jobs:
           path: PRO
           repository: semgrep/semgrep-proprietary
           token: ${{ steps.token.outputs.token }}
-      - run: ls ../
+      - env:
+          BRANCHNAME: sync-with-PRO-${{ github.run_id }}-${{ github.run_attempt }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          cd PRO
+          git checkout -b $BRANCHNAME
+          rm -f README.md
+          git config --global user.name "GitHub Actions Bot"
+          git commit -a -m"sync OSS -> PRO"
+          git push origin $BRANCHNAME
 name: sync-with-PRO
 on:
   workflow_dispatch: null
