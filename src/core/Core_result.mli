@@ -35,6 +35,7 @@ type t = {
 
 type result_or_exn = (t, Exception.t * Core_error.t option) result
 
+(* just set default values for is_ignored (false) and autofix_edit (None) *)
 val mk_processed_match : Pattern_match.t -> processed_match
 
 (* Intermediate match result.
