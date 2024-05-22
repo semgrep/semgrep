@@ -19,12 +19,9 @@ open AST_dockerfile
 (* Location extraction *)
 (***************************************************************************)
 
+let wrap_tok ((_, tok) : _ wrap) = tok
 let wrap_loc ((_, tok) : _ wrap) = (tok, tok)
 let bracket_loc ((open_, _, close) : _ bracket) = (open_, close)
-
-let _var_or_metavar_loc x =
-  let tok = var_or_metavar_tok x in
-  (tok, tok)
 
 let expansion_tok = function
   | Expand_var (_, tok) -> tok
@@ -47,10 +44,20 @@ let docker_string_fragment_loc (x : docker_string_fragment) =
   | Expansion (loc, _) -> loc
   | Frag_semgrep_metavar (_, tok) -> (tok, tok)
 
+let ident_or_metavar_loc = function
+  | Ident (_, tok) -> (tok, tok)
+  | Semgrep_metavar (_, tok) -> (tok, tok)
+
+let key_or_metavar_loc = function
+  | Key x -> docker_string_fragment_loc x
+  | Semgrep_metavar (_, tok) -> (tok, tok)
+
 let docker_string_loc ((loc, _) : docker_string) = loc
+let heredoc_template_loc (x : heredoc_template) = (x.opening, x.closing)
 
 let str_or_ellipsis_loc = function
   | Str_str str -> docker_string_loc str
+  | Str_template x -> heredoc_template_loc x
   | Str_semgrep_ellipsis tok -> (tok, tok)
 
 (* Re-using the type used for double-quoted strings in bash *)
@@ -67,14 +74,19 @@ let _quoted_string_loc = bracket_loc
    Here we have an Other case which is used after a SHELL directive
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
-let argv_or_shell_loc = function
+let command_loc = function
   | Command_semgrep_ellipsis tok -> (tok, tok)
   | Argv (loc, _) -> loc
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
+  | Shell_command_template (loc, _) -> loc
 
 let param_loc ((loc, _) : param) : loc = loc
 let image_spec_loc (x : image_spec) = x.loc
+
+let env_pair_loc = function
+  | Env_semgrep_ellipsis tok -> (tok, tok)
+  | Env_pair (loc, _, _, _) -> loc
 
 let label_pair_loc = function
   | Label_semgrep_ellipsis tok -> (tok, tok)
@@ -87,7 +99,7 @@ let array_or_paths_loc = function
   | Paths (loc, _) ->
       loc
 
-let cmd_loc ((loc, _, _, _) : cmd) = loc
+let cmd_instr_loc ((loc, _, _, _) : cmd_instr) = loc
 
 let healthcheck_loc = function
   | Healthcheck_semgrep_metavar (_, tok) -> (tok, tok)
@@ -102,8 +114,8 @@ let expose_port_loc = function
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc
-  | Run (loc, _, _, _) -> loc
-  | Cmd cmd -> cmd_loc cmd
+  | Run cmd -> cmd_instr_loc cmd
+  | Cmd cmd -> cmd_instr_loc cmd
   | Label (loc, _, _) -> loc
   | Expose (loc, _, _) -> loc
   | Env (loc, _, _) -> loc

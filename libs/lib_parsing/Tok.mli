@@ -105,6 +105,42 @@ val first_loc_of_file : string (* filename *) -> location
  *)
 val combine_toks : t -> t list -> t
 
+(* Try to concatenate the tokens such that the original (line, column) offsets
+   of each token are preserved in the concatenated string, as well as the byte
+   offset if possible.
+
+   Source with a line continuation and a comment:
+     "a \\\n# comment\nb"
+
+   Tokens obtained with a parser that removes comments and line continuations:
+     ["a "; "b"]
+
+   A naive concatenation gives us:
+     "a b"
+
+   A syntax error on "b" when parsing "a b" will report an error on
+   line 1, column 2 instead of line 3, column 0 in the source.
+
+   A suitable concatenation is:
+     "a         \\\n\\\nb"
+        ^^^^^^^^
+                ^^^^^^^^
+        inserted
+        spaces
+                inserted
+                line continuations
+
+   This is used to assemble Bash code fragments produced by the Dockerfile
+   parser before invoking the Bash parser. In this case, missing strings
+   are line continuations and comments.
+
+   Default values:
+   - ignorable_newline: "\n" (a single LF character)
+   - ignorable_blank: ' ' (space)
+*)
+val combine_sparse_toks :
+  ?ignorable_newline:string -> ?ignorable_blank:char -> t -> t list -> t
+
 (* Create the empty token corresponding to the position right after a
    given token. This is intended for representing empty strings and such. *)
 val empty_tok_after : t -> t

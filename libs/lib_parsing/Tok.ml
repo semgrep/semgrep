@@ -313,6 +313,146 @@ let combine_toks x xs =
   let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
   tok_add_s str x
 
+let count_char c str =
+  String.fold_left
+    (fun sum c2 -> if Char.equal c c2 then sum + 1 else sum)
+    0 str
+
+(*
+   Track the current offset in the line (column, 0-based).
+   This function looks for newlines in a string to be added to a buffer
+   and updates the current column accordingly.
+*)
+let update_column current_column str =
+  match String.rindex_opt str '\n' with
+  | None -> current_column := !current_column + String.length str
+  | Some newline_pos ->
+      let column = String.length str - (newline_pos + 1) in
+      assert (column >= 0);
+      current_column := column
+
+(*
+   Goal: see mli.
+
+   Constraints:
+   - preserve the byte offset between the start of tokens.
+   - preserve the newline offset between the start of tokens.
+
+   Weird things to keep in mind:
+   - there's no guarantee that the token's original locations are in sequential
+     order and don't overlap.
+   - a token may contain newline characters.
+   - the ignorable newline string to be inserted may be longer than the
+     amount of space available (e.g. the original syntax was using
+     a single newline character LF but we insert BACKSLASH-LF)
+
+   Algorithm: Create a buffer, track byte count and line count.
+   Before adding a token, compare the position of the token start in the
+   source file against the current position given by the number bytes and
+   newlines added to the buffer so far.
+   Add as many newline sequences as needed to fix the line count.
+   Adjust the byte count accordingly. Add as many blanks as needed to
+   fix the byte count.
+
+   Using the Buffer.t type, the byte count is tracked automatically
+   and returned by Buffer.length. The newline count is tracked with a ref.
+*)
+let combine_sparse_toks ?(ignorable_newline = "\n") ?(ignorable_blank = ' ')
+    first_tok toks =
+  if count_char '\n' ignorable_newline <> 1 then
+    invalid_arg
+      "Tok.combine_sparse_toks: ignorable_newline must contain exactly one \
+       newline character";
+  if Char.equal ignorable_blank '\n' then
+    invalid_arg "Tok.combine_sparse_toks: ignorable_blank may not be a newline";
+  let column_after_an_ignorable_newline =
+    match String.rindex_opt ignorable_newline '\n' with
+    | Some newline_pos ->
+        (* 0 if ignorable_newline ends with '\n' as is usually the case *)
+        String.length ignorable_newline - (newline_pos + 1)
+    | None -> assert false
+  in
+  let orig_pos =
+    match loc_of_tok first_tok with
+    | Error _ -> Pos.fake_pos
+    | Ok loc -> loc.pos
+  in
+  let current_line = ref orig_pos.line in
+  let current_column = ref orig_pos.column in
+  let buf = Buffer.create 100 in
+  let add_tok tok =
+    match loc_of_tok tok with
+    | Error _ -> ()
+    | Ok { str; pos } ->
+        (*
+           Insert padding before the token string to match the original
+           line number, column, and byte offset.
+
+           Various conditions can make this impossible. Examples include:
+           - The decoded tokens use more space than the source
+             e.g. "(x)" gets decoded into "begin x end" or some character
+             that didn't escaping in the source becomes escaped such
+             as "<" becoming "&lt;", or "&lt;" became "&#60;".
+           - The newline we insert as the string 'ignorable_newline'
+             can be longer than the original newline e.g. the original
+             was a single newline character but out of precaution,
+             'ignorable_newline' is a line continuation "\\\n" (2 bytes).
+             So, parsing "a\nb" into two tokens ["a"; "b"] result in
+             the string "a\\\nb" which has the correct number of newlines
+             and presumably has correct syntax but shifts "b" by one byte.
+
+           Priority is given to getting (line, column) right over the byte
+           offset.
+
+           Important: the line number and column number must not exceed
+           the original values, otherwise it's possible they can't be
+           found in the source file when converting a (line, col) position
+           into a bytepos by consulting the original file.
+        *)
+        let missing_newlines = max 0 (pos.line - !current_line) in
+        let missing_newline_bytes =
+          missing_newlines * String.length ignorable_newline
+        in
+        let column_after_adding_missing_newlines =
+          if missing_newlines > 0 then column_after_an_ignorable_newline
+          else !current_column
+        in
+        let missing_indent =
+          max 0 (pos.column - column_after_adding_missing_newlines)
+        in
+        let missing_bytes =
+          max 0
+            (pos.bytepos - orig_pos.bytepos - missing_newline_bytes
+           - missing_indent)
+        in
+        (* It's safe to insert missing bytes only if they're followed
+           by a newline that resets the indentation. *)
+        if missing_newlines > 0 then
+          for (* Adjust bytepos *)
+              _ = 1 to missing_bytes do
+            Buffer.add_char buf ignorable_blank;
+            incr current_column
+          done;
+        (* Adjust line number *)
+        for _ = 1 to missing_newlines do
+          Buffer.add_string buf ignorable_newline;
+          update_column current_column ignorable_newline
+        done;
+        (* Adjust column number *)
+        for _ = 1 to missing_indent do
+          Buffer.add_char buf ignorable_blank;
+          incr current_column
+        done;
+        (* Add the token string *)
+        Buffer.add_string buf str;
+        update_column current_column str;
+        let newlines_in_tok = count_char '\n' str in
+        current_line := !current_line + missing_newlines + newlines_in_tok
+  in
+  List.iter add_tok (first_tok :: toks);
+  let str = Buffer.contents buf in
+  OriginTok { str; pos = orig_pos }
+
 let empty_tok_after tok : t =
   match loc_of_tok tok with
   | Ok loc ->
