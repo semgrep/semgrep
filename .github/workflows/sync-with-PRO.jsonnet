@@ -42,7 +42,7 @@ local job = {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
        run: |||
-         git format-patch HEAD^
+         git format-patch develop^
          cd PRO
          git config --global user.name "GitHub Actions Bot"
          git config --global user.email "<>"

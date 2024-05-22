@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Creating the branch and commiting to it
         run: |
-          git format-patch HEAD^
+          git format-patch develop^
           cd PRO
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "<>"
