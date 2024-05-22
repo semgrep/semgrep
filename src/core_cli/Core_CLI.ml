@@ -273,13 +273,27 @@ let mk_config () =
 (* The actions *)
 (*****************************************************************************)
 
+(* Obtain the language set with -lang if it provides a generic AST
+   TODO: don't rely on a ref being initialized to do this.
+*)
+let get_lang () =
+  match !lang with
+  | None -> None
+  | Some x -> (
+      match x with
+      | L (lang, _other_langs) -> Some lang
+      | LRegex
+      | LSpacegrep
+      | LAliengrep ->
+          None)
+
 let all_actions (caps : Cap.all_caps) () =
   [
     (* possibly useful to the user *)
     ( "-show_ast_json",
       " <file> dump on stdout the generic AST of file in JSON",
       Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_v1_json (caps :> < Cap.tmp >)) );
+        (Core_actions.dump_v1_json (caps :> < Cap.tmp >) ~get_lang) );
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
       Arg_.mk_action_1_conv Fpath.v Core_actions.generate_ast_json );

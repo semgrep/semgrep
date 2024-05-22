@@ -47,10 +47,6 @@ type shell_compatibility =
          in a SHELL directive *)
       string
 
-type var_or_metavar =
-  | Var_ident of string wrap
-  | Var_semgrep_metavar of string wrap
-
 type string_or_metavar =
   | Str_string of string wrap
   | Str_semgrep_metavar of string wrap
@@ -82,6 +78,12 @@ type docker_string_fragment =
   | Expansion of (loc * expansion)
   | Frag_semgrep_metavar of string wrap
 
+type ident_or_metavar = Ident of string wrap | Semgrep_metavar of string wrap
+
+type key_or_metavar =
+  | Key of docker_string_fragment
+  | Semgrep_metavar of string wrap
+
 (* A string which is possibly the concatenation of several fragments.
 
    We need to be able to represent this:
@@ -107,7 +109,29 @@ type docker_string_fragment =
    Semgrep's generic AST.
 *)
 type docker_string = loc * docker_string_fragment list
-type str_or_ellipsis = Str_str of docker_string | Str_semgrep_ellipsis of tok
+
+type heredoc_template = {
+  (* '<<EOF' or similar *)
+  opening : tok;
+  (* matching 'EOF' *)
+  closing : tok;
+  (* TODO: parse the heredoc opener
+     (* "EOF" *)
+     name: string;
+     (* true for '<<EOF', false for '<<"EOF"' *)
+     evaluate_variables: bool;
+     (* true for '<<-EOF', false for '<<EOF' *)
+     ignore_leading_tabs: bool;
+  *)
+  (* The template body is a string but it's really a template when
+     'evaluate_variable' is true. *)
+  body : string wrap;
+}
+
+type str_or_ellipsis =
+  | Str_str of docker_string
+  | Str_template of heredoc_template
+  | Str_semgrep_ellipsis of tok
 
 type array_elt =
   (* JSON string array, not to be confused with ordinary double-quoted strings
@@ -117,6 +141,13 @@ type array_elt =
   | Arr_ellipsis of tok
 
 type string_array = array_elt list bracket
+
+(* A fragment of a shell instruction. If all fragments of a shell instruction
+   are constants, we stitch them together and parse them with our
+   Bash parser (if the current shell is Sh or Bash), avoiding this type. *)
+type shell_fragment =
+  | Constant_shell_fragment of string wrap
+  | Heredoc_template of heredoc_template
 
 (*
    The default shell depends on the platform on which docker runs (Unix or
@@ -128,13 +159,20 @@ type string_array = array_elt list bracket
 
    Here we have an Other case which is used after a SHELL directive
    which changes the shell to an unsupported shell (i.e. not sh or bash).
+
+   old name: argv_or_shell
 *)
-type argv_or_shell =
+type command =
   | Argv of loc * (* [ "cmd", "arg1", "arg2$X" ] *) string_array
   (* !!! This is where we embed Bash constructs (Bash lists) !!! *)
   | Sh_command of loc * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
   | Command_semgrep_ellipsis of tok
+  (* If the instruction contains at least one heredoc template, we don't
+     know the shell command statically and we produce such a template.
+     Only the RUN instruction supports heredocs in commands, not CMD,
+     not HEALTHCHECK. *)
+  | Shell_command_template of loc * shell_fragment list
 
 type param =
   loc * (tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap)
@@ -148,8 +186,14 @@ type image_spec = {
   digest : (tok (* @ *) * docker_string) option;
 }
 
+(* 'ENV key=value' where the key is an identifier, not a string template. *)
+type env_pair =
+  | Env_pair of loc * ident_or_metavar * tok (* = *) * docker_string
+  | Env_semgrep_ellipsis of tok
+
+(* 'LABEL key=value' where the key can be a string template. *)
 type label_pair =
-  | Label_pair of loc * var_or_metavar (* key *) * tok (* = *) * docker_string
+  | Label_pair of loc * key_or_metavar * tok (* = *) * docker_string
   | Label_semgrep_ellipsis of tok
 
 (* value *)
@@ -165,17 +209,21 @@ type run_param =
   | Param of param
   | Mount_param of loc * string wrap * (loc * string wrap * string wrap) list
 
-type cmd = loc * string wrap * run_param list * argv_or_shell
+(* old name: cmd *)
+type cmd_instr = loc * string wrap * run_param list * command
 
 type healthcheck =
   | Healthcheck_none of tok
-  | Healthcheck_cmd of loc * param list * cmd
+  | Healthcheck_cmd of loc * param list * cmd_instr
   | Healthcheck_semgrep_metavar of string wrap
 
 type expose_port =
   | Expose_port of (* port/protocol *) string wrap * string wrap option
   | Expose_fragment of docker_string_fragment
   | Expose_semgrep_ellipsis of tok
+
+type add_or_copy =
+  loc * string wrap * param list * path_or_ellipsis list * docker_string
 
 type instruction =
   | From of
@@ -184,16 +232,14 @@ type instruction =
       * param option
       * image_spec
       * (tok (* as *) * docker_string) option
-  | Run of cmd
-  | Cmd of cmd
+  | Run of cmd_instr
+  | Cmd of cmd_instr
   | Label of loc * string wrap * label_pair list
   | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
-  | Env of loc * string wrap * label_pair list
-  | Add of
-      loc * string wrap * param option * path_or_ellipsis list * docker_string
-  | Copy of
-      loc * string wrap * param option * path_or_ellipsis list * docker_string
-  | Entrypoint of loc * string wrap * argv_or_shell
+  | Env of loc * string wrap * env_pair list
+  | Add of add_or_copy
+  | Copy of add_or_copy
+  | Entrypoint of loc * string wrap * command
   | Volume of loc * string wrap * array_or_paths
   | User of
       loc
@@ -201,7 +247,7 @@ type instruction =
       * docker_string (* user *)
       * (tok (* : *) * docker_string) (* group *) option
   | Workdir of loc * string wrap * docker_string
-  | Arg of loc * string wrap * var_or_metavar * (tok * docker_string) option
+  | Arg of loc * string wrap * ident_or_metavar * (tok * docker_string) option
   | Onbuild of loc * string wrap * instruction
   | Stopsignal of loc * string wrap * docker_string
   | Healthcheck of loc * string wrap * healthcheck
@@ -215,13 +261,3 @@ type instruction =
   | Instr_semgrep_metavar of string wrap
 
 type program = instruction list
-
-(*****************************************************************************)
-(* Helpers (see also AST_dockerfile_loc.ml) *)
-(*****************************************************************************)
-
-let wrap_tok ((_, tok) : _ wrap) = tok
-
-let var_or_metavar_tok = function
-  | Var_ident (_, tok) -> tok
-  | Var_semgrep_metavar (_, tok) -> tok

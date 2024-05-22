@@ -1,14 +1,24 @@
 type 'a env = {
   file : Fpath.t;
-  (* get the charpos (offset) in file given a (line, col) pair *)
+  (* Get the byte offset (0-based) in the source from a (line, column) pair.
+     The line is 1-based, the column is 0-based.
+     Raises Not_found.
+     TODO: rename 'bytepos_of_line_col'
+     TODO: return an option instead of raising an exception *)
   conv : int * int -> int;
   extra : 'a;
 }
 
-(* to fill in conv *)
+(* Take a file, return a lookup function that may raise Not_found.
+   This is used to populate the field 'conv' above.
+   TODO: rename 'bytepos_of_line_col' *)
 val line_col_to_pos : Fpath.t -> int * int -> int
 
-(* to fill in conv for pattern parsing *)
+(* Take a string, return a lookup function that may raise Not_found.
+   TODO: rename 'bytepos_of_line_col'
+   TODO: explain what's special about patterns. It seems like it should
+   work for any input string.
+*)
 val line_col_to_pos_pattern : string (* contents *) -> int * int -> int
 
 (* Tree_sitter_run tokens to Tok.t converters *)
