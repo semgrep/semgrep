@@ -41,7 +41,7 @@ local job = {
      {
       name: 'Creating the branch and commiting to it',
       env: {
-        BRANCHNAME: 'sync-with-PRO-x3-${{ github.run_id }}-${{ github.run_attempt }}',
+        BRANCHNAME: 'sync-with-PRO-${{ github.run_id }}-${{ github.run_attempt }}',
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
        // the git config are needed otherwise GHA complains about
