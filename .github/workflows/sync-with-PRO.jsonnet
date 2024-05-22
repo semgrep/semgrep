@@ -42,12 +42,14 @@ local job = {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
        run: |||
+         git format-patch HEAD^
          cd PRO
          git config --global user.name "GitHub Actions Bot"
          git config --global user.email "<>"
          git checkout -b $BRANCHNAME
          #TODO: apply patch from OSS HEAD to this branch
-         rm -f README.md
+         cd OSS
+         patch -p1 ../../0001-*
          git commit -a -m"sync OSS -> PRO"
          git push origin $BRANCHNAME
        |||,
