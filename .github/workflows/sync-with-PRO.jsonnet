@@ -1,8 +1,8 @@
-// TODO: this workflow does not provide a full sync of OSS to Pro.
-// It just takes what is in the HEAD in the OSS repo (e.g., the patch of the
+// Workflow to create a PR to update the Pro repo with changes in OSS.
+// Note that this workflow does not provide a full sync of OSS to Pro;
+// it just takes what is in the HEAD in the OSS repo (e.g., the patch of the
 // release) and create a PR with it in pro. This could be used later
 // also to sync simple contributions to OSS from external contributors.
-// TODO: call this workflow from the release workflow
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local gha = import 'libs/gha.libsonnet';
@@ -13,9 +13,18 @@ local gha = import 'libs/gha.libsonnet';
 
 local job = {
   'runs-on': 'ubuntu-latest',
-  steps: [
+  permissions: gha.write_permissions,
+  steps: semgrep.github_bot.get_token_steps + [
      {
-       run: 'echo TODO'
+      uses: 'actions/checkout@v3',
+      with: {
+        ref: '${{ github.event.repository.default_branch }}',
+        // Use the token provided by the JWT token getter above
+        token: semgrep.github_bot.token_ref,
+      },
+     },
+     {
+       run: 'ls'
      },
   ],
 };
@@ -27,6 +36,7 @@ local job = {
 {
   name: 'sync-with-PRO',
   on: {
+    // TODO: call this workflow from the release workflow
     workflow_dispatch: null,
   },
   jobs: {
