@@ -44,6 +44,7 @@ local job = {
        run: |||
          cd PRO
          git config --global user.name "GitHub Actions Bot"
+         git config --global user.email "<>"
          git checkout -b $BRANCHNAME
          #TODO: apply patch from OSS HEAD to this branch
          rm -f README.md
