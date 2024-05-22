@@ -3,6 +3,8 @@
 // it just takes what is in the HEAD in the OSS repo (e.g., the patch of the
 // release) and create a PR with it in pro. This could be used later
 // also to sync simple contributions to OSS from external contributors.
+// TODO? in theory we could even move this workflow in Pro? (which makes
+// it easier to iterate on)
 
 local semgrep = import 'libs/semgrep.libsonnet';
 local gha = import 'libs/gha.libsonnet';
@@ -42,6 +44,7 @@ local job = {
        run: |||
          cd PRO
          git checkout -b $BRANCHNAME
+         #TODO: apply patch from OSS HEAD to this branch
          rm -f README.md
          git config --global user.name "GitHub Actions Bot"
          git commit -a -m"sync OSS -> PRO"

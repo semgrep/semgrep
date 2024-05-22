@@ -41,6 +41,7 @@ jobs:
         run: |
           cd PRO
           git checkout -b $BRANCHNAME
+          #TODO: apply patch from OSS HEAD to this branch
           rm -f README.md
           git config --global user.name "GitHub Actions Bot"
           git commit -a -m"sync OSS -> PRO"
