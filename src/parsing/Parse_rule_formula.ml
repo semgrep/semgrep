@@ -563,30 +563,31 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
-type principal_constraint = Ccompare | Cfocus | Cmetavar | Canalyzer
+type principal_constraint = Ccompare | Cfocus | Cmetavar | Canalyzer | Ctype
 
 let find_constraint dict =
   fold_dict
-    (fun s ((_, tok), _) -> function
-      | Some res -> Some res
+    (fun s ((_, tok), _) acc ->
+      match acc with
+      (* If we have seen a `metavariable:`, it still could be a
+         metavariable-type or metavariable-analysis.
+         We continue to match to see if it is any of these fields.
+      *)
+      | Some (_, Cmetavar)
       | None -> (
           match s with
           | "comparison" -> Some (tok, Ccompare)
           | "focus" -> Some (tok, Cfocus)
           | "analyzer" -> Some (tok, Canalyzer)
-          (* This can appear in a metavariable-analysis as well, but it shouldn't
-             matter since this case occurs after the `analyzer` one. *)
+          | "type"
+          | "types" ->
+              Some (tok, Ctype)
           | "metavariable" -> Some (tok, Cmetavar)
-          | _ -> None))
+          | _ -> acc)
+      | Some res -> Some res)
     dict None
 
-let rec parse_formula_from_dict (env : env) (rule_dict : dict) : R.formula =
-  let formula = parse_pair env (find_formula env rule_dict) in
-  (* sanity check *)
-  (* bTODO: filter out unconstrained nots *)
-  formula
-
-and parse_formula env (value : G.expr) : R.formula =
+let rec parse_formula env (value : G.expr) : R.formula =
   (* First, try to parse as a string *)
   match parse_str_or_dict env value with
   | Left (s, t) ->
@@ -618,24 +619,26 @@ and parse_formula env (value : G.expr) : R.formula =
       |> R.f
   (* If that doesn't work, it should be a key-value pairing.
    *)
-  | Right dict -> (
-      (* This is ugly, but here's why. *)
-      (* First, we need to figure out if there's a `where`. *)
-      let where_formula =
-        take_opt dict env (fun _env key value -> (key, value)) "where"
-      in
-      match where_formula with
-      (* If there's a `where`, then there must be one key left, the other of which is the
-         pattern. *)
-      | _ when Hashtbl.length dict.h <> 1 ->
-          error env.id dict.first_tok
-            "Expected exactly one key of `pattern`, `all`, `any`, `regex`, \
-             `not`, or `inside`"
-      (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
-      | None -> parse_pair env (find_formula env dict)
-      | Some (((_, t) as key), value) ->
-          parse_pair env (find_formula env dict)
-          |> constrain_where env (t, t) key value)
+  | Right dict -> parse_formula_from_dict env dict
+
+and parse_formula_from_dict env dict =
+  (* This is ugly, but here's why. *)
+  (* First, we need to figure out if there's a `where`. *)
+  let where_formula =
+    take_opt dict env (fun _env key value -> (key, value)) "where"
+  in
+  match where_formula with
+  (* If there's a `where`, then there must be one key left, the other of which is the
+      pattern. *)
+  | _ when Hashtbl.length dict.h <> 1 ->
+      error env.id dict.first_tok
+        "Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, \
+         or `inside`"
+  (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
+  | None -> parse_pair env (find_formula env dict)
+  | Some (((_, t) as key), value) ->
+      parse_pair env (find_formula env dict)
+      |> constrain_where env (t, t) key value
 
 and produce_constraint env dict tok indicator =
   match indicator with
@@ -683,43 +686,17 @@ and produce_constraint env dict tok indicator =
               ("Unsupported analyzer: " ^ other)
       in
       [ Left (t, CondAnalysis (metavar, kind)) ]
-  | Cmetavar ->
+  | Ctype ->
       (* metavariable: ...
          [<pattern-pair>]
          [type: ...]
          [language: ...]
       *)
       let metavar, t = take_key dict env parse_string_wrap "metavariable" in
-      let env', opt_xlang =
+      let opt_xlang =
         match take_opt dict env parse_string "language" with
-        | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
-            let env' =
-              {
-                env with
-                target_analyzer = xlang;
-                path = "metavariable-pattern" :: "metavariable" :: env.path;
-              }
-            in
-            (env', Some xlang)
-        | ___else___ -> (env, None)
-      in
-      let pat =
-        match List_.find_some_opt (H.dict_take_opt dict) formula_keys with
-        | Some ps -> (
-            let env' = { env' with in_metavariable_pattern = true } in
-            let formula = parse_pair env' ps in
-            match formula with
-            | {
-             f = R.P { pat = Xpattern.Regexp regexp; _ };
-             focus = [];
-             conditions = [];
-            } ->
-                (* TODO: always on by default *)
-                [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
-            | _ -> [ Left (t, CondNestedFormula (metavar, opt_xlang, formula)) ]
-            )
-        | None -> []
+        | Some s -> Some (Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s)
+        | ___else___ -> None
       in
       let type_strs =
         take_opt dict env parse_string_wrap "type" |> Option.to_list
@@ -743,7 +720,41 @@ and produce_constraint env dict tok indicator =
             ]
         | _ -> []
       in
-      List.flatten [ pat; typ ]
+      typ
+  | Cmetavar -> (
+      (* metavariable: ...
+         [<pattern-pair>]
+         [language: ...]
+      *)
+      let metavar, t = take_key dict env parse_string_wrap "metavariable" in
+      let env', opt_xlang =
+        match take_opt dict env parse_string "language" with
+        | Some s ->
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
+            let env' =
+              {
+                env with
+                target_analyzer = xlang;
+                path = "metavariable-pattern" :: "metavariable" :: env.path;
+              }
+            in
+            (env', Some xlang)
+        | ___else___ -> (env, None)
+      in
+      let env' = { env' with in_metavariable_pattern = true } in
+      let formula = parse_formula_from_dict env' dict in
+      match formula with
+      | {
+       f = R.P { pat = Xpattern.Regexp regexp; _ };
+       focus = [];
+       conditions = [];
+      } ->
+          [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
+      | _ ->
+          let pat =
+            [ Left (t, R.CondNestedFormula (metavar, opt_xlang, formula)) ]
+          in
+          pat)
 
 and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
     R.formula =

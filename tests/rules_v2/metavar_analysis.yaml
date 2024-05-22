@@ -1,0 +1,11 @@
+rules:
+  - id: generic-entropy-assignment
+    match:
+      pattern: string $A = "$B";
+      where:
+        - metavariable: $B
+          analyzer: entropy
+    message: Found a high-entropy assignment to $A
+    languages:
+      - csharp
+    severity: ERROR
