@@ -44,6 +44,7 @@ local job = {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
        run: |||
+         # will generate a 0001-xxx patch
          git format-patch develop^
          cd PRO
          git config --global user.name "GitHub Actions Bot"
@@ -51,7 +52,11 @@ local job = {
          git checkout -b $BRANCHNAME
          #TODO: apply patch from OSS HEAD to this branch
          cd OSS
-         patch -p1 -R < ../../0001-*
+         # note that this can fail if develop^ is already in Pro
+         # in fact patch will propose to use -R to revert the patch instead
+         patch -p1 < ../../0001-*
+         # TODO: use git am to keep the subject/author/etc of the 0001-xxx
+         # patch but need to sed the path to add OSS/
          git commit -a -m"sync OSS -> PRO"
          git push origin $BRANCHNAME
        |||,
