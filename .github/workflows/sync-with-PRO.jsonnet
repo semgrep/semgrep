@@ -22,6 +22,8 @@ local job = {
       uses: 'actions/checkout@v3',
       with: {
         ref: '${{ github.event.repository.default_branch }}',
+        // fetch all history
+        'fetch-depth': 0,
         // Use the token provided by the JWT token getter above
         token: semgrep.github_bot.token_ref,
       },
