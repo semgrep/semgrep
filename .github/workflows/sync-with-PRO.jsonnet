@@ -51,7 +51,7 @@ local job = {
          git checkout -b $BRANCHNAME
          #TODO: apply patch from OSS HEAD to this branch
          cd OSS
-         patch -p1 < ../../0001-*
+         patch -p1 -R < ../../0001-*
          git commit -a -m"sync OSS -> PRO"
          git push origin $BRANCHNAME
        |||,
