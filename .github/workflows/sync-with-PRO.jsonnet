@@ -20,9 +20,10 @@ local job = {
      {
       name: 'Checkout OSS',
       uses: 'actions/checkout@v3',
-      with: {
+       with: {
+	// 'develop', essentially
         ref: '${{ github.event.repository.default_branch }}',
-        // fetch all history
+        // fetch all history, seems needed to reference develop^ below
         'fetch-depth': 0,
         // Use the token provided by the JWT token getter above
         token: semgrep.github_bot.token_ref,
@@ -43,6 +44,8 @@ local job = {
         BRANCHNAME: 'sync-with-PRO-x3-${{ github.run_id }}-${{ github.run_attempt }}',
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
+       // the git config are needed otherwise GHA complains about
+       // unknown identity
        run: |||
          # will generate a 0001-xxx patch
          git format-patch develop^
