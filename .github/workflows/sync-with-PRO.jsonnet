@@ -38,7 +38,7 @@ local job = {
      {
       name: 'Creating the branch and commiting to it',
       env: {
-        BRANCHNAME: 'sync-with-PRO-${{ github.run_id }}-${{ github.run_attempt }}',
+        BRANCHNAME: 'sync-with-PRO-x1-${{ github.run_id }}-${{ github.run_attempt }}',
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
        run: |||
