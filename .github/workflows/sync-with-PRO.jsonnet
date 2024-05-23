@@ -47,7 +47,7 @@ local job = {
        // the git config are needed otherwise GHA complains about
        // unknown identity
        run: |||
-         if git show --stat develop | grep -q "synced from Pro"; then
+         if git show --stat develop | grep -q "synced from ProXXX"; then
             echo "error: HEAD commit already comes from Pro and cannot be synced"
             exit 1
          fi
