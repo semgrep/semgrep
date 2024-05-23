@@ -29,7 +29,7 @@ local docker_repository_name = 'returntocorp/semgrep';
 local failure_and_right_event =
   "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))";
 
-local snapshot_update_pr_steps = [
+local snapshot_update_pr_steps(add_paths, repo_name) = [
   // because of the fail-fast setting, we expect only the fastest failing
   // job to get to the steps below
   {
@@ -58,7 +58,7 @@ local snapshot_update_pr_steps = [
     'if': failure_and_right_event,
     uses: 'EndBug/add-and-commit@v9',
     with: {
-      add: 'cli/tests/default/e2e/snapshots',
+      add: add_paths,
       default_author: 'github_actions',
       message: 'Update pytest snapshots',
       new_branch: 'snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}',
@@ -77,13 +77,13 @@ local snapshot_update_pr_steps = [
       echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
       echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
       echo >> /tmp/message.txt
-      echo "1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
+      echo "1. Review the changes at https://github.com/semgrep/%(repo_name)s/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
       echo "2. Accept the new snapshots with" >> /tmp/message.txt
       echo >> /tmp/message.txt
       echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
 
       gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
-    |||,
+    ||| % {repo_name: repo_name},
     env: {
       GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
     },
@@ -290,7 +290,10 @@ local test_cli_job = {
         PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
       |||,
     },
-  ] + snapshot_update_pr_steps,
+  ] + snapshot_update_pr_steps(
+    add_paths="cli/tests/default/e2e/snapshots",
+    repo_name="semgrep"
+  ),
 };
 
 // These tests aren't run by default by pytest.
@@ -642,4 +645,8 @@ local ignore_md = {
       },
     },
   },
+  export:: {
+    // Used in semgrep-proprietary.
+    snapshot_update_pr_steps: snapshot_update_pr_steps
+  }
 }
