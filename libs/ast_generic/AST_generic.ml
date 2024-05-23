@@ -2423,12 +2423,7 @@ let special_multivardef_pattern = "!MultiVarDef!"
 (* Semgrep hacks *)
 (*****************************************************************************)
 
-(* !!You should not use the function below!! You should use instead
- * Metavars_generic.is_metavar_name. If you use the function below,
- * it probably means you have an ugly dependency to semgrep that you
- * should not have.
- * coupling: Metavariable.is_metavar_name
- *)
+(* coupling: Metavariable.is_metavar_name *)
 let is_metavar_name s = Common.( =~ ) s "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
 
 (* coupling: Metavariable.is_metavar_ellipsis *)
