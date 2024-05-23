@@ -1,3 +1,9 @@
+# TODO: this file is now unused!
+# ***************************************************************************
+# *** Once you have checked that a config for a hook was ported to the
+# *** new git project root, remove it from here.
+# ***************************************************************************
+#
 # Semgrep pre-commit configuration.
 # See https://pre-commit.com/ for more information.
 # Once pre-commit is installed, you can run it locally with `pre-commit run --all`.
@@ -57,8 +63,6 @@ repos:
       - id: debug-statements
       - id: destroyed-symlinks
       - id: detect-private-key
-      - id: end-of-file-fixer
-        exclude: "^\\.github/workflows/.+|semgrep\\.opam|.gitmodules$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
