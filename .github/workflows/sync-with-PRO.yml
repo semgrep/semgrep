@@ -39,22 +39,7 @@ jobs:
           BRANCHNAME: sync-with-PRO-${{ github.run_id }}-${{ github.run_attempt }}
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Creating the branch and commiting to it
-        run: |
-          # will generate a 0001-xxx patch
-          git format-patch develop^
-          cd PRO
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "<>"
-          git checkout -b $BRANCHNAME
-          #TODO: apply patch from OSS HEAD to this branch
-          cd OSS
-          # note that this can fail if develop^ is already in Pro
-          # in fact patch will propose to use -R to revert the patch instead
-          patch -p1 < ../../0001-*
-          # TODO: use git am to keep the subject/author/etc of the 0001-xxx
-          # patch but need to sed the path to add OSS/
-          git commit -a -m"sync OSS -> PRO"
-          git push origin $BRANCHNAME
+        run: "if git show --stat develop | grep -q \"synced from Pro\"; then\n   echo \"error: HEAD commit already comes from Pro and cannot be synced\"\n   exit 1\nfi\n# will generate a 0001-xxx patch\ngit format-patch develop^\n\ncd PRO\ngit config --global user.name \"GitHub Actions Bot\"\ngit config --global user.email \"<>\"\ngit checkout -b $BRANCHNAME\n\n# note that this can fail if develop^ is already in Pro\ngit am --directory=OSS ../0001-*\ngit log -1 --pretty=%B >message\necho \"\" >>message \necho \"synced from OSS $(git rev-parse HEAD)\" >>message\ngit commit --amend -F message\ngit push origin $BRANCHNAME\n"
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Create the Pull request with gh
