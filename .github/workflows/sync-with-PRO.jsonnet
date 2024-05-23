@@ -1,8 +1,11 @@
 // Workflow to create a PR to update the Pro repo with changes in OSS.
+//
 // Note that this workflow does not provide a full sync of OSS to Pro;
-// it just takes what is in the HEAD in the OSS repo (e.g., the patch of the
-// release) and create a PR with it in pro. This could be used later
-// also to sync simple contributions to OSS from external contributors.
+// it just takes what is in the HEAD in develop in the OSS repo
+// (e.g., the patch of the release that bumps the version) and create a PR
+// with it in pro.
+// This could be used later also to sync simple contributions to OSS from
+// external contributors.
 // TODO? in theory we could even move this workflow in Pro? (which makes
 // it easier to iterate on)
 
@@ -21,8 +24,7 @@ local job = {
       name: 'Checkout OSS',
       uses: 'actions/checkout@v3',
        with: {
-        // 'develop', essentially
-        ref: '${{ github.event.repository.default_branch }}',
+        ref: 'develop',
         // fetch all history, seems needed to reference develop^ below
         'fetch-depth': 0,
         // Use the token provided by the JWT token getter above
@@ -47,7 +49,7 @@ local job = {
        // the git config are needed otherwise GHA complains about
        // unknown identity
        run: |||
-         if git show --stat develop | grep -q "synced from ProXXX"; then
+         if git show --stat develop | grep -q "synced from Pro"; then
             echo "error: HEAD commit already comes from Pro and cannot be synced"
             exit 1
          fi
@@ -58,12 +60,10 @@ local job = {
          git config --global user.name "GitHub Actions Bot"
          git config --global user.email "<>"
          git checkout -b $BRANCHNAME
-
-         # note that this can fail if develop^ is already in Pro
          git am --directory=OSS ../0001-*
          git log -1 --pretty=%B >message
          echo "" >>message
-         echo "synced from OSS $(git rev-parse HEAD)" >>message
+         echo "synced from OSS $(git rev-parse develop)" >>message
          git commit --amend -F message
          git push origin $BRANCHNAME
        |||,
