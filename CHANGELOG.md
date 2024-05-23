@@ -6,6 +6,32 @@
 
 <!-- insertion point -->
 
+## [1.74.0](https://github.com/returntocorp/semgrep/releases/tag/v1.74.0) - 2024-05-23
+
+
+### Fixed
+
+
+- One part of interfile tainting was missing a constant propagation phase, which causes semgrep to miss some true positives in some cases during interfile analysis.
+
+  This fix adds the missing constant propagation. (saf-1032)
+- Semgrep now matches YAML tags (e.g. `!number` in `!number 42`) correctly rather
+  than ignoring them. (saf-1046)
+- Upgraded Semgrep's Dockerfile parser. This brings in various
+  [fixes from
+  tree-sitter-dockerfile](https://github.com/camdencheek/tree-sitter-dockerfile/releases/tag/v0.2.0)
+  including minimal support for heredoc templates, support for variables in keys
+  of LABEL instructions, support for multiple parameters for ADD and COPY
+  instructions, tolerance for blanks after the backslash of a line continuation.
+  As a result of supporting variables in LABEL keys, the multiple key/value
+  pairs found in LABEL instructions are now treated as if they each had they own
+  LABEL instruction. It allows a pattern `LABEL a=b` to match `LABEL a=b c=d`
+  without the need for an ellipsis (`LABEL a=b ...`). Another consequence is
+  that the pattern `LABEL a=b c=d` can no longer match `LABEL c=d a=b` but it
+  will match a `LABEL a=b` instruction immediately followed by a separate
+  `LABEL c=d`. (upgrade-dockerfile-parser)
+
+
 ## [1.73.0](https://github.com/returntocorp/semgrep/releases/tag/v1.73.0) - 2024-05-16
 
 
