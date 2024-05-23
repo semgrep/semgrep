@@ -1,7 +1,7 @@
 ###############################################################################
 # Prelude
 ###############################################################################
-
+#
 # Many targets in this Makefile assume some commands have been run before to
 # setup the correct build environment supporting the different languages
 # used for Semgrep development:
@@ -50,7 +50,7 @@
 ###############################################################################
 # Build (and clean) targets
 ###############################################################################
-
+#
 # Set environment variables used by dune files to locate the
 # C headers and libraries of the tree-sitter runtime library.
 # This file is created by ocaml-tree-sitter-core's configure script.
