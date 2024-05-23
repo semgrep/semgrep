@@ -55,7 +55,7 @@ local job = {
          fi
          # will generate a 0001-xxx patch
          git format-patch develop^
-
+         OSSREF=`git rev-parse develop`
          cd PRO
          git config --global user.name "GitHub Actions Bot"
          git config --global user.email "<>"
@@ -63,7 +63,7 @@ local job = {
          git am --directory=OSS ../0001-*
          git log -1 --pretty=%B >message
          echo "" >>message
-         echo "synced from OSS $(git rev-parse develop)" >>message
+         echo "synced from OSS $OSSREF" >>message
          git commit --amend -F message
          git push origin $BRANCHNAME
        |||,
