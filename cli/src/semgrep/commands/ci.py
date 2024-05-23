@@ -422,6 +422,7 @@ def ci(
             console.print(
                 f"Installed at [bold]{engine_type.get_binary_path()}[/bold]",
                 markup=True,
+                soft_wrap=True,
             )
         else:
             run_install_semgrep_pro()
