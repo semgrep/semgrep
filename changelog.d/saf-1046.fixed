@@ -1,2 +1,0 @@
-Semgrep now matches YAML tags (e.g. `!number` in `!number 42`) correctly rather
-than ignoring them.
