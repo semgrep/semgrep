@@ -1,0 +1,15 @@
+# MATCH:
+- !number 42
+
+# MATCH:
+- !list [ 1, 2, 3 ]
+
+# MATCH:
+- !record
+    a: 1
+    b: 2
+
+# MATCH:
+- !other 42
+
+- 42
