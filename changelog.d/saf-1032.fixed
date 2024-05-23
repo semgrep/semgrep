@@ -1,3 +1,0 @@
-One part of interfile tainting was missing a constant propagation phase, which causes semgrep to miss some true positives in some cases during interfile analysis.
-
-This fix adds the missing constant propagation.
