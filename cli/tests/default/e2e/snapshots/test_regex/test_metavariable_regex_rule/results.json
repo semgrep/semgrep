@@ -18,7 +18,7 @@
   },
   "results": [
     {
-      "check_id": "rules.metavar-test",
+      "check_id": "rules.metavariable-regex.metavar-test",
       "end": {
         "col": 32,
         "line": 1,
@@ -70,7 +70,7 @@
       }
     },
     {
-      "check_id": "rules.metavar-test",
+      "check_id": "rules.metavariable-regex.metavar-test",
       "end": {
         "col": 35,
         "line": 2,

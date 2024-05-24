@@ -8,7 +8,7 @@
   },
   "results": [
     {
-      "check_id": "rules.detected-aws-account-id",
+      "check_id": "rules.regex.detected-aws-account-id",
       "end": {
         "col": 28,
         "line": 3,

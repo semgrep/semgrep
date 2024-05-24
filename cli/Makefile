@@ -78,7 +78,7 @@ test:
 #     - slow: ???
 # Old from Pad's machine:
 # - 'make e2e' (=~ 2m20s?)
-# - 'make e2e-pro' (=~ 2m20s?)
+# - 'make e2e-other' (=~ 2m20s?)
 # - 'make kinda-quick-tests' (=~ 3min40s )
 # - 'make test' (=~ 11min)
 #
@@ -111,9 +111,9 @@ test-dev:
 e2e:
 	$(PYTEST) tests/default/e2e
 
-.PHONY: e2e-pro
-e2e-pro:
-	$(PYTEST) -m 'not no_semgrep_cli and not todo' tests/default/e2e-pro
+.PHONY: e2e-other
+e2e-other:
+	$(PYTEST) -m 'not no_semgrep_cli and not todo' tests/default/e2e-other
 
 # For tests that require login and the pro binary.
 #

@@ -11,7 +11,7 @@
       "results": [
         {
           "fingerprints": {
-            "matchBasedId/v1": "1ccfdeae9247f2f32c35443f3bf87d4fd67e4d58b25adfcdb7dd5fc74079c09713a2e45e39f1f46e12361f98aa492bfba2a4983d4e9f409c02dfcff1ba254f20_0"
+            "matchBasedId/v1": "4440db758833756e8f31ad014849570b368174a5ce270a6fcea3a14c8d4259987169a5419ccf5f86b76cd4aae5375f57e702b01b9a512793033238556aa0191b_0"
           },
           "locations": [
             {
@@ -36,7 +36,7 @@
             "text": "AWS Account ID detected"
           },
           "properties": {},
-          "ruleId": "rules.detected-aws-account-id",
+          "ruleId": "rules.regex.detected-aws-account-id",
           "suppressions": [
             {
               "kind": "inSource"
@@ -45,7 +45,7 @@
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "1ccfdeae9247f2f32c35443f3bf87d4fd67e4d58b25adfcdb7dd5fc74079c09713a2e45e39f1f46e12361f98aa492bfba2a4983d4e9f409c02dfcff1ba254f20_1"
+            "matchBasedId/v1": "4440db758833756e8f31ad014849570b368174a5ce270a6fcea3a14c8d4259987169a5419ccf5f86b76cd4aae5375f57e702b01b9a512793033238556aa0191b_1"
           },
           "locations": [
             {
@@ -70,7 +70,7 @@
             "text": "AWS Account ID detected"
           },
           "properties": {},
-          "ruleId": "rules.detected-aws-account-id"
+          "ruleId": "rules.regex.detected-aws-account-id"
         }
       ],
       "tool": {
@@ -88,14 +88,14 @@
                 "markdown": "AWS Account ID detected",
                 "text": "AWS Account ID detected"
               },
-              "id": "rules.detected-aws-account-id",
-              "name": "rules.detected-aws-account-id",
+              "id": "rules.regex.detected-aws-account-id",
+              "name": "rules.regex.detected-aws-account-id",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.detected-aws-account-id"
+                "text": "Semgrep Finding: rules.regex.detected-aws-account-id"
               }
             }
           ],

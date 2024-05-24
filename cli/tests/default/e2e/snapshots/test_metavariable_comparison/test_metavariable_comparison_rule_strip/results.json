@@ -18,28 +18,42 @@
   },
   "results": [
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.metavariable-comparison.metavar-comparison-test-strip",
       "end": {
-        "col": 35,
-        "line": 2,
-        "offset": 47
+        "col": 42,
+        "line": 1,
+        "offset": 41
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "boto3.client(host=\"123.123.123.123\")",
-        "message": "test regex message",
+        "lines": "metavariable_comparison_test_strip('100')",
+        "message": "Metavariable regex test",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "'100'",
+            "end": {
+              "col": 41,
+              "line": 1,
+              "offset": 40
+            },
+            "start": {
+              "col": 36,
+              "line": 1,
+              "offset": 35
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
-      "path": "targets/basic/regex.py",
+      "path": "targets/basic/metavariable-comparison-strip.py",
       "start": {
-        "col": 20,
-        "line": 2,
-        "offset": 32
+        "col": 1,
+        "line": 1,
+        "offset": 0
       }
     }
   ],

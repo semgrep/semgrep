@@ -18,42 +18,42 @@
   },
   "results": [
     {
-      "check_id": "rules.metavar-comparison-test-strip",
+      "check_id": "rules.metavariable-regex.metavar-test-multi-rule",
       "end": {
-        "col": 42,
-        "line": 1,
-        "offset": 41
+        "col": 37,
+        "line": 3,
+        "offset": 81
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "metavariable_comparison_test_strip('100')",
-        "message": "Metavariable regex test",
+        "lines": "    metavariable_regex_test.method()",
+        "message": "Metavariable regex test multi rule",
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "'100'",
+            "abstract_content": "method",
             "end": {
-              "col": 41,
-              "line": 1,
-              "offset": 40
+              "col": 35,
+              "line": 3,
+              "offset": 79
             },
             "start": {
-              "col": 36,
-              "line": 1,
-              "offset": 35
+              "col": 29,
+              "line": 3,
+              "offset": 73
             }
           }
         },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
-      "path": "targets/basic/metavariable-comparison-strip.py",
+      "path": "targets/basic/metavariable-regex-multi-rule.py",
       "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
+        "col": 5,
+        "line": 3,
+        "offset": 49
       }
     }
   ],
