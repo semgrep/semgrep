@@ -12,7 +12,7 @@ from semgrep.constants import OutputFormat
 def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-nosemgrep.yaml",
+            "rules/regex/regex-nosemgrep.yaml",
             target_name="basic/regex-nosemgrep.txt",
             output_format=OutputFormat.SARIF,
         ).stdout,

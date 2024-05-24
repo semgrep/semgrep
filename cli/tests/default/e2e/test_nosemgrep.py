@@ -7,7 +7,7 @@ from tests.fixtures import RunSemgrep
 def test_regex_rule__nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-nosemgrep.yaml", target_name="basic/regex-nosemgrep.txt"
+            "rules/regex/regex-nosemgrep.yaml", target_name="basic/regex-nosemgrep.txt"
         ).stdout,
         "results.json",
     )

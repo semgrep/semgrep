@@ -18,7 +18,7 @@
   },
   "results": [
     {
-      "check_id": "rules.metavar-test-multi-regex",
+      "check_id": "rules.metavariable-regex.metavar-test-multi-regex",
       "end": {
         "col": 38,
         "line": 1,

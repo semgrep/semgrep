@@ -8,7 +8,7 @@
   },
   "results": [
     {
-      "check_id": "rules.use-absolute-workdir",
+      "check_id": "rules.metavariable-regex.use-absolute-workdir",
       "end": {
         "col": 20,
         "line": 4,
@@ -83,7 +83,7 @@
       }
     },
     {
-      "check_id": "rules.use-absolute-workdir",
+      "check_id": "rules.metavariable-regex.use-absolute-workdir",
       "end": {
         "col": 19,
         "line": 11,

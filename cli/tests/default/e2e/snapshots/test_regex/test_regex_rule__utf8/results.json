@@ -8,7 +8,7 @@
   },
   "results": [
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.regex.test-regex",
       "end": {
         "col": 5,
         "line": 2,
@@ -33,7 +33,7 @@
       }
     },
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.regex.test-regex",
       "end": {
         "col": 5,
         "line": 5,
@@ -58,7 +58,7 @@
       }
     },
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.regex.test-regex",
       "end": {
         "col": 9,
         "line": 11,

@@ -64,8 +64,8 @@ def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
 @pytest.mark.parametrize(
     "rule",
     [
-        "rules/regex-capture-groups.yaml",
-        "rules/numeric-regex-capture-rule.yaml",
+        "rules/regex/regex-capture-groups.yaml",
+        "rules/regex/numeric-regex-capture-rule.yaml",
         "rules/patternless-sca-rule.yaml",
     ],
 )
