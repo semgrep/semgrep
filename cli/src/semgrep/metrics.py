@@ -360,6 +360,11 @@ class Metrics:
                 )
                 for target_times in profile.targets
             ]
+            # Sorted by key so that variation in target order can't be
+            # noticed by different ordering of file sizes.
+            self.payload.performance.fileStats = sorted(
+                self.payload.performance.fileStats, key=lambda fs: fs.size
+            )
         # TODO: fit the data in profile?
         total_bytes_scanned = sum(t.stat().st_size for t in targets)
         self.payload.performance.totalBytesScanned = total_bytes_scanned
