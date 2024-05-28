@@ -20,5 +20,4 @@ release-homebrew.yml
 trigger-semgrep-comparison-argo.yml
 build-test-docker.yml
 push-docker.yml
-promote-canary-to-latest.yml
 sync-with-PRO.yml

@@ -121,12 +121,13 @@ let profile_diagnostic () : string =
     in
     Buffer_.with_buffer_to_string (fun buf ->
         let prf fmt = Printf.bprintf buf fmt in
-        prf "---------------------";
-        prf "profiling result";
-        prf "---------------------";
+        prf "\n";
+        prf "---------------------\n";
+        prf "profiling result\n";
+        prf "---------------------\n";
         xs
         |> List.iter (fun (k, (t, n)) ->
-               prf "%-40s : %10.3f sec %10d count" k !t !n))
+               prf "%-40s : %10.3f sec %10d count\n" k !t !n))
 
 let warn_if_take_time timethreshold s f =
   let t = Unix.gettimeofday () in
