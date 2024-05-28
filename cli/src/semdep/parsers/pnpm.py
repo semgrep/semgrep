@@ -51,7 +51,7 @@ def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
 
 
 def parse_package_key_post_9(key: str) -> Optional[Tuple[str, str]]:
-    match = re.compile(r"(.+?)(?:@([^(@]+))").match(key)
+    match = re.compile(r"(.+?)@([^(@]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
 
