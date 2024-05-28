@@ -35,7 +35,6 @@ def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
 
 
 def parse_package_key_pre_6(key: str) -> Optional[Tuple[str, str]]:
-    # /package/version /@babel/helper-string-parser/7.19.4:
     match = re.compile(r"/(.+)/([^/]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
@@ -47,15 +46,12 @@ def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
 
 
 def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
-    # /package@version or /@scope/package@version
-    # starting / seems optional https://github.com/pnpm/pnpm/pull/7752/files
-    match = re.compile(r"/?(.+?)@([^(@]+)").match(key)
+    match = re.compile(r"/(.+?)@([^(@]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
 
 def parse_package_key_post_9(key: str) -> Optional[Tuple[str, str]]:
-    # package@version or '@scope/package@version'
-    match = re.compile(r"(.+?)@([^(@]+)").match(key)
+    match = re.compile(r"(.+?)(?:@([^(@]+))").match(key)
     return match.groups() if match else None  # type: ignore
 
 

@@ -2,7 +2,6 @@ module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
 module H = Cmdliner_
-open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -94,12 +93,14 @@ let o_args : string list Term.t =
 (*************************************************************************)
 let target_kind_of_roots_and_config target_roots config =
   match (target_roots, config) with
-  | [ file ], [ config ] ->
-      if Sys.file_exists !!file && Sys.is_directory !!file then
-        Dir (file, Some config)
-      else File (file, config)
-  | [ file ], [] ->
-      if Sys.is_directory !!file then Dir (file, None)
+  | [ x ], [ config ] ->
+      let file_str = Fpath.to_string x in
+      if Sys.file_exists file_str && Sys.is_directory file_str then
+        Dir (x, Some config)
+      else File (x, config)
+  | [ x ], [] ->
+      let file_str = Fpath.to_string x in
+      if Sys.is_directory file_str then Dir (x, None)
       else
         (* was raise Exception but cleaner abort I think *)
         Error.abort "--config is required when running a test on single file"
