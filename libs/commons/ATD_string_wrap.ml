@@ -57,7 +57,7 @@ module Datetime = struct
     | Error s -> failwith (spf "wrong datetime format: %s" s)
 
   let () =
-    Testo.test "Datetime" (fun () ->
+    Testo.test "ATD_string_wrap.Datetime" (fun () ->
         let now = Timedesc.Timestamp.now () in
         let s : string = unwrap now in
         let now' = wrap s in
