@@ -35,7 +35,6 @@ def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
 
 
 def parse_package_key_pre_6(key: str) -> Optional[Tuple[str, str]]:
-    # /package/version /@babel/helper-string-parser/7.19.4:
     match = re.compile(r"/(.+)/([^/]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
@@ -47,14 +46,7 @@ def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
 
 
 def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
-    # /package@version or /@scope/package@version
     match = re.compile(r"/(.+?)@([^(@]+)").match(key)
-    return match.groups() if match else None  # type: ignore
-
-
-def parse_package_key_post_9(key: str) -> Optional[Tuple[str, str]]:
-    # package@version or '@scope/package@version'
-    match = re.compile(r"(.+?)@([^(@]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
 
@@ -79,12 +71,11 @@ def parse_pnpm(
     except KeyError:
         return [], errors
 
-    if lockfile_version <= 5.4:
-        parse_direct, parse_package_key = parse_direct_pre_6, parse_package_key_pre_6
-    elif lockfile_version < 9.0:
-        parse_direct, parse_package_key = parse_direct_post_6, parse_package_key_post_6
-    else:
-        parse_direct, parse_package_key = parse_direct_post_6, parse_package_key_post_9
+    parse_direct, parse_package_key = (
+        (parse_direct_pre_6, parse_package_key_pre_6)
+        if lockfile_version <= 5.4
+        else (parse_direct_post_6, parse_package_key_post_6)
+    )
 
     if "importers" in parsed_lockfile.value:
         direct_deps = {
