@@ -424,15 +424,16 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
   let after = Str.string_after line end_col in
   ((if is_cut_off then "..." ^ before else before), inside, after)
 
-let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
+let json_of_matches
+    (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
   let json =
     List_.map
       (fun (path, matches) ->
         let uri = !!path |> Uri.of_path |> Uri.to_string in
         let matches =
           matches
-          |> List_.map (fun (m : Pattern_match.t) ->
-                 let range = Conv.range_of_toks m.range_loc in
+          |> List_.map (fun (m : Core_result.processed_match) ->
+                 let range = Conv.range_of_toks m.pm.range_loc in
                  let range_json = Range.yojson_of_t range in
                  let line = List.nth (UFile.cat path) range.start.line in
                  let before, inside, after =
@@ -444,9 +445,9 @@ let json_of_matches (matches_by_file : (Fpath.t * Pattern_match.t list) list) =
                        ~col_range:(range.start.character, String.length line)
                  in
                  let fix_json =
-                   match m.rule_id.fix with
+                   match m.autofix_edit with
                    | None -> `Null
-                   | Some s -> `String s
+                   | Some e -> `String e.replacement_text
                  in
                  `Assoc
                    [
