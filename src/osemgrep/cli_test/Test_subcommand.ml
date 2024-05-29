@@ -7,13 +7,23 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Parse a semgrep-test command, execute it and exit.
  *
+ * For each directory containing YAML rules, run those rules on the file in the
+ * same directory with the same name but different extension.
+ * E.g. eqeq.yaml runs on eqeq.py.
+ * Validate that the output is annotated in the source file with by looking for
+ * a comment like:
+ * ```
+ * # ruleid:eqeq-is-bad
+ * ```
+ * On the preceeding line.
+ *
+ * For more info on how to use Semgrep rule testing infrastructure, see
+ * https://semgrep.dev/docs/writing-rules/testing-rules/.
+ *
  * There was no 'pysemgrep test' subcommand. Tests were run via
  * 'semgrep scan --test ...' but it's better to have a separate
  * subcommand. Note that the legacy 'semgrep scan --test' is redirected
  * to this file after having built a compatible Test_CLI.conf.
- *
- * For more info on how to use Semgrep rule testing infrastructure, see
- * https://semgrep.dev/docs/writing-rules/testing-rules/.
  *
  * TODO: conf.ignore_todo? conf.strict?
  * LATER: factorize code with Unit_engine.ml and Test_engine.ml
@@ -57,18 +67,13 @@ type annotation_kind =
   | Todoruleid
   (* Are reported but should not (FP) *)
   | Todook
-
-(* TODO?
- *  - support multi ruleids separated by commas?
- *  - support possible leading deepok:
- *  - support pro/deep annotations?
- *  - check comments?
- *)
-let annotation_regex =
-  ".*\\b\\(ruleid\\|ok\\|todoruleid\\|todook\\):[ \t]*\\([^ \t]+\\).*"
+[@@deriving show]
 
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
-type annotation = annotation_kind * Rule_ID.t
+type annotation = annotation_kind * Rule_ID.t [@@deriving show]
+
+(* just to get a show_annotations *)
+type annotations = annotation list [@@deriving show]
 
 (* starts at 1 *)
 type linenb = int
@@ -77,7 +82,6 @@ type linenb = int
  * and also the errors in rule_result.
  * type config_with_error_output = ...
  *)
-
 type error =
   (* there is a rule but there is no target file *)
   | MissingTest of Fpath.t (* rule file *)
@@ -104,6 +108,101 @@ let annotation_kind_of_string (str : string) : annotation_kind =
   | "todook" -> Todook
   | s -> failwith (spf "not a valid annotation: %s" s)
 
+let (comment_syntaxes : (string * string option) list) =
+  [ ("#", None); ("//", None); ("<!--", Some "-->"); ("(*", Some "*)") ]
+
+let remove_enclosing_comment_opt (str : string) : string option =
+  comment_syntaxes
+  |> List.find_map (fun (prefix, suffixopt) ->
+         if String.starts_with ~prefix str then
+           let str = Str.string_after str (String.length prefix) in
+           match suffixopt with
+           | None -> Some str
+           | Some suffix ->
+               if String.ends_with ~suffix str then
+                 let before = String.length str - String.length suffix in
+                 Some (Str.string_before str before)
+               else (
+                 Logs.warn (fun m ->
+                     m "could not find end comment %s in %s" suffix str);
+                 Some str)
+         else None)
+
+let () =
+  Testo.test "Test_subcommand.remove_enclosing_comment_opt" (fun () ->
+      let test (str : string) (expected : string option) =
+        let res = remove_enclosing_comment_opt str in
+        if not (res =*= expected) then
+          failwith
+            (spf "didn't match, got %s, expected %s" (Dumper.dump res)
+               (Dumper.dump expected))
+      in
+      test "# foobar" (Some " foobar");
+      test "// foobar" (Some " foobar");
+      test "<!-- foobar -->" (Some " foobar ");
+      ())
+
+let prefilter_annotation_regexp = ".*\\(ruleid\\|ok\\|todoruleid\\|todook\\):.*"
+let annotation_regexp = "^\\(ruleid\\|ok\\|todoruleid\\|todook\\):\\(.*\\)"
+
+(* This does a few things:
+ *  - check comments: #, //, ( *, <--
+ *  - support multiple ruleids separated by commas
+ *  - support possible leading deepok:
+ *  - TODO? support pro/deep annotations?
+ *)
+let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
+    (annotation * linenb) list =
+  let s = orig_str in
+  let error_context = spf "in %s line %d" !!file idx in
+  if s =~ prefilter_annotation_regexp then
+    (* " <!-- ruleid: foo.bar --> " *)
+    let s = String.trim s in
+    (* "<!-- ruleid: foo.bar -->" *)
+    let res = remove_enclosing_comment_opt s in
+    match res with
+    | None ->
+        (* some Javascript code has valid code such as { ok: true } that is not
+         * a semgrep annotation *)
+        Logs.debug (fun m ->
+            m "skipping %s, actually not an annotation" orig_str);
+        []
+    | Some s ->
+        (* " ruleid: foo.bar " *)
+        let s = String.trim s in
+        (* "ruleid: foo.bar" *)
+        if s =~ annotation_regexp then
+          let kind_str, ids_str = Common.matched2 s in
+          let kind = annotation_kind_of_string kind_str in
+          let s = String.trim ids_str in
+          let s =
+            (* indicate that no finding is expected in interfile analysis *)
+            let prefix = "deepok:" in
+            if String.starts_with ~prefix s then
+              Str.string_after s (String.length prefix)
+            else ids_str
+          in
+          let xs =
+            Str.split_delim (Str.regexp "[ \t]*,[ \t]*") s
+            |> List_.map String.trim
+          in
+          xs
+          |> List_.map_filter (fun id_str ->
+                 match Rule_ID.of_string_opt id_str with
+                 | Some id -> Some ((kind, id), idx)
+                 | None ->
+                     Logs.warn (fun m ->
+                         m
+                           "malformed rule ID '%s' (%s) skipping this \
+                            annotation"
+                           id_str error_context);
+                     None)
+        else (
+          Logs.warn (fun m ->
+              m "could not parse annotation: %s (%s)" orig_str error_context);
+          [])
+  else []
+
 (* Note that this returns the line of the annotation itself. In practice,
  * you must then add +1 to it if you want to compare it to where semgrep
  * report matches.
@@ -113,18 +212,30 @@ let annotation_kind_of_string (str : string) : annotation_kind =
  *)
 let annotations (file : Fpath.t) : (annotation * linenb) list =
   UFile.cat file |> List_.index_list_1
-  |> List_.map_filter (fun (s, idx) ->
-         if s =~ annotation_regex then (
-           let kind_str, id_str = Common.matched2 s in
-           let kind = annotation_kind_of_string kind_str in
-           match Rule_ID.of_string_opt id_str with
-           | Some id -> Some ((kind, id), idx)
-           | None ->
-               Logs.warn (fun m ->
-                   m "malformed rule ID '%s' in %s; skipping this annotation"
-                     id_str !!file);
-               None)
-         else None)
+  |> List.concat_map (fun (s, idx) -> annotations_of_string s file idx)
+
+let () =
+  Testo.test "Test_subcommand.annotations" (fun () ->
+      let test (str : string) (expected : annotations) =
+        let xs =
+          annotations_of_string str (Fpath.v "foo") 0
+          |> List_.map (fun (annot, _idx) -> annot)
+        in
+        if not (xs =*= expected) then
+          failwith
+            (spf "Annotations didn't match, got %s, expected %s"
+               (show_annotations xs)
+               (show_annotations expected))
+      in
+      test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string "foo.bar") ];
+      test "// ruleid: foo, bar"
+        [ (Ruleid, Rule_ID.of_string "foo"); (Ruleid, Rule_ID.of_string "bar") ];
+      test "<!-- ruleid: foo-bar -->" [ (Ruleid, Rule_ID.of_string "foo-bar") ];
+      (* the ok: does not mean it's an annot; it's regular (JS) code *)
+      test "return res.send({ok: true})" [];
+      test "// ruleid: deepok: foo.deep"
+        [ (Ruleid, Rule_ID.of_string "foo.deep") ];
+      ())
 
 (* Keep only the Ruleid and Todook, group them by rule id, and adjust
  * the linenb + 1 so it can be used to compare actual matches.
@@ -168,6 +279,10 @@ let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
           m "too many languages found in %s, picking the first one: %s"
             rules_origin (Xlang.show fst));
       fst
+
+(*****************************************************************************)
+(* Rule fetching *)
+(*****************************************************************************)
 
 let rule_files_and_rules_of_config_string caps
     (config_string : Rules_config.config_string) : (Fpath.t * Rule.t list) list
@@ -238,7 +353,6 @@ let fixtest_result_for_target (_env : env) (target : Fpath.t)
     match actual_res with
     | Textedit.Success actual_content ->
         let passed = expected_content = actual_content in
-        (* TODO: print the diff *)
         (if not passed then
            let diff = unix_diff expected_content actual_content in
            Logs.err (fun m ->
@@ -344,7 +458,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  *       but requires a dependency to cli_scan/, and is a bit heavyweight
  *       for our need which is just to run a few rules on a target test file.
  *
- * For 'osemgrep test', it's better to call directly
+ * For 'osemgrep test', it is better to call directly
  * Match_rules.check() and use a few helpers from Test_engine.ml.
  *
  * LATER: what about extract rules? They are not handled by Match_rules.check().
@@ -352,7 +466,7 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  * semgrep Pro yet, so we should be good for now. If we want to write
  * extract-mode rule tests, we'll need to adjust things.
  *
- * See also semgrep-server/src/.../Studio_service.ml comment
+ * See also server/src/.../Studio_service.ml comment
  * on where to plug to the semgrep engine.
  *)
 
@@ -415,7 +529,9 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
              Logs.err (fun m ->
                  m "test failed for rule id %s on target %s"
                    (Rule_ID.to_string id) !!target);
-           (* TODO: not sure why but pysemgrep uses realpaths here *)
+           (* TODO: not sure why but pysemgrep uses realpaths here, which is
+            * a bit annoying because it forces us to use masks in test snapshots
+            *)
            let filename = Unix.realpath !!target in
            let (rule_result : Out.rule_result) =
              Out.
