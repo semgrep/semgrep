@@ -15,6 +15,8 @@
 #    is is a bit harder to test here given how run_semgrep_in_tmp() was
 #    designed with always a 'config' and a 'target_name' parameter
 #    (and the fact that the e2e rules and targets are in different dirs)
+#    (maybe we could write this test in Testo instead and for osemgrep-only
+#    once we removed test.py)
 import os
 import subprocess
 from pathlib import Path
@@ -117,7 +119,6 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # It should support multiple annotations per line in a test file as
 # in '#ruleid: rule1, rule2'
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/overlapping_rules.yaml",
