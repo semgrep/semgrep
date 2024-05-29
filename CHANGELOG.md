@@ -6,6 +6,21 @@
 
 <!-- insertion point -->
 
+## [1.75.0](https://github.com/returntocorp/semgrep/releases/tag/v1.75.0) - 2024-05-29
+
+
+### Added
+
+
+- Add support for pnpm v9 (pnpm)
+
+
+### Fixed
+
+
+- Removed the URLs at the end of the log when semgrep ci --dryrun is ran because dry run doesn't interact with the app so the URLs don't make sense. (saf-924)
+
+
 ## [1.74.0](https://github.com/returntocorp/semgrep/releases/tag/v1.74.0) - 2024-05-23
 
 
