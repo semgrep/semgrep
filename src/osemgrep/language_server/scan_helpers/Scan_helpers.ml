@@ -180,12 +180,7 @@ let run_core_search xconf rule (file : Fpath.t) =
         let ({ Core_result.matches; _ } : _ Core_result.match_result) =
           Match_search_mode.check_rule rule hook xconf xtarget
         in
-        let matches_with_fixes =
-          matches
-          |> List_.map Core_result.mk_processed_match
-          |> Autofix.produce_autofixes
-        in
-        Some matches_with_fixes
+        Some matches
       else None
     with
     | Parsing_error.Syntax_error _ -> None

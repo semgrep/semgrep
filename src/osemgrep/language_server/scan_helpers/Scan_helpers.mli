@@ -15,7 +15,7 @@ val run_core_search :
   Match_env.xconfig ->
   Rule.search_rule ->
   Fpath.t ->
-  Core_result.processed_match list option
+  Pattern_match.t list option
 (** [run_core_search] runs a search intended for the /semgrep/search IDE
     search command, by hooking lower into the Match_search_mode matching
     process, bypassing the CLI.
