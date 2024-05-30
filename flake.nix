@@ -225,18 +225,24 @@
 {
   description = "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
   inputs = {
-    opam-nix.url = "github:tweag/opam-nix";
-    flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # all the follows here are so we don't use diff versions of
+    # nixpkgs/flake-utils than semgrep. This is good for debugging, and reducing
+    # build time/cache size
+    flake-utils.url = "github:numtide/flake-utils";
+    opam-nix = {
+      url = "github:tweag/opam-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
     opam-repository = {
       url = "github:ocaml/opam-repository";
       flake = false;
     };
   };
-  outputs = { self, flake-utils, opam-nix, nixpkgs, opam-repository }@inputs:
+  outputs = { self, nixpkgs, flake-utils, opam-nix, opam-repository }@inputs:
     let
       package = "semgrep";
-
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -247,6 +253,7 @@
         opamRepos = [ "${opam-repository}" ];
         lib = pkgs.lib;
         isDarwin = lib.strings.hasSuffix "darwin" system;
+        hasSubmodules = ! builtins.hasAttr "submodules" self || self.submodules;
         # TODO split out osemgrep and pysemgrep into diff nix files
       in
       let
@@ -269,10 +276,10 @@
           ## You can force versions of certain packages here
           # force the ocaml compiler to be 4.14.2 and from opam
           ocaml-base-compiler = "4.14.2";
-          # needed for OCTS and isn't pulled in by semgrep.opam
-          tsort = "*";
           # don't use bleeding edge cohttp
           cohttp-lwt = "5.3.0";
+          # needed for semgrep pro, but let's just add it here since that's easier
+          junit_alcotest = "*";
         };
 
         # repos = opamRepos to force newest version of opam
@@ -283,8 +290,7 @@
           ${package} = prev.${package}.overrideAttrs (prev: {
             # Prevent the ocaml dependencies from leaking into dependent environments
             doNixSupport = false;
-            # add tsort since it's not pulled in for whatever reason
-            buildInputs = prev.buildInputs ++ [ final.tsort ];
+            nativeCheckInputs = [ final.junit_alcotest ];
           });
         };
         scope' = scope.overrideScope' scopeOverlay;
@@ -333,11 +339,11 @@
           '';
           # make sure we have submodules
           # See https://github.com/NixOS/nix/pull/7862
-          buildPhase = if self.submodules then osemgrep.buildPhase' else osemgrep.buildPhaseFail;
-          nativeCheckInputs = with pkgs; [
+          buildPhase = if hasSubmodules then osemgrep.buildPhase' else osemgrep.buildPhaseFail;
+          nativeCheckInputs = prev.nativeCheckInputs ++ (with pkgs; [
             cacert
             git
-          ];
+          ]);
           # git init is needed so tests work successfully since many rely on git root existing
           checkPhase = ''
             git init
