@@ -1,0 +1,23 @@
+rules:
+- id: test
+  message: Test
+  severity: ERROR
+  languages:
+  - cpp
+  - c
+  mode: taint
+  options:
+    interfile: true
+    taint_only_propagate_through_assignments: true
+  pattern-sources:
+  - by-side-effect: only
+    patterns:
+    - pattern-either:
+      - pattern: delete $LOCAL_VAR
+    - focus-metavariable: $LOCAL_VAR
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $TY{..., $VAR, ...}
+      - pattern: return <... $VAR ...>;
+    - focus-metavariable: $VAR
