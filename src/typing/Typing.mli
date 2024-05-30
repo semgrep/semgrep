@@ -5,6 +5,9 @@ val type_of_expr :
   AST_generic.expr ->
   AST_generic.name Type.t * AST_generic.ident option
 
+val type_of_ast_generic_type :
+  Lang.t -> AST_generic.type_ -> AST_generic.name Type.t
+
 val resolved_type_of_id_info :
   Lang.t -> AST_generic.id_info -> AST_generic.name Type.t
 
