@@ -12,8 +12,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 // some jobs rely on artifacts produced by these workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
-//TODO: get rid of this
-local core_pro_x86 = import 'build-semgrep-pro.jsonnet';
+local core_pro_x86 = import 'check-semgrep-pro.jsonnet';
 
 // intermediate image produced by build-push-action
 local docker_artifact_name = 'semgrep-docker-image-artifact';
@@ -219,11 +218,9 @@ local install_x86_artifacts = {
   |||,
 };
 
-//TODO: get rid of this, we should not build/use pro in the OSS repo
 local download_x86_pro_artifacts =
   actions.download_artifact_step(core_pro_x86.export.artifact_name);
 
-//TODO: get rid of this, we should not build/use pro in the OSS repo
 local install_x86_pro_artifacts = {
   name: 'Install pro artifacts',
   run: |||
@@ -253,7 +250,7 @@ local test_cli_job = {
   'runs-on': 'ubuntu-22.04',
   needs: [
     // Needed for semgrep-core and semgrep-core-proprietary binary artifacts.
-    'build-semgrep-pro',
+    'check-semgrep-pro',
   ],
   permissions: {
     contents: 'write',
@@ -276,7 +273,6 @@ local test_cli_job = {
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
     install_python_deps,
-    //TODO: get rid of this, we should not build/use pro in the OSS repo
     download_x86_pro_artifacts,
     // This step must be done after setting up python and pipenv,
     // because it will configure the cli to use the pro binary.
@@ -606,8 +602,8 @@ local ignore_md = {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
     },
-    'build-semgrep-pro': {
-      uses: './.github/workflows/build-semgrep-pro.yml',
+    'check-semgrep-pro': {
+      uses: './.github/workflows/check-semgrep-pro.yml',
       secrets: 'inherit',
     },
     'build-test-windows-x86': {
