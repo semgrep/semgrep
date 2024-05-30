@@ -766,7 +766,7 @@ let check_var_def lang options taint_config env id ii expr =
   in
   let out_env = end_mapping.(flow.exit).Dataflow_core.out_env in
   let lval : IL.lval = { base = Var name; rev_offset = [] } in
-  Lval_env.dumb_find out_env lval
+  Lval_env.find_lval_xtaint out_env lval
 
 let add_to_env lang options taint_config env id ii opt_expr =
   let var = AST_to_IL.var_of_id_info id ii in
