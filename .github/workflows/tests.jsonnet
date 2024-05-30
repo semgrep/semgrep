@@ -12,7 +12,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 // some jobs rely on artifacts produced by these workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
-local core_pro_x86 = import 'check-semgrep-pro.jsonnet';
+local core_pro_x86 = import 'build-semgrep-pro.jsonnet';
 
 // intermediate image produced by build-push-action
 local docker_artifact_name = 'semgrep-docker-image-artifact';
@@ -250,7 +250,7 @@ local test_cli_job = {
   'runs-on': 'ubuntu-22.04',
   needs: [
     // Needed for semgrep-core and semgrep-core-proprietary binary artifacts.
-    'check-semgrep-pro',
+    'build-semgrep-pro',
   ],
   permissions: {
     contents: 'write',
@@ -602,8 +602,8 @@ local ignore_md = {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
     },
-    'check-semgrep-pro': {
-      uses: './.github/workflows/check-semgrep-pro.yml',
+    'build-semgrep-pro': {
+      uses: './.github/workflows/build-semgrep-pro.yml',
       secrets: 'inherit',
     },
     'build-test-windows-x86': {
