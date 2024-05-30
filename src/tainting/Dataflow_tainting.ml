@@ -1885,6 +1885,11 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
               all_args_taints
               |> Taints.union (gather_all_taints_in_args_taints args_taints)
             in
+            let all_args_taints =
+              if env.options.taint_only_propagate_through_assignments then
+                Taints.empty
+              else all_args_taints
+            in
             (all_args_taints, S.Bot, lval_env))
     | New (_lval, _ty, None, args) ->
         (* 'New' without reference to constructor *)
@@ -1894,6 +1899,11 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
         let all_args_taints =
           all_args_taints
           |> Taints.union (gather_all_taints_in_args_taints args_taints)
+        in
+        let all_args_taints =
+          if env.options.taint_only_propagate_through_assignments then
+            Taints.empty
+          else all_args_taints
         in
         (all_args_taints, S.Bot, lval_env)
     | CallSpecial (_, _, args) ->
