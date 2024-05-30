@@ -20,10 +20,11 @@ module Out = Semgrep_output_v1_j
  * For more info on how to use Semgrep rule testing infrastructure, see
  * https://semgrep.dev/docs/writing-rules/testing-rules/.
  *
+ *
  * There was no 'pysemgrep test' subcommand. Tests were run via
- * 'semgrep scan --test ...' but it's better to have a separate
- * subcommand. Note that the legacy 'semgrep scan --test' is redirected
- * to this file after having built a compatible Test_CLI.conf.
+ * 'semgrep scan --test ...' but it's better to have a separate subcommand.
+ * Note that the legacy 'semgrep scan --test' is redirected to this file after
+ * having built a compatible Test_CLI.conf.
  *
  * TODO: conf.ignore_todo? conf.strict?
  * LATER: factorize code with Unit_engine.ml and Test_engine.ml
@@ -130,16 +131,16 @@ let remove_enclosing_comment_opt (str : string) : string option =
 
 let () =
   Testo.test "Test_subcommand.remove_enclosing_comment_opt" (fun () ->
-      let test (str : string) (expected : string option) =
+      let test_remove (str : string) (expected : string option) =
         let res = remove_enclosing_comment_opt str in
         if not (res =*= expected) then
           failwith
             (spf "didn't match, got %s, expected %s" (Dumper.dump res)
                (Dumper.dump expected))
       in
-      test "# foobar" (Some " foobar");
-      test "// foobar" (Some " foobar");
-      test "<!-- foobar -->" (Some " foobar ");
+      test_remove "# foobar" (Some " foobar");
+      test_remove "// foobar" (Some " foobar");
+      test_remove "<!-- foobar -->" (Some " foobar ");
       ())
 
 let prefilter_annotation_regexp = ".*\\(ruleid\\|ok\\|todoruleid\\|todook\\):.*"
@@ -258,6 +259,22 @@ let group_positive_annotations (annots : (annotation * linenb) list) :
            |> List_.map (fun (_id, line) -> line + 1)
            (* should not be needed given how annotations work but safer *)
            |> List.sort_uniq Int.compare ))
+
+let filter_todook (annots : (annotation * linenb) list) (xs : linenb list) :
+    linenb list =
+  let (todooks : linenb Set_.t) =
+    annots
+    |> List_.map_filter (fun ((kind, _id), line) ->
+           match kind with
+           (* + 1 because the expected/reported is the line after the annotation *)
+           | Todook -> Some (line + 1)
+           | Ruleid
+           | Ok
+           | Todoruleid ->
+               None)
+    |> Set_.of_list
+  in
+  xs |> List_.exclude (fun line -> Set_.mem line todooks)
 
 (*****************************************************************************)
 (* File targeting *)
@@ -480,28 +497,25 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
       ~match_hook:(fun _pm -> ())
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
   in
+  let (annots : (annotation * linenb) list) = annotations target in
 
   (* actual matches *)
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
     if List_.null res.matches then (
-      (* maybe some files with todoruleid: without any match yet, but we
-       * still want to include them in the JSON output like pysemgrep
-       *)
-      (* stricter? *)
+      (* stricter: *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
-      (* TODO: inconsistency in pysemgrep, sometimes it filter those rule ids
-       * like in semgrep-rules/ocaml/, sometimes not,
-       * like in semgrep-rules/generic/, weird
+      (* Probably some files with todoruleid: without any match yet, but we
+       * still want to include them in the JSON output like pysemgrep.
        *)
-      (* alt: rules |> List_.map (fun (r : Rule.t) -> (fst r.id, []))) *)
-      [])
+      if not (List_.null annots) then
+        rules |> List_.map (fun (r : Rule.t) -> (fst r.id, []))
+      else [])
     else
       res.matches
       |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
   in
   (* expected matches *)
   let (expected_by_ruleid : (Rule_ID.t, linenb list) Assoc.t) =
-    let annots = annotations target in
     group_positive_annotations annots
   in
 
@@ -533,6 +547,11 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
             * a bit annoying because it forces us to use masks in test snapshots
             *)
            let filename = Unix.realpath !!target in
+           (* TODO: not sure why pysemgrep does not report the real
+            * reported_lines (and expected_lines) and filter those todook:
+            *)
+           let reported_lines = filter_todook annots reported_lines in
+           let expected_lines = filter_todook annots expected_lines in
            let (rule_result : Out.rule_result) =
              Out.
                {
