@@ -470,6 +470,7 @@ For more information see https://semgrep.dev
     (sarif ( >= 0.3.0 ))
     ; CLI
     cmdliner
+    notty ; for semgrep interactive mode
     ; PPX
     ppxlib
     ppx_deriving
@@ -493,6 +494,7 @@ For more information see https://semgrep.dev
     (lsp (= 1.15.1-5.0))
     git
     git-unix
+    tsort ; needed for OCTS
     ; tracing
     trace
     ppx_trace

@@ -517,16 +517,17 @@ nix-pysemgrep:
 	nix build ".?submodules=1#pysemgrep"
 
 # Build + run tests (doesn't run python tests yet)
-nix-check:
+nix-check: nix-check-flake
 	nix flake check ".?submodules=1#"
 
 # verbose and sandboxing are disabled to enable networking for tests
-nix-check-verbose:
+nix-check-verbose: nix-check-flake
 	nix flake check -L ".?submodules=1#"
 
 # check flake is valid and not stale
 nix-check-flake:
 	nix run github:DeterminateSystems/flake-checker
+
 # Update flake inputs
 nix-update:
 	nix flake update
