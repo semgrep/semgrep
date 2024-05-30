@@ -136,6 +136,10 @@ let error_report = false
  *    in better 'name' type and 'kname' hook.
  *)
 
+(* Performing normalization of types e.g. A | B => Union[A, B] in
+   Python. This hook will be linked to Type_aliasing.ml *)
+let pro_hook_normalize_ast_generic_type = ref None
+
 (*****************************************************************************)
 (* Scope *)
 (*****************************************************************************)
@@ -287,6 +291,11 @@ let set_resolved env id_info x =
    * lang-specific resolved found?
    *)
   id_info.id_resolved := Some x.entname;
+  let normalize_type =
+    match !pro_hook_normalize_ast_generic_type with
+    | Some f -> f
+    | None -> fun _ x -> x
+  in
   (* This is defensive programming against the possibility of introducing
    * cycles in the AST.
    * Indeed, when we are inside a type, especially in  (OtherType (OT_Expr)),
@@ -297,7 +306,8 @@ let set_resolved env id_info x =
    * See tests/naming/python/shadow_name_type.py for a patological example
    * See also tests/rust/parsing/misc_recursion.rs for another example.
    *)
-  if not !(env.in_type) then id_info.id_type := x.enttype
+  if not !(env.in_type) then
+    id_info.id_type := x.enttype |> Option.map (normalize_type env.lang)
 
 (* accessors *)
 let lookup_scope_opt ?(class_attr = false) (s, _) env =

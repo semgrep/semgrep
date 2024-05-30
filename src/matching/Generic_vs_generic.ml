@@ -1473,6 +1473,11 @@ and m_container_ordered_elements a b =
  *    style as typechecking could also bind metavariables in the process
  *)
 and m_compatible_type lang typed_mvar t e =
+  let t =
+    match !Naming_AST.pro_hook_normalize_ast_generic_type with
+    | Some f -> f lang t
+    | None -> t
+  in
   match (t.G.t, e.G.e) with
   (* for C specific literals *)
   | G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }), B.L (B.String _) ->

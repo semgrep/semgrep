@@ -258,6 +258,27 @@ and type_of_ast_generic_type lang t : G.name Type.t =
        * it up. *)
       let t, _id = type_of_expr lang e in
       t
+  | G.TyExpr
+      {
+        e =
+          ArrayAccess
+            ( { e = N (Id (("Union", _), _) as union); _ },
+              ( _,
+                {
+                  e =
+                    Container
+                      ( Tuple,
+                        ( _,
+                          [ { e = N (Id _ as name); _ }; { e = L (Null _); _ } ],
+                          _ ) );
+                  _;
+                },
+                _ ) );
+        _;
+      }
+  (* Python: Union[X, None] *)
+    when lang =*= Lang.Python ->
+      Type.N ((union, [ TA (N ((name, []), [])); TA Null ]), [])
   (* TODO: Need to expand Type.ml if we want to represent more *)
   | _else_ -> Type.NoType
 
