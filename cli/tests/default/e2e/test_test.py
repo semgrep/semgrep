@@ -172,3 +172,22 @@ def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
         results,
         "results.json",
     )
+
+
+# It should not report matches annotated with todook: in the JSON output.
+# TODO? not sure why we do that actually.
+# TODO: actually we're masking the <matches> in results.json, because
+# of the use of realpath for the filenames, so this test is incomplete.
+@pytest.mark.kinda_slow
+def test_cli_todook_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/basic.yaml",
+        options=["--test"],
+        target_name="test_test/todook.py",
+        output_format=OutputFormat.JSON,
+    )
+
+    snapshot.assert_match(
+        results,
+        "results.json",
+    )

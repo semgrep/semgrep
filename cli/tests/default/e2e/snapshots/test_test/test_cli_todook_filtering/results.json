@@ -1,0 +1,17 @@
+{
+  "config_missing_fixtests": [],
+  "config_missing_tests": [],
+  "config_with_errors": [],
+  "fixtest_results": {},
+  "results": {
+    "rules/basic.yaml": {
+      "checks": {
+        "basic-test": {
+          "errors": [],
+          "matches": "<masked in tests>",
+          "passed": true
+        }
+      }
+    }
+  }
+}
