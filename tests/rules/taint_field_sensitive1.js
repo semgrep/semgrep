@@ -21,12 +21,17 @@ function f() {
     sink(x.d[i])
     //ruleid: test
     sink(x.d[j])
-    // prook: ruleid: test
+    // Previously Pro did not report a finding here, but we now reverted that,
+    // see comment below on the `sink(x)` case.
+    // ruleid: test
     sink(x.d)
 
-    // x itself and other fields of x are not tainted
-    //ok: test
+    // Previously we did not report a finding here, but it's actually desirable
+    // to report it, because the `sink` is opaque and it could access `x.a`.
+    //ruleid: test
     sink(x)
+
+    // the other fields of `x` are not tainted
     //ok: test
     sink(x.b)
     //ok: test

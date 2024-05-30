@@ -65,13 +65,13 @@ and obj = ref Fields.t
 (* Helpers *)
 (*****************************************************************************)
 
-(* Violates INVARIANT(ref), see 'unsafe_find_offset_in_obj *)
+(* UNSAFE: Violates INVARIANT(ref), see 'internal_UNSAFE_find_offset_in_obj' *)
 let ref_none_bot = Ref (`None, Bot)
 
-(* Temporarily breaks 'unsafe_find_offset_in_obj' by initializing a field with a
- * 'ref<0>(_|_)' shape, the field will immediately be after be tainted or cleaned. *)
-let unsafe_find_offset_in_obj o obj =
-  let o = T.offset_of_IL o in
+(* Temporarily breaks INVARIANT(ref) by initializing a field with the shape
+ * 'ref<0>(_|_)', but right away the field should be either tainted or cleaned.
+ * The caller must restore the invariant. *)
+let internal_UNSAFE_find_offset_in_obj o obj =
   match Fields.find_opt o obj with
   | Some _ -> (o, obj)
   | None ->
@@ -85,6 +85,18 @@ let unsafe_find_offset_in_obj o obj =
               "Already tracking too many fields, will not track %s"
               (T.show_offset o));
         (Oany, obj))
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+let taints_and_shape_are_relevant taints shape =
+  match (Taints.is_empty taints, shape) with
+  | true, Bot -> false
+  | __else__ ->
+      (* Either 'taints' is non-empty, or 'shape' is non-'Bot' and hence
+       * by INVARIANT(ref) it contains some taint or has field marked clean. *)
+      true
 
 (*****************************************************************************)
 (* Equality *)
@@ -143,153 +155,210 @@ and show_obj obj =
   |> List.of_seq |> String.concat "; "
 
 (*****************************************************************************)
-(* Union (merging shapes) *)
+(* Object shapes *)
 (*****************************************************************************)
 
-let rec union_ref ref1 ref2 =
+let tuple_like_obj taints_and_shapes : obj =
+  let _index, obj =
+    taints_and_shapes
+    |> List.fold_left
+         (fun (i, obj) (taints, shape) ->
+           match (Xtaint.of_taints taints, shape) with
+           | `None, Bot ->
+               (* We skip this index to maintain INVARIANT(ref). *)
+               (i + 1, obj)
+           | xtaint, shape ->
+               let ref = Ref (xtaint, shape) in
+               (i + 1, Fields.add (T.Oint i) ref obj))
+         (0, Fields.empty)
+  in
+  obj
+
+(*****************************************************************************)
+(* Unification (merging shapes) *)
+(*****************************************************************************)
+
+let rec unify_ref ref1 ref2 =
   let (Ref (xtaint1, shape1)) = ref1 in
   let (Ref (xtaint2, shape2)) = ref2 in
   (* TODO: Apply 'Flag_semgrep.max_taint_set_size' here too ? *)
   let xtaint = Xtaint.union xtaint1 xtaint2 in
-  let shape = union_shape shape1 shape2 in
+  let shape = unify_shape shape1 shape2 in
   Ref (xtaint, shape)
 
-and union_shape shape1 shape2 =
+and unify_shape shape1 shape2 =
   match (shape1, shape2) with
   | Bot, shape
   | shape, Bot ->
       shape
-  | Obj obj1, Obj obj2 -> Obj (union_obj obj1 obj2)
+  | Obj obj1, Obj obj2 -> Obj (unify_obj obj1 obj2)
 
-and union_obj obj1 obj2 =
+and unify_obj obj1 obj2 =
   (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
-  Fields.union (fun _ x y -> Some (union_ref x y)) obj1 obj2
+  Fields.union (fun _ x y -> Some (unify_ref x y)) obj1 obj2
 
 (*****************************************************************************)
 (* Collect/union all taints *)
 (*****************************************************************************)
 
 (* THINK: Generalize to "fold" ? *)
-
-let union_taints_in_ref =
-  let rec go_ref acc ref =
-    let (Ref (xtaint, shape)) = ref in
-    match xtaint with
-    | `Clean ->
-        (* Due to INVARIANT(ref) we can just stop here. *)
-        acc
-    | `None -> go_shape acc shape
-    | `Tainted taints -> go_shape (Taints.union taints acc) shape
-  and go_shape acc = function
-    | Bot -> acc
-    | Obj obj -> go_obj acc obj
-  and go_obj acc obj =
-    Fields.fold (fun _ o_ref acc -> go_ref acc o_ref) obj acc
-  in
-  go_ref Taints.empty
-
-(*****************************************************************************)
-(* Find xtaint for an offset *)
-(*****************************************************************************)
-
-let rec find_xtaint_ref offset ref =
+let rec gather_all_taints_in_ref_acc acc ref =
   let (Ref (xtaint, shape)) = ref in
+  match xtaint with
+  | `Clean ->
+      (* Due to INVARIANT(ref) we can just stop here. *)
+      acc
+  | `None -> gather_all_taints_in_shape_acc acc shape
+  | `Tainted taints ->
+      gather_all_taints_in_shape_acc (Taints.union taints acc) shape
+
+and gather_all_taints_in_shape_acc acc = function
+  | Bot -> acc
+  | Obj obj -> gather_all_taints_in_obj_acc acc obj
+
+and gather_all_taints_in_obj_acc acc obj =
+  Fields.fold
+    (fun _ o_ref acc -> gather_all_taints_in_ref_acc acc o_ref)
+    obj acc
+
+let gather_all_taints_in_ref = gather_all_taints_in_ref_acc Taints.empty
+let gather_all_taints_in_shape = gather_all_taints_in_shape_acc Taints.empty
+
+(*****************************************************************************)
+(* Find an offset *)
+(*****************************************************************************)
+
+let rec find_in_ref offset ref =
+  let (Ref (_xtaint, shape)) = ref in
   match offset with
-  | [] -> xtaint
-  | _ :: _ -> find_xtaint_shape offset shape
+  | [] -> Some ref
+  | _ :: _ -> find_in_shape offset shape
 
-and find_xtaint_shape offset = function
+and find_in_shape offset = function
   (* offset <> [] *)
-  | Bot -> `None
-  | Obj obj -> find_xtaint_obj offset obj
+  | Bot -> None
+  | Obj obj -> find_in_obj offset obj
 
-and find_xtaint_obj offset obj =
+and find_in_obj (offset : T.offset list) obj =
   (* offset <> [] *)
   match offset with
   | [] ->
       Logs.debug (fun m ->
           m ~tags:error "fix_xtaint_obj: Impossible happened: empty offset");
-      `None
+      None
   | o :: offset -> (
-      match T.offset_of_IL o with
+      match o with
       | Oany (* arbitrary index [*] *) ->
           (* consider all fields/indexes *)
           Fields.fold
-            (fun _ ref acc -> Xtaint.union acc (find_xtaint_ref offset ref))
-            obj `None
-      | o -> (
-          match Fields.find_opt o obj with
-          | None -> `None
-          | Some o_ref -> find_xtaint_ref offset o_ref))
+            (fun _ ref acc ->
+              match (acc, find_in_ref offset ref) with
+              | None, None -> None
+              | Some ref, None
+              | None, Some ref ->
+                  Some ref
+              | Some ref1, Some ref2 -> Some (unify_ref ref1 ref2))
+            obj None
+      | Ofld _
+      | Oint _
+      | Ostr _ ->
+          let* o_ref = Fields.find_opt o obj in
+          find_in_ref offset o_ref)
 
 (*****************************************************************************)
 (* [UNSAFE] Update the xtaint of an offset *)
 (*****************************************************************************)
 
-(* Unsafe because it does not guarantee preserving INVARIANT(ref). *)
-
-let rec unsafe_update_ref f offset ref =
+(* Finds an 'offset' within a 'ref' and updates it via 'f'.
+ * If the 'offset' doesn't exist in the 'ref', then it creates it.
+ * This is "unsafe" because it does not guarantee preserving INVARIANT(ref),
+ * the caller must guarantee the invariant instead. *)
+let rec internal_UNSAFE_update_ref ~f offset ref =
   match (ref, offset) with
-  | Ref (xtaint, shape), [] -> Ref (f xtaint, shape)
+  | Ref (xtaint, shape), [] ->
+      let xtaint, shape = f xtaint shape in
+      Ref (xtaint, shape)
   | Ref (xtaint, shape), _ :: _ ->
-      let shape = unsafe_update_shape f offset shape in
+      let xtaint =
+        (* If we are tainting an offset of this ref, the ref cannot be
+           considered clean anymore. *)
+        match xtaint with
+        | `Clean -> `None
+        | `None
+        | `Tainted _ ->
+            xtaint
+      in
+      let shape = internal_UNSAFE_update_shape ~f offset shape in
       Ref (xtaint, shape)
 
-and unsafe_update_shape f offset = function
+and internal_UNSAFE_update_shape ~f offset = function
   | Bot ->
       let shape = Obj Fields.empty in
-      unsafe_update_shape f offset shape
+      internal_UNSAFE_update_shape ~f offset shape
   | Obj obj ->
-      let obj = unsafe_update_obj f offset obj in
+      let obj = internal_UNSAFE_update_obj ~f offset obj in
       Obj obj
 
-and unsafe_update_obj f offset obj =
+and internal_UNSAFE_update_obj ~f offset obj =
   match offset with
   | [] ->
       Logs.debug (fun m ->
-          m ~tags:error "update_obj: Impossible happened: empty offset");
+          m ~tags:error
+            "internal_UNSAFE_update_obj: Impossible happened: empty offset");
       obj
   | o :: offset -> (
-      let o, obj = unsafe_find_offset_in_obj o obj in
+      let o, obj = internal_UNSAFE_find_offset_in_obj o obj in
       match o with
-      | Oany -> Fields.map (unsafe_update_ref f offset) obj
-      | o ->
+      | Oany (* arbitrary index [*] *) ->
+          (* consider all fields/indexes *)
+          Fields.map (internal_UNSAFE_update_ref ~f offset) obj
+      | Ofld _
+      | Oint _
+      | Ostr _ ->
           Fields.update o
-            (Option.map (fun ref -> unsafe_update_ref f offset ref))
+            (Option.map (fun ref -> internal_UNSAFE_update_ref ~f offset ref))
             obj)
 
 (*****************************************************************************)
-(* Tainting an offset *)
+(* Updating an offset *)
 (*****************************************************************************)
 
-let taint_ref new_taints offset ref =
-  let add_new_taints = function
-    | `None
-    | `Clean ->
-        `Tainted new_taints
-    | `Tainted taints ->
-        if
-          !Flag_semgrep.max_taint_set_size =|= 0
-          || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
-        then `Tainted (Taints.union new_taints taints)
-        else (
-          Logs.debug (fun m ->
-              m ~tags:warning
-                "Already tracking too many taint sources for %s, will not \
-                 track more"
-                (Display_IL.string_of_offset_list offset));
-          `Tainted taints)
-  in
-  if Taints.is_empty new_taints then
-    Logs.debug (fun m ->
-        m ~tags:error "taint_ref: Impossible happened: empty taint set");
-  unsafe_update_ref add_new_taints offset ref
+let update_offset_and_unify new_taints new_shape offset opt_ref =
+  if taints_and_shape_are_relevant new_taints new_shape then
+    let new_xtaint =
+      (* THINK: Maybe Dataflow_tainting 'check_xyz' should be returning 'Xtaint.t'? *)
+      Xtaint.of_taints new_taints
+    in
+    let ref = opt_ref ||| ref_none_bot in
+    let add_new_taints xtaint shape =
+      let shape = unify_shape new_shape shape in
+      match xtaint with
+      | `None
+      | `Clean ->
+          (* Since we're adding taint we cannot have `Clean here. *)
+          (new_xtaint, shape)
+      | `Tainted taints as xtaint ->
+          if
+            !Flag_semgrep.max_taint_set_size =|= 0
+            || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
+          then (Xtaint.union new_xtaint xtaint, shape)
+          else (
+            Logs.debug (fun m ->
+                m ~tags:warning
+                  "Already tracking too many taint sources for %s, will not \
+                   track more"
+                  (offset |> List_.map T.show_offset |> String.concat ""));
+            (xtaint, shape))
+    in
+    Some (internal_UNSAFE_update_ref ~f:add_new_taints offset ref)
+  else (* To maintain INVARIANT(ref) we cannot return 'ref_none_bot'! *)
+    opt_ref
 
 (*****************************************************************************)
 (* Clean taint *)
 (*****************************************************************************)
 
-let rec clean_ref offset ref =
+let rec clean_ref (offset : T.offset list) ref =
   let (Ref (xtaint, shape)) = ref in
   match offset with
   | [] ->
@@ -299,6 +368,12 @@ let rec clean_ref offset ref =
        *  and just clean it all ? And we would also need to remove the 'Clean'
        *  mark from other refs that may be pointing to this ref in order to
        *  maintain the invariant ? *)
+      Ref (`Clean, Bot)
+  | [ Oany ] ->
+      (* If an object is tainted, and we clean all its fields/indexes, then we
+       * just clean the object itself. For example, if we assume that an array `a`
+       * is tainted, and then we see `a[*]` being sanitized, then we assume that
+       * `a` itself is being sanitized; otherwise `sink(a)` could be reported. *)
       Ref (`Clean, Bot)
   | _ :: _ ->
       let shape = clean_shape offset shape in
@@ -317,7 +392,7 @@ and clean_obj offset obj =
           m ~tags:error "clean_obj: Impossible happened: empty offset");
       obj
   | o :: offset -> (
-      let o, obj = unsafe_find_offset_in_obj o obj in
+      let o, obj = internal_UNSAFE_find_offset_in_obj o obj in
       match o with
       | Oany -> Fields.map (clean_ref offset) obj
       | o -> Fields.update o (Option.map (fun ref -> clean_ref offset ref)) obj)

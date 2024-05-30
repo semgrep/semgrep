@@ -17,14 +17,13 @@
  * to ensure that lvals satisfy IL_helpers.lval_is_var_and_dots, but rather handle
  * that internally. *)
 
+open Common
 module T = Taint
 module Taints = T.Taint_set
 module S = Taint_shape
 module H = IL_helpers
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
-module LvalMap = Map.Make (H.LvalOrdered)
-module LvalSet = Set.Make (H.LvalOrdered)
 module NameMap = Map.Make (H.NameOrdered)
 
 let base_tag_strings = [ __MODULE__; "taint" ]
@@ -75,8 +74,6 @@ let hook_propagate_to :
     ref =
   ref None
 
-let hook_normalize_rev_offset = ref None
-
 let empty =
   {
     tainted = NameMap.empty;
@@ -89,7 +86,7 @@ let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
 
 let union le1 le2 =
   let tainted =
-    NameMap.union (fun _ x y -> Some (S.union_ref x y)) le1.tainted le2.tainted
+    NameMap.union (fun _ x y -> Some (S.unify_ref x y)) le1.tainted le2.tainted
   in
   {
     tainted;
@@ -147,17 +144,8 @@ let normalize_lval lval =
             None)
     | Mem _ -> None
   in
-  let rev_offset =
-    match !hook_normalize_rev_offset with
-    | None ->
-        rev_offset
-        |> List_.map_filter (fun o ->
-               match o.IL.o with
-               | IL.Dot _ -> Some o
-               | IL.Index _ -> (* no index-sensitivity in OSS *) None)
-    | Some normalize_rev_offset -> normalize_rev_offset rev_offset
-  in
-  Some (base, List.rev rev_offset)
+  let offset = T.offset_of_rev_IL_offset ~rev_offset in
+  Some (base, offset)
 
 (* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
  * some benchmarks, if we can e.g. double the limit without affecting perf then
@@ -203,7 +191,7 @@ let check_tainted_lvals_limit tainted new_var =
         None)
   else Some tainted
 
-let add lval new_taints
+let add_shape lval new_taints new_shape
     ({ tainted; control; taints_to_propagate; pending_propagation_dests } as
      lval_env) =
   match normalize_lval lval with
@@ -212,32 +200,29 @@ let add lval new_taints
          variable. We just return the same environment untouched. *)
       lval_env
   | Some (var, offset) -> (
-      if Taints.is_empty new_taints then lval_env
-      else
-        match check_tainted_lvals_limit tainted var with
-        | None -> lval_env
-        | Some tainted ->
-            let new_taints =
-              let var_tok = snd var.ident in
-              if Tok.is_fake var_tok then new_taints
-              else
-                new_taints
-                |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-            in
-            {
-              tainted =
-                NameMap.update var
-                  (fun opt_var_ref ->
-                    let var_ref =
-                      opt_var_ref
-                      |> Option.value ~default:(S.Ref (`None, S.Bot))
-                    in
-                    Some (S.taint_ref new_taints offset var_ref))
-                  tainted;
-              control;
-              taints_to_propagate;
-              pending_propagation_dests;
-            })
+      match check_tainted_lvals_limit tainted var with
+      | None -> lval_env
+      | Some tainted ->
+          let new_taints =
+            let var_tok = snd var.ident in
+            if Tok.is_fake var_tok then new_taints
+            else
+              new_taints
+              |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+          in
+          {
+            tainted =
+              NameMap.update var
+                (fun opt_var_ref ->
+                  S.update_offset_and_unify new_taints new_shape offset
+                    opt_var_ref)
+                tainted;
+            control;
+            taints_to_propagate;
+            pending_propagation_dests;
+          })
+
+let add lval new_taints lval_env = add_shape lval new_taints S.Bot lval_env
 
 let propagate_to prop_var taints env =
   (* THINK: Should we record empty propagations anyways so that we can always
@@ -260,15 +245,17 @@ let propagate_to prop_var taints env =
             { env with taints_to_propagate; pending_propagation_dests })
           ~add
 
-let find_var_opt { tainted; _ } var = NameMap.find_opt var tainted
+let find_var { tainted; _ } var = NameMap.find_opt var tainted
 
-let dumb_find { tainted; _ } lval =
-  match normalize_lval lval with
+let find_lval { tainted; _ } lval =
+  let* var, offsets = normalize_lval lval in
+  let* var_ref = NameMap.find_opt var tainted in
+  S.find_in_ref offsets var_ref
+
+let find_lval_xtaint env lval =
+  match find_lval env lval with
   | None -> `None
-  | Some (var, offsets) -> (
-      match NameMap.find_opt var tainted with
-      | None -> `None
-      | Some var_ref -> S.find_xtaint_ref offsets var_ref)
+  | Some (S.Ref (xtaints, _shape)) -> xtaints
 
 let propagate_from prop_var env =
   let opt_taints = VarMap.find_opt prop_var env.taints_to_propagate in
