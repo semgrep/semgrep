@@ -8,6 +8,7 @@
    commons
    lib_parsing
    pfff-lang_GENERIC-analyze
+   pfff_lang_GENERIC_naming
    parser_javascript.ast ; for Ast_js.default_entity
 
    semgrep_core
