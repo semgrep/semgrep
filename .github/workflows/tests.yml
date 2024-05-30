@@ -29,6 +29,9 @@ jobs:
           pipenv run semgrep-core -version
           pipenv run python3 ../perf/run-benchmarks --dummy
         working-directory: cli
+  build-semgrep-pro:
+    secrets: inherit
+    uses: ./.github/workflows/build-semgrep-pro.yml
   build-test-core-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-core-x86.yml
@@ -105,9 +108,6 @@ jobs:
   build-test-windows-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-windows-x86.yml
-  check-semgrep-pro:
-    secrets: inherit
-    uses: ./.github/workflows/check-semgrep-pro.yml
   push-docker-returntocorp:
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     needs:
@@ -121,7 +121,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     needs:
-      - check-semgrep-pro
+      - build-semgrep-pro
     permissions:
       contents: write
       pull-requests: write
