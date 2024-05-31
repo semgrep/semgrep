@@ -1,7 +1,0 @@
-Optional type matching is supported in the Pro engine for Python. For example,
-in Python, `Optional[str]`, `str | None`, and `Union[str, None]` represent the
-same type but in different type expressions. The optional type match support
-enables matching between these expressions, allowing any optional type
-expression to match any other optional type expression when used with
-metavariable-type filtering. It's important to note that syntactic pattern
-matching still distinguishes between these types.
