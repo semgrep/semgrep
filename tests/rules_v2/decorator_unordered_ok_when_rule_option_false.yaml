@@ -1,0 +1,13 @@
+rules:
+  - id: decorator-unordered-ok-when-rule-option-false
+    languages:
+      - python
+    severity: ERROR
+    message: flag decorators in any order
+    options:
+      decorators_order_matters: false
+    match: |-
+          @first(...)
+          @second(...)
+          def $FUNC(...):
+            ...

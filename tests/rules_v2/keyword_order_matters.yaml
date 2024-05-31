@@ -1,0 +1,9 @@
+rules:
+  - id: keyword-order-matters
+    languages:
+      - java
+    severity: ERROR
+    message: keywords are matched in any order, not affected by rule option
+    options:
+      decorators_order_matters: true
+    match: static final int $X
