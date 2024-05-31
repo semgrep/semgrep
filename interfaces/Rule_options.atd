@@ -169,6 +169,12 @@ type t = {
      functions as a return statement, such as Ruby and Julia.  *)
      ~implicit_return <ocaml default="true"> : bool;
 
+  (* non-keyword attributes such as decorators in Python will be matched in order
+   * instead of the default order-agnostic matching. keyword attributes, such as
+   * inline, static, etc, are not affected by this option
+   *)
+  ~decorators_order_matters <ocaml default="false"> : bool;
+
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
    *)

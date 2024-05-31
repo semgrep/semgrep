@@ -554,6 +554,15 @@ let rec m_list_prefix f a b =
   | [], _ -> return ()
   | _ :: _, _ -> fail ()
 
+let rec m_list_subsequence f a b =
+  match (a, b) with
+  | xa :: aas, xb :: bbs ->
+      f xa xb
+      >>= (fun () -> m_list_subsequence f aas bbs)
+      >||> m_list_subsequence f a bbs
+  | [], _ -> return ()
+  | _ -> fail ()
+
 let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   match (xsa, xsb) with
   | [], [] -> return ()

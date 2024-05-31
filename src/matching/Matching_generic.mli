@@ -112,6 +112,13 @@ val m_option_none_can_match_some : 'a matcher -> 'a option matcher
 val m_list : ('a, 'b) general_matcher -> ('a list, 'b list) general_matcher
 val m_list_prefix : 'a matcher -> 'a list matcher
 
+(* checks if a is a subsequence (not sublist or subset) of b.
+ * e.g. a = [1; 3] and b = [1; 2; 3] does not fail,
+ * and a = [1; 2] and b = [2; 1] fails
+ *)
+val m_list_subsequence :
+  ('a, 'b) general_matcher -> ('a list, 'b list) general_matcher
+
 (*
    Usage: m_list_with_dots less_is_ok f is_dots list_a list_b
 

@@ -2304,7 +2304,29 @@ and m_attribute a b =
   | G.OtherAttribute _, _ ->
       fail ()
 
-and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
+and m_attributes a b =
+  if_config
+    (fun x -> x.decorators_order_matters)
+    ~then_:
+      ((* there is a need for specifying the order of non-keyword attributes (NamedAttr + OtherAttribute),
+        * e.g. decorators in Python, but no evidence for that of keywords (KeywordAttr),
+        * e.g. static inline vs inline static.
+        * here, we partition the lists to process NameAttr + OtherAttribute and KeywordAttr differently
+        *)
+       let partition_keywords =
+         List.partition (fun x ->
+             match x with
+             | G.KeywordAttr _ -> true
+             | _ -> false)
+       in
+       let a_keywords, a_others = partition_keywords a in
+       let b_keywords, b_others = partition_keywords b in
+       let* () = m_list_subsequence m_attribute a_others b_others in
+       let* () =
+         m_list_in_any_order ~less_is_ok:true m_attribute a_keywords b_keywords
+       in
+       return ())
+    ~else_:(m_list_in_any_order ~less_is_ok:true m_attribute a b)
 
 (*****************************************************************************)
 (* Implicit return *)
