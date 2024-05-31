@@ -610,10 +610,6 @@ local ignore_md = {
       uses: './.github/workflows/build-semgrep-pro.yml',
       secrets: 'inherit',
     },
-    'build-test-windows-x86': {
-      uses: './.github/workflows/build-test-windows-x86.yml',
-      secrets: 'inherit',
-    },
     'build-test-manylinux-x86': {
       needs: [
         'build-test-core-x86',
