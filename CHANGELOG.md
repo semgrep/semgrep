@@ -6,6 +6,59 @@
 
 <!-- insertion point -->
 
+## [1.75.0](https://github.com/returntocorp/semgrep/releases/tag/v1.75.0) - 2024-05-31
+
+
+### Added
+
+
+- Pro: Semgrep can now track taint through tuple/list (un)packing intra-procedurally
+  (i.e., within a single function). For example:
+
+  ```python
+  t = ["ok", "taint"]
+  x, y = t
+  sink(x) # OK, no finding
+  sink(y) # tainted, finding
+  ``` (code-6935)
+- Optional type matching is supported in the Pro engine for Python. For example,
+  in Python, `Optional[str]`, `str | None`, and `Union[str, None]` represent the
+  same type but in different type expressions. The optional type match support
+  enables matching between these expressions, allowing any optional type
+  expression to match any other optional type expression when used with
+  metavariable-type filtering. It's important to note that syntactic pattern
+  matching still distinguishes between these types. (code-6939)
+- Add support for pnpm v9 (pnpm)
+
+
+### Fixed
+
+
+- Pro: taint-mode: Fixed issue causing findings to be missed (false negatives)
+  when a global or class field was tainted, and then used in a sink after two
+  or more function calls.
+
+  For example:
+
+      class Test {
+          string bad;
+
+          void test() {
+              bad = "taint";
+              foo();
+          }
+
+          void foo() {
+              bar();
+          }
+
+          void bar() {
+              sink(bad); // finding no longer missed
+          }
+      } (saf-1059)
+- Removed the URLs at the end of the log when semgrep ci --dryrun is ran because dry run doesn't interact with the app so the URLs don't make sense. (saf-924)
+
+
 ## [1.74.0](https://github.com/returntocorp/semgrep/releases/tag/v1.74.0) - 2024-05-23
 
 
