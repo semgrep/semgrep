@@ -30,13 +30,15 @@ def create_taint_rule_match():
                 dataflow_trace=out.MatchDataflowTrace(
                     taint_source=out.MatchCallTrace(
                         out.CliLoc(
-                            (
-                                out.Location(
-                                    path=out.Fpath("foo.py"),
-                                    start=out.Position(8, 9, 11),
-                                    end=out.Position(8, 10, 12),
-                                ),
-                                "??",
+                            out.LocAndContent(
+                                (
+                                    out.Location(
+                                        path=out.Fpath("foo.py"),
+                                        start=out.Position(8, 9, 11),
+                                        end=out.Position(8, 10, 12),
+                                    ),
+                                    "??",
+                                )
                             )
                         )
                     ),
@@ -52,13 +54,15 @@ def create_taint_rule_match():
                     ],
                     taint_sink=out.MatchCallTrace(
                         out.CliLoc(
-                            (
-                                out.Location(
-                                    path=out.Fpath("foo.py"),
-                                    start=out.Position(15, 16, 20),
-                                    end=out.Position(15, 17, 21),
-                                ),
-                                "??",
+                            out.LocAndContent(
+                                (
+                                    out.Location(
+                                        path=out.Fpath("foo.py"),
+                                        start=out.Position(15, 16, 20),
+                                        end=out.Position(15, 17, 21),
+                                    ),
+                                    "??",
+                                )
                             )
                         )
                     ),

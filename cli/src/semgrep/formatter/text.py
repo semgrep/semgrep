@@ -302,8 +302,8 @@ def call_trace_to_lines(
     if isinstance(trace, out.CliLoc):
         yield from match_to_lines(
             ref_path,
-            trace.value[0],
-            trace.value[1],
+            trace.value.value[0],
+            trace.value.value[1],
             color_output,
             per_finding_max_lines_limit,
             per_line_max_chars_limit,
@@ -314,8 +314,8 @@ def call_trace_to_lines(
 
         yield from match_to_lines(
             ref_path,
-            data[0],
-            data[1],
+            data.value[0],
+            data.value[1],
             color_output,
             per_finding_max_lines_limit,
             per_line_max_chars_limit,

@@ -33,8 +33,9 @@ class SarifFormatter(BaseFormatter):
             )
             return None
         elif isinstance(taint_source.value, out.CliLoc):
-            location = taint_source.value.value[0]
-            content = "".join(taint_source.value.value[1]).strip()
+            taint_source_value = taint_source.value.value.value
+            location = taint_source_value[0]
+            content = "".join(taint_source_value[1]).strip()
             source_message_text = f"Source: '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             taint_source_location_sarif = {
@@ -166,7 +167,7 @@ class SarifFormatter(BaseFormatter):
             )
             return None
         elif isinstance(taint_source.value, out.CliLoc):
-            location = taint_source.value.value[0]
+            location = taint_source.value.value.value[0]
             code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
             code_flow_sarif = {
                 "message": {"text": code_flow_message},
