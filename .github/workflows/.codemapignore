@@ -10,6 +10,7 @@ tests.yml
 test-e2e-semgrep-ci.yml
 nightly.yml
 cron-parsing-stats.yml
+build-semgrep-pro.yml
 check-semgrep-pro-version.yml
 test-semgrep-pro.yml
 start-release.yml

@@ -1,0 +1,9 @@
+Pro: Semgrep can now track taint through tuple/list (un)packing intra-procedurally
+(i.e., within a single function). For example:
+
+```python
+t = ["ok", "taint"]
+x, y = t
+sink(x) # OK, no finding
+sink(y) # tainted, finding
+```

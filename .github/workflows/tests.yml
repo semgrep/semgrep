@@ -29,6 +29,9 @@ jobs:
           pipenv run semgrep-core -version
           pipenv run python3 ../perf/run-benchmarks --dummy
         working-directory: cli
+  build-semgrep-pro:
+    secrets: inherit
+    uses: ./.github/workflows/build-semgrep-pro.yml
   build-test-core-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-core-x86.yml
@@ -115,7 +118,7 @@ jobs:
   test-cli:
     name: test semgrep-cli
     needs:
-      - build-test-core-x86
+      - build-semgrep-pro
     permissions:
       contents: write
       pull-requests: write
@@ -134,11 +137,20 @@ jobs:
         working-directory: cli
       - uses: actions/download-artifact@v3
         with:
-          name: semgrep-core-x86-artifact
-      - name: Install artifacts
+          name: semgrep-core-pro-x86-artifact
+      - name: Install pro artifacts
         run: |
           tar xf artifacts.tgz
-          sudo cp artifacts/* /usr/bin
+
+          # All binaries will be placed in cli/tmp-bin first
+          # before copying over to /usr/bin. This is so that
+          # we don't need to run semgrep with sudo.
+          mv artifacts cli/tmp-bin
+          cd cli
+          PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
+
+          # Later we copy these files to /usr/bin which requires sudo
+          sudo cp tmp-bin/* /usr/bin
       - name: Run pytest
         run: |
           # tests should simulate CI environment iff they need one
