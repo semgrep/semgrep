@@ -59,6 +59,11 @@ jobs:
           gh repo clone semgrep/semgrep-proprietary
           cd semgrep-proprietary
           git submodule update --init
+      - name: Adjust semgrep-pro to use the semgrep in this PR
+        run: |
+          cd ../semgrep-proprietary
+          rm -rf OSS
+          ln -s ../semgrep OSS
       - name: Install semgrep-pro dependencies
         run: |
           cd ../semgrep-proprietary

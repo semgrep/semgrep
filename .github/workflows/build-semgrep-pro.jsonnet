@@ -82,16 +82,19 @@ local job = container.job {
         git submodule update --init
       |||,
     },
-    // old: we don't need to do this anymore; pro/OSS contains
-    // more recent code than what is in the semgrep repository.
-    //{
-    //  name: 'Adjust semgrep-pro to use the semgrep in this PR',
-    //  run: |||
-    //    cd ../semgrep-proprietary
-    //    rm -rf OSS
-    //    ln -s ../semgrep OSS
-    //  |||,
-    //},
+    // bugfix: you might think we don't need to do this anymore; pro/OSS contains
+    // more recent code than what is in the semgrep repository, but
+    // Pro does not contain (yet) the bump-version patch during the release
+    // and this can cause tests to fail, so we still need to use
+    // the OSS in this PR with the rest of the code in Pro.
+    {
+      name: 'Adjust semgrep-pro to use the semgrep in this PR',
+      run: |||
+        cd ../semgrep-proprietary
+        rm -rf OSS
+        ln -s ../semgrep OSS
+      |||,
+    },
     {
       name: 'Install semgrep-pro dependencies',
       run: |||
