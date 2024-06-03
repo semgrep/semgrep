@@ -154,11 +154,28 @@ class OsemgrepSarifFormatter(BaseFormatter):
             o_json = normalize_sarif_findings(json.loads(o_output), "osemgrep")
             py_json = normalize_sarif_findings(json.loads(py_output), "pysemgrep")
             is_match = o_json == py_json
-            if not is_match and get_state().terminal.is_debug:
+            if not is_match:
+                # Log the difference when there's a mismatch.
+                #
+                # Be more verbose with --debug. Helpful for local testing.
+                #
+                # Otherwise cap the log to 10 lines with --verbose,
+                # which would be helpful for debugging when things go wrong in CI.
                 o_lines = json.dumps(o_json, sort_keys=True, indent=4).split("\n")
                 py_lines = json.dumps(py_json, sort_keys=True, indent=4).split("\n")
-                diffs = difflib.unified_diff(o_lines, py_lines, n=10)
-                logger.debug("diff osemgrep vs pysemgrep:\n" + "\n".join(diffs))
+                if get_state().terminal.is_debug:
+                    diffs = difflib.unified_diff(o_lines, py_lines, n=10)
+                    logger.debug("diff osemgrep vs pysemgrep:\n" + "\n".join(diffs))
+                else:
+                    diffs_list = list(difflib.unified_diff(o_lines, py_lines, n=1))
+                    max_n_lines = 10
+                    lines = "\n".join(diffs_list[:max_n_lines])
+                    if len(diffs_list) > max_n_lines:
+                        logger.verbose(
+                            f"partial diff osemgrep vs pysemgrep (use --debug to see full diff):\n{lines}"
+                        )
+                    else:
+                        logger.verbose(f"diff osemgrep vs pysemgrep:\n{lines}")
             validate_elapse = timeit.default_timer() - validate_start
 
         # Update metrics so we can keep track of how well the migration is going.
