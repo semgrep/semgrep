@@ -1,0 +1,15 @@
+Added a new rule option decorators_order_matters, which allows users to make decorators/ non-keyword attributes matching stricter. The default matching for attributes is order-agnostic, but if this rule option is set to true, non-keyword attributes (e.g. decorators in Python) will be matched in order, while keyword attributes (e.g. static, inline, etc) are not affected.
+
+An example usage will be a rule to detect any decorator that is outside of the route() decorator in Flask, since any decorator outside of the route() decorator takes no effect.
+
+# bad: another.func() takes no effect
+@another.func("func")
+@app.route("route")
+def f():
+    pass
+
+# ok: route() is the outermost decorator
+@app.route("route")
+@another.func("func")
+def f():
+    pass

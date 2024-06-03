@@ -17,7 +17,7 @@ OBJS = \
   build-test-javascript.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml cron-parsing-stats.yml \
-  check-semgrep-pro-version.yml test-semgrep-pro.yml \
+  build-semgrep-pro.yml check-semgrep-pro-version.yml test-semgrep-pro.yml \
   build-test-docker.yml push-docker.yml \
   start-release.yml release.yml release-homebrew.yml \
   trigger-semgrep-comparison-argo.yml \
