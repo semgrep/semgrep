@@ -290,8 +290,24 @@ let print_cli_progress (config : Core_scan_config.t) : unit =
 (* Printing matches *)
 (*****************************************************************************)
 
-let string_of_toks toks =
-  String.concat ", " (List_.map (fun tok -> Tok.content_of_tok tok) toks)
+let print_intermediate_vars ~spaces toks =
+  let spaces_string = String.init spaces (fun _ -> ' ') in
+  let print str = UConsole.print (spaces_string ^ str) in
+  let rec loop_print curr_file = function
+    | [] -> ()
+    | tok :: toks -> (
+        match Tok.loc_of_tok tok with
+        | Error _ ->
+            (* The toks are supposed to be real toks, so this should not happen, but
+             * it would be better to have a list of locs then. *)
+            ()
+        | Ok loc ->
+            let pos : Pos.t = loc.pos in
+            if pos.file <> curr_file then print pos.file;
+            print (spf "- %s @l.%d" loc.str pos.line);
+            loop_print pos.file toks)
+  in
+  loop_print "<NO FILE>" toks
 
 (* TODO: use Logs.app instead of those Out.put? *)
 let rec print_taint_call_trace ~format ~spaces = function
@@ -300,10 +316,10 @@ let rec print_taint_call_trace ~format ~spaces = function
       let spaces_string = String.init spaces (fun _ -> ' ') in
       UConsole.print (spaces_string ^ "call to");
       Core_text_output.print_match ~format ~spaces call_toks;
-      if intermediate_vars <> [] then
+      if intermediate_vars <> [] then (
         UConsole.print
-          (spf "%sthese intermediate values are tainted: %s" spaces_string
-             (string_of_toks intermediate_vars));
+          (spf "%sthese intermediate values are tainted:" spaces_string);
+        print_intermediate_vars ~spaces:(spaces + 2) intermediate_vars);
       UConsole.print (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
@@ -315,10 +331,9 @@ let print_taint_trace ~format taint_trace =
              UConsole.print "  * Taint may come from this source:"
            else UConsole.print "  * Taint may also come from this source:";
            print_taint_call_trace ~format ~spaces:4 source_trace;
-           if tokens <> [] then
-             UConsole.print
-               (spf "  * These intermediate values are tainted: %s"
-                  (string_of_toks tokens));
+           if tokens <> [] then (
+             UConsole.print "  * These intermediate values are tainted:";
+             print_intermediate_vars ~spaces:4 tokens);
            UConsole.print "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
