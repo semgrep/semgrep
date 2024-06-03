@@ -137,20 +137,27 @@ jobs:
         working-directory: cli
       - uses: actions/download-artifact@v3
         with:
+          name: semgrep-core-x86-artifact
+      - name: Install artifacts
+        run: |
+          tar xf artifacts.tgz
+          sudo cp artifacts/* /usr/bin
+      - uses: actions/download-artifact@v3
+        with:
           name: semgrep-core-pro-x86-artifact
       - name: Install pro artifacts
         run: |
           tar xf artifacts.tgz
-
-          # All binaries will be placed in cli/tmp-bin first
-          # before copying over to /usr/bin. This is so that
-          # we don't need to run semgrep with sudo.
+          # This is so that we don't need to run semgrep with sudo.
           mv artifacts cli/tmp-bin
           cd cli
           PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
 
-          # Later we copy these files to /usr/bin which requires sudo
-          sudo cp tmp-bin/* /usr/bin
+          # Later we copy the binary to /usr/bin which requires sudo
+          # bugfix: we now just copy semgrep-core-proprietary! we want to keep
+          # the original semgrep-core binary which is compiled with the right
+          # new version during the release PR
+          sudo cp tmp-bin/semgrep-core-proprietary /usr/bin
       - name: Run pytest
         run: |
           # tests should simulate CI environment iff they need one

@@ -228,16 +228,16 @@ local install_x86_pro_artifacts = {
   name: 'Install pro artifacts',
   run: |||
     tar xf artifacts.tgz
-
-    # All binaries will be placed in cli/tmp-bin first
-    # before copying over to /usr/bin. This is so that
-    # we don't need to run semgrep with sudo.
+    # This is so that we don't need to run semgrep with sudo.
     mv artifacts cli/tmp-bin
     cd cli
     PATH="tmp-bin:$PATH" pipenv run semgrep install-semgrep-pro --custom-binary tmp-bin/semgrep-core-proprietary
 
-    # Later we copy these files to /usr/bin which requires sudo
-    sudo cp tmp-bin/* /usr/bin
+    # Later we copy the binary to /usr/bin which requires sudo
+    # bugfix: we now just copy semgrep-core-proprietary! we want to keep
+    # the original semgrep-core binary which is compiled with the right
+    # new version during the release PR
+    sudo cp tmp-bin/semgrep-core-proprietary /usr/bin
   |||,
 };
 
@@ -276,6 +276,14 @@ local test_cli_job = {
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
     install_python_deps,
+    //bugfix: we used to download/install just x86_pro_artifacts, which
+    // contains also a semgrep-core binary, but build-semgrep-pro.jsonnet
+    // does not use anymore the code/PR from the OSS repo so during the release
+    // with the bump-patch PR this semgrep-core binary was compiled with
+    // the old version which leads to some tests failing, so better
+    // to use the semgrep-core binary built from this repo.
+    download_x86_artifacts,
+    install_x86_artifacts,
     //TODO: get rid of this, we should not build/use pro in the OSS repo
     download_x86_pro_artifacts,
     // This step must be done after setting up python and pipenv,
