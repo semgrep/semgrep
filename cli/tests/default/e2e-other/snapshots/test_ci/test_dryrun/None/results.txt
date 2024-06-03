@@ -1,5 +1,5 @@
 === command
-SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --dry-run --no-suppress-errors
+SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --dry-run --no-suppress-errors --oss-only
 === end of command
 
 === exit code
@@ -34,22 +34,6 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
           unsafe use of danger
 
            27┆ sink(d2)
-
-
-          Taint comes from:
-
-           26┆ d2 = danger
-
-
-          Taint flows through these intermediate variables:
-
-           26┆ d2 = danger
-
-
-                This is how taint reaches the sink:
-
-           27┆ sink(d2)
-
 
 
 ┌──────────────────────────────────┐
@@ -96,11 +80,6 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   CONNECTION
   Initializing scan (deployment=org_name)
   Enabled products: Code, Supply Chain
-
-  ENGINE
-  Using Semgrep Pro Version: <MASKED>
-  Installed at <MASKED>
-
 
 ┌─────────────┐
 │ Scan Status │
@@ -219,7 +198,7 @@ Would have sent findings and ignores blob: {
                 ]
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "supply-chain1",
@@ -304,7 +283,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-four",
@@ -342,7 +321,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-five",
@@ -378,7 +357,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -404,7 +383,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -430,7 +409,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "06b2540894e5b13085b613a69a474505628594986504f246b7a521b99ce10bf2"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -456,7 +435,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -482,7 +461,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -508,7 +487,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -534,7 +513,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         }
     ],
     "ignores": [
@@ -573,7 +552,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-four",
@@ -611,7 +590,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-five",
@@ -647,7 +626,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -673,7 +652,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -699,7 +678,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         },
         {
             "check_id": "eqeq-bad",
@@ -725,7 +704,7 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             },
             "validation_state": "NO_VALIDATOR",
-            "engine_kind": "PRO"
+            "engine_kind": "OSS"
         }
     ],
     "token": null,
@@ -784,7 +763,7 @@ Would have sent complete blob: {
                 "num_bytes": 366
             }
         },
-        "engine_requested": "PRO_INTRAFILE",
+        "engine_requested": "OSS",
         "findings_by_product": {
             "code": 16,
             "supply-chain": 1

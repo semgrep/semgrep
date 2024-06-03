@@ -156,15 +156,6 @@ and type_of_lit lang = function
   | _else_ -> Type.NoType
 
 and type_of_name lang = function
-  | Id (ident, { id_svalue = { contents = Some (Lit lit) }; _ }) ->
-      let t = type_of_lit lang lit in
-      (t, Some ident)
-  | Id (ident, { id_svalue = { contents = Some (Cst Cbool) }; _ }) ->
-      (Type.Builtin Type.Bool, Some ident)
-  | Id (ident, { id_svalue = { contents = Some (Cst Cint) }; _ }) ->
-      (Type.Builtin Type.Int, Some ident)
-  | Id (ident, { id_svalue = { contents = Some (Cst Cstr) }; _ }) ->
-      (Type.Builtin Type.String, Some ident)
   | Id (ident, id_info) ->
       let t = resolved_type_of_id_info lang id_info in
       let t =
@@ -188,10 +179,24 @@ and type_of_name lang = function
       (* TODO What to do with type arguments? *)
       (Type.NoType, None)
 
+and resolved_type_of_svalue lang = function
+  | Some (G.Lit lit) -> type_of_lit lang lit
+  | Some (Cst Cbool) -> Type.Builtin Type.Bool
+  | Some (Cst Cint) -> Type.Builtin Type.Int
+  | Some (Cst Cstr) -> Type.Builtin Type.String
+  | _else_ -> Type.NoType
+
 and resolved_type_of_id_info lang info : G.name Type.t =
-  match !(info.G.id_type) with
-  | Some t -> type_of_ast_generic_type lang t
-  | None -> Type.NoType
+  (* First look at the svalue to see if we can get the type of the actual value
+   * that this was initialized to, rather than the declared type. This can fail
+   * for a variety of reasons, so if we don't get a type from this, fall back to
+   * the resolved type. *)
+  let svalue_type = resolved_type_of_svalue lang !(info.G.id_svalue) in
+  if Type.is_real_type svalue_type then svalue_type
+  else
+    match !(info.G.id_type) with
+    | Some t -> type_of_ast_generic_type lang t
+    | None -> Type.NoType
 
 and type_of_ast_generic_type lang t : G.name Type.t =
   match t.G.t with

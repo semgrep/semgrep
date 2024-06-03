@@ -1,0 +1,13 @@
+rules:
+  - id: decorator-order-matters
+    languages:
+      - python
+    severity: ERROR
+    message: only flag if the first decorator is first
+    options:
+      decorators_order_matters: true
+    match: |-
+          @first(...)
+          @second(...)
+          def $FUNC(...):
+            ...

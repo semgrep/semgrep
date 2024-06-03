@@ -1,0 +1,13 @@
+rules:
+  - id: decorator-sublist-is-ok
+    languages:
+      - python
+    severity: ERROR
+    message: flag sublist
+    options:
+      decorators_order_matters: true
+    match: |-
+          @second(...)
+          @third(...)
+          def $FUNC(...):
+            ...
