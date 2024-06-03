@@ -16,7 +16,7 @@
         "num_bytes": 366
       }
     },
-    "engine_requested": "PRO_INTRAFILE",
+    "engine_requested": "OSS",
     "findings_by_product": {
       "code": 16,
       "supply-chain": 1

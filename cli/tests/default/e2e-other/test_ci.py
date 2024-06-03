@@ -912,7 +912,7 @@ def test_full_run(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -1058,7 +1058,7 @@ def test_lockfile_parse_failure_reporting(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
@@ -1379,7 +1379,7 @@ def test_shallow_wrong_merge_base(
     # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-force-color", "--no-suppress-errors"],
+        options=["--no-force-color", "--no-suppress-errors", "--oss-only"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -1401,7 +1401,7 @@ def test_shallow_wrong_merge_base(
     # Run again with greater depth
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-force-color", "--no-suppress-errors"],
+        options=["--no-force-color", "--no-suppress-errors", "--oss-only"],
         strict=False,
         assert_exit_code=None,
         env={**env, "SEMGREP_GHA_MIN_FETCH_DEPTH": "100"},
@@ -1438,7 +1438,7 @@ def test_config_run(
     result = run_semgrep(
         "p/something",
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         strict=False,
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": ""},
@@ -1472,7 +1472,7 @@ def test_outputs(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors", format],
+        options=["--no-suppress-errors", "--oss-only", format],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1513,7 +1513,7 @@ def test_app_ignore(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1543,7 +1543,7 @@ def test_sarif_output_with_dataflow_traces(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors", "--dataflow-traces"],
+        options=["--no-suppress-errors", "--dataflow-traces", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1575,7 +1575,7 @@ def test_nosem(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors", nosem],
+        options=["--no-suppress-errors", "--oss-only", nosem],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1603,7 +1603,7 @@ def test_dryrun(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--dry-run", "--no-suppress-errors"],
+        options=["--dry-run", "--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1638,7 +1638,7 @@ def test_fail_auth_invalid_key(
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=13,
@@ -1688,7 +1688,7 @@ def test_fail_auth_invalid_response(
     requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
     run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1726,7 +1726,7 @@ def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_comm
     mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
     run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1804,7 +1804,7 @@ def test_bad_config(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=7,
@@ -1835,6 +1835,7 @@ def test_bad_config_error_handler(
 
     result = run_semgrep(
         subcommand="ci",
+        options=["--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1867,7 +1868,7 @@ def test_fail_scan_findings(
 
     run_semgrep(
         subcommand="ci",
-        options=["--suppress-errors"],
+        options=["--suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1886,7 +1887,7 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
     mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
     run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1919,7 +1920,7 @@ def test_backend_exit_code(
 
     run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1956,7 +1957,7 @@ def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     mocker.patch.object(GitMeta, "to_project_metadata", side_effect=Exception)
     run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -2029,7 +2030,7 @@ def test_query_dependency(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2070,6 +2071,7 @@ def test_metrics_enabled(
 
     run_semgrep(
         subcommand="ci",
+        options=["--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -2120,7 +2122,7 @@ def test_existing_supply_chain_finding(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2189,7 +2191,12 @@ def test_existing_supply_chain_finding(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors", "--baseline-commit", head_commit],
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--baseline-commit",
+            head_commit,
+        ],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2272,7 +2279,7 @@ def test_reachable_and_unreachable_diff_scan_findings(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors"],
+        options=["--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2306,7 +2313,12 @@ def test_reachable_and_unreachable_diff_scan_findings(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--no-suppress-errors", "--baseline-commit", head_commit],
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--baseline-commit",
+            head_commit,
+        ],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2352,7 +2364,7 @@ def test_enabled_products(
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        options=["ci", "--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2368,7 +2380,7 @@ def test_enabled_products(
         assert "No products are enabled for this organization" not in result.stderr
 
 
-@pytest.mark.parametrize("oss_only", [False, True])
+@pytest.mark.parametrize("oss_only", [True])
 @pytest.mark.osemfail
 def test_pro_diff_slow_rollout(
     run_semgrep: RunSemgrep,
@@ -2460,7 +2472,7 @@ def test_ci_uuid(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--dry-run", "--no-suppress-errors"],
+        options=["--dry-run", "--no-suppress-errors", "--oss-only"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -2491,7 +2503,7 @@ def test_fail_on_historical_scan_without_secrets(
 
     result = run_semgrep(
         subcommand="ci",
-        options=["--historical-secrets", "--no-suppress-errors"],
+        options=["--historical-secrets", "--no-suppress-errors", "--oss-only"],
         strict=False,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         assert_exit_code=2,

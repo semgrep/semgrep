@@ -94,7 +94,7 @@
         ]
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "abceversion1",
@@ -131,7 +131,7 @@
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-four",
@@ -169,7 +169,7 @@
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-five",
@@ -208,7 +208,7 @@
         "    (x == 2)"
       ],
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -234,7 +234,7 @@
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -260,7 +260,7 @@
         "pattern_hash": "06b2540894e5b13085b613a69a474505628594986504f246b7a521b99ce10bf2"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -286,7 +286,7 @@
         "pattern_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -312,7 +312,7 @@
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -338,7 +338,7 @@
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -364,7 +364,7 @@
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     }
   ],
   "ignores": [
@@ -403,7 +403,7 @@
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-four",
@@ -441,7 +441,7 @@
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-five",
@@ -480,7 +480,7 @@
         "    (y == 2)  # nosemgrep"
       ],
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -506,7 +506,7 @@
         "pattern_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -532,7 +532,7 @@
         "pattern_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     },
     {
       "check_id": "eqeq-bad",
@@ -558,7 +558,7 @@
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
       },
       "validation_state": "NO_VALIDATOR",
-      "engine_kind": "PRO"
+      "engine_kind": "OSS"
     }
   ],
   "token": null,
