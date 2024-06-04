@@ -14,31 +14,16 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
  *
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
- *)
-val scan_with_exn_handler :
-  < Cap.tmp > -> Core_scan_config.t -> Core_result.result_or_exn
-
-(* As opposed to [scan_with_exn_handler()], [scan() ...] below may throw
- * an exception (for example in case of a fatal error).
- *
- * This is called by scan_with_exn_handler(). This also uses
- * a few hooks that can be defined in semgrep-pro:
- *  - Match_tainting_mode.hook_setup_hook_function_taint_signature
- *  - Dataflow_tainting.hook_function_taint_signature
- *
- * Functions from matching/ and engine/ called internally uses even
- * more hooks to enhance the behavior of a "core scan".
  *
  * The match_hook parameter is a deprecated way to print matches. If not
  * provided, it defaults to a function that internally calls
  * print_match() below.
  *)
-val scan :
+val scan_with_exn_handler :
   ?match_hook:(Pattern_match.t -> unit) ->
   < Cap.tmp > ->
   Core_scan_config.t ->
-  (Rule.t list * Rule.invalid_rule_error list) * float ->
-  Core_result.t
+  Core_result.result_or_exn
 
 (* Old hook to support incremental display of matches for semgrep-core
  * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook

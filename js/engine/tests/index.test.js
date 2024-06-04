@@ -32,7 +32,7 @@ describe("engine", () => {
   });
 });
 
-function executeSnapshotTest(engine, language, ruleFile, targetFile) {
+function getRunResults(engine, language, ruleFile, targetFile) {
   const rulePath = path.resolve(`${__dirname}/${ruleFile}`);
   const targetPath = path.resolve(`${__dirname}/${targetFile}`);
 
@@ -50,7 +50,12 @@ function executeSnapshotTest(engine, language, ruleFile, targetFile) {
   result["results"].map(
     (match) => (match["extra"]["fingerprint"] = "<MASKED>")
   );
-  expect(result).toMatchSnapshot();
+  return result;
+}
+
+function executeSnapshotTest(engine, language, ruleFile, targetFile) {
+  const results = getRunResults(engine, language, ruleFile, targetFile);
+  expect(results).toMatchSnapshot();
 }
 
 describe("yaml parser", () => {
@@ -91,6 +96,18 @@ describe("misc", () => {
       "test-interpolate-metavars.json",
       "test.py"
     );
+  });
+  test("autofix in json output", async () => {
+    const engine = await enginePromise;
+    const python = require("../../languages/python/dist/index.cjs");
+    engine.addParser(await python.ParserFactory());
+    const results = getRunResults(
+      engine,
+      "python",
+      "test-autofix.json",
+      "test.py"
+    );
+    expect(results["results"][0]["extra"]["fix"]).toBe('bar("Hello World")');
   });
 });
 

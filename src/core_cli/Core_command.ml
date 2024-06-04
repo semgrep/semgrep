@@ -166,27 +166,25 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
   let pattern, pattern_string = pattern_of_config lang config in
 
   match config.output_format with
-  | Json _ ->
-      let rule, rules_parse_time =
-        Common.with_time (fun () ->
-            let fk = Tok.unsafe_fake_tok "" in
-            let xlang = Xlang.L (lang, []) in
-            let xpat =
-              Xpattern.mk_xpat
-                (Xpattern.Sem (lazy pattern, lang))
-                (pattern_string, fk)
-            in
-            Rule.rule_of_xpattern xlang xpat)
+  | Json _ -> (
+      let rule =
+        let fk = Tok.unsafe_fake_tok "" in
+        let xlang = Xlang.L (lang, []) in
+        let xpat =
+          Xpattern.mk_xpat
+            (Xpattern.Sem (lazy pattern, lang))
+            (pattern_string, fk)
+        in
+        Rule.rule_of_xpattern xlang xpat
       in
-      let res =
-        Core_scan.scan
-          (caps :> < Cap.tmp >)
-          config
-          (([ rule ], []), rules_parse_time)
-      in
-      let json = Core_json_output.core_output_of_matches_and_errors res in
-      let s = OutJ.string_of_core_output json in
-      CapConsole.print caps#stdout s
+      let config = { config with rule_source = Some (Rules [ rule ]) } in
+      let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
+      match res with
+      | Error (exn, _) -> Exception.reraise exn
+      | Ok res ->
+          let json = Core_json_output.core_output_of_matches_and_errors res in
+          let s = OutJ.string_of_core_output json in
+          CapConsole.print caps#stdout s)
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->
