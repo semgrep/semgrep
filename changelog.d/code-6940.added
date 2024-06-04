@@ -1,0 +1,6 @@
+Added type inference support for basic operators in the Pro engine, including
+`+`, `-`, `*`, `/`, `>`, `>=`, `<=`, `<`, `==`, `!=`, and `not`. For numeric
+computation operators such as `+` and `-`, if the left-hand side and right-hand
+side types are equal, the return type is assumed to be the same. Additionally,
+comparison operators like `>` and `==`, as well as the negation operator `not`,
+are assumed to return a boolean type.
