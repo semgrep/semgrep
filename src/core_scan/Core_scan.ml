@@ -1171,8 +1171,8 @@ let scan ?match_hook (caps : < Cap.tmp >) config
 (* Entry point *)
 (*****************************************************************************)
 
-let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
-    Core_result.result_or_exn =
+let scan_with_exn_handler ?match_hook (caps : < Cap.tmp >)
+    (config : Core_scan_config.t) : Core_result.result_or_exn =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source caps config)
@@ -1182,8 +1182,8 @@ let scan_with_exn_handler (caps : < Cap.tmp >) (config : Core_scan_config.t) :
        hook any post processing step that needs to look at rules and
        results. *)
     let res =
-      Pre_post_core_scan.call_with_pre_and_post_processor Fun.id (scan caps)
-        config timed_rules
+      Pre_post_core_scan.call_with_pre_and_post_processor Fun.id
+        (scan ?match_hook caps) config timed_rules
     in
     sanity_check_invalid_patterns res
   with

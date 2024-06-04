@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "id": "test",
+      "languages": ["python"],
+      "match": {
+        "pattern": "print($X)"
+      },
+      "fix": "bar($X)",
+      "message": "test",
+      "severity": "ERROR"
+    }
+  ]
+}
