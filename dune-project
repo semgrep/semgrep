@@ -497,6 +497,9 @@ For more information see https://semgrep.dev
     trace
     ppx_trace
     (opentelemetry (>= 0.9))
+    ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
+    ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
+    (ocurl (= 0.9.1))
     opentelemetry-client-ocurl
     ambient-context-lwt
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
