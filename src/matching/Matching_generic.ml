@@ -410,7 +410,21 @@ let environment_of_any lang config any =
   | G.Pr prog -> environment_of_program lang config prog
   | _ -> default_environment lang config
 
-let wipe_wildcard_imports f tin = f { tin with wildcard_imports = [] }
+(* Previously wipe_wildcard_imports removes wildcard import
+   information not only for the specified function but also for all
+   subsequent matching functions that take its output. This is
+   problematic because some subtree matchings might still require
+   wildcard import information. For example, in top-level assignments,
+   wildcard import information is removed when matching the LHS global
+   identifier and also for the RHS class name identifier, even though
+   it is still needed for the latter.
+
+   The current implementation restores wildcard import information
+   after executing only the specified function. *)
+let wipe_wildcard_imports f tin =
+  let wildcard_imports = tin.wildcard_imports in
+  let tout = f { tin with wildcard_imports = [] } in
+  tout |> List_.map (fun tin -> { tin with wildcard_imports })
 
 (*****************************************************************************)
 (* Helpers *)
