@@ -12,10 +12,10 @@ rule.yml
                          { Xpattern.pat =
                            (Xpattern.Sem (<not evaluated>, Python));
                            pstr = ("$X == $X", ()); pid = <MASKED> });
-                      conditions = []; focus = [] }
+                      conditions = []; focus = []; fix = None }
                      ]
                    ));
-                conditions = []; focus = [] });
+                conditions = []; focus = []; fix = None });
      message = "useless comparison"; severity = `Error;
      target_selector = (Some [Python]);
      target_analyzer = (Xlang.L (Python, [])); options = None;

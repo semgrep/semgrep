@@ -177,6 +177,10 @@ let match_rules_and_recurse m_env path hook matches rules matcher k any x =
                           severity_override = None;
                           metadata_override = None;
                           dependency = None;
+                          (* NOTE: the global rule fix and fix_regexp in rule_id will be
+                             applied _later_, in `Autofix.ml`
+                          *)
+                          fix_text = None;
                         }
                       in
                       Stack_.push pm matches;
@@ -348,6 +352,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   severity_override = None;
                                   metadata_override = None;
                                   dependency = None;
+                                  fix_text = None;
                                 }
                               in
                               Stack_.push pm matches;
@@ -413,6 +418,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     severity_override = None;
                                     metadata_override = None;
                                     dependency = None;
+                                    fix_text = None;
                                   }
                                 in
                                 Stack_.push pm matches;
@@ -463,6 +469,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       severity_override = None;
                                       metadata_override = None;
                                       dependency = None;
+                                      fix_text = None;
                                     }
                                   in
                                   Stack_.push pm matches;
@@ -559,6 +566,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       severity_override = None;
                                       metadata_override = None;
                                       dependency = None;
+                                      fix_text = None;
                                     }
                                   in
                                   Stack_.push pm matches;

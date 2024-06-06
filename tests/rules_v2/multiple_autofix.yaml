@@ -1,0 +1,11 @@
+rules:
+- id: multiple-autofix
+  match:
+    any:
+    - pattern: "foo($X)"
+      fix: "bar($X)"
+    - pattern: "bar($Y)"
+      fix: "foo($Y)"
+  message: Working!
+  severity: WARNING
+  languages: [python]

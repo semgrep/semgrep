@@ -1,0 +1,6 @@
+
+# ruleid: multiple-autofix
+bar(1)
+
+# ruleid: multiple-autofix
+foo(2)

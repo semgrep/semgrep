@@ -66,6 +66,8 @@ type formula = {
   conditions : (tok * metavar_cond) list;
   (* focus-metavariable:'s *)
   focus : focus_mv_list list;
+  (* autofix *)
+  fix : string option;
 }
 
 and formula_kind =
@@ -949,8 +951,8 @@ let xpatterns_of_rule rule =
   List.iter (visit_new_formula visit) formulae;
   !xpat_store
 
-let mk_formula ?(focus = []) ?(conditions = []) kind =
-  { f = kind; focus; conditions }
+let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) kind =
+  { f = kind; focus; conditions; fix }
 
 let f kind = mk_formula kind
 
@@ -999,7 +1001,8 @@ let rule_of_formula ?(fix = None) (xlang : Xlang.t) (formula : formula) : rule =
     max_version = None;
     message =
       (match formula with
-      | { f = P xpat; focus = []; conditions = [] } -> fst xpat.Xpattern.pstr
+      | { f = P xpat; focus = []; conditions = []; fix = None } ->
+          fst xpat.Xpattern.pstr
       | _ -> "simple search rule");
     severity = `Error;
     target_selector;

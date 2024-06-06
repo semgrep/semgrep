@@ -307,22 +307,6 @@ let maturity_tests () =
 (* Language-specific tests *)
 (*****************************************************************************)
 
-let related_file_of_target ~polyglot_pattern_path ~ext ~file =
-  let dirname, basename, _e = Filename_.dbe_of_filename !!file in
-  let candidate1 = Filename_.filename_of_dbe (dirname, basename, ext) in
-  if Sys.file_exists candidate1 then Ok (Fpath.v candidate1)
-  else
-    let candidate2 =
-      Filename_.filename_of_dbe (!!polyglot_pattern_path, basename, ext)
-    in
-    if Sys.file_exists candidate2 then Ok (Fpath.v candidate2)
-    else
-      let msg =
-        spf "could not find %s file for test '%s' in either %s or %s" ext
-          basename dirname !!polyglot_pattern_path
-      in
-      Error msg
-
 let match_pattern ~lang ~hook ~file ~pattern ~fix =
   (* TODO? enable the "semgrep.parsing" src level maybe here *)
   let pattern =
@@ -378,8 +362,8 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
            (fun () ->
              let sgrep_file =
                match
-                 related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
-                   ~file
+                 Test_utils.related_file_of_target ~polyglot_pattern_path
+                   ~ext:"sgrep" file
                with
                | Ok file -> file
                | Error msg -> failwith msg
@@ -453,42 +437,6 @@ let lang_regression_tests ~polyglot_pattern_path =
 (* Autofix tests *)
 (*****************************************************************************)
 
-(* Allows the semgrep-core test runner that we use to test matches to also test
- * autofix. The format is pretty simple: add a `.fix` file with the fix pattern
- * and a `.fixed` file with the expected contents of the target after fixes are
- * applied.
- *
- * There are also end-to-end tests which test autofix on the CLI side.
- * Unfortunately, modifying them involves updating a large snapshot file, and
- * maintaining any large quantity of them would be onerous. Additionally, it's
- * not easy to adapt tests from our large existing test suite in semgrep-core to
- * also exercise autofix.
- *
- * Semgrep's `--test` flag can also test autofix
- * (https://github.com/returntocorp/semgrep/pull/5190), but it has the same
- * problems as the existing autofix e2e tests for these purposes. *)
-let compare_fixes ~polyglot_pattern_path ~file matches =
-  let expected_fixed_text =
-    let expected_fixed_file =
-      match
-        related_file_of_target ~polyglot_pattern_path ~ext:"fixed" ~file
-      with
-      | Ok file -> file
-      | Error msg -> failwith msg
-    in
-    UFile.read_file expected_fixed_file
-  in
-  let processed_matches =
-    Autofix.produce_autofixes (List_.map Core_result.mk_processed_match matches)
-  in
-  let fixed_text =
-    processed_matches
-    |> List_.map_filter (fun (m : Core_result.processed_match) ->
-           m.autofix_edit)
-    |> Autofix.apply_fixes_to_file_exn file
-  in
-  Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
-
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
   |> List_.map (fun file ->
@@ -496,8 +444,8 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
            (fun () ->
              let sgrep_file =
                match
-                 related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
-                   ~file
+                 Test_utils.related_file_of_target ~polyglot_pattern_path
+                   ~ext:"sgrep" file
                with
                | Ok file -> file
                | Error msg -> failwith msg
@@ -505,7 +453,8 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
              let pattern = UFile.read_file sgrep_file in
              let fix =
                match
-                 related_file_of_target ~polyglot_pattern_path ~ext:"fix" ~file
+                 Test_utils.related_file_of_target ~polyglot_pattern_path
+                   ~ext:"fix" file
                with
                | Ok fix_file -> Fix (UFile.read_file fix_file)
                | Error _ -> (
@@ -516,8 +465,8 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                       to replace, and the replacement text (possibly multiline)
                    *)
                    match
-                     related_file_of_target ~polyglot_pattern_path
-                       ~ext:"fix-regex" ~file
+                     Test_utils.related_file_of_target ~polyglot_pattern_path
+                       ~ext:"fix-regex" file
                    with
                    | Ok fix_regex_file -> (
                        match UFile.cat fix_regex_file with
@@ -554,7 +503,8 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
              E.g_errors := [];
              match fix with
              | NoFix -> ()
-             | _ -> compare_fixes ~polyglot_pattern_path ~file matches))
+             | _ ->
+                 Test_utils.compare_fixes ~polyglot_pattern_path ~file matches))
 
 let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in

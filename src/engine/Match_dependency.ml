@@ -99,6 +99,7 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                severity_override = None;
                metadata_override = None;
                dependency = Some (LockfileOnlyMatch (dep, pat));
+               fix_text = None;
              })
   in
   Core_result.mk_match_result matches Core_error.ErrorSet.empty

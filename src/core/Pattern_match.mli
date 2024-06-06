@@ -15,6 +15,11 @@ type t = {
   severity_override : Rule.severity option;
   metadata_override : JSON.t option;
   dependency : dependency option;
+  (* A field to be populated based on intra-formula `fix` keys.
+     This is _prior_ to AST-based autofix and interpolation, which occurs in
+     Autofix.ml.
+  *)
+  fix_text : string option;
 }
 
 and dependency =
