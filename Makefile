@@ -223,6 +223,7 @@ test-all:
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
 core-test:
+	./scripts/make-symlinks
 	$(MAKE) build-core-test
 # The following command ensures that we can call 'test.exe --help'
 # from the directory of the checkout
