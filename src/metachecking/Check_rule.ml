@@ -105,7 +105,8 @@ let check_mvars_of_focus env bound_mvs (t, mv_list) =
          if not (mvar_is_ok mv bound_mvs) then mv_error env mv t)
 
 let unknown_metavar_in_comparison env f =
-  let rec collect_metavars parent_mvs { f; conditions; focus } : MV.mvar Set.t =
+  let rec collect_metavars parent_mvs { f; conditions; focus; fix = _ } :
+      MV.mvar Set.t =
     (* Check the metavariables in the conditions (e.g. metavariable-pattern).
        From here on, both the metavariables from the conjuncts and the
        metavariables from the parent are already bound *)

@@ -358,7 +358,16 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
 (*****************************************************************************)
 
 let render_fix (pm : Pattern_match.t) : Textedit.t option =
-  let fix = pm.rule_id.fix in
+  let fix =
+    (* We prefer the fix that is global to the entire rule if it exists.
+       Otherwise, we'll take the fix_text that we populated the pattern
+       match with during Match_search_mode.
+    *)
+    match (pm.rule_id.fix, pm.fix_text) with
+    | None, None -> None
+    | Some fix, _ -> Some fix
+    | _, Some fix -> Some fix
+  in
   let fix_regex = pm.rule_id.fix_regexp in
   let range =
     let start, end_ = pm.Pattern_match.range_loc in

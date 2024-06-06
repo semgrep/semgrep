@@ -253,6 +253,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         check_can_marshall rule_file res;
         check_parse_errors rule_file res.errors;
 
+        (* optionally do autofix tests if *)
+        Test_utils.compare_fixes ~file:target res.matches;
+
         check_profiling rule_file target res;
         res.matches |> List.iter Core_json_output.match_to_push_error;
         let actual_errors = !E.g_errors in

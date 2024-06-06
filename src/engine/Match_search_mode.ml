@@ -396,6 +396,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                severity_override = None;
                metadata_override = None;
                dependency = None;
+               fix_text = None;
              })
     in
     let focused_ranges =
@@ -729,7 +730,8 @@ and get_nested_formula_matches env formula range =
 (* Formula evaluation *)
 (*****************************************************************************)
 
-and evaluate_formula env opt_context ({ f; focus; conditions } : Rule.formula) =
+and evaluate_formula env opt_context
+    ({ f; focus; conditions; fix } : Rule.formula) =
   let ranges, expls = evaluate_formula_kind env opt_context f in
   (* let's apply additional filters.
       * TODO: Note that some metavariable-regexp may be part of an
@@ -793,6 +795,20 @@ and evaluate_formula env opt_context ({ f; focus; conditions } : Rule.formula) =
         [
           if_explanations env ranges [] (OutJ.Filter "metavariable-focus", tok);
         ]
+  in
+
+  (* Populate each match with the enclosed `fix: ...` autofix, if it exists.
+     This means that outer-scoped fixes can "overwrite" inner ones, if they are
+     layered on top of each other.
+  *)
+  let ranges =
+    match fix with
+    | None -> ranges
+    | Some fix ->
+        List_.map
+          (fun (r : RM.t) ->
+            { r with origin = { r.origin with fix_text = Some fix } })
+          ranges
   in
 
   let new_expls =

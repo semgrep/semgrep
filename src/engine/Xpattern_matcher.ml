@@ -98,6 +98,7 @@ let (matches_of_matcher :
                               severity_override = None;
                               metadata_override = None;
                               dependency = None;
+                              fix_text = None;
                             })))
         in
         RP.mk_match_result res Core_error.ErrorSet.empty

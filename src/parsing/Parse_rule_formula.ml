@@ -407,7 +407,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       if pos =*= [] && not env.in_metavariable_pattern then
         Rule.raise_error (Some env.id)
           (InvalidRule (MissingPositiveTermInAnd, env.id, t));
-      { f = R.And (t, conjuncts); focus; conditions }
+      { f = R.And (t, conjuncts); focus; conditions; fix = None }
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
@@ -622,23 +622,28 @@ let rec parse_formula env (value : G.expr) : R.formula =
   | Right dict -> parse_formula_from_dict env dict
 
 and parse_formula_from_dict env dict =
-  (* This is ugly, but here's why. *)
-  (* First, we need to figure out if there's a `where`. *)
+  (* First, parse the other fields than the pattern itself.
+     These are `where` and `fix` at the moment.
+  *)
   let where_formula =
     take_opt dict env (fun _env key value -> (key, value)) "where"
   in
-  match where_formula with
-  (* If there's a `where`, then there must be one key left, the other of which is the
-      pattern. *)
-  | _ when Hashtbl.length dict.h <> 1 ->
-      error env.id dict.first_tok
-        "Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, \
-         or `inside`"
-  (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
-  | None -> parse_pair env (find_formula env dict)
-  | Some (((_, t) as key), value) ->
-      parse_pair env (find_formula env dict)
-      |> constrain_where env (t, t) key value
+  let fix = take_opt dict env parse_string "fix" in
+  (* There should be only one key left, which is the pattern. *)
+  if Hashtbl.length dict.h <> 1 then
+    error env.id dict.first_tok
+      "Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, or \
+       `inside`";
+  (* Add the where information and fix information. *)
+  let formula =
+    match where_formula with
+    | None -> parse_pair env (find_formula env dict)
+    | Some (((_, t) as key), value) ->
+        parse_pair env (find_formula env dict)
+        |> constrain_where env (t, t) key value
+  in
+  let formula = { formula with fix } in
+  formula
 
 and produce_constraint env dict tok indicator =
   match indicator with
@@ -748,6 +753,7 @@ and produce_constraint env dict tok indicator =
        f = R.P { pat = Xpattern.Regexp regexp; _ };
        focus = [];
        conditions = [];
+       fix = None;
       } ->
           [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
       | _ ->
