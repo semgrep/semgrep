@@ -111,7 +111,10 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
 
     state = get_state()
     if state.app_session.token is None and custom_binary is None:
-        logger.info("run `semgrep login` before running `semgrep install-semgrep-pro`")
+        logger.info(
+            "Run `semgrep login` before running `semgrep install-semgrep-pro`. "
+            "Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN variable is set correctly."
+        )
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
     logger.debug(f"platform is {sys.platform}")
