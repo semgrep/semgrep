@@ -45,7 +45,12 @@ val show : t -> string
 val create : < Cap.random ; Cap.network ; Cap.tmp > -> ServerCapabilities.t -> t
 (** [create caps capabilities] creates a [Session.t] given server capabilities *)
 
-val send_metrics : t -> unit
+val send_metrics :
+  ?core_time:Semgrep_output_v1_j.profile ->
+  ?profiler:Profiler.t ->
+  ?cli_output:Semgrep_output_v1_j.cli_output ->
+  t ->
+  unit
 (** [send_metrics t] sends metrics to the server *)
 
 val save_local_skipped_fingerprints : t -> unit

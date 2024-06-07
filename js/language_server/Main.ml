@@ -65,8 +65,6 @@ let scan_config_parser (scan_config_string : string) :
 let _ =
   Cap.main (fun all_caps ->
       RPC_server.io_ref := (module Io);
-      Logs.set_level (Some Logs.Debug);
-      Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
       Session.scan_config_parser_ref := scan_config_parser;
 
       let server =
@@ -81,6 +79,14 @@ let _ =
              init_jsoo wasm_module;
              set_parser_wasm_module wasm_module;
              Parsing_init.init ()
+
+           method setTracing b =
+             Lwt.async_exception_hook :=
+               RPC_server.notify_error_message "Uncaught async exception";
+             (* coupling: CLI_common *)
+             let level = Some (if b then Logs.Debug else Logs.Warning) in
+             CLI_common.setup_logging ~force_color:false ~level;
+             Logs.set_reporter (Logs_browser.console_reporter ())
 
            method setWriteRef f = write_ref := f
 

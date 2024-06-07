@@ -2,6 +2,7 @@ const LSWasm = require("./language-server-wasm");
 
 export interface LS {
   handleClientMessage: (packet: any) => Promise<any | undefined>;
+  setTracing: (tracing: boolean) => void;
   setWriteRef: (func: (packet: any) => void) => void;
 }
 
@@ -15,7 +16,7 @@ export const LSFactory = async () => {
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = loadedLSWasm;
   globalThis.LibPcre2Module = loadedLSWasm;
-  const { init, handleClientMessage, setWriteRef } = require("./Main.bc");
+  const { init, setTracing, handleClientMessage, setWriteRef } = require("./Main.bc");
   init(loadedLSWasm);
   const clientMessageHandler = async (packet: any) => {
     const json = JSON.stringify(packet);
@@ -29,6 +30,7 @@ export const LSFactory = async () => {
 
   return {
     handleClientMessage: clientMessageHandler,
+    setTracing: setTracing,
     setWriteRef: setWriteRef,
   };
 };
