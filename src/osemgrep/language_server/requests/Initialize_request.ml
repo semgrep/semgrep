@@ -29,6 +29,7 @@ module OutJ = Semgrep_output_v1_t
 let initialize_server server
     ({ rootUri; workspaceFolders; initializationOptions; _ } :
       InitializeParams.t) =
+  Logs.app (fun m -> m "Initializing server");
   let initializationOptions =
     match initializationOptions with
     | Some json -> json
@@ -77,24 +78,30 @@ let initialize_server server
      and we don't care to percolate the monad.
   *)
   Lwt.async (fun () ->
+      Logs.debug (fun m -> m "Checking API token exists");
       let settings = Semgrep_settings.load () in
       match settings.api_token with
       | Some token ->
-          let caps = Cap.network_caps_UNSAFE () in
-          let caps = Auth.cap_token_and_network token caps in
+          Logs.debug (fun m -> m "Checking API token validity");
+          let caps = Auth.cap_token_and_network token server.session.caps in
           (* "if not valid", basically *)
           if%lwt Semgrep_login.verify_token_async caps |> Lwt.map not then (
+            Logs.warn (fun m -> m "Invalid Semgrep token detected");
             RPC_server.notify_show_message ~kind:MessageType.Error
               "Invalid Semgrep token detected, please log in again.";
             Semgrep_settings.save { settings with api_token = None } |> ignore;
             Lwt.return_unit)
-      | None -> Lwt.return_unit);
+      | None ->
+          Logs.debug (fun m -> m "No API token detected");
+          Lwt.return_unit);
   (* We're using preemptive threads here as when semgrep scans run, they don't utilize Lwt at all,
       and so block the Lwt scheduler, meaning it cannot properly respond to requests until
       a scan is finished. With preemptive threads, the threads are guaranteed to run concurrently.
      This means we can process IO while a scan is running. *)
+  Logs.debug (fun m -> m "Initializing preemptive threads");
   Lwt_platform.init_preemptive 1 user_settings.jobs (fun msg ->
-      Logs.debug (fun m -> m "ls threads: %s" msg));
+      (* Ocsigen, WTF is this logging thing??? *)
+      Logs.debug (fun m -> m "[Language Server Threads]: %s" msg));
   let metrics =
     let metrics = initializationOptions |> member "metrics" in
     metrics |> LS_metrics.t_of_yojson
@@ -113,9 +120,12 @@ let initialize_server server
       state = State.Running;
     }
   in
+  Logs.app (fun m -> m "Caching workspace targets");
   Session.cache_workspace_targets server.session;
+  Logs.app (fun m -> m "Finished caching workspace targets");
   Logs.debug (fun m ->
       m "Initialized server with session:\n%s" (Session.show server.session));
+  Logs.app (fun m -> m "Server initialized");
   server
 
 (*****************************************************************************)

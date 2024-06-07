@@ -14,7 +14,7 @@
  *)
 
 (* Commentary *)
-(*  *)
+(* This module handles all incoming requests from the client *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -60,6 +60,10 @@ let on_request (type r) (request : r CR.t) server =
   let process_result (r, server) =
     (Some (CR.yojson_of_result request r), server)
   in
+  Logs.debug (fun m ->
+      m "Handling request:\n%s"
+        (CR.to_jsonrpc_request request (`Int 0)
+        |> Request.yojson_of_t |> Yojson.Safe.pretty_to_string));
   match request with
   | CR.Initialize params ->
       Initialize_request.on_request server params |> process_result
@@ -75,12 +79,12 @@ let on_request (type r) (request : r CR.t) server =
   | CR.UnknownRequest { meth; params } ->
       handle_custom_request server meth params
   | CR.Shutdown ->
-      Logs.debug (fun m -> m "Shutting down server");
+      Logs.app (fun m -> m "Shutting down server");
       Session.save_local_skipped_fingerprints server.session;
       (None, server)
   | CR.DebugEcho params -> process_result (params, server)
   | _ ->
-      Logs.warn (fun m ->
+      Logs.debug (fun m ->
           m "Unhandled request %s"
             (CR.to_jsonrpc_request request (`Int 0)
             |> Request.yojson_of_t |> Yojson.Safe.pretty_to_string));

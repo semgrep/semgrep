@@ -48,25 +48,36 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
 (* This is the entry point for scanning, returns /relevant/ matches,
    and all files scanned. *)
 let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
-    ({ session; state = _ } : RPC_server.t) =
+    ({ session; _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
   match (rules, targets) with
+  (* This can happen if rules aren't loaded yet. It seems to alarm users if
+     they see it even though it's not problematic. TODO have a better way of
+     doing this? *)
+  | _, Some []
+  | [], _
+    when not session.cached_session.initialized ->
+      Logs.app (fun m -> m "Rules not loaded yet, not scanning anything.");
+      ([], [])
   | [], _ ->
-      Logs.debug (fun m -> m "No rules to run! Not scanning anything.");
+      Logs.warn (fun m -> m "No rules to run! Not scanning anything.");
       ([], [])
   | _, Some [] ->
-      Logs.debug (fun m -> m "No targets to scan! Not scanning anything.");
+      Logs.warn (fun m -> m "No targets to scan! Not scanning anything.");
       ([], [])
   | _ ->
-      Logs.debug (fun m ->
-          m "Running Semgrep with %d rules" (List.length rules));
+      let profiler = Profiler.make () in
+      Profiler.start profiler ~name:"total_time";
       (* !!!Dispatch to the Semgrep engine!!! *)
       let res =
         let targets =
-          match targets with
-          | None -> Session.targets session
-          | Some targets -> targets
+          (fun () ->
+            match targets with
+            | None -> Session.targets session
+            | Some targets -> targets)
+          |> Profiler.record profiler ~name:"session_targets"
         in
+        Logs.info (fun m -> m "Scanning %d targets" (List.length targets));
         let runner_conf = Session.runner_conf session in
         (* This is currently just ripped from Scan_subcommand. *)
         let core_run_func =
@@ -110,39 +121,42 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               Core_runner.mk_core_run_for_osemgrep
                 (Core_scan.scan_with_exn_handler (session.caps :> < Cap.tmp >))
         in
-
+        Logs.debug (fun m ->
+            m "Running Semgrep with %d rules" (List.length rules));
         let res =
-          core_run_func.run ~file_match_results_hook:None runner_conf
-            Find_targets.default_conf rules [] targets
+          (fun () ->
+            core_run_func.run ~file_match_results_hook:None runner_conf
+              Find_targets.default_conf rules [] targets)
+          |> Profiler.record profiler ~name:"core_run"
         in
         Core_runner.create_core_result rules res
       in
-      let errors =
-        res.core.errors
-        |> List_.map (fun (e : Semgrep_output_v1_t.core_error) -> e.message)
-        |> String.concat "\n"
-      in
-      let skipped =
-        res.core.skipped_rules
-        |> List_.map (fun (r : Semgrep_output_v1_t.skipped_rule) ->
-               Rule_ID.to_string r.rule_id)
-        |> String.concat "\n"
-      in
-      Logs.debug (fun m -> m "Semgrep errors: %s" errors);
-      Logs.debug (fun m -> m "Semgrep skipped rules: %s" skipped);
       (* Collect results. *)
       let scanned = res.scanned |> Set_.elements in
-      Logs.debug (fun m -> m "Scanned %d files" (List.length scanned));
-      Logs.debug (fun m ->
+      Logs.info (fun m ->
           m "Found %d matches before processing" (List.length res.core.results));
       let skipped_fingerprints = Session.skipped_fingerprints session in
       let matches =
         let only_git_dirty = session.user_settings.only_git_dirty in
-        Processed_run.of_matches ~skipped_fingerprints ~git_ref ~only_git_dirty
-          res
+        (fun () ->
+          Processed_run.of_matches ~skipped_fingerprints ~git_ref
+            ~only_git_dirty res)
+        |> Profiler.record profiler ~name:"process_run"
       in
-      Logs.debug (fun m -> m "Found %d matches" (List.length matches));
-      Session.send_metrics session;
+      (* Do reporting *)
+      let cli_output = Output.preprocess_result Output.default res in
+      let errors =
+        cli_output.errors
+        |> List_.map_filter (fun (e : OutJ.cli_error) -> e.message)
+        |> String.concat "\n"
+      in
+      Logs.app (fun m -> m "Semgrep errors: %s" errors);
+      Logs.app (fun m ->
+          m "Semgrep skipped %d rules" (List.length cli_output.skipped_rules));
+      Logs.app (fun m -> m "Scanned %d files" (List.length scanned));
+      Logs.app (fun m -> m "Found %d matches" (List.length matches));
+      Session.send_metrics session ?core_time:res.core.time ~profiler
+        ~cli_output;
       (matches, scanned)
 
 (* This function runs a search by hooking into Match_search_mode, which bypasses
@@ -193,6 +207,7 @@ let run_core_search xconf rule (file : Fpath.t) =
 
 (** Scan all folders in the workspace *)
 let scan_workspace server =
+  Logs.app (fun m -> m "Scanning workspace");
   let f () =
     let token =
       create_progress "Semgrep Scan in Progress" "Scanning Workspace"
@@ -206,15 +221,14 @@ let scan_workspace server =
         results files
     in
     end_progress token;
+    Logs.app (fun m -> m "Scanned workspace");
     batch_notify diagnostics
   in
   (* Scanning is blocking, so run in separate preemptive thread *)
   wrap_with_detach f
 
 let scan_open_documents server =
-  Logs.debug (fun m ->
-      m "Scanning open documents with %s" (Session.show server.session));
-
+  Logs.app (fun m -> m "Scanning open documents");
   let f () =
     let open_documents = server.session.cached_session.open_documents in
     let session_targets = Session.targets server.session in
@@ -233,12 +247,14 @@ let scan_open_documents server =
         results files
     in
     end_progress token;
+    Logs.app (fun m -> m "Scanned open documents");
     batch_notify diagnostics
   in
   wrap_with_detach f
 
 (** Scan a single file *)
 let scan_file server uri =
+  Logs.app (fun m -> m "Scanning single file");
   let f () =
     let file_path = Uri.to_path uri in
     let file = Fpath.v file_path in
@@ -248,7 +264,7 @@ let scan_file server uri =
     (* This feels fine since if it is an actual target, we need to do this, and if not *)
     (* then the user won't see results either way. *)
     if not (List.mem file session_targets) then (
-      Logs.warn (fun m ->
+      Logs.debug (fun m ->
           m
             "File %a is not in the session targets recalculating targets just \
              in case"
@@ -265,6 +281,7 @@ let scan_file server uri =
       Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
         results files
     in
+    Logs.app (fun m -> m "Scanned single file");
     batch_notify diagnostics
   in
   (* Scanning is blocking, so run in separate preemptive thread *)
@@ -273,9 +290,11 @@ let scan_file server uri =
 let refresh_rules server =
   let token = create_progress "Semgrep" "Refreshing Rules" in
   Lwt.async (fun () ->
+      Logs.app (fun m -> m "Refreshing rules");
       let%lwt () = Session.cache_session server.session in
       end_progress token;
       RPC_server.notify_custom "semgrep/rulesRefreshed";
+      Logs.app (fun m -> m "Rules refreshed");
 
       (* We used to scan ALL files in the workspace *)
       (* Now we just scan open documents so we aren't killing *)
