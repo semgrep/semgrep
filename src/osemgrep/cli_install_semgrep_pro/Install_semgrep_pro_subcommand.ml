@@ -137,7 +137,10 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
   match ((Semgrep_settings.load ()).api_token, conf.custom_binary) with
   | None, None ->
       Logs.err (fun m ->
-          m "run `semgrep login` before running `semgrep install-semgrep-pro`");
+          m
+            "Run `semgrep login` before running `semgrep install-semgrep-pro`. \
+             Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN \
+             variable is set correctly.");
       Exit_code.fatal ~__LOC__
   | _ ->
       let platform_kind =
