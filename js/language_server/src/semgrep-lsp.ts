@@ -34,6 +34,8 @@ connection.onInitialize(async (params) => {
   if (!params.initializationOptions.scan) {
     params.initializationOptions.scan = {};
   }
+  const debugTrace = params.initializationOptions?.trace?.server === "verbose";
+  server.setTracing(debugTrace);
   // Force 1 job and no timeout
   // since these require unix primitives
   params.initializationOptions.scan.jobs = 1;
@@ -56,16 +58,16 @@ connection.onRequest(async (method, params) => {
   return;
 });
 
-connection.onNotification((method, params) => {
+connection.onNotification(async (method, params) => {
   const json = { jsonrpc: "2.0", method: method, params: params };
   if (server) {
-    server.handleClientMessage(json);
+    await server.handleClientMessage(json);
   }
 });
 
-connection.onShutdown(() => {
+connection.onShutdown(async () => {
   if (server) {
-    server.handleClientMessage({
+    await server.handleClientMessage({
       jsonrpc: "2.0",
       method: "shutdown",
       params: null,

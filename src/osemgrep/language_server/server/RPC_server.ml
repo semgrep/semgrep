@@ -1,6 +1,6 @@
 (* Austin Theriault
  *
- * Copyright (C) 2019-2023 Semgrep, Inc.
+ * Copyright (C) Semgrep, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -140,6 +140,9 @@ let request request =
   let module Io = (val !io_ref : LSIO) in
   let id = Uuidm.v `V4 |> Uuidm.to_string in
   let request = SR.to_jsonrpc_request request (`String id) in
+  Logs.debug (fun m ->
+      m "Sending request %s"
+        (request |> Request.yojson_of_t |> Yojson.Safe.pretty_to_string));
   let packet = Packet.Request request in
   let () = Lwt.async (fun () -> Io.write packet) in
   id
@@ -156,6 +159,7 @@ let notify notification =
   Io.flush ()
 
 let notify_custom ?params method_ =
+  Logs.debug (fun m -> m "Sending custom notification %s" method_);
   let jsonrpc_notif = Jsonrpc.Notification.create ~method_ ?params () in
   let server_notif = SN.of_jsonrpc jsonrpc_notif in
   match server_notif with
@@ -169,6 +173,7 @@ let batch_notify notifications =
   Lwt.async (fun () -> Lwt_list.iter_s notify notifications)
 
 let notify_show_message ~kind s =
+  Logs.debug (fun m -> m "Sending show message notification %s" s);
   let notif =
     Server_notification.ShowMessage
       { ShowMessageParams.message = s; type_ = kind }
@@ -178,6 +183,8 @@ let notify_show_message ~kind s =
 (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
 let create_progress title message =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
+  Logs.debug (fun m ->
+      m "Creating progress token %s, (%s: %s)" id title message);
   let token = ProgressToken.t_of_yojson (`String id) in
   let progress =
     SR.WorkDoneProgressCreate (WorkDoneProgressCreateParams.create token)
@@ -192,9 +199,23 @@ let create_progress title message =
 
 (** end progress circle *)
 let end_progress token =
+  Logs.debug (fun m ->
+      m "Ending progress token %s"
+        (token |> ProgressToken.yojson_of_t |> Yojson.Safe.pretty_to_string));
   let end_ = SN.Progress.End (WorkDoneProgressEnd.create ()) in
   let progress = SN.WorkDoneProgress (ProgressParams.create token end_) in
   Lwt.async (fun () -> notify progress)
+
+let notify_error_message msg exn =
+  let trace = Printexc.get_backtrace () in
+  let exn_str = Printexc.to_string exn in
+  Logs.err (fun m -> m "%s: %s" msg exn_str);
+  Logs.err (fun m -> m "Backtrace:\n%s" trace);
+  notify_show_message ~kind:MessageType.Error exn_str
+
+let error_response_of_exception id e =
+  let error = Response.Error.of_exn e in
+  Response.error id error
 
 (*****************************************************************************)
 (* Server *)
@@ -218,22 +239,44 @@ struct
       match msg with
       | Notification n when CN.of_jsonrpc n |> Result.is_ok ->
           let server =
-            on_notification (CN.of_jsonrpc n |> Result.get_ok) server
+            try on_notification (CN.of_jsonrpc n |> Result.get_ok) server with
+            | e ->
+                let msg =
+                  Printf.sprintf "Error handling notification %s" n.method_
+                in
+                notify_error_message msg e;
+                server
           in
           (server, None)
-      | Request req when CR.of_jsonrpc req |> Result.is_ok ->
+      | Request req when CR.of_jsonrpc req |> Result.is_ok -> (
           let (CR.E req_unpacked) = CR.of_jsonrpc req |> Result.get_ok in
-          let response, server = on_request req_unpacked server in
-          let response =
-            Option.map
-              (fun json ->
-                let response = Response.ok req.id json in
-                Packet.Response response)
-              response
-          in
-          (server, response)
+          try
+            let response_opt, server = on_request req_unpacked server in
+            let response =
+              Option.map
+                (fun json ->
+                  let response = Response.ok req.id json in
+                  Packet.Response response)
+                response_opt
+            in
+            (server, response)
+          with
+          | e ->
+              let trace = Printexc.get_backtrace () in
+              let id_str =
+                req.id |> Id.yojson_of_t |> Yojson.Safe.pretty_to_string
+              in
+              Logs.err (fun m ->
+                  m "Error handling request %s %s: %s" id_str req.method_
+                    (Printexc.to_string e));
+              Logs.err (fun m -> m "Backtrace:\n%s" trace);
+              let response = error_response_of_exception req.id e in
+              (* Client will handle showing error message *)
+              (server, Some (Packet.Response response)))
       | _ ->
-          Logs.warn (fun m -> m "Unhandled message");
+          Logs.debug (fun m ->
+              m "Unhandled message:\n%s"
+                (msg |> Packet.yojson_of_t |> Yojson.Safe.pretty_to_string));
           (server, None)
     in
     Lwt.return server_and_resp_opt
@@ -242,23 +285,32 @@ struct
     let module Io = (val !io_ref : LSIO) in
     match server.state with
     | State.Stopped ->
-        Logs.debug (fun m -> m "Server stopped");
-        Lwt.return ()
+        Logs.app (fun m -> m "Server stopped");
+        Lwt.return_unit
     | _ -> (
         let%lwt client_msg = Io.read () in
         match client_msg with
         | Some msg ->
-            let%lwt server, resp_opt = handle_client_message msg server in
-            ignore
-              (Option.map
-                 (fun packet -> Lwt.async (fun () -> respond packet))
-                 resp_opt);
+            let%lwt server =
+              (* Try to handle user message but if we fail then just revert
+                 back and keep going unless we fail a certain # of times in a
+                 row this is similar to what vscode does already *)
+              let%lwt server, resp_opt = handle_client_message msg server in
+              ignore
+                (Option.map
+                   (fun packet -> Lwt.async (fun () -> respond packet))
+                   resp_opt);
+              Lwt.return server
+            in
             rpc_loop server ()
         | None ->
-            Logs.debug (fun m -> m "Client disconnected");
-            Lwt.return ())
+            Logs.app (fun m -> m "Client disconnected");
+            Lwt.return_unit)
 
-  let start server = rpc_loop server ()
+  let start server =
+    (* Set async exception hook so we error handle better *)
+    Lwt.async_exception_hook := notify_error_message "Uncaught async exception";
+    rpc_loop server ()
 
   (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
 

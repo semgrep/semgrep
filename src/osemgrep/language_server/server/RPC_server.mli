@@ -69,6 +69,10 @@ val create_progress : string -> string -> Lsp.Types.ProgressToken.t
 val end_progress : Lsp.Types.ProgressToken.t -> unit
 (** [end_progress t token] ends a progress token. *)
 
+val notify_error_message : string -> exn -> unit
+(** [notify_error_message msg exn] sends an error message to the client, and
+    logs the error *)
+
 (** [Make] creates a server from a message handler. *)
 module Make (MessageHandler : sig
   val on_request : _ Lsp.Client_request.t -> t -> Jsonrpc.Json.t option * t

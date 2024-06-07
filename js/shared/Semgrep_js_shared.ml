@@ -91,31 +91,6 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
           func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string !!filename)
 
 (*****************************************************************************)
-(* Reporting *)
-(*****************************************************************************)
-
-let ppf, flush =
-  let b = Buffer.create 255 in
-  let flush () =
-    let s = Buffer.contents b in
-    Buffer.clear b;
-    s
-  in
-  (Format.formatter_of_buffer b, flush)
-
-let console_report _src _level ~over k msgf =
-  let k _ =
-    Firebug.console##error (Js.string (flush ()));
-    over ();
-    k ()
-  in
-  msgf @@ fun ?header ?tags fmt ->
-  ignore tags;
-  match header with
-  | None -> Format.kfprintf k ppf ("@[" ^^ fmt ^^ "@]@.")
-  | Some h -> Format.kfprintf k ppf ("[%s] @[" ^^ fmt ^^ "@]@.") h
-
-(*****************************************************************************)
 (* Promises *)
 (*****************************************************************************)
 
@@ -130,7 +105,9 @@ let promise_of_lwt lwt =
          with
          | e ->
              let msg = Printexc.to_string e in
+             let backtrace = Printexc.get_backtrace () in
              Firebug.console##error (Js.string msg);
+             Firebug.console##error (Js.string backtrace);
              Js.Unsafe.fun_call reject
                [| Js.Unsafe.inject (new%js Js.error_constr (Js.string msg)) |]))
 

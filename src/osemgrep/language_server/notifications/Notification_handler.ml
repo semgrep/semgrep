@@ -44,11 +44,16 @@ let handle_custom_notification server (meth : string)
       server
 
 let on_notification notification (server : RPC_server.t) =
+  Logs.debug (fun m ->
+      m "Handling notification %s"
+        (CN.to_jsonrpc notification |> Notification.yojson_of_t
+       |> Yojson.Safe.pretty_to_string));
   let server =
     match notification with
-    | _ when server.state = RPC_server.State.Uninitialized -> server
+    | _ when server.state = RPC_server.State.Uninitialized ->
+        Logs.warn (fun m -> m "Server is uninitialized");
+        server
     | CN.Initialized ->
-        Logs.debug (fun m -> m "Server initialized");
         let session = Session.load_local_skipped_fingerprints server.session in
         let server = { server with session } in
         Scan_helpers.refresh_rules server;
@@ -168,7 +173,7 @@ let on_notification notification (server : RPC_server.t) =
     | CN.UnknownNotification { method_; params } ->
         handle_custom_notification server method_ params
     | _ ->
-        Logs.warn (fun m ->
+        Logs.debug (fun m ->
             m "Unhandled notification %s"
               (CN.to_jsonrpc notification |> Notification.yojson_of_t
              |> Yojson.Safe.pretty_to_string));

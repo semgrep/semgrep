@@ -1,9 +1,33 @@
+(* Austin Theriault
+ *
+ * Copyright (C) Semgrep, Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+(* Commentary *)
+(* Session contains info that would be helpful to persist between each server *)
+(* request. I.e. parsed rules, settings, open documents etc. We try and store *)
+(* as little as possible in the type, and try to derive as much as possible *)
+(* instead.*)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 module Env = Semgrep_envvars
 open Lsp
 open Types
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
 module OutJ = Semgrep_output_v1_j
+
 (*****************************************************************************)
 (* Refs *)
 (*****************************************************************************)
@@ -86,14 +110,15 @@ let decode_rules caps data =
           caps file
       with
       | Ok res ->
-          Logs.info (fun m ->
-              m "Loaded %d rules from CI" (List.length res.rules));
-          Logs.info (fun m ->
-              m "Got %d errors from CI" (List.length res.errors));
+          Logs.app (fun m ->
+              m "Loaded %d rules from Semgrep Deployment"
+                (List.length res.rules));
+          Logs.app (fun m ->
+              m "Got %d errors from Semgrep Deployment" (List.length res.errors));
           res
       | Error _err ->
           (* There shouldn't be any errors, because we got these rules from CI. *)
-          failwith "impossible: received invalid rules from CI")
+          failwith "impossible: received invalid rules from Deployment")
 
 let get_targets session (root : Fpath.t) =
   let targets_conf =
@@ -108,7 +133,7 @@ let get_targets session (root : Fpath.t) =
     [ Scanning_root.of_fpath root ]
   |> fst
 
-let send_metrics session =
+let send_metrics ?core_time ?profiler ?cli_output session =
   if session.metrics.enabled then (
     let settings = Semgrep_settings.load () in
     let api_token = settings.Semgrep_settings.api_token in
@@ -117,16 +142,26 @@ let send_metrics session =
     api_token
     |> Option.iter (fun (_token : Auth.token) ->
            Metrics_.g.payload.environment.isAuthenticated <- true);
-    Metrics_.add_rules_hashes_and_rules_profiling session.cached_session.rules;
+    Git_wrapper.get_project_url () |> Option.iter Metrics_.add_project_url_hash;
+    cli_output
+    |> Option.iter (fun (o : OutJ.cli_output) -> Metrics_.add_errors o.errors);
+    profiler |> Option.iter Metrics_.add_profiling;
+    Metrics_.add_rules_hashes_and_rules_profiling ?profiling:core_time
+      session.cached_session.rules;
     Metrics_.g.payload.extension.machineId <- session.metrics.machineId;
     Metrics_.g.payload.extension.isNewAppInstall <-
       Some session.metrics.isNewAppInstall;
-
     Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
     Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
     Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
     Metrics_.prepare_to_send ();
-    Lwt.async (fun () -> Semgrep_Metrics.send_async session.caps))
+    Lwt.async (fun () ->
+        (* Don't worry if metrics fail to send, and don't notify user *)
+        try%lwt Semgrep_Metrics.send_async session.caps with
+        | e ->
+            Logs.err (fun m ->
+                m "Failed to send metrics: %s" (Printexc.to_string e));
+            Lwt.return_unit))
 
 (*****************************************************************************)
 (* State getters *)
@@ -251,18 +286,14 @@ let fetch_rules session =
     (List.flatten rules_and_origins_nested, List.flatten errors_nested)
   in
 
-  Logs.warn (fun m ->
+  Logs.info (fun m ->
       m "Got %d errors while refreshing rules in language server"
         (List.length errors));
 
   let rules_and_origins =
     match ci_rules with
-    | Some r ->
-        Logs.info (fun m -> m "Got %d rules from CI" (List.length r.rules));
-        r :: rules_and_origins
-    | None ->
-        Logs.info (fun m -> m "No rules from CI");
-        rules_and_origins
+    | Some r -> r :: rules_and_origins
+    | None -> rules_and_origins
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins

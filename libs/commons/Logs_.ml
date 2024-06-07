@@ -160,7 +160,7 @@ let create_formatter opt_file =
    incomprehensible and excessively complicated given how little it provides.
 *)
 let mk_reporter ~dst ~require_one_of_these_tags
-    ~read_tags_from_env_vars:(env_vars : string list) () =
+    ~read_tags_from_env_vars:(env_vars : string list) ~highlight () =
   let require_one_of_these_tags =
     match read_comma_sep_strs_from_env_vars env_vars with
     | Some tags -> tags
@@ -174,8 +174,10 @@ let mk_reporter ~dst ~require_one_of_these_tags
     let is_default_src = src_name = "application" in
     let pp_style, _style, style_off =
       match color level with
-      | None -> ((fun _ppf _style -> ()), "", "")
-      | Some x -> (pp_sgr, x, "0")
+      | Some x when highlight -> (pp_sgr, x, "0")
+      | Some _
+      | None ->
+          ((fun _ppf _style -> ()), "", "")
     in
     let k _ =
       over ();
@@ -249,7 +251,7 @@ let setup_basic ?(level = Some Logs.Warning) () =
   Logs.set_level ~all:true level;
   Logs.set_reporter
     (mk_reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
-       ~read_tags_from_env_vars:[] ());
+       ~read_tags_from_env_vars:[] ~highlight:false ());
   ()
 
 let setup ?(highlight_setting = Console.get_highlight_setting ())
@@ -283,7 +285,8 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   Logs.set_reporter
-    (mk_reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars ());
+    (mk_reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars
+       ~highlight ());
   Logs.debug (fun m ->
       m "setup_logging: highlight_setting=%s, highlight=%B"
         (Console.show_highlight_setting highlight_setting)

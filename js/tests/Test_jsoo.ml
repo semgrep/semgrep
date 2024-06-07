@@ -81,8 +81,7 @@ let lwt_skip_todo_tests tests =
 (* Stolen from Logs' logs_browser.ml *)
 let () =
   Cap.main (fun all_caps ->
-      Logs.set_level (Some Logs.Debug);
-      Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
+      Logs_.setup_basic ~level:(Some Logs.Debug) ();
       Js.export_all
         (object%js
            method init =
