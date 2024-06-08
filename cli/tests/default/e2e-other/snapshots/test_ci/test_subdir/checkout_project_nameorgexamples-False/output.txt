@@ -1,0 +1,25 @@
+=== command
+SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --subdir /checkout_project_name/org/examples --oss-only
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+
+=== end of stdout - plain
+
+=== stderr - plain
+`semgrep ci --subdir` must be given a directory that is actually a subdirectory of the current directory
+There were errors during analysis but Semgrep will succeed because there were no blocking findings, use --no-suppress-errors if you want Semgrep to fail when there are errors.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

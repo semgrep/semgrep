@@ -108,6 +108,16 @@ def get_git_root_path() -> Path:
     return root_path
 
 
+def is_git_repo_root_approx() -> bool:
+    """
+    Sanity check if the current directory is the root of a git repo.
+    Will not raise an exception, though it may give false positives.
+    This function is meant to help provide better warning messages
+    (e.g. for `semgrep ci`).
+    """
+    return os.path.exists(".git/")
+
+
 class GitStatus(NamedTuple):
     added: List[Path]
     modified: List[Path]
