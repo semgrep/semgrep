@@ -2218,6 +2218,74 @@ def test_existing_supply_chain_finding(
 
 
 @pytest.mark.parametrize(
+    ("subdir", "succeeds"),
+    [
+        ("org/examples", True),
+        ("test/../org/examples/", True),
+        ("org/", True),
+        ("../org", False),
+        ("..", False),
+        ("/checkout_project_name/org/examples", False),
+    ],
+)
+@pytest.mark.osemfail
+def test_subdir(
+    subdir,
+    succeeds,
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    scan_config,
+    requests_mock,
+):
+    repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    dir1 = repo_copy_base / "org"
+    dir1.mkdir()
+    dir2 = repo_copy_base / "test"
+    dir2.mkdir()
+    codedir = dir1 / "examples"
+    codedir.mkdir()
+    pyfile1 = codedir / "foo.py"
+    pyfile1.write_text(f"x == 5\n")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[
+            "--subdir",
+            subdir,
+            "--oss-only",
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                head_commit,
+            ]
+        ),
+        "output.txt",
+    )
+    if succeeds:
+        findings_json = upload_results_mock.last_request.json()
+        assert len(findings_json["findings"]) == 1
+
+
+@pytest.mark.parametrize(
     "scan_config",
     [
         dedent(

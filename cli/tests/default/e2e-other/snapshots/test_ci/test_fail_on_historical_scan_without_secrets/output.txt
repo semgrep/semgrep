@@ -11,6 +11,11 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 === end of stdout - plain
 
 === stderr - plain
+WARNING: `semgrep ci` is meant to be run from the root of a git repo.
+When `semgrep ci` is not run from a git repo, it will not be able to perform all operations.
+When `semgrep ci` is run from a git repo, but not the root, links in the uploaded findings may be broken.
+
+To run `semgrep ci` on only a subdirectory of a git repo, see `--subdir`.
 
 
 ┌────────────────┐
