@@ -83,6 +83,7 @@ class GitMeta:
     """Gather metadata only from local filesystem."""
 
     cli_baseline_ref: Optional[str] = None
+    subdir: Optional[Path] = None
     environment: str = field(default="git", init=False)
 
     @property
@@ -115,8 +116,15 @@ class GitMeta:
 
     @property
     def repo_display_name(self) -> str:
+        # If a subdirectory is passed to semgrep ci, always create a different project
+        # This prevents the user from being able to accidentally close their findings
+        # by scanning a subdirectory
+        display_name = self.repo_name
+        if self.subdir:
+            display_name += f"/{self.subdir}"
+
         # Using the 'or' for the typechecker
-        return os.getenv("SEMGREP_REPO_DISPLAY_NAME") or self.repo_name
+        return os.getenv("SEMGREP_REPO_DISPLAY_NAME") or display_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -1176,7 +1184,9 @@ class TravisMeta(GitMeta):
         return res
 
 
-def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
+def generate_meta_from_environment(
+    baseline_ref: Optional[str], subdir: Optional[Path]
+) -> GitMeta:
     # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
     if os.getenv("GITHUB_ACTIONS") == "true":
         return GithubMeta(baseline_ref)
@@ -1211,4 +1221,4 @@ def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
         return TravisMeta(baseline_ref)
 
     else:
-        return GitMeta(baseline_ref)
+        return GitMeta(baseline_ref, subdir)

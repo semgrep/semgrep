@@ -14,6 +14,7 @@ type conf = {
   products : Semgrep_output_v1_t.product list;
   (* BIG ONE: 'semgrep ci' shares many flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
+  subdir : string;
 }
 [@@deriving show]
 

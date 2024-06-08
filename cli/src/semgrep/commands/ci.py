@@ -36,6 +36,7 @@ from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.git import git_check_output
+from semgrep.git import is_git_repo_root_approx
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
@@ -169,6 +170,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
 @click.option(
+    "--subdir",
+    type=click.Path(allow_dash=True, path_type=Path),
+    help="Scan only a subdirectory of this folder. This creates a project specific to the subdirectory unless SEMGREP_REPO_DISPLAY_NAME is set. Expects a relative path. (Note that when two scans have the same SEMGREP_REPO_DISPLAY_NAME but different targeted directories, the results of the second scan overwrite the first.)",
+)
+@click.option(
     "--internal-ci-scan-results",
     "internal_ci_scan_results",
     is_flag=True,
@@ -223,6 +229,7 @@ def ci(
     allow_untrusted_validators: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
+    subdir: Optional[Path],
     time_flag: bool,
     timeout_threshold: int,
     timeout: int,
@@ -245,6 +252,20 @@ def ci(
     state.error_handler.configure(suppress_errors)
     scan_handler = None
 
+    if subdir:
+        subdir = subdir.resolve()  # normalize path & resolve symlinks
+        if not subdir.is_relative_to(Path.cwd()):
+            logger.info(
+                "`semgrep ci --subdir` must be given a directory that is actually a subdirectory of the current directory"
+            )
+            sys.exit(FATAL_EXIT_CODE)
+        subdir = subdir.relative_to(Path.cwd())
+
+    if not is_git_repo_root_approx():
+        logger.info(
+            "WARNING: `semgrep ci` is meant to be run from the root of a git repo.\nWhen `semgrep ci` is not run from a git repo, it will not be able to perform all operations.\nWhen `semgrep ci` is run from a git repo, but not the root, links in the uploaded findings may be broken.\n\nTo run `semgrep ci` on only a subdirectory of a git repo, see `--subdir`."
+        )
+
     token = state.app_session.token
     if not token and not config:
         # Not logged in and no explicit config
@@ -266,7 +287,7 @@ def ci(
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
-    metadata = generate_meta_from_environment(baseline_commit)
+    metadata = generate_meta_from_environment(baseline_commit, subdir)
 
     console.print(Title("Debugging Info"))
     debugging_table = Table.grid(padding=(0, 1))
@@ -465,6 +486,10 @@ def ci(
     for product in ALL_PRODUCTS:
         per_product_excludes[product].extend(additional_exclude_paths[product])
 
+    target = os.curdir
+    if subdir:
+        target += f"/{subdir}"
+
     # Base arguments for actually running the scan. This is done here so we can
     # re-use this in the event we need to perform a second scan. Currently the
     # only case for this is a separate "historical" scan, where we scan the git
@@ -477,7 +502,7 @@ def ci(
         "run_secrets": run_secrets,
         "disable_secrets_validation": disable_secrets_validation_flag,
         "output_handler": output_handler,
-        "target": [os.curdir],  # semgrep ci only scans cwd
+        "target": [target],
         "pattern": None,
         "lang": None,
         "configs": config,

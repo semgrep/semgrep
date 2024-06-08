@@ -46,6 +46,7 @@ type conf = {
    * opti flags.
    *)
   scan_conf : Scan_CLI.conf;
+  subdir : string;
 }
 [@@deriving show]
 
@@ -83,6 +84,14 @@ let o_code : bool Term.t =
   let info = Arg.info [ "code" ] ~doc:{|Run Semgrep Code (SAST) product.|} in
   Arg.value (Arg.flag info)
 
+let o_subdir : string Term.t =
+  let info =
+    Arg.info [ "subdir" ]
+      ~doc:
+        {|Scan only a subdirectory of this folder. This creates a project specific to the subdirectory unless SEMGREP_REPO_DISPLAY_NAME is set. Expects a relative path. (Note that when two scans have the same SEMGREP_REPO_DISPLAY_NAME but different targeted directories, the results of the second scan overwrite the first.)|}
+  in
+  Arg.value (Arg.opt Arg.string (Sys.getcwd ()) info)
+
 let o_suppress_errors : bool Term.t =
   H.negatable_flag_with_env [ "suppress-errors" ]
     ~neg_options:[ "no-suppress-errors" ]
@@ -105,19 +114,19 @@ let cmdline_term caps : conf Term.t =
    * variables (Romain's idea).
    *)
   let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
-      supply_chain suppress_errors _git_meta _github_meta =
+      subdir supply_chain suppress_errors _git_meta _github_meta =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
       @ if supply_chain then [ `SCA ] else []
     in
-    { scan_conf; audit_on; dry_run; suppress_errors; products }
+    { scan_conf; audit_on; dry_run; suppress_errors; products; subdir }
   in
   Term.(
     const combine
     $ Scan_CLI.cmdline_term caps ~allow_empty_config:true
     $ o_audit_on $ o_code $ Scan_CLI.o_secrets $ o_dry_run
-    $ o_internal_ci_scan_results $ o_supply_chain $ o_suppress_errors
+    $ o_internal_ci_scan_results $ o_subdir $ o_supply_chain $ o_suppress_errors
     $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
