@@ -213,6 +213,7 @@ local install_x86_artifacts = {
   name: 'Install artifacts',
   run: |||
     tar xf artifacts.tgz
+    #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
     sudo cp artifacts/* /usr/bin
   |||,
 };
@@ -232,11 +233,7 @@ local test_cli_job = {
     // Needed for semgrep-core
     'build-test-core-x86',
   ],
-  permissions: {
-    contents: 'write',
-    // ???
-    'pull-requests': 'write',
-  },
+  permissions: gha.pull_request_permissions,
   strategy: {
     matrix: {
       python: [
