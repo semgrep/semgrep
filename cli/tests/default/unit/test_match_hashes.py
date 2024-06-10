@@ -20,7 +20,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 @pytest.fixture
 def eqeq_rule() -> Rule:
-    config = parse_config_string(
+    config, config_errors = parse_config_string(
         "testfile",
         dedent(
             """
@@ -39,7 +39,7 @@ def eqeq_rule() -> Rule:
 
 @pytest.fixture
 def double_eqeq_rule() -> Rule:
-    config = parse_config_string(
+    config, config_errors = parse_config_string(
         "testfile",
         dedent(
             """
@@ -60,7 +60,7 @@ def double_eqeq_rule() -> Rule:
 
 @pytest.fixture
 def lockfile_only_rule() -> Rule:
-    config = parse_config_string(
+    config, config_errors = parse_config_string(
         "testfile",
         dedent(
             """

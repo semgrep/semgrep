@@ -13,9 +13,9 @@ import attr
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
-from semgrep.rule_lang import Position
-from semgrep.rule_lang import SourceTracker
-from semgrep.rule_lang import Span
+from semgrep.error_location import Position
+from semgrep.error_location import SourceTracker
+from semgrep.error_location import Span
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -111,6 +111,14 @@ def error_type_string(type_: out.ErrorType) -> str:
     # and have some <json name="..."> annotations to generate the right string
     else:
         return str(type_.to_json())
+
+
+def is_real_error(severity: out.ErrorSeverity) -> bool:
+    return severity.kind == "Error_"
+
+
+def select_real_errors(errors: List[SemgrepError]) -> List[SemgrepError]:
+    return [x for x in errors if is_real_error(x.level)]
 
 
 @dataclass(frozen=True)

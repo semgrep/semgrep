@@ -15,7 +15,7 @@ from semgrep.rule_match import RuleMatches
 
 
 def create_rule() -> Rule:
-    config = parse_config_string(
+    config, config_errors = parse_config_string(
         "testfile",
         dedent(
             """

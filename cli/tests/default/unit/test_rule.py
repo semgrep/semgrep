@@ -12,7 +12,8 @@ def create_validator_rule(
     error_action: str = "monitor",
     action: str = "monitor",
 ) -> Rule:
-    config = parse_config_string(
+    # TODO: do something with the config errors?
+    config, config_errors = parse_config_string(
         "testfile",
         dedent(
             f"""
@@ -60,7 +61,7 @@ def create_validator_rule(
 
 @pytest.mark.quick
 def test_rule_full_hash_equivalency():
-    config = parse_config_string(
+    config, config_errors = parse_config_string(
         "testfile",
         dedent(
             """
