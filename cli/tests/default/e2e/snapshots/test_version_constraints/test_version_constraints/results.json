@@ -3,6 +3,36 @@
     {
       "code": 0,
       "level": "info",
+      "message": "Incompatible rule rules.unsupported-yaml-from-the-future:\n This rule requires upgrading Semgrep from version <MASKED> to at least 1000.0.0",
+      "path": "<MASKED>",
+      "rule_id": "rules.unsupported-yaml-from-the-future",
+      "type": [
+        "IncompatibleRule",
+        {
+          "min_version": "1000.0.0",
+          "rule_id": "rules.unsupported-yaml-from-the-future",
+          "this_version": "<MASKED>"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule rules.obsolete-yaml:\n This rule is no longer supported by Semgrep. The last compatible version was 0.0.0. This version of Semgrep is <MASKED>",
+      "path": "<MASKED>",
+      "rule_id": "rules.obsolete-yaml",
+      "type": [
+        "IncompatibleRule",
+        {
+          "max_version": "0.0.0",
+          "rule_id": "rules.obsolete-yaml",
+          "this_version": "<MASKED>"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "level": "info",
       "message": "Incompatible rule rules.need-to-upgrade1:\n This rule requires upgrading Semgrep from version <MASKED> to at least 1000.0.0",
       "path": "<MASKED>",
       "rule_id": "rules.need-to-upgrade1",

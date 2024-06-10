@@ -10,7 +10,7 @@ from uuid import uuid4
 from attrs import frozen
 
 from semgrep.error import UnknownLanguageError
-from semgrep.rule_lang import Span
+from semgrep.error_location import Span
 from semgrep.types import JsonObject
 
 Mode = NewType("Mode", str)

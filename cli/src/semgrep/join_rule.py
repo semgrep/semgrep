@@ -230,7 +230,7 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
     """
     config = {}
     for config_string in semgrep_config_strings:
-        resolved = resolve_config(config_string, get_project_url())
+        resolved, config_errors = resolve_config(config_string, get_project_url())
         # Some code-fu to get single rules
         config.update(
             {config_string: list(Config._validate(resolved)[0].values())[0][0]}

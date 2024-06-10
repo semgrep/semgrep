@@ -3,6 +3,14 @@
 # version or shouldn't be skipped and produce a match.
 #
 rules:
+  - id: unsupported-yaml-from-the-future
+    min-version: 1000.0.0
+    severity: OUCH
+    ohlala: true
+  - id: obsolete-yaml
+    max-version: 0.0.0
+    severity: OUCH
+    ohlala: true
   - id: any-version
     pattern: x
     message: "This rule was successfully applied."
