@@ -19,6 +19,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf artifacts.tgz
+          #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
         run: pipenv install --dev
@@ -138,6 +139,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf artifacts.tgz
+          #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Run pytest
         run: |
@@ -247,6 +249,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf artifacts.tgz
+          #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Install semgrep
         run: |
