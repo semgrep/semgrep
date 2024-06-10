@@ -45,7 +45,7 @@ def test_parse_taint_rules():
             severity: WARNING
         """
     )
-    yaml = parse_config_string("testfile", yaml_contents, "file.py")
+    yaml, errors = parse_config_string("testfile", yaml_contents, "file.py")
     config = yaml["testfile"].value
     rules = config.get(RULES_KEY)
     for rule_dict in rules.value:

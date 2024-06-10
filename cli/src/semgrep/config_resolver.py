@@ -37,12 +37,13 @@ from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
+from semgrep.error_location import Span
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
-from semgrep.rule_lang import Span
+from semgrep.rule_lang import prepend_rule_path
 from semgrep.rule_lang import validate_yaml
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
@@ -58,8 +59,6 @@ logger = getLogger(__name__)
 
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
-
-MISSING_RULE_ID = "no-rule-id"
 
 DEFAULT_CONFIG = {
     "rules": [
@@ -408,13 +407,14 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
 
 def parse_config_files(
     loaded_config_infos: List[ConfigFile],
-) -> Dict[str, YamlTree]:
+) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     """
     Parse a list of config files into rules
     This assumes that config_id is set for local rules
     but is None for registry rules
     """
     config = {}
+    errors: List[SemgrepError] = []
     for config_id, contents, config_path in progress.track(
         loaded_config_infos,
         description=f"  parsing {len(loaded_config_infos)} rules",
@@ -446,7 +446,11 @@ def parse_config_files(
                 filename = f"{config_path[:20]}..."
             else:
                 filename = config_path
-            config.update(parse_config_string(config_id, contents, filename))
+            config_data, config_errors = parse_config_string(
+                config_id, contents, filename
+            )
+            config.update(config_data)
+            errors.extend(config_errors)
         except InvalidRuleSchemaError as e:
             if (
                 config_id == REGISTRY_CONFIG_ID
@@ -458,20 +462,19 @@ def parse_config_files(
                 raise e
             else:
                 raise e
-    return config
+    return config, errors
 
 
 def resolve_config(
     config_str: str, project_url: Optional[str] = None
-) -> Dict[str, YamlTree]:
+) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     config_loader = ConfigLoader(config_str, project_url)
-    config = parse_config_files(config_loader.load_config())
-
+    config, errors = parse_config_files(config_loader.load_config())
     if config:
         logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
-    return config
+    return config, errors
 
 
 class Config:
@@ -498,21 +501,28 @@ class Config:
     @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+    ) -> Tuple["Config", List[SemgrepError]]:
         config_dict = manual_config(pattern, lang, replacement)
         valid, errors, _ = cls._validate(config_dict)
         return cls(valid), errors
 
     @classmethod
-    def from_rules_yaml(cls, config: str) -> Tuple["Config", Sequence[SemgrepError]]:
+    def from_rules_yaml(
+        cls, config: str, no_rewrite_rule_ids: bool = False
+    ) -> Tuple["Config", List[SemgrepError]]:
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
 
         try:
             resolved_config_key = CLOUD_PLATFORM_CONFIG_ID
-            config_dict.update(
-                parse_config_string(resolved_config_key, config, filename=None)
+            config_data, config_errors = parse_config_string(
+                resolved_config_key,
+                config,
+                filename=None,
+                no_rewrite_rule_ids=no_rewrite_rule_ids,
             )
+            config_dict.update(config_data)
+            errors.extend(config_errors)
         except SemgrepError as e:
             errors.append(e)
 
@@ -523,7 +533,7 @@ class Config:
     @classmethod
     def from_config_list(
         cls, configs: Sequence[str], project_url: Optional[str]
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+    ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
         list of errors parsing said config files
@@ -539,7 +549,8 @@ class Config:
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = resolve_config(config, project_url)
+                resolved_config, config_errors = resolve_config(config, project_url)
+                errors.extend(config_errors)
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
@@ -597,52 +608,15 @@ class Config:
         )
 
     @staticmethod
-    def _safe_relative_to(a: Path, b: Path) -> Path:
-        try:
-            return a.relative_to(b)
-        except ValueError:
-            # paths had no common prefix; not possible to relativize
-            return a
-
-    @staticmethod
-    def _sanitize_rule_id_fragment(s: str) -> str:
-        """Make a valid fragment for a rule ID.
-
-        This removes characters that aren't allowed in Semgrep rule IDs.
-        The transformation is irreversible. The result may be an empty
-        string.
-
-        Rule ID format: [a-zA-Z0-9._-]*
-        """
-        return re.sub("[^a-zA-Z0-9._-]", "", s)
-
-    @staticmethod
-    def _convert_config_id_to_prefix(config_id: str) -> str:
-        at_path = Path(config_id)
-        try:
-            at_path = Config._safe_relative_to(at_path, Path.cwd())
-        except FileNotFoundError:
-            pass
-
-        prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
-        if len(prefix):
-            prefix += "."
-        # Remove any remaining special characters that were in the file path.
-        prefix = Config._sanitize_rule_id_fragment(prefix)
-        return prefix
-
-    @staticmethod
     def _rename_rule_ids(valid_configs: Mapping[str, Sequence[Rule]]) -> None:
         for config_id, rules in valid_configs.items():
             for rule in rules:
-                rule.rename_id(
-                    f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
-                )
+                rule.rename_id(prepend_rule_path(config_id, rule.id))
 
     @staticmethod
     def _validate(
         config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError], int]:
+    ) -> Tuple[Mapping[str, Sequence[Rule]], List[SemgrepError], int]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
@@ -761,24 +735,31 @@ def indent(msg: str) -> str:
 
 
 def parse_config_string(
-    config_id: str, contents: str, filename: Optional[str]
-) -> Dict[str, YamlTree]:
+    config_id: str,
+    contents: str,
+    filename: Optional[str],
+    no_rewrite_rule_ids: bool = False,
+) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     if not contents:
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
 
     # Should we guard this code and checks whether filename ends with .json?
+    errors: List[SemgrepError] = []
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
-        validate_yaml(data)
-        return {config_id: data}
+        errors.extend(
+            validate_yaml(data, filename, no_rewrite_rule_ids=no_rewrite_rule_ids)
+        )
+        return ({config_id: data}, errors)
     except json.decoder.JSONDecodeError:
         pass
 
     try:
-        data = parse_config_preserve_spans(contents, filename)
+        data, config_errors = parse_config_preserve_spans(contents, filename)
+        errors.extend(config_errors)
     except EmptyYamlException:
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
@@ -788,7 +769,7 @@ def parse_config_string(
             f"Invalid YAML file {config_id}:\n{indent(str(se))}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
-    return {config_id: data}
+    return {config_id: data}, errors
 
 
 def is_registry_id(config_str: str) -> bool:
@@ -926,13 +907,16 @@ def get_config(
     *,
     project_url: Optional[str],
     replacement: Optional[str] = None,
-) -> Tuple[Config, Sequence[SemgrepError]]:
+    no_rewrite_rule_ids: bool = False,
+) -> Tuple[Config, List[SemgrepError]]:
     if pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
         config, errors = Config.from_pattern_lang(pattern, lang, replacement)
     elif len(config_strs) == 1 and is_rules(config_strs[0]):
-        config, errors = Config.from_rules_yaml(config_strs[0])
+        config, errors = Config.from_rules_yaml(
+            config_strs[0], no_rewrite_rule_ids=no_rewrite_rule_ids
+        )
     elif replacement:
         raise SemgrepError(
             "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"

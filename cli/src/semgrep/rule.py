@@ -13,9 +13,9 @@ from typing import Union
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import RuleScanSource
 from semgrep.error import InvalidRuleSchemaError
+from semgrep.error_location import Span
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import RuleValidation
-from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem

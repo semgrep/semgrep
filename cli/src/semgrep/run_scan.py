@@ -46,6 +46,7 @@ from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
+from semgrep.error import select_real_errors
 from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
@@ -421,7 +422,12 @@ def run_scan(
 
     rule_start_time = time.time()
     configs_obj, config_errors = get_config(
-        pattern, lang, configs, replacement=replacement, project_url=project_url
+        pattern,
+        lang,
+        configs,
+        replacement=replacement,
+        project_url=project_url,
+        no_rewrite_rule_ids=no_rewrite_rule_ids,
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
@@ -467,22 +473,22 @@ def run_scan(
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)
-
+    real_config_errors = select_real_errors(config_errors)
     if not pattern:
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
         )
         invalid_msg = (
-            f"({unit_str(len(config_errors), 'invalid config file')})"
+            f"({unit_str(len(config_errors), 'config error')})"
             if len(config_errors)
             else ""
         )
         logger.verbose(
             f"running {len(filtered_rules)} rules from {unit_str(len(configs_obj.valid), 'config')} {config_id_if_single} {invalid_msg}".strip()
         )
-        if len(config_errors) > 0:
+        if len(real_config_errors) > 0:
             raise SemgrepError(
-                f"invalid configuration file found ({len(config_errors)} configs were invalid)",
+                f"invalid configuration file found ({len(real_config_errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
         # NOTE: We should default to config auto if no config was passed in an earlier step,
@@ -496,7 +502,7 @@ def run_scan(
 
     # This is after the `not pattern` block, because this error message is less
     # helpful.
-    if config_errors and strict:
+    if real_config_errors and strict:
         raise SemgrepError(
             f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
@@ -585,7 +591,7 @@ def run_scan(
 
     (
         rule_matches_by_rule,
-        semgrep_errors,
+        scan_errors,
         output_extra,
         dependencies,
         dependency_parser_errors,
@@ -607,6 +613,7 @@ def run_scan(
         with_supply_chain=with_supply_chain,
     )
     profiler.save("core_time", core_start_time)
+    semgrep_errors: List[SemgrepError] = config_errors + scan_errors
     output_handler.handle_semgrep_errors(semgrep_errors)
 
     paths_with_matches = list(
