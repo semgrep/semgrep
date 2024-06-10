@@ -33,8 +33,12 @@
   },
   read_permissions: {
     'id-token': 'write',
-    // This is not the default??
     contents: 'read',
+  },
+  pull_request_permissions: {
+    contents: 'write',
+    // needed when we want to modify the pull-request (e.g., for snapshot update)
+    'pull-requests': 'write',
   },
 
   // For making matrix jobs, i.e. one job running on multiple OSes.
