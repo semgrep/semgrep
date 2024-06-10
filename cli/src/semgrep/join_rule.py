@@ -518,7 +518,7 @@ def run_join_rule(
             parsed_errors.append(
                 ERROR_MAP[error_dict.get(errortype)].from_dict(error_dict)
             )
-        except KeyError:
+        except (KeyError, TypeError):
             logger.warning(
                 f"Could not reconstitute Semgrep error: {error_dict}.\nSkipping processing of error"
             )
