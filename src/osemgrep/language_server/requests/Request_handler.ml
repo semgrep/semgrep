@@ -21,6 +21,7 @@
 (*****************************************************************************)
 
 open Lsp
+open Types
 open Jsonrpc
 module CR = Client_request
 
@@ -57,16 +58,26 @@ let handle_custom_request server (meth : string)
       | Some handler -> (handler server params, server))
 
 let on_request (type r) (request : r CR.t) server =
-  let process_result (r, server) =
-    (Some (CR.yojson_of_result request r), server)
+  let process_result ((req : r), server) =
+    (Some (CR.yojson_of_result request req), server)
   in
   Logs.debug (fun m ->
       m "Handling request:\n%s"
         (CR.to_jsonrpc_request request (`Int 0)
         |> Request.yojson_of_t |> Yojson.Safe.pretty_to_string));
   match request with
-  | CR.Initialize params ->
-      Initialize_request.on_request server params |> process_result
+  | CR.Initialize params -> (
+      try Initialize_request.on_request server params |> process_result with
+      | e ->
+          let backtrace = Printexc.get_backtrace () in
+          Logs.err (fun m ->
+              m "Error initializing server: %s" (Printexc.to_string e));
+          Logs.info (fun m -> m "Backtrace: %s" backtrace);
+          RPC_server.log_error_to_client "Error initializing server" e;
+          let result =
+            InitializeError.create ~retry:false |> InitializeError.yojson_of_t
+          in
+          (Some result, server))
   | _ when server.state = RPC_server.State.Uninitialized ->
       Logs.err (fun m -> m "Server not initialized, ignoring request");
       (None, server)

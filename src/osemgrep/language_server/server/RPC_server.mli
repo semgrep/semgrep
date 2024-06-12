@@ -69,9 +69,12 @@ val create_progress : string -> string -> Lsp.Types.ProgressToken.t
 val end_progress : Lsp.Types.ProgressToken.t -> unit
 (** [end_progress t token] ends a progress token. *)
 
-val notify_error_message : string -> exn -> unit
-(** [notify_error_message msg exn] sends an error message to the client, and
-    logs the error *)
+val log_error_to_client : string -> exn -> unit
+(** [log_error_to_client msg exn] sends an error message to the client *)
+
+val notify_and_log_error : string -> exn -> unit
+(** [notify_error_message msg exn] sends an error message to the client,
+    logs the error to STDERR, and logs the error to the client via [log_error_to_client] *)
 
 (** [Make] creates a server from a message handler. *)
 module Make (MessageHandler : sig

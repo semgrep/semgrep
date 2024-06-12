@@ -119,6 +119,14 @@ end
 
 type t = { session : Session.t; state : State.t }
 
+type error_response = { message : string; name : string; stack : string }
+[@@deriving yojson]
+
+let error_response_of_exception message e =
+  let name = Printexc.to_string e in
+  let stack = Printexc.get_backtrace () in
+  { message; name; stack }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -206,11 +214,23 @@ let end_progress token =
   let progress = SN.WorkDoneProgress (ProgressParams.create token end_) in
   Lwt.async (fun () -> notify progress)
 
-let notify_error_message msg exn =
+let log_error_to_client msg exn =
+  (* Let's use LogMessage since it has a nice setup anyways *)
+  let message =
+    error_response_of_exception msg exn |> error_response_to_yojson
+  in
+  (* We use telemetry notification here since that's basically what this is,
+     and on the client side, nothing listens to this by default, and we can pass
+     arbitrary data *)
+  let notif = SN.TelemetryNotification message in
+  Lwt.async (fun () -> notify notif)
+
+let notify_and_log_error msg exn =
   let trace = Printexc.get_backtrace () in
   let exn_str = Printexc.to_string exn in
   Logs.err (fun m -> m "%s: %s" msg exn_str);
-  Logs.err (fun m -> m "Backtrace:\n%s" trace);
+  Logs.info (fun m -> m "Backtrace:\n%s" trace);
+  log_error_to_client msg exn;
   notify_show_message ~kind:MessageType.Error exn_str
 
 let error_response_of_exception id e =
@@ -244,7 +264,7 @@ struct
                 let msg =
                   Printf.sprintf "Error handling notification %s" n.method_
                 in
-                notify_error_message msg e;
+                notify_and_log_error msg e;
                 server
           in
           (server, None)
@@ -262,14 +282,11 @@ struct
             (server, response)
           with
           | e ->
-              let trace = Printexc.get_backtrace () in
-              let id_str =
-                req.id |> Id.yojson_of_t |> Yojson.Safe.pretty_to_string
+              (* Don't notify since the client will *)
+              let msg =
+                Printf.sprintf "Error handling request %s" req.method_
               in
-              Logs.err (fun m ->
-                  m "Error handling request %s %s: %s" id_str req.method_
-                    (Printexc.to_string e));
-              Logs.err (fun m -> m "Backtrace:\n%s" trace);
+              log_error_to_client msg e;
               let response = error_response_of_exception req.id e in
               (* Client will handle showing error message *)
               (server, Some (Packet.Response response)))
@@ -281,6 +298,8 @@ struct
     in
     Lwt.return server_and_resp_opt
 
+  (* NOTE: this function is only used by the native version of the extension,
+     but not LSP.js. [handle_client_message] is used by LSP.js though. *)
   let rec rpc_loop server () =
     let module Io = (val !io_ref : LSIO) in
     match server.state with
@@ -292,9 +311,6 @@ struct
         match client_msg with
         | Some msg ->
             let%lwt server =
-              (* Try to handle user message but if we fail then just revert
-                 back and keep going unless we fail a certain # of times in a
-                 row this is similar to what vscode does already *)
               let%lwt server, resp_opt = handle_client_message msg server in
               ignore
                 (Option.map
@@ -309,7 +325,7 @@ struct
 
   let start server =
     (* Set async exception hook so we error handle better *)
-    Lwt.async_exception_hook := notify_error_message "Uncaught async exception";
+    Lwt.async_exception_hook := notify_and_log_error "Uncaught async exception";
     rpc_loop server ()
 
   (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
