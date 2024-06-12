@@ -2520,9 +2520,10 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
       (* "," *)
       let rparen = token env v4 (* ")" *) in
       G.PatTuple (lparen, items, rparen)
+  (* stuff like Ok(_) *)
   | `Tuple_struct_pat (v1, v2, v3, v4, v5) ->
-      let _nameTODO = map_tuple_struct_name env v1 in
-      let lparen = token env v2 (* "(" *) in
+      let name = map_tuple_struct_name env v1 in
+      let _lparen = token env v2 (* "(" *) in
       let items =
         match v3 with
         | Some x -> map_tuple_pattern_list env x
@@ -2530,8 +2531,8 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
       in
       let _comma = Option.map (fun tok -> token env tok) v4 in
       (* "," *)
-      let rparen = token env v5 (* ")" *) in
-      G.PatTuple (lparen, items, rparen)
+      let _rparen = token env v5 (* ")" *) in
+      G.PatConstructor (name, items)
   | `Struct_pat (v1, v2, v3, v4, v5) ->
       let _nameTODO = map_struct_name env v1 in
       let lbrace = token env v2 (* "{" *) in
