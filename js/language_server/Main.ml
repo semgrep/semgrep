@@ -82,7 +82,7 @@ let _ =
 
            method setTracing b =
              Lwt.async_exception_hook :=
-               RPC_server.notify_error_message "Uncaught async exception";
+               RPC_server.notify_and_log_error "Uncaught async exception";
              (* coupling: CLI_common *)
              let level = Some (if b then Logs.Debug else Logs.Warning) in
              CLI_common.setup_logging ~force_color:false ~level;
