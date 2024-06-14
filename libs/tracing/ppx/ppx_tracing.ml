@@ -127,10 +127,21 @@ let make_traced_expr ~level loc action_name var_pat e =
 (* Turn `let f args = body` into
    `let f args = Trace_core.with_span ~__FILE__ ~__LINE__ "<action_name>" @@
                  fun _sp -> body`*)
-let map_expr_add_tracing ~level attr_payload pat e =
+let rec map_expr_add_tracing ~level attr_payload pat e =
   match e.pexp_desc with
-  | Pexp_fun (arg_label, exp_opt, pattern, e) ->
-      let loc = e.pexp_loc in
+  (* `let f x y = ...` is desugared into `let f = fun x -> fun y -> ...`.
+   * Without handling this case specially, we would always report 0 duration
+   * traces for such functions, since we would only log the time that it takes
+   * to return the `fun y -> ...` closure.
+   *
+   * This desugaring is characterized by a nested function with a ghost
+   * location. *)
+  | Pexp_fun (arg_label, exp_opt, pattern, ({ pexp_desc = Pexp_fun _; _ } as e'))
+    when e'.pexp_loc.loc_ghost ->
+      let e' = map_expr_add_tracing ~level attr_payload pat e' in
+      { e with pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, e') }
+  | Pexp_fun (arg_label, exp_opt, pattern, e') ->
+      let loc = e'.pexp_loc in
       let action_name =
         match attr_payload with
         | Some s -> s
@@ -140,10 +151,11 @@ let map_expr_add_tracing ~level attr_payload pat e =
       in
       let var_pat = Ast_builder.Default.ppat_var ~loc { txt = "_sp"; loc } in
       let body_with_tracing =
-        make_traced_expr ~level loc action_name var_pat e
+        make_traced_expr ~level loc action_name var_pat e'
       in
       {
-        e with
+        (* TODO This should probably be `e` not `e'`? *)
+        e' with
         pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, body_with_tracing);
       }
   | _ -> e
