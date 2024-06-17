@@ -1,0 +1,8 @@
+Adds support for a new flag, `--subdir <path>`, for `semgrep ci`, which allows users to pass a
+subdirectory to scan instead of the entire directory. The path should be a relative path, and
+the directory where `semgrep ci` is run should be the root of the repository being scanned.
+Unless `SEMGREP_REPO_DISPLAY_NAME` is explicitly set, passing the subdirectory
+will cause the results to go to a project specific to that subdirectory.
+
+The intended use case for `semgrep ci --subdir path/to/dir` is to help users with very large
+repos scan the repo in parts.
