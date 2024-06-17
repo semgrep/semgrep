@@ -1,0 +1,20 @@
+Pro: Calling a safe method on a tainted object should no longer propagate taint.
+
+Example:
+
+    class A {
+        String foo(String str) {
+            return "ok";
+        }
+    }
+
+    class Test {
+        public static void test() {
+            A a;
+            String s;
+            a = taint();
+            // Despite `a` is tainted, `a.foo()` is entirely safe !!!
+            s = a.foo("bar");
+            sink(s); // No more FP here
+        }
+    }

@@ -6,68 +6,6 @@
 
 <!-- insertion point -->
 
-## [1.76.0](https://github.com/returntocorp/semgrep/releases/tag/v1.76.0) - 2024-06-17
-
-
-### Added
-
-
-- Added type inference support for basic operators in the Pro engine, including
-  `+`, `-`, `*`, `/`, `>`, `>=`, `<=`, `<`, `==`, `!=`, and `not`. For numeric
-  computation operators such as `+` and `-`, if the left-hand side and right-hand
-  side types are equal, the return type is assumed to be the same. Additionally,
-  comparison operators like `>` and `==`, as well as the negation operator `not`,
-  are assumed to return a boolean type. (code-6940)
-- Added guidance for resolving token issues for `install-semgrep-pro` in non-interactive environments. (gh-1668)
-- Adds support for a new flag, `--subdir <path>`, for `semgrep ci`, which allows users to pass a
-  subdirectory to scan instead of the entire directory. The path should be a relative path, and
-  the directory where `semgrep ci` is run should be the root of the repository being scanned.
-  Unless `SEMGREP_REPO_DISPLAY_NAME` is explicitly set, passing the subdirectory
-  will cause the results to go to a project specific to that subdirectory.
-
-  The intended use case for `semgrep ci --subdir path/to/dir` is to help users with very large
-  repos scan the repo in parts. (saf-1056)
-
-
-### Fixed
-
-
-- Language Server will now send error messages properly, and error handling is greatly improved (cdx-502)
-- Pro: Calling a safe method on a tainted object should no longer propagate taint.
-
-  Example:
-
-      class A {
-          String foo(String str) {
-              return "ok";
-          }
-      }
-
-      class Test {
-          public static void test() {
-              A a;
-              String s;
-              a = taint();
-              // Despite `a` is tainted, `a.foo()` is entirely safe !!!
-              s = a.foo("bar");
-              sink(s); // No more FP here
-          }
-      } (code-6935)
-- Fixing errors in matching identifiers from wildcard imports. For example, this
-  update addresses the issue where the following top-level assignment:
-  ```
-  from pony.orm import *
-  db = Database()
-  ```
-  is not matched with the following pattern:
-  ```
-  $DB = pony.orm.Database(...)
-  ``` (code-7045)
-- [Pro Interfile JS/TS] Improve taint propagation through callbacks passed to `$X.map` functions and similar. Previously, such callbacks needed to have a return value for taint to be properly tracked. After this fix, they do not. (js-taint)
-- Rust: Constructors will now properly match to only other constructors with
-  the same names, in patterns. (saf-1099)
-
-
 ## [1.75.0](https://github.com/returntocorp/semgrep/releases/tag/v1.75.0) - 2024-06-03
 
 

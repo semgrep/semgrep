@@ -1,0 +1,10 @@
+Fixing errors in matching identifiers from wildcard imports. For example, this
+update addresses the issue where the following top-level assignment:
+```
+from pony.orm import *
+db = Database()
+```
+is not matched with the following pattern:
+```
+$DB = pony.orm.Database(...)
+```
