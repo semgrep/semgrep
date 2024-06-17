@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    mode: taint
+    pattern-sources:
+      - pattern: request
+    pattern-sinks:
+      - pattern: |
+          send_file(...)
+    pattern-sanitizers:
+      - pattern: int(...)
+    message: Test
+    languages:
+      - python
+    severity: WARNING

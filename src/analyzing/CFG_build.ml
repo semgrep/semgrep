@@ -306,7 +306,10 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
         | _some_list_ -> true
       in
       let throw_destination =
-        if has_finally then Some newfakefinally else state.throw_destination
+        if has_finally then Some newfakefinally
+          (* If there is no `finally` then we throw to the inherited destination
+           * (from an outer `try`) if any, or to the function's exit node otherwise. *)
+        else Some (state.throw_destination ||| state.exiti)
       in
       let else_state = { state with throw_destination } in
       let finalelse, else_may_throw =
@@ -315,8 +318,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
 
       state.g |> add_arc_from_opt (finalelse, newfakefinally);
 
-      (* From catches to finally in case of uncaught exceptions. *)
-      state.g |> add_arc (catchesi, newfakefinally);
+      (* In case of uncaught exceptions. *)
+      state.g |> add_arc_opt_to_opt (Some catchesi, throw_destination);
 
       (* Same reasoning as the else clause above for the catch clauses. *)
       let catch_state = { state with throw_destination } in

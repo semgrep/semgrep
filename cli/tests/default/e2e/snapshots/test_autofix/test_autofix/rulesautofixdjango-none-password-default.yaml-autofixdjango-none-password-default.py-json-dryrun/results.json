@@ -42,6 +42,19 @@
               "line": 62,
               "offset": 2380
             },
+            "propagated_value": {
+              "svalue_abstract_content": "User.objects.get(pk pk is_active True)",
+              "svalue_end": {
+                "col": 59,
+                "line": 42,
+                "offset": 1540
+              },
+              "svalue_start": {
+                "col": 20,
+                "line": 42,
+                "offset": 1501
+              }
+            },
             "start": {
               "col": 9,
               "line": 62,
