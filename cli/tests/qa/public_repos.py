@@ -67,7 +67,6 @@ REPOS = [
     Repo("https://github.com/dropbox/dropbox-sdk-python"),
     Repo("https://github.com/dropbox/dropbox_hook"),
     Repo("https://github.com/dropbox/emmer"),
-    Repo("https://github.com/dropbox/firebase-dropbox-oauth"),
     Repo("https://github.com/dropbox/git-rbr"),
     Repo("https://github.com/dropbox/PyHive"),
     Repo("https://github.com/dropbox/goebpf"),
