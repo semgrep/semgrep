@@ -786,15 +786,17 @@ def ci(
         else:
             logger.info("  Has findings for blocking rules so exiting with code 1")
             exit_code = 1
+            if complete_result and complete_result.app_block_override:
+                logger.info(complete_result.app_block_reason)
     else:
-        logger.info("  No blocking findings so exiting with code 0")
-        exit_code = 0
-
-    if complete_result and complete_result.app_block_override and not audit_mode:
-        logger.info(
-            f"  semgrep.dev is suggesting a non-zero exit code ({complete_result.app_block_reason})"
-        )
-        exit_code = 1
+        if complete_result and complete_result.app_block_override and not audit_mode:
+            logger.info(
+                f"  semgrep.dev is suggesting a non-zero exit code ({complete_result.app_block_reason})"
+            )
+            exit_code = 1
+        else:
+            logger.info("  No blocking findings so exiting with code 0")
+            exit_code = 0
 
     if enable_version_check:
         from semgrep.app.version import version_check
