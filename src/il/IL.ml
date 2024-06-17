@@ -384,7 +384,8 @@ and stmt_kind =
       stmt list
       * (name * stmt list) list (* catches *)
       * stmt list (* else *)
-      * stmt list (* finally *)
+      * stmt list
+    (* finally / THINK: no finally vs empty finally ? use `option` ? *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
