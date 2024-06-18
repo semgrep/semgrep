@@ -254,12 +254,14 @@ def ci(
 
     if subdir:
         subdir = subdir.resolve()  # normalize path & resolve symlinks
-        if not subdir.is_relative_to(Path.cwd()):
+        # subdir.is_relative_to(Path.cwd()) is only available from Python 3.9
+        try:
+            subdir = subdir.relative_to(Path.cwd())
+        except ValueError:
             logger.info(
                 "`semgrep ci --subdir` must be given a directory that is actually a subdirectory of the current directory"
             )
             sys.exit(FATAL_EXIT_CODE)
-        subdir = subdir.relative_to(Path.cwd())
 
     if not is_git_repo_root_approx():
         logger.info(
