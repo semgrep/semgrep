@@ -112,7 +112,7 @@ jobs:
     with:
       artifact-name: semgrep-docker-image-artifact
       dry-run: false
-      repository-name: returntocorp/semgrep
+      repository-name: semgrep/semgrep
   test-cli:
     name: test semgrep-cli
     needs:

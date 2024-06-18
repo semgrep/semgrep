@@ -555,7 +555,7 @@ local ignore_md = {
     // Docker stuff
     'build-test-docker': build_test_docker_job,
     'push-docker-returntocorp':
-       push_docker_job(docker_artifact_name, 'returntocorp/semgrep') +
+       push_docker_job(docker_artifact_name, docker_repository_name) +
        { needs: [ 'build-test-docker' ] },
     'build-test-docker-nonroot':
       build_test_docker_other_target_job("-nonroot", "nonroot"),
