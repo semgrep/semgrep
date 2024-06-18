@@ -207,6 +207,7 @@ let parse_pattern options lang str =
   | Lang.Elixir ->
       let res = Parsing_plugin.Elixir.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
+  | Lang.Move_on_aptos -> failwith "Move on Aptos parser is not implemented"
 (* not yet handled ?? *)
 (* | Lang.Xxx -> failwith "No Xxx generic parser yet" *)
 

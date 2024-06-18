@@ -229,6 +229,8 @@ let just_parse_with_lang lang file : Parsing_result2.t =
   | Lang.Swift ->
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
+  (* Not implemented yet*)
+  | Lang.Move_on_aptos -> failwith "Move on Aptos parser is not implemented"
   (* External proprietary parsers. The parsers need to register themselves
    * for parsing to take place.
    *)
