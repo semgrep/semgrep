@@ -489,6 +489,7 @@ local notify_success_job = {
     'bump-semgrep-rpc',
     'bump-semgrep-app',
     'bump-semgrep-vscode',
+    'bump-semgrep-intellij',
   ],
   'runs-on': 'ubuntu-20.04',
   steps: [
@@ -536,6 +537,7 @@ local notify_success_job = {
     'bump-semgrep-action': bump_job('semgrep/semgrep-action'),
     'bump-semgrep-rpc': bump_job('semgrep/semgrep-rpc'),
     'bump-semgrep-vscode': bump_job('semgrep/semgrep-vscode'),
+    'bump-semgrep-intellij': bump_job('semgrep/semgrep-intellij'),
     'notify-success': notify_success_job,
     'notify-failure':
       semgrep.slack.notify_failure_job(
@@ -550,6 +552,7 @@ local notify_success_job = {
             'bump-semgrep-rpc',
             'bump-semgrep-app',
             'bump-semgrep-vscode',
+            'bump-semgrep-intellij',
         ],
       },
   },
