@@ -1,0 +1,21 @@
+Pro: taint-mode: Improved index-sensitive taint tracking for tuple/list (un)packing.
+
+Example 1:
+
+     def foo():
+         return ("ok", taint)
+
+     def test():
+          x, y = foo()
+          sink(x)  # nothing, no FP
+          sink(y)  # finding
+
+Example 2:
+
+     def foo(t):
+          (x, y) = t
+          sink(x)  # nothing, no FP
+          sink(y)  # finding
+
+     def test():
+          foo(("ok", taint))
