@@ -54,7 +54,10 @@ val offset_of_IL : IL.offset -> offset
 val offset_of_rev_IL_offset : rev_offset:IL.offset list -> offset list
 
 val rev_IL_offset_of_offset : offset list -> IL.offset list option
-(** Constructs an reversed IL offset corresponding to a taint offset, if possible
+(** TODO(shapes): This is needed for stuff that is not yet fully adapted to shapes
+  *               such as records and dicts.
+  *
+  * Constructs an reversed IL offset corresponding to a taint offset, if possible
   * (if there is no `Oany`).
   *)
 

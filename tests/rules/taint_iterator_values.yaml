@@ -1,0 +1,11 @@
+rules:
+- id: test
+  mode: taint
+  pattern-sources:
+    - pattern: tainted
+  pattern-sinks:
+    - pattern: sink(...)
+  message: Semgrep found a match
+  languages:
+    - javascript
+  severity: WARNING

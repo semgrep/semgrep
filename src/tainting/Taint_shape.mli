@@ -2,61 +2,76 @@
 
 module Fields : Map.S with type key = Taint.offset
 
-(**
- * For example, a record expression #{ a: "tainted", b: "safe" } would have
- * the shape `obj {| a: ref<{"tainted"}>(_|_) |}`. Note that `b` is omitted
- * because it has no taint.
+(** A shape approximates an object or data structure, and tracks the taint
+ * associated with its fields and indexes.
  *
- * 'Obj' shapes are extensible, if a field is not specified then it has the same
- * taint as its parent 'ref'. *)
+ * For example, a record expression `{ a: "taint", b: "safe" }` would have
+ * the shape `Obj { .a -> Ref({"taint"}, _|_) }`, recording that the field `a`
+ * is tainted by the string literal `"taint"`. Note that field `b` is omitted
+ * because it has no taint to track.
+ *
+ * If an 'Obj' shape tracks the 'Oany' field, then the taint and shape given to
+ * 'Oany' would also be the taint and shape given to any field that is not being
+ * explicitly traked. If there is no 'Oany' in the 'Obj' shape, then a field that
+ * is not explicitly mentioned would just have an arbitrary / "don't care" shape,
+ * and the taint that it inherits from its "parent" 'ref's.
+ *)
 type shape =
   | Bot  (** _|_, don't know or don't care *)
-  | Obj of obj  (** a struct-like thing *)
+  | Obj of obj
+      (** An "object" or struct-like thing.
+        *
+        * Tuples or lists are also represented by 'Obj' shapes! We just treat
+        * constant indexes as if they were fields, and use 'Oany' to capture the
+        * non-constant indexes.
+        *)
 
+(* TODO: Rename 'ref' to 'cell'/'store', or 'data'/'info', or 'lval' ? *)
 and ref =
   | Ref of Xtaint.t * shape
-      (** A "reference cell", like a `ref` in OCaml, or a variable in C.
-   *
-   * A ref may be explicitly tainted ('`Tainted'), not explicitly tainted
-   * ('`None' / "0"),  or explicitly clean ('`Clean' / "C").
-   *
-   * A ref that is not explicitly tainted inherits any taints from "parent"
-   * refs. A ref that is explicitly clean it is clean regardless.
-   *
-   * For example, given a variable `x` and the following statements:
-   *
-   *     x.a := "tainted";
-   *     x.a.u := "clean";
-   *
-   * We could assign the following shape to `x`:
-   *
-   *     ref<0>( obj {|
-   *             a: ref<"tainted">( obj {|
-   *                     u: ref<C>(_|_)
-   *                     |} )
-   *             |} )
-   *
-   * We have that `x` itself has no taint directly assigned to it, but `x.a` is
-   * tainted (by the string `"tainted"`). Other fields like `x.b` are not tainted.
-   * When it comes to `x.a`, we have that `x.a.u` has been explicitly marked clean,
-   * so `x.a.u` will be considered clean despite `x.a` being tainted. Any other field
-   * of `x.a` such as `x.a.v` will inherit the same taint as `x.a`.
-   *
-   * INVARIANT(ref): To keep shapes minimal:
-   *   1. If the xtaint is '`None', then the shape is not 'Bot' and we can reach
-   *      another 'ref' whose xtaint is either '`Tainted' or '`Clean'.
-   *   2. If the xtaint is '`Clean', then the shape is 'Bot'.
-   *      (If we add aliasing we may need to revisit this, and instead just mark
-   *       every reachable 'ref' as clean too.)
-   *
-   * TODO: We can attach "region ids" to refs and assign taints to regions rather than
-   *   to refs directly, then we can have alias analysis.
-   *)
+      (** A "reference" represents the "storage" of a value, like a variable in C.
+        *
+        * A ref may be explicitly tainted ('`Tainted'), not explicitly tainted
+        * ('`None' / "0"),  or explicitly clean ('`Clean' / "C").
+        *
+        * A ref that is not explicitly tainted inherits any taints from "parent"
+        * refs. A ref that is explicitly clean it is clean regardless.
+        *
+        * For example, given a variable `x` and the following statements:
+        *
+        *     x.a := "taint";
+        *     x.a.u := "clean";
+        *
+        * We could assign the following shape to `x`:
+        *
+        *     Ref(`None, Obj {
+        *             .a -> Ref({"taint"}, Obj {
+        *                     .u -> Ref(`Clean, _|_)
+        *                     })
+        *             })
+        *
+        * We have that `x` itself has no taint directly assigned to it, but `x.a` is
+        * tainted (by the string `"taint"`). Other fields like `x.b` are not tainted.
+        * When it comes to `x.a`, we have that `x.a.u` has been explicitly marked clean,
+        * so `x.a.u` will be considered clean despite `x.a` being tainted. Any other field
+        * of `x.a` such as `x.a.v` will inherit the same taint as `x.a`.
+        *
+        * INVARIANT(ref): To keep shapes minimal:
+        *   1. If the xtaint is '`None', then the shape is not 'Bot' and we can reach
+        *      another 'ref' whose xtaint is either '`Tainted' or '`Clean'.
+        *   2. If the xtaint is '`Clean', then the shape is 'Bot'.
+        *      (If we add aliasing we may need to revisit this, and instead just mark
+        *       every reachable 'ref' as clean too.)
+        *
+        * TODO: We can attach "region ids" to refs and assign taints to regions rather than
+        *   to refs directly, then we can have alias analysis.
+        *)
 
 and obj = ref Fields.t
 (**
- * The "default" taints for non-constant indexes are given by the 'Oany' offset.
+ * This a mapping from a 'Taint.offset' to a shape 'ref'.
  *
+ * The "default" taints for non-constant indexes are given by the 'Oany' ("*") offset.
  * THINK: Instead of 'Oany' maybe have an explicit field ?
  *)
 
@@ -99,6 +114,13 @@ val update_offset_and_unify :
 
 val clean_ref : Taint.offset list -> ref -> ref
 (** [clean_ref offset ref] marks the 'offset' in 'ref' as clean.  *)
+
+val instantiate_shape :
+  inst_taints:(Taint.taints -> Taint.taints) -> shape -> shape
+(** 'instantiate inst_taints shape' will instantiate all taints in 'shape'
+ * using 'inst_taints. Instantiation is meant to replace the taint variables
+ * in the taint signature of a callee function, with the taints assigned by
+ * the caller. *)
 
 val enum_in_ref : ref -> (Taint.offset list * Taint.taints) Seq.t
 (**

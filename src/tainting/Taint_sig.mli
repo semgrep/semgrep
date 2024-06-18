@@ -37,11 +37,51 @@ type taints_to_sink = {
   * accordingly at each call site.
   *)
 type result =
-  | ToSink of taints_to_sink  (** Taints reach a sink. *)
-  | ToReturn of Taint.taint list * AST_generic.tok
-      (** Taints reach a `return` statement. *)
+  | ToSink of taints_to_sink
+      (** Taints reach a sink.
+        *
+        * For example:
+        *
+        *     def foo(x):
+        *         y = x
+        *         sink(y)
+        *
+        * The parameter `x` could be tainted depending on the calling context,
+        * so we infer:
+        *
+        *     ToSink { taints_with_precondition = (["taint"], PBool true);
+        *              sink = "sink(y)";
+        *              ... }
+        *)
+  | ToReturn of Taint.taint list * Taint_shape.shape * AST_generic.tok
+      (** Taints reach a `return` statement.
+        *
+        * For example:
+        *
+        *     def foo():
+        *         x = "taint"
+        *         return x
+        *
+        * We infer:
+        *
+        *     ToReturn(["taint"], Bot, ...)
+        *)
   | ToLval of Taint.taint list * Taint.lval
-      (** Taints reach an l-value in the scope of the function/method. *)
+      (** Taints reach an l-value in the scope of the function/method.
+        *
+        * For example:
+        *
+        *     x = ["ok"]
+        *
+        *     def foo():
+        *         global x
+        *         x[0] = "taint"
+        *
+        * We infer:
+        *
+        *     ToLval(["taint"], "x[0]")
+        *
+        *)
 
 val compare_result : result -> result -> int
 
@@ -81,3 +121,36 @@ type signature = Results.t
 
 val show_result : result -> string
 val show_signature : signature -> string
+
+(*****************************************************************************)
+(* Instantiation *)
+(*****************************************************************************)
+
+val instantiate_taint :
+  callee:IL.exp ->
+  inst_var:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_ctrl:(unit -> Taint.taints) ->
+  Taint.taint ->
+  Taint.taints
+(** Instantiate taints. Instantiation is meant to replace the taint variables
+ * in the taint signature of a callee function, with the taints assigned by
+ * the caller. *)
+
+val instantiate_shape :
+  callee:IL.exp ->
+  inst_var:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_ctrl:(unit -> Taint.taints) ->
+  Taint_shape.shape ->
+  Taint_shape.shape
+(** Instantiate a shape. Instantiation is meant to replace the taint variables
+ * in the taint signature of a callee function, with the taints assigned by
+ * the caller. *)
+
+val subst_in_precondition :
+  inst_var:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_ctrl:(unit -> Taint.taints) ->
+  Taint.taint ->
+  Taint.taint option
+(** Instantiate preconditions. Instantiation is meant to replace the taint variables
+ * in the taint signature of a callee function, with the taints assigned by
+ * the caller. *)
