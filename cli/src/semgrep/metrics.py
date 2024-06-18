@@ -515,6 +515,7 @@ class Metrics:
     # TODO it's a bit unfortunate that our tests are going to post
     # metrics...
     def _post_metrics(self, *, user_agent: str, local_scan_id: str) -> None:
+        logger.debug(f"Sending to {METRICS_ENDPOINT} {self.as_json()}")
         r = requests.post(
             METRICS_ENDPOINT,
             data=self.as_json(),
@@ -525,6 +526,7 @@ class Metrics:
             },
             timeout=3,
         )
+        logger.debug(f"response from {METRICS_ENDPOINT} {r.json()}")
         r.raise_for_status()
 
     @suppress_errors
