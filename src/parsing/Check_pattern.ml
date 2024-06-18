@@ -29,7 +29,8 @@ let lang_has_no_dollar_ids =
     | Swift
     | Html
     | Xml
-    | Ql ->
+    | Ql
+    | Move_on_aptos ->
         true
     | Js
     | Ts

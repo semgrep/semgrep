@@ -145,6 +145,7 @@ let default_payload =
         isDiffScan = false;
         isAuthenticated = false;
         integrationName = None;
+        deployment_id = None;
       };
     performance =
       {
