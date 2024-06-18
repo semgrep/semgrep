@@ -55,6 +55,14 @@ module Fields = Map.Make (struct
   let compare = T.compare_offset
 end)
 
+(* THINK: To assign a proper taint signature to a function like:
+ *
+ *      def foo(t):
+ *          return t
+ *
+ *  we need shape variables... but then we need to handle unification
+ *  between shape variables too.
+ *)
 type shape = Bot | Obj of obj
 
 (* THINK: rename 'ref' as 'cell' or 'var' to make it less confusing wrt OCaml 'ref' type ? *)
@@ -266,58 +274,64 @@ and find_in_obj (offset : T.offset list) obj =
           find_in_ref offset o_ref)
 
 (*****************************************************************************)
-(* [UNSAFE] Update the xtaint of an offset *)
+(* Update the xtaint and shape of an offset *)
 (*****************************************************************************)
 
-(* Finds an 'offset' within a 'ref' and updates it via 'f'.
- * If the 'offset' doesn't exist in the 'ref', then it creates it.
- * This is "unsafe" because it does not guarantee preserving INVARIANT(ref),
- * the caller must guarantee the invariant instead. *)
-let rec internal_UNSAFE_update_ref ~f offset ref =
-  match (ref, offset) with
-  | Ref (xtaint, shape), [] ->
-      let xtaint, shape = f xtaint shape in
-      Ref (xtaint, shape)
-  | Ref (xtaint, shape), _ :: _ ->
-      let xtaint =
-        (* If we are tainting an offset of this ref, the ref cannot be
-           considered clean anymore. *)
-        match xtaint with
-        | `Clean -> `None
-        | `None
-        | `Tainted _ ->
-            xtaint
-      in
-      let shape = internal_UNSAFE_update_shape ~f offset shape in
-      Ref (xtaint, shape)
+(* Finds an 'offset' within a 'ref' and updates it via 'f'. *)
+let rec update_offset_in_ref ~f offset ref =
+  let xtaint, shape =
+    match (ref, offset) with
+    | Ref (xtaint, shape), [] -> f xtaint shape
+    | Ref (xtaint, shape), _ :: _ ->
+        let shape = update_offset_in_shape ~f offset shape in
+        (xtaint, shape)
+  in
+  match (xtaint, shape) with
+  (* Restore INVARIANT(ref).1 *)
+  | `None, Bot -> None
+  | `Tainted taints, Bot when Taints.is_empty taints -> None
+  (* Restore INVARIANT(ref).2 *)
+  | `Clean, Obj _ ->
+      (* If we are tainting an offset of this ref, the ref cannot be
+         considered clean anymore. *)
+      Some (Ref (`None, shape))
+  | `Clean, Bot
+  | `None, Obj _
+  | `Tainted _, (Bot | Obj _) ->
+      Some (Ref (xtaint, shape))
 
-and internal_UNSAFE_update_shape ~f offset = function
+and update_offset_in_shape ~f offset = function
   | Bot ->
       let shape = Obj Fields.empty in
-      internal_UNSAFE_update_shape ~f offset shape
-  | Obj obj ->
-      let obj = internal_UNSAFE_update_obj ~f offset obj in
-      Obj obj
+      update_offset_in_shape ~f offset shape
+  | Obj obj -> (
+      match update_offset_in_obj ~f offset obj with
+      | None -> Bot
+      | Some obj -> Obj obj)
 
-and internal_UNSAFE_update_obj ~f offset obj =
-  match offset with
-  | [] ->
-      Logs.debug (fun m ->
-          m ~tags:error
-            "internal_UNSAFE_update_obj: Impossible happened: empty offset");
-      obj
-  | o :: offset -> (
-      let o, obj = internal_UNSAFE_find_offset_in_obj o obj in
-      match o with
-      | Oany (* arbitrary index [*] *) ->
-          (* consider all fields/indexes *)
-          Fields.map (internal_UNSAFE_update_ref ~f offset) obj
-      | Ofld _
-      | Oint _
-      | Ostr _ ->
-          Fields.update o
-            (Option.map (fun ref -> internal_UNSAFE_update_ref ~f offset ref))
-            obj)
+and update_offset_in_obj ~f offset obj =
+  let obj' =
+    match offset with
+    | [] ->
+        Logs.debug (fun m ->
+            m ~tags:error
+              "internal_UNSAFE_update_obj: Impossible happened: empty offset");
+        obj
+    | o :: offset -> (
+        let o, obj = internal_UNSAFE_find_offset_in_obj o obj in
+        match o with
+        | Oany (* arbitrary index [*] *) ->
+            (* consider all fields/indexes *)
+            Fields.filter_map (fun _o' -> update_offset_in_ref ~f offset) obj
+        | Ofld _
+        | Oint _
+        | Ostr _ ->
+            obj
+            |> Fields.update o (fun opt_ref ->
+                   let* ref = opt_ref in
+                   update_offset_in_ref ~f offset ref))
+  in
+  if Fields.is_empty obj' then None else Some obj'
 
 (*****************************************************************************)
 (* Updating an offset *)
@@ -350,7 +364,7 @@ let update_offset_and_unify new_taints new_shape offset opt_ref =
                   (offset |> List_.map T.show_offset |> String.concat ""));
             (xtaint, shape))
     in
-    Some (internal_UNSAFE_update_ref ~f:add_new_taints offset ref)
+    update_offset_in_ref ~f:add_new_taints offset ref
   else (* To maintain INVARIANT(ref) we cannot return 'ref_none_bot'! *)
     opt_ref
 
@@ -358,6 +372,7 @@ let update_offset_and_unify new_taints new_shape offset opt_ref =
 (* Clean taint *)
 (*****************************************************************************)
 
+(* TODO: Reformulate in terms of 'update_offset_in_ref' *)
 let rec clean_ref (offset : T.offset list) ref =
   let (Ref (xtaint, shape)) = ref in
   match offset with
@@ -396,6 +411,36 @@ and clean_obj offset obj =
       match o with
       | Oany -> Fields.map (clean_ref offset) obj
       | o -> Fields.update o (Option.map (fun ref -> clean_ref offset ref)) obj)
+
+(*****************************************************************************)
+(* Instantiation *)
+(*****************************************************************************)
+
+let rec instantiate_shape ~inst_taints = function
+  | Bot -> Bot
+  | Obj obj ->
+      let obj =
+        obj
+        |> Fields.filter_map (fun _o ref ->
+               (* This is essentially a recursive call to 'instantiate_shape'!
+                * We rely on 'update_offset_in_ref' to maintain INVARIANT(ref). *)
+               update_offset_in_ref
+                 ~f:(internal_UNSAFE_inst_xtaint_shape ~inst_taints)
+                 [] ref)
+      in
+      if Fields.is_empty obj then Bot else Obj obj
+
+and internal_UNSAFE_inst_xtaint_shape ~inst_taints xtaint shape =
+  (* This may break INVARIANT(ref) but 'update_offset_in_ref' will restore it. *)
+  let xtaint =
+    match xtaint with
+    | `None
+    | `Clean ->
+        xtaint
+    | `Tainted taints -> `Tainted (inst_taints taints)
+  in
+  let shape = instantiate_shape ~inst_taints shape in
+  (xtaint, shape)
 
 (*****************************************************************************)
 (* Enumerate tainted offsets *)

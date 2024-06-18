@@ -569,12 +569,11 @@ let results_of_tainted_sinks env taints sinks : Sig.result list =
 
 let results_of_tainted_return taints shape return_tok : Sig.result list =
   if S.taints_and_shape_are_relevant taints shape then
-    let taints = taints |> Taints.union (S.gather_all_taints_in_shape shape) in
     let taint_list =
       taints |> Taints.elements
       |> List_.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
     in
-    [ Sig.ToReturn (taint_list, return_tok) ]
+    [ Sig.ToReturn (taint_list, shape, return_tok) ]
   else []
 
 let check_orig_if_sink env ?filter_sinks orig taints shape =
@@ -1376,7 +1375,10 @@ let check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
   in
   (taints, shape, lval_env)
 
-(* Given a function/method call 'fun_exp'('args_exps'), and an argument
+(* TODO(shapes): This is needed for stuff that is not yet fully adapted to shapes
+ *               such as records and dicts, it will be superseeded by 'taints_of_lval'.
+ *
+ * Given a function/method call 'fun_exp'('args_exps'), and an argument
  * spec 'sig_lval' from the taint signature of the called function/method,
  * determine what lvalue corresponds to 'sig_lval'.
  *
@@ -1450,7 +1452,7 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
 
 (* HACK(implicit-taint-variables-in-env):
  * We have a function call with a taint variable, corresponding to a global or
- * a field in the same class as the caller, that  reaches a sink. However, in
+ * a field in the same class as the caller, that reaches a sink. However, in
  * the caller we have no taint for the corresponding l-value.
  *
  * Why?
@@ -1498,7 +1500,7 @@ let fix_lval_taints_if_global_or_a_field_of_this_class fun_exp (lval : T.lval)
   let is_method_in_this_class =
     match fun_exp with
     | { e = Fetch { base = Var _method; rev_offset = [] }; _ } ->
-        (* We're calling a `method` on the same instace of the caller,
+        (* We're calling a `method` on the same instance of the caller,
            so `this.x` in the taint signature of the callee corresponds to
            `this.x` in the caller. *)
         true
@@ -1519,13 +1521,51 @@ let fix_lval_taints_if_global_or_a_field_of_this_class fun_exp (lval : T.lval)
        * return it as a type variable. *)
       Taints.singleton { orig = Var lval; tokens = [] }
 
+let taints_of_lval env fparams fun_exp args_taints lval :
+    (Taints.t * S.shape) option =
+  let { T.base; offset } = lval in
+  let* base, offset =
+    match base with
+    | T.BArg pos -> Some (`Arg pos, offset)
+    | BThis -> (
+        match fun_exp with
+        | {
+         e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
+         _;
+        } ->
+            (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
+            Some (`Var obj, offset)
+        | { e = Fetch { base = Var _method; rev_offset = [] }; _ } -> (
+            (* We're calling a `method` on the same instace of the caller,
+             * and `this.x.y` is just `x.y` *)
+            (* TODO: We should track `this` in `Lval_env` rather than doing this hack. *)
+            match offset with
+            | [] -> None
+            | Ofld var :: offset -> Some (`Var var, offset)
+            | (Oint _ | Ostr _ | Oany) :: _ -> None)
+        | __else__ -> None)
+    | BGlob var -> Some (`Var var, offset)
+  in
+  let* base_taints, base_shape =
+    match base with
+    | `Arg pos -> find_pos_in_actual_args args_taints fparams pos
+    | `Var var ->
+        let* (S.Ref (xtaints, shape)) = Lval_env.find_var env.lval_env var in
+        Some (Xtaint.to_taints xtaints, shape)
+  in
+  match (base_shape, offset) with
+  | base_shape, [] -> Some (base_taints, base_shape)
+  | S.Bot, _ :: _ -> None
+  | base_shape, _ :: _ ->
+      let* (S.Ref (xtaints, shape)) = S.find_in_shape offset base_shape in
+      Some (Xtaint.to_taints xtaints, shape)
+
 (* What is the taint denoted by 'sig_lval' ? *)
-let taints_of_sig_lval env fparams fun_exp args_exps args_taints
-    (sig_lval : T.lval) =
-  match sig_lval with
-  | { base = BArg pos; offset = [] } ->
-      find_pos_in_actual_args args_taints fparams pos
-  | __else__ ->
+let taints_of_sig_lval env fparams fun_exp args_exps
+    (args_taints : (Taints.t * S.shape) argument list) (sig_lval : T.lval) =
+  match taints_of_lval env fparams fun_exp args_taints sig_lval with
+  | Some (taints, shape) -> Some (taints, shape)
+  | None ->
       (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
       let* lval, _obj = lval_of_sig_lval fun_exp fparams args_exps sig_lval in
       let lval_taints, shape, _sub, _lval_env = check_tainted_lval env lval in
@@ -1542,9 +1582,11 @@ let taints_of_sig_lval env fparams fun_exp args_exps args_taints
    2) Are there any results that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-let check_function_signature env fun_exp args args_taints =
+let check_function_signature env fun_exp args
+    (args_taints : (Taints.t * S.shape) argument list) :
+    (Taints.t * S.shape * Lval_env.t) option =
   match (!hook_function_taint_signature, fun_exp) with
-  | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
+  | Some hook, { e = Fetch _f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
       Logs.debug (fun m ->
           m ~tags:sigs "Call to %s : %s" (_show_fun_exp fun_exp)
@@ -1562,88 +1604,42 @@ let check_function_signature env fun_exp args args_taints =
       let lval_to_taints lval =
         taints_of_sig_lval env fparams fun_exp args args_taints lval
       in
-      (* TODO: We should instantiate the entire taint signature at once,
-       *       rather than having subtitution scattered as we have here.
-       *       This could be 'Taint_sig'. We could take the 'taints_of_lval'
-       *       function as a parameter. *)
-      let subst_in_precondition taint =
-        let subst taints =
-          taints
-          |> List.concat_map (fun t ->
-                 match t.T.orig with
-                 | Src _ -> [ t ]
-                 | Var lval ->
-                     let+ var_taints, var_shape = lval_to_taints lval in
-                     (* Taint here is only used to resolve preconditions for taint
-                      * variables affected by labels. Seems right to gather all the
-                      * taints from the shape too. *)
-                     let var_taints =
-                       var_taints
-                       |> Taints.union (S.gather_all_taints_in_shape var_shape)
-                     in
-                     Taints.elements var_taints
-                 | Control ->
-                     Lval_env.get_control_taints env.lval_env |> Taints.elements)
-        in
-        T.map_preconditions subst taint
+      let subst_in_precondition =
+        Sig.subst_in_precondition ~inst_var:lval_to_taints ~inst_ctrl:(fun () ->
+            Lval_env.get_control_taints env.lval_env)
       in
       let process_sig :
           Sig.result ->
-          [ `Return of Taints.t
+          [ `Return of Taints.t * S.shape
           | (* ^ Taints flowing through the function's output *)
             `UpdateEnv of
             lval * Taints.t
             (* ^ Taints flowing through function's arguments (or the callee object) by side-effect *)
           ]
           list = function
-        | Sig.ToReturn (taints, _return_tok) ->
-            taints
-            |> List_.map_filter (fun t ->
-                   match t.T.orig with
-                   | Src src ->
-                       let call_trace =
-                         T.Call (eorig, t.tokens, src.call_trace)
-                       in
-                       let* taint =
-                         {
-                           Taint.orig = Src { src with call_trace };
-                           tokens = [];
-                         }
-                         |> subst_in_precondition
-                       in
-                       Some (`Return (Taints.singleton taint))
-                   | Var lval ->
-                       let* lval_taints, lval_shape = lval_to_taints lval in
-                       let lval_taints =
-                         lval_taints
-                         |> Taints.union
-                              (S.gather_all_taints_in_shape lval_shape)
-                       in
-                       (* Get the token of the function *)
-                       let* ident =
-                         match f with
-                         (* Case `$F()` *)
-                         | { base = Var { ident; _ }; rev_offset = []; _ }
-                         (* Case `$X. ... .$F()` *)
-                         | {
-                             base = _;
-                             rev_offset = { o = Dot { ident; _ }; _ } :: _;
-                             _;
-                           } ->
-                             Some ident
-                         | __else__ -> None
-                       in
-                       Some
-                         (`Return
-                           (lval_taints
-                           |> Taints.map (fun taint ->
-                                  let tokens =
-                                    t.tokens @ (snd ident :: taint.tokens)
-                                  in
-                                  { taint with tokens })))
-                   | Control ->
-                       (* Control taint does not need to propagate via `return`s. *)
-                       None)
+        | Sig.ToReturn (taints, shape, _return_tok) ->
+            let taints =
+              taints
+              |> List.fold_left
+                   (fun return_taints (t : T.taint) ->
+                     let taints' =
+                       (* TODO: Use 'Sig.instantiate_taint' also for 'ToSink' and
+                                'ToLval' cases below. *)
+                       Sig.instantiate_taint ~callee:fun_exp
+                         ~inst_var:lval_to_taints
+                         ~inst_ctrl:(fun () ->
+                           Lval_env.get_control_taints env.lval_env)
+                         t
+                     in
+                     return_taints |> Taints.union taints')
+                   Taints.empty
+            in
+            let shape =
+              Sig.instantiate_shape ~callee:fun_exp ~inst_var:lval_to_taints
+                ~inst_ctrl:(fun () -> Lval_env.get_control_taints env.lval_env)
+                shape
+            in
+            [ `Return (taints, shape) ]
         | Sig.ToSink { taints_with_precondition = taints, _requires; sink; _ }
           ->
             let incoming_taints =
@@ -1758,12 +1754,15 @@ let check_function_signature env fun_exp args args_taints =
         (fun_sig |> Sig.Results.elements
         |> List.concat_map process_sig
         |> List.fold_left
-             (fun (taints_acc, lval_env) fsig ->
+             (fun (taints_acc, shape_acc, lval_env) fsig ->
                match fsig with
-               | `Return taints -> (Taints.union taints taints_acc, lval_env)
+               | `Return (taints, shape) ->
+                   ( Taints.union taints taints_acc,
+                     S.unify_shape shape shape_acc,
+                     lval_env )
                | `UpdateEnv (lval, taints) ->
-                   (taints_acc, lval_env |> Lval_env.add lval taints))
-             (Taints.empty, env.lval_env))
+                   (taints_acc, shape_acc, lval_env |> Lval_env.add lval taints))
+             (Taints.empty, S.Bot, env.lval_env))
   | None, _
   | Some _, _ ->
       None
@@ -1822,7 +1821,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           match
             check_function_signature { env with lval_env } e args args_taints
           with
-          | Some (call_taints, lval_env) -> (call_taints, S.Bot, lval_env)
+          | Some (call_taints, shape, lval_env) -> (call_taints, shape, lval_env)
           | None -> (
               let call_taints =
                 if not (propagate_through_functions env) then Taints.empty
@@ -1877,9 +1876,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           check_function_signature { env with lval_env } constructor args
             args_taints
         with
-        | Some (call_taints, lval_env) ->
-            (* TODO: 'new' should return the shape of the object being constructed *)
-            (call_taints, S.Bot, lval_env)
+        | Some (call_taints, shape, lval_env) -> (call_taints, shape, lval_env)
         | None ->
             let all_args_taints =
               all_args_taints
