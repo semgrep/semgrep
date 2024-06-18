@@ -16,8 +16,7 @@ local core_x86 = import 'build-test-core-x86.jsonnet';
 // intermediate image produced by build-push-action
 local docker_artifact_name = 'semgrep-docker-image-artifact';
 
-// TODO: change to 'semgrep/semgrep' at some point as the default
-local docker_repository_name = 'returntocorp/semgrep';
+local docker_repository_name = 'semgrep/semgrep';
 
 // ----------------------------------------------------------------------------
 // Helpers
