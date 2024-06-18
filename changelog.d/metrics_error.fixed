@@ -1,0 +1,2 @@
+The language server (and semgrep --experimental) should not report anymore errors from
+the metrics.semgrep.dev server such as "cannot read property 'map' of undefined".
