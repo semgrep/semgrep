@@ -28,7 +28,7 @@ IGNORE_FILE_NAME = ".semgrepignore"
 logger = getLogger(__name__)
 
 
-# For some reason path.is_relative_to produces a complaint that 'PosixPath' object has no attribute 'is_relative_to'
+# path.is_relative_to is only available starting with Python 3.9
 # So we just copy its implementation
 def path_is_relative_to(p1: Path, p2: Path) -> bool:
     try:
