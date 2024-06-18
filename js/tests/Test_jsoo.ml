@@ -147,12 +147,13 @@ let () =
                |> lwt_skip_todo_tests
              in
              let run () =
-               Alcotest.run "semgrep-js" (Testo.to_alcotest tests)
+               Alcotest.run "semgrep-js"
+                 (Testo.to_alcotest ~alcotest_skip:Alcotest.skip tests)
                  ~and_exit:false ~argv
              in
              let run_lwt () : unit Lwt.t =
                Alcotest_lwt.run "semgrep-js"
-                 (Testo_lwt.to_alcotest lwt_tests)
+                 (Testo_lwt.to_alcotest ~alcotest_skip:Alcotest.skip lwt_tests)
                  ~and_exit:false ~argv
              in
              Logs_.setup ~level:(Some Logs.Info) ();
