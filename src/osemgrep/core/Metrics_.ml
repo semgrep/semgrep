@@ -22,14 +22,14 @@ module OutJ = Semgrep_output_v1_j
    TODO:
     - add_registry_url
     - parsing stat (parse rates)
-    - rule profiling stats
+    - rule profiling stats (including ruleStats)
     - cli-envvar? cli-prompt?
     - more?
 
     Sending the metrics is handled from the main CLI entrypoint following the
     execution of the CLI.safe_run() function to report the exit code.
 
-    Metrics Flow:
+    Metrics flow in osemgrep:
       1. init() - set started_at, event_id, anonymous_user_id
       2. add_feature - tag subcommand, CLI flags, language, etc.
       3. add_user_agent_tag - add CLI version, subcommand, etc.
@@ -40,25 +40,26 @@ module OutJ = Semgrep_output_v1_j
          https://metrics.semgrep.dev (can be changed via SEMGREP_METRICS_URL
          for testing purpose)
 
-    "Life of a Metric Payload" after sending:
+    Metrics flow outside (o)semgrep:
+    https://www.notion.so/semgrep/Life-of-a-Semgrep-CLI-metrics-payload-8b6442c4ce164819aa55bab08d83c1f6
+    But basically after posting to metrics.semgrep.dev:
       -> API Gateway (Name=Telemetry)
       -> Lambda (Name=SemgrepMetricsGatewayToKinesisIntegration)
+         see semgrep-app-lambdas/metrics-handler/prod/index.js
       -> Kinesis Stream (Name=semgrep-cli-telemetry)
         |-> S3 Bucket (Name=semgrep-cli-metrics)
           -> Snowflake (SEMGREP_CLI_TELEMETRY)
             -> Metabase (SEMGREP CLI - SNOWFLAKE)
         |-> OpenSearch (Name=semgrep-metrics)
-
     For metabase, you can watch "Metabase for PA engineers" talk by Emma here:
     https://drive.google.com/file/d/1BJNR578M3KxbuuIU5xNPFkhbYccfo9XH/view
-
     Notes:
       - Raw payload is ingested by our metrics endpoint exposed via our API
         Gateway
-      - We parse the payload and add additional metadata (i.e. sender ip
-        address) in our Lambda function
-        TODO: how do we parse the payload? in a typed way? reuse
-        semgrep_metrics.atd?
+      - We parse the payload and add additional metadata (i.e., sender IP) in our
+        Lambda function (see semgrep-app-lambdas/metrics-handler/prod/index.js).
+        We do not parse the payload in a typed way, we access json fields
+        directly (bad)
       - We pass the transformed payload to our AWS Kinesis stream
         ("semgrep-cli-telemetry")
       - The payload can be viewed in our internal AWS console (if you can
@@ -85,11 +86,7 @@ module OutJ = Semgrep_output_v1_j
 (* Types and constants *)
 (*****************************************************************************)
 
-(* TODO: set to the cannonical "https://metrics.semgrep.dev" once we upgrade
- * the host from TLS 1.2 to TLS 1.3
- *)
-let metrics_url =
-  Uri.of_string "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/"
+let metrics_url : Uri.t = Uri.of_string "https://metrics.semgrep.dev"
 
 (*
      Configures metrics upload.
@@ -153,7 +150,10 @@ let default_payload =
         numTargets = None;
         totalBytesScanned = None;
         fileStats = None;
-        ruleStats = None;
+        (* ugly: this should be None, but some code in the semgrep-app-lambdas
+         * repo in metrics-handler/prod/index.js assumes a Some here.
+         *)
+        ruleStats = Some [];
         profilingTimes = None;
         maxMemoryBytes = None;
       };
@@ -362,12 +362,16 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   g.payload.environment.rulesHash <- Some (Digestif.SHA256.get rulesHash_value);
   g.payload.performance.numRules <- Some (List.length rules);
   (* TODO: Properly populate g.payload.performance.ruleStats.
+   *
    * Currently, when we have thousands of rules, they will bloat the
    * metrics payload. Right now in metrics.py, we are only populating
    * these stats when both matching time and bytes scanned are greater
    * than 0.
+   *
+   * ugly: see the comment above on ruleStats in default_payload why we set this
+   * to Some [] instead of None.
    *)
-  g.payload.performance.ruleStats <- None
+  g.payload.performance.ruleStats <- Some []
 
 let add_max_memory_bytes (profiling_data : Core_profiling.t option) =
   Option.iter
