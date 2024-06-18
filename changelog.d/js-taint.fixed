@@ -1,1 +1,0 @@
-[Pro Interfile JS/TS] Improve taint propagation through callbacks passed to `$X.map` functions and similar. Previously, such callbacks needed to have a return value for taint to be properly tracked. After this fix, they do not.
