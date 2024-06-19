@@ -16,8 +16,7 @@ local core_x86 = import 'build-test-core-x86.jsonnet';
 // intermediate image produced by build-push-action
 local docker_artifact_name = 'semgrep-docker-image-artifact';
 
-// TODO: change to 'semgrep/semgrep' at some point as the default
-local docker_repository_name = 'returntocorp/semgrep';
+local docker_repository_name = 'semgrep/semgrep';
 
 // ----------------------------------------------------------------------------
 // Helpers
@@ -556,7 +555,7 @@ local ignore_md = {
     // Docker stuff
     'build-test-docker': build_test_docker_job,
     'push-docker-returntocorp':
-       push_docker_job(docker_artifact_name, 'returntocorp/semgrep') +
+       push_docker_job(docker_artifact_name, docker_repository_name) +
        { needs: [ 'build-test-docker' ] },
     'build-test-docker-nonroot':
       build_test_docker_other_target_job("-nonroot", "nonroot"),

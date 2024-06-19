@@ -46,7 +46,7 @@ jobs:
         type=sha,event=branch
       enable-tests: true
       file: Dockerfile
-      repository-name: returntocorp/semgrep
+      repository-name: semgrep/semgrep
       target: semgrep-cli
   build-test-docker-nonroot:
     needs:
@@ -63,7 +63,7 @@ jobs:
         type=ref,event=pr
       enable-tests: false
       file: Dockerfile
-      repository-name: returntocorp/semgrep
+      repository-name: semgrep/semgrep
       target: nonroot
   build-test-docker-performance-tests:
     needs:
@@ -80,7 +80,7 @@ jobs:
         type=ref,event=pr
       enable-tests: false
       file: Dockerfile
-      repository-name: returntocorp/semgrep
+      repository-name: semgrep/semgrep
       target: performance-tests
   build-test-javascript:
     secrets: inherit
@@ -112,7 +112,7 @@ jobs:
     with:
       artifact-name: semgrep-docker-image-artifact
       dry-run: false
-      repository-name: returntocorp/semgrep
+      repository-name: semgrep/semgrep
   test-cli:
     name: test semgrep-cli
     needs:
@@ -330,7 +330,7 @@ jobs:
     uses: ./.github/workflows/test-semgrep-pro.yml
     with:
       artifact-name: semgrep-docker-image-artifact
-      repository-name: returntocorp/semgrep
+      repository-name: semgrep/semgrep
   trigger-semgrep-comparison-argo:
     if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
     needs:
