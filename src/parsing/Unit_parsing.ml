@@ -21,6 +21,8 @@ let tests_path_parsing = tests_path / "parsing"
 (* Helpers *)
 (*****************************************************************************)
 
+type error_tolerance = Strict | Missing_tokens | Partial_parsing
+
 (*
    Strict parsing: errors due to missing (inserted) tokens are not tolerated
    in these tests.
@@ -33,7 +35,29 @@ let parsing_tests_for_lang files lang =
              Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
              |> ignore))
 
-(* Check that *)
+(* Parsing is expected to succeed with only tolerable parsing errors
+   (assumed to be "missing token" nodes inserted by tree-sitter) *)
+let missing_tokens_tests_for_lang files lang =
+  files
+  |> List_.map (fun file ->
+         Testo.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
+             let { Parsing_result2.errors; tolerated_errors; _ } =
+               Parse_target.parse_and_resolve_name lang (Fpath.v file)
+             in
+             (match errors with
+             | [] -> ()
+             | _ ->
+                 Alcotest.fail
+                   ("parsing errors: " ^ Parsing_result2.format_errors errors));
+             match tolerated_errors with
+             | [] -> Alcotest.fail "no 'missing token' errors. Was it fixed?"
+             | _ :: _ ->
+                 print_endline
+                   ("tolerated errors: "
+                   ^ Parsing_result2.format_errors tolerated_errors)))
+
+(* Parsing is expected to fail with at least one parsing error. *)
 let partial_parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
@@ -53,24 +77,38 @@ let partial_parsing_tests_for_lang files lang =
                    ("parsing errors: "
                    ^ Parsing_result2.format_errors all_errors)))
 
+let parsing_tests_for_lang error_tolerance files lang =
+  match error_tolerance with
+  | Strict -> parsing_tests_for_lang files lang
+  | Missing_tokens -> missing_tokens_tests_for_lang files lang
+  | Partial_parsing -> partial_parsing_tests_for_lang files lang
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
+
+let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang dir ext =
+  let slang = Lang.show lang in
+  let dir = tests_path_parsing / dir in
+  let dir, subcategory =
+    match error_tolerance with
+    | Strict -> (dir, None)
+    | Missing_tokens -> (dir / "parsing_missing", Some "missing tokens")
+    | Partial_parsing -> (dir / "parsing_partial", Some "partial parsing")
+  in
+  let files = Common2.glob (spf "%s/*%s" !!dir ext) in
+  if files =*= [] then failwith (spf "Empty set of parsing tests for %s" slang);
+  let tests = parsing_tests_for_lang error_tolerance files lang in
+  (match subcategory with
+  | None -> tests
+  | Some cat -> Testo.categorize cat tests)
+  |> Testo.categorize slang
 
 (* Note that here we also use tree-sitter to parse; certain files were not
  * parsing with pfff but parses here
  *)
 let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
-  let pack_parsing_tests_for_lang lang dir ext =
-    let slang = Lang.show lang in
-    Testo.categorize slang
-      (let dir = tests_path_parsing / dir in
-       let files = Common2.glob (spf "%s/*%s" !!dir ext) in
-       if files =*= [] then
-         failwith (spf "Empty set of parsing tests for %s" slang);
-       parsing_tests_for_lang files lang)
-  in
   Testo.categorize_suites "lang parsing testing"
     [
       (* languages with only a tree-sitter parser *)
@@ -109,11 +147,16 @@ let lang_parsing_tests () =
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
-      Testo.categorize "C++ partial parsing"
-        (let dir = tests_path_parsing / "cpp" / "parsing_partial" in
-         let files = Common2.glob (spf "%s/*.cpp" !!dir) in
-         let lang = Lang.Cpp in
-         partial_parsing_tests_for_lang files lang);
+      pack_parsing_tests_for_lang ~error_tolerance:Partial_parsing Lang.Cpp
+        "cpp" ".cpp";
+      (* a few parsing tests where we rely on "missing tokens" being
+         inserted by tree-sitter.
+         See cpp/parsing_missing/
+      *)
+      pack_parsing_tests_for_lang ~error_tolerance:Missing_tokens Lang.C "c"
+        ".c";
+      pack_parsing_tests_for_lang ~error_tolerance:Missing_tokens Lang.Cpp "cpp"
+        ".cpp";
     ]
 
 (* It's important that our parsers generate classic parsing errors
