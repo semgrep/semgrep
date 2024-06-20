@@ -4,7 +4,7 @@
 │ 1 Code Finding │
 └────────────────┘
 
-    targets/autofix/yaml-excessive-mapping-capture.yaml
+    targets/autofix/replace-field-yaml.yaml
    ❯❯❱ rules.autofix.yaml-excessive-capture
           If semgrep is not smart enough, it will match beyond the specified pattern and capture all text
           until `z`. So the fix will result in `y: falsez: "z"`

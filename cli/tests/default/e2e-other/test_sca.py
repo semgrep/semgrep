@@ -3,7 +3,7 @@ from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
-
+# TODO: merge with test_ssc.py?
 # was in e2e/test_output.py before
 
 
