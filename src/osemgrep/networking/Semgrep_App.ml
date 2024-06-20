@@ -65,7 +65,12 @@ let get_scan_config_from_token_async
     (caps : < Auth.cap_token ; Cap.network ; .. >) :
     OutJ.scan_config option Lwt.t =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route in
-  let headers = [ Auth.auth_header_of_token caps#token ] in
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
   let%lwt response = Http_helpers.get ~headers caps#network url in
   let scan_config_opt =
     match response with
