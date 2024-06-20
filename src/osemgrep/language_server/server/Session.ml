@@ -38,13 +38,15 @@ let scan_config_parser_ref = ref OutJ.scan_config_of_string
 (* Types *)
 (*****************************************************************************)
 
-(* We really don't wan't mutable state in the server.
-   This is the only exception *)
+(* We really don't want mutable state in the server.
+   This is the only exception since this stuff requires network requests that
+   we want to do asynchronously *)
 type session_cache = {
   mutable rules : Rule.t list; [@opaque]
   mutable skipped_app_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   mutable initialized : bool;
+  mutable deployment_id : int option;
   lock : Lwt_mutex.t; [@opaque]
 }
 [@@deriving show]
@@ -79,6 +81,7 @@ let create caps capabilities =
       lock = Lwt_mutex.create ();
       open_documents = [];
       initialized = false;
+      deployment_id = None;
     }
   in
   {
@@ -154,6 +157,8 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
     Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
     Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
+    Metrics_.g.payload.environment.deployment_id <-
+      session.cached_session.deployment_id;
     Metrics_.prepare_to_send ();
     Lwt.async (fun () ->
         (* Don't worry if metrics fail to send, and don't notify user *)
@@ -321,16 +326,9 @@ let fetch_rules session =
 let fetch_skipped_app_fingerprints caps =
   (* At some point we should allow users to ignore ids locally *)
   let auth_token = auth_token () in
-  match auth_token with
-  | Some token -> (
-      let caps = Auth.cap_token_and_network token caps in
-
-      let%lwt deployment_opt =
-        Semgrep_App.get_scan_config_from_token_async caps
-      in
-      match deployment_opt with
-      | Some deployment -> Lwt.return deployment.triage_ignored_match_based_ids
-      | None -> Lwt.return [])
+  let%lwt deployment_opt = scan_config_of_token caps auth_token in
+  match deployment_opt with
+  | Some deployment -> Lwt.return deployment.triage_ignored_match_based_ids
   | None -> Lwt.return []
 
 (* Useful for when we need to reset diagnostics, such as when changing what
@@ -385,6 +383,20 @@ let load_local_skipped_fingerprints session =
       |> List.filter (fun s -> s <> "")
     in
     { session with skipped_local_fingerprints }
+
+let fetch_deployment_id caps =
+  let auth_token = auth_token () in
+  match auth_token with
+  | Some token -> (
+      let caps = Auth.cap_token_and_network token caps in
+      let%lwt deployment_opt =
+        Semgrep_App.get_deployment_from_token_async caps
+      in
+      match deployment_opt with
+      | Some deployment -> Lwt.return_some deployment.id
+      | None -> Lwt.return None)
+  | None -> Lwt.return None
+
 (*****************************************************************************)
 (* State setters *)
 (*****************************************************************************)
@@ -394,7 +406,9 @@ let cache_session session =
   let%lwt skipped_app_fingerprints =
     fetch_skipped_app_fingerprints session.caps
   in
+  let%lwt deployment_id = fetch_deployment_id session.caps in
   Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.deployment_id <- deployment_id;
       session.cached_session.rules <- rules;
       session.cached_session.skipped_app_fingerprints <-
         skipped_app_fingerprints;

@@ -13,11 +13,13 @@ type session_cache = {
      this every so often. * These come from the same place ci rules do, so we
      fetch them at the same time as the above rules *)
   mutable open_documents : Fpath.t list;
-  (* keep track of if the cache is initialized so we can let users know if they
-     try to do something that need the rules downloaded like a full workspace
-     scan *)
-  mutable initialized : bool;
   (* Files open in the session *)
+  mutable initialized : bool;
+      (* keep track of if the cache is initialized so we can let users know if they
+         try to do something that need the rules downloaded like a full workspace
+         scan *)
+  mutable deployment_id : int option;
+  (* Deployment id for the session *)
   lock : Lwt_mutex.t;
 }
 (** Cache of rules that will be run, and skipped fingerprints. Protected by
