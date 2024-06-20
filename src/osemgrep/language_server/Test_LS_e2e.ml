@@ -66,11 +66,13 @@ module Io : RPC_server.LSIO = struct
   let flush () = Lwt.return_unit
 end
 
-type info = {
+type server_info = {
   server : RPC_server.t;
   in_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
   out_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
 }
+
+type test_info = { server : server_info; root : Fpath.t }
 
 let create_info caps =
   RPC_server.io_ref := (module Io);
@@ -160,14 +162,14 @@ let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
 (* Core primitives *)
 (*****************************************************************************)
 
-let send (info : info) packet : unit =
+let send (info : server_info) packet : unit =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
       let push_func = snd info.in_stream in
       push_func (Some packet)
 
-let receive (info : info) : Packet.t Lwt.t =
+let receive (info : server_info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
@@ -197,7 +199,7 @@ let send_notification info (notification : Client_notification.t) : unit =
 let send_custom_notification ~meth ?params info =
   send_notification info (CN.UnknownNotification { method_ = meth; params })
 
-let receive_response (info : info) : Response.t Lwt.t =
+let receive_response (info : server_info) : Response.t Lwt.t =
   let%lwt packet = receive info in
   match packet with
   | Packet.Response resp -> Lwt.return resp
@@ -209,11 +211,11 @@ let receive_response (info : info) : Response.t Lwt.t =
    a specific function before returning, instead of leaving it to be
    unpacked later.
 *)
-let receive_response_result (f : Json.t -> 'a) (info : info) : 'a Lwt.t =
+let receive_response_result (f : Json.t -> 'a) (info : server_info) : 'a Lwt.t =
   let%lwt resp = receive_response info in
   Lwt.return (resp.result |> Result.get_ok |> f)
 
-let receive_notification (info : info) : Notification.t Lwt.t =
+let receive_notification (info : server_info) : Notification.t Lwt.t =
   let%lwt packet = receive info in
   match packet with
   | Packet.Notification notif -> Lwt.return notif
@@ -225,11 +227,12 @@ let receive_notification (info : info) : Notification.t Lwt.t =
    with a specific function before returning, instead of leaving it to be
    unpacked later.
 *)
-let receive_notification_params (f : YS.t -> 'a) (info : info) : 'a Lwt.t =
+let receive_notification_params (f : YS.t -> 'a) (info : server_info) : 'a Lwt.t
+    =
   let%lwt notif = receive_notification info in
   Lwt.return (f (notif.params |> Option.get |> Structured.yojson_of_t))
 
-let receive_request (info : info) : Request.t Lwt.t =
+let receive_request (info : server_info) : Request.t Lwt.t =
   let%lwt packet = receive info in
   match packet with
   | Packet.Request req -> Lwt.return req
@@ -241,47 +244,33 @@ let receive_request (info : info) : Request.t Lwt.t =
 (* Mocking and testing functions *)
 (*****************************************************************************)
 
-let git_tmp_path () =
+let with_git_tmp_path f =
   let _orig_dir = Sys.getcwd () in
-  Testutil_files.with_tempdir ~persist:true (*~chdir:true*) (fun dir ->
-      (* TODO: investigate/report
-         Mysterious bug: the test will hang as we chdir back into the original
-         directory. *)
-      if not !Common.jsoo then Sys.chdir !!dir;
-      checked_command (String.concat " " [ "git"; "-C"; !!dir; "init" ]);
-      checked_command
-        (String.concat " "
-           [
-             "git";
-             "-C";
-             !!dir;
-             "config";
-             "user.email";
-             "baselinetest@semgrep.com";
-           ]);
-      checked_command
-        (String.concat " "
-           [ "git"; "-C"; !!dir; "config"; "user.name"; "Baseline Test" ]);
-      checked_command
-        (String.concat " " [ "git"; "-C"; !!dir; "checkout"; "-B"; "main" ]);
-      (* !!!!!!!!!!!!!!! This call causes hanging !!!!!!!!!!!!!!! *)
-      (* Sys.chdir _orig_dir; *)
-      dir)
+  let root =
+    Testutil_files.with_tempdir ~persist:true (fun dir ->
+        Git_wrapper.init ~cwd:dir ();
+        Git_wrapper.config_set ~cwd:dir "user.email" "baselinetest@semgrep.com";
+        Git_wrapper.config_set ~cwd:dir "user.name" "Baseline Test";
+        dir)
+  in
+  Sys.chdir (Fpath.to_string root);
+  let%lwt () = f root in
+  Sys.chdir _orig_dir;
+  (* Clean up the git repo *)
+  FileUtil.rm ~recurse:true [ Fpath.to_string root ];
+  Lwt.return_unit
 
 let assert_contains (json : Json.t) str =
   let json_str = YS.to_string json in
   if not (String_.contains ~term:str json_str) then
     Alcotest.failf "Expected string `%s` in response %s" str json_str
 
-let mock_files () : _ * Fpath.t list =
-  let git_tmp_path = git_tmp_path () in
-
+let mock_files root : Fpath.t list =
   let open Fpath in
-  let root = git_tmp_path in
   (* should have preexisting matches that are committed *)
-  let modified_file = git_tmp_path / "modified.py" in
+  let modified_file = root / "modified.py" in
   (* should have preexisting matches that are not committed *)
-  let existing_file = git_tmp_path / "existing.py" in
+  let existing_file = root / "existing.py" in
 
   open_and_write_default_content ~mode:[ Open_wronly ] modified_file;
   open_and_write_default_content ~mode:[ Open_wronly ] existing_file;
@@ -292,42 +281,15 @@ let mock_files () : _ * Fpath.t list =
        [
          "git";
          "-C";
-         Fpath.to_string git_tmp_path;
+         Fpath.to_string root;
          "remote";
          "add";
          "origin";
          (* nosem *)
          "/tmp/origin";
        ]);
-  checked_command
-    (String.concat " "
-       [
-         "git";
-         "-C";
-         Fpath.to_string git_tmp_path;
-         "add";
-         Fpath.to_string modified_file;
-       ]);
-  checked_command
-    (String.concat " "
-       [
-         "git";
-         "-C";
-         Fpath.to_string git_tmp_path;
-         "add";
-         Fpath.to_string existing_file;
-       ]);
-  checked_command
-    (String.concat " "
-       [
-         "git";
-         "-C";
-         Fpath.to_string git_tmp_path;
-         "commit";
-         "-m";
-         "\"initial commit\"";
-       ]);
-
+  Git_wrapper.add ~cwd:root [ existing_file; modified_file ];
+  Git_wrapper.commit ~cwd:root "initial commit";
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
   let new_file = root / "new.py" in
@@ -339,12 +301,11 @@ let mock_files () : _ * Fpath.t list =
     |> List.sort (fun x y ->
            String.compare (Fpath.to_string x) (Fpath.to_string y))
   in
+  files
 
-  (git_tmp_path, files)
-
-let mock_workspaces () =
-  let ((workspace1_root, workspace1_files) as workspace1) = mock_files () in
-  let workspace1_root = Fpath.to_string workspace1_root in
+let mock_workspaces root =
+  let workspace1_files = mock_files root in
+  let workspace1_root = Fpath.to_string root in
 
   (* Copy mock files to a second workspace
       This is gross IK but oh well
@@ -381,12 +342,10 @@ let mock_workspaces () =
            String.compare (Fpath.to_string x) (Fpath.to_string y))
   in
 
-  (workspace1, (Fpath.v workspace2_root, workspace2_files))
+  ( (Fpath.v workspace1_root, workspace1_files),
+    (Fpath.v workspace2_root, workspace2_files) )
 
-let mock_search_files () : _ * Fpath.t list =
-  let git_tmp_path = git_tmp_path () in
-
-  let root = git_tmp_path in
+let mock_search_files root : Fpath.t list =
   let path1 = root / "a" / "b" / "c.py" in
   let path2 = root / "test.py" in
   (* should have preexisting matches that are committed *)
@@ -395,7 +354,7 @@ let mock_search_files () : _ * Fpath.t list =
   open_and_write_default_content ~mode:[ Open_wronly ] path1;
   open_and_write_default_content ~mode:[ Open_wronly ] path2;
 
-  (root, [ path1; path2 ])
+  [ path1; path2 ]
 
 (*****************************************************************************)
 (* Sending functions *)
@@ -728,7 +687,7 @@ let do_search ?(pattern = "print(...)") ?(includes = []) ?(excludes = []) info =
     ()
   |> Lwt_seq.to_list |> Lwt.map List.concat
 
-let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
+let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
   (* Not setting this means that really nasty errors happen when an exception
      is raised inside of an Lwt.async, when running the Alcotests.
      As in, the tests will just exit with no error message at all.
@@ -740,15 +699,17 @@ let with_session caps (f : info -> unit Lwt.t) : unit Lwt.t =
        Logs.err (fun m -> m "Got exception: %s" err);
        Logs.err (fun m -> m "Traceback:\n%s" traceback);
        Alcotest.fail "Got exception in Lwt.async during tests");
-  let info = create_info caps in
-  let server_promise () = LanguageServer.start info.server in
+  let server_info = create_info caps in
+  let server_promise () = LanguageServer.start server_info.server in
   (* Separate promise so we actually bubble up errors from this one *)
   Lwt.async server_promise;
-  f info
+  with_git_tmp_path (fun root ->
+      let test_info = { server = server_info; root } in
+      f test_info)
 
 let test_ls_specs caps () =
-  with_session caps (fun info ->
-      let root, files = mock_files () in
+  with_session caps (fun { server = info; root } ->
+      let files = mock_files root in
       let%lwt () = check_startup info [ root ] files in
       let%lwt () =
         files
@@ -862,8 +823,8 @@ let test_ls_specs caps () =
       Lwt.return_unit)
 
 let test_ls_ext caps () =
-  with_session caps (fun info ->
-      let root, files = mock_files () in
+  with_session caps (fun { server = info; root } ->
+      let files = mock_files root in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
 
@@ -959,10 +920,10 @@ let test_ls_ext caps () =
           Lwt.return_unit))
 
 let test_ls_multi caps () =
-  with_session caps (fun info ->
+  with_session caps (fun { server = info; root } ->
       let ( (workspace1_root, workspace1_files),
             (workspace2_root, workspace2_files) ) =
-        mock_workspaces ()
+        mock_workspaces root
       in
       let workspace_folders = [ workspace1_root; workspace2_root ] in
       let files = workspace1_files @ workspace2_files in
@@ -1012,14 +973,14 @@ let test_ls_multi caps () =
       Lwt.return_unit)
 
 let _test_login caps () =
-  with_session caps (fun info ->
+  with_session caps (fun { server = info; root } ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
       *)
       let settings = Semgrep_settings.load () in
       if not (Semgrep_settings.save { settings with api_token = None }) then
         Alcotest.fail "failed to save settings to log out in ls e2e test";
-      let root, files = mock_files () in
+      let files = mock_files root in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
           send_initialize info [];
@@ -1039,15 +1000,15 @@ let _test_login caps () =
           Lwt.return_unit))
 
 let test_ls_no_folders caps () =
-  with_session caps (fun info ->
+  with_session caps (fun { server = info; _ } ->
       let%lwt () = check_startup info [] [] in
 
       send_exit info;
       Lwt.return_unit)
 
 let test_search_includes_excludes caps () =
-  with_session caps (fun info ->
-      let root, files = mock_search_files () in
+  with_session caps (fun { server = info; root } ->
+      let files = mock_search_files root in
 
       let%lwt () = check_startup info [ root ] files in
       let%lwt matches = do_search ~pattern:"x = 0" info in
