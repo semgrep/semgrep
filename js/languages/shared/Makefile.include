@@ -93,7 +93,8 @@ dist/semgrep-parser.o: $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
 	emcc \
 		$(EMCC_OPTIMIZATION) \
 		-I$(TREESITTER_SRCDIR) \
-		-I${TREESITTER_INCDIR} \
+		-I$(TREESITTER_INCDIR) \
+		-I`dirname $<` \
 		$^ \
 		-shared \
 		-o $@
@@ -103,7 +104,8 @@ dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c dist
 	emcc \
         $(EMCC_OPTIMIZATION) \
 		-I$(TREESITTER_SRCDIR) \
-		-I${TREESITTER_INCDIR} \
+		-I$(TREESITTER_INCDIR) \
+		-I`dirname $<` \
 		$^ \
 		$(EMCC_DEFAULTS) \
 		-sEXPORTED_FUNCTIONS=$(TS_EXPORTED_FUNCTIONS),$(COMMON_TS_EXPORTED_FUNCTIONS) \
