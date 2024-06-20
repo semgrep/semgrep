@@ -228,9 +228,7 @@ pytestmark = pytest.mark.kinda_slow
     ],
 )
 @pytest.mark.osemfail
-def test_dependency_aware_rules(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
-):
+def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",

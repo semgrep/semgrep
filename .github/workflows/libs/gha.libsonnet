@@ -69,15 +69,6 @@
     name: 'Configure git safedir properly',
     run: "git config --global --add safe.directory $(pwd)",
   },
-  # Git's filename limit is 4096 characters, except on Windows when Git is
-  # compiled with msys. It uses an older version of the Windows API and
-  # there's a limit of 260 characters for a filename. You can force the
-  # longer limit (and avoid git issues) by enabling core.longpaths in your
-  # git config.
-  # More info: https://stackoverflow.com/a/22575737
-  git_longpaths_step: {
-    run: 'git config --system core.longpaths true'
-  },
 
   // stay away dependabot, bad dog.
   dependabot_guard: {

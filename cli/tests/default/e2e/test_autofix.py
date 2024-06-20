@@ -10,46 +10,37 @@ from semgrep.constants import OutputFormat
 @pytest.mark.parametrize(
     "output_format", [OutputFormat.JSON, OutputFormat.TEXT], ids=["json", "text"]
 )
+# The rule is looked in rules/autofix/ and the target in autofix/ but
+# we use shorter names below so the snapshot dirs use less characters
+# which can be an issue on Windows.
 @pytest.mark.parametrize(
     "rule,target",
     [
-        ("rules/autofix/autofix.yaml", "autofix/autofix.py"),
-        ("rules/autofix/overlapping-collision.yaml", "autofix/collision.py"),
-        (
-            "rules/autofix/python-assert-statement.yaml",
-            "autofix/python-assert-statement.py",
-        ),
-        ("rules/autofix/python-ranges.yaml", "autofix/python-ranges.py"),
-        (
-            "rules/autofix/yaml-excessive-mapping-capture.yaml",
-            "autofix/yaml-excessive-mapping-capture.yaml",
-        ),
-        ("rules/autofix/three-autofixes.yaml", "autofix/three-autofixes.py"),
-        ("rules/autofix/java-string-wrap.yaml", "autofix/java-string-wrap.java"),
-        ("rules/autofix/exact-collision.yaml", "autofix/collision.py"),
-        ("rules/autofix/order.yaml", "autofix/order.py"),
-        ("rules/autofix/redundant.yaml", "autofix/redundant.py"),
-        ("rules/autofix/ocaml_paren_expr.yaml", "autofix/ocaml_paren_expr.ml"),
-        ("rules/autofix/python-delete-import.yaml", "autofix/python-delete-import.py"),
-        ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
-        ("rules/autofix/csv-writer.yaml", "autofix/csv-writer.py"),
-        ("rules/autofix/defaulthttpclient.yaml", "autofix/defaulthttpclient.java"),
-        ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
-        ("rules/autofix/requests-use-timeout.yaml", "autofix/requests-use-timeout.py"),
-        (
-            "rules/autofix/django-none-password-default.yaml",
-            "autofix/django-none-password-default.py",
-        ),
-        ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
-        (
-            "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
-            "autofix/terraform-ec2-instance-metadata-options.hcl",
-        ),
-        ("rules/autofix/delete-partial-line.yaml", "autofix/delete-partial-line.py"),
-        ("rules/autofix/utf-8.yaml", "autofix/utf-8.py"),
+        ("autofix.yaml", "autofix.py"),
+        ("overlapping-collision.yaml", "collision.py"),
+        ("python-assert-statement.yaml", "python-assert-statement.py"),
+        ("python-ranges.yaml", "python-ranges.py"),
+        ("replace-field-yaml.yaml", "replace-field-yaml.yaml"),
+        ("three-autofixes.yaml", "three-autofixes.py"),
+        ("java-string-wrap.yaml", "java-string-wrap.java"),
+        ("exact-collision.yaml", "collision.py"),
+        ("order.yaml", "order.py"),
+        ("redundant.yaml", "redundant.py"),
+        ("ocaml_paren_expr.yaml", "ocaml_paren_expr.ml"),
+        ("python-delete-import.yaml", "python-delete-import.py"),
+        ("two-autofixes.yaml", "two-autofixes.txt"),
+        ("csv-writer.yaml", "csv-writer.py"),
+        ("defaulthttpclient.yaml", "defaulthttpclient.java"),
+        ("flask-use-jsonify.yaml", "flask-use-jsonify.py"),
+        ("requests-use-timeout.yaml", "requests-use-timeout.py"),
+        ("django-none-password-default.yaml", "django-none-password-default.py"),
+        ("imported-entity.yaml", "imported-entity.py"),
+        ("add-metadata-hcl.yaml", "add-metadata-hcl.hcl"),
+        ("delete-partial-line.yaml", "delete-partial-line.py"),
+        ("utf-8.yaml", "utf-8.py"),
     ],
 )
-def test_autofix(
+def test(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
     snapshot,
@@ -58,7 +49,10 @@ def test_autofix(
     dryrun,
     output_format,
 ):
-    # Use run_semgrep_on_copied_files to prevent alteration of the source-controlled test directory
+    rule = "rules/autofix/" + rule
+    target = "autofix/" + target
+    # Use run_semgrep_on_copied_files to prevent alteration of the
+    # source-controlled test directory
     semgrep_result = run_semgrep_on_copied_files(
         rule,
         target_name=target,
