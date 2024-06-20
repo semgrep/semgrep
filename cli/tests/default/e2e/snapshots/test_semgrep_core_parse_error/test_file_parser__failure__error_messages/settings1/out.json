@@ -3,14 +3,14 @@
     {
       "code": 3,
       "level": "warn",
-      "message": "Syntax error at line targets/bad/invalid_python.py:1:\n `def foo(a)\n    tree = ElementTree.parse('country_data.xml')` was unexpected",
+      "message": "Syntax error at line targets/bad/invalid_python.py:1:\n `def foo(a)\n    tree = ElementTree.parse('country_data.xml')\n    root = tree.getroot()` was unexpected",
       "path": "targets/bad/invalid_python.py",
       "spans": [
         {
           "end": {
-            "col": 49,
-            "line": 2,
-            "offset": 59
+            "col": 26,
+            "line": 3,
+            "offset": 85
           },
           "file": "targets/bad/invalid_python.py",
           "start": {
@@ -25,9 +25,9 @@
         [
           {
             "end": {
-              "col": 49,
-              "line": 2,
-              "offset": 59
+              "col": 26,
+              "line": 3,
+              "offset": 85
             },
             "path": "targets/bad/invalid_python.py",
             "start": {
