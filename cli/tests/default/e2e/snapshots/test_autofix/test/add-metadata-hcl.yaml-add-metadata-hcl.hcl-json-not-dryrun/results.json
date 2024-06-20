@@ -3,7 +3,7 @@
   "interfile_languages_used": [],
   "paths": {
     "scanned": [
-      "targets/autofix/terraform-ec2-instance-metadata-options.hcl"
+      "targets/autofix/add-metadata-hcl.hcl"
     ]
   },
   "results": [
@@ -40,7 +40,7 @@
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
-      "path": "targets/autofix/terraform-ec2-instance-metadata-options.hcl",
+      "path": "targets/autofix/add-metadata-hcl.hcl",
       "start": {
         "col": 1,
         "line": 1,
@@ -80,7 +80,7 @@
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
-      "path": "targets/autofix/terraform-ec2-instance-metadata-options.hcl",
+      "path": "targets/autofix/add-metadata-hcl.hcl",
       "start": {
         "col": 1,
         "line": 6,

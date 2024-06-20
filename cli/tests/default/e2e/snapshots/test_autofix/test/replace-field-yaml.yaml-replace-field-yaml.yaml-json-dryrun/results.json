@@ -3,7 +3,7 @@
   "interfile_languages_used": [],
   "paths": {
     "scanned": [
-      "targets/autofix/yaml-excessive-mapping-capture.yaml"
+      "targets/autofix/replace-field-yaml.yaml"
     ]
   },
   "results": [
@@ -45,7 +45,7 @@
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
-      "path": "targets/autofix/yaml-excessive-mapping-capture.yaml",
+      "path": "targets/autofix/replace-field-yaml.yaml",
       "start": {
         "col": 3,
         "line": 3,
