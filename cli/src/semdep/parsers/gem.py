@@ -8,6 +8,8 @@ from typing import Optional
 from typing import Tuple
 
 from semdep.external.parsy import any_char
+from semdep.external.parsy import Parser
+from semdep.external.parsy import peek
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
@@ -24,6 +26,20 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import GemfileLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
+def handle_version_constraint(next_char: str, package: str) -> Parser:
+    if next_char == "!":
+        return success(package)
+    else:
+        return version >> success(package)
+
+
+def handle_next_char(next_char: str, package: str) -> Parser:
+    if next_char == "\n":  # No version constraint provided
+        return success(package)
+    else:  # Process the next character to assess the version constraint
+        return any_char.bind(lambda nc: handle_version_constraint(nc, package))
+
+
 # Examples:
 # (1.25.0)
 version = string("(") >> upto(")", consume_other=True)
@@ -35,14 +51,16 @@ package = string("    ") >> upto(" ", consume_other=True).bind(
 )
 
 # Examples:
+#   spf-query
 #   faker!
 #   minitest (= 5.15.0)
 #   simplecov (= 0.17.1, < 0.18)
-manifest_package = string("  ") >> upto(" ", "!").bind(
-    lambda package: any_char.bind(
-        lambda next: success(package) if next == "!" else version >> success(package)
+manifest_package = string("  ") >> upto(" ", "!", "\n").bind(
+    lambda package: peek(any_char).bind(
+        lambda next_char: handle_next_char(next_char, package)
     )
 )
+
 
 # Gemfiles may have 1 or more remotes, so the following are both valid:
 #   remote: https://rubygems.org/
