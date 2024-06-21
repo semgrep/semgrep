@@ -750,6 +750,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       sinks = sinks_ranges;
     },
     expls )
+[@@trace_trace]
 
 let check_var_def lang options taint_config env id ii expr =
   let name = AST_to_IL.var_of_id_info id ii in

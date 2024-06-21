@@ -34,7 +34,9 @@ open Ast_helper
  * Additionally supported syntaxes:
  * - `let%trace sp = "X.foo" in ...` (supported so that we can add data to spans)
  * - let foo frm = body [@@trace_debug] (supported to add debug-level traces)
+ * - let foo frm = body [@@trace_trace] (supported to add trace-level traces)
  * - `let%trace_debug sp = "X.foo" in ...` (combination of previous two)
+ * - `let%trace_trace sp = "X.foo" in ...` (combination of previous two)
  *
  * TODO: A nicer syntax would be `let%trace sp = { name: "X.foo"; level: "debug" }
  * but Ast_pattern is tricky to get started working with, so for the sake of time
@@ -64,27 +66,34 @@ let name_of_func_pat (pat : Parsetree.pattern) =
   | _ -> "<no func name>"
 
 let trace_attr (attr : Parsetree.attribute) =
-  if attr.attr_name.txt = "trace" || attr.attr_name.txt = "trace_debug" then
-    let payload =
-      match attr.attr_payload with
-      | PStr
-          [
-            {
-              pstr_desc =
-                Pstr_eval
-                  ( { pexp_desc = Pexp_constant (Pconst_string (str, _, _)); _ },
-                    _ );
-              _;
-            };
-          ] ->
-          Some str
-      | _ -> None
-    in
-    let level =
-      if attr.attr_name.txt = "trace_debug" then Tracing.Debug else Tracing.Info
-    in
-    Some (payload, level)
-  else None
+  let attr_level =
+    match attr.attr_name.txt with
+    | "trace" -> Some Tracing.Info
+    | "trace_debug" -> Some Tracing.Debug
+    | "trace_trace" -> Some Tracing.Trace
+    | _ -> None
+  in
+  attr_level
+  |> Option.map (fun level ->
+         let payload =
+           match attr.attr_payload with
+           | PStr
+               [
+                 {
+                   pstr_desc =
+                     Pstr_eval
+                       ( {
+                           pexp_desc = Pexp_constant (Pconst_string (str, _, _));
+                           _;
+                         },
+                         _ );
+                   _;
+                 };
+               ] ->
+               Some str
+           | _ -> None
+         in
+         (payload, level))
 
 (* borrowed from module_ml.ml *)
 let module_name_of_loc loc =
@@ -203,8 +212,13 @@ let extension_let_debug =
   Extension.V3.declare "trace_debug" Extension.Context.expression let_payload
     (expand_let ~level:Tracing.Debug)
 
+let extension_let_all =
+  Extension.V3.declare "trace_trace" Extension.Context.expression let_payload
+    (expand_let ~level:Tracing.Trace)
+
 let rule_let = Ppxlib.Context_free.Rule.extension extension_let
 let rule_let_debug = Ppxlib.Context_free.Rule.extension extension_let_debug
+let rule_let_all = Ppxlib.Context_free.Rule.extension extension_let_all
 
 (*****************************************************************************)
 (* Main driver *)
@@ -242,5 +256,5 @@ let impl (xs : structure) : structure =
 
 let () =
   Driver.register_transformation
-    ~rules:[ rule_let; rule_let_debug ]
+    ~rules:[ rule_let; rule_let_debug; rule_let_all ]
     ~impl "ppx_tracing"

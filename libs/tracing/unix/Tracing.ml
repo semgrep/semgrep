@@ -139,8 +139,8 @@ let with_tracing fname trace_endpoint data f =
     | Some level -> (
         match String.lowercase_ascii level with
         | "info" -> Info
-        | "trace" -> Trace
         | "debug" -> Debug
+        | "trace" -> Trace
         | _ -> Info)
     | None -> Info
   in

@@ -1,0 +1,3 @@
+Adds traces to help debug the performance of tainting. To send the traces added in the PR, pass
+`--trace` and also set the environment variable `SEMGREP_TRACE_LEVEL=trace`. To send them to a
+local endpoint instead of our default endpoint, use `--trace-endpoint`.
