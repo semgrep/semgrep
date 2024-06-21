@@ -229,8 +229,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Hack
     | Lang.Yaml
     | Lang.Html
-    | Lang.Terraform
-    | Lang.Move_on_aptos ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -245,6 +244,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Json
     | Lang.Jsonnet
     | Lang.Js
+    | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
     | Lang.Kotlin
@@ -307,8 +307,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Swift
     | Lang.Html
     | Lang.Terraform
-    | Lang.Ql
-    | Lang.Move_on_aptos ->
+    | Lang.Ql ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -323,6 +322,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Json
     | Lang.Jsonnet
     | Lang.Js
+    | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
     | Lang.Rust
@@ -359,8 +359,7 @@ and do_while stmt env (s, e) =
     | Lang.Solidity
     | Lang.Swift
     | Lang.Html
-    | Lang.Terraform
-    | Lang.Move_on_aptos ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Apex
     | Lang.Java
@@ -379,6 +378,7 @@ and do_while stmt env (s, e) =
     | Lang.Go
     | Lang.Json
     | Lang.Jsonnet
+    | Lang.Move_on_aptos
     | Lang.Ocaml
     | Lang.Rust
     | Lang.R ->
@@ -409,8 +409,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
-    | Lang.Terraform
-    | Lang.Move_on_aptos ->
+    | Lang.Terraform ->
         raise Todo
     | Lang.Apex
     | Lang.Java
@@ -419,6 +418,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Js
+    | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
     | Lang.Rust
@@ -508,8 +508,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Solidity
       | Lang.Swift
       | Lang.Html
-      | Lang.Terraform
-      | Lang.Move_on_aptos ->
+      | Lang.Terraform ->
           raise Todo
       | Lang.Apex
       | Lang.Java
@@ -535,6 +534,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Ql ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
+      | Lang.Move_on_aptos
       | Lang.Rust ->
           ( (fun typ id _e -> F.sprintf "let %s: %s" id typ),
             fun typ id e -> F.sprintf "let %s: %s = %s" id typ e )

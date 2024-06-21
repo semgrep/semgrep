@@ -78,6 +78,7 @@ let full_lang_info =
     (Lang.Xml, "xml", ".xml");
     (Lang.Dart, "dart", ".dart");
     (Lang.Ql, "ql", ".ql");
+    (Lang.Move_on_aptos, "move_on_aptos", ".move");
   ]
 
 (*****************************************************************************)
