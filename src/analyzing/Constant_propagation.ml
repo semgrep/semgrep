@@ -604,7 +604,7 @@ let propagate_basic lang prog =
   in
   visitor#visit_program (env, Iter_with_context.initial_context) prog;
   ()
-[@@profiling]
+[@@profiling] [@@trace_trace]
 
 let propagate_dataflow_one_function lang inputs flow =
   (* Exposed to help DeepSemgrep *)
@@ -641,3 +641,4 @@ let propagate_dataflow lang ast =
       (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
+[@@trace_trace]

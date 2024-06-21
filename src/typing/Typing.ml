@@ -423,3 +423,4 @@ let typing_visitor =
  * Right now this pass focuses on giving types to names used as method calls,
  * for what it relies on 'guess_type_of_dotaccess'. *)
 let check_program lang prog = typing_visitor#visit_program lang prog
+[@@trace_debug]

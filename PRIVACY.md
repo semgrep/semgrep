@@ -358,6 +358,46 @@ dependencies data are:
 - Package version (e.g., 1.2.3)
 - File path for lockfile (e.g., frontend/yarn.lock)
 
+## Debugging data collected when traces are requested
+
+To help debug performance issues, Semgrep can send traces, enabled via `--trace`.
+Traces are never sent unless the `--trace` flag is included.
+
+There are three modes of tracing.
+1. Info (`--trace`): basic tracing. Sends timings about each file as it undergoes pre-processing and then matching. Includes the file path and sometimes rule names.
+2. Debug (`--trace` with `SEMGREP_TRACE_LEVEL=debug`): debug tracing. Sends additional timings, particularly around functions Semgrep runs during taint analysis.
+3. Trace (`--trace` with `SEMGREP_TRACE_LEVEL=trace`): even more detailed debug tracing.
+
+All traces are sent in Opentelemetry format and may include:
+- Semgrep function currently running (e.g. `Match_tainting_mode.check_rules`)
+- Start time (e.g. `1718775054055113`)
+- Duration (e.g. `934956`)
+- Path (e.g. `test/example/test_code.py`)
+- Rule name (e.g. `tainted-sql-from-http-request`)
+- Is a taint rule (e.g. `true`)
+
+Additionally, summary data is always included in the top level trace, such as:
+- Repo name (e.g. `semgrep-app`)
+- Folder name (e.g. `tests`)
+- Number of matches (e.g. `2`)
+- Number of errors (e.g. `1`)
+- Number of OSS rules (e.g. `12`)
+- Number of targets (e.g. `128`)
+- Languages (e.g. `Java: true`)
+- Is a diff scan (e.g. `false`)
+- Is an interfile scan (e.g. `true`)
+- Other scan settings of a similar nature. Summary data will only include information that `semgrep ci` has access to.
+
+No information will be sent in the info mode that would not be sent by `semgrep ci`.
+
+In debug and trace mode only, traces may also include:
+- Hashed function names (e.g. `d40fdc8ef9bf7b7dd1b014533a58a05e9b98d7dd856784352201388fe5e22673`)
+- Hashed variable names (e.g. `0268934f5c43d1b5fc7d52d9efe17c69f1144b108c384c3513cbe493043712b3`)
+
+These data help us establish if a function is being analyzed for taint more times than expected.
+
+Debug and trace mode are meant for one-off debugging of slow scans, and data from these trace modes will not be retained for more than a week.
+
 ## Registry fetches
 
 Certain Registry resources require log-in to the Semgrep Registry. Log in may be performed
