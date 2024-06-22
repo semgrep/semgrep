@@ -194,6 +194,18 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
     PYTHONIOENCODING=utf8 \
     PYTHONUNBUFFERED=1
 
+# For some reason, using pip version 24 (the one that comes with they
+# python:3.11-alpine docker image as of June 21, 2024) will cause
+#     pip install /semgrep
+# below to fail because it couldn't find the wheel module, but the
+# wheel module actually exists.
+#
+# With this is workaround, without actually getting to the bottom of
+# the issue, to allow us to build semgrep docker images successfully
+# for now. If anyone understand exactly why pip version 24 fails the
+# docker build, we'd be happy to fix it at the root cause.
+RUN pip install --force-reinstall -v "pip==23.3.2"
+
 # Let's now simply use 'pip' to install semgrep.
 # Note the difference between .run-deps and .build-deps below.
 # We use a single command to install packages, install semgrep, and remove
