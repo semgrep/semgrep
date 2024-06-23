@@ -1,3 +1,12 @@
+[build-system]
+# Explicitly specifying setuptools and wheel because pip >=24 no longer
+# includes wheel by default.
+# Without this, brew and docker would fail to build.
+# A bit more discussion for context here:
+# https://github.com/Homebrew/homebrew-core/pull/175401
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.pytest.ini_options]
 # coupling: if you add a dep here it would be great if you added it to the top
 # level flake.nix in devPipInputs
