@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.pytest.ini_options]
 # coupling: if you add a dep here it would be great if you added it to the top
 # level flake.nix in devPipInputs
