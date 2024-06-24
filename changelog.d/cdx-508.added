@@ -1,1 +1,0 @@
-Semgrep will now report the id of the organization associated with logged in users when reporting metrics in the language server
