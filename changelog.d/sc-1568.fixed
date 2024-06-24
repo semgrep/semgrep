@@ -1,2 +1,0 @@
-Fixed a bug in the gemfile.lock parser which causes Semgrep to miss direct
-dependencies whose package name does not end in a version constraint.

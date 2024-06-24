@@ -6,6 +6,62 @@
 
 <!-- insertion point -->
 
+## [1.77.0](https://github.com/returntocorp/semgrep/releases/tag/v1.77.0) - 2024-06-24
+
+
+### Added
+
+
+- Semgrep will now report the id of the organization associated with logged in users when reporting metrics in the language server (cdx-508)
+- Pro: taint-mode: Improved index-sensitive taint tracking for tuple/list (un)packing.
+
+  Example 1:
+
+       def foo():
+           return ("ok", taint)
+
+       def test():
+            x, y = foo()
+            sink(x)  # nothing, no FP
+            sink(y)  # finding
+
+  Example 2:
+
+       def foo(t):
+            (x, y) = t
+            sink(x)  # nothing, no FP
+            sink(y)  # finding
+
+       def test():
+            foo(("ok", taint)) (code-6935)
+- Adds traces to help debug the performance of tainting. To send the traces added in the PR, pass
+  `--trace` and also set the environment variable `SEMGREP_TRACE_LEVEL=trace`. To send them to a
+  local endpoint instead of our default endpoint, use `--trace-endpoint`. (saf-1100)
+
+
+### Fixed
+
+
+- Fixed a bug in the generation of the control-flow graph for `try` statements that
+  could e.g. cause taint to report false positives:
+
+      def test():
+          data = taint
+          try:
+              # Semgrep assumes that `clean` could raise an exception, but
+              # even if it does, the tainted `data` will never reach the sink !
+              data = clean(data)
+          except Exception:
+              raise Exception()
+
+          # `data` must be clean here
+          sink(data) # no more FP (flow-78)
+- The language server (and semgrep --experimental) should not report anymore errors from
+  the metrics.semgrep.dev server such as "cannot read property 'map' of undefined". (metrics_error)
+- Fixed a bug in the gemfile.lock parser which causes Semgrep to miss direct
+  dependencies whose package name does not end in a version constraint. (sc-1568)
+
+
 ## [1.76.0](https://github.com/returntocorp/semgrep/releases/tag/v1.76.0) - 2024-06-17
 
 
