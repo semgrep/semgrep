@@ -13,13 +13,27 @@ let compare_sink { pm = pm1; rule_sink = sink1 } { pm = pm2; rule_sink = sink2 }
   | 0 -> T.compare_matches pm1 pm2
   | other -> other
 
-let show_sink { rule_sink; _ } = rule_sink.R.sink_id
+let show_sink { rule_sink; pm } =
+  let matched_str =
+    let tok1, tok2 = pm.range_loc in
+    let r = Range.range_of_token_locations tok1 tok2 in
+    Range.content_at_range pm.path.internal_path_to_content r
+  in
+  let matched_line =
+    let loc1, _ = pm.Pattern_match.range_loc in
+    loc1.Tok.pos.line
+  in
+  spf "(%s at l.%d by %s)" matched_str matched_line rule_sink.R.sink_id
 
 type taint_to_sink_item = { taint : T.taint; sink_trace : unit T.call_trace }
 
 let show_taint_to_sink_item { taint; sink_trace } =
-  Printf.sprintf "%s@{%s}" (T.show_taint taint)
-    (Taint.show_call_trace [%show: unit] sink_trace)
+  let sink_trace_str =
+    match sink_trace with
+    | T.PM _ -> ""
+    | T.Call _ -> spf "@{%s}" (Taint.show_call_trace [%show: unit] sink_trace)
+  in
+  Printf.sprintf "%s%s" (T.show_taint taint) sink_trace_str
 
 let show_taints_and_traces taints =
   Common2.string_of_list show_taint_to_sink_item taints

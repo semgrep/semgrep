@@ -14,6 +14,7 @@
  *)
 open Common
 open IL
+module Log = Log_analyzing.Log
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -28,11 +29,6 @@ module H = AST_generic_helpers
  *  - a lot ...
  *)
 
-let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
-let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
-
 let locate ?tok s =
   let opt_loc =
     try Option.map Tok.stringpos_of_tok tok with
@@ -42,11 +38,8 @@ let locate ?tok s =
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
-let log_warning ?tok msg =
-  Logs.debug (fun m -> m ~tags:warning "%s" (locate ?tok msg))
-
-let log_error ?tok msg =
-  Logs.debug (fun m -> m ~tags:error "%s" (locate ?tok msg))
+let log_warning ?tok msg = Log.warn (fun m -> m "%s" (locate ?tok msg))
+let log_error ?tok msg = Log.err (fun m -> m "%s" (locate ?tok msg))
 
 (*****************************************************************************)
 (* Types *)

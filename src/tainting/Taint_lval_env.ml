@@ -18,6 +18,7 @@
  * that internally. *)
 
 open Common
+module Log = Log_tainting.Log
 module T = Taint
 module Taints = T.Taint_set
 module S = Taint_shape
@@ -26,9 +27,7 @@ module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module NameMap = Map.Make (H.NameOrdered)
 
-let base_tag_strings = [ __MODULE__; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
+let limits_tags = Logs_.create_tags [ "bad"; "limits" ]
 
 type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
@@ -176,16 +175,16 @@ let check_tainted_lvals_limit tainted new_var =
   then (
     match remove_some_lval_from_tainted_set tainted with
     | Some (dropped_var, tainted) ->
-        Logs.debug (fun m ->
-            m ~tags:warning
+        Log.debug (fun m ->
+            m ~tags:limits_tags
               "Already tracking too many tainted l-values, dropped %s in order \
                to track %s"
               (IL.str_of_name dropped_var)
               (IL.str_of_name new_var));
         Some tainted
     | None ->
-        Logs.debug (fun m ->
-            m ~tags:warning
+        Log.debug (fun m ->
+            m ~tags:limits_tags
               "Already tracking too many tainted l-values, will not track %s"
               (IL.str_of_name new_var));
         None)

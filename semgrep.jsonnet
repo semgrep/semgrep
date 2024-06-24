@@ -138,10 +138,7 @@ local semgrep_rules = [
        'scripts/*',
        'libs/commons/Logs_.ml',
        'libs/profiling/Profiling.ml',
-       'src/core/Log_semgrep.ml',
-       //TODO: remove at some point, but managed by Iago for now
-       'src/tainting',
-       'src/analyzing',
+       'src/core/Log_semgrep.ml'
       ]
     },
   },

@@ -14,6 +14,7 @@
  *)
 
 open Common
+module Log = Log_tainting.Log
 module G = AST_generic
 module T = Taint
 module Taints = T.Taint_set
@@ -39,11 +40,6 @@ module Taints = T.Taint_set
  * TODO: We want `Dataflow_tainting.check_tainted_xyz` to return a taint shape.
  * TODO: Add 'Ptr' shapes and track aliasing.
  *)
-
-let base_tag_strings = [ __MODULE__; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
-let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (*****************************************************************************)
 (* Types *)
@@ -88,9 +84,8 @@ let internal_UNSAFE_find_offset_in_obj o obj =
         let obj = Fields.add o ref_none_bot obj in
         (o, obj)
       else (
-        Logs.debug (fun m ->
-            m ~tags:warning
-              "Already tracking too many fields, will not track %s"
+        Log.warn (fun m ->
+            m "Already tracking too many fields, will not track %s"
               (T.show_offset o));
         (Oany, obj))
 
@@ -251,8 +246,7 @@ and find_in_obj (offset : T.offset list) obj =
   (* offset <> [] *)
   match offset with
   | [] ->
-      Logs.debug (fun m ->
-          m ~tags:error "fix_xtaint_obj: Impossible happened: empty offset");
+      Log.err (fun m -> m "fix_xtaint_obj: Impossible happened: empty offset");
       None
   | o :: offset -> (
       match o with
@@ -313,9 +307,8 @@ and update_offset_in_obj ~f offset obj =
   let obj' =
     match offset with
     | [] ->
-        Logs.debug (fun m ->
-            m ~tags:error
-              "internal_UNSAFE_update_obj: Impossible happened: empty offset");
+        Log.err (fun m ->
+            m "internal_UNSAFE_update_obj: Impossible happened: empty offset");
         obj
     | o :: offset -> (
         let o, obj = internal_UNSAFE_find_offset_in_obj o obj in
@@ -357,8 +350,8 @@ let update_offset_and_unify new_taints new_shape offset opt_ref =
             || Taints.cardinal taints < !Flag_semgrep.max_taint_set_size
           then (Xtaint.union new_xtaint xtaint, shape)
           else (
-            Logs.debug (fun m ->
-                m ~tags:warning
+            Log.warn (fun m ->
+                m
                   "Already tracking too many taint sources for %s, will not \
                    track more"
                   (offset |> List_.map T.show_offset |> String.concat ""));
@@ -403,8 +396,7 @@ and clean_shape offset = function
 and clean_obj offset obj =
   match offset with
   | [] ->
-      Logs.debug (fun m ->
-          m ~tags:error "clean_obj: Impossible happened: empty offset");
+      Log.err (fun m -> m "clean_obj: Impossible happened: empty offset");
       obj
   | o :: offset -> (
       let o, obj = internal_UNSAFE_find_offset_in_obj o obj in

@@ -14,6 +14,7 @@
  *)
 open Common
 open IL
+module Log = Log_analyzing.Log
 module G = AST_generic
 module H = AST_generic_helpers
 module F = IL
@@ -23,8 +24,7 @@ module VarMap = Var_env.VarMap
 module LV = IL_helpers
 module Eval = Eval_il_partial
 
-let base_tag_strings = [ __MODULE__; "svalue" ]
-let tags = Logs_.create_tags base_tag_strings
+let tags = Log_analyzing.svalue_tag
 
 (*****************************************************************************)
 (* Types *)
@@ -230,7 +230,7 @@ let set_svalue_ref id_info c' =
     | None -> id_info.id_svalue := Some c'
     | Some c -> id_info.id_svalue := Some (Eval.refine c c')
   else
-    Logs.debug (fun m ->
+    Log.debug (fun m ->
         m ~tags "Cycle check failed for %s := ..." (G.show_id_info id_info))
 (* (G.show_svalue c') *)
 

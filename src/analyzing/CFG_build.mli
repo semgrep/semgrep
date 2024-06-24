@@ -5,7 +5,7 @@
  * This is useful in cases such as handling top-level functions
  * which aren't real functions.
  *)
-val cfg_of_stmts : IL.stmt list -> IL.cfg
+val cfg_of_stmts : ?tok:Tok.t -> IL.stmt list -> IL.cfg
 
 (* The CFG for a single function where `fparams` is the parameter list,
  * and `fcfg` is the CFG itself.

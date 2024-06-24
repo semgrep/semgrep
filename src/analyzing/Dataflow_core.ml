@@ -14,6 +14,7 @@
  * LICENSE for more details.
  *)
 open Common
+module Log = Log_analyzing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,10 +37,6 @@ open Common
  *    Dataflow analysis talks only about variables? for the belief analysis
  *    we actually want expressions instead.
  *)
-
-let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (*****************************************************************************)
 (* Types *)
@@ -147,7 +144,7 @@ module Make (F : Flow) = struct
          * fixpoint computations run for a limited amount of time. *)
         let t1 = Sys.time () in
         if t1 -. t0 >= timeout then (
-          Logs.debug (fun m -> m ~tags:error "fixpoint_worker timed out");
+          Log.err (fun m -> m "fixpoint_worker timed out");
           mapping)
         else
           let ni = NodeiSet.choose work in
