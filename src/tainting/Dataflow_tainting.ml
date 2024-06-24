@@ -14,6 +14,7 @@
  *)
 open Common
 open IL
+module Log = Log_tainting.Log
 module G = AST_generic
 module F = IL
 module D = Dataflow_core
@@ -62,11 +63,9 @@ end)
 
 module SMap = Map.Make (String)
 
-let base_tag_strings = [ __MODULE__; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let sigs = Logs_.create_tags (base_tag_strings @ [ "taint_sigs" ])
-let transfer = Logs_.create_tags (base_tag_strings @ [ "taint_transfer" ])
-let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
+let bad_tag = Log_tainting.bad_tag
+let sigs_tag = Log_tainting.sigs_tag
+let transfer_tag = Log_tainting.transfer_tag
 
 (*****************************************************************************)
 (* Types *)
@@ -597,7 +596,7 @@ let check_orig_if_sink env ?filter_sinks orig taints shape =
 (* Miscellaneous large functions *)
 (*****************************************************************************)
 
-let find_pos_in_actual_args args_taints fparams =
+let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
       (function
@@ -641,10 +640,11 @@ let find_pos_in_actual_args args_taints fparams =
          (fun (i, remaining_params) taints ->
            match remaining_params with
            | [] ->
-               Logs.debug (fun m ->
-                   m ~tags:error
+               Log.err (fun m ->
+                   m
                      "More args to function than there are positional \
-                      arguments in function signature");
+                      arguments in function signature (%s)"
+                     err_ctx);
                (i + 1, [])
            | _ :: rest ->
                Hashtbl.add idx_to_taints i taints;
@@ -661,8 +661,8 @@ let find_pos_in_actual_args args_taints fparams =
       | __else__ -> None
     in
     if Option.is_none taint_opt then
-      Logs.debug (fun m ->
-          m ~tags:error
+      Log.debug (fun m ->
+          m ~tags:bad_tag
             "Cannot match taint variable with function arguments (%i: %s)" i s);
     taint_opt
 
@@ -1416,7 +1416,10 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
             Some ({ base = this; rev_offset }, method_)
         | __else__ -> None)
     | BArg pos -> (
-        let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
+        let* arg_exp =
+          find_pos_in_actual_args ~err_ctx:(_show_fun_exp fun_exp) args_exps
+            fparams pos
+        in
         match (arg_exp.e, sig_lval.offset) with
         | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
             let lval =
@@ -1548,7 +1551,9 @@ let taints_of_lval env fparams fun_exp args_taints lval :
   in
   let* base_taints, base_shape =
     match base with
-    | `Arg pos -> find_pos_in_actual_args args_taints fparams pos
+    | `Arg pos ->
+        find_pos_in_actual_args ~err_ctx:(_show_fun_exp fun_exp) args_taints
+          fparams pos
     | `Var var ->
         let* (S.Ref (xtaints, shape)) = Lval_env.find_var env.lval_env var in
         Some (Xtaint.to_taints xtaints, shape)
@@ -1588,8 +1593,8 @@ let check_function_signature env fun_exp args
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch _f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
-      Logs.debug (fun m ->
-          m ~tags:sigs "Call to %s : %s" (_show_fun_exp fun_exp)
+      Log.debug (fun m ->
+          m ~tags:sigs_tag "Call to %s : %s" (_show_fun_exp fun_exp)
             (Sig.show_signature fun_sig));
       (* This function simply produces the corresponding taints to the
           given argument, within the body of the function.
@@ -2139,8 +2144,8 @@ let transfer :
         in'
   in
   check_tainted_at_exit_sinks node { env with lval_env = out' };
-  Logs.debug (fun m ->
-      m ~tags:transfer "Taint transfer %s\n  %s:\n  IN:  %s\n  OUT: %s"
+  Log.debug (fun m ->
+      m ~tags:transfer_tag "Taint transfer %s\n  %s:\n  IN:  %s\n  OUT: %s"
         (env.fun_name ||| "<FUN>")
         (Display_IL.short_string_of_node_kind node.F.n)
         (Lval_env.to_string in') (Lval_env.to_string out'));

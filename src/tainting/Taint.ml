@@ -17,14 +17,11 @@ module G = AST_generic
 module PM = Pattern_match
 module R = Rule
 module LabelSet = Set.Make (String)
+module Log = Log_tainting.Log
 open Common
 
 (* TODO: Consider renaming the `show_xyz` functions to `pretty_xyz` and
  * generate `show_xyz` ones via `deriving show`. *)
-
-let base_tag_strings = [ __MODULE__; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
 
 (* NOTE "on compare functions":
  *
@@ -117,11 +114,20 @@ let trace_of_pm (pm, x) = PM (pm, x)
 
 let rec show_call_trace show_thing = function
   | PM (pm, x) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-      let s = toks |> List_.map Tok.content_of_tok |> String.concat " " in
-      Printf.sprintf "%s [%s]" s (show_thing x)
+      let matched_str =
+        let tok1, tok2 = pm.range_loc in
+        let r = Range.range_of_token_locations tok1 tok2 in
+        Range.content_at_range pm.path.internal_path_to_content r
+      in
+      let matched_line =
+        let loc1, _ = pm.Pattern_match.range_loc in
+        loc1.Tok.pos.line
+      in
+      Printf.sprintf "%s at l.%d [%s]" matched_str matched_line (show_thing x)
   | Call (_e, _, trace) ->
-      Printf.sprintf "Call(... %s)" (show_call_trace show_thing trace)
+      Printf.sprintf "call to %s -> ... %s"
+        (Pretty_print_AST.expr_to_string Lang.Java _e)
+        (show_call_trace show_thing trace)
 
 (*****************************************************************************)
 (* Taint arguments ("variables", kind of) *)
@@ -143,7 +149,7 @@ let compare_lval { base = base1; offset = offset1 }
   | 0 -> List.compare compare_offset offset1 offset2
   | other -> other
 
-let show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
+let show_pos { name = s; index = i } = Printf.sprintf "arg(%s#%d)" s i
 
 let show_base base =
   match base with
@@ -325,21 +331,21 @@ let rec show_source { call_trace; label; precondition } =
     else Printf.sprintf " :%s->%s" ts.label label
   in
   let precondition_str = show_taints_with_precondition precondition in
-  Printf.sprintf "[%s%s @l.%d%s%s]" num_calls_str matched_str matched_line
+  Printf.sprintf "[%s%s :l.%d%s%s]" num_calls_str matched_str matched_line
     label_str precondition_str
 
 and show_taints_with_precondition precondition =
   match precondition with
   | None -> ""
   | Some (ts, pre) ->
-      Common.spf "/PRE|%s|if %s/"
+      Common.spf "{/PRE|%s|if %s/}"
         (List_.map show_taint ts |> String.concat " + ")
         (show_precondition pre)
 
 and show_taint taint =
   match taint.orig with
   | Src src -> show_source src
-  | Var lval -> show_lval lval
+  | Var lval -> "'" ^ show_lval lval
   | Control -> "<control>"
 
 (*****************************************************************************)
@@ -468,9 +474,8 @@ module Taint_set = struct
         then taint1
         else taint2
     | (Src _ | Var _ | Control), _ ->
-        Logs.debug (fun m ->
-            m ~tags:error
-              "Taint_set.pick_taint: Ooops, the impossible happened!");
+        Log.err (fun m ->
+            m "Taint_set.pick_taint: Ooops, the impossible happened!");
         taint2
 
   let diff set1 set2 = Taints.diff set1 set2
@@ -616,8 +621,7 @@ let taints_satisfy_requires taints pre =
   | None ->
       (* If we set 'ignore_poly_taint' then we expect to be able to solve
        * the precondition! *)
-      Logs.debug (fun m ->
-          m ~tags:error "Could not solve taint label precondition");
+      Log.err (fun m -> m "Could not solve taint label precondition");
       false
 
 let filter_relevant_taints requires taints =

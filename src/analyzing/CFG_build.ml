@@ -15,6 +15,7 @@
  *)
 open Common
 open IL
+module Log = Log_analyzing.Log
 module F = IL (* to be even more similar to controlflow_build.ml *)
 module G = AST_generic
 
@@ -31,10 +32,7 @@ module G = AST_generic
  *    do any kind of cfg-based analysis on the IL rather than the generic AST.
  *)
 
-let base_tag_strings = [ __MODULE__; "svalue"; "taint" ]
-let _tags = Logs_.create_tags base_tag_strings
-let warning = Logs_.create_tags (base_tag_strings @ [ "warning" ])
-let error = Logs_.create_tags (base_tag_strings @ [ "error" ])
+let tags = Logs_.create_tags [ "CFG_build" ]
 
 (*****************************************************************************)
 (* Types *)
@@ -50,6 +48,9 @@ type label_key = string * G.sid
  * No need to return a new state.
  *)
 type state = {
+  opt_tok : Tok.t option;
+  (* An optional token to point to the function/entity for which we are
+   * constructing a CFG. *)
   g : (F.node, F.edge) Ograph_extended.ograph_mutable;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
@@ -115,8 +116,13 @@ let resolve_gotos state =
   |> List.iter (fun (srci, label_key) ->
          match Hashtbl.find_opt state.labels label_key with
          | None ->
-             Logs.debug (fun m ->
-                 m ~tags:warning "Could not resolve label: %s" (fst label_key))
+             let loc_str =
+               match state.opt_tok with
+               | None -> ""
+               | Some tok -> spf " (%s)" (Tok.stringpos_of_tok tok)
+             in
+             Log.warn (fun m ->
+                 m ~tags "Could not resolve label: %s%s" (fst label_key) loc_str)
          | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
 
@@ -466,8 +472,10 @@ let build_cfg_of_unused_lambdas state previ nexti =
   |> Hashtbl.iter (fun name _ ->
          match Hashtbl.find_opt state.lambdas name with
          | None ->
-             Logs.debug (fun m ->
-                 m ~tags:error "Cannot find the definition of a lambda");
+             let tok = snd name.ident in
+             Log.warn (fun m ->
+                 m ~tags "Cannot find the definition of a lambda (%s)"
+                   (Tok.stringpos_of_tok tok));
              ()
          | Some fdef -> cfg_lambda state previ nexti fdef);
   Hashtbl.clear state.unused_lambdas
@@ -507,8 +515,8 @@ let mark_at_exit_nodes cfg =
 (* Main entry point *)
 (*****************************************************************************)
 
-let (cfg_of_stmts : stmt list -> F.cfg) =
- fun xs ->
+let (cfg_of_stmts : ?tok:Tok.t -> stmt list -> F.cfg) =
+ fun ?tok xs ->
   (* yes, I sometimes use objects, and even mutable objects in OCaml ... *)
   let g = new Ograph_extended.ograph_mutable in
 
@@ -519,6 +527,7 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
 
   let state =
     {
+      opt_tok = tok;
       g;
       exiti;
       labels = Hashtbl.create 10;
@@ -562,7 +571,7 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
 let cfg_of_fdef lang ?ctx fdef =
   let cfg_of_fdef () =
     let fparams, fstmts = AST_to_IL.function_definition lang ?ctx fdef in
-    let fcfg = cfg_of_stmts fstmts in
+    let fcfg = cfg_of_stmts ~tok:(snd fdef.fkind) fstmts in
     mark_at_exit_nodes fcfg;
     { fparams; fcfg }
   in

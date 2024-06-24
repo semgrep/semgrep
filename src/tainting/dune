@@ -6,6 +6,7 @@
    pfff-lang_GENERIC-analyze
    semgrep_core
    semgrep.matching
+   semgrep.printing
  )
  (preprocess (pps ppx_deriving.show ppx_deriving.ord ppx_profiling))
 )
