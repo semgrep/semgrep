@@ -680,21 +680,38 @@ let map_attribute_val (env : env) (x : CST.attribute_val) =
 
 let rec map_bind (env : env) (x : CST.bind) : G.pattern =
   match x with
-  | `Var_name x -> G.PatId (map_var_name env x, G.empty_id_info ())
+  | `Var_name x -> (
+      let name = map_var_name env x in
+      match name with
+      | "_", tok -> G.PatWildcard tok
+      | _ -> G.PatId (name, G.empty_id_info ()))
   | `Name_access_chain_opt_type_args_bind_fields (v1, v2, v3) ->
-      let struct_name_TODO = map_name_access_chain env v1 in
+      let struct_name = map_name_access_chain env v1 in
       let type_args = v2 |> Option.map (fun x -> map_type_args env x) in
       let lbrace, fields, rbrace = map_bind_fields env v3 in
-      G.PatRecord (lbrace, fields, rbrace)
+      (* abused for record binding in move, so that struct is matchable *)
+      G.PatDisj
+        ( G.PatType (G.TyN struct_name |> G.t),
+          G.PatRecord (lbrace, fields, rbrace) )
+  | `Ellips tok -> G.PatEllipsis (token env tok)
 
 and map_bind_field (env : env) (x : CST.bind_field) : G.dotted_ident * G.pattern
     =
   match x with
   | `Choice_var_name x -> (
       match x with
-      | `Var_name x ->
+      | `Var_name x -> (
           let ident = map_var_name env x in
-          ([ ident ], G.PatId (ident, G.empty_id_info ()))
+          match ident with
+          | name, tok when G.is_metavar_name name ->
+              (* This is a workaround for metavariable: semgrep treats field ident and variable ident differently. *)
+              (* We generate a separate pseudo-meta ident for each field. *)
+              (* We want this field ident deterministc because we use same field ident to match the same field. *)
+              let pseudo_meta_ident =
+                (name ^ "_FIELD_" ^ string_of_int (G.hash_ident ident), tok)
+              in
+              ([ pseudo_meta_ident ], G.PatId (ident, G.empty_id_info ()))
+          | _ -> ([ ident ], G.PatId (ident, G.empty_id_info ())))
       | `Var_name_COLON_bind (v1, v2, v3) ->
           let ident = map_var_name env v1 in
           let v2 = (* ":" *) token env v2 in
@@ -702,8 +719,9 @@ and map_bind_field (env : env) (x : CST.bind_field) : G.dotted_ident * G.pattern
           ([ ident ], pat))
   | `Ellips tok ->
       (* "..." *)
-      (* let ident = str env tok in *)
-      ([], G.PatEllipsis (token env tok))
+      (* Unfortunately, this is not working. *)
+      let ident = str env tok in
+      ([ ident ], G.PatEllipsis (token env tok))
 
 and map_bind_fields (env : env) ((v1, v2, v3, v4) : CST.bind_fields) =
   let v1 = (* "{" *) token env v1 in
