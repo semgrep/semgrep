@@ -1822,7 +1822,9 @@ and map_spec_let (env : env) ((v1, v2, v3, v4, v5, v6) : CST.spec_let) =
   let value = map_expr env v5 in
   let v6 = (* ";" *) token env v6 in
   let def = G.VarDef { vinit = Some value; vtype = None; vtok = Some let_ } in
-  let entity = { name = G.EDynamic value; attrs = []; tparams = None } in
+  let entity =
+    { name = G.EN (H2.name_of_id var_name); attrs = []; tparams = None }
+  in
   G.DefStmt (entity, def) |> G.s
 
 and map_spec_loop_invariant (env : env) attrs (x : CST.spec_loop_invariant) =
