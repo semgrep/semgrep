@@ -1624,18 +1624,21 @@ and map_return_expr (env : env) (x : CST.return_expr) =
   in
   G.StmtExpr st
 
-and map_sequence_item (env : env) ((v1, v2) : CST.sequence_item) =
-  let expr =
-    match v1 with
-    | `Expr x -> map_expr env x
-    | `Let_expr x -> map_let_expr env x
-  in
-  let sc = (* ";" *) token env v2 in
+and map_sequence_item (env : env) (x : CST.sequence_item) =
+  match x with
+  | `Choice_expr_SEMI (v1, v2) -> (
+      let expr =
+        match v1 with
+        | `Expr x -> map_expr env x
+        | `Let_expr x -> map_let_expr env x
+      in
+      let sc = (* ";" *) token env v2 in
 
-  (* Simplify nested statements *)
-  match expr with
-  | { G.e = G.StmtExpr stmt; _ } -> stmt
-  | expr -> G.ExprStmt (expr, sc) |> G.s
+      (* Simplify nested statements *)
+      match expr with
+      | { G.e = G.StmtExpr stmt; _ } -> stmt
+      | expr -> G.ExprStmt (expr, sc) |> G.s)
+  | `Ellips tok -> G.exprstmt (G.Ellipsis (token env tok) |> G.e)
 
 and map_spec_apply (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.spec_apply) =
   let v1 = (* "apply" *) token env v1 in
