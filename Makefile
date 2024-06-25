@@ -62,6 +62,10 @@ else
   BUILD_DEFAULT = ../_build/default/OSS
 endif
 
+ifeq ($(shell uname -o),Cygwin)
+  EXE = .exe
+endif
+
 ###############################################################################
 # Build (and clean) targets
 ###############################################################################
@@ -102,8 +106,8 @@ core:
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
-	rm -f cli/src/semgrep/bin/semgrep-core
-	cp bin/semgrep-core cli/src/semgrep/bin/
+	rm -f cli/src/semgrep/bin/semgrep-core$(EXE)
+	cp bin/semgrep-core$(EXE) cli/src/semgrep/bin/
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # If you need other binaries, look at the build-xxx rules below.
@@ -112,13 +116,14 @@ copy-core-for-cli:
 # does not support this bash feature.
 .PHONY: minimal-build
 minimal-build:
-	dune build $(BUILD)/install/default/bin/semgrep-core
+	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
+	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
 # Remove all symbols with GNU strip. It saves 10-25% on the executable
 # size and it doesn't seem to reduce the functionality or
 # debuggability of OCaml executables.
 # See discussion at https://github.com/semgrep/semgrep/pull/9471
-	chmod +w bin/semgrep-core
-	strip bin/semgrep-core
+	chmod +w bin/semgrep-core$(EXE)
+	strip bin/semgrep-core$(EXE)
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -234,7 +239,7 @@ build-core-test:
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test-e2e
 core-test-e2e:
-	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
+	SEMGREP_CORE=$(PWD)/bin/semgrep-core$(EXE) \
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
 
@@ -670,10 +675,10 @@ SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --strict --exclude 
 #Dogfooding osemgrep!
 .PHONY: check
 check:
-	./bin/osemgrep $(SEMGREP_ARGS)
+	./bin/osemgrep$(EXE) $(SEMGREP_ARGS)
 
 check_for_emacs:
-	./bin/osemgrep $(SEMGREP_ARGS) --emacs --quiet
+	./bin/osemgrep$(EXE) $(SEMGREP_ARGS) --emacs --quiet
 
 DOCKER_IMAGE=semgrep/semgrep:develop
 
