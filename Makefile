@@ -1,16 +1,16 @@
 ###############################################################################
 # Prelude
 ###############################################################################
-#
+
 # Many targets in this Makefile assume some commands have been run before to
 # setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'opam' and the right OCaml version (currently 4.14.0)
-#  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
+#  - for OCaml: 'ocamlc' and 'ocamlopt' (currently 4.14.0), 'dune', 'opam'
+#  - for C: 'gcc', 'ld', 'pkgconfig', but also some C libs like PCRE, gmp
 #  - for Python: 'python3', 'pip', 'pipenv'
 #
 # You will also need obviously 'make', but also 'git', and many other
-# common dev tools (e.g., 'docker').
+# common dev tools (e.g., 'docker', 'bash').
 #
 # Once this basic building/development environment has been setup
 # (see the different 'install-deps-XXX-yyy' targets later to assist you),
@@ -27,11 +27,12 @@
 #
 # See INSTALL.md for more information
 # See also https://semgrep.dev/docs/contributing/contributing-code/
-#
+
 # Most of the targets in this Makefile should work equally under
 # Linux (Alpine, Ubuntu, Arch), macOS (x86 and arm64), Windows (WSL, Cygwin),
 # and from a Dockerfile.
 # The main exceptions are the install-deps-XXX-yyy targets below.
+
 # If you really have to use platform-specific commands or flags, try to use
 # macros like the one below to have a portable Makefile.
 #
@@ -47,10 +48,24 @@
 #       SED = sed -i ''
 #     endif
 
+# This is to deal with paths that change depending on whether we're in the
+# semgrep-proprietary monorepo or detached as a standalone semgrep project.
+# The script 'scripts/make-symlinks' also deals with such issues.
+PROJECT_ROOT = $(shell git rev-parse --show-toplevel || pwd)
+ifeq ($(shell pwd),$(PROJECT_ROOT))
+  # The root is here.
+  BUILD = _build
+  BUILD_DEFAULT = _build/default
+else
+  # Assume we're in the semgrep-proprietary repo where OSS/ = semgrep.
+  BUILD = ../_build
+  BUILD_DEFAULT = ../_build/default/OSS
+endif
+
 ###############################################################################
 # Build (and clean) targets
 ###############################################################################
-#
+
 # Set environment variables used by dune files to locate the
 # C headers and libraries of the tree-sitter runtime library.
 # This file is created by ocaml-tree-sitter-core's configure script.
@@ -62,21 +77,6 @@
 # I use '-include' and not 'include' because before 'make setup' this file does
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
-
-PROJECT_ROOT = $(shell git rev-parse --show-toplevel || pwd)
-
-# Deal with paths that change depending on whether we're in the
-# semgrep-proprietary monorepo or detached as a standalone semgrep project.
-# The script 'scripts/make-symlinks' also deals with such issues.
-ifeq ($(shell pwd),$(PROJECT_ROOT))
-  # The root is here.
-  BUILD = _build
-  BUILD_DEFAULT = _build/default
-else
-  # Assume we're in the semgrep-proprietary repo where OSS/ = semgrep.
-  BUILD = ../_build
-  BUILD_DEFAULT = ../_build/default/OSS
-endif
 
 # First (and default) target.
 .PHONY: default
@@ -98,18 +98,6 @@ all:
 .PHONY: core
 core:
 	$(MAKE) minimal-build
-	ln -s semgrep-core bin/osemgrep
-# Remove all symbols with GNU strip. It saves 10-25% on the executable
-# size and it doesn't seem to reduce the functionality or
-# debuggability of OCaml executables.
-# See discussion at https://github.com/semgrep/semgrep/pull/9471
-	chmod +w bin/semgrep-core
-	strip bin/semgrep-core
-
-.PHONY: core-bc
-core-bc:
-	$(MAKE) minimal-build-bc
-
 
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
@@ -118,17 +106,19 @@ copy-core-for-cli:
 	cp bin/semgrep-core cli/src/semgrep/bin/
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
-# Requires the environment variables set by the included file above.
-# Builds only the binary needed for development.
 # If you need other binaries, look at the build-xxx rules below.
+# We do not use .../bin/{semgrep-core,osemgrep} below to
+# factorize because make under Alpine uses busybox/ash for /bin/sh which
+# does not support this bash feature.
 .PHONY: minimal-build
 minimal-build:
 	dune build $(BUILD)/install/default/bin/semgrep-core
-
-.PHONY: minimal-build-bc
-minimal-build-bc:
-	dune build $(BUILD)/install/default/bin/semgrep-core.bc
-	dune build $(BUILD)/install/default/bin/osemgrep.bc
+# Remove all symbols with GNU strip. It saves 10-25% on the executable
+# size and it doesn't seem to reduce the functionality or
+# debuggability of OCaml executables.
+# See discussion at https://github.com/semgrep/semgrep/pull/9471
+	chmod +w bin/semgrep-core
+	strip bin/semgrep-core
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -227,6 +217,7 @@ core-test:
 	$(MAKE) build-core-test
 # The following command ensures that we can call 'test.exe --help'
 # from the directory of the checkout
+# TODO: this generates weird cmdliner errors in Windows
 	./test --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
@@ -238,11 +229,6 @@ core-test:
 .PHONY: build-core-test
 build-core-test:
 	dune build $(BUILD_DEFAULT)/src/tests/test.exe
-
-# Bytecode version of the test for debugging
-.PHONY: test-bc
-test-bc:
-	dune build $(BUILD_DEFAULT)/src/tests/test.bc
 
 
 #coupling: this is run by .github/workflow/tests.yml
@@ -320,12 +306,6 @@ semgrep.opam: dune-project
 # Foolproofing
 	chmod a-w semgrep.opam
 
-# The bytecode version of semgrep-core needs dlls for tree-sitter
-# stubs installed into ~/.opam/<switch>/lib/stublibs to be able to run.
-install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
-	dune build @install # Generate the treesitter stubs for below
-	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
-
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
 install-deps: install-deps-for-semgrep-core
@@ -351,9 +331,10 @@ install-deps: install-deps-for-semgrep-core
 # -------------------------------------------------
 # TODO: opam can in theory handle automatically external dependencies
 # via `opam depext ...`, so we should not need for each Linux distro to know
-# what is the corresponding package name; this info is actually
-# stored in many conf-xxx OPAM packages. So we should generalize our use
-# of WINDOWS_OPAM_DEPEXT_DEPS to all platforms.
+# what is the corresponding package name. This info is actually
+# stored in many conf-xxx OPAM packages and since opam 2.2.0 should
+# support also Windows!
+# So we should generalize our use of WINDOWS_OPAM_DEPEXT_DEPS to all platforms.
 
 # Here is why we need those external packages to compile semgrep-core:
 # - pkgconf (name of pkg-config clone in arch): required by opam/dune
@@ -619,13 +600,23 @@ install-semgrep-libs: semgrep.opam
 dump:
 	$(BUILD_DEFAULT)/tests/test.bc -dump_ast tests/lint/stupid.py
 
+# for ocamldebug
+core-bc:
+	dune build $(BUILD)/install/default/bin/{semgrep-core,osemgrep}.bc
+test-bc:
+	dune build $(BUILD_DEFAULT)/src/tests/test.bc
+# The bytecode version of semgrep-core needs dlls for tree-sitter
+# stubs installed into ~/.opam/<switch>/lib/stublibs to be able to run.
+install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
+	dune build @install # Generate the treesitter stubs for below
+	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
+
 # Run perf benchmarks
 # Running this will reset your `semgrep` command to point to your local version
 # For more information, see "Reproducing the CI benchmarks" in perf/README.md
 .PHONY: perf-bench
 perf-bench:
 	scripts/run-benchmarks.sh
-
 
 # Run matching performance tests
 .PHONY: perf-matching
@@ -684,8 +675,7 @@ check:
 check_for_emacs:
 	./bin/osemgrep $(SEMGREP_ARGS) --emacs --quiet
 
-#TODO: switch to semgrep/semgrep:develop at some point
-DOCKER_IMAGE=returntocorp/semgrep:develop
+DOCKER_IMAGE=semgrep/semgrep:develop
 
 # If you get parsing errors while running this command, maybe you have an old
 # cached version of the docker image. You can invalidate the cache with
@@ -715,10 +705,8 @@ dev:
 pr:
 	git push origin `git rev-parse --abbrev-ref HEAD`
 	hub pull-request -b develop -r returntocorp/pa
-
 push:
 	git push origin `git rev-parse --abbrev-ref HEAD`
-
 merge:
 	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
 
@@ -726,11 +714,9 @@ merge:
 # see https://github.com/aryx/codegraph for information on codegraph_build
 index:
 	codegraph_build -lang cmt -derived_data .
-
 # see https://github.com/aryx/codecheck for information on codecheck
 check2:
 	codecheck -lang ml -with_graph_code graph_code.marshall -filter 3 .
-
 # see https://github.com/aryx/codemap for information on codemap
 visual:
 	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .

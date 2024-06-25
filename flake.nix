@@ -278,12 +278,13 @@
           ocaml-base-compiler = "4.14.2";
           # don't use bleeding edge cohttp
           cohttp-lwt = "5.3.0";
-          # needed for semgrep pro, but let's just add it here since that's easier
+          #TODO: needed for semgrep pro, should be in ../flake.nix instead
+          #coupling: if you add one thing here, need to update also the
+          # buildInputs overlay below
           junit_alcotest = "*";
-          # needed for OCTS and isn't pulled in by semgrep.opam
-          tsort = "*";
-          # Needed for interactive mode but let's just add it here since that's easier
+          git-unix = "*";
           notty = "*";
+          tsort = "*";
           # needed for tests
           tyxml = "*";
         };
@@ -296,7 +297,7 @@
           ${package} = prev.${package}.overrideAttrs (prev: {
             # Prevent the ocaml dependencies from leaking into dependent environments
             doNixSupport = false;
-            buildInputs = prev.buildInputs ++ [ final.tsort final.notty final.tyxml ];
+            buildInputs = prev.buildInputs ++ [ final.tsort final.notty final.tyxml final.git-unix ];
             nativeCheckInputs = [ final.junit_alcotest ];
           });
         };
