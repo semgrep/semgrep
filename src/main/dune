@@ -2,12 +2,13 @@
  (names Main)
  (flags
    (:standard (:include flags.sexp))
-;   (:standard -open TCB -open Commons_TCB)
+   (:standard -open TCB -open Commons_TCB)
    )
  (libraries
     TCB
-    semgrep_core_cli
-    osemgrep_cli
+    semgrep.core_cli
+    semgrep.osemgrep_cli
+
     ; implementations of dune virtual modules
     lwt_platform.unix
     tracing.unix
@@ -18,7 +19,7 @@
 )
 
 
-; use cli/flags.sh to generate the OS specific build flags
+; use flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
  (enabled_if (<> %{os_type} Win32))
@@ -37,9 +38,9 @@
 (install
  (package semgrep)
  (section bin)
- ; LATER: at some point we should copy it as osemgrep instead
  (files
   (Main.exe as semgrep-core)
+  (Main.exe as osemgrep)
   (Main.bc as semgrep-core.bc)
   (Main.bc as osemgrep.bc)
  )
