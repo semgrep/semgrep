@@ -1,0 +1,17 @@
+rules:
+  - id: flask-talisman-decorator-cookie-secure-false
+    message: Test
+    severity: INFO
+    languages:
+      - python
+    options:
+      symbolic_propagation: true
+    patterns:
+      - patterns:
+          - pattern: >
+              @flask_talisman.Talisman(...)(..., session_cookie_secure=$FALSE,
+              ...)
+          - metavariable-regex:
+              metavariable: $FALSE
+              regex: ^(False)$
+          - focus-metavariable: $FALSE
