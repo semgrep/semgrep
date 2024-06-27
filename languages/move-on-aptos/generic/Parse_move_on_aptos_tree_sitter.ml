@@ -689,10 +689,14 @@ let rec map_bind (env : env) (x : CST.bind) : G.pattern =
       let struct_name = map_name_access_chain env v1 in
       let type_args = v2 |> Option.map (fun x -> map_type_args env x) in
       let lbrace, fields, rbrace = map_bind_fields env v3 in
+      let struct_type =
+        match type_args with
+        | Some x -> G.TyApply (G.TyN struct_name |> G.t, x)
+        | None -> G.TyN struct_name
+      in
       (* abused for record binding in move, so that struct is matchable *)
       G.PatDisj
-        ( G.PatType (G.TyN struct_name |> G.t),
-          G.PatRecord (lbrace, fields, rbrace) )
+        (G.PatType (struct_type |> G.t), G.PatRecord (lbrace, fields, rbrace))
   | `Ellips tok -> G.PatEllipsis (token env tok)
 
 and map_bind_field (env : env) (x : CST.bind_field) : G.dotted_ident * G.pattern
@@ -700,18 +704,9 @@ and map_bind_field (env : env) (x : CST.bind_field) : G.dotted_ident * G.pattern
   match x with
   | `Choice_var_name x -> (
       match x with
-      | `Var_name x -> (
+      | `Var_name x ->
           let ident = map_var_name env x in
-          match ident with
-          | name, tok when G.is_metavar_name name ->
-              (* This is a workaround for metavariable: semgrep treats field ident and variable ident differently. *)
-              (* We generate a separate pseudo-meta ident for each field. *)
-              (* We want this field ident deterministc because we use same field ident to match the same field. *)
-              let pseudo_meta_ident =
-                (name ^ "_FIELD_" ^ string_of_int (G.hash_ident ident), tok)
-              in
-              ([ pseudo_meta_ident ], G.PatId (ident, G.empty_id_info ()))
-          | _ -> ([ ident ], G.PatId (ident, G.empty_id_info ())))
+          ([ ident ], G.PatId (ident, G.empty_id_info ()))
       | `Var_name_COLON_bind (v1, v2, v3) ->
           let ident = map_var_name env v1 in
           let v2 = (* ":" *) token env v2 in
@@ -1125,6 +1120,43 @@ let map_spec_block_target (env : env) (x : CST.spec_block_target) : G.any =
       let entity = G.basic_entity ~tparams:type_params (str env v2) in
       G.Anys [ v1; G.En entity ]
 
+let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
+    G.field list =
+  match left with
+  | G.PatId (var, _) -> [ G.basic_field var (Some right) None ]
+  | G.PatEllipsis tok -> [ G.F (G.Ellipsis tok |> G.e |> G.exprstmt) ]
+  | G.PatDisj (G.PatType inner_type, inner) ->
+      let typed_right = G.Cast (inner_type, sc, right) |> G.e in
+      transpile_let_bind env inner typed_right
+  | G.PatWildcard _ -> []
+  | G.PatRecord (_, fields, _) ->
+      let fields =
+        fields
+        |> List.map (fun (field, pat) ->
+               match pat with
+               | PatEllipsis tok ->
+                   [ G.F (G.Ellipsis tok |> G.e |> G.exprstmt) ]
+               | PatId (var, _) ->
+                   let ident = List.nth field 0 in
+                   let field_name = G.FN (H2.name_of_id ident) in
+                   let vinit =
+                     Some (G.DotAccess (right, sc, field_name) |> G.e)
+                   in
+                   [ G.basic_field var vinit None ]
+               | PatWildcard _ -> []
+               | _ -> transpile_let_bind env pat right)
+      in
+      let inner = List.flatten fields in
+      [ G.F (G.Record (sc, inner, sc) |> G.e |> G.exprstmt) ]
+  | G.PatTuple (_, elements, _) ->
+      elements
+      |> List.mapi (fun idx pat ->
+             let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
+             let element = G.ArrayAccess (right, (sc, idx, sc)) |> G.e in
+             transpile_let_bind env pat element)
+      |> List.flatten
+  | _ -> failwith "Unsupported pattern in let binding"
+
 let rec map_aborts_if (env : env) ((v1, v2, v3, v4) : CST.aborts_if) =
   let v1 = (* "aborts_if" *) G.I (str env v1) in
   let props =
@@ -1480,9 +1512,16 @@ and map_let_expr (env : env) ((v1, v2, v3, v4) : CST.let_expr) : G.expr =
            let v2 = map_expr env v2 in
            v2)
   in
-  let var_def = { G.vinit = value; G.vtype = type_hint; vtok = None } in
-  let ent = { G.name = G.EPattern bind; G.attrs = []; G.tparams = None } in
-  G.DefStmt (ent, G.VarDef var_def) |> G.s |> fun x -> G.StmtExpr x |> G.e
+  match bind with
+  | G.PatId (var, _) ->
+      let var_def = { G.vinit = value; G.vtype = type_hint; vtok = None } in
+      G.DefStmt (G.basic_entity var, G.VarDef var_def) |> G.s |> G.stmt_to_expr
+  | _ ->
+      let transpiled =
+        transpile_let_bind env bind
+          (Option.value ~default:(G.L (G.Null sc) |> G.e) value)
+      in
+      G.Record (sc, transpiled, sc) |> G.e
 
 and map_name_expr (env : env) (x : CST.name_expr) : G.expr =
   match x with
