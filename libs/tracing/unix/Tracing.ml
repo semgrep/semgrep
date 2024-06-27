@@ -14,6 +14,7 @@
  *)
 
 module Otel = Opentelemetry
+module Log = Log_commons.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -70,6 +71,8 @@ let default_endpoint = "https://telemetry.semgrep.dev"
 let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
 let default_local_endpoint = "http://localhost:4318"
 let trace_level_var = "SEMGREP_TRACE_LEVEL"
+let parent_span_id_var = "SEMGREP_TRACE_PARENT_SPAN_ID"
+let parent_trace_id_var = "SEMGREP_TRACE_PARENT_TRACE_ID"
 
 (*****************************************************************************)
 (* Levels *)
@@ -94,9 +97,44 @@ let level_to_trace_level level =
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
+
+(* General function to run with span to use for instrumentation *)
 let with_span ?(level = Info) =
   let level = level_to_trace_level level in
   Trace_core.with_span ~level
+
+(* Run the entrypoint function with a span. If a parent span is given
+   (e.g. via Semgrep Managed Scanning), use that as the parent span
+   so that we can connect the semgrep-core trace to other traces. *)
+let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
+    ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
+  let level = level_to_trace_level level in
+  match (parent_span_id, parent_trace_id) with
+  | None, None ->
+      Trace_core.with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f
+  | None, Some _
+  | Some _, None ->
+      Log.err (fun m ->
+          m "Both %s and %s should be set when creating a subspan"
+            parent_span_id_var parent_trace_id_var);
+      Trace_core.with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f
+  | Some span_id, Some trace_id ->
+      let scope : Otel.Scope.t =
+        {
+          span_id = Otel.Span_id.of_hex span_id;
+          trace_id = Otel.Trace_id.of_hex trace_id;
+          events = [];
+          attrs = [];
+        }
+      in
+      Otel.Scope.with_ambient_scope scope (fun () ->
+          let sp =
+            Trace_core.enter_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
+              name
+          in
+          let res = f sp in
+          Trace_core.exit_span sp;
+          res)
 
 let add_data_to_span = Trace_core.add_data_to_span
 
@@ -144,11 +182,15 @@ let with_tracing fname trace_endpoint data f =
         | _ -> Info)
     | None -> Info
   in
+  let parent_span_id = Sys.getenv_opt parent_span_id_var in
+  let parent_trace_id = Sys.getenv_opt parent_trace_id_var in
   let data () = data in
   Trace_core.set_current_level (level_to_trace_level level);
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
-  with_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp -> f sp
+  with_top_level_span ?parent_span_id ?parent_trace_id ~__FILE__ ~__LINE__ ~data
+    fname
+  @@ fun sp -> f sp
 
 (* Alt: using cohttp_lwt
 
