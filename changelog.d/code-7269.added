@@ -1,0 +1,18 @@
+Matching of fully qualified type names in the metavariable-type operator has
+been improved. For example:
+
+```
+from a.b import C
+
+x = C()
+```
+
+The type of `x` will match both `a.b.C` and `C`.
+
+```
+  - pattern: $X = $Y()
+  - metavariable-type:
+      metavariable: $X
+      types:
+        - a.b.C  # or C
+```
