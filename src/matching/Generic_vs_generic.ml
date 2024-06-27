@@ -2071,6 +2071,10 @@ and m_type_ a b =
   | G.TyAnd (a1, a2, a3), B.TyAnd (b1, b2, b3) ->
       m_type_ a1 b1 >>= fun () ->
       m_tok a2 b2 >>= fun () -> m_type_ a3 b3
+  | G.TyExpr ({ e = DotAccess _; _ } as a1), B.TyN b1 -> (
+      match H.name_of_dot_access a1 with
+      | Some a1 -> m_name a1 b1
+      | None -> fail ())
   | G.TyExpr a1, B.TyExpr b1 -> m_expr a1 b1
   | G.OtherType (a1, a2), B.OtherType (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
