@@ -1,5 +1,0 @@
-Fixed an issue where Python functions with annotations ending in `endpoint`,
-`route`, `get`, `patch`, `post`, `put`, `delete`, `before_request` or
-`after_request` (i.e., ones we associate with Flask) were incorrectly analyzed
-with the Code product in addition to the Secrets product when present in a file
-being ignored for Code analysis but included for Secrets.
