@@ -507,6 +507,15 @@ let propagate_basic lang prog =
             |> Option.iter (fun v -> v.visit_definition (env, ctx) x);
             super#visit_definition (env, ctx) x
 
+      (* THINK: Should we just visit every single name ? *)
+      method! visit_NamedAttr (env, ctx) tok name args =
+        (match name with
+        | Id (id, id_info) ->
+            let/ svalue = Eval.find_id env id id_info in
+            Dataflow_svalue.set_svalue_ref id_info svalue
+        | __else__ -> ());
+        super#visit_NamedAttr (env, ctx) tok name args
+
       (* the uses (and also defs for Python Assign) *)
       method! visit_expr (env, ctx) x =
         match x.e with

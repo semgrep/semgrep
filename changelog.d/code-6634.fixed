@@ -1,0 +1,6 @@
+Symbolic propagation now works on decorator functions, for example:
+
+    x = foo
+    @x() # this is now matched by pattern `@foo()`
+    def test():
+      pass

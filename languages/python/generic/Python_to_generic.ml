@@ -891,6 +891,9 @@ and decorator env (t, v1) =
    * and the decorator is a pip0614 namedexpr decorator, we'll translate
    * it as an otherAttr.
    *)
+  let pip0614_expr_attr tok anys =
+    G.OtherAttribute (("pip0614: expr attr", tok), anys)
+  in
   let rec get_dotted_name e acc =
     match e with
     | Name (id, _) -> Some (id :: acc)
@@ -927,20 +930,19 @@ and decorator env (t, v1) =
                    |> G.e)
                  base
           in
-          G.OtherAttribute
-            ( ("qualified attr", t),
-              [
-                G.E
-                  (G.Call
-                     ( dot_access,
-                       args
-                       |> Option.value ~default:(Tok.unsafe_fake_bracket []) )
-                  |> G.e);
-              ] )
+          pip0614_expr_attr t
+            [
+              G.E
+                (G.Call
+                   ( dot_access,
+                     args |> Option.value ~default:(Tok.unsafe_fake_bracket [])
+                   )
+                |> G.e);
+            ]
       | [], _ -> raise Impossible)
   | None ->
       let v1 = expr env v1 in
-      G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])
+      pip0614_expr_attr t [ G.E v1 ]
 
 and alias env (v1, v2) =
   let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
