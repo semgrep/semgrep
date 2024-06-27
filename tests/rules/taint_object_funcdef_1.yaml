@@ -1,5 +1,5 @@
 rules:
-  - id: js-req-without-checks-copy
+  - id: test
     message: Semgrep found a match
     languages:
       - ts

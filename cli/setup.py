@@ -119,6 +119,7 @@ install_requires = [
     "colorama~=0.4.0",
     "defusedxml~=0.7.1",
     "exceptiongroup~=1.2.0",
+    "giturlparse>=0.12.0",
     "glom~=22.1",
     "jsonschema~=4.6",
     "packaging>=21.0",
