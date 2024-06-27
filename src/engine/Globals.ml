@@ -45,7 +45,6 @@
 let reset () =
   Core_error.g_errors := [];
   Core_profiling.profiling := false;
-  AST_generic_equals.busy_with_equal := AST_generic_equals.Not_busy;
   Rule.last_matched_rule := None;
   Pro_hooks.reset_pro_hooks ();
   (* TODO?
