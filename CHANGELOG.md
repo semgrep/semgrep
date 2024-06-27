@@ -6,6 +6,48 @@
 
 <!-- insertion point -->
 
+## [1.78.0](https://github.com/returntocorp/semgrep/releases/tag/v1.78.0) - 2024-06-27
+
+
+### Added
+
+
+- Matching of fully qualified type names in the metavariable-type operator has
+  been improved. For example:
+
+  ```
+  from a.b import C
+
+  x = C()
+  ```
+
+  The type of `x` will match both `a.b.C` and `C`.
+
+  ```
+    - pattern: $X = $Y()
+    - metavariable-type:
+        metavariable: $X
+        types:
+          - a.b.C  # or C
+  ``` (code-7269)
+
+
+### Fixed
+
+
+- Symbolic propagation now works on decorator functions, for example:
+
+      x = foo
+      @x() # this is now matched by pattern `@foo()`
+      def test():
+        pass (code-6634)
+- Fixed an issue where Python functions with annotations ending in `endpoint`,
+  `route`, `get`, `patch`, `post`, `put`, `delete`, `before_request` or
+  `after_request` (i.e., ones we associate with Flask) were incorrectly analyzed
+  with the Code product in addition to the Secrets product when present in a file
+  being ignored for Code analysis but included for Secrets. (scrt-609)
+
+
 ## [1.77.0](https://github.com/returntocorp/semgrep/releases/tag/v1.77.0) - 2024-06-24
 
 
