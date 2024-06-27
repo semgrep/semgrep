@@ -165,7 +165,7 @@ module Formula_tbl = struct
   include Hashtbl.Make (struct
     type t = R.formula
 
-    let equal = AST_generic_equals.with_structural_equal R.equal_formula
+    let equal = R.equal_formula
     let hash = R.hash_formula
   end)
 

@@ -188,14 +188,13 @@ and rule_id = {
 
 (* Deduplicate matches *)
 let uniq (pms : t list) : t list =
-  let eq = AST_generic_equals.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
   pms
   |> List.iter (fun match_ ->
          let loc = match_.range_loc in
          let matches_at_loc = Hashtbl_.get_stack tbl loc in
          match
-           List.find_opt (fun match2 -> eq match_ match2) matches_at_loc
+           List.find_opt (fun match2 -> equal match_ match2) matches_at_loc
          with
          | Some _equal_match_at_loc -> ()
          | None -> Hashtbl_.push tbl loc match_);

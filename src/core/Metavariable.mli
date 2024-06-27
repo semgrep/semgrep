@@ -76,16 +76,3 @@ val mvalue_of_any : AST_generic.any -> mvalue option
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)
 val program_of_mvalue : mvalue -> AST_generic.program option
-
-(* See the comment in AST_generic_equals.ml for the difference between
- * the Syntactic and Structural equal.
- *)
-module Syntactic : sig
-  val equal_mvalue : mvalue -> mvalue -> bool
-  val equal_bindings : bindings -> bindings -> bool
-end
-
-module Structural : sig
-  val equal_mvalue : mvalue -> mvalue -> bool
-  val equal_bindings : bindings -> bindings -> bool
-end
