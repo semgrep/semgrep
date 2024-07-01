@@ -142,7 +142,7 @@ and declaration env x =
   | Func def -> [ A.FuncDef (func_def env def) ]
   (* was in block_declaration before *)
   | DeclList (xs, _) ->
-      let xs = List_.map_filter (onedecl env) xs in
+      let xs = List_.filter_map (onedecl env) xs in
 
       let structs = env.struct_defs_toadd in
       let enums = env.enum_defs_toadd in
@@ -588,7 +588,7 @@ and block_declaration env block_decl =
   let xs = declaration env block_decl in
   let ys =
     xs
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | A.VarDef x -> Some x
          | _ -> None)
   in
@@ -637,7 +637,7 @@ and expr env e =
               raise Todo),
           expr env e3 )
   | Call (e, (t1, args, t2)) ->
-      A.Call (expr env e, (t1, List_.map_filter (argument env) args, t2))
+      A.Call (expr env e, (t1, List_.filter_map (argument env) args, t2))
   | GccConstructor ((_, ft, _), xs) ->
       A.GccConstructor
         ( full_type env ft,

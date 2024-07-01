@@ -69,7 +69,7 @@ let rec value_to_expr (v : V.t) : G.expr =
       (* TODO: evaluate asserts *)
       let xs =
         fields
-        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+        |> List_.filter_map (fun { V.fld_name; fld_hidden; fld_value } ->
                match fst fld_hidden with
                | A.Hidden -> None
                | A.Visible

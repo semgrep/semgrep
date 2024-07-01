@@ -351,6 +351,6 @@ let client_from_file req_resp_file =
   ( new_client,
     fun f ->
       f
-      @@ List_.map_filter
+      @@ List_.filter_map
            (fun (req, resp, used) -> if !used then None else Some (req, resp))
            pairs )

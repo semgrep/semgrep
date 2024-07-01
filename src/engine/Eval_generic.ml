@@ -516,7 +516,7 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
-    |> List_.map_filter (fun (mvar, mval) ->
+    |> List_.filter_map (fun (mvar, mval) ->
            let try_bind_to_exp e =
              try
                Some
@@ -554,7 +554,7 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
 let bindings_to_env_just_strings (config : Rule_options.t) ~file xs =
   let mvars =
     xs
-    |> List_.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
+    |> List_.filter_map (fun (mvar, mval) -> string_of_binding mvar mval)
     |> Hashtbl_.hash_of_list
   in
 
