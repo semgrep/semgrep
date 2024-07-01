@@ -1,5 +1,6 @@
 (*
-   List files recursively in a safe, efficient, and portable manner.
+   List files recursively in a safe, efficient, and portable manner
+   (should work on Linux, macOS, and also Windows).
 
    Replaces the functions in libs/commons/ that use external UNIX commands
    such as 'find'.

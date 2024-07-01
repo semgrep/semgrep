@@ -96,21 +96,21 @@ let group_by_project_root func paths =
    TODO? move in paths/Project.ml?
 *)
 let group_roots_by_project conf (paths : Scanning_root.t list) =
-  let force_root =
+  let force_root : Project.t option =
     match conf.force_project_root with
     | Some (Find_targets.Git_remote _)
     | None ->
         None
     | Some (Find_targets.Filesystem proj_root) ->
-        Some (Project.Git_project, proj_root)
+        Some Project.{ kind = Project.Git_project; root = proj_root }
   in
   if conf.respect_gitignore then
     paths
     |> group_by_project_root (fun (path : Scanning_root.t) ->
            let ( kind,
                  ({ project_root = root; inproject_path = git_path } :
-                   Git_project.scanning_root_info) ) =
-             Git_project.find_any_project_root ?force_root
+                   Project.scanning_root_info) ) =
+             Project.find_any_project_root ?force_root
                (Scanning_root.to_fpath path)
            in
            ((kind, root), Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path))
@@ -119,8 +119,8 @@ let group_roots_by_project conf (paths : Scanning_root.t list) =
     paths
     |> group_by_project_root (fun (path : Scanning_root.t) ->
            let ({ project_root = root; inproject_path = git_path }
-                 : Git_project.scanning_root_info) =
-             Git_project.force_project_root (Scanning_root.to_fpath path)
+                 : Project.scanning_root_info) =
+             Project.force_project_root (Scanning_root.to_fpath path)
            in
            ( (Project.Other_project, root),
              Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path ))
@@ -254,7 +254,11 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
            | Git_project
            | Gitignore_project ->
                Gitignore_and_semgrepignore
-           | Other_project -> Only_semgrepignore
+           | Mercurial_project
+           | Subversion_project
+           | Darcs_project
+           | Other_project ->
+               Only_semgrepignore
          in
          let ign =
            Semgrepignore.create ~cli_patterns:conf.exclude

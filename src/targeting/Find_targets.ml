@@ -102,15 +102,6 @@ type conf = {
 }
 [@@deriving show]
 
-(* TODO? could move in Project.ml *)
-type project_roots = {
-  project : Project.t;
-  (* scanning roots that belong to the project *)
-  scanning_roots : Fppath.t list;
-}
-
-type force_root = (Project.kind * Rfpath.t) option
-
 (*************************************************************************)
 (* Defaults *)
 (*************************************************************************)
@@ -326,11 +317,15 @@ let walk_skip_and_collect (ign : Gitignore.filter)
 *)
 let git_list_files ~exclude_standard
     (file_kinds : Git_wrapper.ls_files_kind list)
-    (project_roots : project_roots) : Fppath_set.t option =
+    (project_roots : Project.roots) : Fppath_set.t option =
   Log.debug (fun m ->
       m "Find_targets.git_list_files for project %s"
         (Project.show project_roots.project));
   let project = project_roots.project in
+  (* TODO: we should not call git_list_files when the project
+   * is not a Git_project. We should assert it and not return
+   * an option type but an Fppath_set.t instead.
+   *)
   match project.kind with
   | Git_project ->
       let cwd = Fpath.v (Sys.getcwd ()) in
@@ -339,7 +334,7 @@ let git_list_files ~exclude_standard
         |> List.concat_map (fun (sc_root : Fppath.t) ->
                Log.info (fun m ->
                    m "List git files for scanning root %S" !!(sc_root.fpath));
-               let project_root = Rfpath.to_rpath project.path in
+               let project_root = Rfpath.to_rpath project.root in
                (* The path prefix we want for all the target file paths
                   that we return *)
                let orig_scanning_root_path = sc_root.fpath in
@@ -416,9 +411,7 @@ let git_list_files ~exclude_standard
                       ({ fpath = target_fpath; ppath = target_ppath }
                         : Fppath.t)))
         |> Fppath_set.of_list)
-  | Gitignore_project
-  | Other_project ->
-      None
+  | _else_ -> None
 
 (*
    Get the list of files being tracked by git, return a list of paths
@@ -435,7 +428,7 @@ let git_list_files ~exclude_standard
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
+let git_list_tracked_files (project_roots : Project.roots) : Fppath_set.t option
     =
   git_list_files ~exclude_standard:false [ Cached ] project_roots
 
@@ -445,7 +438,7 @@ let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
 
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
-let git_list_untracked_files (project_roots : project_roots) :
+let git_list_untracked_files (project_roots : Project.roots) :
     Fppath_set.t option =
   git_list_files ~exclude_standard:true [ Others ] project_roots
 
@@ -453,13 +446,13 @@ let git_list_untracked_files (project_roots : project_roots) :
 (* Grouping *)
 (*************************************************************************)
 
-let scanning_root_by_project (force_root : force_root)
+let scanning_root_by_project (force_root : Project.t option)
     (scanning_root : Scanning_root.t) : Project.t * Fppath.t =
   let scanning_root_fpath = Scanning_root.to_fpath scanning_root in
   let kind, scanning_root_info =
-    Git_project.find_any_project_root ?force_root scanning_root_fpath
+    Project.find_any_project_root ?force_root scanning_root_fpath
   in
-  let project : Project.t = { kind; path = scanning_root_info.project_root } in
+  let project : Project.t = { kind; root = scanning_root_info.project_root } in
   let path : Fppath.t =
     { fpath = scanning_root_fpath; ppath = scanning_root_info.inproject_path }
   in
@@ -475,7 +468,7 @@ let scanning_root_by_project (force_root : force_root)
    TODO? move in paths/Project.ml?
 *)
 let group_scanning_roots_by_project (conf : conf)
-    (scanning_roots : Scanning_root.t list) : project_roots list =
+    (scanning_roots : Scanning_root.t list) : Project.roots list =
   (* Force root relativizes scan roots to project roots.
      I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
      it would make the scanning root /foo. So it doesn't make sense to
@@ -488,7 +481,7 @@ let group_scanning_roots_by_project (conf : conf)
   Log.debug (fun m ->
       m "group_scanning_roots_by_project %s"
         (Logs_.list Scanning_root.to_string scanning_roots));
-  let force_root =
+  let force_root : Project.t option =
     match conf.force_project_root with
     | Some (Filesystem proj_root) ->
         (* This is when --project-root is specified on the command line.
@@ -496,7 +489,7 @@ let group_scanning_roots_by_project (conf : conf)
            for some tests to pass within our semgrep repo but it's not clear
            why it's like this.
            TODO: make tests work without requiring --project-root? *)
-        Some (Project.Gitignore_project, proj_root)
+        Some Project.{ kind = Project.Gitignore_project; root = proj_root }
     | Some (Git_remote _)
     | None ->
         (* Usual case when scanning the local file system *)
@@ -508,7 +501,8 @@ let group_scanning_roots_by_project (conf : conf)
      correctly even if the scanning_roots went through different symlink paths.
   *)
   |> Assoc.group_assoc_bykey_eff
-  |> List_.map (fun (project, scanning_roots) -> { project; scanning_roots })
+  |> List_.map (fun (project, scanning_roots) ->
+         Project.{ project; scanning_roots })
 
 (*************************************************************************)
 (* Work on a single project *)
@@ -518,9 +512,9 @@ let group_scanning_roots_by_project (conf : conf)
    git project. Most of the logic is done at a project level, though.
 *)
 
-let setup_path_filters conf (project_roots : project_roots) :
+let setup_path_filters conf (project_roots : Project.roots) :
     Gitignore.filter * Include_filter.t option =
-  let { project = { kind; path = project_root }; scanning_roots = _ } =
+  let Project.{ project = { kind; root = project_root }; scanning_roots = _ } =
     project_roots
   in
   (* filter with .gitignore and .semgrepignore *)
@@ -530,7 +524,11 @@ let setup_path_filters conf (project_roots : project_roots) :
     | Gitignore_project ->
         if conf.respect_gitignore then Semgrepignore.Gitignore_and_semgrepignore
         else Semgrepignore.Only_semgrepignore
-    | Other_project -> Semgrepignore.Only_semgrepignore
+    | Mercurial_project
+    | Subversion_project
+    | Darcs_project
+    | Other_project ->
+        Semgrepignore.Only_semgrepignore
   in
   (* filter also the --include and --exclude from the CLI args
    * (the paths: exclude: include: in a rule are handled elsewhere, in
@@ -565,7 +563,7 @@ let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_path_filters conf project_roots in
   filter_regular_file_paths ign all_files
 
-let get_targets_from_filesystem conf (project_roots : project_roots) =
+let get_targets_from_filesystem conf (project_roots : Project.roots) =
   let ign, include_filter = setup_path_filters conf project_roots in
   List.fold_left
     (fun (selected, skipped) (scan_root : Fppath.t) ->
@@ -616,7 +614,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
       Typically, the sets of files produced by (2) and (3) overlap vastly.
    4. Take the union of (2) and (3).
 *)
-let get_targets_for_project conf (project_roots : project_roots) =
+let get_targets_for_project conf (project_roots : Project.roots) =
   Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)

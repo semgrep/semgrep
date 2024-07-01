@@ -3,18 +3,19 @@
 *)
 
 open Fpath_.Operators
-open Path_test_utils
+open Testutil_paths
+module TP = Testutil_paths
 
 let t = Testo.create
 
 let test_regular_file_as_root () =
-  with_file_tree
+  TP.with_file_tree
     (File ("hello", Regular "yo"))
     (fun workspace ->
       assert (List_files.list (workspace / "hello") = [ workspace / "hello" ]))
 
 let test_empty_dir_as_root () =
-  with_file_tree
+  TP.with_file_tree
     (Dir ("empty", []))
     (fun workspace -> assert (List_files.list (workspace / "empty") = []))
 

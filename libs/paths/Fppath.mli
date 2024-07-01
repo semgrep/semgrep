@@ -1,16 +1,12 @@
 (*
-   Path information for a file in a git project, which includes:
-   - a path in the file system
-   - the path relative to the project root
+   Path information for a file in a project, which includes:
+   - a path in the file system (fpath)
+   - the path relative to the project root (ppath)
+
+   Both are useful in different context (e.g., ppath is usually better
+   in error messages while fpath for actual file content access).
 *)
 
-(* For gitignore filtering, we need to operate on Ppath (see
- * the signature of Gitignore_filter.select()), but when semgrep
- * displays findings or errors, we want filenames derived from
- * the scanning roots, not the root of the project. This is why we need to
- * keep both the fpath and ppath for each target file as we walked
- * down the filesystem hierarchy.
- *)
 type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
 
 (* Compare based on the original fpath *)

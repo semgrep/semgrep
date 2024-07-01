@@ -43,7 +43,6 @@ More information: https://semgrep.dev/docs/metrics
 [<MASKED TIMESTAMP>][INFO]: loading local config from rules.yml
 [<MASKED TIMESTAMP>][INFO]: Done loading local config from rules.yml
 [<MASKED TIMESTAMP>][INFO]: Computing the targets
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '.' 'rev-parse' '--show-toplevel'
 [<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--cached' '<TMP>/<MASKED>/'
 [<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--others' '--exclude-standard' '<TMP>/<MASKED>/'
 [<MASKED TIMESTAMP>][INFO]: running 1 rules from 1 config rules.yml
