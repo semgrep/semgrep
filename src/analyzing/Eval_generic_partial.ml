@@ -47,6 +47,20 @@ type env = {
 let default_env lang =
   { lang; constants = Hashtbl.create 100; attributes = Hashtbl.create 100 }
 
+type value =
+  | Bool of bool
+  | Int of int64
+  | Float of float
+  | String of string (* string without the enclosing '"' *)
+  | List of value list
+  (* default case where we don't really have good builtin operations.
+   * This should be a AST_generic.any once parsed.
+   * See JSON_report.json_metavar().
+   *)
+  | AST of string (* any AST, e.g., "x+1" *)
+(* less: Id of string (* simpler to merge with AST *) *)
+[@@deriving show]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
