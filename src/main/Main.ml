@@ -39,25 +39,48 @@
 (* Entry point *)
 (*****************************************************************************)
 
-(* We currently use a single binary for semgrep-core and osemgrep. This
- * binary is called 'semgrep-core' and is accompanied by a symlink
- * to semgrep-core called 'osemgrep' (see 'make core').
+(* We currently use the same binary for semgrep-core and osemgrep (and now
+ * also for semgrep for windows). See 'make core'.
  * We use the argv[0] trick below to decide whether the user wants the
- * semgrep-core or osemgrep behavior.
- * alt: we could have provided a separate binary for osemgrep, which
- * would be cleaner, but that would double the size of our Docker image.
+ * semgrep-core or osemgrep (or semgrep) behavior.
  * LATER: when osemgrep is fully done we can just get rid of semgrep-core
- * and rename this binary to simply 'semgrep'.
+ * and have a single binary called 'semgrep'.
  *)
 let () =
   Cap.main (fun (caps : Cap.all_caps) ->
       let argv = CapSys.argv caps#argv in
-      match Filename.basename argv.(0) with
+      let argv0 =
+        (* remove the possible ".exe" extension for Windows and ".bc" *)
+        Fpath.v argv.(0) |> Fpath.base |> Fpath.rem_ext |> Fpath.to_string
+      in
+      match argv0 with
       (* osemgrep!! *)
-      | "osemgrep.bc"
       | "osemgrep"
-      | "osemgrep.exe" ->
-          let exit_code = CLI.main (caps :> CLI.caps) argv in
+      (* in the long term (and in the short term on windows) we want to ship
+       * osemgrep as the default "semgrep" binary, without any
+       * wrapper script such as cli/bin/semgrep around it.
+       *)
+      | "semgrep" ->
+          let exit_code =
+            match argv0 with
+            | "semgrep" ->
+                (* nosemgrep: no-pr2 *)
+                UCommon.pr2
+                  "!!!This is an experimental version of semgrep for \
+                   Windows.!!!";
+                (* nosemgrep: no-pr2 *)
+                UCommon.pr2
+                  "!!!Not all features may work. In case of problems, report \
+                   here:!!!";
+                (* nosemgrep: no-pr2 *)
+                UCommon.pr2
+                  "!!!https://github.com/semgrep/semgrep/issues/1330!!!";
+                (* adding --experimemtal so we don't default back to pysemgrep *)
+                CLI.main
+                  (caps :> CLI.caps)
+                  (Array.append argv [| "--experimental" |])
+            | _else_ -> CLI.main (caps :> CLI.caps) argv
+          in
           if not (Exit_code.Equal.ok exit_code) then
             Logs.info (fun m ->
                 m "Error: %s\nExiting with error status %i: %s\n%!"
