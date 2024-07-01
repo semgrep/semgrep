@@ -49,7 +49,6 @@
    parser_html.ast_generic
    parser_promql.ast_generic
    parser_protobuf.ast_generic
-   parser_move_on_aptos.ast_generic
 
    ; no ast, directly to generic AST
    tree-sitter-to-generic
