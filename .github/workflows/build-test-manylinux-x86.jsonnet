@@ -111,9 +111,6 @@ local test_wheels_job = {
 {
   name: 'build-test-manylinux-x86',
   on: gha.on_dispatch_or_call,
-  env: {
-    'ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION': true,
-  },
   jobs: {
     'build-wheels': build_wheels_job,
     'test-wheels': test_wheels_job,
