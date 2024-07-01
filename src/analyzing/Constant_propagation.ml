@@ -635,6 +635,13 @@ let propagate_dataflow lang ast =
              let CFG_build.{ fparams; fcfg } =
                CFG_build.cfg_of_fdef lang fdef
              in
+             (* when/ pattern when is not constant propagation but is related in the sense
+              * that it also finds extra info by analyzing the cfg. we are reusing the cfg
+              * created here to annotate facts for the pattern when feature.
+              *
+              * TODO: refactor this code if we don't incorporate when into svalue analysis.
+              *)
+             Dataflow_when.annotate_facts fcfg;
              propagate_dataflow_one_function lang fparams fcfg);
 
       (* We consider the top-level function the interior of a degenerate function,
