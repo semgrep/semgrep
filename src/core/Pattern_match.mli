@@ -20,6 +20,12 @@ type t = {
      Autofix.ml.
   *)
   fix_text : string option;
+  (* facts (known truths derived from the cfg) of a match.
+     it is used for filtering out matches that do not satisfy the
+     comparison condition. this field is added here so that
+     it can be passed into and used in Match_search_mode.filter_ranges.
+  *)
+  facts : AST_generic.facts;
 }
 
 and dependency =
