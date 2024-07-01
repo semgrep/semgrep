@@ -124,7 +124,7 @@ let intersect_ranges config ~debug_matches xs ys =
     else None
   in
   let merge p us vs =
-    us |> Common2.map_flatten (fun u -> vs |> List_.map_filter (fun v -> p u v))
+    us |> Common2.map_flatten (fun u -> vs |> List_.filter_map (fun v -> p u v))
   in
   if debug_matches then
     Log.debug (fun m ->

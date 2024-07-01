@@ -145,7 +145,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   | ids_line, ids_previous_line ->
       let ids = ids_line @ ids_previous_line in
       let ids =
-        ids |> List_.map_filter Fun.id
+        ids |> List_.filter_map Fun.id
         |> List_.map (fun (line_num, s, col) ->
                (* [String.split_on_char] can **not** return an empty list. *)
                ( line_num,

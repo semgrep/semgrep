@@ -92,12 +92,12 @@ exception CNF_exploded
 (* Helpers *)
 (*****************************************************************************)
 
-(* NOTE "AND vs OR and map_filter":
- * We cannot use `List_.map_filter` for `R.Or`, because it has the wrong
+(* NOTE "AND vs OR and filter_map":
+ * We cannot use `List_.filter_map` for `R.Or`, because it has the wrong
  * semantics. We use `None` to say "we can't handle this", or in other words,
  * "we assume this pattern can match", or just "true"! So in an AND we can
  * remove those "true" terms, but in an OR we need to reduce the entire OR to
- * "true". Therefore, `List_.map_filter` works for AND-semantics, but for
+ * "true". Therefore, `List_.filter_map` works for AND-semantics, but for
  * OR-semantics we need `option_map`. *)
 let option_map f xs =
   List.fold_left
@@ -131,13 +131,13 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
   let reconstruct f = R.mk_formula ~conditions ~focus f in
   match f with
   | R.And (t, xs) ->
-      let ys = List_.map_filter remove_not xs in
+      let ys = List_.filter_map remove_not xs in
       if List_.null ys then (
         Log.debug (fun m -> m "null And after remove_not");
         None)
       else Some (R.And (t, ys) |> reconstruct)
   | R.Or (t, xs) ->
-      (* See NOTE "AND vs OR and map_filter". *)
+      (* See NOTE "AND vs OR and filter_map". *)
       let* ys = option_map remove_not xs in
       if List_.null ys then (
         Log.debug (fun m -> m "null Or after remove_not");
@@ -296,16 +296,16 @@ let id_mvars_of_formula f =
 (*
 let rec (and_step1: Rule.formula -> cnf_step1) = fun f ->
   match f with
-  | R.And xs -> And (xs |> List_.map_filter or_step1)
-  | _ -> And ([f] |> List_.map_filter or_step1)
+  | R.And xs -> And (xs |> List_.filter_map or_step1)
+  | _ -> And ([f] |> List_.filter_map or_step1)
 and or_step1 f =
   match f with
   | R.Or xs ->
-      let ys = (xs |> List_.map_filter leaf_step1) in
+      let ys = (xs |> List_.filter_map leaf_step1) in
       if null ys
       then None
       else (Some (Or ys))
-  | _ -> let ys = ([f] |> List_.map_filter leaf_step1) in
+  | _ -> let ys = ([f] |> List_.filter_map leaf_step1) in
       if null ys
       then None
       else (Some (Or ys))
@@ -323,13 +323,13 @@ and leaf_step1 f =
 let rec (and_step1 : is_id_mvar:is_id_mvar -> cnf_step0 -> cnf_step1) =
  fun ~is_id_mvar cnf ->
   match cnf with
-  | And xs -> And (xs |> List_.map_filter (or_step1 ~is_id_mvar))
+  | And xs -> And (xs |> List_.filter_map (or_step1 ~is_id_mvar))
 
 and or_step1 ~is_id_mvar cnf =
   match cnf with
   | Or xs ->
-      (* old: We had `List_.map_filter` here before, but that gives the wrong
-       * semantics. See NOTE "AND vs OR and map_filter". *)
+      (* old: We had `List_.filter_map` here before, but that gives the wrong
+       * semantics. See NOTE "AND vs OR and filter_map". *)
       let* ys = option_map (leaf_step1 ~is_id_mvar) xs in
       if List_.null ys then None else Some (Or ys)
 
@@ -387,7 +387,7 @@ let and_step1bis_filter_general (And xs) =
   (* TODO: regression on vertx-sqli.yaml   *)
   let filtered =
     has_empty_idents
-    |> List_.map_filter (fun (Or xs) ->
+    |> List_.filter_map (fun (Or xs) ->
            let xs' =
              xs
              |> List_.exclude (function
@@ -444,7 +444,7 @@ let or_step2 (Or xs) =
   | GeneralPattern -> None
 
 let and_step2 (And xs) =
-  let ys = xs |> List_.map_filter or_step2 in
+  let ys = xs |> List_.filter_map or_step2 in
   if List_.null ys then raise GeneralPattern;
   And ys
 
@@ -510,7 +510,7 @@ let or_final (Or xs) =
  * up the Idents in an AndFinal
  *)
 let and_final (And disjs) =
-  AndFinal (disjs |> List_.map_filter or_final)
+  AndFinal (disjs |> List_.filter_map or_final)
 
 (* todo: instead of running multiple times for the AndFinal, we could
  * do an or, look at the matched string and detect which parts of the

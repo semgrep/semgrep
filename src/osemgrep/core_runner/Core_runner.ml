@@ -199,7 +199,7 @@ let split_jobs_by_language (conf : Find_targets.conf) all_rules all_targets :
   let all_rules = add_typescript_to_javascript_rules_hack all_rules in
   let extract_languages = detect_extract_languages all_rules in
   all_rules |> group_rules_by_target_language
-  |> List_.map_filter (fun (xlang, rules) ->
+  |> List_.filter_map (fun (xlang, rules) ->
          let targets =
            all_targets
            |> List.filter (fun path ->

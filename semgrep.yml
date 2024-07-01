@@ -122,7 +122,7 @@ rules:
     pattern: List.filter_map
     message: >-
       `List.filter_map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `List_.map_filter` instead.
+      stack overflow. Use `List_.filter_map` instead.
     fix: List_.map_filter
     languages: [ocaml]
     severity: ERROR
