@@ -397,6 +397,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                metadata_override = None;
                dependency = None;
                fix_text = None;
+               facts = [];
              })
     in
     let focused_ranges =
@@ -564,7 +565,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              let env =
                Eval_generic.bindings_to_env env.xconf.config ~file bindings
              in
-             Eval_generic.eval_bool env e |> map_bool r
+             Eval_generic.eval_bool env e r.origin.facts |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
              match

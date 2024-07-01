@@ -135,6 +135,7 @@ type t = {
      Autofix.ml.
   *)
   fix_text : string option;
+  facts : AST_generic.facts;
 }
 
 and dependency =
