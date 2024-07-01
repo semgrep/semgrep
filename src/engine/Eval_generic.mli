@@ -1,13 +1,4 @@
-type value =
-  | Bool of bool
-  | Int of int64
-  | Float of float
-  (* the string does not contain the enclosing '"' *)
-  | String of string
-  | List of value list
-  (* any AST, e.g., "x+1" *)
-  | AST of string
-
+type value = Eval_generic_partial.value [@@deriving show]
 type env
 type code = AST_generic.expr
 
@@ -33,7 +24,7 @@ val eval_regexp_matches :
 (* This function will swallow exns and always return a bool.
  * This is the function called by Match_rules.ml
  *)
-val eval_bool : env -> code -> bool
+val eval_bool : env -> code -> AST_generic.facts -> bool
 
 (* for -test_eval *)
 val test_eval : string (* filename *) -> unit
