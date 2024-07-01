@@ -13,7 +13,7 @@ type 'any t =
   | Case of string * 'any t
   | Option of 'any t option
   | Any of 'any
-[@@deriving show { with_path = false }, eq, hash]
+[@@deriving show { with_path = false }, eq, ord, hash]
 
 (* Find the left-most token in the tree *)
 let rec first_tok (x : _ t) =

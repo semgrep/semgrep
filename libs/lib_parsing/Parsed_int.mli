@@ -11,7 +11,7 @@
  * purposes.
  *)
 
-type t = int64 option * Tok.t [@@deriving hash, show, eq, sexp]
+type t = int64 option * Tok.t [@@deriving hash, show, eq, ord, sexp]
 
 (* These are the main functions you need to create a Parsed_int.t.
    The other ones are less important.
