@@ -204,7 +204,7 @@ let rec define_parse xs =
       in
       let params =
         tokparams
-        |> List_.map_filter (function
+        |> List_.filter_map (function
              | TComma _ -> None
              | TIdent (s, _) -> Some s
              | x -> Common2.error_cant_have x)

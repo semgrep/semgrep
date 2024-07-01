@@ -461,7 +461,7 @@ let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
         |> List_.exclude (fun x -> x =*= Lang.Dart)
       in
       all_langs
-      |> List_.map_filter (fun l ->
+      |> List_.filter_map (fun l ->
              try
                let xlang = Xlang.of_lang l |> xlang_compatible_with_pat in
                Logs.debug (fun m ->

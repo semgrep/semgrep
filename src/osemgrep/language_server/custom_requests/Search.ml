@@ -58,7 +58,7 @@ let ongoing_meth = "semgrep/searchOngoing"
 
 let parse_globs ~kind (strs : Yojson.Safe.t list) =
   strs
-  |> List_.map_filter (function
+  |> List_.filter_map (function
        | `String s -> (
            try
              let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
@@ -146,7 +146,7 @@ module Request_params = struct
             ("excludes", `List excludes);
           ]) ->
         let patterns =
-          List_.map_filter
+          List_.filter_map
             (function
               | `Assoc
                   [ ("positive", `Bool positive); ("pattern", `String pattern) ]
@@ -355,7 +355,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
       | _ -> None
     else None
   in
-  let search_rules = List_.map_filter rule_of_lang_opt valid_xlangs in
+  let search_rules = List_.filter_map rule_of_lang_opt valid_xlangs in
   match search_rules with
   (* Unfortunately, almost everything parses as YAML, because you can specify
      no quotes and it will be interpreted as a YAML string
@@ -493,7 +493,7 @@ let rec search_single_target (server : RPC_server.t) =
   | Some ((rules, file, xconf), server) -> (
       try
         let matches =
-          List_.map_filter
+          List_.filter_map
             (fun rule ->
               (* !!calling the engine!! *)
               Scan_helpers.run_core_search xconf rule file)

@@ -27,7 +27,7 @@ let handle_autofix dryrun edits =
         edits
     in
     let fixed_lines =
-      List_.map_filter
+      List_.filter_map
         (function
           | i, Some x -> Some (i, x)
           | _, None -> None)

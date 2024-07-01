@@ -72,20 +72,20 @@ let load file =
 let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
   let skip_files =
     skip_list
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | File s -> Some s
          | _ -> None)
     |> Hashtbl_.hashset_of_list
   in
   let skip_dirs =
     skip_list
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | Dir s -> Some s
          | _ -> None)
   in
   let skip_dir_elements =
     skip_list
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | DirElement s -> Some s
          | _ -> None)
   in
@@ -166,7 +166,7 @@ let filter_files_if_skip_list ~root xs =
 let build_filter_errors_file skip_list =
   let skip_dirs =
     skip_list
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | SkipErrorsDir dir -> Some dir
          | _ -> None)
   in

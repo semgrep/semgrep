@@ -341,7 +341,7 @@ let merge_source_mvars env bindings =
      there was no conflict between bindings in different sources.
   *)
   bindings_tbl |> Hashtbl.to_seq |> List.of_seq
-  |> List_.map_filter (fun (mvar, mval_opt) ->
+  |> List_.filter_map (fun (mvar, mval_opt) ->
          match mval_opt with
          | None ->
              (* This actually shouldn't really be possible, every
@@ -517,7 +517,7 @@ let results_of_tainted_sink env taints_with_traces (sink : Sig.sink) :
       if env.config.unify_mvars || Option.is_none sink.rule_sink.sink_requires
       then
         taints_and_bindings
-        |> List_.map_filter (fun (t, bindings) ->
+        |> List_.filter_map (fun (t, bindings) ->
                let* merged_env =
                  merge_source_sink_mvars env sink_pm.PM.env bindings
                in
@@ -1983,7 +1983,7 @@ let results_from_arg_updates_at_exit enter_env exit_env : Sig.result list =
               * if it got new taints at the exit_env. If so, we generate a 'ToLval'. *)
              match
                enter_taints |> Taints.elements
-               |> List_.map_filter (fun taint ->
+               |> List_.filter_map (fun taint ->
                       match taint.T.orig with
                       | T.Var lval -> Some lval
                       | _ -> None)

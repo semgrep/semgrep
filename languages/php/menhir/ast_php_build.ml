@@ -205,7 +205,7 @@ and qualified_ident env xs =
   in
   leading
   @ (rest
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | QITok _ -> None
          | QI id -> Some (ident env id)))
 
@@ -835,7 +835,7 @@ and method_def env m =
   let params = comma_list_dots_params (parameter env) params in
   (*
   let implicits =
-    params |> List_.map_filter (fun p ->
+    params |> List_.filter_map (fun p ->
       match p.p_modifier with
       | None -> None
       | Some modifier -> Some (p.p_name, modifier, p.p_type)

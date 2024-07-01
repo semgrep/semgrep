@@ -375,7 +375,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let fm_mval_range_locs =
       fm_mvals
-      |> List_.map_filter (fun (focus_mvar, mval) ->
+      |> List_.filter_map (fun (focus_mvar, mval) ->
              let* range_loc =
                AST_generic_helpers.range_of_any_opt (MV.mvalue_to_any mval)
              in
@@ -401,7 +401,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
-      List_.map_filter
+      List_.filter_map
         (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
@@ -501,7 +501,7 @@ let if_explanations (env : env) (ranges : RM.ranges)
       |> List_.map (fun range ->
              RM.range_to_pattern_match_adjusted env.rule range)
     in
-    let xs = List_.map_filter (fun x -> x) children in
+    let xs = List_.filter_map (fun x -> x) children in
     let expl = { ME.op; pos = tok; children = xs; matches } in
     Some expl
   else None
@@ -556,7 +556,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   let file = env.xtarget.path.internal_path_to_content in
   xs
-  |> List_.map_filter (fun (r, new_bindings) ->
+  |> List_.filter_map (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
@@ -817,7 +817,7 @@ and evaluate_formula env opt_context
     | Some ({ ME.children; _ } as me) ->
         let children =
           List_.map (fun x -> Some x) children @ focus_expls @ filter_expls
-          |> List_.map_filter Fun.id
+          |> List_.filter_map Fun.id
         in
         Some { me with ME.children }
   in
