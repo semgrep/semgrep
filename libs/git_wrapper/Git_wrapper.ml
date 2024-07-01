@@ -256,7 +256,7 @@ let commit_blobs_by_date objects =
   Log.info (fun m -> m "getting commits");
   let commits =
     objects |> Hashtbl.to_seq |> List.of_seq
-    |> List_.map_filter (fun (_, value) ->
+    |> List_.filter_map (fun (_, value) ->
            match value with
            | Git.Value.Commit commit -> Some commit
            | _ -> None)

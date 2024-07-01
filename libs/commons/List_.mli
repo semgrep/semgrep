@@ -98,7 +98,7 @@ val uniq_by : ('a -> 'a -> bool) -> 'a list -> 'a list
 
 (* options and lists *)
 
-val map_filter : ('a -> 'b option) -> 'a list -> 'b list
+val filter_map : ('a -> 'b option) -> 'a list -> 'b list
 (** Same as [List.filter_map] but tail recursive. *)
 
 val find_some : ('a -> 'b option) -> 'a list -> 'b

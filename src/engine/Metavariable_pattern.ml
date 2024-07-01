@@ -89,7 +89,7 @@ let get_persistent_bindings revert_loc r nested_matches =
          *)
          let readjusted_mvars =
            nested_match.RM.mvars
-           |> List_.map_filter (fun (mvar, mval) ->
+           |> List_.filter_map (fun (mvar, mval) ->
                   match
                     mval |> MV.mvalue_to_any |> reverting_visitor
                     |> MV.mvalue_of_any

@@ -299,7 +299,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
           * location info for that code (i.e., we have real tokens rather than
           * fake ones). *)
          ranges_w_metavars
-         |> List_.map_filter (fun rwm ->
+         |> List_.filter_map (fun rwm ->
                 (* The piece of code captured by the `from` metavariable.  *)
                 let* _mvar_from, mval_from =
                   List.find_opt
@@ -381,7 +381,7 @@ let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.map_filter (fun (rwm, (ts : R.taint_source)) ->
+  |> List_.filter_map (fun (rwm, (ts : R.taint_source)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -440,7 +440,7 @@ let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.map_filter (fun (rwm, spec) ->
+  |> List_.filter_map (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -458,7 +458,7 @@ let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.map_filter (fun (rwm, (spec : R.taint_sink)) ->
+  |> List_.filter_map (fun (rwm, (spec : R.taint_sink)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -512,7 +512,7 @@ let sources_of_taints ?preferred_label taints =
    * they need to specify the parameters as taint sources. *)
   let taint_sources =
     taints
-    |> List_.map_filter (fun { Sig.taint = { orig; tokens }; sink_trace } ->
+    |> List_.filter_map (fun { Sig.taint = { orig; tokens }; sink_trace } ->
            match orig with
            | Src src -> Some (src, tokens, sink_trace)
            (* even if there is any taint "variable", it's irrelevant for the
@@ -671,7 +671,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
     sanitizers_ranges
-    |> List_.map_filter (fun (not_conflicting, range, spec) ->
+    |> List_.filter_map (fun (not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if

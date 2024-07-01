@@ -297,7 +297,7 @@ let find_rule_files roots =
 
 let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
   xs |> find_rule_files
-  |> List_.map_filter (fun rule_file ->
+  |> List_.filter_map (fun rule_file ->
          let* _rules, target, xlang = read_rules_file ~get_xlang rule_file in
          Some (rule_file, target, xlang))
 

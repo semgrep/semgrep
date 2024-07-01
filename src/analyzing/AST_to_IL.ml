@@ -1012,7 +1012,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
   let fields =
     origfields
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | G.F
              {
                s =
@@ -1124,7 +1124,7 @@ and xml_expr env ~void eorig xml =
   in
   let body =
     xml.G.xml_body
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -1153,7 +1153,7 @@ and xml_expr env ~void eorig xml =
       let e = mk_e (Fetch name_lval) name_eorig in
       let fields =
         xml.G.xml_attrs
-        |> List_.map_filter (function
+        |> List_.filter_map (function
              | G.XmlAttr (id, tok, eorig) ->
                  (* e.g. <Foo x={y}/> *)
                  let e = expr env eorig in
@@ -1185,7 +1185,7 @@ and xml_expr env ~void eorig xml =
   | None ->
       let attrs =
         xml.G.xml_attrs
-        |> List_.map_filter (function
+        |> List_.filter_map (function
              | G.XmlAttr (_, tok, eorig)
              | G.XmlAttrExpr (tok, eorig, _) ->
                  let exp = expr env eorig in
@@ -1368,7 +1368,7 @@ and for_var_or_expr_list env xs =
 (*****************************************************************************)
 and parameters _env params : name list =
   params |> Tok.unbracket
-  |> List_.map_filter (function
+  |> List_.filter_map (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 
