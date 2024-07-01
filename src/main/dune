@@ -41,6 +41,9 @@
  (files
   (Main.exe as semgrep-core)
   (Main.exe as osemgrep)
+  ; in the long term (and in the short term on windows) we want to ship
+  ; osemgrep as "semgrep"
+  (Main.exe as semgrep)
   (Main.bc as semgrep-core.bc)
   (Main.bc as osemgrep.bc)
  )
