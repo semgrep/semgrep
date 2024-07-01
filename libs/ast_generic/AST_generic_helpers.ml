@@ -471,6 +471,7 @@ let set_e_range l r e =
       Log.warn (fun m -> m "set_e_range failed: missing token location");
       ()
 
+(* coupling: you might want to update range_visitor if you update this *)
 class ['self] extract_info_visitor =
   object (_self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
@@ -525,6 +526,7 @@ let incorporate_token ranges tok =
     let tok_loc = Tok.unsafe_loc_of_tok tok in
     incorporate_tokens ranges (tok_loc, tok_loc)
 
+(* coupling: you might want to update extract_info_visitor if you update this *)
 class ['self] range_visitor =
   object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super

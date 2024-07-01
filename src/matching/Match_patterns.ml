@@ -181,6 +181,7 @@ let match_rules_and_recurse m_env path hook matches rules matcher k any x =
                              applied _later_, in `Autofix.ml`
                           *)
                           fix_text = None;
+                          facts = [];
                         }
                       in
                       Stack_.push pm matches;
@@ -193,6 +194,83 @@ let location_stmts stmts =
 
 let list_original_tokens_stmts stmts =
   AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
+
+module FactCompare = struct
+  type t = fact
+
+  let compare = compare_fact
+end
+
+module FactSet = Set.Make (FactCompare)
+
+(* we store facts in expressions so that we can filter out matches
+ * based on those facts. however, matches can sometimes be a statement
+ * and not an expression. as a result, we need to define the facts of
+ * a statement based on its subexpressions.
+ *
+ * to get a safe approximation of facts that must hold within a
+ * statement, we use the intersection of facts from all its subexpressions.
+ * this ensures we only consider facts that are true across all parts of
+ * the statement.
+ *
+ * for example, say we have a code snippet like this:
+ *
+ * if (x == 0) {
+ *   // ruleid: ...
+ *   for (int i = 0; i < 5; i++) {
+ *     <loop body>
+ *   }
+ * }
+ *
+ * // ok: ...
+ * for (int i = 0; i < 5; i++) {
+ *   if (x == 0) {
+ *     <loop body>
+ *   }
+ * }
+ *
+ * and we want to match all for loops with the filtering condition being
+ * x == 0, we should only match the first for loop since all its
+ * subexpressions (e.g. i < 5) would be annotated with the fact x == 0
+ * (i.e. the intersection of its subexpressions' facts contains x == 0).
+ *)
+class ['self] get_facts_visitor =
+  object
+    inherit ['self] AST_generic.iter_no_id_info as super
+
+    method! visit_expr (facts, is_first) expr =
+      (* facts is a ref containing the intersection of facts of the
+       * subexpressions that we have visited.
+       *
+       * when is_first is true, it means it is the first expression
+       * we encounter when traversing through the subexpressions of
+       * a statement. so, we set the facts ref to contain that
+       * expressions's facts.
+       *)
+      (if !is_first then (
+         facts := expr.facts;
+         is_first := false)
+       else
+         (* since we expect the number of facts attached to an expression to be
+          * small, we don't expect the conversion from lists to sets to affect
+          * performance
+          *)
+         let base_facts = FactSet.of_list !facts in
+         let expr_facts = FactSet.of_list expr.facts in
+         (* finds intersection of the facts of all the expressions
+          * in a statement
+          *)
+         let intersection = FactSet.inter base_facts expr_facts in
+         facts := FactSet.elements intersection);
+      super#visit_expr (facts, is_first) expr
+  end
+
+let get_facts_of_stmt stmt =
+  let fact_v = new get_facts_visitor in
+  let facts = ref [] in
+  let is_first = ref true in
+  fact_v#visit_stmt (facts, is_first) stmt;
+  !facts
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -353,6 +431,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   metadata_override = None;
                                   dependency = None;
                                   fix_text = None;
+                                  facts = x.facts;
                                 }
                               in
                               Stack_.push pm matches;
@@ -404,6 +483,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                 let tokens =
                                   lazy (AST_generic_helpers.ii_of_any (S x))
                                 in
+                                let facts = get_facts_of_stmt x in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =
                                   {
@@ -419,6 +499,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     metadata_override = None;
                                     dependency = None;
                                     fix_text = None;
+                                    facts;
                                   }
                                 in
                                 Stack_.push pm matches;
@@ -470,6 +551,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       metadata_override = None;
                                       dependency = None;
                                       fix_text = None;
+                                      facts = [];
                                     }
                                   in
                                   Stack_.push pm matches;
@@ -567,6 +649,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       metadata_override = None;
                                       dependency = None;
                                       fix_text = None;
+                                      facts = [];
                                     }
                                   in
                                   Stack_.push pm matches;
