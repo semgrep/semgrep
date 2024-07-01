@@ -146,6 +146,3 @@ url = https://github.com/returntocorp/semgrep-kotlin.git
 path = tests/semgrep-rules
 url = https://github.com/returntocorp/semgrep-rules.git
 
-[submodule "languages/move-on-aptos/tree-sitter/semgrep-move-on-aptos"]
-	path = languages/move-on-aptos/tree-sitter/semgrep-move-on-aptos
-	url = https://github.com/semgrep/semgrep-move-on-aptos.git
