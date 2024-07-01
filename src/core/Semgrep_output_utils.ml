@@ -93,7 +93,7 @@ let location_of_token_location loc =
 let parse_info_to_location pi =
   Tok.loc_of_tok pi |> Result.to_option |> Option.map location_of_token_location
 
-let tokens_to_locations toks = List_.map_filter parse_info_to_location toks
+let tokens_to_locations toks = List_.filter_map parse_info_to_location toks
 
 let tokens_to_single_loc (toks : Tok.t list) : location option =
   (* toks should be nonempty and should contain only origintoks, but since we
