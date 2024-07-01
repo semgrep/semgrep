@@ -1,8 +1,23 @@
 open Printf
 open Fpath_.Operators
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* TODO? seems very similar to Testutil_files.ml in libs/commons, we
+ * should factorize and get rid of one.
+ *)
 type file_tree = Dir of string * file_tree list | File of string * file_kind
 and file_kind = Regular of string | Symlink of string
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let write_file path data =
   let oc = open_out_bin !!path in
@@ -29,6 +44,10 @@ let rec delete_files parent (x : file_tree) =
       List.iter (delete_files dir_path) files;
       Sys.rmdir !!dir_path
   | File (name, _) -> Sys.remove !!(parent / name)
+
+(*****************************************************************************)
+(* API *)
+(*****************************************************************************)
 
 (*
    Create a temporary file tree as specified. The user-specified function

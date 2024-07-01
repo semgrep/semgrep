@@ -1,4 +1,4 @@
-; Library containing different way to process paths
+; Library containing different ways to represent and process paths
 (library
   (public_name paths)
   (name paths)
