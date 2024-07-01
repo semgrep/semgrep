@@ -188,7 +188,7 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
             |> List_.map String.trim
           in
           xs
-          |> List_.map_filter (fun id_str ->
+          |> List_.filter_map (fun id_str ->
                  match Rule_ID.of_string_opt id_str with
                  | Some id -> Some ((kind, id), idx)
                  | None ->
@@ -244,7 +244,7 @@ let () =
 let group_positive_annotations (annots : (annotation * linenb) list) :
     (Rule_ID.t, linenb list) Assoc.t =
   annots
-  |> List_.map_filter (fun ((kind, id), line) ->
+  |> List_.filter_map (fun ((kind, id), line) ->
          match kind with
          | Ruleid
          | Todook ->
@@ -264,7 +264,7 @@ let filter_todook (annots : (annotation * linenb) list) (xs : linenb list) :
     linenb list =
   let (todooks : linenb Set_.t) =
     annots
-    |> List_.map_filter (fun ((kind, _id), line) ->
+    |> List_.filter_map (fun ((kind, _id), line) ->
            match kind with
            (* + 1 because the expected/reported is the line after the annotation *)
            | Todook -> Some (line + 1)
@@ -320,7 +320,7 @@ let rule_files_and_rules_of_config_string caps
            Some (Exit_code.missing_config ~__LOC__) ));
 
   rules_and_origin
-  |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
+  |> List_.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
          match x.origin with
          | Local_file f ->
              (* TODO: return also rule errors *)
@@ -617,7 +617,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
           |> List.filter Rule_file.is_valid_rule_filename
         in
         rule_files
-        |> List_.map_filter (fun (rule_file : Fpath.t) ->
+        |> List_.filter_map (fun (rule_file : Fpath.t) ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
                (* TODO? sanity check? call metachecker Check_rule.check()?
                 * TODO: error managementm parsing errors?
@@ -695,13 +695,13 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                         (!!target_file, passed)));
         config_missing_tests =
           !errors
-          |> List_.map_filter (function
+          |> List_.filter_map (function
                | MissingTest rule_file -> Some rule_file
                | _else_ -> None)
           |> List.sort Fpath.compare;
         config_missing_fixtests =
           !errors
-          |> List_.map_filter (function
+          |> List_.filter_map (function
                | MissingFixtest rule_file -> Some rule_file
                | _else_ -> None)
           |> List.sort Fpath.compare;

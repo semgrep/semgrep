@@ -2554,7 +2554,7 @@ let (readdir_to_link_list : string -> string list) =
 let (readdir_to_dir_size_list : string -> (string * int) list) =
  fun path ->
   USys.readdir path |> Array.to_list
-  |> List_.map_filter (fun s ->
+  |> List_.filter_map (fun s ->
          let stat = UUnix.lstat (path ^ "/" ^ s) in
          if stat.st_kind =*= Unix.S_DIR then Some (s, stat.st_size) else None)
 

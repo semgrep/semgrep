@@ -97,7 +97,7 @@ let from_string ~anchor ~name ~source_kind str =
       let linenum = i + 1 in
       parse_line ~anchor name source_kind linenum contents)
     lines
-  |> List_.map_filter (fun x -> x)
+  |> List_.filter_map (fun x -> x)
 
 let from_file ~anchor ~source_kind path =
   Fpath.to_string path |> UFile.Legacy.read_file

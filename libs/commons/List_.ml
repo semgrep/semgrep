@@ -325,7 +325,7 @@ let rec filter_some = function
   | Some e :: l -> e :: filter_some l
 
 (* Tail-recursive to prevent stack overflows. *)
-let map_filter f xs =
+let filter_map f xs =
   List.fold_left
     (fun acc x ->
       match f x with
