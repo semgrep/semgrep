@@ -100,6 +100,7 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                metadata_override = None;
                dependency = Some (LockfileOnlyMatch (dep, pat));
                fix_text = None;
+               facts = [];
              })
   in
   Core_result.mk_match_result matches Core_error.ErrorSet.empty
