@@ -21,7 +21,7 @@ type 'any t =
   | Option of 'any t option
   (* return to the normal generic AST *)
   | Any of 'any
-[@@deriving show { with_path = false }, eq, hash]
+[@@deriving show { with_path = false }, eq, ord, hash]
 
 (*
    Return the first and the last token of the tree, if any.

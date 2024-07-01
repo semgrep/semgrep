@@ -36,21 +36,7 @@ module Log = Log_engine.Log
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-
-(* This is the (partially parsed/evaluated) content of a metavariable *)
-type value =
-  | Bool of bool
-  | Int of int64
-  | Float of float
-  | String of string (* string without the enclosing '"' *)
-  | List of value list
-  (* default case where we don't really have good builtin operations.
-   * This should be a AST_generic.any once parsed.
-   * See JSON_report.json_metavar().
-   *)
-  | AST of string (* any AST, e.g., "x+1" *)
-(* less: Id of string (* simpler to merge with AST *) *)
-[@@deriving show]
+type value = Eval_generic_partial.value [@@deriving show]
 
 type env = {
   mvars : (MV.mvar, value) Hashtbl.t;
@@ -72,7 +58,7 @@ exception NotInEnv of Metavariable.mvar
 (*****************************************************************************)
 (* JSON Parsing *)
 (*****************************************************************************)
-let metavar_of_json s = function
+let metavar_of_json s : J.t -> value = function
   | J.Int i -> Int (Int64.of_int i)
   | J.Bool b -> Bool b
   | J.String s -> String s
@@ -123,7 +109,7 @@ let parse_json (file : string) : env * code =
 (*****************************************************************************)
 
 (* alt: could use exit code, or return JSON *)
-let print_result xopt =
+let print_result (xopt : value option) =
   match xopt with
   (* nosem *)
   | None -> UCommon.pr "NONE"
@@ -145,7 +131,7 @@ let print_result xopt =
 (*****************************************************************************)
 
 (* Helper function to convert string date to Epoch time, currently supports only yyyy-mm-dd format *)
-let string_to_date s code =
+let string_to_date s code : value =
   let yyyy_mm_dd = String.split_on_char '-' s in
   match yyyy_mm_dd with
   | [ y; m; d ] -> (
@@ -175,7 +161,7 @@ let string_to_date s code =
    See https://prometheus.io/docs/prometheus/latest/querying/basics/#time-durations
    We do accept more duration strings here then prometheus which is okay.
 *)
-let string_duration_to_milliseconds s code =
+let string_duration_to_milliseconds s code : value =
   let int_of_string s =
     if s = "" then raise (NotHandled code) else int_of_string s
   in
@@ -213,7 +199,7 @@ let string_duration_to_milliseconds s code =
   if s = "" then raise (NotHandled code)
   else Int (Int64.of_int (loop ("", 0) 0))
 
-let value_of_lit ~code x =
+let value_of_lit ~code x : value =
   match x with
   | G.Bool (b, _t) -> Bool b
   | G.String (_, (s, _t), _) -> String s
@@ -328,7 +314,7 @@ let rec eval env code =
     -> (
       match eval env e with
       | String str ->
-          let v =
+          let v : value =
             match eval_regexp_matches ~file:env.file ~regexp:re str with
             | [] -> Bool false
             | _ -> Bool true
@@ -510,7 +496,7 @@ let text_of_binding mvar mval =
 
 let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
-  Some (mvar, AST x)
+  Some (mvar, (AST x : value))
 
 let bindings_to_env (config : Rule_options.t) ~file bindings =
   let constant_propagation = config.constant_propagation in
@@ -599,13 +585,22 @@ let eval_opt env e =
       Log.err (fun m -> m "NotHandled: %s" (G.show_expr e));
       None
 
-let eval_bool env e =
+let eval_bool env e facts =
   let res = eval_opt env e in
   match res with
   | Some (Bool b) -> b
   | Some res ->
       Log.err (fun m -> m "not a boolean: %s" (show_value res));
-      false
+      (* facts_satisfy_e is just a stub, but we intend to prioritize the results of
+       * eval_bool, so if eval_opt returns a bool, that will be the source of truth.
+       * otherwise (i.e. if eval_opt fails), we will resort to pattern when.
+       *
+       * TODO: eventually we should merge this into eval_opt. consider the condition
+       * $X == 0 && $Y > 0, maybe $X == 0 needs const-prop info to be resolved,
+       * and $Y > 0 needs the facts. perhaps instead of raise (NotHandled code) in
+       * eval_op, we can first try to find a fact that implies $X > 0 or its negation.
+       *)
+      Dataflow_when.facts_satisfy_e env.mvars facts e
   | None ->
       Log.err (fun m -> m "got exn during eval_bool");
-      false
+      Dataflow_when.facts_satisfy_e env.mvars facts e
