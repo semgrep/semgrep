@@ -644,7 +644,7 @@ let rec map_preconditions f taint =
   | Src ({ precondition = Some (incoming, expr); _ } as src) -> (
       let new_incoming =
         incoming
-        |> List_.map_filter (map_preconditions f)
+        |> List_.filter_map (map_preconditions f)
         |> f |> Taint_set.of_list
       in
       let new_incoming = filter_relevant_taints expr new_incoming in

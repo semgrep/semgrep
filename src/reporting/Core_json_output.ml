@@ -313,7 +313,7 @@ let token_to_intermediate_var token : OutJ.match_intermediate_var option =
       : OutJ.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
-  List_.map_filter token_to_intermediate_var tokens
+  List_.filter_map token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : PM.taint_call_trace) :
     OutJ.match_call_trace option =

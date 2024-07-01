@@ -799,7 +799,7 @@ let full_rule_semgrep_rules_regression_tests () =
   let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
-    |> List_.map_filter (fun (test : Testo.t) ->
+    |> List_.filter_map (fun (test : Testo.t) ->
            let test = mark_todo_js test in
            let group_opt =
              match test.name with

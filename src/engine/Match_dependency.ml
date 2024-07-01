@@ -36,7 +36,7 @@ let check_constraint D.{ version; constraint_ } v' =
 let match_dependency_pattern (deps : Dependency.t list)
     (pat : Rule.dependency_pattern) : Pattern_match.dependency_match list =
   deps
-  |> List_.map_filter @@ fun (dep : Dependency.t) ->
+  |> List_.filter_map @@ fun (dep : Dependency.t) ->
      if
        String.equal dep.package_name pat.package_name
        && pat.version_constraints |> fun (And cs) ->
@@ -115,7 +115,7 @@ let annotate_pattern_match dep_matches pm =
   | Some dep_matches ->
       (* If there are two, transitive copies of a library, and no direct copies, and it's used in code, we produce TWO reachable matches *)
       dep_matches
-      |> List_.map_filter (fun dm ->
+      |> List_.filter_map (fun dm ->
              (* TODO: Make this not quadratic
                 If the match is on a transitive dep and there's also a match on
                 a direct copy of the dep, then do not include it, only use the direct one

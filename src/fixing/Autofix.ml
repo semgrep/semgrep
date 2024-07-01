@@ -424,7 +424,7 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) : unit =
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) : unit
     =
   matches
-  |> List_.map_filter (fun (m : OutJ.core_match) ->
+  |> List_.filter_map (fun (m : OutJ.core_match) ->
          let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in
