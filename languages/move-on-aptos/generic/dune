@@ -1,0 +1,12 @@
+(library
+ (public_name parser_move_on_aptos.ast_generic)
+ (name parser_move_on_aptos_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing lib_parsing_tree_sitter
+   tree-sitter-lang.move-on-aptos
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)
