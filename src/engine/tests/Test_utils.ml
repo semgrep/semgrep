@@ -52,7 +52,7 @@ let compare_fixes ?polyglot_pattern_path ~file matches =
   | Ok expected_fixed_text ->
       let fixed_text =
         processed_matches
-        |> List_.map_filter (fun (m : Core_result.processed_match) ->
+        |> List_.filter_map (fun (m : Core_result.processed_match) ->
                m.autofix_edit)
         |> Autofix.apply_fixes_to_file_exn file
       in

@@ -61,20 +61,20 @@ let subexprs_of_stmt_kind = function
   (* n *)
   | For (_, MultiForEach es, _) ->
       es
-      |> List_.map_filter (function
+      |> List_.filter_map (function
            | FE (_, _, e) -> Some [ e ]
            | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
            | FEllipsis _ -> None)
       |> List.concat
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
-      |> List_.map_filter (function
+      |> List_.filter_map (function
            | ForInitExpr e -> Some e
            | ForInitVar (_, vdef) -> vdef.vinit))
       @ Option.to_list eopt1 @ Option.to_list eopt2
   | Assert (_, (_, args, _), _) ->
       args
-      |> List_.map_filter (function
+      |> List_.filter_map (function
            | Arg e -> Some e
            | _ -> None)
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
@@ -97,7 +97,7 @@ let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 let subexprs_of_args args =
   args |> Tok.unbracket
-  |> List_.map_filter (function
+  |> List_.filter_map (function
        | Arg e
        | ArgKwd (_, e)
        | ArgKwdOptional (_, e) ->
@@ -160,14 +160,14 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   | Xml { xml_attrs; xml_body; _ } ->
-      List_.map_filter
+      List_.filter_map
         (function
           | XmlAttr (_, _, e)
           | XmlAttrExpr (_, e, _) ->
               Some e
           | _ -> None)
         xml_attrs
-      @ List_.map_filter
+      @ List_.filter_map
           (function
             | XmlExpr (_, Some e, _) -> Some e
             | XmlXml xml -> Some (Xml xml |> AST_generic.e)

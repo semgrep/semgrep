@@ -47,7 +47,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 let commentized xs =
   xs
-  |> List_.map_filter (function
+  |> List_.filter_map (function
        | T.TComment_Pp (cppkind, ii) ->
            if !Flag_cpp.filter_classic_passed then
              match cppkind with

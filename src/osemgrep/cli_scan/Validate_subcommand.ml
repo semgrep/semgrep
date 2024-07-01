@@ -91,7 +91,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)
-        (* TODO(cooper): don't understand motivation of this map_filter. Not
+        (* TODO(cooper): don't understand motivation of this filter_map. Not
          * sure why we wouldn't do this on non-local files (understand for
          * registry)
          *
@@ -100,7 +100,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
          *)
         let targets =
           rules_and_origin
-          |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
+          |> List_.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
                  match x.origin with
                  | Local_file path -> Some path
                  | CLI_argument

@@ -2096,7 +2096,7 @@ and compound_statement_for_switch (env : env)
   let v2 = List.concat_map (block_item env) v2 in
   let _v3 = token env v3 (* "}" *) in
   v2
-  |> List_.map_filter (function
+  |> List_.filter_map (function
        | X (CaseStmt x) -> Some x
        (* todo: we drop all the other stuff ... *)
        | _ -> None)

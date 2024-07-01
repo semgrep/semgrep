@@ -466,7 +466,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 
   let offending_file_list =
     per_files
-    |> List_.map_filter (fun (file, xs) ->
+    |> List_.filter_map (fun (file, xs) ->
            if List.length xs > max_match_per_file then Some file else None)
   in
   let offending_files = Hashtbl_.hashset_of_list offending_file_list in
@@ -773,7 +773,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
   in
   let matches, opt_paths = List.split match_and_path_list in
   let scanned =
-    opt_paths |> List_.map_filter Fun.id
+    opt_paths |> List_.filter_map Fun.id
     (* It's necessary to remove duplicates because extracted targets are
        mapped back to their original target, and you can have multiple
        extracted targets for a single file. Might as well sort too *)
@@ -884,7 +884,7 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
 
 let select_applicable_rules_for_lockfile_kind ~lockfile_kind rules =
   rules
-  |> List_.map_filter (fun ({ Rule.dependency_formula; _ } as r) ->
+  |> List_.filter_map (fun ({ Rule.dependency_formula; _ } as r) ->
          match dependency_formula with
          | None -> None
          | Some formula ->
@@ -1038,7 +1038,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       in
       let dependency_match_table =
         applicable_rules_with_dep_matches
-        |> List_.map_filter (function
+        |> List_.filter_map (function
              | _, None -> None
              | rule, Some dep_matches -> Some (fst rule.R.id, dep_matches))
         |> Hashtbl_.hash_of_list

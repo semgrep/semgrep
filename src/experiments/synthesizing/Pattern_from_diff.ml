@@ -121,7 +121,7 @@ let pattern_from_diff f =
   let functions =
     try
       let file_ast = Parse_target.parse_program file in
-      List_.map_filter (function_from_range file_ast) f.In.diffs
+      List_.filter_map (function_from_range file_ast) f.In.diffs
     with
     | _ -> []
   in

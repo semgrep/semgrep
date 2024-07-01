@@ -1896,7 +1896,7 @@ let map_variable_declaration_tuple (env : env)
             let _v3 = map_trailing_comma env v3 in
             v1 :: v2
             (* TODO: should generate hole pattern when using (x,,y) *)
-            |> List_.map_filter (fun x -> x)
+            |> List_.filter_map (fun x -> x)
             |> List_.map (fun (ty, _attrsTODO, id) ->
                    PatTyped (PatId (id, G.empty_id_info ()) |> G.p, ty) |> G.p)
         | None -> []
