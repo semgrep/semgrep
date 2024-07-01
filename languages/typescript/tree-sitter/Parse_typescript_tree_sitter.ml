@@ -1765,7 +1765,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let t1, xs, t2 = object_type env x in
       let xs =
         xs
-        |> List_.map_filter (function
+        |> List_.filter_map (function
              (* TODO *)
              | Left prop -> Some prop
              | Right _sts -> None)
@@ -3077,7 +3077,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let t1, xs, t2 = object_type env v5 in
       let xs =
         xs
-        |> List_.map_filter (function
+        |> List_.filter_map (function
              (* TODO *)
              | Left _fld -> None
              | Right _sts -> None)

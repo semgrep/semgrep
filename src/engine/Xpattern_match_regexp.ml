@@ -100,7 +100,7 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
            | _ when n <= 0 -> raise Impossible
            | n ->
                List_.enum 1 (n - 1)
-               |> List_.map_filter (fun n ->
+               |> List_.filter_map (fun n ->
                       try
                         let bytepos, _ =
                           regex_functions.get_substring_ofs sub n
@@ -121,7 +121,7 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
          in
          let names_env =
            names
-           |> List_.map_filter (fun name ->
+           |> List_.filter_map (fun name ->
                   try
                     (* TODO: make exception-free versions of the missing
                        functions in SPcre. *)

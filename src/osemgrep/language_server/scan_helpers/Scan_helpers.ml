@@ -147,7 +147,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
       let cli_output = Output.preprocess_result Output.default res in
       let errors =
         cli_output.errors
-        |> List_.map_filter (fun (e : OutJ.cli_error) -> e.message)
+        |> List_.filter_map (fun (e : OutJ.cli_error) -> e.message)
         |> String.concat "\n"
       in
       Logs.app (fun m -> m "Semgrep errors: %s" errors);

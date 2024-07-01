@@ -1117,7 +1117,7 @@ and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
 and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
   let sts =
     sts
-    |> List_.map_filter (function
+    |> List_.filter_map (function
          | X x -> Some x
          (* TODO? skipped directive code? *)
          | _ -> None)

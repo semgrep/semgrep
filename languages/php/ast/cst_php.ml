@@ -861,14 +861,14 @@ let fakeInfo ?(next_to = None) str = Tok.FakeTok (str, next_to)
 let unwrap = fst
 
 let uncomma xs =
-  List_.map_filter
+  List_.filter_map
     (function
       | Either.Left e -> Some e
       | Either.Right _info -> None)
     xs
 
 let uncomma_dots xs =
-  List_.map_filter
+  List_.filter_map
     (function
       | Either_.Left3 e -> Some e
       | Either_.Right3 _info
