@@ -400,7 +400,7 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
         baseline.processed_matches);
   let removed = ref 0 in
   let processed_matches =
-    List_.map_filter
+    List_.filter_map
       (fun (pm : Core_result.processed_match) ->
         let s = extract_sig (Some renamed) pm.pm in
         if Hashtbl.mem sigs s then (

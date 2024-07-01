@@ -537,7 +537,7 @@ import_names:
      { (fun t path -> [ModuleAlias (t, $3, path)]) }
  | named_imports
      { (fun t path ->
-          let imports = $1 |> List_.map_filter (fun x ->
+          let imports = $1 |> List_.filter_map (fun x ->
             match x with
             | Some (n1, n2opt) -> Some (n1, n2opt)
             | None -> None)

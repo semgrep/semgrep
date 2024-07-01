@@ -400,7 +400,7 @@ and build_cfg_for_lambdas_in state previ n =
    *   as the function being called, or as arguments to a higher-order function. *)
   let lambda_names, lambda_fdefs =
     IL_helpers.rlvals_of_node n
-    |> List_.map_filter (lval_is_lambda state)
+    |> List_.filter_map (lval_is_lambda state)
     |> List.split
   in
   if lambda_fdefs <> [] then (

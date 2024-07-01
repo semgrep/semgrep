@@ -29,7 +29,7 @@ let (expected_error_lines_of_files :
   test_files
   |> List.concat_map (fun file ->
          UFile.cat file |> List_.index_list_1
-         |> List_.map_filter (fun (s, idx) ->
+         |> List_.filter_map (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for
                  * correct lines error reporting.

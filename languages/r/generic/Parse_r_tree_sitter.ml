@@ -136,7 +136,7 @@ let rec map_argument (env : env) (x : CST.argument) : G.argument =
 
 and map_arguments (env : env) (xs : CST.arguments) : G.argument list =
   (* TODO ,, has a meaning? *)
-  List_.map_filter
+  List_.filter_map
     (fun x ->
       match x with
       | `Arg x -> Some (map_argument env x)
@@ -544,7 +544,7 @@ and map_pipe_rhs_argument (env : env) (x : CST.pipe_rhs_argument) : G.argument =
 
 and map_pipe_rhs_arguments (env : env) (xs : CST.pipe_rhs_arguments) :
     G.argument list =
-  List_.map_filter
+  List_.filter_map
     (fun x ->
       match x with
       | `Pipe_rhs_arg x -> Some (map_pipe_rhs_argument env x)

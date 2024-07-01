@@ -95,7 +95,7 @@ let get_config_filenames original_config =
   else
     let configs = Common2.glob (Common.spf "%s/**" !!original_config) in
     configs
-    |> List_.map_filter (fun file ->
+    |> List_.filter_map (fun file ->
            let fpath = Fpath.v file in
            if
              is_config_suffix fpath
