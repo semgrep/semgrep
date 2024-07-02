@@ -407,7 +407,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       if pos =*= [] && not env.in_metavariable_pattern then
         Rule.raise_error (Some env.id)
           (InvalidRule (MissingPositiveTermInAnd, env.id, t));
-      { f = R.And (t, conjuncts); focus; conditions; fix = None }
+      { f = R.And (t, conjuncts); focus; conditions; fix = None; as_ = None }
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
@@ -628,6 +628,7 @@ and parse_formula_from_dict env dict =
   let where_formula =
     take_opt dict env (fun _env key value -> (key, value)) "where"
   in
+  let as_metavariable = take_opt dict env parse_string "as" in
   let fix = take_opt dict env parse_string "fix" in
   (* There should be only one key left, which is the pattern. *)
   if Hashtbl.length dict.h <> 1 then
@@ -642,7 +643,7 @@ and parse_formula_from_dict env dict =
         parse_pair env (find_formula env dict)
         |> constrain_where env (t, t) key value
   in
-  let formula = { formula with fix } in
+  let formula = { formula with fix; as_ = as_metavariable } in
   formula
 
 and produce_constraint env dict tok indicator =
@@ -754,6 +755,7 @@ and produce_constraint env dict tok indicator =
        focus = [];
        conditions = [];
        fix = None;
+       as_ = None;
       } ->
           [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
       | _ ->
