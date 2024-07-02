@@ -57,7 +57,12 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
   in
   (* Need env to be the result of evaluate_formula, which propagates metavariables *)
   (* rather than the original metavariables for the match                          *)
-  { m with rule_id; env = range.mvars }
+  (* We wipe the `ast_node` fields here, because they are only needed for when are producing
+      metavariable bindings using `as`.
+      To keep them would persist the pointers to the AST, potentially prolonging its
+      lifetime and increasing memory pressure.
+  *)
+  { m with rule_id; env = range.mvars; ast_node = None }
 
 (*****************************************************************************)
 (* Set operations *)
