@@ -12,6 +12,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+(* Commentary *)
+(* Code actions are what's presented to a user when they hover over a *)
+(* (highlighted) piece of code. *)
+(* coupling: if adding a new command, add it to Execute_command *)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 open Fpath_.Operators
 open Lsp
 open Types
@@ -42,8 +50,9 @@ let fix_code_action_of_match (m : OutJ.cli_match) =
         ]
       ()
   in
+  let command = Autofix_cmd.create () in
   let action =
-    CodeAction.create
+    CodeAction.create ~command
       ~title:
         (Printf.sprintf "Semgrep(%s): Apply autofix"
            (Rule_ID.to_string m.check_id))
@@ -53,16 +62,8 @@ let fix_code_action_of_match (m : OutJ.cli_match) =
 
 let ignore_code_action_of_match (m : OutJ.cli_match) =
   let command =
-    Command.create
-      ~arguments:
-        [
-          `Assoc
-            [
-              ("path", `String (Fpath.to_string m.path));
-              ("fingerprint", `String m.extra.fingerprint);
-            ];
-        ]
-      ~title:"Ignore Finding" ~command:"semgrep/ignore" ()
+    Ignore_cmd.create ~path:(Fpath.to_string m.path)
+      ~fingerprint:m.extra.fingerprint
   in
   let action =
     CodeAction.create ~command
