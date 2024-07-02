@@ -103,9 +103,12 @@ let initialize_server server
       (* Ocsigen, WTF is this logging thing??? *)
       Logs.debug (fun m -> m "[Language Server Threads]: %s" msg));
   let metrics =
-    let metrics = initializationOptions |> member "metrics" in
-    metrics |> LS_metrics.t_of_yojson
-    |> Result.value ~default:LS_metrics.default
+    let client_metrics =
+      initializationOptions |> member "metrics"
+      |> LS_metrics.client_metrics_of_yojson
+      |> Result.value ~default:LS_metrics.client_metrics_default
+    in
+    { server.session.metrics with client_metrics }
   in
   let server =
     {

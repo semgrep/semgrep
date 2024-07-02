@@ -1,0 +1,10 @@
+(library
+ (public_name semgrep.language_server.custom_commands)
+ (name osemgrep_language_server_custom_commands)
+ (wrapped false)
+ (libraries
+   semgrep.language_server.scan_helpers
+   semgrep.language_server.server)
+  (preprocess
+   (pps
+     ppx_deriving_yojson)))

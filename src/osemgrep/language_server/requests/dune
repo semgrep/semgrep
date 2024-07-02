@@ -5,7 +5,9 @@
  (libraries
    semgrep.language_server.scan_helpers
    semgrep.language_server.custom_requests
- )
+   semgrep.language_server.custom_commands)
   (preprocess
-  (pps js_of_ocaml-ppx lwt_ppx))
-)
+   (pps
+     js_of_ocaml-ppx
+     ppx_deriving_yojson
+     lwt_ppx)))
