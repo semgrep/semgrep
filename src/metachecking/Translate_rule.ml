@@ -226,7 +226,7 @@ and translate_taint_spec
        ])
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
-  let rec aux { f; focus; conditions; fix } =
+  let rec aux { f; focus; conditions; fix; as_ } =
     let mk_focus_obj (_, mv_list) =
       match mv_list with
       | [] ->
@@ -253,8 +253,13 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | None -> []
       | Some fix -> [ ("fix", `String fix) ]
     in
+    let as_obj =
+      match as_ with
+      | None -> []
+      | Some mvar -> [ ("as", `String mvar) ]
+    in
     let (`O objs) = aux' f in
-    `O (objs @ where_obj @ fix_obj)
+    `O (objs @ where_obj @ fix_obj @ as_obj)
   and aux' kind =
     match kind with
     | P { pat; pstr; _ } -> (

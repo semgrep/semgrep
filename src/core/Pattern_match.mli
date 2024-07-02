@@ -6,6 +6,7 @@ type t = {
   (* location info *)
   path : Target.path;
   range_loc : Tok.location * Tok.location;
+  ast_node : AST_generic.any option;
   tokens : Tok.t list Lazy.t;
   env : Metavariable.bindings;
   (* trace *)
