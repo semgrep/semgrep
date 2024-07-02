@@ -1,6 +1,6 @@
 (* Austin Theriault
  *
- * Copyright (C) 2019-2023 Semgrep, Inc.
+ * Copyright (C) Semgrep, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,34 +12,35 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+
 (* Commentary *)
-(* Commands executed by the client that we process server side. These commands *)
-(* must also be added in LS.ml *)
+(* The client actually handles applying the fix. This command is run afterwards *)
+(* just to inform the language server that it was applied *)
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+open Lsp
+open Types
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+let command = "semgrep/autofix"
+let create () = Command.create ~title:"Apply Fix" ~command ()
 
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
-(* Coupling: Must add the command here for the client to understand to send the *)
-(*  command to the LS  *)
-let supported_commands = [ Ignore_cmd.command; Autofix_cmd.command ]
 
-let handle_execute_request (server : RPC_server.t) (command : string) arg_list :
-    Yojson.Safe.t option * RPC_server.t =
-  let server =
-    match
-      [
-        (Ignore_cmd.command, Ignore_cmd.command_handler);
-        (Autofix_cmd.command, Autofix_cmd.command_handler);
-      ]
-      |> List.assoc_opt command
-    with
-    | Some handler -> handler server arg_list
-    | None ->
-        Logs.err (fun m -> m "Command %s not supported by the server" command);
-        server
+let command_handler (server : RPC_server.t) _arg_list =
+  (* the actual edit is handled by the client. We run this command just so
+     we can record it *)
+  let session =
+    let session = server.session in
+    let metrics =
+      { session.metrics with autofix_count = session.metrics.autofix_count + 1 }
+    in
+    { session with metrics }
   in
-  (None, server)
+  { server with session }

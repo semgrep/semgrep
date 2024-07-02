@@ -181,6 +181,8 @@ let default_payload =
         sessionId = None;
         version = None;
         ty = None;
+        autofixCount = None;
+        ignoreCount = None;
       };
     osemgrep = None;
   }

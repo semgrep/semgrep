@@ -80,8 +80,8 @@ let create caps capabilities =
       skipped_app_fingerprints = [];
       lock = Lwt_mutex.create ();
       open_documents = [];
-      initialized = false;
       deployment_id = None;
+      initialized = false;
     }
   in
   {
@@ -137,7 +137,7 @@ let get_targets session (root : Fpath.t) =
   |> fst
 
 let send_metrics ?core_time ?profiler ?cli_output session =
-  if session.metrics.enabled then (
+  if session.metrics.client_metrics.enabled then (
     let settings = Semgrep_settings.load () in
     let api_token = settings.Semgrep_settings.api_token in
     let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
@@ -151,12 +151,20 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     profiler |> Option.iter Metrics_.add_profiling;
     Metrics_.add_rules_hashes_and_rules_profiling ?profiling:core_time
       session.cached_session.rules;
-    Metrics_.g.payload.extension.machineId <- session.metrics.machineId;
+    Metrics_.g.payload.extension.machineId <-
+      session.metrics.client_metrics.machineId;
     Metrics_.g.payload.extension.isNewAppInstall <-
-      Some session.metrics.isNewAppInstall;
-    Metrics_.g.payload.extension.sessionId <- session.metrics.sessionId;
-    Metrics_.g.payload.extension.version <- session.metrics.extensionVersion;
-    Metrics_.g.payload.extension.ty <- Some session.metrics.extensionType;
+      Some session.metrics.client_metrics.isNewAppInstall;
+    Metrics_.g.payload.extension.sessionId <-
+      session.metrics.client_metrics.sessionId;
+    Metrics_.g.payload.extension.version <-
+      session.metrics.client_metrics.extensionVersion;
+    Metrics_.g.payload.extension.ty <-
+      Some session.metrics.client_metrics.extensionType;
+    Metrics_.g.payload.extension.ignoreCount <-
+      Some session.metrics.ignore_count;
+    Metrics_.g.payload.extension.autofixCount <-
+      Some session.metrics.autofix_count;
     Metrics_.g.payload.environment.deployment_id <-
       session.cached_session.deployment_id;
     Metrics_.prepare_to_send ();

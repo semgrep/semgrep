@@ -23,7 +23,7 @@
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
-type t = {
+type client_metrics = {
   machineId : string option; [@default None]
   isNewAppInstall : bool; [@default false]
   sessionId : string option; [@default None]
@@ -33,7 +33,14 @@ type t = {
 }
 [@@deriving yojson]
 
-let default =
+type t = {
+  client_metrics : client_metrics;
+  autofix_count : int;
+  ignore_count : int;
+}
+[@@deriving yojson]
+
+let client_metrics_default =
   {
     machineId = None;
     isNewAppInstall = false;
@@ -43,6 +50,13 @@ let default =
     enabled = true;
   }
 
-let t_of_yojson json = of_yojson json
-let yojson_of_t t = to_yojson t
+let default =
+  {
+    client_metrics = client_metrics_default;
+    autofix_count = 0;
+    ignore_count = 0;
+  }
+
+let t_of_yojson = of_yojson
+let yojson_of_t = to_yojson
 let pp fmt t = Yojson.Safe.pretty_print fmt (yojson_of_t t)
