@@ -45,7 +45,6 @@ from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
 from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
 from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
-from semgrep.semgrep_interfaces.semgrep_metrics import Misc
 from semgrep.semgrep_interfaces.semgrep_metrics import OsemgrepFormatOutput
 from semgrep.semgrep_interfaces.semgrep_metrics import OsemgrepMetrics
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
@@ -55,6 +54,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
+from semgrep.semgrep_interfaces.semgrep_metrics import Value
 from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
@@ -144,7 +144,7 @@ class Metrics:
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
             extension=Extension(),
-            value=Misc(features=[]),
+            value=Value(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
             event_id=met.Uuid(str(get_frozen_id())),
             anonymous_user_id="",
