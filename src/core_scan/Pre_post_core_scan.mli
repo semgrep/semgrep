@@ -12,11 +12,8 @@ module type Processor = sig
     Core_scan_config.t -> state -> Core_result.t -> Core_result.t
 end
 
-(* The default processor is the identity processor which does nothing. *)
+(* The no-op processor is the identity processor which does nothing. *)
 module No_Op_Processor : Processor
-
-(* The default hook is the No_op_processor *)
-val hook_processor : (module Processor) ref
 
 (* Registers a processor for usage.
    This processor will act as an "outer layer", preprocessing before other
@@ -38,3 +35,15 @@ val call_with_pre_and_post_processor :
   ('a -> Core_scan_config.t) ->
   'a core_scan_func_with_rules ->
   'a core_scan_func_with_rules
+
+(* Exposed only for testing purposes. These can be used to arbitrarily change
+ * the set of pre and post processors. *)
+
+type test_only_processors
+
+(* The default hook is composed of the nosemgrep processor and the autofix
+ * processor. *)
+val test_only_hook_processors : test_only_processors ref
+
+val test_only_processors_of_processor :
+  (module Processor) -> test_only_processors
