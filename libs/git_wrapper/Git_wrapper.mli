@@ -180,6 +180,10 @@ val config_set : ?cwd:Fpath.t -> string -> string -> unit
 (* Get the value of an entry in the user's config. *)
 val config_get : ?cwd:Fpath.t -> string -> string option
 
+val gc : ?cwd:Fpath.t -> unit -> unit
+(** [gc ()] executes [git gc] in the current directory. If [cwd] is specified,
+    its value is passed to git's [-C] flag. *)
+
 val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
 (** [add files] adds the [files] to the git index. *)
 
