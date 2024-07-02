@@ -1,6 +1,6 @@
 (* Sjoerd Langkemper
  *
- * Copyright (c) 2021 Semgrep Inc.
+ * Copyright (c) 2021, 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -617,7 +617,8 @@ let rec tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
   let v4 = token env v4 (* ")" *) in
   PatTuple (v1, v2 :: v3, v4)
 
-and anon_choice_id_c036834 (env : env) (x : CST.anon_choice_id_c036834) =
+and anon_choice_id_c036834 (env : env) (x : CST.anon_choice_impl_param_c036834)
+    =
   match x with
   | `Id tok ->
       let id = identifier env tok (* identifier *) in
@@ -1494,11 +1495,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       let v4 =
         match v4 with
         | `Param_list x -> parameter_list env x
-        | `Id tok ->
-            let id = identifier env tok in
-            let p = param_of_id id in
-            fb [ Param p ]
-        (* identifier *)
+        | `Impl_param_list xs -> implicit_parameter_list env xs
       in
       let v5 = (* "=>" *) token env v5 in
       let v6 =
@@ -2568,6 +2565,14 @@ and type_parameter_constraints_clause (env : env)
       v5
   in
   (v2, v4 :: v5)
+
+and implicit_parameter_list (env : env) (x : CST.implicit_parameter_list) =
+  implicit_parameter env x
+
+and implicit_parameter (env : env) (x : CST.implicit_parameter) =
+  let id = identifier env x in
+  let p = param_of_id id in
+  fb [ Param p ]
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameters
     =
