@@ -1,0 +1,1 @@
+The language server now reports number of autofixes and ignores triggered throught IDE integrations when metrics are enabled

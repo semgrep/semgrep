@@ -57,7 +57,8 @@ module MessageHandler = struct
            ())
       ~hoverProvider:(`Bool true) ~codeActionProvider:(`Bool true)
       ~executeCommandProvider:
-        (ExecuteCommandOptions.create ~commands:[ "semgrep/ignore" ] ())
+        (ExecuteCommandOptions.create
+           ~commands:Execute_command.supported_commands ())
       ()
 end
 
