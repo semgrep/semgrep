@@ -1,0 +1,4 @@
+Secrets: resolved some rare instances where historical scans would skip blobs
+depending on the structure of the local copy of the repository (i.e., blobs
+were only skipped if the specific copy of the git store had a certain
+structure).
