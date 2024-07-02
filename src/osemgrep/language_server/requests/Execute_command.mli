@@ -1,3 +1,6 @@
+val supported_commands : string list
+(** [supported_commands] is a list of all the LSP commands that are supported by the server. *)
+
 val handle_execute_request :
   RPC_server.t ->
   string ->

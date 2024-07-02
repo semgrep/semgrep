@@ -14,7 +14,10 @@
  *)
 
 (* Commentary *)
-(*  *)
+(* Handles all notifications from the client. There are none that are handled *)
+(* when the server is uninitialized. Custom notifications should be setup here. *)
+(* Notifications never return a response, but may trigger server to client *)
+(* notifications or requests *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -147,7 +150,7 @@ let on_notification notification (server : RPC_server.t) =
             |> member "full" |> to_bool_option
             |> Option.value ~default:false
           in
-          if server.session.metrics.isNewAppInstall && full then
+          if server.session.metrics.client_metrics.isNewAppInstall && full then
             RPC_server.notify_show_message ~kind:MessageType.Info
               "Scanning all files regardless of git status. These diagnostics \
                will persist until a file is edited. To default to always \
