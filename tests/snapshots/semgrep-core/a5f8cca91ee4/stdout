@@ -8,7 +8,7 @@ rule.yml
      match_ =
      (Some { pattern = (Some "$X == $X"); regex = None; all = None;
              any = None; not = None; inside = None; anywhere = None;
-             where = None; fix = None });
+             where = None; fix = None; as_ = None });
      taint = None; steps = None; select = None; paths = None; fix = None;
      fix_regex = None; project_depends_on = None; extract = None;
      validators = None; options = None; metadata = None; min_version = None;

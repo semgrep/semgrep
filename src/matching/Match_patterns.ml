@@ -167,6 +167,7 @@ let match_rules_and_recurse m_env path hook matches rules matcher k any x =
                           path;
                           env = mv;
                           range_loc;
+                          ast_node = Some (any x);
                           tokens;
                           taint_trace = None;
                           (* This will be overrided later on by the Pro engine, if this is
@@ -423,6 +424,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   path;
                                   env = mv;
                                   range_loc;
+                                  ast_node = Some (E x);
                                   tokens;
                                   taint_trace = None;
                                   engine_of_match = `OSS;
@@ -491,6 +493,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                     path;
                                     env = mv;
                                     range_loc;
+                                    ast_node = Some (S x);
                                     tokens;
                                     taint_trace = None;
                                     engine_of_match = `OSS;
@@ -543,6 +546,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       path;
                                       env = mv;
                                       range_loc;
+                                      ast_node = Some (Ss matched);
                                       tokens;
                                       taint_trace = None;
                                       engine_of_match = `OSS;
@@ -641,6 +645,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                       path;
                                       env = mv;
                                       range_loc;
+                                      ast_node = Some (Ss matched);
                                       tokens;
                                       taint_trace = None;
                                       engine_of_match = `OSS;
