@@ -741,3 +741,9 @@ let cat_file_blob ?cwd (hash : hash) =
   | Ok (s, _)
   | Error (`Msg s) ->
       Error s
+
+let gc ?cwd () =
+  let cmd = (git, cd cwd @ [ "gc"; "--quiet" ]) in
+  match UCmd.status_of_run ~quiet:true cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "git gc failed")
