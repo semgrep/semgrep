@@ -93,6 +93,18 @@ type t = {
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
+  (* Why is this here?
+     When we allow pattern matches to be embedded into metavariables, we want
+     to be able to assign a faithful mvalue to the new metavariable.
+     This means that we must be able to retrieve the matched AST node from the
+     match itself.
+     NOTE: This could potentially be a performance issue, because keeping these
+     pointers into the AST will persist the lifetime of the AST. However, we
+     only need `ast_node` when we are embedding pattern matches into metavariables,
+     so we don't need it once the `evaluate_formula` process is done. Thus, we
+     set this back to `None` in `Range_with_metavars.range_to_pattern_match_adjusted`.
+  *)
+  ast_node : AST_generic.any option;
   (* less: do we need to be lazy? *)
   tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
