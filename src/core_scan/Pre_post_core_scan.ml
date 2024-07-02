@@ -121,3 +121,14 @@ let call_with_pre_and_post_processor f
   let rules', state = Processor.pre_process (f config) rules in
   let res = scan_with_rules config ((rules', rule_errors), rules_parse_time) in
   Processor.post_process (f config) state res
+
+(*****************************************************************************)
+(* Test enablement code *)
+(*****************************************************************************)
+
+type test_only_processors = (module Processor)
+
+let test_only_hook_processors = hook_processor
+
+let test_only_processors_of_processor (module P : Processor) =
+  (module P : Processor)
