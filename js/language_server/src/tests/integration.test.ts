@@ -10,7 +10,8 @@ const EXPECTED_CAPABILITIES = {
     codeActionProvider: true,
     executeCommandProvider: {
       commands: [
-        "semgrep/ignore"
+        "semgrep/ignore",
+        "semgrep/autofix"
       ]
     },
     hoverProvider: true,

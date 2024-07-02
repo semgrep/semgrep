@@ -788,13 +788,22 @@ let test_ls_specs caps () =
                  receive_notification_params
                    PublishDiagnosticsParams.t_of_yojson info
                in
+               Logs.app (fun m ->
+                   m "Received diagnostics after ignore %a" Yojson.Safe.pp
+                     (PublishDiagnosticsParams.yojson_of_t params));
                let not_ignored_ids =
-                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
+                 List_.map
+                   (fun d ->
+                     Logs.app (fun m ->
+                         m "Diagnostic: %a" Yojson.Safe.pp
+                           (Diagnostic.yojson_of_t d));
+                     d.Diagnostic.code)
+                   params.diagnostics
                in
                Alcotest.(check int)
                  "new finding from modified file with ignored finding"
-                 (List.length not_ignored_ids)
-                 (List.length new_ids - 1);
+                 (List.length new_ids - 1)
+                 (List.length not_ignored_ids);
 
                Lwt.return_unit)
       in
