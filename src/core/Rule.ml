@@ -68,6 +68,15 @@ type formula = {
   focus : focus_mv_list list;
   (* autofix *)
   fix : string option;
+  (* as:'s *)
+  (* This is for binding a match to a metavariable, such as the following example:
+     @decorator()
+     def $FUNC(...):
+       ...
+     Without the ability to use `as` to bind this match, we would not be able to
+     autofix the entire function, decorator included.
+  *)
+  as_ : string option;
 }
 
 and formula_kind =
@@ -951,8 +960,9 @@ let xpatterns_of_rule rule =
   List.iter (visit_new_formula visit) formulae;
   !xpat_store
 
-let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) kind =
-  { f = kind; focus; conditions; fix }
+let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) ?(as_ = None) kind
+    =
+  { f = kind; focus; conditions; fix; as_ }
 
 let f kind = mk_formula kind
 
@@ -1001,7 +1011,7 @@ let rule_of_formula ?(fix = None) (xlang : Xlang.t) (formula : formula) : rule =
     max_version = None;
     message =
       (match formula with
-      | { f = P xpat; focus = []; conditions = []; fix = None } ->
+      | { f = P xpat; focus = []; conditions = []; fix = None; as_ = None } ->
           fst xpat.Xpattern.pstr
       | _ -> "simple search rule");
     severity = `Error;

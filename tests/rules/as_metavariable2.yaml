@@ -1,0 +1,14 @@
+rules:
+  - id: as-metavariable-again
+    languages: [python]
+    message: |
+      We can embed an arbitrary match into a metavariable!
+    match:
+      all:
+      - pattern: |
+          foo(...)
+        as: $F
+      where:
+      - metavariable: $F
+        pattern: "bar"
+    severity: ERROR

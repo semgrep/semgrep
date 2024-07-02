@@ -1,0 +1,15 @@
+rules:
+  - id: as-metavariable
+    languages: [python]
+    message: |
+      We can embed an arbitrary match into a metavariable!
+    match:
+      all:
+      - pattern: |
+          def $FUNC(...):
+            ...
+        as: $F
+      where:
+      - metavariable: $F
+        pattern: "qux()"
+    severity: ERROR

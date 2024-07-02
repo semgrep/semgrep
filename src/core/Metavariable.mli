@@ -26,6 +26,13 @@ type mvalue =
       string
       * (* token without enclosing quotes *) AST_generic.tok
       * (* original token *) AST_generic.tok
+  (* We keep the `Any` variant here, despite it being a superset of the above
+     variants, as a "last resort" so that we can embed any match into an
+     mvalue.
+     This is primarily useful for the `as:` rule feature, which lets us
+     bind arbitrary matches to metavariables.
+  *)
+  | Any of AST_generic.any
 [@@deriving show, eq]
 
 (* note that the mvalue acts as the value of the metavar and also
@@ -71,7 +78,7 @@ val range_of_mvalue : mvalue -> (string (* filename *) * Range.t) option
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
  *)
 val mvalue_to_any : mvalue -> AST_generic.any
-val mvalue_of_any : AST_generic.any -> mvalue option
+val mvalue_of_any : AST_generic.any -> mvalue
 
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)

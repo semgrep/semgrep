@@ -388,6 +388,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                path = env.xtarget.path;
                range_loc;
+               ast_node = Some (MV.mvalue_to_any mval);
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
                taint_trace = None;
@@ -456,6 +457,34 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
   match focus_mvars_list with
   | [] -> ranges
   | _ -> List.concat_map apply_focus_mvars_list ranges
+
+let apply_as_on_ranges ranges as_ =
+  ranges
+  |> List_.map (fun (range : RM.t) ->
+         {
+           range with
+           mvars =
+             (match range.origin.ast_node with
+             | Some node -> (as_, MV.mvalue_of_any node) :: range.mvars
+             | None -> (
+                 let tokens = Lazy.force range.origin.tokens in
+                 match (range.origin.path.origin, tokens) with
+                 | File _, [] ->
+                     Logs.warn (fun m ->
+                         m "Got empty tokens when using as-metavariable");
+                     range.mvars
+                 | File fpath, fst_tok :: _ ->
+                     ( as_,
+                       Text
+                         ( Range.content_at_range fpath range.r,
+                           fst_tok,
+                           Common2.list_last tokens ) )
+                     :: range.mvars
+                 | _ ->
+                     Logs.debug (fun m ->
+                         m "unable to apply as operator to gitblob match");
+                     range.mvars));
+         })
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -732,7 +761,7 @@ and get_nested_formula_matches env formula range =
 (*****************************************************************************)
 
 and evaluate_formula env opt_context
-    ({ f; focus; conditions; fix } : Rule.formula) =
+    ({ f; focus; conditions; fix; as_ } : Rule.formula) =
   let ranges, expls = evaluate_formula_kind env opt_context f in
   (* let's apply additional filters.
       * TODO: Note that some metavariable-regexp may be part of an
@@ -822,6 +851,13 @@ and evaluate_formula env opt_context
         in
         Some { me with ME.children }
   in
+
+  let ranges =
+    match as_ with
+    | None -> ranges
+    | Some as_ -> apply_as_on_ranges ranges as_
+  in
+
   (ranges, new_expls)
 
 and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
