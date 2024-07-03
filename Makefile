@@ -608,7 +608,8 @@ dump:
 
 # for ocamldebug
 core-bc:
-	dune build $(BUILD)/install/default/bin/{semgrep-core,osemgrep}.bc
+	dune build $(BUILD)/install/default/bin/semgrep-core.bc
+	dune build $(BUILD)/install/default/bin/osemgrep.bc
 test-bc:
 	dune build $(BUILD_DEFAULT)/src/tests/test.bc
 # The bytecode version of semgrep-core needs dlls for tree-sitter
