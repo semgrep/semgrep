@@ -1,5 +1,4 @@
 name: check-submodule
-# this file is copied from semgrep-proprietary's check-submodule.yaml
 
 on: [pull_request]
 
