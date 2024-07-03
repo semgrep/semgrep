@@ -34,4 +34,5 @@
  (action
   (with-stdout-to
    %{targets}
-   (run ../languages/shared/generate-semgrep-js.sh bash c cairo cpp c_sharp dart dockerfile elixir go hack html java json jsonnet julia kotlin lisp lua ocaml php promql proto python ql r ruby rust scala solidity swift terraform typescript vue tsx hcl clojure))))
+   ;coupling: with ../languages/Makefile
+   (run ../languages/shared/generate-semgrep-js.sh bash c cairo cpp c_sharp dart dockerfile elixir go hack html java json jsonnet julia kotlin lisp lua move_on_aptos ocaml php promql proto python ql r ruby rust scala solidity swift terraform typescript vue tsx hcl clojure))))
