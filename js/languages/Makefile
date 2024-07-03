@@ -1,5 +1,12 @@
-
-SUPPORTED_LANGS := bash c cairo cpp csharp dart dockerfile go hack html java json jsonnet julia kotlin lisp lua ocaml php promql protobuf python ql r ruby rust scala solidity swift terraform typescript vue
+#coupling: if you add a language below, you'll need also to update:
+# - ../tests/index.test.js
+# - ../language_server/dune
+# - ../language_server/Makefile
+#Missing from the list (in OSS/languages/ but not below):
+# - javascript: because?
+# - yaml: because?
+# - regexp: because?
+SUPPORTED_LANGS := bash c cairo cpp csharp dart dockerfile go hack html java json jsonnet julia kotlin lisp lua move_on_aptos ocaml php promql protobuf python ql r ruby rust scala solidity swift terraform typescript vue
 
 .PHONY: default
 default: build
