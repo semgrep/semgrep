@@ -16,6 +16,7 @@ const languages = [
   "kotlin",
   "lisp",
   "lua",
+  "move_on_aptos",
   "ocaml",
   "php",
   "protobuf",

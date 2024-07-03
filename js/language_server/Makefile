@@ -7,10 +7,10 @@ include ../tree-sitter/Makefile.include
 # TODO: manage this better
 
 # All languages that have a C parser we need to compile w/emcc
-LANGUAGES := bash c cairo cpp csharp dart dockerfile go hack html java jsonnet kotlin lisp lua ocaml php promql protobuf python r rust solidity terraform typescript vue
+LANGUAGES := bash c cairo cpp csharp dart dockerfile go hack html java jsonnet kotlin lisp lua move_on_aptos ocaml php promql protobuf python r rust solidity terraform typescript vue
 
 # Tree Sitter parser names so we can properly export them in EMCC
-TS_LANGS := bash c cairo clojure cpp c_sharp dart dockerfile go hack html java jsonnet kotlin lua ocaml php promql proto python r rust solidity hcl typescript tsx vue
+TS_LANGS := bash c cairo clojure cpp c_sharp dart dockerfile go hack html java jsonnet kotlin lua move_on_aptos ocaml php promql proto python r rust solidity hcl typescript tsx vue
 
 PARSER_EXPORTED_FUNCTIONS := $(shell echo $(TS_LANGS:%=_tree_sitter_%) | sed 's/ /,/g')
 

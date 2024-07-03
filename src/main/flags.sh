@@ -140,6 +140,7 @@ else
             "julia"
             "kotlin"
             "lua"
+            "move_on_aptos"
             "ocaml"
             "php"
             "promql"
