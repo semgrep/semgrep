@@ -111,6 +111,15 @@ local test_wheels_job = {
 {
   name: 'build-test-manylinux-x86',
   on: gha.on_dispatch_or_call,
+  // ugly: this is a temporary solution to avoid some recent glibc linking
+  // error in GHA because we're using very old containers (ubuntu 18.04).
+  // See https://github.com/actions/checkout/issues/1590
+  // for more context.
+  // TODO: ww should update to a more recent one but nobody fully understand
+  // this workflow and what is returntocorp/sgrep-build:ubuntu-18.04
+  env: {
+    'ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION': true,
+  },
   jobs: {
     'build-wheels': build_wheels_job,
     'test-wheels': test_wheels_job,
