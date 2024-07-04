@@ -52,7 +52,9 @@ let sanitize_string str =
     str;
   Buffer.contents buf
 
-let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
+let of_string_exn x =
+  if not (validate x) then raise (Malformed_rule_ID x) else x
+
 let of_string_opt x = if validate x then Some x else None
 let to_string_list x = x
 let of_string_list x = x
@@ -69,4 +71,5 @@ let ends_with r ~suffix:inc_or_exc_rule =
 
 (* For ATD 'string wrap' in semgrep_output_v1.atd *)
 let unwrap = to_string
-let wrap = of_string
+let wrap = of_string_exn
+let dash_e = of_string_exn "-"
