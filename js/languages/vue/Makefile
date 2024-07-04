@@ -1,6 +1,6 @@
 SEMGREP_LANG := vue
 
-TREE_SITTER_SOURCES := $(shell find ../../../languages/tree-sitter-lang/semgrep-$(SEMGREP_LANG)/lib -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
+TREE_SITTER_SOURCES := $(shell find ../../../languages/vue/tree-sitter/semgrep-$(SEMGREP_LANG)/lib -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
 EXTRA_PARSER_DEPS := ../typescript/dist/semgrep-parser.o
 
 ../typescript/dist/semgrep-parser.o:

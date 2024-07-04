@@ -1,0 +1,13 @@
+(library
+ (public_name parser_hack.ast_generic)
+ (name parser_hack_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   ast_generic
+   semgrep_core; just for Range
+   lib_parsing_tree_sitter
+   tree-sitter-lang.hack
+ )
+ (preprocess (pps ppx_deriving.show))
+)
