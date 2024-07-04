@@ -1,6 +1,6 @@
 (* Andre Kuhlenschmidt
  *
- * Copyright (C) 2023 r2c
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,15 +19,12 @@
 (* A general mechanism to run pre and post processors around
  * a core scan.
  *
- * For now this is used mostly for Secrets (just the post part,
- * for secrets validation).
- *
  * alt: right now this is using first-class modules, but we could
  * probably use simple polymorphic records.
  *)
 
 (*****************************************************************************)
-(* Types and globals *)
+(* Types *)
 (*****************************************************************************)
 
 module type Processor = sig
@@ -39,6 +36,16 @@ module type Processor = sig
     Core_scan_config.t -> state -> Core_result.t -> Core_result.t
 end
 
+(* quite similar to Core_scan.core_scan_func *)
+type 'config core_scan_func_with_rules =
+  'config ->
+  (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
+  Core_result.t
+
+(*****************************************************************************)
+(* Processors *)
+(*****************************************************************************)
+
 (* The default processor is the identity processor which does nothing. *)
 module No_Op_Processor : Processor = struct
   type state = unit
@@ -47,6 +54,10 @@ module No_Op_Processor : Processor = struct
   let post_process _ () results = results
 end
 
+(* Autofix is currently implemented as a postprocessor to factorize code
+ * between pysemgrep (which uses core_scan) and osemgrep.
+ * LATER: once pysemgrep is gone, we can do that directly in the core_scan.
+ *)
 module Autofix_processor : Processor = struct
   type state = unit
 
@@ -57,6 +68,7 @@ module Autofix_processor : Processor = struct
     { res with processed_matches = matches_with_fixes }
 end
 
+(* Similar motivation than Autofix above *)
 module Nosemgrep_processor : Processor = struct
   type state = unit
 
@@ -69,12 +81,6 @@ module Nosemgrep_processor : Processor = struct
     let errors = if config.strict then errors @ res.errors else res.errors in
     { res with processed_matches = processed_matches_with_ignores; errors }
 end
-
-(* quite similar to Core_scan.core_scan_func *)
-type 'a core_scan_func_with_rules =
-  'a ->
-  (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
-  Core_result.t
 
 (*****************************************************************************)
 (* Composing processors *)
@@ -97,6 +103,13 @@ module MkPairProcessor (A : Processor) (B : Processor) : Processor = struct
     results |> B.post_process config state_b |> A.post_process config state_a
 end
 
+(*****************************************************************************)
+(* Global *)
+(*****************************************************************************)
+
+(* In semgrep OSS we just run the nosemgrep and autofix processors. In Pro we
+ * also add the secrets post processor (see Secrets.setup()).
+ *)
 module Initial_processor =
   MkPairProcessor (Nosemgrep_processor) (Autofix_processor)
 
@@ -113,15 +126,37 @@ let push_processor (module P : Processor) =
 (* Written with scan_with_rules abstracted to allow reuse across
    semgrep and semgrep-pro
 *)
-let call_with_pre_and_post_processor f
-    (scan_with_rules : 'a core_scan_func_with_rules) :
-    'a core_scan_func_with_rules =
+let call_with_pre_and_post_processor fconfig
+    (scan_with_rules : 'config core_scan_func_with_rules) :
+    'config core_scan_func_with_rules =
  fun config ((rules, rule_errors), rules_parse_time) ->
   let module Processor = (val !hook_processor) in
-  let rules', state = Processor.pre_process (f config) rules in
-  let res = scan_with_rules config ((rules', rule_errors), rules_parse_time) in
-  Processor.post_process (f config) state res
-
+  let rules', state =
+    try Processor.pre_process (fconfig config) rules with
+    | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
+        Exception.catch_and_reraise e
+    | exn ->
+        let e = Exception.catch exn in
+        Logs.err (fun m ->
+            m "Uncaught exn in Processor.pre_process: %s"
+              (Exception.to_string e));
+        Exception.reraise e
+  in
+  let (res : Core_result.t) =
+    scan_with_rules config ((rules', rule_errors), rules_parse_time)
+  in
+  let (res : Core_result.t) =
+    try Processor.post_process (fconfig config) state res with
+    | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
+        Exception.catch_and_reraise e
+    | exn ->
+        let e = Exception.catch exn in
+        Logs.err (fun m ->
+            m "Uncaught exn in Processor.post_process: %s"
+              (Exception.to_string e));
+        Exception.reraise e
+  in
+  res
 (*****************************************************************************)
 (* Test enablement code *)
 (*****************************************************************************)
