@@ -43,7 +43,7 @@ path = languages/ocaml/tree-sitter/semgrep-ocaml
 url = https://github.com/returntocorp/semgrep-ocaml.git
 
 [submodule "OSS/languages/tree-sitter-lang/semgrep-hack"]
-path = languages/tree-sitter-lang/semgrep-hack
+path = languages/hack/tree-sitter/semgrep-hack
 url = https://github.com/returntocorp/semgrep-hack.git
 
 [submodule "OSS/languages/html/tree-sitter/semgrep-html"]
@@ -51,16 +51,12 @@ path = languages/html/tree-sitter/semgrep-html
 url = https://github.com/returntocorp/semgrep-html.git
 
 [submodule "OSS/languages/tree-sitter-lang/semgrep-vue"]
-path = languages/tree-sitter-lang/semgrep-vue
+path = languages/vue/tree-sitter/semgrep-vue
 url = https://github.com/returntocorp/semgrep-vue.git
 
 [submodule "OSS/languages/dockerfile/tree-sitter/semgrep-dockerfile"]
 path = languages/dockerfile/tree-sitter/semgrep-dockerfile
 url = https://github.com/returntocorp/semgrep-dockerfile
-
-[submodule "OSS/languages/tree-sitter-lang/semgrep-sqlite"]
-path = languages/tree-sitter-lang/semgrep-sqlite
-url = https://github.com/returntocorp/semgrep-sqlite
 
 [submodule "OSS/languages/bash/tree-sitter/semgrep-bash"]
 path = languages/bash/tree-sitter/semgrep-bash
