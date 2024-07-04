@@ -156,7 +156,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
       let nosem_matches id =
         (* TODO: id should be a Rule_ID.t too *)
         let res =
-          Rule_ID.ends_with pm.rule_id.id ~suffix:(Rule_ID.of_string id)
+          Rule_ID.ends_with pm.rule_id.id ~suffix:(Rule_ID.of_string_exn id)
         in
         res
       in

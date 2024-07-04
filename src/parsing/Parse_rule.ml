@@ -520,10 +520,10 @@ let parse_rules_to_run_with_extract env key value =
   let ruleids_dict = yaml_to_dict env key value in
   let inc_opt, exc_opt =
     ( take_opt ruleids_dict env
-        (parse_string_wrap_list Rule_ID.of_string)
+        (parse_string_wrap_list Rule_ID.of_string_exn)
         "include",
       take_opt ruleids_dict env
-        (parse_string_wrap_list Rule_ID.of_string)
+        (parse_string_wrap_list Rule_ID.of_string_exn)
         "exclude" )
   in
   (* to be compatible with pysemgrep *)
@@ -604,7 +604,8 @@ let parse_step_fields env key (value : G.expr) : R.step =
   in
   let step_id_str, tok = key in
   let id =
-    (Rule_ID.of_string (* TODO: is this really a rule ID? *) step_id_str, tok)
+    ( Rule_ID.of_string_exn (* TODO: is this really a rule ID? *) step_id_str,
+      tok )
   in
   let step_selector, step_analyzer =
     parse_languages ~id rule_options languages
@@ -899,7 +900,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
   let rd = yaml_to_dict_no_env "rules" rule in
   (* We need a rule ID early to produce useful error messages. *)
   let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
-  let rule_id = Rule_ID.of_string rule_id_str in
+  let rule_id = Rule_ID.of_string_exn rule_id_str in
   let rule_id : Rule_ID.t =
     match rewrite_rule_ids with
     | None -> rule_id
@@ -1113,7 +1114,7 @@ let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) =
 let parse_xpattern xlang (str, tok) =
   let env =
     {
-      id = Rule_ID.of_string "anon-pattern";
+      id = Rule_ID.of_string_exn "anon-pattern";
       target_analyzer = xlang;
       in_metavariable_pattern = false;
       path = [];

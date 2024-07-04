@@ -8,7 +8,9 @@ exception Malformed_rule_ID of string
 
 (* conversion functions *)
 val to_string : t -> string
-val of_string : string -> t
+
+(* may raise Malformed_rule_ID *)
+val of_string_exn : string -> t
 val of_string_opt : string -> t option
 
 (* there are a few places where we need to convert list of rule IDs *)
@@ -36,6 +38,9 @@ val ends_with : t -> suffix:t -> bool
 
 (* "path.to.foo.bar" -> Some "bar" *)
 val last_elt_opt : t -> string option
+
+(* for -e *)
+val dash_e : t
 
 (* for ATD string wrap in semgrep_output_v1.atd *)
 val unwrap : t -> string
