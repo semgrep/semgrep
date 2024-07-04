@@ -60,7 +60,7 @@ let ranges_matched (lang : Lang.t) (file : Fpath.t) pattern : Range.t list =
   let ast = parse_file lang file in
   let rule =
     {
-      Mini_rule.id = Rule_ID.of_string "unit-testing";
+      Mini_rule.id = Rule_ID.of_string_exn "unit-testing";
       pattern;
       inside = false;
       message = "";

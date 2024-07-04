@@ -105,7 +105,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                    String.lowercase_ascii (string_of_severity severity)
                  in
                  let severity_and_ruleid =
-                   if check_id =*= Constants.rule_id_for_dash_e then severity
+                   if check_id =*= Rule_ID.dash_e then severity
                    else
                      match Rule_ID.last_elt_opt check_id with
                      | None -> severity
