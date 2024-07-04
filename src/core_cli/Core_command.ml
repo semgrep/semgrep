@@ -49,7 +49,7 @@ let parse_pattern lang_pattern str =
         (InvalidRule
            ( InvalidPattern
                (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-             Rule_ID.of_string "no-id",
+             Rule_ID.of_string_exn "no-id",
              Tok.unsafe_fake_tok "no loc" ))
 [@@profiling]
 
@@ -120,7 +120,7 @@ let semgrep_core_with_rules_and_formatted_output
 
 let minirule_of_pattern lang pattern_string pattern =
   {
-    Mini_rule.id = Rule_ID.of_string "anon-pattern";
+    Mini_rule.id = Rule_ID.of_string_exn "anon-pattern";
     pattern_string;
     pattern;
     inside = false;

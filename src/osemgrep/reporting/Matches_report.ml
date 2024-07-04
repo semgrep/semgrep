@@ -318,7 +318,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       | None -> true
       | Some m -> m.extra.message <> cur.extra.message
     in
-    let has_rule_name = cur.check_id <> Constants.rule_id_for_dash_e in
+    let has_rule_name = cur.check_id <> Rule_ID.dash_e in
     (if must_print_file then
        (* python compatibility: the 22m and 24m are "normal color or
            intensity", and "underline off" *)

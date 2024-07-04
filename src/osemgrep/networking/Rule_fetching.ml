@@ -97,7 +97,7 @@ let mk_rewrite_rule_ids (origin : origin) : Rule_ID.t -> Rule_ID.t =
   | None -> rule_id
   | Some prefix ->
       Rule_ID.sanitize_string prefix ^ Rule_ID.to_string rule_id
-      |> Rule_ID.of_string
+      |> Rule_ID.of_string_exn
 
 (*****************************************************************************)
 (* Helpers *)
