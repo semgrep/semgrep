@@ -501,15 +501,15 @@ nix-osemgrep:
 nix-semgrep-core:
 	nix build ".?submodules=1#semgrep-core"
 
-nix-pysemgrep:
-	nix build ".?submodules=1#pysemgrep"
+nix-semgrep:
+	nix build ".?submodules=1#semgrep"
 
 # Build + run tests (doesn't run python tests yet)
-nix-check: nix-check-flake
+nix-check:
 	nix flake check ".?submodules=1#"
 
 # verbose and sandboxing are disabled to enable networking for tests
-nix-check-verbose: nix-check-flake
+nix-check-verbose:
 	nix flake check -L ".?submodules=1#"
 
 # check flake is valid and not stale
@@ -520,19 +520,6 @@ nix-check-flake:
 nix-update:
 	nix flake update
 
-# Update nix cache with the latest dev shell and latest pysemgrep + build inputs
-# Since pysemgrep needs osemgrep this will also cache osemgrep related nix
-# derivations. If we want to cache anything else we will have to add it here
-#
-# coupling: see flake.nix quick start
-nix-cache:
-	nix develop --profile semgrep-profile -c true
-	cachix push semgrep semgrep-profile
-	rm semgrep-profile
-	rm semgrep-profile-1-link
-	nix build ".?submodules=1#" --json \
-	  | jq -r ".[].outputs | to_entries[].value" \
-	  | cachix push semgrep
 
 # -------------------------------------------------
 # Windows (native, via mingw and cygwin)
