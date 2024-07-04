@@ -1,4 +1,4 @@
-(* Pre and Post Processors Hook For Semgrep Pro or other Extensions *)
+(* Pre and Post Processors Hook around a core scan *)
 
 module type Processor = sig
   (* Each processor can define its own state/environment data structure *)
@@ -22,8 +22,8 @@ module No_Op_Processor : Processor
 val push_processor : (module Processor) -> unit
 
 (* quite similar to Core_scan.core_scan_func *)
-type 'a core_scan_func_with_rules =
-  'a ->
+type 'config core_scan_func_with_rules =
+  'config ->
   (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
   Core_result.t
 
@@ -32,9 +32,9 @@ type 'a core_scan_func_with_rules =
  * hook_processor
  *)
 val call_with_pre_and_post_processor :
-  ('a -> Core_scan_config.t) ->
-  'a core_scan_func_with_rules ->
-  'a core_scan_func_with_rules
+  ('config -> Core_scan_config.t) ->
+  'config core_scan_func_with_rules ->
+  'config core_scan_func_with_rules
 
 (* Exposed only for testing purposes. These can be used to arbitrarily change
  * the set of pre and post processors. *)
