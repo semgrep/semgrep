@@ -123,12 +123,13 @@ local semgrep_rules = [
        // of Logs.xxx is fine:
        //  - osemgrep (in src/osemgrep/),
        //    with also code in metachecking/ for osemgrep validate
-       //  - semgrep-core (in src/core_cli/), and many actions with
-       //    code under src/experiments
+       //  - semgrep-core (in src/core_cli/ and core_scan/), and many actions
+       //    with code under src/experiments
        //  - test (tests/*)
        'osemgrep/',
        'metachecking/',
        'core_cli/',
+       'core_scan/',
        '*_main.ml',
        'Main.ml',
        'Test_*',
