@@ -326,7 +326,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   in
   let rule =
     {
-      MR.id = Rule_ID.of_string "unit-testing";
+      MR.id = Rule_ID.of_string_exn "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -384,7 +384,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                ~hook:(fun { Pattern_match.range_loc; _ } ->
                  let start_loc, _end_loc = range_loc in
                  E.push_error
-                   (Rule_ID.of_string "test-pattern")
+                   (Rule_ID.of_string_exn "test-pattern")
                    start_loc "" OutJ.SemgrepMatchFound)
                ~file ~pattern ~fix:NoFix
              |> ignore;
@@ -497,7 +497,7 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                     * maybe left because of copy-pasta?
                     *)
                    E.push_error
-                     (Rule_ID.of_string "test-pattern")
+                     (Rule_ID.of_string_exn "test-pattern")
                      start_loc "" OutJ.SemgrepMatchFound)
                  ~file ~pattern ~fix
              in

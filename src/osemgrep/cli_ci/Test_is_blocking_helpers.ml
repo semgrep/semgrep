@@ -44,7 +44,7 @@ let cli_match_of_finding_with_actions
   let metadata = OutJ.raw_json_of_string metadata_str in
 
   {
-    OutJ.check_id = Rule_ID.of_string "rule_id";
+    OutJ.check_id = Rule_ID.of_string_exn "rule_id";
     path = Fpath.v "file_path_example";
     start = { line = 1; col = 1; offset = 1 };
     end_ = { line = 1; col = 1; offset = 1 };

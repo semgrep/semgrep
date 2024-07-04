@@ -228,14 +228,18 @@ let () =
                (show_annotations xs)
                (show_annotations expected))
       in
-      test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string "foo.bar") ];
+      test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string_exn "foo.bar") ];
       test "// ruleid: foo, bar"
-        [ (Ruleid, Rule_ID.of_string "foo"); (Ruleid, Rule_ID.of_string "bar") ];
-      test "<!-- ruleid: foo-bar -->" [ (Ruleid, Rule_ID.of_string "foo-bar") ];
+        [
+          (Ruleid, Rule_ID.of_string_exn "foo");
+          (Ruleid, Rule_ID.of_string_exn "bar");
+        ];
+      test "<!-- ruleid: foo-bar -->"
+        [ (Ruleid, Rule_ID.of_string_exn "foo-bar") ];
       (* the ok: does not mean it's an annot; it's regular (JS) code *)
       test "return res.send({ok: true})" [];
       test "// ruleid: deepok: foo.deep"
-        [ (Ruleid, Rule_ID.of_string "foo.deep") ];
+        [ (Ruleid, Rule_ID.of_string_exn "foo.deep") ];
       ())
 
 (* Keep only the Ruleid and Todook, group them by rule id, and adjust
