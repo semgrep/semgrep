@@ -410,40 +410,28 @@ metrics
   )
 )
 
-;; coupling: if you modify this package, type 'make semgrep.opam' to update
+;; coupling: if you modify this package, type 'make semgrep.opam'
 (package (name semgrep)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
   (description "\
-Semgrep is like grep but for searching patterns at the AST level.
+Semgrep is like grep but for searching patterns at the AST level while
+leveraging semantic information (e.g., types, control flow) for powerful
+matching.
 
 For more information see https://semgrep.dev
 "
   )
-
   (maintainers "Yoann Padioleau <pad@semgrep.com>")
   (authors "Yoann Padioleau <pad@semgrep.com>")
   (license "LGPL-2.1")
 
-; These are build dependencies.
-; Development-only dependencies are in 'dev/dev.opam'.
-
-;coupling: for semgrep CI to be fast, we try to pre-install these packages as
-; part of of the base docker image. When you add a new package or change a
-; version here, please also update the list of packages there:
-;
-;   https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
-;
-; or ask Martin to do so.
-; You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
-;
+;note: these are build dependencies. Development-only deps are in 'dev/*.opam'.
+;note: we don't include here as dependencies all the libraries
+; that are "vendored" inside semgrep (e.g., commons, aliengrep, pcre2)
 ;coupling: because of the way we need to statically link on macOS, if
 ; you add a library here, you'll probably need to update src/main/flags.sh
 ; if this library has some C stubs.
-;
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
-;
-; Note that we don't include here as dependencies all the libraries
-; that are "vendored" inside semgrep (e.g., commons, aliengrep, pcre2)
   (depends
     ; core deps
     (ocaml (>= 4.13.0))
