@@ -447,7 +447,8 @@ For more information see https://semgrep.dev
     fpath
     bos
     fileutils
-    ; unit testing (TODO? still need those alcotest-xx with testo?)
+    ; unit testing (note that testo is vendored in libs/ so not listed here)
+    ; TODO? still need those alcotest-xx now that we use testo?
     alcotest
     alcotest-js
     alcotest-lwt
@@ -498,6 +499,7 @@ For more information see https://semgrep.dev
     (opentelemetry (>= 0.9))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
+    ; hence the pin to 0.9.1
     (ocurl (= 0.9.1))
     opentelemetry-client-ocurl
     ambient-context-lwt
@@ -505,7 +507,8 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     uuidm
-    ; cohttp >= 6.0.0 requires opam 2.1.0 (which isn't yet on Windows)
+    ; cohttp >= 6.0.0 requires opam 2.1.0 which used to not available in Windows
+    ; TODO: now that opam 2.2.0 is out and support windows, upgrade to 6.0.0
     (cohttp (= 5.3.0))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
@@ -524,6 +527,12 @@ For more information see https://semgrep.dev
     (js_of_ocaml-lwt (= 5.7.2))
     ctypes_stubs_js
     integers_stubs_js
+    ;TODO: this is for secrets and should be in ../dune-project but doing so
+    ; slows down a lot our CI because it pulls dependencies that seem
+    ; to cause the removal and recompilation of many packages (e.g., tls) and
+    ; make our GHA opam cache useless. We might need to install here instead
+    ; packages that would avoid this effect.
+    git-unix
   )
 )
 
