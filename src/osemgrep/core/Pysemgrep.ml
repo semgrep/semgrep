@@ -4,15 +4,17 @@ open Common
 (* Prelude *)
 (*************************************************************************)
 (* Temporary module while migrating code to osemgrep to fallback to
- * pysemgrep.
- *
+ * pysemgrep when osemgrep does not handle yet certain options.
  *)
 
 (*************************************************************************)
-(* Entry points *)
+(* Types *)
 (*************************************************************************)
-
 exception Fallback
+
+(*************************************************************************)
+(* Entry point *)
+(*************************************************************************)
 
 (* dispatch back to pysemgrep! *)
 let pysemgrep (caps : < Cap.exec >) argv =
