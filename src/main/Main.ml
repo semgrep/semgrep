@@ -20,7 +20,7 @@
  * and osemgrep and have a single binary called 'semgrep'.
  *
  * related work using code patterns (from oldest to newest):
- *  - Structural Search and Replace (SSR) in Jetbrains IDEs for
+ *  - Structural Search and Replace (SSR) in Jetbrains IDEs
  *    http://www.jetbrains.com/idea/documentation/ssr.html
  *    http://tv.jetbrains.net/videocontent/intellij-idea-static-analysis-custom-rules-with-structural-search-replace
  *  - Coccinelle (the precursor of Semgrep) for C
@@ -34,10 +34,10 @@
  *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
  *  - cgrep for C
  *    http://awgn.github.io/cgrep/
- *  - Weggli for C/C++ (inspired by Semgrep)
- *    https://github.com/weggli-rs/weggli
  *  - Comby
  *    https://comby.dev/
+ *  - Weggli for C/C++ (inspired by Semgrep)
+ *    https://github.com/weggli-rs/weggli
  *  - ASTgrep (inspired by Semgrep)
  *    https://ast-grep.github.io/
  *
