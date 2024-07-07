@@ -240,11 +240,8 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
 (* Error management *)
 (*****************************************************************************)
 
-(* Wrapper that catches exceptions and turns them into an exit code.
- * TOPORT?
-    Adds the following functionality to our subcommands:
-    - Enforces that exit code 1 is only for findings
-    - Handles metric sending before exit
+(* Wrapper that catches exceptions and turns them into an exit code
+ * TOPORT? "Enforces that exit code 1 is only for findings"
  *)
 let safe_run ~debug f : Exit_code.t =
   if debug then f ()
@@ -283,7 +280,10 @@ let before_exit ~profile caps : unit =
 (* Entry point *)
 (*****************************************************************************)
 
-(* called from ../../main/Main.ml *)
+(* Called from ../../main/Main.ml. main() mostly does some preliminary logging,
+ * profiling, debugging, and metrics initializations before calling
+ * dispatch_subcommand().
+ *)
 let main (caps : caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
@@ -341,9 +341,13 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
   Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
 
   metrics_init (caps :> < Cap.random >);
+
   (* TOPORT: maybe_set_git_safe_directories() *)
   (* TOADAPT? adapt more of Common.boilerplate? *)
+
+  (* !The main call! dispatching a subcommand *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
+
   Metrics_.add_exit_code exit_code;
   send_metrics (caps :> < Cap.network >);
   before_exit ~profile (caps :> < Cap.tmp >);
