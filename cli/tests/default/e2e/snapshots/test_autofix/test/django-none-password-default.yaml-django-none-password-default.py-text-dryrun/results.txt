@@ -10,8 +10,8 @@
           'user'. If you meant to set an unusable password, set the default value to 'None' or call
           'set_unusable_password()'.
 
-           ▶▶┆ Autofix ▶ new_password = request.data.get("password", None)validate_password(new_password,
-              user=user)user.set_password(new_password)user.save()
+           ▶▶┆ Autofix ▶ new_password = request.data.get("password", None) validate_password(new_password, user=user)
+              user.set_password(new_password) user.save()
            60┆ new_password = request.data.get("password", None)        validate_password(new_password,
                user=user)        user.set_password(new_password)        user.save()
             ⋮┆----------------------------------------
@@ -20,10 +20,10 @@
           If you meant to set an unusable password, set the default value to 'None' or call
           'set_unusable_password()'.
 
-           ▶▶┆ Autofix ▶ def create_user(self, email, password=None):"""Creates and saves a Poster with the given email
-              and password."""if not email:raise ValueError('Users must have an email
-              address')user = self.model(email=self.normalize_email(email))user.set_password(pass
-              word)user.save(using=self._db)return user
+           ▶▶┆ Autofix ▶ def create_user(self, email, password=None): """ Creates and saves a Poster with the given
+              email and password. """ if not email: raise ValueError('Users must have an email
+              address')  user = self.model(email=self.normalize_email(email))
+              user.set_password(password) user.save(using=self._db) return user
            71┆ def create_user(self, email, password=None):        """        Creates and saves a Poster
                with the given email and password.        """        if not email:            raise
                ValueError('Users must have an email address')        user =
