@@ -145,6 +145,21 @@ let error_with_rule_id rule_id (error : Core_error.t) =
 
 let lazy_force x = Lazy.force x [@@profiling]
 
+(* `fold_with_expls` is a left fold across a list of things, while
+   accumulating an explanation for each item. it preserves the
+   explanations in the same order, though.
+*)
+let fold_with_expls ~f ~init env xs =
+  let acc, expls =
+    xs
+    |> List.fold_left
+         (fun (acc_ranges, (acc_expls : ME.t option list)) x ->
+           let new_ranges, new_expl = f env acc_ranges x in
+           (new_ranges, new_expl :: acc_expls))
+         (init, [])
+  in
+  (acc, List.rev expls)
+
 (*****************************************************************************)
 (* Adapters *)
 (*****************************************************************************)
@@ -779,20 +794,18 @@ and evaluate_formula env opt_context
       * See https://github.com/returntocorp/semgrep/issues/2664
   *)
   let ranges, filter_expls =
-    conditions
-    |> List.fold_left
-         (fun (ranges_with_bindings, acc_expls) (tok, cond) ->
-           let ranges_with_bindings =
-             filter_ranges env ranges_with_bindings cond
-           in
-           let expl =
-             if_explanations env
-               (List_.map fst ranges_with_bindings)
-               []
-               (OutJ.Filter (Tok.content_of_tok tok), tok)
-           in
-           (ranges_with_bindings, expl :: acc_expls))
-         (List_.map (fun x -> (x, [])) ranges, [])
+    fold_with_expls
+      ~f:(fun env ranges (tok, cond) ->
+        let ranges_with_bindings = filter_ranges env ranges cond in
+        let expl =
+          if_explanations env
+            (List_.map fst ranges_with_bindings)
+            []
+            (OutJ.Filter (Tok.content_of_tok tok), tok)
+        in
+        (ranges_with_bindings, expl))
+      ~init:(List_.map (fun x -> (x, [])) ranges)
+      env conditions
   in
 
   (* Here, we unpack all the persistent bindings for each instance of the inner
@@ -846,7 +859,7 @@ and evaluate_formula env opt_context
     | None -> None
     | Some ({ ME.children; _ } as me) ->
         let children =
-          List_.map (fun x -> Some x) children @ focus_expls @ filter_expls
+          List_.map (fun x -> Some x) children @ filter_expls @ focus_expls
           |> List_.filter_map Fun.id
         in
         Some { me with ME.children }
@@ -955,27 +968,24 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
 
           (* let's remove the negative ranges *)
           let ranges, negs_expls =
-            neg
-            |> List.fold_left
-                 (fun (ranges, acc_expls) (tok, x) ->
-                   let ranges_neg, expl = evaluate_formula env opt_context x in
-                   let ranges =
-                     RM.difference_ranges env.xconf.config ranges ranges_neg
-                   in
-                   let expl =
-                     if_explanations env ranges [ expl ] (OutJ.Negation, tok)
-                   in
-                   (ranges, expl :: acc_expls))
-                 (ranges, [])
+            fold_with_expls
+              ~f:(fun env ranges (tok, x) ->
+                let ranges_neg, expl = evaluate_formula env opt_context x in
+                let ranges =
+                  RM.difference_ranges env.xconf.config ranges ranges_neg
+                in
+                let expl =
+                  if_explanations env ranges [ expl ] (OutJ.Negation, tok)
+                in
+                (ranges, expl))
+              ~init:ranges env neg
           in
 
           let expl =
             (* We reverse these negation explanations, because we folded across them from
                the left, meaning they are in the opposite order as in the original rule.
             *)
-            if_explanations env ranges
-              (posrs_expls @ List.rev negs_expls)
-              (OutJ.And, t)
+            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"

@@ -1,0 +1,3 @@
+Matching explanations: Focus nodes now appear after filter nodes, which is
+the correct order of execution of pattern nodes. Filter nodes are now
+unreversed.
