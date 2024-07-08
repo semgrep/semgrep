@@ -697,7 +697,7 @@ def print_text_output(
             wrapped_fix = (
                 textwrap.fill(
                     textwrap.dedent(
-                        "".join(l.strip() for l in fix.splitlines(keepends=True))
+                        " ".join(l.strip() for l in fix.splitlines(keepends=True))
                     ),
                     width=safe_width(AUTOFIX_TEXT_WIDTH),
                     initial_indent="",
