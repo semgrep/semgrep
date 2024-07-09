@@ -1,4 +1,6 @@
 from datetime import datetime
+from typing import Optional
+from typing import Tuple
 
 import pytest
 
@@ -34,7 +36,7 @@ from semdep.golang_version import ParsedGolangVersion
         ),
     ],
 )
-def test_golang_version_comparison(versions: tuple[str, str], results: bool):
+def test_golang_version_comparison(versions: Tuple[str, str], results: bool):
     package_version, spec_version = versions
     assert compare_golang_specifier(spec_version, package_version) == results
 
@@ -48,7 +50,7 @@ def test_golang_version_comparison(versions: tuple[str, str], results: bool):
         ("0", (0, 0, 0)),
     ],
 )
-def test_parse_golang_core(core: str, core_components: tuple[int, int, int]):
+def test_parse_golang_core(core: str, core_components: Tuple[int, int, int]):
     major, minor, patch = core_components
     parsed_core = GolangVersionCore(major=major, minor=minor, patch=patch)
     assert parse_golang_core(core) == parsed_core
@@ -77,7 +79,8 @@ def test_parse_pseudo_datetime():
     ],
 )
 def test_parse_golang_version(
-    raw_version: str, components: tuple[int, int, int, datetime | None, str | None]
+    raw_version: str,
+    components: Tuple[int, int, int, Optional[datetime], Optional[str]],
 ):
     major, minor, patch, timestamp, commit_hash = components
     parsed_golang_core = GolangVersionCore(major=major, minor=minor, patch=patch)
@@ -104,7 +107,7 @@ def test_parse_golang_version(
     ],
 )
 def test_cmp_core(
-    core_versions: tuple[GolangVersionCore, GolangVersionCore], diff: int
+    core_versions: Tuple[GolangVersionCore, GolangVersionCore], diff: int
 ):
     parsed_version_core, specifier_version_core = core_versions
     assert cmp_core(parsed_version_core, specifier_version_core) == diff
@@ -138,7 +141,7 @@ def test_cmp_core(
     ],
 )
 def test_cmp_pseudo(
-    pseudos: tuple[GolangPseudoVersion, GolangPseudoVersion], diff: int
+    pseudos: Tuple[GolangPseudoVersion, GolangPseudoVersion], diff: int
 ):
     parsed_version_pseudo, specifier_version_pseudo = pseudos
     assert cmp_pseudo(parsed_version_pseudo, specifier_version_pseudo) == diff
@@ -171,8 +174,10 @@ def test_cmp_pseudo(
     ],
 )
 def test_cmp_golang_versions(
-    parsed_version_components: tuple[int, int, int, datetime | None, str | None],
-    specifier_version_components: tuple[int, int, int, datetime | None, str | None],
+    parsed_version_components: Tuple[int, int, int, Optional[datetime], Optional[str]],
+    specifier_version_components: Tuple[
+        int, int, int, Optional[datetime], Optional[str]
+    ],
     diff: int,
 ):
     (
