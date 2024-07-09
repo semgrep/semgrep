@@ -35,6 +35,7 @@ and pl_type =
   | Erlang
   | Go
   | Rust
+  | Move_on_aptos
   | Beta
   | Pascal
   | Haxe
