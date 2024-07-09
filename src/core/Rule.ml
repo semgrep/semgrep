@@ -138,8 +138,10 @@ and metavar_cond =
     (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
+  | CondName of MV.mvar * metavar_name_kind
 
 and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
+and metavar_name_kind = DjangoView
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
