@@ -1,15 +1,28 @@
-module OutJ = Semgrep_output_v1_j
+(* Brandon Wu
+ *
+ * Copyright (C) 2024 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Fpath_.Operators
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
-  Partially translated from nosemgrep.py
-
-  See https://semgrep.dev/docs/ignoring-files-folders-code/ for documentation
-  about nosemgrep.
-*)
+(* Nosemgrep annotation filtering.
+ * See https://semgrep.dev/docs/ignoring-files-folders-code/ for more info.
+ *
+ * Partially translated from nosemgrep.py
+ *)
 
 (*****************************************************************************)
 (* Types and constants *)
@@ -19,6 +32,7 @@ open Fpath_.Operators
  * better separation of concern to put it here.
  *)
 
+(* TODO: should be in Rule_ID.ml instead? *)
 let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
 
 (*
@@ -154,13 +168,14 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
       in
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
-        (* TODO: id should be a Rule_ID.t too *)
-        let res =
-          Rule_ID.ends_with pm.rule_id.id ~suffix:(Rule_ID.of_string_exn id)
-        in
-        res
+        match Rule_ID.of_string_opt id with
+        | Some id -> Rule_ID.ends_with pm.rule_id.id ~suffix:id
+        (* If `id` isn't a valid identifier don't supress any rule. *)
+        | None ->
+            (* nosemgrep: no-logs-in-library *)
+            Logs.warn (fun m -> m "Invalid rule ID in %s: '%s'" !!path id);
+            false
       in
-
       List.fold_left
         (fun (result, errors) (line_num, id, col) ->
           (* strip quotes from the beginning and end of the id. this allows
@@ -230,18 +245,17 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
         (false, []) ids
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let produce_ignored (matches : Core_result.processed_match list) :
     Core_result.processed_match list * Core_error.t list =
   (* filters [rule_match]s by the [nosemgrep] tag. *)
   let matches, wide_errors =
-    List_.map
-      (fun (pm : Core_result.processed_match) ->
-        let is_ignored, errors = rule_match_nosem pm.pm in
-        ({ pm with is_ignored }, errors))
-      matches
+    matches
+    |> List_.map (fun (pm : Core_result.processed_match) ->
+           let is_ignored, errors = rule_match_nosem pm.pm in
+           ({ pm with is_ignored }, errors))
     |> List.split
   in
   (matches, List.concat wide_errors)

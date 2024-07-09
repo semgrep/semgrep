@@ -68,7 +68,17 @@ let _ =
             * but this should not happen here, so it's ok to use tmp_caps_UNSAFE
             *)
            let caps = Cap.tmp_caps_UNSAFE () in
-           let res = Core_scan.scan_with_exn_handler caps config in
+           let res_or_exn = Core_scan.scan_with_exn_handler caps config in
+           let res =
+             match res_or_exn with
+             | Error (e, _core_error_opt) ->
+                 (* TODO? maybe we should Exception.reraise e instead, but then need
+                  * to fix some regressions in make -C js test
+                  *)
+                 let err = Core_error.exn_to_error None "" e in
+                 Core_result.mk_final_result_with_just_errors [ err ]
+             | Ok res -> res
+           in
            let res =
              Core_runner.create_core_result (fst rules_and_errors) res
            in

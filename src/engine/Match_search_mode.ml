@@ -485,7 +485,7 @@ let apply_as_on_ranges ranges as_ =
                  let tokens = Lazy.force range.origin.tokens in
                  match (range.origin.path.origin, tokens) with
                  | File _, [] ->
-                     Logs.warn (fun m ->
+                     Log.warn (fun m ->
                          m "Got empty tokens when using as-metavariable");
                      range.mvars
                  | File fpath, fst_tok :: _ ->
@@ -496,7 +496,7 @@ let apply_as_on_ranges ranges as_ =
                            Common2.list_last tokens ) )
                      :: range.mvars
                  | _ ->
-                     Logs.debug (fun m ->
+                     Log.debug (fun m ->
                          m "unable to apply as operator to gitblob match");
                      range.mvars));
          })

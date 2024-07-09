@@ -52,7 +52,7 @@ val hook_pro_core_run_for_osemgrep :
 val hook_pro_git_remote_scan_setup :
   (core_run_for_osemgrep -> core_run_for_osemgrep) option ref
 
-val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
+val create_core_result : Rule.rule list -> Core_result.t -> result
 
 (* Core_scan_func adapter to be used in osemgrep.
 

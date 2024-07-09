@@ -533,95 +533,102 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
           (caps :> < Cap.chdir ; Cap.tmp >)
           conf baseline_commit targets rules profiler scan_func
   in
-  let (res : Core_runner.result) =
-    Core_runner.create_core_result rules result_or_exn
-  in
-  (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)
-  let keep_ignored =
-    (not conf.core_runner_conf.nosem)
-    (* --disable-nosem *)
-    || Output_format.keep_ignores output_format
-  in
-  let res = adjust_nosemgrep_and_autofix ~keep_ignored res in
+  match result_or_exn with
+  | Error (e, _core_error_opt) ->
+      (* TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead *)
+      Exception.reraise e
+  | Ok result ->
+      let (res : Core_runner.result) =
+        Core_runner.create_core_result rules result
+      in
+      (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)
+      let keep_ignored =
+        (not conf.core_runner_conf.nosem)
+        (* --disable-nosem *)
+        || Output_format.keep_ignores output_format
+      in
+      let res = adjust_nosemgrep_and_autofix ~keep_ignored res in
 
-  (* step 4: adjust the skipped_targets *)
-  let res = adjust_skipped skipped res in
+      (* step 4: adjust the skipped_targets *)
+      let res = adjust_skipped skipped res in
 
-  (* step 5: report the matches *)
-  Logs.info (fun m -> m "reporting matches if any");
-  (* outputting the result on stdout! in JSON/Text/... depending on conf *)
-  let cli_output =
-    let runtime_params =
-      Output.
-        {
-          is_logged_in = Semgrep_login.is_logged_in ();
-          is_using_registry =
-            Metrics_.g.is_using_registry
-            || !Semgrep_envvars.v.mock_using_registry;
-        }
-    in
-    Output.output_result
-      { conf.output_conf with output_format }
-      profiler runtime_params res
-  in
-  Profiler.stop_ign profiler ~name:"total_time";
+      (* step 5: report the matches *)
+      Logs.info (fun m -> m "reporting matches if any");
+      (* outputting the result on stdout! in JSON/Text/... depending on conf *)
+      let cli_output =
+        let runtime_params =
+          Output.
+            {
+              is_logged_in = Semgrep_login.is_logged_in ();
+              is_using_registry =
+                Metrics_.g.is_using_registry
+                || !Semgrep_envvars.v.mock_using_registry;
+            }
+        in
+        Output.output_result
+          { conf.output_conf with output_format }
+          profiler runtime_params res
+      in
+      Profiler.stop_ign profiler ~name:"total_time";
 
-  let rules_with_targets =
-    match result_or_exn with
-    | Ok r ->
-        r.rules_with_targets
-        |> List_.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
-    | _ -> []
-  in
+      let rules_with_targets =
+        match result_or_exn with
+        | Ok r ->
+            r.rules_with_targets
+            |> List_.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
+        | _ -> []
+      in
 
-  if Metrics_.is_enabled () then (
-    Metrics_.add_errors cli_output.errors;
-    Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time rules;
-    Metrics_.add_rules_hashes_and_findings_count (rules_and_counted_matches res);
-    Metrics_.add_profiling profiler);
+      if Metrics_.is_enabled () then (
+        Metrics_.add_errors cli_output.errors;
+        Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
+          rules;
+        Metrics_.add_rules_hashes_and_findings_count
+          (rules_and_counted_matches res);
+        Metrics_.add_profiling profiler);
 
-  let skipped_groups = Skipped_report.group_skipped skipped in
-  Logs.info (fun m ->
-      m "%a" Skipped_report.pp_skipped
-        ( conf.targeting_conf.respect_gitignore,
-          conf.common.maturity,
-          conf.targeting_conf.max_target_bytes,
-          skipped_groups ));
-  (* Note that Logs.app() is printing on stderr (but without any [XXX]
-   * prefix), and is filtered when using --quiet.
-   *)
-  Logs.app (fun m ->
-      m "%a"
-        (Summary_report.pp_summary
-           ~respect_gitignore:conf.targeting_conf.respect_gitignore
-           ~maturity:conf.common.maturity
-           ~max_target_bytes:conf.targeting_conf.max_target_bytes
-           ~skipped_groups)
-        ());
-  Logs.app (fun m ->
-      m "Ran %s on %s: %s."
-        (String_.unit_str (List.length rules_with_targets) "rule")
-        (String_.unit_str (List.length cli_output.paths.scanned) "file")
-        (String_.unit_str (List.length cli_output.results) "finding"));
+      let skipped_groups = Skipped_report.group_skipped skipped in
+      Logs.info (fun m ->
+          m "%a" Skipped_report.pp_skipped
+            ( conf.targeting_conf.respect_gitignore,
+              conf.common.maturity,
+              conf.targeting_conf.max_target_bytes,
+              skipped_groups ));
+      (* Note that Logs.app() is printing on stderr (but without any [XXX]
+       * prefix), and is filtered when using --quiet.
+       *)
+      Logs.app (fun m ->
+          m "%a"
+            (Summary_report.pp_summary
+               ~respect_gitignore:conf.targeting_conf.respect_gitignore
+               ~maturity:conf.common.maturity
+               ~max_target_bytes:conf.targeting_conf.max_target_bytes
+               ~skipped_groups)
+            ());
+      Logs.app (fun m ->
+          m "Ran %s on %s: %s."
+            (String_.unit_str (List.length rules_with_targets) "rule")
+            (String_.unit_str (List.length cli_output.paths.scanned) "file")
+            (String_.unit_str (List.length cli_output.results) "finding"));
 
-  (* step 6: apply autofixes *)
-  (* this must happen posterior to reporting matches, or will report the
-     already-fixed file
-  *)
-  if conf.output_conf.autofix then
-    Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
-      res.core.results;
+      (* step 6: apply autofixes *)
+      (* this must happen posterior to reporting matches, or will report the
+         already-fixed file
+      *)
+      if conf.output_conf.autofix then
+        Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
+          res.core.results;
 
-  (* TOPORT? was in formater/base.py
-     def keep_ignores(self) -> bool:
-       """
-       Return True if ignored findings should be passed to this formatter;
-       False otherwise.
-       Ignored findings can still be distinguished using their _is_ignore property.
-       """
-       return False
-  *)
-  Ok (rules, res, cli_output)
+      (* TOPORT? was in formater/base.py
+         def keep_ignores(self) -> bool:
+           """
+           Return True if ignored findings should be passed to this formatter;
+           False otherwise.
+           Ignored findings can still be distinguished using their _is_ignore property.
+           """
+           return False
+      *)
+      Ok (rules, res, cli_output)
 
 (*****************************************************************************)
 (* Run the real 'scan' subcommand *)
