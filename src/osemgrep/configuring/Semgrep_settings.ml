@@ -3,7 +3,7 @@ open Fpath_.Operators
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Loading and saving of the ~/.semgrep/settings.yml file *)
+(* Load and save the ~/.semgrep/settings.yml file *)
 
 (*****************************************************************************)
 (* Types and constants *)
@@ -11,6 +11,7 @@ open Fpath_.Operators
 
 (* TODO: use ATD to specify the settings file format *)
 type t = {
+  (* a banner we want to show just once to the user *)
   has_shown_metrics_notification : bool option;
   api_token : Auth.token option;
   anonymous_user_id : Uuidm.t;

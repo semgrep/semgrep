@@ -14,17 +14,20 @@
  * See https://semgrep.dev/ for more information.
  *
  * This is the entry point of the semgrep-core program used internally
- * by pysemgrep, the entry point of osemgrep, and the entry point of semgrep
- * for windows.
- * LATER: when osemgrep is fully done we can just get rid of semgrep-core
- * and osemgrep and have a single binary called 'semgrep'.
+ * by pysemgrep, the entry point of osemgrep, and currently also the entry point
+ * of semgrep for windows. See also the ../../cli/bin/semgrep python wrapper
+ * script which is currently the real entry point of semgrep.
+ * LATER: when osemgrep is fully done we can just get rid of semgrep-core,
+ * osemgrep, the wrapper script, and have a single binary called 'semgrep'.
  *
- * related work using code patterns (from oldest to newest):
+ * Related work using code patterns (from oldest to newest):
  *  - Structural Search and Replace (SSR) in Jetbrains IDEs
  *    http://www.jetbrains.com/idea/documentation/ssr.html
  *    http://tv.jetbrains.net/videocontent/intellij-idea-static-analysis-custom-rules-with-structural-search-replace
  *  - Coccinelle (the precursor of Semgrep) for C
  *    https://coccinelle.gitlabpages.inria.fr/website/
+ *  - Sgrep (Syntactical GREP, another precursor of Semgrep) for PHP
+ *    https://github.com/facebook/pfff/wiki/Sgrep
  *  - gogrep and ruleguard for Go
  *    https://github.com/mvdan/gogrep/
  *    https://github.com/quasilyte/go-ruleguard
@@ -34,7 +37,7 @@
  *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
  *  - cgrep for C
  *    http://awgn.github.io/cgrep/
- *  - Comby
+ *  - Comby for many languages
  *    https://comby.dev/
  *  - Weggli for C/C++ (inspired by Semgrep)
  *    https://github.com/weggli-rs/weggli
@@ -44,27 +47,37 @@
  * related AST search tools:
  *  - "ASTLOG: A Language for Examining Abstract Syntax Trees"
  *     https://www.usenix.org/legacy/publications/library/proceedings/dsl97/full_papers/crew/crew.pdf
- *  - "JQuery: Finding your way through thangled code"
- *     https://www.cs.ubc.ca/labs/spl/projects/jquery/papers.htm
  *  - rubocop pattern
  *    https://docs.rubocop.org/rubocop-ast/node_pattern.html
  *  - astpath, using XPATH on ASTs
  *    https://github.com/hchasestevens/astpath
- *  - CodeQL
- *    https://codeql.github.com/
+ *
+ * related code search and indexing tools:
+ *  - "Tutorial on the C Information Abstraction System"
+ *     https://www2.eecs.berkeley.edu/Pubs/TechRpts/1987/CSD-87-327.pdf
+ *  - "JQuery: Finding your way through thangled code"
+ *     https://www.cs.ubc.ca/labs/spl/projects/jquery/papers.htm
  *  - Codequery (from Pfff too)
  *    https://github.com/facebookarchive/pfff/wiki/CodeQuery
+ *  - CodeQL (known previously as Semmle and before CodeQuest)
+ *    https://codeql.github.com/
+ *  - Kythe (sucessor of Grok by Steve Yegge at Google)
+ *    https://kythe.io/
+ *  - LSP the Language Server protocol
+ *    https://langserver.org/
+ *  - SCIP and LSIF by sourcegraph
+ *    https://github.com/sourcegraph/scip
+ *  - Glean
+ *    https://glean.software/
  *  - many more (e.g., PQL)
  *
  * related grep-like tools:
  *  - ack
  *    http://beyondgrep.com/
  *  - ripgrep
- *    https://github.com/mvdan/gogrep/
+ *    https://github.com/BurntSushi/ripgrep
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
  *  - many grep-based linters (in Zulip, autodesk, bento, etc.)
- *
- * See also old information at https://github.com/facebook/pfff/wiki/Sgrep.
  *)
 
 (*****************************************************************************)

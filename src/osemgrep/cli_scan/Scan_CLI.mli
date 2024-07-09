@@ -9,7 +9,7 @@ type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
-  (* can be a list of files or directories; symlinks ok *)
+  (* the roots can be files, directories, or even symlinks *)
   target_roots : Scanning_root.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
@@ -31,14 +31,16 @@ type conf = {
   (* Networking options *)
   metrics : Metrics_.config;
   version_check : bool;
+  (* Debugging/logging/profiling options *)
   common : CLI_common.conf;
+  trace : bool;
+  (* TODO: use Uri.t *)
+  trace_endpoint : string option;
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
-  trace : bool;
-  trace_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]
@@ -54,9 +56,9 @@ val default : conf
    This function may raise an exn in case of an error parsing argv
    but this should be caught by CLI.safe_run.
 
-   TODO: ugly but need to pass Cap.tmp to support query console
-   Find_targets.Git_remove. Would be better to do that in
-   Scan_subcommand.ml instead after parsing the arguments.
+   ugly: need to pass Cap.tmp to support named pipes
+   TODO: would be better to do that in Scan_subcommand.ml instead, after
+   parsing the arguments.
 *)
 val parse_argv : < Cap.tmp > -> string array -> conf
 
