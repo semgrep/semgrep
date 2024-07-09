@@ -10,7 +10,7 @@ assignees: ""
 A clear and concise description of what the bug is.
 
 **To Reproduce**
-Steps to reproduce the behavior, ideally a link to https://semgrep.dev:
+Steps to reproduce the behavior, ideally a link to https://semgrep.dev/playground (click "share" and make public to get a shortlink):
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
