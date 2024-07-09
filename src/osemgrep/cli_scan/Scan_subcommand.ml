@@ -16,8 +16,7 @@ open Common
 open Fpath_.Operators
 module C = Rules_config
 module Env = Semgrep_envvars
-module OutJ = Semgrep_output_v1_t
-module SS = Set.Make (String)
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -97,6 +96,31 @@ let notify_user_about_metrics_once (settings : Semgrep_settings.t) : unit =
     in
     Semgrep_settings.save settings |> ignore)
 
+(* This function counts how many matches we got by rules:
+   [(Rule.t, number of matches : int) list].
+   This is use for rule metrics.
+*)
+let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
+  let update = function
+    | Some n -> Some (succ n)
+    | None -> Some 1
+  in
+  let fold acc (core_match : Out.core_match) =
+    Map_.update core_match.check_id update acc
+  in
+  let xmap = List.fold_left fold Map_.empty res.core.results in
+  Map_.fold
+    (fun rule_id n acc ->
+      let res =
+        try Hashtbl.find res.hrules rule_id with
+        | Not_found ->
+            failwith
+              (spf "could not find rule_id %s in hash"
+                 (Rule_ID.to_string rule_id))
+      in
+      (res, n) :: acc)
+    xmap []
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -106,7 +130,7 @@ let ( let/ ) = Result.bind
 (* python: this used to be done in a _final_raise method from output.py
  * but better separation of concern to do it here.
  *)
-let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
+let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
   match List.rev errors with
   | [] -> Exit_code.ok ~__LOC__
   (* TODO? why do we look at the last error? What about the other errors? *)
@@ -149,14 +173,14 @@ let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
  *)
 
 let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (printer : Scan_CLI.conf -> OutJ.cli_match list -> unit) (_file : Fpath.t)
+    (printer : Scan_CLI.conf -> Out.cli_match list -> unit) (_file : Fpath.t)
     (match_results : Core_result.matches_single_file) : unit =
-  let (cli_matches : OutJ.cli_match list) =
+  let (cli_matches : Out.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
     let (pms : Pattern_match.t list) = match_results.matches in
-    let (core_matches : OutJ.core_match list) =
+    let (core_matches : Out.core_match list) =
       pms
       (* OK, because we don't need the postprocessing to report the matches. *)
       |> List_.map Core_result.mk_processed_match
@@ -172,7 +196,7 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
   in
   let cli_matches =
     cli_matches
-    |> List_.exclude (fun (m : OutJ.cli_match) ->
+    |> List_.exclude (fun (m : Out.cli_match) ->
            Option.value ~default:false m.extra.is_ignored)
   in
   if cli_matches <> [] then (
@@ -184,14 +208,14 @@ let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
 let incremental_text_printer (conf : Scan_CLI.conf)
-    (cli_matches : OutJ.cli_match list) : unit =
+    (cli_matches : Out.cli_match list) : unit =
   Matches_report.pp_text_outputs
     ~max_chars_per_line:conf.output_conf.max_chars_per_line
     ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
     ~color_output:conf.output_conf.force_color Format.std_formatter cli_matches
 
 let incremental_json_printer (conf : Scan_CLI.conf)
-    (cli_matches : OutJ.cli_match list) : unit =
+    (cli_matches : Out.cli_match list) : unit =
   ignore conf;
   List.iter
     (fun cli_match ->
@@ -199,7 +223,7 @@ let incremental_json_printer (conf : Scan_CLI.conf)
     cli_matches
 
 let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
-    (filtered_rules : Rule.rules) =
+    (rules : Rule.rules) =
   match conf with
   | {
       output_conf = { output_format = Output_format.Text; _ };
@@ -212,18 +236,14 @@ let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
       _;
     } ->
       ( Output_format.Incremental,
-        Some
-          (mk_file_match_results_hook conf filtered_rules
-             incremental_text_printer) )
+        Some (mk_file_match_results_hook conf rules incremental_text_printer) )
   | {
    output_conf = { output_format = Output_format.Json; _ };
    incremental_output = true;
    _;
   } ->
       ( Output_format.Incremental,
-        Some
-          (mk_file_match_results_hook conf filtered_rules
-             incremental_json_printer) )
+        Some (mk_file_match_results_hook conf rules incremental_json_printer) )
   | { output_conf; _ } -> (output_conf.output_format, None)
 
 (*****************************************************************************)
@@ -353,31 +373,6 @@ let uniq_rules_and_error_if_empty_rules rules =
   if List_.null rules then Error (Exit_code.missing_config ~__LOC__)
   else Ok rules
 
-(* This function counts how many matches we got by rules:
-   [(Rule.t, number of matches : int) list].
-   This is use for rule metrics.
-*)
-let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
-  let update = function
-    | Some n -> Some (succ n)
-    | None -> Some 1
-  in
-  let fold acc (core_match : OutJ.core_match) =
-    Map_.update core_match.check_id update acc
-  in
-  let xmap = List.fold_left fold Map_.empty res.core.results in
-  Map_.fold
-    (fun rule_id n acc ->
-      let res =
-        try Hashtbl.find res.hrules rule_id with
-        | Not_found ->
-            failwith
-              (spf "could not find rule_id %s in hash"
-                 (Rule_ID.to_string rule_id))
-      in
-      (res, n) :: acc)
-    xmap []
-
 (* Select and execute the scan func based on the configured engine settings.
    Yet another mk_scan_func adapter. TODO: can we simplify?
 *)
@@ -436,249 +431,73 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
 [@@profiling]
 
+let adjust_skipped (skipped : Out.skipped_target list)
+    (res : Core_runner.result) : Core_runner.result =
+  let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+  let skipped = skipped @ errors_skipped in
+  (* TODO: what is in core.skipped_targets? should we add them to
+   * skipped above too?
+   *)
+  let skipped =
+    let skipped = skipped @ List_.optlist_to_list res.core.paths.skipped in
+    let in_test =
+      !Semgrep_envvars.v.user_agent_append
+      |> Option.map (fun s -> String.equal s "pytest")
+      |> Option.value ~default:false
+    in
+    let skipped =
+      if in_test then
+        List_.map
+          (fun (x : Out.skipped_target) -> { x with Out.details = None })
+          skipped
+      else skipped
+    in
+    Some skipped
+  in
+  (* Add the targets that were semgrepignored or errorneous *)
+  { res with core = { res.core with paths = { res.core.paths with skipped } } }
+
+(*****************************************************************************)
+(* Nosemgrep and autofix *)
+(*****************************************************************************)
+
 (* The test test_autofix.py::terraform-ec2-instance-metadata-options.yaml
    carries a newline at the end of the "fix" string, which is not the case
    for PySemgrep.
    TODO Trimming the "fix" here is a hacky workaround, it may be better to dig
    down where and why the newline is inserted into "fix".
 *)
-let trim_core_match_fix (r : OutJ.core_match) =
-  let fix = Option.map String.trim r.OutJ.extra.fix in
+let trim_core_match_fix (r : Out.core_match) =
+  let fix = Option.map String.trim r.Out.extra.fix in
   let extra = { r.extra with fix } in
   { r with extra }
 
-(*****************************************************************************)
-(* Differential scanning *)
-(*****************************************************************************)
-
-(* This function removes duplicated matches from the results of the
-   head commit scan if they are also present in the results of the
-   baseline commit scan. Matches are considered identical if the
-   tuples containing the rule ID, file path, and matched code snippet
-   are equal. *)
-let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
-    (head : Core_result.t)
-    (renamed : (string (* filename *) * string (* filename *)) list) =
-  let extract_sig renamed (m : Pattern_match.t) =
-    let rule_id = m.rule_id in
-    let path =
-      !!(m.path.internal_path_to_content) |> fun p ->
-      Option.bind renamed
-        (List_.find_some_opt (fun (before, after) ->
-             if after = p then Some before else None))
-      |> Option.value ~default:p
-    in
-    let start_range, end_range = m.range_loc in
-    let syntactic_ctx =
-      UFile.lines_of_file
-        (start_range.pos.line, end_range.pos.line)
-        m.path.internal_path_to_content
-    in
-    (rule_id, path, syntactic_ctx)
+let adjust_nosemgrep_and_autofix ~keep_ignored (res : Core_runner.result) :
+    Core_runner.result =
+  let filtered_matches =
+    res.core.results
+    |> List_.map trim_core_match_fix
+    |> Nosemgrep.filter_ignored ~keep_ignored
   in
-  let sigs = Hashtbl.create 10 in
-  Git_wrapper.run_with_worktree caps ~commit (fun () ->
-      List.iter
-        (fun ({ pm; _ } : Core_result.processed_match) ->
-          pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
-        baseline.processed_matches);
-  let removed = ref 0 in
-  let processed_matches =
-    List_.filter_map
-      (fun (pm : Core_result.processed_match) ->
-        let s = extract_sig (Some renamed) pm.pm in
-        if Hashtbl.mem sigs s then (
-          Hashtbl.remove sigs s;
-          incr removed;
-          None)
-        else Some pm)
-      (head.processed_matches
-       (* Sort the matches in ascending order according to their byte positions.
-          This ensures that duplicated matches are not removed arbitrarily;
-          rather, priority is given to removing matches positioned closer to the
-          beginning of the file. *)
-      |> List.sort
-           (fun ({ pm = x; _ } : Core_result.processed_match) { pm = y; _ } ->
-             let x_start_range, x_end_range = x.Pattern_match.range_loc in
-             let y_start_range, y_end_range = y.Pattern_match.range_loc in
-             let start_compare =
-               x_start_range.pos.bytepos - y_start_range.pos.bytepos
-             in
-             if start_compare <> 0 then start_compare
-             else x_end_range.pos.bytepos - y_end_range.pos.bytepos))
-  in
-  Logs.app (fun m ->
-      m "Removed %s that were in baseline scan"
-        (String_.unit_str !removed "finding"));
-  { head with processed_matches }
-
-(* Execute the engine again on the baseline checkout, utilizing only
-   the files and rules linked with matches from the head checkout
-   scan. Subsequently, eliminate any previously identified matches
-   from the results of the head checkout scan. *)
-let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
-    (conf : Scan_CLI.conf) (profiler : Profiler.t)
-    (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
-    (commit : string) (status : Git_wrapper.status)
-    (core :
-      Fpath.t list ->
-      ?diff_config:Differential_scan_config.t ->
-      Rule.rules ->
-      unit ->
-      Core_result.result_or_exn) : Core_result.result_or_exn =
-  let/ r = result_or_exn in
-  if r.processed_matches <> [] then
-    let add_renamed paths =
-      List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
-    in
-    let remove_added paths =
-      List.fold_left (Fun.flip SS.remove) paths status.added
-    in
-    let rules_in_match =
-      r.processed_matches
-      |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-             pm.Pattern_match.rule_id.id |> Rule_ID.to_string)
-      |> SS.of_list
-    in
-    (* only use the rules that have been identified within the existing
-       matches. *)
-    let baseline_rules =
-      rules
-      |> List.filter (fun x ->
-             SS.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
-    in
-    let baseline_result =
-      Profiler.record profiler ~name:"baseline_core_time" (fun () ->
-          Git_wrapper.run_with_worktree caps ~commit (fun () ->
-              let prepare_targets paths =
-                paths |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
-                |> Seq.filter_map (fun x ->
-                       if
-                         Sys.file_exists x
-                         &&
-                         match (Unix.lstat x).st_kind with
-                         | S_LNK -> false
-                         | _ -> true
-                       then Some (Fpath.v x)
-                       else None)
-                |> List.of_seq
-              in
-              let paths_in_match =
-                r.processed_matches
-                |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-                       !!(pm.path.internal_path_to_content))
-                |> prepare_targets
-              in
-              let paths_in_scanned =
-                r.scanned
-                |> List_.map (fun p ->
-                       p |> Target.internal_path |> Fpath.to_string)
-                |> prepare_targets
-              in
-              let baseline_targets, baseline_diff_targets =
-                match conf.engine_type with
-                | PRO Engine_type.{ analysis = Interprocedural; _ } ->
-                    let all_in_baseline, _ =
-                      Find_targets.get_target_fpaths conf.targeting_conf
-                        conf.target_roots
-                    in
-                    (* Performing a scan on the same set of files for the
-                       baseline that were previously scanned for the head.
-                       In Interfile mode, the matches are influenced not
-                       only by the file displaying matches but also by its
-                       dependencies. Hence, merely rescanning files with
-                       matches is insufficient. *)
-                    (all_in_baseline, paths_in_scanned)
-                | _ -> (paths_in_match, [])
-              in
-              core baseline_targets
-                ~diff_config:
-                  (Differential_scan_config.BaseLine baseline_diff_targets)
-                baseline_rules ()))
-    in
-    match baseline_result with
-    | Error _exn -> baseline_result
-    | Ok baseline_r ->
-        Ok (remove_matches_in_baseline caps commit baseline_r r status.renamed)
-  else Ok r
-
-let scan_baseline (caps : < Cap.chdir ; Cap.tmp >) (conf : Scan_CLI.conf)
-    (baseline_commit : string) (targets : Fpath.t list)
-    (filtered_rules : Rule.rules) (profiler : Profiler.t)
-    (scan_func :
-      Fpath.t list ->
-      ?diff_config:Differential_scan_config.t ->
-      Rule.rules ->
-      unit ->
-      Core_result.result_or_exn) =
-  Logs.info (fun m ->
-      m "running differential scan on base commit %s" baseline_commit);
-  Metrics_.g.payload.environment.isDiffScan <- true;
-  let commit = Git_wrapper.get_merge_base baseline_commit in
-  let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
-  let diff_depth = Differential_scan_config.default_depth in
-  let targets, diff_targets =
-    let added_or_modified =
-      status.added @ status.modified |> List_.map Fpath.v
-    in
-    match conf.engine_type with
-    | PRO Engine_type.{ analysis = Interfile; _ } -> (targets, added_or_modified)
-    | _ -> (added_or_modified, [])
-  in
-  let (head_scan_result : Core_result.result_or_exn) =
-    Profiler.record profiler ~name:"head_core_time"
-      (scan_func targets
-         ~diff_config:
-           (Differential_scan_config.Depth (diff_targets, diff_depth))
-         filtered_rules)
-  in
-  (match (head_scan_result, conf.engine_type) with
-  | Ok r, PRO Engine_type.{ analysis = Interfile; _ } ->
-      let count_by_lang = Hashtbl.create 10 in
-      r.scanned
-      |> List.iter (function
-           | Target.Regular { analyzer = L (lang, _); _ } ->
-               let count =
-                 match Hashtbl.find_opt count_by_lang lang with
-                 | Some c -> c
-                 | None -> 0
-               in
-               Hashtbl.replace count_by_lang lang (count + 1)
-           | _ -> ());
-      Metrics_.g.payload.value.proFeatures <-
-        Some
-          {
-            diffDepth = Some diff_depth;
-            numInterfileDiffScanned =
-              Some
-                (count_by_lang |> Hashtbl.to_seq
-                |> Seq.map (fun (lang, count) -> (Lang.to_string lang, count))
-                |> List.of_seq);
-          }
-  | _ -> ());
-  scan_baseline_and_remove_duplicates caps conf profiler head_scan_result
-    filtered_rules commit status scan_func
+  { res with core = { res.core with results = filtered_matches } }
 
 (*****************************************************************************)
 (* Yet another check targets with rules *)
 (*****************************************************************************)
+(* this is called also from Ci_subcommand.ml *)
 let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
-    (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
-    =
+    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
+    (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
   (* step 1: last touch on rules *)
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
   let/ rules = uniq_rules_and_error_if_empty_rules rules in
-  let filtered_rules =
-    Rule_filtering.filter_rules conf.rule_filtering_conf rules
-  in
-  Logs.info (fun m ->
-      m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
+  let rules = Rule_filtering.filter_rules conf.rule_filtering_conf rules in
+  Logs.info (fun m -> m "%a" Rules_report.pp_rules (conf.rules_source, rules));
 
   (* step 2: printing the skipped targets *)
   let targets, skipped = targets_and_skipped in
@@ -688,15 +507,13 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
   Log_targeting.Log.debug (fun m ->
       skipped
       |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
-             m "Ignoring %s due to %s (%s)"
-               !!(x.Semgrep_output_v1_t.path)
-               (Semgrep_output_v1_t.show_skip_reason
-                  x.Semgrep_output_v1_t.reason)
-               (x.Semgrep_output_v1_t.details ||| "")));
+             m "Ignoring %s due to %s (%s)" !!(x.path)
+               (Semgrep_output_v1_t.show_skip_reason x.reason)
+               (x.details ||| "")));
 
   (* step 3: choose the right engine and right hooks *)
   let output_format, file_match_results_hook =
-    choose_output_format_and_match_hook conf filtered_rules
+    choose_output_format_and_match_hook conf rules
   in
   (* TODO: What is this wrapping for? It makes things really hard to
      follow. Choose a better name (oss_por_pro_scan_func?) *)
@@ -705,63 +522,30 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
   in
   (* step 3': call the engine! *)
   Logs.info (fun m -> m "running the semgrep engine");
-  let (exn_and_matches : Core_result.result_or_exn) =
+  let (result_or_exn : Core_result.result_or_exn) =
     match conf.targeting_conf.baseline_commit with
     | None ->
-        Profiler.record profiler ~name:"core_time"
-          (scan_func targets filtered_rules)
+        Profiler.record profiler ~name:"core_time" (scan_func targets rules)
     | Some baseline_commit ->
         (* scan_baseline calls internally Profiler.record "head_core_time"  *)
         (* diff scan mode *)
-        scan_baseline
+        Diff_scan.scan_baseline
           (caps :> < Cap.chdir ; Cap.tmp >)
-          conf baseline_commit targets filtered_rules profiler scan_func
+          conf baseline_commit targets rules profiler scan_func
   in
   let (res : Core_runner.result) =
-    let res = Core_runner.create_core_result filtered_rules exn_and_matches in
-    (* step 3'': filter via nosemgrep *)
-    let keep_ignored =
-      (not conf.core_runner_conf.nosem)
-      (* --disable-nosem *)
-      || Output_format.keep_ignores output_format
-    in
-    let filtered_matches =
-      res.core.results
-      |> List_.map trim_core_match_fix
-      |> Nosemgrep.filter_ignored ~keep_ignored
-    in
-    { res with core = { res.core with results = filtered_matches } }
+    Core_runner.create_core_result rules result_or_exn
   in
+  (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)
+  let keep_ignored =
+    (not conf.core_runner_conf.nosem)
+    (* --disable-nosem *)
+    || Output_format.keep_ignores output_format
+  in
+  let res = adjust_nosemgrep_and_autofix ~keep_ignored res in
 
   (* step 4: adjust the skipped_targets *)
-  let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
-  let skipped = skipped @ errors_skipped in
-  let (res : Core_runner.result) =
-    (* TODO: what is in core.skipped_targets? should we add them to
-     * skipped above too?
-     *)
-    let skipped =
-      let skipped = skipped @ List_.optlist_to_list res.core.paths.skipped in
-      let in_test =
-        !Semgrep_envvars.v.user_agent_append
-        |> Option.map (fun s -> String.equal s "pytest")
-        |> Option.value ~default:false
-      in
-      let skipped =
-        if in_test then
-          List_.map
-            (fun (x : OutJ.skipped_target) -> { x with OutJ.details = None })
-            skipped
-        else skipped
-      in
-      Some skipped
-    in
-    (* Add the targets that were semgrepignored or errorneous *)
-    {
-      res with
-      core = { res.core with paths = { res.core.paths with skipped } };
-    }
-  in
+  let res = adjust_skipped skipped res in
 
   (* step 5: report the matches *)
   Logs.info (fun m -> m "reporting matches if any");
@@ -783,7 +567,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
   Profiler.stop_ign profiler ~name:"total_time";
 
   let rules_with_targets =
-    match exn_and_matches with
+    match result_or_exn with
     | Ok r ->
         r.rules_with_targets
         |> List_.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
@@ -792,8 +576,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 
   if Metrics_.is_enabled () then (
     Metrics_.add_errors cli_output.errors;
-    Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
-      filtered_rules;
+    Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time rules;
     Metrics_.add_rules_hashes_and_findings_count (rules_and_counted_matches res);
     Metrics_.add_profiling profiler);
 
@@ -838,7 +621,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
        """
        return False
   *)
-  Ok (filtered_rules, res, cli_output)
+  Ok (rules, res, cli_output)
 
 (*****************************************************************************)
 (* Run the real 'scan' subcommand *)
@@ -958,7 +741,6 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     ~level:conf.common.logging_level;
   Logs.info (fun m -> m "Semgrep version: %s" Version.version);
 
-  (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf =
     (* ugly: also partially done in CLI.ml *)
     (* TOADAPT
